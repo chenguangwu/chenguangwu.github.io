@@ -136,6 +136,64 @@
   }
 
   /** 解析「逗号/空格分隔」的数值串（中英文逗号、空白均支持），丢掉非数字项 */
+  /* ---------- 统计分布（供检验类工具复用，避免每页复制一遍） ---------- */
+  function erf(x) {
+    var sgn = x < 0 ? -1 : 1; x = Math.abs(x);
+    var t = 1 / (1 + 0.3275911 * x);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t) * Math.exp(-x * x);
+    return sgn * y;
+  }
+  function lgamma(z) {
+    var g = 7;
+    var c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+      -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+    z -= 1; var x = c[0];
+    for (var i = 1; i < g + 2; i++) x += c[i] / (z + i);
+    var t = z + g + 0.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+  }
+  function betacf(a, b, x) {
+    var MAXIT = 200, EPS = 3e-12, FPMIN = 1e-300;
+    var qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap, h;
+    if (Math.abs(d) < FPMIN) d = FPMIN; d = 1 / d; h = d;
+    for (var m = 1; m <= MAXIT; m++) {
+      var m2 = 2 * m, aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+      c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+      d = 1 / d; h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+      c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+      d = 1 / d; var del = d * c; h *= del;
+      if (Math.abs(del - 1) < EPS) break;
+    }
+    return h;
+  }
+  function betai(a, b, x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    var bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+    if (x < (a + 1) / (a + b + 2)) return bt * betacf(a, b, x) / a;
+    return 1 - bt * betacf(b, a, 1 - x) / b;
+  }
+  /** 标准正态 CDF Φ(z) */
+  function normCdf(z) { return 0.5 * (1 + erf(z / Math.SQRT2)); }
+  /** t 分布双尾 p 值 P(|T|>|t|)，df>0 */
+  function tP2(t, df) {
+    if (!(df > 0) || !isFinite(t)) return NaN;
+    return betai(df / 2, 0.5, df / (df + t * t));
+  }
+  /** t 分布双尾临界值（二分法，α 常用 0.1/0.05/0.01） */
+  function tCrit(df, alpha) {
+    if (!(df > 0)) return NaN;
+    var lo = 0, hi = 100;
+    for (var i = 0; i < 80; i++) {
+      var mid = (lo + hi) / 2;
+      if (tP2(mid, df) > alpha) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
   function parseList(str) {
     var raw = String(str == null ? '' : str);
     var out = [];
@@ -1094,7 +1152,8 @@
     util: {
       fmt: fmt, num: num, toast: toast, el: el, svg: s, palette: PALETTE, isEn: isEn,
       lang: function (en, zh) { return isEn() ? en : zh; },
-      parseList: parseList, diffBox: diffBox, exportCsv: exp.csv, exportTable: exportTable
+      parseList: parseList, diffBox: diffBox, exportCsv: exp.csv, exportTable: exportTable,
+      erf: erf, normCdf: normCdf, tP2: tP2, tCrit: tCrit
     },
     chart: chart,
     preset: preset,

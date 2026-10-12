@@ -136,12 +136,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bpPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__bpExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="bpChart" role="img" aria-label="结果可视化"></div>
+    <div id="bpDiff"></div>
+    <div id="bpHist"></div>
+    <div id="bpTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -189,12 +197,12 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
             const n = Math.min(Math.round(num('n')), 1000), k = Math.min(Math.round(num('k')), 1000), p = num('p');
-            function fact(m){let f=1;for(let i=2;i<=m;i++)f*=i;return f;}
-            const C = fact(n) / (fact(k) * fact(n - k));
+            let __logC=0; for(let i=1;i<=Math.min(k,n-k);i++) __logC += Math.log((n-Math.min(k,n-k)+i)/i);
+            const C = Math.exp(__logC);
             const P = C * Math.pow(p, k) * Math.pow(1 - p, n - k);
             const __g1=dataGrid([
                 [P.toFixed(5), 'P(X=' + k + ')'],
-                [C.toFixed(0), '组合数 C(' + n + ',' + k + ')']
+                [C>=1e15?C.toExponential(4):C.toFixed(0), '组合数 C(' + n + ',' + k + ')']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('n').value = '10';
@@ -202,6 +210,74 @@ function resetForm(){document.getElementById('n').value = '10';
       document.getElementById('p').value = '0.5';
       calcTool();}
 calcTool();
+
+function __bpNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __bpPmf(n,p,lim){
+  var out=[],i;
+  if(p<=0){ for(i=0;i<=lim;i++) out.push(i===0?1:0); return out; }
+  if(p>=1){ for(i=0;i<=lim;i++) out.push(i===n?1:0); return out; }
+  var q=1-p, cur=Math.pow(q,n);
+  out.push(cur);
+  for(i=1;i<=lim;i++){ cur=cur*(n-i+1)/i*p/q; out.push(cur); }
+  return out;
+}
+function __bpExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n=Math.round(__bpNum('n')), k=Math.round(__bpNum('k')), p=__bpNum('p');
+    if(!isFinite(n)||!isFinite(k)||!isFinite(p)||n<0||k<0||k>n||p<0||p>1) return;
+    var en=TBKit.util.isEn();
+    var lim=Math.min(n,24);
+    var pmf=__bpPmf(n,p,lim);
+    var pk=(k<=lim)?pmf[k]:__bpPmf(n,p,k)[k];
+    var labels=[],hi=[],lo=[],rows=[],cum=0;
+    for(var i=0;i<=lim;i++){
+        cum+=pmf[i];
+        labels.push(String(i));
+        hi.push(i===k?pmf[i]:0);
+        lo.push(i===k?0:pmf[i]);
+        rows.push([String(i)+(i===k?' ★':''), pmf[i].toFixed(6), cum.toFixed(6)]);
+    }
+    TBKit.chart.bar('#bpChart',{
+        labels: labels,
+        series: [
+            {name: en?'Other k':'其余 P(X=k)', data: lo, color:'#CBD5E1'},
+            {name: 'P(X='+k+')', data: hi, color:'#3B82F6'}
+        ],
+        height: 220,
+        title: en?('PMF of Bin('+n+', '+p.toFixed(3)+')'):('二项分布概率质量 Bin('+n+', '+p.toFixed(3)+')')
+    });
+    TBKit.matrix.table('#bpTable',{
+        head: ['k','P(X=k)','P(X≤k)'],
+        rows: rows
+    });
+    TBKit.history.record({n:n,k:k,p:p,pk:Number((pk||0).toFixed(6))});
+    TBKit.util.diffBox('#bpDiff',['pk']);
+    TBKit.history.mount('#bpHist',function(v){
+        if(v.n!=null)document.getElementById('n').value=v.n;
+        if(v.k!=null)document.getElementById('k').value=v.k;
+        if(v.p!=null)document.getElementById('p').value=v.p;
+        calcTool();
+    });
+}
+function __bpExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bpTable','binomial-pmf.csv'); } catch (e) {}
+}
+function __bpPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bpPresets',[
+        {label:'抛硬币 10 次正面 5 次',labelEn:'10 flips, 5 heads',values:{n:10,k:5,p:0.5}},
+        {label:'抽检 20 件出现 2 件不良（不良率 5%）',labelEn:'20 items, 2 defective (5%)',values:{n:20,k:2,p:0.05}},
+        {label:'掷骰 12 次出现 3 次六点',labelEn:'12 rolls, 3 sixes',values:{n:12,k:3,p:0.1667}},
+        {label:'投篮 15 中 9（命中率 60%）',labelEn:'15 shots, 9 made (60%)',values:{n:15,k:9,p:0.6}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __bpExtras(); } catch (e) {} };
+calcTool();
+__bpPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

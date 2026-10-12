@@ -142,12 +142,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ztPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__ztExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="ztChart" role="img" aria-label="结果可视化"></div>
+    <div id="ztDiff"></div>
+    <div id="ztHist"></div>
+    <div id="ztTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -294,6 +302,73 @@ function resetForm(){document.getElementById('xbar').value = '52';
       document.getElementById('n').value = '100';
       calcTool();}
 calcTool();
+
+function __ztNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __ztExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var xb=__ztNum('xbar'), m0=__ztNum('mu0'), s=__ztNum('sigma'), n=__ztNum('n');
+    if(!isFinite(xb)||!isFinite(m0)||!isFinite(s)||!isFinite(n)||s<=0||n<=0) return;
+    var en=TBKit.util.isEn();
+    var se=s/Math.sqrt(n);
+    var z=(xb-m0)/se;
+    var p=2*(1-TBKit.util.normCdf(Math.abs(z)));
+    var lo=xb-1.96*se, hi=xb+1.96*se;
+    var d=(xb-m0)/s;
+    TBKit.chart.gauge('#ztChart',{
+        value: Math.min(99.99, (1-p)*100), min:0, max:100,
+        text: (p<0.01?'p<0.01':'p='+p.toFixed(4)),
+        title: en?('Evidence against H₀ (1−p)'):('拒绝 H₀ 的证据强度 (1−p)'),
+        color: p<0.05?'#EF4444':'#10B981', height:170
+    });
+    TBKit.matrix.table('#ztTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Sample mean', xb.toFixed(4), 'x̄'],
+            ['Hypothesised mean', m0.toFixed(4), 'μ₀'],
+            ['Standard error', se.toFixed(4), 'σ/√n'],
+            ['z statistic', z.toFixed(4), '(x̄−μ₀)/SE'],
+            ['Two-sided p', p.toFixed(6), p<0.05?'significant at 5%':'not significant'],
+            ['95% CI', lo.toFixed(4)+' – '+hi.toFixed(4), m0>=lo&&m0<=hi?'contains μ₀':'excludes μ₀'],
+            ['Effect size d', d.toFixed(4), 'Cohen d']
+        ]:[
+            ['样本均值', xb.toFixed(4), 'x̄'],
+            ['假设均值', m0.toFixed(4), 'μ₀'],
+            ['标准误', se.toFixed(4), 'σ/√n'],
+            ['z 统计量', z.toFixed(4), '(x̄−μ₀)/SE'],
+            ['双侧 p 值', p.toFixed(6), p<0.05?'5% 水平显著':'不显著'],
+            ['95% 置信区间', lo.toFixed(4)+' – '+hi.toFixed(4), m0>=lo&&m0<=hi?'含 μ₀':'不含 μ₀'],
+            ['效应量 d', d.toFixed(4), 'Cohen d']
+        ]
+    });
+    TBKit.history.record({xbar:xb,mu0:m0,sigma:s,n:n,z:Number(z.toFixed(4))});
+    TBKit.util.diffBox('#ztDiff',['z']);
+    TBKit.history.mount('#ztHist',function(v){
+        if(v.xbar!=null)document.getElementById('xbar').value=v.xbar;
+        if(v.mu0!=null)document.getElementById('mu0').value=v.mu0;
+        if(v.sigma!=null)document.getElementById('sigma').value=v.sigma;
+        if(v.n!=null)document.getElementById('n').value=v.n;
+        calcTool();
+    });
+}
+function __ztExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ztTable','one-sample-z-test.csv'); } catch (e) {}
+}
+function __ztPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ztPresets',[
+        {label:'袋装重量 498g vs 标称 500g（σ=5, n=36）',labelEn:'Bag weight 498 vs 500 (σ=5, n=36)',values:{xbar:498,mu0:500,sigma:5,n:36}},
+        {label:'考试均分 52 vs 50（σ=10, n=100）',labelEn:'Score 52 vs 50 (σ=10, n=100)',values:{xbar:52,mu0:50,sigma:10,n:100}},
+        {label:'显著案例 105 vs 100（σ=15, n=64）',labelEn:'Significant 105 vs 100 (σ=15, n=64)',values:{xbar:105,mu0:100,sigma:15,n:64}},
+        {label:'无差异 100.2 vs 100（σ=8, n=25）',labelEn:'No difference 100.2 vs 100 (σ=8, n=25)',values:{xbar:100.2,mu0:100,sigma:8,n:25}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __ztExtras(); } catch (e) {} };
+calcTool();
+__ztPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

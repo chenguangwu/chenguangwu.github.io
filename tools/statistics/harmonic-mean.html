@@ -130,12 +130,21 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hmPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__hmExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="hmDiff"></div>
+    <div id="hmHist"></div>
+    <div id="hmTable"></div>
+    <div id="hmMatrix"></div>
+    <div id="hmCmp"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -248,6 +257,75 @@ const arr = document.getElementById('data').value.split(',').map(s=>parseFloat(s
 function resetForm(){document.getElementById('data').value = '60,40,30';
       calcTool();}
 calcTool();
+
+function __hmNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __hmExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var raw=document.getElementById('data').value;
+    var arr=TBKit.util.parseList(raw).filter(function(v){return v>0;});
+    var n=arr.length; if(!n) return;
+    var en=TBKit.util.isEn();
+    var inv=arr.map(function(v){return 1/v;});
+    var sumInv=inv.reduce(function(a,b){return a+b;},0);
+    var H=n/sumInv;
+    var A=arr.reduce(function(a,b){return a+b;},0)/n;
+    var G=Math.exp(arr.reduce(function(a,b){return a+Math.log(b);},0)/n);
+    var rows=[];
+    arr.forEach(function(v,i){
+        rows.push([String(i+1), String(v), inv[i].toFixed(6), (inv[i]/sumInv*100).toFixed(2)+'%']);
+    });
+    TBKit.matrix.table('#hmTable',{
+        head: en?['#','Value','1 / x','Weight']:['#','数值','1 / x','倒数权重'],
+        rows: rows
+    });
+    var scen=[[60,40],[80,20],[50,50],[30,70],[90,30]], mrows=[];
+    scen.forEach(function(c){
+        var v1=c[0],v2=c[1];
+        var ha=2/(1/v1+1/v2), ar=(v1+v2)/2;
+        mrows.push([v1+' / '+v2, ha.toFixed(2), ar.toFixed(2), (ar-ha).toFixed(2)]);
+    });
+    TBKit.matrix.table('#hmMatrix',{
+        head: en?['Round trip speeds','True mean (H)','Arithmetic mean','Overestimate']:['往返速度 km/h','真实平均速度（调和）','算术平均','高估量'],
+        rows: mrows
+    });
+    TBKit.matrix.table('#hmCmp',{
+        head: en?['Mean','Value','Use for']:['平均类型','数值','适用口径'],
+        rows: en?[
+            ['Harmonic', H.toFixed(5), 'equal-distance speeds, rates'],
+            ['Arithmetic', A.toFixed(5), 'equal-time averages'],
+            ['Geometric', G.toFixed(5), 'growth chains']
+        ]:[
+            ['调和平均', H.toFixed(5), '等距离速度、速率平均'],
+            ['算术平均', A.toFixed(5), '等时间平均'],
+            ['几何平均', G.toFixed(5), '增长率连乘']
+        ]
+    });
+    TBKit.history.record({data:raw,h:Number(H.toFixed(5))});
+    TBKit.util.diffBox('#hmDiff',['h']);
+    TBKit.history.mount('#hmHist',function(v){
+        if(v.data!=null)document.getElementById('data').value=v.data;
+        calcTool();
+    });
+}
+function __hmExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hmTable','harmonic-mean.csv'); } catch (e) {}
+}
+function __hmPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hmPresets',[
+        {label:'往返速度 60/40/30',labelEn:'Round trip 60/40/30',values:{data:'60,40,30'}},
+        {label:'并联电阻 100/200/300 Ω',labelEn:'Parallel resistors 100/200/300',values:{data:'100,200,300'}},
+        {label:'三段等距速度 50/60/75',labelEn:'Three equal legs 50/60/75',values:{data:'50,60,75'}},
+        {label:'单价批量 2/5/10 元/件',labelEn:'Batch prices 2/5/10',values:{data:'2,5,10'}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __hmExtras(); } catch (e) {} };
+calcTool();
+__hmPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

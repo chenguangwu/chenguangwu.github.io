@@ -142,12 +142,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pvPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__pvExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="pvChart" role="img" aria-label="结果可视化"></div>
+    <div id="pvDiff"></div>
+    <div id="pvHist"></div>
+    <div id="pvTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -206,6 +214,61 @@ function resetForm(){document.getElementById('n1').value = '10';
       document.getElementById('s2').value = '3';
       calcTool();}
 calcTool();
+
+function __pvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __pvExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n1=__pvNum('n1'),s1=__pvNum('s1'),n2=__pvNum('n2'),s2=__pvNum('s2');
+    if(!isFinite(n1)||!isFinite(s1)||!isFinite(n2)||!isFinite(s2)||n1<2||n2<2||s1<0||s2<0) return;
+    var en=TBKit.util.isEn();
+    var df1=n1-1, df2=n2-1;
+    var ss1=df1*s1*s1, ss2=df2*s2*s2;
+    var sp2=(ss1+ss2)/(df1+df2);
+    var sp=Math.sqrt(sp2);
+    TBKit.chart.pie('#pvChart',{
+        items: [
+            {label: en?('Group 1 SS ('+(ss1/(ss1+ss2)*100).toFixed(1)+'%)'):('组 1 平方和 ('+(ss1/(ss1+ss2)*100).toFixed(1)+'%)'), value: ss1, color:'#3B82F6'},
+            {label: en?('Group 2 SS ('+(ss2/(ss1+ss2)*100).toFixed(1)+'%)'):('组 2 平方和 ('+(ss2/(ss1+ss2)*100).toFixed(1)+'%)'), value: ss2, color:'#F59E0B'}
+        ],
+        title: en?'Sum of squares contribution':'平方和贡献占比', height: 220, center: true
+    });
+    TBKit.matrix.table('#pvTable',{
+        head: en?['Group','n','SD','Variance','df','SS = df·s²','Share']:['组','n','标准差 s','方差 s²','自由度 df','平方和 df·s²','占比'],
+        rows: [
+            [en?'Group 1':'组 1', String(n1), s1.toFixed(4), (s1*s1).toFixed(4), String(df1), ss1.toFixed(4), (ss1/(ss1+ss2)*100).toFixed(2)+'%'],
+            [en?'Group 2':'组 2', String(n2), s2.toFixed(4), (s2*s2).toFixed(4), String(df2), ss2.toFixed(4), (ss2/(ss1+ss2)*100).toFixed(2)+'%'],
+            [en?'Pooled':'合并', String(n1+n2), sp.toFixed(4), sp2.toFixed(4), String(df1+df2), (ss1+ss2).toFixed(4), '100%']
+        ]
+    });
+    TBKit.history.record({n1:n1,s1:s1,n2:n2,s2:s2,sp2:Number(sp2.toFixed(4))});
+    TBKit.util.diffBox('#pvDiff',['sp2']);
+    TBKit.history.mount('#pvHist',function(v){
+        if(v.n1!=null)document.getElementById('n1').value=v.n1;
+        if(v.s1!=null)document.getElementById('s1').value=v.s1;
+        if(v.n2!=null)document.getElementById('n2').value=v.n2;
+        if(v.s2!=null)document.getElementById('s2').value=v.s2;
+        calcTool();
+    });
+}
+function __pvExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pvTable','pooled-variance.csv'); } catch (e) {}
+}
+function __pvPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pvPresets',[
+        {label:'两组样本 10/2 与 12/3',labelEn:'Two samples 10/2 and 12/3',values:{n1:10,s1:2,n2:12,s2:3}},
+        {label:'样本量悬殊 30/1.5 与 6/4',labelEn:'Unequal 30/1.5 and 6/4',values:{n1:30,s1:1.5,n2:6,s2:4}},
+        {label:'方差接近 20/2.5 与 25/2.8',labelEn:'Similar 20/2.5 and 25/2.8',values:{n1:20,s1:2.5,n2:25,s2:2.8}},
+        {label:'方差悬殊 15/1 与 15/6',labelEn:'Very different 15/1 and 15/6',values:{n1:15,s1:1,n2:15,s2:6}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __pvExtras(); } catch (e) {} };
+calcTool();
+__pvPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

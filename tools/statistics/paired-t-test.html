@@ -136,12 +136,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ptPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__ptExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="ptDiff"></div>
+    <div id="ptHist"></div>
+    <div id="ptTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -289,6 +296,70 @@ function resetForm(){document.getElementById('dbar').value = '2.5';
       document.getElementById('n').value = '15';
       calcTool();}
 calcTool();
+
+function __ptNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __ptExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var d=__ptNum('dbar'), s=__ptNum('sd'), n=__ptNum('n');
+    if(!isFinite(d)||!isFinite(s)||!isFinite(n)||s<=0||n<2) return;
+    var en=TBKit.util.isEn();
+    var se=s/Math.sqrt(n), df=n-1, t=d/se;
+    var p=TBKit.util.tP2(t,df);
+    var tc=TBKit.util.tCrit(df,0.05);
+    var lo=d-tc*se, hi=d+tc*se;
+    var dz=d/s;
+    TBKit.matrix.table('#ptTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Mean difference', d.toFixed(4), 'd̄'],
+            ['SD of differences', s.toFixed(4), 's_d'],
+            ['Pairs', String(n), 'n'],
+            ['Standard error', se.toFixed(4), 's_d/√n'],
+            ['t statistic', t.toFixed(4), 'd̄/SE'],
+            ['df', String(df), 'n − 1'],
+            ['Two-sided p', p.toFixed(6), p<0.05?'significant at 5%':'not significant'],
+            ['95% CI', lo.toFixed(4)+' – '+hi.toFixed(4), (lo>0||hi<0)?'excludes 0':'contains 0'],
+            ['Cohen d_z', dz.toFixed(4), dz>=0.8?'large':dz>=0.5?'medium':'small']
+        ]:[
+            ['差值均值', d.toFixed(4), 'd̄'],
+            ['差值标准差', s.toFixed(4), 's_d'],
+            ['配对数', String(n), 'n'],
+            ['标准误', se.toFixed(4), 's_d/√n'],
+            ['t 统计量', t.toFixed(4), 'd̄/SE'],
+            ['自由度 df', String(df), 'n − 1'],
+            ['双侧 p 值', p.toFixed(6), p<0.05?'5% 水平显著':'不显著'],
+            ['95% 置信区间', lo.toFixed(4)+' – '+hi.toFixed(4), (lo>0||hi<0)?'不含 0':'含 0'],
+            ['Cohen d_z', dz.toFixed(4), dz>=0.8?'大效应':dz>=0.5?'中效应':'小效应']
+        ]
+    });
+    TBKit.history.record({dbar:d,sd:s,n:n,t:Number(t.toFixed(4))});
+    TBKit.util.diffBox('#ptDiff',['t']);
+    TBKit.history.mount('#ptHist',function(v){
+        if(v.dbar!=null)document.getElementById('dbar').value=v.dbar;
+        if(v.sd!=null)document.getElementById('sd').value=v.sd;
+        if(v.n!=null)document.getElementById('n').value=v.n;
+        calcTool();
+    });
+}
+function __ptExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ptTable','paired-t-test.csv'); } catch (e) {}
+}
+function __ptPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ptPresets',[
+        {label:'减肥前后 −2.5kg（s=3, n=15）',labelEn:'Weight loss −2.5kg (s=3, n=15)',values:{dbar:-2.5,sd:3,n:15}},
+        {label:'培训后提分 +8（s=6, n=20）',labelEn:'Training +8 (s=6, n=20)',values:{dbar:8,sd:6,n:20}},
+        {label:'降压药 −6mmHg（s=4, n=30）',labelEn:'BP drug −6mmHg (s=4, n=30)',values:{dbar:-6,sd:4,n:30}},
+        {label:'差异微弱 +0.5（s=5, n=12）',labelEn:'Tiny effect +0.5 (s=5, n=12)',values:{dbar:0.5,sd:5,n:12}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __ptExtras(); } catch (e) {} };
+calcTool();
+__ptPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

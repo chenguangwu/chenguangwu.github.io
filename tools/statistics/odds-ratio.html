@@ -142,12 +142,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="orPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__orExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="orDiff"></div>
+    <div id="orHist"></div>
+    <div id="orTable"></div>
+    <div id="orStat"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -261,6 +269,81 @@ function resetForm(){document.getElementById('a').value = '40';
       document.getElementById('d').value = '80';
       calcTool();}
 calcTool();
+
+function __orNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __orExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=__orNum('a'),b=__orNum('b'),c=__orNum('c'),d=__orNum('d');
+    if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)) return;
+    if(a<=0||b<=0||c<=0||d<=0) return;
+    var en=TBKit.util.isEn();
+    var OR=(a*d)/(b*c);
+    var se=Math.sqrt(1/a+1/b+1/c+1/d);
+    var lo=Math.exp(Math.log(OR)-1.96*se), hi=Math.exp(Math.log(OR)+1.96*se);
+    var n=a+b+c+d;
+    var chi=(n*Math.pow(a*d-b*c,2))/((a+b)*(c+d)*(a+c)*(b+d));
+    var e1=a/(a+b), e0=c/(c+d);
+    TBKit.matrix.table('#orTable',{
+        head: en?['','Outcome +','Outcome −','Row total','Event rate']:['','结局 +','结局 −','行合计','事件率'],
+        rows: en?[
+            ['Exposed', String(a), String(b), String(a+b), (e1*100).toFixed(2)+'%'],
+            ['Unexposed', String(c), String(d), String(c+d), (e0*100).toFixed(2)+'%'],
+            ['Column total', String(a+c), String(b+d), String(n), ((a+c)/n*100).toFixed(2)+'%']
+        ]:[
+            ['暴露组', String(a), String(b), String(a+b), (e1*100).toFixed(2)+'%'],
+            ['非暴露组', String(c), String(d), String(c+d), (e0*100).toFixed(2)+'%'],
+            ['列合计', String(a+c), String(b+d), String(n), ((a+c)/n*100).toFixed(2)+'%']
+        ]
+    });
+    TBKit.matrix.table('#orStat',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Odds ratio', OR.toFixed(4), 'ad/(bc)'],
+            ['ln(OR)', Math.log(OR).toFixed(4), 'log scale'],
+            ['SE of ln(OR)', se.toFixed(4), 'Woolf formula'],
+            ['95% CI', lo.toFixed(4)+' – '+hi.toFixed(4), lo<=1&&hi>=1?'contains 1 (not significant)':'excludes 1 (significant)'],
+            ['Exposed odds', (a/b).toFixed(4), 'a/b'],
+            ['Unexposed odds', (c/d).toFixed(4), 'c/d'],
+            ['Chi-square', chi.toFixed(4), '1 df, uncorrected']
+        ]:[
+            ['比值比 OR', OR.toFixed(4), 'ad/(bc)'],
+            ['ln(OR)', Math.log(OR).toFixed(4), '对数尺度'],
+            ['ln(OR) 标准误', se.toFixed(4), 'Woolf 公式'],
+            ['95% 置信区间', lo.toFixed(4)+' – '+hi.toFixed(4), lo<=1&&hi>=1?'含 1（不显著）':'不含 1（显著）'],
+            ['暴露组 odds', (a/b).toFixed(4), 'a/b'],
+            ['非暴露组 odds', (c/d).toFixed(4), 'c/d'],
+            ['卡方 χ²', chi.toFixed(4), '1 自由度，未校正']
+        ]
+    });
+    TBKit.history.record({a:a,b:b,c:c,d:d,or:Number(OR.toFixed(4))});
+    TBKit.util.diffBox('#orDiff',['or']);
+    TBKit.history.mount('#orHist',function(v){
+        if(v.a!=null)document.getElementById('a').value=v.a;
+        if(v.b!=null)document.getElementById('b').value=v.b;
+        if(v.c!=null)document.getElementById('c').value=v.c;
+        if(v.d!=null)document.getElementById('d').value=v.d;
+        calcTool();
+    });
+}
+function __orExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#orStat','odds-ratio.csv'); } catch (e) {}
+}
+function __orPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#orPresets',[
+        {label:'吸烟与肺癌 40/60/20/80',labelEn:'Smoking & lung cancer 40/60/20/80',values:{a:40,b:60,c:20,d:80}},
+        {label:'疫苗保护 10/90/30/70',labelEn:'Vaccine 10/90/30/70',values:{a:10,b:90,c:30,d:70}},
+        {label:'药物有效 25/75/10/90',labelEn:'Drug effective 25/75/10/90',values:{a:25,b:75,c:10,d:90}},
+        {label:'无关联对照 30/70/30/70',labelEn:'Null control 30/70/30/70',values:{a:30,b:70,c:30,d:70}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __orExtras(); } catch (e) {} };
+calcTool();
+__orPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

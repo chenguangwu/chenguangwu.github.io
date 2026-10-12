@@ -128,12 +128,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="crPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__crExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="crDiff"></div>
+    <div id="crHist"></div>
+    <div id="crTable"></div>
+    <div id="crMatrix"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +201,69 @@ function calcTool(){
 function resetForm(){document.getElementById('r').value = '0.8';
       calcTool();}
 calcTool();
+
+function __crNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __crExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r=__crNum('r');
+    if(!isFinite(r)) return;
+    r=Math.max(-1,Math.min(1,r));
+    var en=TBKit.util.isEn();
+    var R2=r*r, vif=1/Math.max(1-R2,1e-9), mag=Math.abs(r);
+    var lvl = mag>=0.5?(en?'large':'大'):mag>=0.3?(en?'medium':'中'):mag>=0.1?(en?'small':'小'):(en?'negligible':'可忽略');
+    TBKit.matrix.table('#crTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['r', r.toFixed(4), 'correlation coefficient'],
+            ['R²', R2.toFixed(4), 'explained variance'],
+            ['Unexplained', (1-R2).toFixed(6), '1 − R²'],
+            ['Decisive odds', (R2/Math.max(1-R2,1e-9)).toFixed(6), 'R²/(1−R²)'],
+            ['VIF', vif.toFixed(6), vif>=5?'severe multicollinearity':'acceptable'],
+            ['Effect size', lvl, 'Cohen benchmark']
+        ]:[
+            ['r', r.toFixed(4), '相关系数'],
+            ['R²', R2.toFixed(4), '可解释变异比例'],
+            ['未解释变异', (1-R2).toFixed(6), '1 − R²'],
+            ['决定优势比', (R2/Math.max(1-R2,1e-9)).toFixed(6), 'R²/(1−R²)'],
+            ['VIF', vif.toFixed(6), vif>=5?'严重多重共线':'可接受'],
+            ['效应量', lvl, 'Cohen 参照']
+        ]
+    });
+    var rs=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95], mrows=[];
+    rs.forEach(function(v){
+        var q=v*v;
+        mrows.push([v.toFixed(2), q.toFixed(4), (q*100).toFixed(1)+'%', (1/Math.max(1-q,1e-9)).toFixed(3)]);
+    });
+    TBKit.matrix.table('#crMatrix',{
+        head: en?['r','R²','Explained %','VIF']:['r','R²','解释变异 %','VIF'],
+        rows: mrows
+    });
+    TBKit.history.record({r:r,r2:Number(R2.toFixed(4))});
+    TBKit.util.diffBox('#crDiff',['r2']);
+    TBKit.history.mount('#crHist',function(v){
+        if(v.r!=null)document.getElementById('r').value=v.r;
+        calcTool();
+    });
+}
+function __crExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#crMatrix','r-squared-lookup.csv'); } catch (e) {}
+}
+function __crPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#crPresets',[
+        {label:'身高与体重 r=0.7',labelEn:'Height & weight r=0.7',values:{r:0.7}},
+        {label:'广告投入与销量 r=0.5',labelEn:'Ad spend & sales r=0.5',values:{r:0.5}},
+        {label:'学习时长与成绩 r=0.35',labelEn:'Study time & score r=0.35',values:{r:0.35}},
+        {label:'物理实验强相关 r=0.95',labelEn:'Lab measurement r=0.95',values:{r:0.95}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __crExtras(); } catch (e) {} };
+calcTool();
+__crPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

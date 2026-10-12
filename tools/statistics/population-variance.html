@@ -129,12 +129,21 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="qvPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
-    </div>
+          <button class="btn" onclick="__qvExport()">导出明细 CSV</button>
+</div>
 
     <div class="result-box" id="result"></div>
+    <div id="qvChart" role="img" aria-label="结果可视化"></div>
+    <div id="qvDiff"></div>
+    <div id="qvHist"></div>
+    <div id="qvTable"></div>
+    <div id="qvCmp"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +256,70 @@ const arr = document.getElementById('data').value.split(',').map(s => parseFloat
 function resetForm(){document.getElementById('data').value = '2,4,4,4,5,5,7,9';
       calcTool();}
 calcTool();
+
+function __qvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+
+function __qvExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var arr=TBKit.util.parseList(document.getElementById('data').value);
+    var n=arr.length; if(n<2) return;
+    var en=TBKit.util.isEn();
+    var mean=arr.reduce(function(a,b){return a+b;},0)/n;
+    var ss=arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0);
+    var varr=ss/n, sd=Math.sqrt(varr);
+    var sv=ss/(n-1), ssd=Math.sqrt(sv);
+    var rows=[];
+    arr.forEach(function(v,i){
+        var dv=v-mean;
+        rows.push([String(i+1), String(v), dv.toFixed(4), (dv*dv).toFixed(4), ss>0?(dv*dv/ss*100).toFixed(2)+'%':'0%']);
+    });
+    TBKit.chart.histogram('#qvChart',{
+        data: arr,
+        title: en?'Distribution of the data':'数据分布直方图',
+        name: en?'Count':'频数', height: 200
+    });
+    TBKit.matrix.table('#qvTable',{
+        head: en?['#','Value','x − μ','(x − μ)²','Share of SS']:['#','数值','x − μ','(x − μ)²','占平方和'],
+        rows: rows
+    });
+    TBKit.matrix.table('#qvCmp',{
+        head: en?['Basis','Variance','SD','Note']:['口径','方差','标准差','说明'],
+        rows: en?[
+            ['Population (÷n)', varr.toFixed(4), sd.toFixed(4), 'use when all units observed'],
+            ['Sample (÷n−1)', sv.toFixed(4), ssd.toFixed(4), 'unbiased estimate'],
+            ['CV', (sd/Math.abs(mean)).toFixed(4), '—', 'SD / |mean|']
+        ]:[
+            ['总体（÷n）', varr.toFixed(4), sd.toFixed(4), '全部个体都观测到时用'],
+            ['样本（÷n−1）', sv.toFixed(4), ssd.toFixed(4), '无偏估计'],
+            ['变异系数 CV', (sd/Math.abs(mean)).toFixed(4), '—', '标准差 / |均值|']
+        ]
+    });
+    var raw=document.getElementById('data').value;
+    TBKit.history.record({data:raw,var:Number(varr.toFixed(4))});
+    TBKit.util.diffBox('#qvDiff',['var']);
+    TBKit.history.mount('#qvHist',function(v){
+        if(v.data!=null)document.getElementById('data').value=v.data;
+        calcTool();
+    });
+}
+function __qvExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#qvTable','population-variance.csv'); } catch (e) {}
+}
+function __qvPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#qvPresets',[
+        {label:'教科书例 2,4,4,4,5,5,7,9',labelEn:'Textbook 2,4,4,4,5,5,7,9',values:{data:'2,4,4,4,5,5,7,9'}},
+        {label:'考试成绩 68,72,75,80,85,88,90,93,95',labelEn:'Scores 68,72,75,80,85,88,90,93,95',values:{data:'68,72,75,80,85,88,90,93,95'}},
+        {label:'离散极大 1,1,1,1,50',labelEn:'High spread 1,1,1,1,50',values:{data:'1,1,1,1,50'}},
+        {label:'近似均匀 10,12,14,16,18,20',labelEn:'Near uniform 10,12,14,16,18,20',values:{data:'10,12,14,16,18,20'}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __qvExtras(); } catch (e) {} };
+calcTool();
+__qvPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
