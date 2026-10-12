@@ -51,7 +51,7 @@ const CASES = [
     ref: "稀释：原液 = 1/30×5L = 0.1667L = 166.7mL；加水量 = 5-0.1667 = 4.833L；稀释倍数 30/1 = 30",
   },
   {
-    slug: "general/tax",
+    slug: "construction/tax",
     inputs: { base: "2000000", vat: "13", city: "5", edu: "3", local: "2" },
     expect: ["260,000 增值税", "14.30% 综合税费率"],
     ref: "增值税 = 2000000×13% = 260000；城建税 = 260000×5% = 13000；附加合计 26000；综合税费率 = (260000+26000)/2000000 = 14.30%",
@@ -344,7 +344,7 @@ const CASES = [
     ref: "PV 值 = 法向载荷 100 N × 滑动速度 × 磨损系数量纲 ⇒ 页内给出 2.00e+8 Pa·m/s 并判「PV值超限，可能严重磨损」。默认工况不同 ⇒ 不命中。",
   },
   {
-    slug: "general/calc-94",
+    slug: "construction/calc-94",
     inputs: {
       baseCost: "1000",
       e0: "100",
@@ -461,7 +461,7 @@ const CASES = [
     ref: "NDVI = (NIR 1200 − RED 800) ÷ (1200 + 800) = 400 ÷ 2000 = 0.2。纯可复算，默认波段组合不同 ⇒ 不命中。",
   },
   {
-    slug: "general/analysis-44",
+    slug: "finance/analysis-44",
     inputs: { plan: "100", actual: "90" },
     clicks: ["calc()"],
     expect: ["偏差额： -10.00 元", "1.1111 成本绩效指数 CPI"],
@@ -850,14 +850,14 @@ const CASES = [
     ref: "振动峰值速度 = 2πf·A = 2π × 20000Hz × 5mm = 628318.53mm/s（随振幅与频率成正比变化）。注：该页「峰值加速度」栏存在量纲越界（旧缺陷，见 DEV-PLAN 缺陷登记表），本例只锚速度栏，不牵连。",
   },
   {
-    slug: "general/stats-energy",
+    slug: "energy/stats-energy",
     inputs: { items: "照明,60\n动力,140\n空调,300\n插座,90", forecast: "1" },
     clicks: ["calc()"],
     expect: ["能耗总计： 590.00"],
     ref: "分项能耗求和 = 60 + 140 + 300 + 90 = 590，分项数 4、占比依次 10.2% / 23.7% / 50.8% / 15.3%。多行入参（textarea）走 python json.dumps 生成，避免裸换行破坏 JSON。",
   },
   {
-    slug: "general/gongchengzaojiazhishujisuan",
+    slug: "construction/gongchengzaojiazhishujisuan",
     inputs: {
       matBase: "105", matNow: "112",
       labBase: "98", labNow: "106",
@@ -1015,7 +1015,7 @@ const CASES = [
   // 任一行被换值撞同值时另一行仍可独立判真。通用心法：先 dump 出产物 → 逐行问「这行我能手算吗？」→
   // 只锚能的那几行；同时**先看 input 的 value 默认值**，注入值必须与之不同（否则注入等于没注入）。
   {
-    slug: "general/liangshuzhihe-chengjizuida-zuixiao-shuxueti",
+    slug: "math/liangshuzhihe-chengjizuida-zuixiao-shuxueti",
     inputs: { sum: "30", prod: "200" },
     clicks: ["calc()"],
     expect: ["30 最小和（a×b=200，正整数解）", "公式下界 2√P 28.28"],
@@ -1050,7 +1050,7 @@ const CASES = [
     ref: "皮带传动（中心距 50、小轮转速 1000 rpm、功率 5 kW、小轮直径 20mm）：带速 v = π·d₁·n₁/60 = 3.1416×0.02×1000/60 = **1.05 m/s**（纯手算可复算）；大轮转速 = n₁/z 比 = 1000/4 → 页面「大链轮转速」行同源。推荐皮带根数 5 由传递功率/单根允许功率查表得来，与带速行同源不同式。默认组不同 ⇒ 不命中。",
   },
   {
-    slug: "general/analysis-43",
+    slug: "construction/analysis-43",
     inputs: { amount: "5", vol: "10", area: "20", len: "30" },
     clicks: ["calc()"],
     expect: ["0.17", "0.25"],
@@ -1283,7 +1283,7 @@ const CASES = [
     ref: "织缩 1.06：经向 GSM=320×25/100×1.06=84.8，纬向=260×22/100×1.06=60.6，合计 145.4；每米重=145.4×1.6=232.7g/m；每匹总重=232.7×50/1000=11.63kg；面积=50m×1.6m=80.0m²；经纱=84.8×80/1000=6.78kg，纬纱=60.6×80/1000=4.85kg（6.78+4.85=11.63 与总重闭合）。🔧 本页原 `area=l*w/10000` 少除 100：幅宽单位是 cm、匹长是 m，应为 l*w/100 ⇒ 修复前报 0.8m²/0.07kg/0.05kg，与每匹总重 11.63kg 自相矛盾，已在页面修复后回填本用例。"
   },
   {
-    slug: "general/generator-25",
+    slug: "math/generator-25",
     inputs: { cnt: "7" },
     expect: ["每行/列/对角线之和 = 175"],
     ref: "7 阶幻方幻和 = n(n²+1)/2 = 7×50/2 = 175（Siamese 法，默认 5 阶为 65 ⇒ 该串随注入变化）。"
@@ -1419,7 +1419,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"42\"}，输出区含「 评分 加工精度 42 μm 30 热影响区 42 μm 50 加工效率 42 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/analysis-43",
+    "slug": "construction/analysis-43",
     "inputs": {
       "amount": "42",
       "vol": "42",
@@ -1445,7 +1445,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"2\"}，输出区含「×μz×w₀ = 3381.309」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/analysis-44",
+    "slug": "finance/analysis-44",
     "inputs": {
       "plan": "42",
       "actual": "42",
@@ -1610,7 +1610,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"qVal\":\"42\",\"wVal\":\"42\",\"aVal\":\"42\",\"hStep\":\"42\",\"hVal\":\"42\"}，输出区含「 📌 立杆稳定性不足，需减小间距/步距或增设卸荷。安全系数 K=0.00（偏小…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/calc-94",
+    "slug": "construction/calc-94",
     "inputs": {
       "baseCost": "42",
       "m0": "42",
@@ -2576,7 +2576,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vQ\":\"42\",\"vH\":\"42\",\"vRho\":\"42\",\"vEta\":\"42\",\"vMedium\":\"oil\"}，输出区含「42\n42\noil\n42\n42\n请输入有效参数（Q>0, H>0, ρ>0, 0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/gongchengzaojiazhishujisuan",
+    "slug": "construction/gongchengzaojiazhishujisuan",
     "inputs": {
       "matBase": "42",
       "matNow": "42",
@@ -2594,7 +2594,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"matBase\":\"42\",\"matNow\":\"42\",\"matW\":\"42\",\"labBase\":\"42\",\"labNow\":\"42\",\"labW\":\"42\",\"macBase\":\"42\",\"macNow\":\"42\",\"macW\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n42\n100.00 综合造价指数…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/generator-25",
+    "slug": "math/generator-25",
     "inputs": {
       "cnt": "42"
     },
@@ -2759,7 +2759,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vArea\":\"42\",\"vH\":\"42\",\"vPeople\":\"42\",\"vEquip\":\"42\",\"vLight\":\"42\",\"vOrient\":\"120\"}，输出区含「\udfe0 推荐空调配置：3-5匹柜机/天井机\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/liangshuzhihe-chengjizuida-zuixiao-shuxueti",
+    "slug": "math/liangshuzhihe-chengjizuida-zuixiao-shuxueti",
     "inputs": {
       "sum": "42",
       "prod": "42",
@@ -3375,7 +3375,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"current\":\"42\",\"speed\":\"42\",\"temp\":\"42\",\"nozzle\":\"42\"}，输出区含「42\n42\n42\n42\n40.7」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/stats-energy",
+    "slug": "energy/stats-energy",
     "inputs": {
       "items": "1\n2\n3",
       "series": "1\n2\n3"
@@ -3517,7 +3517,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"abc123测试\",\"v1\":\"stainless\"}，输出区含「abc123测试\nstainless\n无法解析螺纹规格，请输入如 M10×1.5…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/tax",
+    "slug": "construction/tax",
     "inputs": {
       "base": "42",
       "vat": "42",
