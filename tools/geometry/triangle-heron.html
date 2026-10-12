@@ -83,6 +83,9 @@ s.parentNode.insertBefore(el, s);
 }catch(e){}
 })(window);
 </script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
 </head>
 <body>
 
@@ -133,12 +136,33 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="presets"></div>
     <div class="toolbar">
-      <button class="btn primary" onclick="calcTool()">计算</button>
+      <button class="btn primary" onclick="calcTool(1)">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
 
     <div class="result-box" id="result"></div>
+
+    <h3 style="margin:14px 0 4px;font-size:14px;">📐 图形示意（随边长实时变化）</h3>
+    <div id="triFig"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">按三边比例等比绘制；虚线为底边 c 上的高 h = 2A/c。比例真实，图形尺寸不代表实际大小。</p>
+
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
+      <button type="button" class="btn" onclick="shareResult()">🔗 复制分享链接</button>
+    </div>
+
+    <div id="hist"></div>
+
+    <h3 style="margin:16px 0 6px;font-size:14px;">🔗 下一步：还能算什么</h3>
+    <ul style="font-size:13px;line-height:1.9;padding-left:20px;margin:0;">
+      <li><a href="pythagorean.html">勾股定理计算器：已知两条直角边求斜边</a></li>
+      <li><a href="trapezoid-area.html">梯形面积计算器：已知上下底与高求面积</a></li>
+      <li><a href="circle-area.html">圆面积计算器：已知半径求面积与周长</a></li>
+      <li><a href="polygon-interior-angle.html">多边形内角计算器：正多边形内角、外角与对角线数</a></li>
+      <li><a href="/tools/it/triangle-calculator.html">三角形综合计算器：边角互解与多种面积算法</a></li>
+    </ul>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -153,12 +177,13 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){
+function calcTool(force){
             const a = num('a'), b = num('b'), c = num('c');
             const s = (a + b + c) / 2;
             const valid = a>0 && b>0 && c>0 && a+b>c && a+c>b && b+c>a;
             if(!valid){
                 const __g1='<p style="color:var(--danger);">这三条边不能构成三角形：需满足任意两边之和大于第三边（当前 ' + a + '、' + b + '、' + c + '）。</p>';ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+                drawFigure(a, b, c, 0);
                 return;
             }
             const A = Math.sqrt(s * (s - a) * (s - b) * (s - c));
@@ -166,12 +191,95 @@ function calcTool(){
                 [A.toFixed(4), '三角形面积 A (m²)'],
                 [s.toFixed(4), '半周长 s (m)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+            drawFigure(a, b, c, A);
+            recHist(a, b, c, A, force);
         }
 function resetForm(){document.getElementById('a').value = '3';
       document.getElementById('b').value = '4';
       document.getElementById('c').value = '5';
-      calcTool();}
-calcTool();
+      calcTool(1);}
+
+/* ---- UX-Q4 增强：图形示意 / 历史 / 分享（TBKit 缺失时全部静默跳过，保证无头门禁可跑） ---- */
+var __lastHistKey = '';
+function drawFigure(a, b, c, A){
+  var box = document.getElementById('triFig');
+  if (!box) return;
+  var ok = a > 0 && b > 0 && c > 0 && a + b > c && a + c > b && b + c > a;
+  if (!ok || !isFinite(A) || A <= 0) {
+    box.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">当前三边无法构成三角形，暂无示意图。</p>';
+    return;
+  }
+  // 底边 c 置于水平：A 点 (0,0)、B 点 (c,0)、C 点 (x,y)，其中 b=CA、a=BC
+  var x = (c * c + b * b - a * a) / (2 * c);
+  var yy = b * b - x * x;
+  var y = Math.sqrt(yy > 0 ? yy : 0);
+  var W = 320, H = 200, pad = 34;
+  var minX = Math.min(0, c, x), maxX = Math.max(0, c, x), maxY = y;
+  var sc = Math.min((W - 2 * pad) / (maxX - minX || 1), (H - 2 * pad) / (maxY || 1));
+  var left = (W - (maxX - minX) * sc) / 2 - minX * sc;
+  var bottom = (H - maxY * sc) / 2;
+  function sx(v){ return left + v * sc; }
+  function sy(v){ return H - bottom - v * sc; }
+  var P = [[sx(0), sy(0)], [sx(c), sy(0)], [sx(x), sy(y)]];
+  function mid(p, q){ return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; }
+  var h = 2 * A / c;
+  var gx = (P[0][0] + P[1][0] + P[2][0]) / 3, gy = (P[0][1] + P[1][1] + P[2][1]) / 3;
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '" role="img" aria-label="三角形示意图" style="max-width:100%;">'
+    + '<polygon points="' + P.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" fill="rgba(59,130,246,.12)" stroke="#3B82F6" stroke-width="2" stroke-linejoin="round"/>'
+    + '<line x1="' + P[2][0].toFixed(1) + '" y1="' + P[2][1].toFixed(1) + '" x2="' + P[2][0].toFixed(1) + '" y2="' + P[1][1].toFixed(1) + '" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="4 3"/>'
+    + '<text x="' + P[2][0].toFixed(1) + '" y="' + ((P[2][1] + P[1][1]) / 2).toFixed(1) + '" font-size="11" fill="#F59E0B" text-anchor="end" dx="-4">h=' + h.toFixed(2) + '</text>'
+    + '<text x="' + mid(P[1], P[2])[0].toFixed(1) + '" y="' + (mid(P[1], P[2])[1] - 4).toFixed(1) + '" font-size="12" fill="var(--text,#374151)" text-anchor="middle">a=' + a + '</text>'
+    + '<text x="' + mid(P[2], P[0])[0].toFixed(1) + '" y="' + (mid(P[2], P[0])[1] - 4).toFixed(1) + '" font-size="12" fill="var(--text,#374151)" text-anchor="middle">b=' + b + '</text>'
+    + '<text x="' + mid(P[0], P[1])[0].toFixed(1) + '" y="' + (mid(P[0], P[1])[1] + 14).toFixed(1) + '" font-size="12" fill="var(--text,#374151)" text-anchor="middle">c=' + c + '</text>'
+    + '<text x="' + gx.toFixed(1) + '" y="' + gy.toFixed(1) + '" font-size="12" font-weight="700" fill="var(--primary,#FF6B35)" text-anchor="middle">A=' + A.toFixed(4) + ' m²</text>'
+    + '<circle cx="' + P[0][0].toFixed(1) + '" cy="' + P[0][1].toFixed(1) + '" r="2.5" fill="#3B82F6"/>'
+    + '<circle cx="' + P[1][0].toFixed(1) + '" cy="' + P[1][1].toFixed(1) + '" r="2.5" fill="#3B82F6"/>'
+    + '<circle cx="' + P[2][0].toFixed(1) + '" cy="' + P[2][1].toFixed(1) + '" r="2.5" fill="#3B82F6"/>'
+    + '</svg>';
+  box.innerHTML = svg;
+}
+function recHist(a, b, c, A, force){
+  if (typeof TBKit === 'undefined') return;
+  var key = a + '/' + b + '/' + c;
+  if (!force && key === __lastHistKey) return;   // 同参数不重复记
+  __lastHistKey = key;
+  try {
+    TBKit.history.record({ 'a': a, 'b': b, 'c': c, 'A': +A.toFixed(4) });
+    TBKit.history.mount('#hist', function(d){
+      if (!d) return;
+      document.getElementById('a').value = d.a;
+      document.getElementById('b').value = d.b;
+      document.getElementById('c').value = d.c;
+      calcTool(1);
+    });
+  } catch (e) {}
+}
+function copyResult(){
+  if (typeof TBKit === 'undefined') return;
+  var r = document.getElementById('result');
+  TBKit.export.copy(r ? (r.innerText || r.textContent || '') : '');
+}
+function shareResult(){
+  if (typeof TBKit === 'undefined') return;
+  TBKit.share.copyLink({ a: num('a'), b: num('b'), c: num('c') });
+}
+calcTool(1);
+if (typeof TBKit !== 'undefined') {
+  TBKit.preset.bar('#presets', [
+    { label: '3-4-5 直角三角形', labelEn: '3-4-5 right triangle', values: { a: 3, b: 4, c: 5 } },
+    { label: '等边三角形', labelEn: 'Equilateral', values: { a: 6, b: 6, c: 6 } },
+    { label: '5-6-7 一般三角形', labelEn: '5-6-7 scalene', values: { a: 5, b: 6, c: 7 } },
+    { label: '等腰锐角', labelEn: 'Acute isosceles', values: { a: 5, b: 5, c: 6 } },
+    { label: '细长三角形（近退化）', labelEn: 'Slender (near-degenerate)', values: { a: 10, b: 6, c: 4.5 } }
+  ], function(){ calcTool(1); });
+  var sp = TBKit.share.params();
+  if (sp.a != null && sp.b != null && sp.c != null) {
+    document.getElementById('a').value = sp.a;
+    document.getElementById('b').value = sp.b;
+    document.getElementById('c').value = sp.c;
+    calcTool(1);
+  }
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

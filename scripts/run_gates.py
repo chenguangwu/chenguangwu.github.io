@@ -293,6 +293,11 @@ GATES = (
     # 用例必须 FAIL。仍 PASS 的即含「不依赖被测点的逃生项」（任一命中即通过机制的第二次
     # 隐蔽假通过）。存量入基线 scripts/discriminate_baseline.json，只准降不准增。
     ("anti-regression: case discrimination", ("node", "scripts/discriminate_check.js")),
+    # UX-Q4 专项（2026-10-12 立项）：工具页交互形态门禁。全站只读扫描（约 5 秒），
+    # 与 scripts/_ux_baseline_snapshot.json 比对：任一分类均分下降、薄弱页增加、
+    # 或全站均分下降即失败 —— 保证「改造只加分不减分」，杜绝为凑指标而删模块。
+    # 基线提升（每批改造验收后）由人工执行：cp _ux_baseline.json _ux_baseline_snapshot.json。
+    ("ux baseline regression", ("python3", "scripts/_ux_baseline.py", "--gate")),
 )
 
 

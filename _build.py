@@ -4094,6 +4094,13 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         if not _head_contains(content, '/js/tool-ux.js'):
             content = _inject_into_document_head(content, ux_block)
 
+        # 3.5c UX-Q4 专项：共享体验组件库（自绘 SVG 图表 / 预设场景 / 历史记录 / 导出 / 分享链接 / 速查矩阵）。
+        # 纯前端零依赖，页面按需调用；调用方必须用 typeof TBKit 守卫，否则无头 verify 沙箱（不加载外部脚本）
+        # 会因 TBKit 未定义整页 ReferenceError。声明式挂载见 js/tool-kit.js 顶部注释。
+        toolkit_block = '\n<script src="/js/tool-kit.js" defer></script>\n<!-- TOOLBOX-TOOL-KIT -->\n'
+        if not _head_contains(content, '/js/tool-kit.js'):
+            content = _inject_into_document_head(content, toolkit_block)
+
         # The editorial popular set gets a shared productivity layer. Keeping
         # the membership in gen_hot_tools.py makes homepage cards and page UX
         # impossible to drift apart.
