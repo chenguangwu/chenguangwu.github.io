@@ -23,10 +23,12 @@ IndexNow 死链（dead link）提交脚本
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.error
 import urllib.request
+import xml.etree.ElementTree as ET
 
 # ==================== 配置区 ====================
 API_URL = 'https://api.indexnow.org/IndexNow'
@@ -55,6 +57,19 @@ def read_urls(args):
             u = line.strip()
             if u and not u.startswith('#'):
                 urls.append(u)
+    # 无显式输入时，默认读取死链 Sitemap XML（sitemap-deadlinks.xml）
+    if not urls:
+        xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sitemap-deadlinks.xml')
+        if os.path.exists(xml_path):
+            try:
+                tree = ET.parse(xml_path)
+                ns = '{http://www.sitemaps.org/schemas/sitemap/0.9}'
+                for loc in tree.iter(ns + 'loc'):
+                    if loc.text:
+                        urls.append(loc.text.strip())
+                print('[默认] 从 %s 读取 %d 个死链 URL' % (os.path.basename(xml_path), len(urls)))
+            except Exception as e:
+                print('[默认] 读取 %s 失败: %s' % (xml_path, e), file=sys.stderr)
     seen = set()
     out = []
     for u in urls:
