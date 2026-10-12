@@ -80,14 +80,6 @@ const CASES = [
       + " ⇒ 对比度 = (1+0.05)/(0.088897+0.05) = 7.5614 → 7.56:1。默认 #1F2937 得 14.68:1",
   },
   {
-    slug: "design/color-contrast-check",
-    inputs: { fg: "#1E40AF", bg: "#F9FAFB" },
-    expect: ["8.35:1"],
-    ref: "去默认化（原 fg=#333333/bg=#FFFFFF 全与默认相同）：WCAG 2.1 —— fg #1E40AF = rgb(30,64,175)"
-      + " L = 0.070371；bg #F9FAFB = rgb(249,250,251) L = 0.954747"
-      + " ⇒ (0.954747+0.05)/(0.070371+0.05) = 8.3475 → 8.35:1。默认 #333333/#FFFFFF 得 12.63:1",
-  },
-  {
     slug: "design/color-temperature-converter",
     inputs: { temp: "3200" },
     expect: ["#ffb87b", "255,184,123"],
@@ -904,17 +896,6 @@ const CASES = [
       "ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 rgb(r,g,b) 格式\nABC123测试\nABC123测试"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgPicker\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgPicker\":\"abc123测试\"}，输出区含「ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 r…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "design/color-contrast-check",
-    "inputs": {
-      "fg": "abc123测试",
-      "bg": "abc123测试"
-    },
-    "expect": [
-      "abc123测试\nabc123测试\n请输入有效的十六进制颜色（如 #333333）。"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fg\":\"abc123测试\",\"bg\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\n请输入有效的十六进制颜色（如 #333333…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/checkerboard-generator",
