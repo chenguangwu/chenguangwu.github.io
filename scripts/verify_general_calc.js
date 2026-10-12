@@ -45,7 +45,7 @@ const CASES = [
     ref: "复数运算：(5+2i)+(3+i)=8+3i；(5+2i)(3+i)=13+11i；(5+2i)/(3+i)=1.7+0.1i",
   },
   {
-    slug: "general/calc-ratio-2",
+    slug: "chemistry/calc-ratio-2",
     inputs: { v0: "30", v1: "1", v2: "5" },
     expect: ["166.7 mL 原液用量", "1 : 30 稀释配比"],
     ref: "稀释：原液 = 1/30×5L = 0.1667L = 166.7mL；加水量 = 5-0.1667 = 4.833L；稀释倍数 30/1 = 30",
@@ -81,7 +81,7 @@ const CASES = [
     ref: "GB/T 150 内压圆筒：δ = P·Di/(2[σ]φ-P) = 2.5×800/(2×120×0.9-2.5) = 9.368mm；设计壁厚 = δ+C2 = 9.368+2.0 = 11.37mm",
   },
   {
-    slug: "general/ratio-50",
+    slug: "chemistry/ratio-50",
     inputs: { v0: "70", v1: "30", v2: "200", v3: "15", v4: "120" },
     expect: ["140.00 化学品A用量 (kg)", "161.00 安全备量A (kg)"],
     ref: "配比：A = 200×70% = 140kg；B = 60kg；安全备量 A = 140×1.15 = 161kg；反应放热 = 200×120/1000 = 24MJ",
@@ -129,13 +129,13 @@ const CASES = [
     ref: "P = T×n/9550 = 50×950/9550 = 4.97kW；K=1.2 → 5.97kW → 取 7.5kW；n=950 → 6 极 → 同步转速 = 120×50/6 = 1000rpm；s = (1000−950)/1000 = 5.0%",
   },
   {
-    slug: "general/fabric-3",
+    slug: "textile/fabric-3",
     inputs: { vWarpNe: "32", vWarpD: "400", vWeftNe: "32", vWeftD: "300", vWarpShrink: "3", vWeftShrink: "2", vColorFast: "4" },
     expect: ["61.4% 经向紧度", "79.2% 织物总紧度"],
     ref: "d = 0.868/√32 = 0.15344mm；经向紧度 = d×密度 = 0.15344×400 = 61.4%；纬向 = 0.15344×300 = 46.0%；总紧度 = 61.4+46.0−61.4×46.0/100 = 79.2%（python 独立复算 79.156）",
   },
   {
-    slug: "general/assessor-19",
+    slug: "construction/assessor-19",
     inputs: { v1: "0.50", v2: "100", v3: "1.3", v4: "4" },
     expect: ["μz = 1.043", "0.936 kN/m²"],
     ref: "GB 50009-2012 表 8.2.1：D 类 μz = 0.262×(100/10)^0.60 = 1.04304；βz = 1+0.038×√100 = 1.380；wk = 1.380×1.3×1.04304×0.50 = 0.93561 → 0.936 kN/m²（III 级）",
@@ -223,7 +223,7 @@ const CASES = [
     ref: "最大承载 = 抗剪强度 5 MPa × 面积 10 mm² = 50 N；许用载荷 = 50 ÷ 安全系数 3 ≈ 17 N。可独立复算。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "general/shebeizulinfeilvjisuan",
+    slug: "finance/shebeizulinfeilvjisuan",
     inputs: {
       price: "100000",
       depYears: "5",
@@ -279,7 +279,7 @@ const CASES = [
     ref: "总冷负荷 = 围护 1040 W + 人员 272 W + 设备照明 131 W + 新风 …… ≈1473 W = 1.47 kW，单位负荷 1473/30 ≈ 49 W/m²。默认工况不同 ⇒ 不命中。",
   },
   {
-    slug: "general/jienengfanganjisuan",
+    slug: "energy/jienengfanganjisuan",
     inputs: {
       power: "100",
       hours: "8",
@@ -369,7 +369,7 @@ const CASES = [
     ref: "购物 100 可退税 10（税率 10%），扣手续费 0.50 ⇒ 实际到手 9.50（外币）、折人民币 19.00，退税后净支出 90.50。可独立复算。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "general/estimate-39",
+    slug: "construction/estimate-39",
     inputs: {
       area: "100",
       p1: "1",
@@ -419,7 +419,7 @@ const CASES = [
     ref: "由推荐间距 S=5.20 m 得每公里灯数 1000÷5.20=192.3，每公里功率 192.3×0.2 kW=38.46 kW。两行均可独立复算，默认灯高/功率不同 ⇒ 不命中。",
   },
   {
-    slug: "general/calc-ratio-2",
+    slug: "chemistry/calc-ratio-2",
     inputs: { v0: "100", v1: "40", v2: "20" },
     clicks: ["calc()"],
     expect: ["2.5 稀释倍数", "8 L 原液用量（L）"],
@@ -454,7 +454,7 @@ const CASES = [
     ref: "所需电机功率 = 负载功率 10 kW ÷ 传动效率 90% = 11.11 kW。转速只进入转矩段，不参与该行 ⇒ 锚只锁功率。",
   },
   {
-    slug: "general/analysis-21",
+    slug: "agriculture/analysis-21",
     inputs: { nir: "1200", red: "800", batch: "10" },
     clicks: ["calc()"],
     expect: ["NDVI： 0.2000"],
@@ -489,7 +489,7 @@ const CASES = [
     ref: "按HJ 633 分级：PM10 70 μg/m³ ⇒ IAQI 60，PM2.5 35 μg/m³ ⇒ IAQI 50，PM10 分项最高 ⇒ 首要污染物为 PM10。IAQI 可查分级表复算，默认浓度组合下不同 ⇒ 不命中。",
   },
   {
-    slug: "general/assessor-19",
+    slug: "construction/assessor-19",
     inputs: { v1: "0.9", v2: "80", v3: "1.3", v4: "2" },
     clicks: ["calc()"],
     expect: ["风振系数 βz = 1.340"],
@@ -503,7 +503,7 @@ const CASES = [
     ref: "综合 = 精度 30×0.4 + HAZ 30×0.35 + 效率 60×0.25 = 12+10.5+15 = 37.5 ⇒ 38 分（E 级）。三项评分与权重均可在页内说明中查得，可独立复算。",
   },
   {
-    slug: "general/calc-197",
+    slug: "thermodynamics/calc-197",
     inputs: { qVal: "0.1", uVal: "2", flowType: "counter", tcin: "20", tcout: "15", thin: "80", thout: "60" },
     clicks: ["calc()"],
     expect: ["51.49 对数平均温差 LMTD (℃)"],
@@ -532,7 +532,7 @@ const CASES = [
     ref: "标准分 z = (x−μ)/σ = (5−10)/2 = −2.5。该页有三个独立结果容器且都不在 runner 内置 DUMP_IDS 里 ⇒ 必须显式给出 dumpIds，否则 dump 只拿到空值。z 值只随注入的 x/μ/σ 变化。",
   },
   {
-    slug: "general/concentration-20",
+    slug: "chemistry/concentration-20",
     inputs: { c1: "10", c2: "20", cs: "100", vVal: "50" },
     clicks: ["calc()"],
     expect: ["6.25 需补原液 (L)"],
@@ -540,14 +540,14 @@ const CASES = [
   },
   // ── detector 家族：检测项目「实测值 vs 标准要求 → 判定」对比表，整行（含数值、标准、判定）均可手算复算 ──
   {
-    slug: "general/detector-121",
+    slug: "construction/detector-121",
     inputs: { v1: "3", v2: "3", v3: "3" },
     clicks: ["calc()"],
     expect: ["导热系数 3 W/m·K ≤0.06W/m·K 不合格"],
     ref: "导热系数实测 3 W/m·K 远高于标准 ≤0.06 W/m·K ⇒ 判定不合格，整行数值与结论都可复算。默认实测值不同 ⇒ 不命中。",
   },
   {
-    slug: "general/detector-123",
+    slug: "construction/detector-123",
     inputs: { v1: "3", v2: "3", v3: "3" },
     clicks: ["calc()"],
     expect: ["粘结强度 3 MPa ≥0.5MPa 合格"],
@@ -568,7 +568,7 @@ const CASES = [
     ref: "运动黏度实测 3 mm²/s 落在标准区间 30~50 mm²/s 之外 ⇒ 不合格。区间判定可手算。",
   },
   {
-    slug: "general/detector-131",
+    slug: "construction/detector-131",
     inputs: { v1: "3", v2: "3", v3: "3" },
     clicks: ["calc()"],
     expect: ["抗压强度 3 MPa ≥30MPa 不合格"],
@@ -674,21 +674,21 @@ const CASES = [
     ref: "冷却效率实测 3% 低于标准 ≥85% ⇒ 不合格。",
   },
   {
-    slug: "general/detector-concentration",
+    slug: "chemistry/detector-concentration",
     inputs: { v1: "6", v2: "3", v3: "3" },
     clicks: ["calc()"],
     expect: ["浓度 6 % 2~5% 不合格"],
     ref: "浓度实测 6% 超出标准区间 2~5% ⇒ 不合格。若注入 3% 会与页面默认实测值同串 ⇒ 逃生，故改用 6%。",
   },
   {
-    slug: "general/detector-concentration-1",
+    slug: "chemistry/detector-concentration-1",
     inputs: { v1: "3", v2: "3", v3: "3", v4: "3" },
     clicks: ["calc()"],
     expect: ["浓度 3 % 3~8% 合格"],
     ref: "该页浓度标准区间为 3~8%，实测 3% 恰在区间下限 ⇒ 合格。与 detector-concentration 的 2~5% 区间不同，两页互不干扰。",
   },
   {
-    slug: "general/detector-concentration-2",
+    slug: "chemistry/detector-concentration-2",
     inputs: { v1: "3", v2: "3", v3: "3", v4: "3" },
     clicks: ["calc()"],
     expect: ["平均粒度 3 μm 1~100μm 合格"],
@@ -793,7 +793,7 @@ const CASES = [
     ref: "无损检测合格率实测 3% 低于标准 ≥99% ⇒ 不合格。",
   },
   {
-    slug: "general/detector-water-pressure-1",
+    slug: "welding/detector-water-pressure-1",
     inputs: { v1: "3", v2: "3", v3: "3", v4: "3" },
     clicks: ["calc()"],
     expect: ["水压试验压力 3 倍 ≥1.5倍 合格"],
@@ -868,7 +868,7 @@ const CASES = [
     ref: "综合造价指数 = (112/105)×0.5 + (106/98)×0.3 + (99/95)×0.2 = 1.0667×0.5 + 1.0816×0.3 + 1.0421×0.2 = 1.0665 ⇒ 指数 106.55、涨幅 +6.55%；分项材料涨幅 112/105−1 = +6.67%…（页面印刷为 +8.16%，本例只锚整串不改判据，用于锁死当前渲染口径）。",
   },
   {
-    slug: "general/strength-color-diff",
+    slug: "textile/strength-color-diff",
     inputs: { L1: "88", L2: "80", a1: "2.5", a2: "-1.5", b1: "-3", b2: "1", tol: "2" },
     clicks: ["calc()"],
     expect: ["9.80 色差 ΔE 1 灰卡色牢度等级"],
@@ -890,7 +890,7 @@ const CASES = [
     ref: "输入以洛氏计 700（HRC）⇒ 换算维氏 HV ≈ 700 × 1.343 ≈ 940；换算值随 hvVal 线性变化。同场「推荐磨料 / 粒度 / 砂轮线速度」是硬编码文案串，不锚。",
   },
   {
-    slug: "general/pressure-18",
+    slug: "hvac/pressure-18",
     inputs: { v0: "15", v1: "10", v2: "0.04", v3: "2" },
     clicks: ["calc()"],
     expect: ["840 总冷负荷 (W)", "围护结构负荷 240W + 人员负荷 300W + 照明负荷 300W"],
@@ -940,14 +940,14 @@ const CASES = [
   },
   // ---- BATCH241：节电投资回报 / 微生物寿命 / 腐蚀电位 / 蚀刻时间 / 回收指数 / 润滑寿命 / 换油周期 ----
   {
-    slug: "general/lifespan-12",
+    slug: "investment/lifespan-12",
     inputs: { vPower: "2000", vHours: "5", vDays: "300", vSave: "0.5", vPrice: "0.6", vLife: "8", vInvest: "5000" },
     clicks: ["calc()"],
     expect: ["15000 年节电量 (kWh)", "67000 净收益 (元)"],
     ref: "年节电量 15000 kWh、年节能费 9000 元；全寿命节电量 = 15000×8 = 120000 kWh、节能收益 = 9000×8 = 72000 元；净收益 = 72000 − 投资 5000 = 67000 元（**行间自洽**，可反算校验）。投资回报期 = 5000/9000 ≈ 0.6 年。",
   },
   {
-    slug: "general/lifespan-24",
+    slug: "chemistry/lifespan-24",
     inputs: { vConc: "18", vTemp: "40", vIso: "1" },
     clicks: ["calc()"],
     expect: ["1451 使用寿命 (天)", "0.40 浓度因子"],
@@ -961,7 +961,7 @@ const CASES = [
     ref: "电位 i=20μA/cm²、pH=380… 按阳极极化曲线：腐蚀速率 0.232 mm/a，钝化临界电位 22.60V，当前位于活化腐蚀区。同场「析氢线 −22.46V / 析氧线 −21.23V」为硬编码文案串，不锚。",
   },
   {
-    slug: "general/temp-time-concentration",
+    slug: "chemistry/temp-time-concentration",
     inputs: { v0: "20", v1: "30", v2: "1.2" },
     clicks: ["calc()"],
     expect: ["0.144 蚀刻速率 (μm/min)", "8.4分钟 所需时间"],
@@ -982,7 +982,7 @@ const CASES = [
     ref: "矿物油 + 90℃ + 1500rpm：润滑寿命 341h（≈14.2 天），温度因子 0.125、转速因子 1.050 ⇒ 建议换油间隔 500h。注：默认参数恰为「酯类油/70℃/3000rpm」（产出 3900h），注入同组必逃生 ⇒ 改用矿物油工况。",
   },
   {
-    slug: "general/lifespan-8",
+    slug: "eco/lifespan-8",
     inputs: { vMat: "aluminum", vMass: "50", vRate: "80", vPrimE: "120", vRecE: "40" },
     clicks: ["calc()"],
     expect: ["3200.0 节能 (kWh)", "40.0 回收质量 (kg)"],
@@ -1117,7 +1117,7 @@ const CASES = [
     ref: "涂层剩余寿命（设计厚度 2μm、年腐蚀速率 0.1μm/年、厚度裕度 1、已用 0.5 年）：剩余厚度 = 2 − 0.1×0.5 = **1.95 → 页面显示 2 剩余厚度 (μm)**（「有效厚度」行与「已消耗厚度 0」同源于未推进的腐蚀累积）；剩余寿命 = (剩余厚度 − 裕度)/速率 = (2−1)/0.1 = **10.0 → 页面 9.5 年**（扣除已用年数 0.5）。两行同源不同式，且差值 0.5 与「已用」输入自洽。默认组不同 ⇒ 不命中。",
   },
   {
-    slug: "general/lifespan-9",
+    slug: "materials/lifespan-9",
     inputs: { vTemp: "60", vLoad: "10", vEa: "0.7", vTr: "300", vLr: "80", vSmax: "500" },
     clicks: ["calc()"],
     expect: ["0.20 温度比 T/Tr", "2% 应力比 σ/σmax"],
@@ -1132,7 +1132,7 @@ const CASES = [
   },
   // ---- BATCH260：general 分类「固溶强化焊接/抽样检验/工艺参数/磨损/阀门Cv/磨损寿命」族（6 例） ----
   {
-    slug: "general/pressure-weld",
+    slug: "welding/pressure-weld",
     inputs: { rpm: "500", force: "20", speed: "1", shoulder: "6", mu: "0.5" },
     clicks: ["calc()"],
     expect: ["157.08 轴肩外缘线速 (mm/s)", "500.00 进给比 (rev/mm)"],
@@ -1146,14 +1146,14 @@ const CASES = [
     ref: "抽样检验（批量 N=2000、样本 n=50、Ac=2、发现不合格品 d=5、AQL=1.0%）：样本不合格品率 = d/n×100% = 5/50 = **10.00%**；抽样比 = n/N×100% = 50/2000 = **2.5%**。两条各只由一组注入值一步相除得出，且 10% 已远超 AQL 1.0% ⇒ 判定为「高于 AQL，过程质量不达标」（拒收分支）。默认组（N=1000/n=80 ⇒ 1.25% / 8.0%）不命中。",
   },
   {
-    slug: "general/hanjiegongyicanshu",
+    slug: "welding/hanjiegongyicanshu",
     inputs: { v0: "40" },
     clicks: ["calc()"],
     expect: ["1800 焊接电流 (A)", "9.90 热输入 (kJ/mm)"],
     ref: "焊接工艺参数（材料厚度 40mm，方法取默认 smaw：电流系数 45、电压 20~24 取中 22V、速度 3~5 取中 4mm/s）：焊接电流 = round(40×45) = **1800 A**；热输入 = 电流×电压/(速度×1000) = 1800×22/4000 = **9.90 kJ/mm**（一步手算）。同页另有焊接层数 ceil(40/4)=10、焊条直径 5.0mm（40≥14 档）、熔敷率 1800×0.0085×0.85 = 13.01 kg/h，均与厚度自洽。默认厚度 6mm ⇒ 电流 270 A、热输入 1.49，不命中。",
   },
   {
-    slug: "general/shachepiangenghuanzhouqi",
+    slug: "automotive/shachepiangenghuanzhouqi",
     inputs: { v0: "10", v1: "6", v2: "0.08", v3: "2" },
     clicks: ["calc()"],
     expect: ["40.0% 已磨损比例", "4.00 可用剩余厚度 (mm)"],
@@ -1174,7 +1174,7 @@ const CASES = [
     ref: "磨损寿命估算（磨损率 0.2mm/年、允许磨损量 1.5mm、日运行 8h、已运行 2000h，类型取默认磨粒磨损 factor=1.0）：运行折算系数 = 8/24，修正磨损率 = 0.2×8/24 = 0.066667 mm/年；总磨损寿命 = 1.5/0.066667 = **22.50 年**；剩余寿命 = 22.50 − 2000/8760 = 22.27 年；建议检测周期 = 22.27/3 = **7.42 年**。两条一个只依赖三个注入值、一个再减已用小时再除 3，均可一步复核。默认组（0.05/1.5/16h ⇒ 45.00 / 15.00）不命中。",
   },  // ── 电解沉积（法拉第定律：质量 / 电能 / 镀层厚度）──────────
   {
-    slug: "general/voltage-current-1",
+    slug: "chemistry/voltage-current-1",
     inputs: { current: "5", voltage: "12", time: "45", equiv: "0.0003294", area: "80", density: "8.96", efficiency: "85" },
     expect: ["3.7799", "52.73", "1171.8331"],
     ref: "独立复算（t=time*60=2700 s，Q=I·t=5×2700=13500 C）：" +
@@ -1277,7 +1277,7 @@ const CASES = [
     ref: "查表页：设备=阀门、故障=泄漏渗油、年限 11 年 > 8 年阈值 ⇒ 建议「更换设备」并附更换经济性提示。⚠ expect 只取输出合成串，v2 的 option 文本「泄漏渗油」同样字面存在于页面 ⇒ 不能作锚。"
   },
   {
-    slug: "general/fabric-1",
+    slug: "textile/fabric-1",
     inputs: { vWarpTex: "25", vWeftTex: "22", vWarpDensity: "320", vWeftDensity: "260", vShrink: "6", vWidth: "160", vLength: "50" },
     expect: ["80.0", "6.78", "4.85", "145.4"],
     ref: "织缩 1.06：经向 GSM=320×25/100×1.06=84.8，纬向=260×22/100×1.06=60.6，合计 145.4；每米重=145.4×1.6=232.7g/m；每匹总重=232.7×50/1000=11.63kg；面积=50m×1.6m=80.0m²；经纱=84.8×80/1000=6.78kg，纬纱=60.6×80/1000=4.85kg（6.78+4.85=11.63 与总重闭合）。🔧 本页原 `area=l*w/10000` 少除 100：幅宽单位是 cm、匹长是 m，应为 l*w/100 ⇒ 修复前报 0.8m²/0.07kg/0.05kg，与每匹总重 11.63kg 自相矛盾，已在页面修复后回填本用例。"
@@ -1325,13 +1325,13 @@ const CASES = [
     ref: "绝压比=(0.101325+0.8)/0.101325=8.90；绝热功率=(1.4/0.4)×101325×0.2×(8.90^0.285714−1)=61508W；轴功率=61508/0.85/1000=72.36kW；配用电机=×1.15=83.22kW；比功率=72.36/12=6.03 kW/(m³/min)。"
   },
   {
-    slug: "general/pressure-flow-6",
+    slug: "chemistry/pressure-flow-6",
     inputs: { v0: "40", v1: "99.5", v2: "5", v3: "50" },
     expect: ["18.52", "31.48", "444.4", "755.6"],
     ref: "总量 50 Nm³/h、目标纯度 40%、原料 99.5%、稀释气 5% ⇒ 高纯气=50×(40−5)/(99.5−5)=18.52；稀释气=50−18.52=31.48；占比 37.0%/63.0%；日需=×24 ⇒ 444.4/755.6。"
   },
   {
-    slug: "general/runhuayouzhanduxuanxing",
+    slug: "machinery/runhuayouzhanduxuanxing",
     inputs: { v0: "75", v2: "2400", v1: "heavy" },
     expect: ["24.7", "半合成油或高品质矿物油", "重载工况", "111"],
     ref: "75℃ ⇒ 基准 VG100；重载系数 1.3、转速 2400>1500 ⇒ 0.85 ⇒ 计算粘度=100×1.3×0.85=110.5 ⇒ toFixed(0)=111 ⇒ 就近取 VG100；工况粘度=100×e^(−0.04×35)=24.7 cSt；75℃>70 ⇒ 半合成油。⚠ 「VG100」不可作锚——默认 60℃ 也落在同一基准档，页面常数区同串；改锚由本组输入独占的 24.7/油品/重载工况。"
@@ -1394,7 +1394,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pm25\":\"42\",\"pm10\":\"42\",\"so2\":\"42\",\"no2\":\"42\",\"co\":\"42\",\"o3\":\"42\"}，输出区含「NO₂ IAQI 350 CO IAQI ⚡ 21 O₃ IAQI 健康人群运动…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/analysis-21",
+    "slug": "agriculture/analysis-21",
     "inputs": {
       "nir": "42",
       "red": "42",
@@ -1432,7 +1432,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"amount\":\"42\",\"vol\":\"42\",\"area\":\"42\",\"len\":\"42\"}，输出区含「42\n42\n42\n42\n工程总费用： 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/assessor-19",
+    "slug": "construction/assessor-19",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -1520,7 +1520,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"tw\":\"42\",\"ta\":\"42\",\"lam\":\"42\",\"dOut\":\"42\",\"ts\":\"42\"}，输出区含「42\n42\n42\n42\n42\n表面温度 Ts 应低于管道温度 Tw，请检查输入\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/calc-197",
+    "slug": "thermodynamics/calc-197",
     "inputs": {
       "qVal": "42",
       "thin": "42",
@@ -1660,7 +1660,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"mu\":\"42\",\"sigma\":\"42\",\"x\":\"42\",\"lam\":\"42\",\"kp\":\"42\",\"nn\":\"42\",\"pp\":\"42\",\"kb\":\"42\"}，输出区含「gt;x)： 0.500000\n42\n42\nP(X=42)： 0.061436 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/calc-ratio-2",
+    "slug": "chemistry/calc-ratio-2",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -1745,7 +1745,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"aRe\":\"42\",\"aIm\":\"42\",\"bRe\":\"42\",\"bIm\":\"42\"}，输出区含「42\n42\n42\n42\n84+84i A + B 0 A − B 3,528i …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/concentration-20",
+    "slug": "chemistry/concentration-20",
     "inputs": {
       "vVal": "42",
       "c1": "42",
@@ -1851,7 +1851,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"tar\":\"42\",\"nic\":\"42\",\"co\":\"42\",\"qty\":\"42\",\"mode\":\"1.15\",\"unit\":\"1000\"}，输出区含「支) 单支摄入 (μg) 日摄入 (μg) 年摄入 (μg) 焦油 42 483…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-121",
+    "slug": "construction/detector-121",
     "inputs": {
       "v1": "42",
       "v3": "42",
@@ -1863,7 +1863,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v3\":\"42\",\"v2\":\"2\"}，输出区含「合格 环保达标率 42 % ≥90% 不合格 ❌ 综合判定：不合格 部分项目不符…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-123",
+    "slug": "construction/detector-123",
     "inputs": {
       "v1": "42",
       "v3": "42",
@@ -1887,7 +1887,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「老化后强度保持率 42 % ≥80% 不合格 环保达标率 42 % ≥90% 不…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-131",
+    "slug": "construction/detector-131",
     "inputs": {
       "v1": "42",
       "v3": "42",
@@ -2132,7 +2132,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「老化后性能保持率 42 % ≥80% 不合格 成分合格率 42 % ≥95% 不…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-concentration-1",
+    "slug": "chemistry/detector-concentration-1",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2156,7 +2156,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「% ≥99.0% 不合格 环保达标率 42 % ≥90% 不合格 ❌ 综合判定：…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-concentration-2",
+    "slug": "chemistry/detector-concentration-2",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2168,7 +2168,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「% 10~30% 不合格 PH值 42 6~8 不合格 ❌ 综合判定：不合格 部…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-concentration",
+    "slug": "chemistry/detector-concentration",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2362,7 +2362,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「×10⁶次 合格 ❌ 综合判定：不合格 部分项目不符合标准要求，请整改后重新检测」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-water-pressure-1",
+    "slug": "welding/detector-water-pressure-1",
     "inputs": {
       "v1": "42",
       "v3": "42",
@@ -2426,7 +2426,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"42\"}，输出区含「手续费后实际到手 10.23 （约 ¥429.71）。\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/fabric-1",
+    "slug": "textile/fabric-1",
     "inputs": {
       "vWarpTex": "42",
       "vWeftTex": "42",
@@ -2467,7 +2467,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\"}，输出区含「荐电机 (kW) 1.5 比转速 ns 11368」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/fabric-3",
+    "slug": "textile/fabric-3",
     "inputs": {
       "vWarpNe": "42",
       "vWeftNe": "42",
@@ -2497,7 +2497,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"dCyl\":\"42\",\"dRod\":\"42\",\"stroke\":\"42\",\"press\":\"42\",\"time\":\"42\"}，输出区含「42\n42\n42\n42\n42\n活塞杆径不能大于或等于缸径，请检查输入\n暂无计算记…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/estimate-39",
+    "slug": "construction/estimate-39",
     "inputs": {
       "area": "42",
       "reserve": "42",
@@ -2604,7 +2604,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「/对角线之和 = 14911）： 498 531 564 597 630 663…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/hanjiegongyicanshu",
+    "slug": "welding/hanjiegongyicanshu",
     "inputs": {
       "v0": "42",
       "v1": "tig"
@@ -2699,7 +2699,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"power\":\"42\",\"defocus\":\"42\",\"m2\":\"42\",\"focal\":\"42\",\"lambda\":\"42\",\"beamD\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n2.2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/jienengfanganjisuan",
+    "slug": "energy/jienengfanganjisuan",
     "inputs": {
       "power": "42",
       "hours": "42",
@@ -2789,7 +2789,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vNoise\":\"42\",\"vLimit\":\"42\",\"vSpeed\":\"42\",\"vLoad\":\"42\",\"vType\":\"angular\",\"vLube\":\"oil\"}，输出区含「42\n42\n42\n42\nangular\noil\n请输入有效参数（噪音>0, 限值…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/lifespan-12",
+    "slug": "investment/lifespan-12",
     "inputs": {
       "vPower": "42",
       "vHours": "42",
@@ -2831,7 +2831,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vTemp\":\"42\",\"vRpm\":\"42\",\"vOil\":\"synthetic\"}，输出区含「synthetic\n42\n42\n6741」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/lifespan-24",
+    "slug": "chemistry/lifespan-24",
     "inputs": {
       "vConc": "42",
       "vTemp": "42",
@@ -2966,7 +2966,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vRate\":\"42\",\"vAllow\":\"42\",\"vHours\":\"42\",\"vUsed\":\"42\",\"vType\":\"adhesive\"}，输出区含「42\n42\n42\n42\nadhesive\n请输入有效参数（磨损率>0, 允许磨损…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/lifespan-8",
+    "slug": "eco/lifespan-8",
     "inputs": {
       "vMass": "42",
       "vRate": "42",
@@ -2996,7 +2996,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"energy\":\"42\",\"angle\":\"42\",\"Z\":\"42\",\"M\":\"42\",\"rho\":\"42\",\"J\":\"42\",\"material\":\"13,26.98,2.70\"}，输出区含「42\n42\n13\n26.98\n2.70\n42\n0.12」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/lifespan-9",
+    "slug": "materials/lifespan-9",
     "inputs": {
       "vTemp": "42",
       "vLoad": "42",
@@ -3140,7 +3140,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\"}，输出区含「🏷️ 推荐机型：大型离心式压缩机 (>160kW) 比功率 31.98」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/pressure-18",
+    "slug": "hvac/pressure-18",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -3165,7 +3165,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\"}，输出区含「42\n42\n42\n1.55 Cv 值 1.33 Kv 值 0.042 相对密度 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/pressure-flow-6",
+    "slug": "chemistry/pressure-flow-6",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -3189,7 +3189,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"ctype\":\"stamp\",\"std\":\"pse\"}，输出区含「stamp\n齿孔完好度 无 轻微（扣 5 分） 中等（扣 12 分） 严重（扣 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/ratio-50",
+    "slug": "chemistry/ratio-50",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -3231,7 +3231,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"amb\":\"42\",\"eps\":\"42\",\"dist\":\"42\",\"netd\":\"42\",\"dt\":\"42\"}，输出区含「42\n42\n42\n42\n42\n发射率应在 0～1 之间。\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/pressure-weld",
+    "slug": "welding/pressure-weld",
     "inputs": {
       "rpm": "42",
       "force": "42",
@@ -3255,7 +3255,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「、Element 23. Notion → 替代：Obsidian、Logseq…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/runhuayouzhanduxuanxing",
+    "slug": "machinery/runhuayouzhanduxuanxing",
     "inputs": {
       "v0": "42",
       "v2": "42",
@@ -3282,7 +3282,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"42\",\"v5\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/shachepiangenghuanzhouqi",
+    "slug": "automotive/shachepiangenghuanzhouqi",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -3347,7 +3347,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\"}，输出区含「42\n42\n42\n12A 推荐链号 19.05」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/shebeizulinfeilvjisuan",
+    "slug": "finance/shebeizulinfeilvjisuan",
     "inputs": {
       "price": "42",
       "months": "42",
@@ -3413,7 +3413,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vForce\":\"42\",\"vShear\":\"42\",\"vSafety\":\"42\",\"vSize\":\"8\",\"vGrade\":\"400\",\"vLoad\":\"shear\"}，输出区含「 📋 校核公式：τ=V/As=1147.5MPa ≤ [τ]=5.7」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/strength-color-diff",
+    "slug": "textile/strength-color-diff",
     "inputs": {
       "L1": "42",
       "a1": "42",
@@ -3442,7 +3442,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vC\":\"42\",\"vP\":\"42\",\"vN\":\"42\",\"vType\":\"3.33\"}，输出区含「/C 载荷比 载荷偏高，建议增大轴承规格或降低载荷」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/temp-time-concentration",
+    "slug": "chemistry/temp-time-concentration",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -3672,7 +3672,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vI\":\"42\",\"vTemp\":\"42\",\"vLen\":\"42\",\"vV\":\"42\",\"vMethod\":\"0.85\"}，输出区含「流量 (A) 0.68 综合校正系数 4.06 电压降 (V) 9.66」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/voltage-current-1",
+    "slug": "chemistry/voltage-current-1",
     "inputs": {
       "current": "42",
       "voltage": "42",
