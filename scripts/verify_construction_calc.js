@@ -76,7 +76,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "construction/calc-power-voltage",
+  "slug": "electrical/calc-power-voltage",
   "inputs": {
     "power": "7500",
     "pf": "0.8",
