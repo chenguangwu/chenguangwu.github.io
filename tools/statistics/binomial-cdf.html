@@ -136,43 +136,165 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bcChartPmf" role="img" aria-label="二项分布概率质量柱状图"></div>
+    <div id="bcChartCdf" role="img" aria-label="累积分布曲线"></div>
+    <div id="bcDiff"></div>
+    <div id="bcHistory"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
         <li>二项分布的左尾概率。</li>
         <li>n=5,p=0.5,x=2 → 0.5。</li>
+        <li>柱状图蓝色部分即计入 P(X≤x) 的那些取值，灰色为其余。</li>
       </ul>
     </div>
+    <div id="bcTable"></div>
   </div>
 </div>
 
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="z.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">Z 分数计算器</span><span class="rt-desc">Z 分数计算器</span></span>
+    </a>
+    <a href="t.html" class="related-tool-card">
+      <span class="rt-icon">🔬</span>
+      <span class="rt-info"><span class="rt-name">t 检验统计量</span><span class="rt-desc">t 检验统计量</span></span>
+    </a>
+    <a href="binomial-pmf.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">二项分布概率计算器</span><span class="rt-desc">输入试验次数 n 与成功次数 k、成功概率 p，计算 n 次独立伯努利试验恰好 k 次成功的概率，用</span></span>
+    </a>
+    <a href="p.html" class="related-tool-card">
+      <span class="rt-icon">🔬</span>
+      <span class="rt-info"><span class="rt-name">假设检验 p 值近似</span><span class="rt-desc">假设检验 p 值近似</span></span>
+    </a>
+    <a href="statistics-7.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">偏度与峰度</span><span class="rt-desc">偏度与峰度</span></span>
+    </a>
+    <a href="geometric-mean.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">几何平均数计算器</span><span class="rt-desc">几何平均数计算器：输入数值集合，按乘积的 n 次根计算几何平均数，适合增长率、比率等相乘型数据的集中</span></span>
+    </a>
+  </div>
+</div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            function factN(k){let v=1;for(let i=2;i<=k;i++)v*=i;return v;}
-            const n=Math.min(num('n'),1000),p=num('p'),xx=Math.min(num('x'),1000);
-            let cdf=0;
-            for(let k=0;k<=xx;k++){
-                const comb=factN(n)/(factN(k)*factN(n-k));
-                cdf+=comb*Math.pow(p,k)*Math.pow(1-p,n-k);
+            const n=Math.max(0,Math.min(Math.floor(num('n')),1000)),p=num('p');
+            const xx=Math.max(0,Math.min(Math.floor(num('x')),n));
+            // 递推求 PMF：原实现用 k!/(n−k)! 阶乘相除，n≥171 时 Infinity/Infinity ⇒ NaN
+            const pmf=new Array(n+1).fill(0);
+            if(p<=0){pmf[0]=1;}
+            else if(p>=1){pmf[n]=1;}
+            else{
+                pmf[0]=Math.pow(1-p,n);
+                for(let k=1;k<=n;k++) pmf[k]=pmf[k-1]*((n-k+1)/k)*(p/(1-p));
             }
+            let cdf=0;
+            for(let k=0;k<=xx;k++) cdf+=pmf[k];
             const __g1=dataGrid([
-                [cdf.toFixed(4),'累积概率 P(X≤x)']
+                [cdf.toFixed(4),'累积概率 P(X≤x)'],
+                [(pmf[xx]||0).toFixed(4),__bcL('Exactly P(X=x)','恰好 P(X=x)')],
+                [Math.max(0,1-cdf).toFixed(4),__bcL('Upper tail P(X>x)','右尾 P(X&gt;x)')],
+                [(n*p).toFixed(3),__bcL('Mean E(X)=np','期望 E(X)=np')]
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            __bcExtras(n,p,xx,pmf,cdf);
         }
+function __bcExtras(n,p,xx,pmf,cdf){
+    if (typeof TBKit === 'undefined') return;
+    try {
+        const top = Math.min(n, 30);
+        const labels = [], inA = [], outA = [], cdfA = [];
+        let acc = 0;
+        for (let k = 0; k <= top; k++) {
+            acc += (pmf[k] || 0);
+            labels.push(String(k));
+            inA.push(k <= xx ? (pmf[k] || 0) : 0);
+            outA.push(k > xx ? (pmf[k] || 0) : 0);
+            cdfA.push(acc);
+        }
+        const en = TBKit.util.isEn();
+        TBKit.chart.bar('#bcChartPmf', {
+            labels: labels,
+            series: [
+                { name: en ? 'Counted in P(X≤x)' : '计入 P(X≤x)', data: inA, color: '#3B82F6' },
+                { name: en ? 'Rest' : '其余', data: outA, color: '#CBD5E1' }
+            ],
+            height: 220
+        });
+        TBKit.chart.line('#bcChartCdf', { labels: labels, series: [{ name: 'P(X≤k)', data: cdfA, color: '#10B981' }], height: 200 });
+        const rows = [];
+        const lim = Math.min(n, 20);
+        let acc2 = 0;
+        for (let k = 0; k <= lim; k++) {
+            acc2 += (pmf[k] || 0);
+            rows.push([String(k), (pmf[k] || 0).toFixed(6), acc2.toFixed(6)]);
+        }
+        TBKit.matrix.table('#bcTable', { head: ['k', 'P(X=k)', 'P(X≤k)'], rows: rows });
+        window.__bcRows = rows;
+        TBKit.history.record({ n: n, p: p, x: xx, pct: Number((cdf * 100).toFixed(2)) });
+        __bcDiff(['n', 'p', 'x', 'pct']);
+        TBKit.history.mount('#bcHistory', function (v) {
+            if (v.n != null) document.getElementById('n').value = v.n;
+            if (v.p != null) document.getElementById('p').value = v.p;
+            if (v.x != null) document.getElementById('x').value = v.x;
+            calcTool();
+        });
+    } catch (e) {}
+}
+function __bcL(en, zh){ return (typeof TBKit !== 'undefined' && TBKit.util.isEn()) ? en : zh; }
+function __bcDiff(fields){
+    if (typeof TBKit === 'undefined') return;
+    try {
+        const box = document.getElementById('bcDiff');
+        if (!box) return;
+        const d = TBKit.history.diffLast(fields);
+        if (!d || !Object.keys(d).length) { box.innerHTML = ''; return; }
+        const parts = [];
+        for (const k in d) { if (Object.prototype.hasOwnProperty.call(d, k)) parts.push(k + ' ' + TBKit.util.fmt(d[k].from) + ' → ' + TBKit.util.fmt(d[k].to)); }
+        box.innerHTML = '<div class="tbk-history"><div class="tbk-history-hd"><span>' +
+            (TBKit.util.isEn() ? 'Vs last calculation: ' : '与上次计算相比：') + parts.join(' · ') + '</span></div></div>';
+    } catch (e) {}
+}
+function __bcExport(){
+    const rows = window.__bcRows;
+    if (typeof TBKit === 'undefined' || !rows || !rows.length) { alert(__bcL('Calculate first, or export is unsupported here.', '请先计算，或当前浏览器不支持导出。')); return; }
+    try { TBKit.export.csv('binomial-cdf.csv', [['k', 'P(X=k)', 'P(X≤k)']].concat(rows)); } catch (e) {}
+}
+function __bcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    try {
+        TBKit.preset.bar('#bcPresets', [
+            { label: '抛硬币 10 次 ≤5 次正面', labelEn: '10 coin flips, ≤5 heads', values: { n: 10, p: 0.5, x: 5 } },
+            { label: '质检抽检 20 件 ≤2 件不良（不良率 5%）', labelEn: 'QC 20 pcs, ≤2 defects (5%)', values: { n: 20, p: 0.05, x: 2 } },
+            { label: '广告 1000 曝光 ≤15 次点击（CTR 1.5%）', labelEn: '1000 impressions, ≤15 clicks (CTR 1.5%)', values: { n: 1000, p: 0.015, x: 15 } },
+            { label: '20 道单选题蒙对 ≤8 题', labelEn: '20 MCQ guessed, ≤8 correct', values: { n: 20, p: 0.25, x: 8 } }
+        ], function () { calcTool(); });
+    } catch (e) {}
+}
 function resetForm(){document.getElementById('n').value = '5';
       document.getElementById('p').value = '0.5';
       document.getElementById('x').value = '2';
       calcTool();}
 calcTool();
+__bcPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

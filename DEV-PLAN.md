@@ -15,15 +15,16 @@
 
 ### 1.1 验收口径（可机检，逐批复测，只升不降）
 
-> 口径修正（2026-10-12 夜）：初版测绘漏统计「同目录相对链接」，导致跨工具内链被严重低估（13.2% → 真实 **73.9%**）。
-> 结论随之修正：**内链不是「没有」，而是「位置靠后、文案无动作、语义不相关」** —— 改造重点从「补链接」改为「让链接更有效」。
+> 口径修正 ①（2026-10-12 夜）：初版测绘漏统计「同目录相对链接」，内链被低估（13.2% → 73.9%）。
+> 口径修正 ②（2026-10-13）：**改了也计不上分** —— 页面通过共享组件库 `TBKit.*` 运行时生成图表/表格/历史，静态扫描只认 `<svg>/<table>/localStorage`，一律漏判。已按调用点记账（`TBKit.chart.` / `matrix.table` / `history.` / `preset.bar` / `export.` / `history.diffLast`）。
+> 结论修正：**内链不是「没有」，而是「位置靠后、文案无动作、语义不相关」** —— 改造重点从「补链接」改为「让链接更有效」。
 
-| 指标 | 基线（2026-10-12 修正口径） | 目标 |
+| 指标 | 基线（2026-10-13 修正口径） | 目标 |
 |---|---|---|
-| UX-Score 全站均值（`scripts/_ux_baseline.py`，9 分制） | **3.65** | ≥ 6.5 |
-| 薄弱页（score ≤ 2） | **1119** 页（22.3%） | 0 |
+| UX-Score 全站均值（`scripts/_ux_baseline.py`，9 分制） | **3.89** | ≥ 6.5 |
+| 薄弱页（score ≤ 2） | **733** 页（14.6%） | 0 |
 | 可视化模块覆盖率（图表 / 示意图 / 矩阵） | 8.6% | ≥ 55%（仅限「语义该有图」的页） |
-| 跨工具内链（导流到相关工具） | 73.9% | 100%，且每页 ≥ 4 条**动作化**内链（含场景说明，非纯工具名） |
+| 跨工具内链（导流到相关工具） | 97.0% | 100%，且每页 ≥ 4 条**动作化**内链（含场景说明，非纯工具名） |
 | 预设场景（一键填充真实场景） | 18.6% | ≥ 70%，每页 ≥ 3 个 |
 | 本地沉淀（历史 / 收藏 / 记住输入） | 23.0% | ≥ 80% |
 | 结果动作（复制 / 导出 / 分享 / 打印） | 65.6% | 100%，每页 ≥ 3 个 |
@@ -57,11 +58,11 @@
 ### 1.4 工程基建（W0，先于任何分类批量开工）
 
 - [x] **基线测绘脚本** `scripts/_ux_baseline.py`（只读扫描，产出 `scripts/_ux_baseline.json`；`--slug` 逐页薄弱清单、`--gate` 门槛判定，2026-10-12 已完成）
-- [x] **组件库 `js/tool-kit.js`**（33KB，零依赖）：SVG 图表 line/bar/pie/gauge/radar/histogram/timeline、预设场景条、历史记录（含去重与回填）、导出 CSV/TXT/SVG、复制、分享链接（URL hash 回填）、速查矩阵；**内置中英双语**（英文态自动切英文，无中文残留）。全站 4705 页已由 `_build.py` 注入（标记 `<!-- TOOLBOX-TOOL-KIT -->`，幂等）。
+- [x] **组件库 `js/tool-kit.js`**（41KB，零依赖）：SVG 图表 line/bar/pie/gauge/radar/histogram/timeline/**bell**（正态密度 + 区间阴影 + 标注线）/**scatter**（散点 + 回归线）、预设场景条、历史记录（含去重、回填、与上次对比 `diffLast`）、导出 CSV/TXT/SVG、复制、分享链接（URL hash 回填）、速查矩阵（可搜索 + 点击复制）；**内置中英双语**（英文态自动切英文，无中文残留），并导出 `util.isEn` 供页面脚本做双语分支。全站 4705 页已由 `_build.py` 注入（标记 `<!-- TOOLBOX-TOOL-KIT -->`，幂等）。
 - [x] **UX 门禁接入 `scripts/run_gates.py`**：新增 `ux baseline regression` 项，比对 `scripts/_ux_baseline_snapshot.json`，分类均分/薄弱数/全站均分任一回退即失败。
 - [x] **S 档样板页** `geometry/triangle-heron`：**1/9 → 5/9**（图形联动 SVG 随边长重绘 + 高的虚线标注、5 个预设场景、历史记录与回填、复制/分享动作、5 条动作化相关工具内链）；en 字典已同步；geometry 用例 62/62 通过。
-- [ ] **相关工具内链构建期注入**：`_build.py` 侧生成（静态 HTML、简体 + 繁体同步），每页 4–8 条**动作化**文案 —— 样板页已验证形态，批量方案待定（运行时 `common.js` 已有相关工具卡片，需先确认重复风险再决定是否构建期另注一份）。
-- [ ] **A / B 档样板页各 1 个**：并入试点 `statistics` 批次（A 档图表分析、B 档仅组件注入），不单独占一批。
+- [x] **相关工具内链构建期注入**（2026-10-13 已完成）：真因是 `_build.py` 注入锚点只有三级回退（tool-intro / 注意事项区块 / 两层 `</div>`+script），**生成页普遍是三层 `</div>`（tool-notes/card/container）才到 `<script>`，三级全落空 ⇒ 1164 页永久无内链**。已加第四级兜底（`(</div>\s*)+(?=<script)` 之后插入），覆盖 3541 → **4700 页（97.0%）**，跨工具导流 + SEO 双补。后续若发现相关工具卡 `rt-desc` 退化成工具名，属描述源缺失，另行处理。
+- [x] **A / B 档样板页**：并入试点 `statistics` 批次（A 档图表分析、B 档仅组件注入）。
 
 ### 1.5 每批标准作业链（SOP，8–12 页/批，完整收口再开下一批）
 
@@ -84,11 +85,15 @@
 
 ### 1.7 当前分类（进行中）
 
-**试点：`statistics`（52 页 / 均分 1.67 / 薄弱 46）** —— 语义最适合图表化（分布、检验、抽样），用它跑通 SOP 与组件库。
+**试点：`statistics`（52 页 / 起点均分 1.67 / 薄弱 46；B1 后 均分 3.02 / 薄弱 20）** —— 语义最适合图表化（分布、检验、抽样），用它跑通 SOP 与组件库。
 按 5 批 × ~10 页推进；批次清单在此动态登记、干完即删。
 
-- [ ] statistics B1（10 页）：S 档 3 页（normal-cdf / binomial-cdf / correlation-coefficient 走 P2 图表分析）+ A 档 7 页 + B 档样板验证（仅组件注入，不改页面脚本）
-- [ ] statistics B2–B5（42 页）
+- [x] statistics B1（2026-10-13 完成）：S 档 3 页 + 12 页输入框缺陷修复（细节见当日 memory）
+  - `normal-cdf` 1→8/9（补 μ/σ、bell 曲线 + 左尾阴影、速查矩阵、导出）；`binomial-cdf` 1→8/9（PMF 双色柱 + CDF 线、明细表；修阶乘溢出 NaN）；`correlation-coefficient` 1→8/9（散点 + 拟合线、离差明细表、显著性 t；修 number 装逗号）
+  - 组件库新增 `chart.bell` / `chart.scatter`，导出 `util.isEn`；弱用例 correlation 硬化为 r=0.9918（默认态 0.7746 不命中）
+  - 顺带清掉 statistics 全部 14 个「`type=number` 装逗号序列」输入框（真浏览器清空非法值 ⇒ 默认样例失效）
+- [ ] statistics B2（10 页）：one-sample-t-test / independent-t-test / linear-regression / confidence-proportion / iqr / z-score-calc / poisson-pmf / percentile-rank / sample-size-mean / chi-square-test（A 档为主，形态轮换：图表 ≤3、明细表 ≤4、速查矩阵 ≥2）
+- [ ] statistics B3–B5（32 页）
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 
@@ -321,6 +326,11 @@
 
 - **重定向存根到期物理删除**：`_redirect_stubs_todo.md` 登记 6 个 `tools/pets/` URL，建存根 2026-10-10，**到期日 2026-11-10**。动作：① 物理删除存根（简体；zh-tw 由 CI 自动消失）→ ② commit/push → Actions success → ③ `python3 _submit_indexnow_deadlinks.py --file <死链列表.txt>`（默认校验）→ ④ 登记表改「已删（commit xxx）」。
 
+### P1 · 真 bug（专项中挖出，未在本分类内清完）
+
+- **全站 19 个「`type="number"` 却装逗号序列」输入框**：浏览器按 number 规则把非法值清空 ⇒ 默认样例失效、页面一进来就弹「请填写」。statistics 已清 14 个，余 **securities 4 / surveying 4 / metrology 3 / hotel 1 / insurance 1 / investment 1 / math 1**（`itinerary-planner`、`complete-life-expectancy`、`geometric-mean-return`、`arithmetic-mean-math`、`combined-uncertainty`、`tolerance-stackup-worst`、`type-a-uncertainty`、`capm-beta`×2、`information-ratio`、`tracking-error`）。修法：`type="number"` → `type="text" inputmode="decimal"`，改完跑对应分类 verify。
+- **`_build.py` 相关工具卡 `rt-desc` 退化为工具名**：部分页卡片描述与名称完全相同（`Z 分数计算器 / Z 分数计算器`），降导流效果；需查 `_zh_desc_of` 取数源。
+
 ### P2 · 数据驱动 / 仓库卫生（择机）
 
 - **GSC 收录数据刷新**：`_gsc_inspect_progress.json` / `_gsc_unindexed.csv` 停留 2026-08-07（6155 URL），可择机重跑 `scripts/_gsc_inspect_urls.py`（单次查询不循环）。
@@ -334,11 +344,12 @@
 
 ---
 
-## 三、项目现状基线（实测，2026-10-12）
+## 三、项目现状基线（实测，2026-10-13）
 
 - 门禁 `scripts/run_gates.py` **218/218 全过**（含新增 UX 门禁项）；verify 逃生项 0；判别力 7733/7733。
 - 工具 **5008 页 / 212 分类**（索引页 207），A 级率 **100%**；平均页大小 20KB。
-- 交互形态基线（本专项起点，修正口径）：UX-Score 均值 **3.65/9**，薄弱页 **1119**；图表 8.6% / 明细表 29.2% / 导出 65.6% / 本地沉淀 23.0% / 预设 18.6% / 分步 16.7% / 对比 31.0% / 跨工具内链 **73.9%** / FAQ 98.2%（模板三件套「参数说明·适用场景·常见问题」高度同质，是「看一眼就走」的主因之一）。
+- 交互形态基线（修正口径 ② 后）：UX-Score 均值 **3.89/9**，薄弱页 **733**；图表 8.7% / 明细表 29.3% / 导出 65.6% / 本地沉淀 23.1% / 预设 18.7% / 分步 16.7% / 对比 31.5% / 跨工具内链 **97.0%** / FAQ 98.2%（模板三件套「参数说明·适用场景·常见问题」高度同质，是「看一眼就走」的主因之一）。
 - UX-Q4 基建已上线：组件库 `js/tool-kit.js` 全站注入、`_ux_baseline.py --gate` 门禁、S 档样板页 `geometry/triangle-heron`（1/9 → 5/9）。
+- 试点 `statistics` B1 已上线（3 页 S 档 1/9 → 8/9，分类均分 1.67 → **3.02**、薄弱 46 → **20**）。
 - 统计三件套已集成：百度统计 + 51.la + Microsoft Clarity，统一收口 `js/analytics.js`；广告埋点 `js/ad_metrics.js`。
 - 索引三通道（IndexNow / Bing URL API / GSC Sitemap）crontab 运行中。

@@ -4020,7 +4020,15 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     content = content.replace('<!-- /注意事项区块 -->', '<!-- /注意事项区块 -->\n' + rt_html, 1)
                 elif '</div>\n</div>\n<script>' in content:
                     content = content.replace('</div>\n</div>\n<script>', '</div>\n</div>\n' + rt_html + '<script>', 1)
-                fixed_rt += 1
+                    fixed_rt += 1
+                else:
+                    # 兜底锚点：正文容器收尾（一层或多层 </div>）之后、页面脚本之前。
+                    # 生成页常见三层 </div>（tool-notes / card / container）才到 <script>，
+                    # 旧三级锚点全部落空 ⇒ 该页永久无相关工具内链（跨工具导流 + SEO 双失）。
+                    _m = re.search(r'(?:</div>\s*)+(?=<script)', content)
+                    if _m:
+                        content = content[:_m.end()] + '\n' + rt_html + content[_m.end():]
+                        fixed_rt += 1
 
         # 6. 内容深度块（content-depth 试点）：注入独有使用场景 / 示例 / FAQ，打掉模板化页过滤。
         #    幂等：先清除已有深度块（兼容旧构建无 marker 残留 / 重复注入），再注入，重跑构建不叠加。

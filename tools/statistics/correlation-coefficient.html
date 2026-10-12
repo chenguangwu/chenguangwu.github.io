@@ -125,31 +125,70 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label for="x">X 数据（逗号分隔）</label>
-        <input type="number" id="x" value="1,2,3,4,5" step="1">
+        <input type="text" id="x" value="1,2,3,4,5" inputmode="decimal">
       </div>
       <div>
         <label for="y">Y 数据（逗号分隔）</label>
-        <input type="number" id="y" value="2,4,5,4,5" step="1">
+        <input type="text" id="y" value="2,4,5,4,5" inputmode="decimal">
       </div>
     </div>
+
+    <div id="ccPresets"></div>
 
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ccExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ccChart" role="img" aria-label="X-Y 散点图与拟合直线"></div>
+    <div id="ccDiff"></div>
+    <div id="ccHistory"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
         <li>r∈[−1,1]。</li>
         <li>|r|越接近 1 线性相关越强。</li>
+        <li>散点图越贴近虚线，线性关系越强；明显弯曲说明可能存在非线性关系。</li>
       </ul>
     </div>
+    <div id="ccTable"></div>
   </div>
 </div>
 
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="z.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">Z 分数计算器</span><span class="rt-desc">Z 分数计算器</span></span>
+    </a>
+    <a href="t.html" class="related-tool-card">
+      <span class="rt-icon">🔬</span>
+      <span class="rt-info"><span class="rt-name">t 检验统计量</span><span class="rt-desc">t 检验统计量</span></span>
+    </a>
+    <a href="binomial-pmf.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">二项分布概率计算器</span><span class="rt-desc">输入试验次数 n 与成功次数 k、成功概率 p，计算 n 次独立伯努利试验恰好 k 次成功的概率，用</span></span>
+    </a>
+    <a href="p.html" class="related-tool-card">
+      <span class="rt-icon">🔬</span>
+      <span class="rt-info"><span class="rt-name">假设检验 p 值近似</span><span class="rt-desc">假设检验 p 值近似</span></span>
+    </a>
+    <a href="statistics-7.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">偏度与峰度</span><span class="rt-desc">偏度与峰度</span></span>
+    </a>
+    <a href="geometric-mean.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">几何平均数计算器</span><span class="rt-desc">几何平均数计算器：输入数值集合，按乘积的 n 次根计算几何平均数，适合增长率、比率等相乘型数据的集中</span></span>
+    </a>
+  </div>
+</div>
 <script>function __tbInputGuard(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
@@ -208,22 +247,88 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['x', 'y'],["X 数据（逗号分隔）", "Y 数据（逗号分隔）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const xa = document.getElementById('x').value.split(',').map(s=>parseFloat(s.trim()));
-            const ya = document.getElementById('y').value.split(',').map(s=>parseFloat(s.trim()));
+const xa = document.getElementById('x').value.split(',').map(s=>parseFloat(s.trim())).filter(v=>isFinite(v));
+            const ya = document.getElementById('y').value.split(',').map(s=>parseFloat(s.trim())).filter(v=>isFinite(v));
             const n = Math.min(xa.length, ya.length);
+            if(n < 2 || xa.length !== ya.length){
+                ToolBox.setResult('result','<p style="color:var(--danger)">⚠ ' + __ccL('X and Y need the same number of valid values, at least 2 pairs. Check the comma-separated data.', 'X 与 Y 需要等量有效数值，且至少 2 组，请检查逗号分隔的数据。') + '</p>');
+                return;
+            }
             const mx = xa.slice(0,n).reduce((a,b)=>a+b,0)/n, my = ya.slice(0,n).reduce((a,b)=>a+b,0)/n;
             let num_=0, dx=0, dy=0;
             for(let i=0;i<n;i++){num_+=(xa[i]-mx)*(ya[i]-my);dx+=Math.pow(xa[i]-mx,2);dy+=Math.pow(ya[i]-my,2);}
             const r = num_ / Math.sqrt(dx*dy);
+            const ar=Math.abs(r);
+            const en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
+            const strength = en
+                ? (ar>=0.9?'Very strong':ar>=0.7?'Strong':ar>=0.5?'Moderate':ar>=0.3?'Weak':'Negligible')
+                : (ar>=0.9?'极强线性相关':ar>=0.7?'强线性相关':ar>=0.5?'中等相关':ar>=0.3?'弱相关':'几乎无线相关');
+            const tt = n>2 && ar<1 ? r*Math.sqrt(n-2)/Math.sqrt(1-r*r) : NaN;
             const __g2=dataGrid([
                 [r.toFixed(4), '相关系数 r'],
-                [(r*r).toFixed(4), '决定系数 r²']
+                [(r*r).toFixed(4), '决定系数 r²'],
+                [String(n), en?'Pairs':'有效样本对数'],
+                [strength, en?'Strength':'关系强度'],
+                [isFinite(tt)?tt.toFixed(4):'—', en?'t (df=n−2)':'显著性 t (df=n−2)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+            __ccExtras(xa, ya, n, mx, my, r);
         }
+function __ccL(en, zh){ return (typeof TBKit !== 'undefined' && TBKit.util.isEn()) ? en : zh; }
+function __ccDiff(fields){
+    if (typeof TBKit === 'undefined') return;
+    try {
+        const box = document.getElementById('ccDiff');
+        if (!box) return;
+        const d = TBKit.history.diffLast(fields);
+        if (!d || !Object.keys(d).length) { box.innerHTML = ''; return; }
+        const parts = [];
+        for (const k in d) { if (Object.prototype.hasOwnProperty.call(d, k)) parts.push(k + ' ' + TBKit.util.fmt(d[k].from) + ' → ' + TBKit.util.fmt(d[k].to)); }
+        box.innerHTML = '<div class="tbk-history"><div class="tbk-history-hd"><span>' +
+            (TBKit.util.isEn() ? 'Vs last calculation: ' : '与上次计算相比：') + parts.join(' · ') + '</span></div></div>';
+    } catch (e) {}
+}
+function __ccExtras(xa, ya, n, mx, my, r){
+    if (typeof TBKit === 'undefined') return;
+    try {
+        const pts = [], rows = [];
+        let sxy = 0, sxx = 0;
+        for (let i = 0; i < n; i++) {
+            pts.push([xa[i], ya[i]]);
+            const dx = xa[i] - mx, dy = ya[i] - my;
+            sxx += dx * dx;
+            rows.push([String(i + 1), String(xa[i]), String(ya[i]), dx.toFixed(3), dy.toFixed(3), (dx * dy).toFixed(3)]);
+        }
+        let slope = 0, ic = my;
+        if (sxx > 0) { let sxyv = 0; for (let i = 0; i < n; i++) sxyv += (xa[i] - mx) * (ya[i] - my); slope = sxyv / sxx; ic = my - slope * mx; }
+        TBKit.chart.scatter('#ccChart', { points: pts, fit: { slope: slope, intercept: ic }, xLabel: 'X', height: 260 });
+        TBKit.matrix.table('#ccTable', { head: ['#', 'x', 'y', 'x−x̄', 'y−ȳ', '(x−x̄)(y−ȳ)'], rows: rows, search: true });
+        window.__ccRows = rows;
+        TBKit.history.record({ n: n, r: Number(r.toFixed(4)) });
+        __ccDiff(['n', 'r']);
+        TBKit.history.mount('#ccHistory', function (v) { });
+    } catch (e) {}
+}
+function __ccExport(){
+    const rows = window.__ccRows;
+    if (typeof TBKit === 'undefined' || !rows || !rows.length) { alert(__ccL('Calculate first, or export is unsupported here.', '请先计算，或当前浏览器不支持导出。')); return; }
+    try { TBKit.export.csv('correlation.csv', [['#', 'x', 'y', 'x_mean_diff', 'y_mean_diff', 'product']].concat(rows)); } catch (e) {}
+}
+function __ccPresets(){
+    if (typeof TBKit === 'undefined') return;
+    try {
+        TBKit.preset.bar('#ccPresets', [
+            { label: '身高 vs 体重（强正相关）', labelEn: 'Height vs weight (strong +)', values: { x: '160,165,170,175,180,185', y: '52,58,63,68,74,80' } },
+            { label: '广告投入 vs 销售额', labelEn: 'Ad spend vs sales', values: { x: '1,2,3,4,5,6', y: '12,19,31,38,52,58' } },
+            { label: '气温 vs 羽绒服销量（负相关）', labelEn: 'Temp vs coat sales (−)', values: { x: '0,5,10,15,20,25', y: '120,102,88,70,51,33' } },
+            { label: '学习时长 vs 成绩', labelEn: 'Study hours vs score', values: { x: '1,2,3,4,5,6,7,8', y: '55,60,64,72,75,81,85,90' } }
+        ], function () { calcTool(); });
+    } catch (e) {}
+}
 function resetForm(){document.getElementById('x').value = '1,2,3,4,5';
       document.getElementById('y').value = '2,4,5,4,5';
       calcTool();}
 calcTool();
+__ccPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

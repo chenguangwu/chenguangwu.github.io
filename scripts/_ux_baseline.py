@@ -43,6 +43,14 @@ CROSS_RE = re.compile(
 # 指南页不是「工具 → 工具」导流，不计入 crosslink
 GUIDE_RE = re.compile(r'guides/', re.I)
 SCRIPT_RE = re.compile(r"<script\b[^>]*>(.*?)</script>", re.I | re.S)
+# 运行时能力：页面通过共享组件库 js/tool-kit.js 调用（DOM 在浏览器里才生成），
+# 静态扫描看不到 <svg>/<table>/localStorage，必须按调用点记账，否则改造不计分。
+TBK_CHART_RE = re.compile(r"TBKit\.chart\.", re.I)
+TBK_TABLE_RE = re.compile(r"TBKit\.matrix\.table", re.I)
+TBK_PERSIST_RE = re.compile(r"TBKit\.history\.", re.I)
+TBK_PRESET_RE = re.compile(r"TBKit\.preset\.bar", re.I)
+TBK_EXPORT_RE = re.compile(r"TBKit\.export\.|TBKit\.share\.", re.I)
+TBK_COMPARE_RE = re.compile(r"TBKit\.history\.diffLast", re.I)
 
 
 def scan_one(path):
@@ -55,13 +63,13 @@ def scan_one(path):
     text = SCRIPT_RE.sub(" ", body)
 
     feats = {
-        "chart": bool(CHART_RE.search(body)),
-        "table": bool(TABLE_RE.search(body)),
-        "export": bool(EXPORT_RE.search(text)),
-        "persist": bool(PERSIST_RE.search(scripts)),
-        "preset": bool(PRESET_RE.search(text)),
+        "chart": bool(CHART_RE.search(body) or TBK_CHART_RE.search(scripts)),
+        "table": bool(TABLE_RE.search(body) or TBK_TABLE_RE.search(scripts)),
+        "export": bool(EXPORT_RE.search(text) or TBK_EXPORT_RE.search(scripts)),
+        "persist": bool(PERSIST_RE.search(scripts) or TBK_PERSIST_RE.search(scripts)),
+        "preset": bool(PRESET_RE.search(text) or TBK_PRESET_RE.search(scripts)),
         "tabs": bool(TABS_RE.search(body)),
-        "compare": bool(COMPARE_RE.search(text)),
+        "compare": bool(COMPARE_RE.search(text) or TBK_COMPARE_RE.search(scripts)),
         "faq": bool(FAQ_RE.search(text)),
     }
     cross = len(set(h for h in CROSS_RE.findall(body) if not GUIDE_RE.search(h)))

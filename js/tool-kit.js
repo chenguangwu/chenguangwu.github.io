@@ -444,6 +444,153 @@
   };
 
   /** 直方图（自动分箱） */
+  /**
+   * 正态密度曲线（钟形曲线）：可选阴影区间（表示概率面积）+ 竖线标注。
+   * cfg: {mu, sigma, from, to, shade:[a,b], markers:[{value,label,color}], height, title}
+   */
+  chart.bell = function (host, cfg) {
+    cfg = cfg || {};
+    var mu = cfg.mu == null ? 0 : num(cfg.mu);
+    var sd = num(cfg.sigma);
+    if (!isFinite(sd) || sd <= 0) sd = 1;
+    var from = cfg.from == null ? mu - 4 * sd : num(cfg.from);
+    var to = cfg.to == null ? mu + 4 * sd : num(cfg.to);
+    if (!isFinite(from) || !isFinite(to) || to <= from) { from = mu - 4 * sd; to = mu + 4 * sd; }
+    var c = canvas(host, {
+      height: cfg.height || 240, title: cfg.title || (isEn() ? 'Normal density curve' : '正态分布密度曲线'),
+      padding: { t: 16, r: 14, b: 30, l: 40 }
+    });
+    var N = 160;
+    var pdf = function (x) { var z = (x - mu) / sd; return Math.exp(-0.5 * z * z) / (sd * Math.sqrt(2 * Math.PI)); };
+    var peak = pdf(mu) * 1.15 || 1;
+    var X = function (v) { return c.pad.l + c.iw * (v - from) / (to - from); };
+    var Y = function (v) { return c.pad.t + c.ih * (1 - v / peak); };
+    var base = c.pad.t + c.ih;
+
+    for (var g = 0; g <= 4; g++) {
+      var gv = peak * g / 4, gy = Y(gv);
+      c.svg.appendChild(s('line', { x1: c.pad.l, y1: gy, x2: c.pad.l + c.iw, y2: gy, stroke: 'var(--border, #E5E7EB)', 'stroke-width': 1 }));
+      var gt = s('text', { x: c.pad.l - 6, y: gy + 4, 'text-anchor': 'end', fill: 'var(--text-muted, #6B7280)', 'font-size': 10 });
+      gt.appendChild(document.createTextNode(fmt(gv, 2)));
+      c.svg.appendChild(gt);
+    }
+
+    var sh = cfg.shade;
+    if (sh && sh.length === 2) {
+      var a = Math.max(from, num(sh[0])), b = Math.min(to, num(sh[1]));
+      if (b > a) {
+        var d = 'M' + X(a).toFixed(1) + ' ' + base;
+        for (var i = 0; i <= N; i++) {
+          var xv = a + (b - a) * i / N;
+          d += ' L' + X(xv).toFixed(1) + ' ' + Y(pdf(xv)).toFixed(1);
+        }
+        d += ' L' + X(b).toFixed(1) + ' ' + base + ' Z';
+        c.svg.appendChild(s('path', { d: d, fill: cfg.shadeColor || PALETTE[0], 'fill-opacity': 0.3, stroke: 'none' }));
+      }
+    }
+
+    var pd = '', step = (to - from) / N;
+    for (var j = 0; j <= N; j++) {
+      var x2 = from + step * j;
+      pd += (j ? 'L' : 'M') + X(x2).toFixed(1) + ' ' + Y(pdf(x2)).toFixed(1);
+    }
+    c.svg.appendChild(s('path', { d: pd, fill: 'none', stroke: cfg.color || PALETTE[0], 'stroke-width': 2 }));
+
+    (cfg.markers || []).forEach(function (m, mi) {
+      var v = num(m.value);
+      if (!isFinite(v) || v < from || v > to) return;
+      var col = m.color || PALETTE[(mi + 1) % PALETTE.length];
+      c.svg.appendChild(s('line', { x1: X(v), y1: c.pad.t, x2: X(v), y2: base, stroke: col, 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }));
+      var tx = s('text', { x: X(v), y: c.pad.t - 4, 'text-anchor': 'middle', 'font-size': 10, fill: col });
+      tx.appendChild(document.createTextNode(m.label != null ? String(m.label) : fmt(v, 2)));
+      c.svg.appendChild(tx);
+    });
+
+    for (var k = 0; k <= 4; k++) {
+      var xv2 = from + (to - from) * k / 4;
+      var t2 = s('text', { x: X(xv2), y: c.h - 8, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text-muted, #6B7280)' });
+      t2.appendChild(document.createTextNode(fmt(xv2, 2)));
+      c.svg.appendChild(t2);
+    }
+    c.svg.appendChild(s('line', { x1: c.pad.l, y1: base, x2: c.pad.l + c.iw, y2: base, stroke: 'var(--border, #E5E7EB)', 'stroke-width': 1 }));
+    return mount(host, c.svg);
+  };
+
+  /**
+   * 散点图（可叠加回归线）。
+   * cfg: {points:[[x,y]...], fit:true|{slope,intercept}, xLabel, yLabel, height, title}
+   */
+  chart.scatter = function (host, cfg) {
+    cfg = cfg || {};
+    var pts = [];
+    (cfg.points || []).forEach(function (p) {
+      if (!p || p.length < 2) return;
+      var a = num(p[0]), b = num(p[1]);
+      if (isFinite(a) && isFinite(b)) pts.push([a, b]);
+    });
+    if (!pts.length) return null;
+    var c = canvas(host, {
+      height: cfg.height || 260, title: cfg.title || (isEn() ? 'Scatter plot' : '散点图'),
+      padding: { t: 16, r: 16, b: 36, l: 48 }
+    });
+    var xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+    var y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    var mx = (x1 - x0) * 0.12 || 1, my = (y1 - y0) * 0.12 || 1;
+    x0 -= mx; x1 += mx; y0 -= my; y1 += my;
+    var X = function (v) { return c.pad.l + c.iw * (v - x0) / (x1 - x0); };
+    var Y = function (v) { return c.pad.t + c.ih * (1 - (v - y0) / (y1 - y0)); };
+
+    for (var g = 0; g <= 4; g++) {
+      var gy = c.pad.t + c.ih * g / 4, gv = y1 - (y1 - y0) * g / 4;
+      c.svg.appendChild(s('line', { x1: c.pad.l, y1: gy, x2: c.pad.l + c.iw, y2: gy, stroke: 'var(--border, #E5E7EB)', 'stroke-width': 1 }));
+      var gt = s('text', { x: c.pad.l - 6, y: gy + 4, 'text-anchor': 'end', fill: 'var(--text-muted, #6B7280)', 'font-size': 10 });
+      gt.appendChild(document.createTextNode(fmt(gv, 2)));
+      c.svg.appendChild(gt);
+    }
+
+    var fit = cfg.fit;
+    if (fit) {
+      var sl, ic;
+      if (typeof fit === 'object' && isFinite(num(fit.slope))) { sl = num(fit.slope); ic = num(fit.intercept); }
+      else {
+        var n = pts.length, sx = 0, sy = 0, sxy = 0, sxx = 0;
+        pts.forEach(function (p) { sx += p[0]; sy += p[1]; sxy += p[0] * p[1]; sxx += p[0] * p[0]; });
+        var den = n * sxx - sx * sx;
+        if (Math.abs(den) > 1e-12) { sl = (n * sxy - sx * sy) / den; ic = (sy - sl * sx) / n; }
+      }
+      if (isFinite(sl) && isFinite(ic)) {
+        var ya = sl * x0 + ic, yb = sl * x1 + ic;
+        c.svg.appendChild(s('line', {
+          x1: X(x0), y1: Y(ya), x2: X(x1), y2: Y(yb),
+          stroke: PALETTE[1] || '#F59E0B', 'stroke-width': 2, 'stroke-dasharray': '6 4'
+        }));
+        var lt = s('text', { x: c.pad.l + c.iw, y: c.pad.t + 12, 'text-anchor': 'end', 'font-size': 10, fill: PALETTE[1] || '#F59E0B' });
+        lt.appendChild(document.createTextNode((isEn() ? 'fit: y=' : '拟合: y=') + fmt(sl, 3) + 'x' + (ic >= 0 ? '+' : '') + fmt(ic, 3)));
+        c.svg.appendChild(lt);
+      }
+    }
+
+    pts.forEach(function (p, i) {
+      var dot = s('circle', { cx: X(p[0]), cy: Y(p[1]), r: 4.5, fill: cfg.color || PALETTE[0], 'fill-opacity': 0.75 });
+      var ttl = s('title', {});
+      ttl.appendChild(document.createTextNode('#' + (i + 1) + ' (' + fmt(p[0]) + ', ' + fmt(p[1]) + ')'));
+      dot.appendChild(ttl);
+      c.svg.appendChild(dot);
+    });
+
+    for (var k = 0; k <= 4; k++) {
+      var xv = x0 + (x1 - x0) * k / 4;
+      var t2 = s('text', { x: X(xv), y: c.h - 20, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text-muted, #6B7280)' });
+      t2.appendChild(document.createTextNode(fmt(xv, 2)));
+      c.svg.appendChild(t2);
+    }
+    var xl = s('text', { x: c.pad.l + c.iw / 2, y: c.h - 4, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text-muted, #6B7280)' });
+    xl.appendChild(document.createTextNode(cfg.xLabel || 'X'));
+    c.svg.appendChild(xl);
+    return mount(host, c.svg);
+  };
+
   chart.histogram = function (host, cfg) {
     cfg = cfg || {};
     var data = (cfg.data || []).map(num);
@@ -830,7 +977,7 @@
 
   window.TBKit = {
     version: '1.0.0',
-    util: { fmt: fmt, num: num, toast: toast, el: el, svg: s, palette: PALETTE },
+    util: { fmt: fmt, num: num, toast: toast, el: el, svg: s, palette: PALETTE, isEn: isEn },
     chart: chart,
     preset: preset,
     history: history,
