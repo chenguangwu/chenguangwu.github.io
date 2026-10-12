@@ -27,7 +27,7 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
-    slug: "general/frequency-3",
+    slug: "music/frequency-3",
     inputs: { a4: "523.25" },
     expect: ["523.3 A4（基准）", "311.1 C4（中央C）"],
     ref: "十二平均律：输入 A4=523.25Hz；C4 = 523.25×2^(-9/12) = 311.13 Hz；A5 = 523.25×2 = 1046.5 Hz",
@@ -426,7 +426,7 @@ const CASES = [
     ref: "稀释倍数 = 原液浓度 100 ÷ 目标浓度 40 = 2.5；原液用量 = 40 ÷ 100 × 20 L = 8 L，加水 12 L。同场「1 : 3 稀释配比」是四舍五入到整数后的显示缺陷，不作为锚。",
   },
   {
-    slug: "general/calc-flow",
+    slug: "agriculture/calc-flow",
     inputs: { v0: "50", v1: "30", v2: "1000", v3: "0.7" },
     clicks: ["calc()"],
     expect: ["1,500.00 总流量（L/min）"],
@@ -617,14 +617,14 @@ const CASES = [
     ref: "脱模力 3 N ≤50 N、残留量 3 mg/dm² ≤10 mg/dm² ⇒ 两项均合格（同场环保达标率 3% ≥90% 为不合格，不混锚）。",
   },
   {
-    slug: "general/detector-211",
+    slug: "chemical/detector-211",
     inputs: { v1: "3", v2: "3", v3: "3" },
     clicks: ["calc()"],
     expect: ["纯度 3 % ≥99.5% 不合格"],
     ref: "纯度实测 3% 低于标准 ≥99.5% ⇒ 不合格。",
   },
   {
-    slug: "general/detector-213",
+    slug: "chemical/detector-213",
     inputs: { v1: "3", v2: "3", v3: "3" },
     clicks: ["calc()"],
     expect: ["纯度 3 % ≥99.0% 不合格"],
@@ -653,7 +653,7 @@ const CASES = [
     ref: "老化后压缩强度实测 3 MPa ≥ 标准 0.3 MPa ⇒ 合格（同场回弹率不合格，不混锚）。",
   },
   {
-    slug: "general/detector-composition",
+    slug: "chemical/detector-composition",
     inputs: { v1: "3", v2: "3", v3: "3", v4: "3" },
     clicks: ["calc()"],
     expect: ["成分符合率 3 % ≥95% 不合格"],
@@ -695,7 +695,7 @@ const CASES = [
     ref: "平均粒度实测 3 μm 落在标准区间 1~100 μm 内 ⇒ 合格。",
   },
   {
-    slug: "general/detector-corrosion",
+    slug: "cleaning/detector-corrosion",
     inputs: { v1: "3", v2: "3", v3: "3", v4: "3" },
     clicks: ["calc()"],
     expect: ["清洗效率 3 % ≥95% 不合格"],
@@ -807,7 +807,7 @@ const CASES = [
     ref: "覆盖面积 = π×安装高度×tan30°×检测距离 = π×3×0.577×3 ≈ 16.3 m²。三参数全部注入，可独立复算。",
   },
   {
-    slug: "general/detector-manager-protection",
+    slug: "safety/detector-manager-protection",
     inputs: { v1: "2", v2: "5", v3: "1", v4: "2" },
     clicks: ["calc()"],
     expect: ["健康风险等级：高风险（51分）"],
@@ -1036,7 +1036,7 @@ const CASES = [
     ref: "双燃油按比例混合（A 比例 50% / 密度 800 / 热值 40 MJ/kg，B 比例 50% / 密度 900 / 热值 45）：混合密度 = (50×800 + 50×900)/100 = **850.0 kg/m³**；页面能量密度 36.25 GJ/m³ ÷ 850 kg/m³ = 42.65 MJ/kg ⇒ 换算 kcal/kg = 42.65×1000/4.184 ≈ **10193**（可与页面「较 A 油：热值 2.65 MJ/kg」行交叉验证：42.65 − 40 = 2.65）。默认组（70/30、840/950）不同 ⇒ 不命中。",
   },
   {
-    slug: "general/distance-power-frequency",
+    slug: "telecom/distance-power-frequency",
     inputs: { v0: "100", v1: "50", v2: "0.5", v3: "1", v4: "2" },
     clicks: ["calc()"],
     expect: ["600.00 波长（cm）", "45.085 最大视距距离（km）"],
@@ -1216,7 +1216,7 @@ const CASES = [
     ref: "注入非默认(默认 功率 15 kW/电压 380 V)：额定电流 I = P/(√3·U·cosφ·η) = 18 kW 折算 ≈ 29.1 A，并按 420 V 回显。默认态 380 V / 约 28.5 A 不命中。⚠ 「≥ 30 mm²」不可作锚：默认 15 kW/380 V 经同一张载流量表也选到 30 mm² ⇒ 该串两态相同。"
   },
   {
-    slug: "general/detector-139",
+    slug: "metrology/detector-139",
     inputs: { v3: "5", v4: "18" },
     expect: ["18 个月"],
     ref: "注入非默认(默认 类型 3/上次校准 12 个月)：器具 = 压力表 ⇒ 该类建议校准周期 2 个月；距上次校准 18 个月 > 周期 ⇒ 输出「⚠️ 需要校准 - 已超出建议周期」。⚠ 「压力表」与「需要校准」均不可作锚：默认态同样是压力表、同样超期 ⇒ 两串两态相同；唯一有判别力的是含注入值的「18 个月」。"
@@ -1629,7 +1629,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"baseCost\":\"42\",\"m0\":\"42\",\"m1\":\"42\",\"mw\":\"42\",\"l0\":\"42\",\"l1\":\"42\",\"lw\":\"42\",\"e0\":\"42\",\"e1\":\"42\",\"ew\":\"42\"}，输出区含「一化后权重：材料 33.3% / 人工 33.3% / 机械 33.3%。\n暂无…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/calc-flow",
+    "slug": "agriculture/calc-flow",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -1935,7 +1935,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「m 5~20μm 不合格 旋转精度 42 μm ≤5μm 不合格 ❌ 综合判定：…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-139",
+    "slug": "metrology/detector-139",
     "inputs": {
       "v3": "42",
       "v4": "42",
@@ -2036,7 +2036,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「10mg/dm² 不合格 环保达标率 42 % ≥90% 不合格 ❌ 综合判定：…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-211",
+    "slug": "chemical/detector-211",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2060,7 +2060,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「≥100mg/g 不合格 ❌ 综合判定：不合格 部分项目不符合标准要求，请整改后…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-213",
+    "slug": "chemical/detector-213",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2144,7 +2144,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"1\"}，输出区含「要求 判定 浓度 42 % 3~8% 不合格 PH值 42 8~10 不合格 防…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-composition",
+    "slug": "chemical/detector-composition",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2204,7 +2204,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「h ≥1000h 不合格 ❌ 综合判定：不合格 部分项目不符合标准要求，请整改后…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-corrosion",
+    "slug": "cleaning/detector-corrosion",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2301,7 +2301,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v3\":\"42\",\"v2\":\"2\"}，输出区含「 等电位连接电阻 42 Ω ≤0.2Ω 不合格 ❌ 综合判定：不合格 部分项目不…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-manager-protection",
+    "slug": "safety/detector-manager-protection",
     "inputs": {
       "v2": "42",
       "v3": "42",
@@ -2398,7 +2398,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"E\":\"42\",\"i\":\"42\",\"ph\":\"42\"}，输出区含「临界电位 (V) 高电位碱性条件溶解为铁酸盐 区间说明 -2.48」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/distance-power-frequency",
+    "slug": "telecom/distance-power-frequency",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -2541,7 +2541,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"amp\":\"42\",\"diameter\":\"42\",\"force\":\"42\",\"material\":\"ceramic\"}，输出区含「42\n42\n42\n42\nceramic\n11083.54」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/frequency-3",
+    "slug": "music/frequency-3",
     "inputs": {
       "a4": "42",
       "prec": "2"
