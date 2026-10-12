@@ -135,6 +135,62 @@
     return m * base;
   }
 
+  /** 解析「逗号/空格分隔」的数值串（中英文逗号、空白均支持），丢掉非数字项 */
+  function parseList(str) {
+    var raw = String(str == null ? '' : str);
+    var out = [];
+    var parts = raw.split(/[,，;；\s]+/);
+    for (var i = 0; i < parts.length; i++) {
+      if (!parts[i]) continue;
+      var v = parseFloat(parts[i]);
+      if (isFinite(v)) out.push(v);
+    }
+    return out;
+  }
+
+  /** 把已渲染的速查/明细表格导出为 CSV（通用，无需页面缓存数据行） */
+  function exportTable(host, filename) {
+    var box = $(host);
+    if (!box) return false;
+    var trs = [];
+    try { trs = box.querySelectorAll('tr'); } catch (e) { trs = []; }
+    if (!trs || !trs.length) return false;
+    var rows = [];
+    for (var i = 0; i < trs.length; i++) {
+      var cells = [];
+      try { cells = trs[i].querySelectorAll('th,td'); } catch (e) { cells = []; }
+      var line = [];
+      for (var j = 0; j < cells.length; j++) line.push((cells[j].textContent || '').trim());
+      if (line.length) rows.push(line);
+    }
+    if (!rows.length) return false;
+    return exp.csv(filename || 'table.csv', rows);
+  }
+
+  /**
+   * 渲染「与上次计算相比」条：读历史第 1 条与第 2 条做差。
+   * 无历史或全部相同则不显示（不留空条）。
+   */
+  function diffBox(host, fields) {
+    var box = $(host);
+    if (!box) return null;
+    var d = history.diffLast(fields);
+    if (!d) { box.innerHTML = ''; return null; }
+    var keys = Object.keys(d);
+    if (!keys.length) { box.innerHTML = ''; return null; }
+    var parts = [];
+    keys.forEach(function (k) { parts.push(k + ' ' + fmt(d[k].from) + ' → ' + fmt(d[k].to)); });
+    box.innerHTML = '';
+    var wrap = el('div', { class: 'tbk-history' });
+    var hd = el('div', { class: 'tbk-history-hd' });
+    var sp = el('span', {});
+    sp.textContent = (isEn() ? 'Vs last calculation: ' : '与上次计算相比：') + parts.join(' · ');
+    hd.appendChild(sp);
+    wrap.appendChild(hd);
+    box.appendChild(wrap);
+    return wrap;
+  }
+
   function toast(msg, type) {
     try {
       if (window.ToolBox && typeof window.ToolBox.showToast === 'function') {
@@ -591,6 +647,64 @@
     return mount(host, c.svg);
   };
 
+  /**
+   * 箱线图（五数概括 + 可选异常值）。用于 iqr / 分布形态类工具。
+   * cfg: {min, q1, median, q3, max, outliers:[v], height, title}
+   */
+  chart.box = function (host, cfg) {
+    cfg = cfg || {};
+    var q = [num(cfg.min), num(cfg.q1), num(cfg.median), num(cfg.q3), num(cfg.max)];
+    for (var i = 0; i < q.length; i++) if (!isFinite(q[i])) return null;
+    var outs = [];
+    (cfg.outliers || []).forEach(function (v) { var n = num(v); if (isFinite(n)) outs.push(n); });
+    var c = canvas(host, {
+      height: cfg.height || 180, title: cfg.title || (isEn() ? 'Box plot' : '箱线图'),
+      padding: { t: 30, r: 20, b: 34, l: 20 }
+    });
+    var lo = Math.min.apply(null, q.concat(outs)), hi = Math.max.apply(null, q.concat(outs));
+    if (hi <= lo) hi = lo + 1;
+    var pad = (hi - lo) * 0.08;
+    lo -= pad; hi += pad;
+    var X = function (v) { return c.pad.l + c.iw * (v - lo) / (hi - lo); };
+    var midY = c.pad.t + c.ih * 0.5;
+    var boxH = Math.min(58, c.ih * 0.5);
+    var y0 = midY - boxH / 2;
+
+    // 须线
+    c.svg.appendChild(s('line', { x1: X(q[0]), y1: midY, x2: X(q[1]), y2: midY, stroke: 'var(--text-muted, #6B7280)', 'stroke-width': 1.5 }));
+    c.svg.appendChild(s('line', { x1: X(q[3]), y1: midY, x2: X(q[4]), y2: midY, stroke: 'var(--text-muted, #6B7280)', 'stroke-width': 1.5 }));
+    [q[0], q[4]].forEach(function (v) {
+      c.svg.appendChild(s('line', { x1: X(v), y1: midY - 12, x2: X(v), y2: midY + 12, stroke: 'var(--text-muted, #6B7280)', 'stroke-width': 1.5 }));
+      var t = s('text', { x: X(v), y: midY + 28, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text-muted, #6B7280)' });
+      t.appendChild(document.createTextNode(fmt(v, 2)));
+      c.svg.appendChild(t);
+    });
+    // 箱体
+    c.svg.appendChild(s('rect', {
+      x: X(q[1]), y: y0, width: Math.max(2, X(q[3]) - X(q[1])), height: boxH, rx: 4,
+      fill: (cfg.color || PALETTE[0]), 'fill-opacity': 0.18, stroke: (cfg.color || PALETTE[0]), 'stroke-width': 2
+    }));
+    // 中位数
+    c.svg.appendChild(s('line', { x1: X(q[2]), y1: y0, x2: X(q[2]), y2: y0 + boxH, stroke: PALETTE[1] || '#F59E0B', 'stroke-width': 3 }));
+    [['Q1', q[1]], ['Q2', q[2]], ['Q3', q[3]]].forEach(function (p) {
+      var t = s('text', { x: X(p[1]), y: y0 - 6, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text, #111827)' });
+      t.appendChild(document.createTextNode(p[0] + ' ' + fmt(p[1], 2)));
+      c.svg.appendChild(t);
+    });
+    // 异常值
+    outs.forEach(function (v) {
+      var dot = s('circle', { cx: X(v), cy: midY, r: 4, fill: '#EF4444' });
+      var tt = s('title', {}); tt.appendChild(document.createTextNode((isEn() ? 'Outlier ' : '异常值 ') + fmt(v, 2)));
+      dot.appendChild(tt);
+      c.svg.appendChild(dot);
+    });
+    // IQR 跨度标注
+    var iqrLab = s('text', { x: (X(q[1]) + X(q[3])) / 2, y: y0 + boxH + 18, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text-muted, #6B7280)' });
+    iqrLab.appendChild(document.createTextNode('IQR ' + fmt(q[3] - q[1], 2)));
+    c.svg.appendChild(iqrLab);
+    return mount(host, c.svg);
+  };
+
   chart.histogram = function (host, cfg) {
     cfg = cfg || {};
     var data = (cfg.data || []).map(num);
@@ -977,7 +1091,11 @@
 
   window.TBKit = {
     version: '1.0.0',
-    util: { fmt: fmt, num: num, toast: toast, el: el, svg: s, palette: PALETTE, isEn: isEn },
+    util: {
+      fmt: fmt, num: num, toast: toast, el: el, svg: s, palette: PALETTE, isEn: isEn,
+      lang: function (en, zh) { return isEn() ? en : zh; },
+      parseList: parseList, diffBox: diffBox, exportCsv: exp.csv, exportTable: exportTable
+    },
     chart: chart,
     preset: preset,
     history: history,

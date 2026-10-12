@@ -134,12 +134,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="psPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__psExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="psDiff"></div>
+    <div id="psHist"></div>
+    <div id="psTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +273,52 @@ function resetForm(){document.getElementById('lam').value = '4';
       document.getElementById('k').value = '2';
       calcTool();}
 calcTool();
+
+function __psNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __psExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#psTable', 'poisson-pmf.csv'); } catch (e) {}
+}
+function __psExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var lam=__psNum('lam'), k=Math.round(__psNum('k'));
+    if(!isFinite(lam)||lam<0||!isFinite(k)||k<0) return;
+    var en=TBKit.util.isEn();
+    var top=Math.min(Math.max(Math.ceil(lam*3)+5, k+3), 40);
+    var rows=[], cdf=0, term=Math.exp(-lam), pk=0;
+    for(var i=0;i<=top;i++){
+        if(i>0) term = term*lam/i;
+        cdf += term;
+        if(i===k) pk=term;
+        rows.push([String(i)+(i===k?' ★':''), term.toFixed(6), cdf.toFixed(6)]);
+    }
+    TBKit.matrix.table('#psTable',{
+        head: en?['k','P(X=k)','P(X≤k)']:['k','P(X=k)','P(X≤k)'],
+        rows: rows
+    });
+    window.__psRows = rows;
+    TBKit.history.record({lam:lam,k:k,p:Number(pk.toFixed(6))});
+    TBKit.util.diffBox('#psDiff',['lam','k']);
+    TBKit.history.mount('#psHist',function(v){
+        if(v.lam!=null)document.getElementById('lam').value=v.lam;
+        if(v.k!=null)document.getElementById('k').value=v.k;
+        calcTool();
+    });
+}
+function __psPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#psPresets',[
+        {label:'呼叫中心 λ=4，恰 2 通',labelEn:'Call center λ=4, exactly 2',values:{lam:4,k:2}},
+        {label:'路口事故 λ=1.5，恰 0 起',labelEn:'Accidents λ=1.5, exactly 0',values:{lam:1.5,k:0}},
+        {label:'网站注册 λ=8，恰 10 个',labelEn:'Signups λ=8, exactly 10',values:{lam:8,k:10}},
+        {label:'罕见事件 λ=0.3，恰 1 次',labelEn:'Rare event λ=0.3, exactly 1',values:{lam:0.3,k:1}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __psExtras(); } catch (e) {} };
+calcTool();
+__psPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -135,12 +135,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="lrPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__lrExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="lrChart" role="img" aria-label="结果可视化"></div>
+    <div id="lrDiff"></div>
+    <div id="lrHist"></div>
+    <div id="lrTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -258,6 +266,54 @@ function resetForm(){document.getElementById('x').value = '1,2,3,4,5';
       document.getElementById('y').value = '2,4,5,4,5';
       calcTool();}
 calcTool();
+
+function __lrExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lrTable', 'linear-regression.csv'); } catch (e) {}
+}
+function __lrExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var xa=TBKit.util.parseList(document.getElementById('x').value);
+    var ya=TBKit.util.parseList(document.getElementById('y').value);
+    var n=Math.min(xa.length,ya.length);
+    if(n<2) return;
+    xa=xa.slice(0,n); ya=ya.slice(0,n);
+    var mx=0,my=0,i; for(i=0;i<n;i++){mx+=xa[i];my+=ya[i];} mx/=n; my/=n;
+    var sxy=0,sxx=0; for(i=0;i<n;i++){sxy+=(xa[i]-mx)*(ya[i]-my); sxx+=(xa[i]-mx)*(xa[i]-mx);}
+    var b=sxx>0?sxy/sxx:0, a=my-b*mx;
+    var en=TBKit.util.isEn();
+    var pts=[],rows=[],ssRes=0,ssTot=0;
+    for(i=0;i<n;i++){
+        pts.push([xa[i],ya[i]]);
+        var fit=a+b*xa[i], res=ya[i]-fit;
+        ssRes+=res*res; ssTot+=(ya[i]-my)*(ya[i]-my);
+        rows.push([String(i+1), String(xa[i]), String(ya[i]), fit.toFixed(3), res.toFixed(3)]);
+    }
+    var r2 = ssTot>0 ? 1-ssRes/ssTot : NaN;
+    TBKit.chart.scatter('#lrChart',{points:pts,fit:{slope:b,intercept:a},xLabel:'X',height:260});
+    TBKit.matrix.table('#lrTable',{
+        head: en?['#','x','y','Predicted ŷ','Residual']:['#','x','y','预测 ŷ','残差'],
+        rows: rows
+    });
+    window.__lrRows = rows;
+    TBKit.history.record({n:n,slope:Number(b.toFixed(4)),r2:isFinite(r2)?Number(r2.toFixed(4)):0});
+    TBKit.util.diffBox('#lrDiff',['slope','r2']);
+    TBKit.history.mount('#lrHist',function(v){});
+}
+function __lrPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lrPresets',[
+        {label:'广告投入 vs 销售额',labelEn:'Ad spend vs sales',values:{x:'1,2,3,4,5,6',y:'12,19,31,38,52,58'}},
+        {label:'工龄 vs 月薪（千元）',labelEn:'Years vs monthly salary (k)',values:{x:'1,3,5,7,9,11',y:'8,11,14,17,21,24'}},
+        {label:'温度 vs 耗电量',labelEn:'Temperature vs power use',values:{x:'15,18,21,24,27,30',y:'40,44,52,61,70,82'}},
+        {label:'学习时长 vs 分数',labelEn:'Study hours vs score',values:{x:'1,2,3,4,5,6,7,8',y:'55,60,64,72,75,81,85,90'}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __lrExtras(); } catch (e) {} };
+calcTool();
+__lrPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

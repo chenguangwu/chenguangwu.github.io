@@ -151,12 +151,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="itPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__itExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="itDiff"></div>
+    <div id="itHist"></div>
+    <div id="itTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -308,6 +315,57 @@ function resetForm(){document.getElementById('m1').value = '30';
       document.getElementById('n2').value = '20';
       calcTool();}
 calcTool();
+
+function __itNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __itExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#itTable', 'independent-t-test.csv'); } catch (e) {}
+}
+function __itExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m1=__itNum('m1'),m2=__itNum('m2'),s1=__itNum('s1'),s2=__itNum('s2'),n1=__itNum('n1'),n2=__itNum('n2');
+    if(!isFinite(m1)||!isFinite(m2)||!isFinite(s1)||!isFinite(s2)||!isFinite(n1)||!isFinite(n2)||n1<2||n2<2) return;
+    var se=Math.sqrt(s1*s1/n1+s2*s2/n2), t=(m1-m2)/se, df=n1+n2-2;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#itTable',{
+        head: en?['Metric','Group 1','Group 2','Diff / Combined']:['指标','组 1','组 2','差异 / 合并'],
+        rows: en?[
+            ['Mean', m1.toFixed(3), m2.toFixed(3), (m1-m2).toFixed(3)],
+            ['Std dev', s1.toFixed(3), s2.toFixed(3), '—'],
+            ['Sample size', String(n1), String(n2), String(n1+n2)],
+            ['Std error', (s1/Math.sqrt(n1)).toFixed(3), (s2/Math.sqrt(n2)).toFixed(3), se.toFixed(3)],
+            ['t statistic', '—', '—', t.toFixed(4)],
+            ['df', '—', '—', String(df)]
+        ]:[
+            ['均值', m1.toFixed(3), m2.toFixed(3), (m1-m2).toFixed(3)],
+            ['标准差', s1.toFixed(3), s2.toFixed(3), '—'],
+            ['样本量', String(n1), String(n2), String(n1+n2)],
+            ['标准误', (s1/Math.sqrt(n1)).toFixed(3), (s2/Math.sqrt(n2)).toFixed(3), se.toFixed(3)],
+            ['t 统计量', '—', '—', t.toFixed(4)],
+            ['自由度 df', '—', '—', String(df)]
+        ]
+    });
+    TBKit.history.record({m1:m1,m2:m2,s1:s1,s2:s2,n1:n1,n2:n2,t:Number(t.toFixed(4))});
+    TBKit.util.diffBox('#itDiff',['t']);
+    TBKit.history.mount('#itHist',function(v){
+        ['m1','m2','s1','s2','n1','n2'].forEach(function(k){ if(v[k]!=null) document.getElementById(k).value=v[k]; });
+        calcTool();
+    });
+}
+function __itPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#itPresets',[
+        {label:'A/B 测试：转化率 30% vs 27%（各 20）',labelEn:'A/B: 30% vs 27% (n=20 each)',values:{m1:30,m2:27,s1:5,s2:5,n1:20,n2:20}},
+        {label:'男女身高 172 vs 165（各 50）',labelEn:'Height M 172 vs F 165 (n=50)',values:{m1:172,m2:165,s1:7,s2:6,n1:50,n2:50}},
+        {label:'两组差异大（各 15）',labelEn:'Big gap (n=15 each)',values:{m1:80,m2:65,s1:10,s2:10,n1:15,n2:15}},
+        {label:'两组几乎无差异（各 30）',labelEn:'Almost no gap (n=30 each)',values:{m1:50,m2:49.5,s1:8,s2:8,n1:30,n2:30}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __itExtras(); } catch (e) {} };
+calcTool();
+__itPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

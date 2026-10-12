@@ -137,12 +137,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ssPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ssExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ssDiff"></div>
+    <div id="ssHist"></div>
+    <div id="ssTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -257,6 +264,51 @@ function resetForm(){document.getElementById('sigma').value = '10';
       document.getElementById('z').value = '1.96';
       calcTool();}
 calcTool();
+
+function __ssNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ssExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ssTable', 'sample-size.csv'); } catch (e) {}
+}
+function __ssExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s=__ssNum('sigma'), e=__ssNum('e'), z=__ssNum('z');
+    if(!isFinite(s)||!isFinite(e)||!isFinite(z)||s<=0||e<=0) return;
+    var en=TBKit.util.isEn();
+    var es=[0.5,1,2,3,5,10], zs=[['90%',1.645],['95%',1.96],['99%',2.576]], rows=[];
+    for(var i=0;i<es.length;i++){
+        var row=[String(es[i])];
+        for(var j=0;j<zs.length;j++) row.push(String(Math.ceil(Math.pow(zs[j][1]*s/es[i],2))));
+        rows.push(row);
+    }
+    TBKit.matrix.table('#ssTable',{
+        head: en?['Margin e','n @90%','n @95%','n @99%']:['误差界 e','90% 所需 n','95% 所需 n','99% 所需 n'],
+        rows: rows
+    });
+    window.__ssRows = rows;
+    TBKit.history.record({sigma:s,e:e,z:z,n:Math.ceil(Math.pow(z*s/e,2))});
+    TBKit.util.diffBox('#ssDiff',['e','n']);
+    TBKit.history.mount('#ssHist',function(v){
+        if(v.sigma!=null)document.getElementById('sigma').value=v.sigma;
+        if(v.e!=null)document.getElementById('e').value=v.e;
+        if(v.z!=null)document.getElementById('z').value=v.z;
+        calcTool();
+    });
+}
+function __ssPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ssPresets',[
+        {label:'用户满意度 ±2 分（σ=10, 95%）',labelEn:'Satisfaction ±2 (σ=10, 95%)',values:{sigma:10,e:2,z:1.96}},
+        {label:'身高调查 ±1cm（σ=7, 95%）',labelEn:'Height ±1cm (σ=7, 95%)',values:{sigma:7,e:1,z:1.96}},
+        {label:'客单价 ±50 元（σ=300, 95%）',labelEn:'Order value ±50 (σ=300, 95%)',values:{sigma:300,e:50,z:1.96}},
+        {label:'严格版 ±1 分（σ=10, 99%）',labelEn:'Strict ±1 (σ=10, 99%)',values:{sigma:10,e:1,z:2.576}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __ssExtras(); } catch (e) {} };
+calcTool();
+__ssPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

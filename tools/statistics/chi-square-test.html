@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="csPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__csExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="csDiff"></div>
+    <div id="csHist"></div>
+    <div id="csTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +259,49 @@ function resetForm(){document.getElementById('o').value = '50,30,20';
       document.getElementById('e').value = '40,40,20';
       calcTool();}
 calcTool();
+
+function __csExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#csTable', 'chi-square.csv'); } catch (e) {}
+}
+function __csExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var oa=TBKit.util.parseList(document.getElementById('o').value);
+    var ea=TBKit.util.parseList(document.getElementById('e').value);
+    var n=Math.min(oa.length,ea.length);
+    if(n<2) return;
+    var en=TBKit.util.isEn();
+    var rows=[], chi=0;
+    for(var i=0;i<n;i++) chi += Math.pow(oa[i]-ea[i],2)/ea[i];
+    for(var j=0;j<n;j++){
+        var d=oa[j]-ea[j], c=Math.pow(d,2)/ea[j];
+        rows.push([String(j+1), String(oa[j]), String(ea[j]), d.toFixed(3), c.toFixed(4),
+                   (chi>0?(c/chi*100).toFixed(1)+'%':'0%')]);
+    }
+    TBKit.matrix.table('#csTable',{
+        head: en?['#','Observed O','Expected E','O−E','(O−E)²/E','Share of χ²']
+                :['#','观测值 O','期望值 E','O−E','(O−E)²/E','占 χ² 比重'],
+        rows: rows
+    });
+    window.__csRows = rows;
+    TBKit.history.record({k:n,chi:Number(chi.toFixed(4))});
+    TBKit.util.diffBox('#csDiff',['chi']);
+    TBKit.history.mount('#csHist',function(v){});
+}
+function __csPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#csPresets',[
+        {label:'掷骰子 60 次是否均匀',labelEn:'Dice 60 rolls, fair?',values:{o:'8,9,12,11,10,10',e:'10,10,10,10,10,10'}},
+        {label:'性别 × 偏好（2×2 简化）',labelEn:'Gender × preference (2x2)',values:{o:'50,30,20,40',e:'35,35,35,35'}},
+        {label:'拟合很好（几乎无差异）',labelEn:'Good fit (almost no gap)',values:{o:'20,21,19,20',e:'20,20,20,20'}},
+        {label:'拟合很差（差异大）',labelEn:'Poor fit (big gap)',values:{o:'60,10,10,20',e:'25,25,25,25'}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __csExtras(); } catch (e) {} };
+calcTool();
+__csPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

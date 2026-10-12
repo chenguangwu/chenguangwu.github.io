@@ -123,11 +123,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>中位数</label><input type="number" id="median_" value="40" step="any" oninput="calc()"></div>
     <div class="input-row"><label>Q3</label><input type="number" id="q3" value="60" step="any" oninput="calc()"></div>
     <div class="input-row"><label>最大值</label><input type="number" id="max_" value="90" step="any" oninput="calc()"></div>
+    <div id="iqPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div id="iqChart" role="img" aria-label="结果可视化"></div>
+    <div id="iqDiff"></div>
+    <div id="iqHist"></div>
+    <div id="iqTable"></div>
+
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -195,6 +202,63 @@ function copyResult() {
   });
 }
 calc();
+
+function __iqNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __iqExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var mn=__iqNum('min_'),q1=__iqNum('q1'),md=__iqNum('median_'),q3=__iqNum('q3'),mx=__iqNum('max_');
+    if(!isFinite(mn)||!isFinite(q1)||!isFinite(md)||!isFinite(q3)||!isFinite(mx)||q3<q1) return;
+    var iqr=q3-q1, loF=q1-1.5*iqr, hiF=q3+1.5*iqr;
+    var en=TBKit.util.isEn();
+    var outs=[];
+    if(mn<loF) outs.push(mn);
+    if(mx>hiF) outs.push(mx);
+    TBKit.chart.box('#iqChart',{min:mn,q1:q1,median:md,q3:q3,max:mx,outliers:outs,height:190});
+    TBKit.matrix.table('#iqTable',{
+        head: en?['Item','Value','Note']:['项目','数值','说明'],
+        rows: en?[
+            ['Min', mn.toFixed(3), mn<loF?'Below lower fence':'Within fence'],
+            ['Q1', q1.toFixed(3), '25th percentile'],
+            ['Median', md.toFixed(3), '50th percentile'],
+            ['Q3', q3.toFixed(3), '75th percentile'],
+            ['Max', mx.toFixed(3), mx>hiF?'Above upper fence':'Within fence'],
+            ['IQR', iqr.toFixed(3), 'Q3 − Q1'],
+            ['Lower fence', loF.toFixed(3), 'Q1 − 1.5×IQR'],
+            ['Upper fence', hiF.toFixed(3), 'Q3 + 1.5×IQR']
+        ]:[
+            ['最小值', mn.toFixed(3), mn<loF?'低于下界（疑似异常）':'在界内'],
+            ['Q1', q1.toFixed(3), '第 25 百分位'],
+            ['中位数', md.toFixed(3), '第 50 百分位'],
+            ['Q3', q3.toFixed(3), '第 75 百分位'],
+            ['最大值', mx.toFixed(3), mx>hiF?'高于上界（疑似异常）':'在界内'],
+            ['四分位距 IQR', iqr.toFixed(3), 'Q3 − Q1'],
+            ['异常值下界', loF.toFixed(3), 'Q1 − 1.5×IQR'],
+            ['异常值上界', hiF.toFixed(3), 'Q3 + 1.5×IQR']
+        ]
+    });
+    TBKit.history.record({q1:q1,median:md,q3:q3,iqr:Number(iqr.toFixed(4))});
+    TBKit.util.diffBox('#iqDiff',['iqr']);
+    TBKit.history.mount('#iqHist',function(v){
+        if(v.q1!=null)document.getElementById('q1').value=v.q1;
+        if(v.median!=null)document.getElementById('median_').value=v.median;
+        if(v.q3!=null)document.getElementById('q3').value=v.q3;
+        calc();
+    });
+}
+function __iqPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#iqPresets',[
+        {label:'月薪分布（千元）5/8/12/18/40',labelEn:'Salary (k) 5/8/12/18/40',values:{min_:5,q1:8,median_:12,q3:18,max_:40,data_count:100}},
+        {label:'考试分数 45/62/72/85/100',labelEn:'Scores 45/62/72/85/100',values:{min_:45,q1:62,median_:72,q3:85,max_:100,data_count:60}},
+        {label:'对称分布 10/30/50/70/90',labelEn:'Symmetric 10/30/50/70/90',values:{min_:10,q1:30,median_:50,q3:70,max_:90,data_count:50}},
+        {label:'右偏分布 0/5/10/20/90',labelEn:'Right-skewed 0/5/10/20/90',values:{min_:0,q1:5,median_:10,q3:20,max_:90,data_count:80}}
+    ],function(){ calc(); });
+}
+
+var __tb_fn0 = calc;
+calc = function () { __tb_fn0(); try { __iqExtras(); } catch (e) {} };
+calc();
+__iqPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="prPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__prExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="prDiff"></div>
+    <div id="prHist"></div>
+    <div id="prTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,53 @@ function resetForm(){document.getElementById('data').value = '55,60,65,70,75,80,
       document.getElementById('val').value = '70';
       calcTool();}
 calcTool();
+
+function __prExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#prTable', 'percentile-rank.csv'); } catch (e) {}
+}
+function __prExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var arr=TBKit.util.parseList(document.getElementById('data').value);
+    var v=parseFloat(document.getElementById('val').value);
+    if(!arr.length||!isFinite(v)) return;
+    var en=TBKit.util.isEn();
+    var sorted=arr.slice().sort(function(a,b){return a-b;});
+    var rows=[], below=0, equal=0;
+    for(var i=0;i<sorted.length;i++){ if(sorted[i]<v) below++; else if(sorted[i]===v) equal++; }
+    for(var j=0;j<sorted.length;j++){
+        var b=0,e2=0;
+        for(var q=0;q<sorted.length;q++){ if(sorted[q]<sorted[j]) b++; else if(sorted[q]===sorted[j]) e2++; }
+        var pr=(b+0.5*e2)/sorted.length*100;
+        rows.push([String(j+1), String(sorted[j]), pr.toFixed(2)+'%', sorted[j]===v?(en?'← target':'← 目标值'):'']);
+    }
+    TBKit.matrix.table('#prTable',{
+        head: en?['Rank (asc)','Value','Percentile','Mark']:['升序排名','数值','百分等级','标记'],
+        rows: rows
+    });
+    window.__prRows = rows;
+    var pr0=(below+0.5*equal)/sorted.length*100;
+    TBKit.history.record({val:v,n:sorted.length,pr:Number(pr0.toFixed(2))});
+    TBKit.util.diffBox('#prDiff',['val','pr']);
+    TBKit.history.mount('#prHist',function(v2){
+        if(v2.val!=null)document.getElementById('val').value=v2.val;
+        calcTool();
+    });
+}
+function __prPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#prPresets',[
+        {label:'8 人成绩中 70 分',labelEn:'Score 70 among 8',values:{data:'55,60,65,70,75,80,85,90',val:70}},
+        {label:'薪资 12k 在 10 人中',labelEn:'Salary 12k among 10',values:{data:'8,9,10,11,12,13,15,18,22,30',val:12}},
+        {label:'最高分 98 的排名',labelEn:'Top score 98',values:{data:'62,70,75,80,84,88,92,95,98',val:98}},
+        {label:'最低分 45 的排名',labelEn:'Lowest score 45',values:{data:'45,58,63,70,77,82,90',val:45}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __prExtras(); } catch (e) {} };
+calcTool();
+__prPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

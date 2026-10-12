@@ -142,12 +142,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ttPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ttExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ttChart" role="img" aria-label="结果可视化"></div>
+    <div id="ttDiff"></div>
+    <div id="ttHist"></div>
+    <div id="ttTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -296,6 +304,67 @@ function resetForm(){document.getElementById('xbar').value = '52';
       document.getElementById('n').value = '25';
       calcTool();}
 calcTool();
+
+function __ttNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ttExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ttTable', 'one-sample-t-test.csv'); } catch (e) {}
+}
+function __ttExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var xb=__ttNum('xbar'), m0=__ttNum('mu0'), sd=__ttNum('sd'), n=__ttNum('n');
+    if(!isFinite(xb)||!isFinite(m0)||!isFinite(sd)||!isFinite(n)||sd<=0||n<2) return;
+    var t=(xb-m0)/(sd/Math.sqrt(n)), df=n-1, at=Math.abs(t);
+    var en=TBKit.util.isEn();
+    TBKit.chart.bell('#ttChart',{
+        mu:0, sigma:1, from:-4, to:4,
+        shade:[-4,-at],
+        markers:[{value:t,label:'t='+t.toFixed(3)},{value:-t,label:'-t',color:'#94A3B8'}],
+        height:230
+    });
+    var verdict = at>=2 ? (en?'Reject H0 at ~5% level (|t| large)':'差异显著（|t| 较大，约 5% 水平拒绝 H0）')
+                        : (en?'Not significant (|t| small)':'差异不显著（|t| 偏小）');
+    TBKit.matrix.table('#ttTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: en?[
+            ['t statistic', t.toFixed(4)],
+            ['df', String(df)],
+            ['Mean difference', (xb-m0).toFixed(4)],
+            ['Standard error', (sd/Math.sqrt(n)).toFixed(4)],
+            ['Rough verdict', verdict]
+        ]:[
+            ['t 统计量', t.toFixed(4)],
+            ['自由度 df', String(df)],
+            ['均值差 x̄−μ₀', (xb-m0).toFixed(4)],
+            ['标准误 s/√n', (sd/Math.sqrt(n)).toFixed(4)],
+            ['粗略结论', verdict]
+        ]
+    });
+    TBKit.history.record({xbar:xb,mu0:m0,sd:sd,n:n,t:Number(t.toFixed(4))});
+    TBKit.util.diffBox('#ttDiff',['t']);
+    TBKit.history.mount('#ttHist',function(v){
+        if(v.xbar!=null)document.getElementById('xbar').value=v.xbar;
+        if(v.mu0!=null)document.getElementById('mu0').value=v.mu0;
+        if(v.sd!=null)document.getElementById('sd').value=v.sd;
+        if(v.n!=null)document.getElementById('n').value=v.n;
+        calcTool();
+    });
+}
+function __ttPresets(){
+    if (typeof TBKit === 'undefined') return;
+    var en=TBKit.util.isEn();
+    TBKit.preset.bar('#ttPresets',[
+        {label:'班均分 52 vs 全国 50（n=25, s=10）',labelEn:'Class 52 vs national 50 (n=25, s=10)',values:{xbar:52,mu0:50,sd:10,n:25}},
+        {label:'袋重 498g vs 标称 500g（n=30, s=8）',labelEn:'Bag 498g vs 500g (n=30, s=8)',values:{xbar:498,mu0:500,sd:8,n:30}},
+        {label:'大样本 n=200 的微小差异',labelEn:'Large sample n=200, small gap',values:{xbar:50.5,mu0:50,sd:10,n:200}},
+        {label:'差异不显著示例（n=25）',labelEn:'Not significant (n=25)',values:{xbar:50.2,mu0:50,sd:10,n:25}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __ttExtras(); } catch (e) {} };
+calcTool();
+__ttPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -139,12 +139,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cpPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cpExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cpDiff"></div>
+    <div id="cpHist"></div>
+    <div id="cpTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -259,6 +266,52 @@ function resetForm(){document.getElementById('x').value = '60';
       document.getElementById('z').value = '1.96';
       calcTool();}
 calcTool();
+
+function __cpNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cpExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cpTable', 'confidence-proportion.csv'); } catch (e) {}
+}
+function __cpExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x=__cpNum('x'), n=__cpNum('n'), z=__cpNum('z');
+    if(!isFinite(x)||!isFinite(n)||!isFinite(z)||n<=0) return;
+    var p=x/n;
+    var en=TBKit.util.isEn();
+    var ns=[50,100,200,500,1000,2000,5000], rows=[];
+    for(var i=0;i<ns.length;i++){
+        var moe=z*Math.sqrt(p*(1-p)/ns[i]);
+        rows.push([String(ns[i]), (moe*100).toFixed(2)+'%', (2*moe*100).toFixed(2)+'%',
+                   Math.max(0,p-moe).toFixed(4)+' ~ '+Math.min(1,p+moe).toFixed(4)]);
+    }
+    TBKit.matrix.table('#cpTable',{
+        head: en?['Sample size n','Margin ±','Interval width','Interval at p̂='+p.toFixed(3)]
+                :['样本量 n','误差 ±','区间宽度','p̂='+p.toFixed(3)+' 时的区间'],
+        rows: rows
+    });
+    TBKit.history.record({x:x,n:n,z:z,p:Number(p.toFixed(4))});
+    TBKit.util.diffBox('#cpDiff',['p','n']);
+    TBKit.history.mount('#cpHist',function(v){
+        if(v.x!=null)document.getElementById('x').value=v.x;
+        if(v.n!=null)document.getElementById('n').value=v.n;
+        if(v.z!=null)document.getElementById('z').value=v.z;
+        calcTool();
+    });
+}
+function __cpPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cpPresets',[
+        {label:'问卷 60/100 满意（95%）',labelEn:'Survey 60/100 satisfied (95%)',values:{x:60,n:100,z:1.96}},
+        {label:'抽检 8/200 不良（95%）',labelEn:'QC 8/200 defects (95%)',values:{x:8,n:200,z:1.96}},
+        {label:'点击 45/1500（99%）',labelEn:'Clicks 45/1500 (99%)',values:{x:45,n:1500,z:2.576}},
+        {label:'转化 12/80（90%）',labelEn:'Conversion 12/80 (90%)',values:{x:12,n:80,z:1.645}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __cpExtras(); } catch (e) {} };
+calcTool();
+__cpPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

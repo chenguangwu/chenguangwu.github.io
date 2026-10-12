@@ -92,8 +92,13 @@
   - `normal-cdf` 1→8/9（补 μ/σ、bell 曲线 + 左尾阴影、速查矩阵、导出）；`binomial-cdf` 1→8/9（PMF 双色柱 + CDF 线、明细表；修阶乘溢出 NaN）；`correlation-coefficient` 1→8/9（散点 + 拟合线、离差明细表、显著性 t；修 number 装逗号）
   - 组件库新增 `chart.bell` / `chart.scatter`，导出 `util.isEn`；弱用例 correlation 硬化为 r=0.9918（默认态 0.7746 不命中）
   - 顺带清掉 statistics 全部 14 个「`type=number` 装逗号序列」输入框（真浏览器清空非法值 ⇒ 默认样例失效）
-- [ ] statistics B2（10 页）：one-sample-t-test / independent-t-test / linear-regression / confidence-proportion / iqr / z-score-calc / poisson-pmf / percentile-rank / sample-size-mean / chi-square-test（A 档为主，形态轮换：图表 ≤3、明细表 ≤4、速查矩阵 ≥2）
-- [ ] statistics B3–B5（32 页）
+- [x] statistics B2（2026-10-13 完成）：10 页 A 档，形态强制轮换（图表 4 / 明细表 4 / 速查矩阵 3）
+  - 图表 4 页：t 检验（bell + 拒绝域）、z-score（bell + 百分位速查）、回归（散点 + 残差表）、iqr（**新增 `chart.box` 箱线图** + 1.5×IQR 界）
+  - 明细表 4 页：独立样本 t（两组并排对比）、卡方（O/E/贡献/占比重）、百分等级（升序排名表）、泊松（k/PMF/CDF，当前 k 打 ★）
+  - 速查矩阵 3 页：比例置信区间（样本量 × 误差 ±）、样本量（误差界 × 90/95/99%）、z→百分位
+  - 统一能力包：每页 4 预设 + 历史回填 + 与上次对比 + 导出明细 CSV（组件库新增 `util.exportTable`）；分类均分 3.02 → **3.81**，薄弱 20 → **16**
+- [ ] statistics B3（10 页）：one-sample-z-test / sample-size-proportion / binomial-pmf / correlation-r-squared / geometric-mean / harmonic-mean / odds-ratio / paired-t-test / pooled-variance / probability-complement（均 2/9，本类最弱）
+- [ ] statistics B4–B5（22 页）
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 
@@ -350,6 +355,6 @@
 - 工具 **5008 页 / 212 分类**（索引页 207），A 级率 **100%**；平均页大小 20KB。
 - 交互形态基线（修正口径 ② 后）：UX-Score 均值 **3.89/9**，薄弱页 **733**；图表 8.7% / 明细表 29.3% / 导出 65.6% / 本地沉淀 23.1% / 预设 18.7% / 分步 16.7% / 对比 31.5% / 跨工具内链 **97.0%** / FAQ 98.2%（模板三件套「参数说明·适用场景·常见问题」高度同质，是「看一眼就走」的主因之一）。
 - UX-Q4 基建已上线：组件库 `js/tool-kit.js` 全站注入、`_ux_baseline.py --gate` 门禁、S 档样板页 `geometry/triangle-heron`（1/9 → 5/9）。
-- 试点 `statistics` B1 已上线（3 页 S 档 1/9 → 8/9，分类均分 1.67 → **3.02**、薄弱 46 → **20**）。
+- 试点 `statistics` B1+B2 已上线（13 页：3 页 S 档 + 10 页 A 档），分类均分 1.67 → **3.81**、薄弱 46 → **16**；全站薄弱 1119 → **729**。
 - 统计三件套已集成：百度统计 + 51.la + Microsoft Clarity，统一收口 `js/analytics.js`；广告埋点 `js/ad_metrics.js`。
 - 索引三通道（IndexNow / Bing URL API / GSC Sitemap）crontab 运行中。

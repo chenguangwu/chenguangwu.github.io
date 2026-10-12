@@ -137,12 +137,20 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="zsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__zsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="zsChart" role="img" aria-label="结果可视化"></div>
+    <div id="zsDiff"></div>
+    <div id="zsHist"></div>
+    <div id="zsTable"></div>
+
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +263,56 @@ function resetForm(){document.getElementById('x').value = '115';
       document.getElementById('sigma').value = '15';
       calcTool();}
 calcTool();
+
+function __zsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __zsPhi(z){var s=z<0?-1:1;z=Math.abs(z);var t=1/(1+0.3275911*z);
+    var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-z*z);
+    return 0.5*(1+s*y);}
+function __zsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#zsTable', 'z-score.csv'); } catch (e) {}
+}
+function __zsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x=__zsNum('x'), mu=__zsNum('mu'), sg=__zsNum('sigma');
+    if(!isFinite(x)||!isFinite(mu)||!isFinite(sg)||sg<=0) return;
+    var z=(x-mu)/sg, pr=__zsPhi(z)*100;
+    var en=TBKit.util.isEn();
+    TBKit.chart.bell('#zsChart',{
+        mu:mu, sigma:sg, shade:[mu-4*sg, x],
+        markers:[{value:x,label:'z='+z.toFixed(2)}], height:230
+    });
+    var rows=[], zs=[-3,-2,-1.645,-1,0,1,1.645,1.96,2,3];
+    for(var i=0;i<zs.length;i++){
+        rows.push([String(zs[i]), (__zsPhi(zs[i])*100).toFixed(2)+'%', (mu+zs[i]*sg).toFixed(3)]);
+    }
+    TBKit.matrix.table('#zsTable',{
+        head: en?['z','Percentile','Value at μ+zσ']:['z','百分位','μ+zσ 对应数值'],
+        rows: rows
+    });
+    TBKit.history.record({x:x,mu:mu,sigma:sg,z:Number(z.toFixed(4)),pr:Number(pr.toFixed(2))});
+    TBKit.util.diffBox('#zsDiff',['z','pr']);
+    TBKit.history.mount('#zsHist',function(v){
+        if(v.x!=null)document.getElementById('x').value=v.x;
+        if(v.mu!=null)document.getElementById('mu').value=v.mu;
+        if(v.sigma!=null)document.getElementById('sigma').value=v.sigma;
+        calcTool();
+    });
+}
+function __zsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#zsPresets',[
+        {label:'IQ 115（μ=100, σ=15）',labelEn:'IQ 115 (μ=100, σ=15)',values:{x:115,mu:100,sigma:15}},
+        {label:'身高 185cm（μ=170, σ=7）',labelEn:'Height 185cm (μ=170, σ=7)',values:{x:185,mu:170,sigma:7}},
+        {label:'低于均值一个 σ',labelEn:'One σ below mean',values:{x:90,mu:100,sigma:10}},
+        {label:'考试 680（μ=500, σ=100）',labelEn:'Exam 680 (μ=500, σ=100)',values:{x:680,mu:500,sigma:100}}
+    ],function(){ calcTool(); });
+}
+
+var __tb_fn0 = calcTool;
+calcTool = function () { __tb_fn0(); try { __zsExtras(); } catch (e) {} };
+calcTool();
+__zsPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
