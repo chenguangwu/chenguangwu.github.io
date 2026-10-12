@@ -3,7 +3,7 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
-  "slug": "admin/register-depreciation",
+  "slug": "finance/register-depreciation",
   "inputs": {
     "aName": "注塑机",
     "aCat": "机械设备",
