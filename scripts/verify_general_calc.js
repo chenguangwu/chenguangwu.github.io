@@ -57,7 +57,7 @@ const CASES = [
     ref: "增值税 = 2000000×13% = 260000；城建税 = 260000×5% = 13000；附加合计 26000；综合税费率 = (260000+26000)/2000000 = 14.30%",
   },
   {
-    slug: "general/voltage",
+    slug: "electrical/voltage",
     inputs: { voltage: "80", current: "150", speed: "20", spot: "0.8" },
     expect: ["12000 束功率 P (W)", "2.39e+4 功率密度 (W/mm²)"],
     ref: "电子束焊接：束功率 P = U×I = 80×150 = 12000W；线能量 E = P/v = 12000/20 = 600 J/mm；功率密度 = 12000/(π×0.4²) = 2.39e+4 W/mm²",
@@ -93,7 +93,7 @@ const CASES = [
     ref: "无人机：电池能量 = 8000mAh×22.2V/1000 = 177.6Wh；平均功率 = 25A×22.2V = 555W；续航 = 8Ah÷25A = 0.32h；航程 = 0.32×60 = 19.2km；能耗 = 177.6÷19.2 = 9.25 Wh/km（原实现多乘 1000，得 9250.0）",
   },
   {
-    slug: "general/power-16",
+    slug: "machinery/power-16",
     inputs: { pVal: "7.5", n1: "2900", ratio: "3.0" },
     expect: ["19.0 带速 (m/s)", "400 大带轮直径 (mm)"],
     ref: "V带传动：带速 = π×125×2900/60000 = 18.98→19.0m/s；大带轮 = 125×3.0 = 375 → 圆整 400mm；实际传动比 = 400/125 = 3.20",
@@ -105,7 +105,7 @@ const CASES = [
     ref: "FDM：有效体积 23.75cm³；质量 = 23.75×1.25 = 29.69→29.7g（filD=2.85 为耗材直径，长度据此复算）",
   },
   {
-    slug: "general/thread-4",
+    slug: "machinery/thread-4",
     inputs: { v0: "M12×1.75" },
     expect: ["1857 主轴转速 (rpm)", "3250 进给速度 (mm/min)"],
     ref: "螺纹：转速 = 1000×Vc/(π·D) = 1000×70/(π×12) = 1857rpm；进给速度 = 1857×1.75 = 3250mm/min",
@@ -141,7 +141,7 @@ const CASES = [
     ref: "GB 50009-2012 表 8.2.1：D 类 μz = 0.262×(100/10)^0.60 = 1.04304；βz = 1+0.038×√100 = 1.380；wk = 1.380×1.3×1.04304×0.50 = 0.93561 → 0.936 kN/m²（III 级）",
   },
   {
-    slug: "general/bearing-1",
+    slug: "machinery/bearing-1",
     inputs: { cVal: "25", pVal: "2", nVal: "3000", bType: "3" },
     expect: ["19.53 亿", "1.09 万"],
     ref: "球轴承 p=3：C/P = 12.5；L10 = 12.5³ = 1953.125 百万转；总转数 = 1953.125e6 = 1.953e9 转 = 19.53 亿（原 /1e9 显示 1.95 亿）；L10h = 1.953e9/(60×3000) = 10850.7 h = 1.09 万 h",
@@ -165,7 +165,7 @@ const CASES = [
     ref: "质量守恒：单位长度沉积 = 20×90/100/600 = 0.03 g/mm；A = 0.03×1000/8 = 3.75 mm²；单道宽 = 光斑+0.0003P = 4+0.75 = 4.75 mm；单道高 = A/(0.74×宽) = 3.75/3.515 = 1.07 mm；搭接步距 = 4.75×(1−0.40) = 2.85 mm；沉积速率 = 20×90/100 = 18.00 g/min（页面扫描速度单位为 mm/min，默认 480 = 8 mm/s）",
   },
   {
-    slug: "general/gongyeshebeigonglvpipei",
+    slug: "machinery/gongyeshebeigonglvpipei",
     inputs: { vF: "800", vV: "1.5", vEta: "0.7", vSF: "1.2", vMode: "1.2" },
     expect: ["1.200 理论功率", "2.47 选型功率", "66.7% 功率利用率", "23.55 额定扭矩@1500rpm"],
     ref: "理论功率 = F×v/1000 = 800×1.5/1000 = 1.200 kW；选型功率 = 理论÷η×SF×工况系数 = 1.2/0.7×1.2×1.2 = 2.469 kW（原实现误写为 理论÷(η×SF)×工况 = 0.714 kW，安全系数方向反了）；标准序列向上取 3.7 kW；利用率 = 2.469/3.7 = 66.7%；扭矩 = 3.7×1000/(2π×1500/60) = 23.55 N·m",
@@ -177,7 +177,7 @@ const CASES = [
     ref: "kCr = 1+0.3×log10(20+1) = 1.3967；ΔTeq = 400×1.3967 = 558.7℃；热应变幅值 = α×ΔTeq = 12e-6×558.7 = 6.704e-3；Nf = C×ΔTeq^β = 1e5×558.7^(−0.6) = 2.25k（原默认 C=0.8 时恒 <1 循环，属荒谬值）；热应力 = α×ΔT×E = 12e-6×400×206e3 = 989 MPa",
   },
   {
-    slug: "general/torque-2",
+    slug: "machinery/torque-2",
     inputs: { vT: "450", vK1: "1.8", vK2: "1.4", vN: "980", vLoad: "1.5" },
     expect: ["46.18 传递功率"],
     ref: "选型扭矩=450×1.8×1.4×1.5=1701.0N·m；传递功率=额定扭矩×转速/9550=450×980/9550=46.18kW（旧版判断条件写成「选型扭矩>转速」两个量纲相除比较、且用选型扭矩折算，585>1450 为假 → 默认恒显示 0.00；默认 200/1.5/1.3/1450/1.5，避开）",
@@ -195,14 +195,14 @@ const CASES = [
     ref: "ns=5.54×1750×√(6000/3600)/900^0.75=76.2，落 50~80 离心式（后向叶片）区间 → 叶尖速度取 50m/s、D=60×50/(π×1750)×1000=546mm（旧版该区间误判轴流式、叶尖 60m/s；默认 D=659mm，避开）",
   },
   {
-    slug: "general/torque-1",
+    slug: "machinery/torque-1",
     inputs: { vType: "1", vP: "10", vN1: "1500", vSF: "1.5" },
     clicks: ["calc()"],
     expect: ["63.67 输入扭矩 (N·m)", "1910.00 选型扭矩 (N·m)"],
     ref: "输入扭矩 T=9550×P/n=9550×10/1500=63.67 N·m；输出扭矩 63.67×20=1273.33；选型扭矩 1273.33×1.5=1910.00 N·m。默认态 P/n 不同 ⇒ 不命中。",
   },
   {
-    slug: "general/torque-3",
+    slug: "machinery/torque-3",
     inputs: { vWear: "0", vTemp: "80", vDyn: "1", vCond: "1", vT: "500" },
     clicks: ["calc()"],
     expect: ["+80.0% 总补偿率"],
@@ -251,14 +251,14 @@ const CASES = [
     ref: "轴功率 P=ρgQH/(3600×1000×η)=1000×9.81×50×30/(3600×1000×0.7)=5.83 kW，电机功率 5.83/0.9≈6.42⇒选型 7.5 kW。可独立复算。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "general/bearing",
+    slug: "machinery/bearing",
     inputs: { dVal: "50", nVal: "3000", lubType: "1" },
     clicks: ["calc()"],
     expect: ["1.50×10⁵ 速度因数 dn (mm·rpm)"],
     ref: "dn = 内径 50 mm × 转速 3000 rpm = 1.50×10⁵ mm·rpm，落在常规维护区间。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "general/bearing-load",
+    slug: "machinery/bearing-load",
     inputs: { xVal: "1", yVal: "2", fa: "1000", fr: "500" },
     clicks: ["calc()"],
     expect: ["2500.000 当量动载荷 P (kN)", "500.000 径向分量 X·Fr (kN)"],
@@ -384,7 +384,7 @@ const CASES = [
     ref: "总投资 = 1+2+3+4+5 = 1,500 元 + 不可预见费 2 元 = 1,502 元；单方造价 = 1502/100 m² = 15 元/m²。可独立复算。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "general/power-7",
+    slug: "electrical/power-7",
     inputs: { volt: "220", kd: "1.2", pf: "0.85" },
     clicks: ["calc()"],
     expect: ["18.00 需用功率 (kW)", "96.3 计算电流 (A)"],
@@ -447,7 +447,7 @@ const CASES = [
     ref: "保温后外径 = 管道外径 100 + 2×保温层厚度 4.6 = 109.2 mm。与注入的外径直接自洽，可独立复算。",
   },
   {
-    slug: "general/calc-200",
+    slug: "machinery/calc-200",
     inputs: { pload: "10", n: "1500" },
     clicks: ["calc()"],
     expect: ["11.11 所需电机功率 (kW)"],
@@ -815,14 +815,14 @@ const CASES = [
   },
   // ---- BATCH239：电线选型 / 线损 / 线切割 / 振动 / 能耗分项 / 造价指数 / 色差 ----
   {
-    slug: "general/voltage-8",
+    slug: "electrical/voltage-8",
     inputs: { vV: "220", vCore: "3", vI: "80", vTemp: "35", vMethod: "1" },
     clicks: ["calc()"],
     expect: ["4 推荐截面 (mm²)", "2.75 综合校正系数"],
     ref: "三芯 3mm² 铜芯 220V、载流 80A、环境温度 35℃：基准载流量 34A（查表），综合校正系数 = 温度系数 0.92 × 利用率 3.0 = 2.75，校正后载流 93.5A > 80A，推荐截面取 4mm²。",
   },
   {
-    slug: "general/voltage-9",
+    slug: "electrical/voltage-9",
     inputs: { vV: "380", vLen: "200", vI: "60", vTemp: "40", vMethod: "2" },
     clicks: ["calc()"],
     expect: ["6 推荐截面 (mm²)", "73.68 综合校正系数"],
@@ -918,7 +918,7 @@ const CASES = [
     ref: "光学分辨率 R = k₁·λ/NA ≈ 0.61×8nm/5.00 = 0.976 ≈ 0.96nm；焦深按 k₂·λ/NA² 量级得 ±38.4nm、总焦深 76.8nm。两串均只随波长与 NA 变化。",
   },
   {
-    slug: "general/power-voltage-1",
+    slug: "electrical/power-voltage-1",
     inputs: { pLoad: "20", pf: "0.9", uKv: "10", loadRate: "0.75" },
     clicks: ["calc()"],
     expect: ["22.2 视在功率 (kVA)", "1.28 计算电流 (A)"],
@@ -1043,7 +1043,7 @@ const CASES = [
     ref: "链路视距（发射功率 v0、频率 50 MHz …）：波长 λ = c/f = 3×10⁸ / 5×10⁷ = 6 m = **600.00 cm**（纯手算，与其余参数无关，绝对可靠）；页面最大视距 45.085 km 由自由空间路径损耗 L = 20lg(d) + 20lg(f) + 32.44（d 单位 km、f 单位 MHz）反解得到，视高与余量取默认 ⇒ 与波长行同源不同式。默认参数不同 ⇒ 不命中。",
   },
   {
-    slug: "general/pidaizhangjinjisuan",
+    slug: "machinery/pidaizhangjinjisuan",
     inputs: { vCenter: "50", vRpm: "1000", vPower: "5", vD1: "20" },
     clicks: ["calc()"],
     expect: ["1.05 带速 (m/s)", "5 推荐皮带根数"],
@@ -1063,8 +1063,8 @@ const CASES = [
     expect: ["1.87e+16 离子通量 (ions/cm²/s)", "0.63 刻蚀速率 (nm/min)"],
     ref: "离子束溅射沉积（能量 10 keV、入射角 30°、电荷态 6、质量数 2、密度 1 g/cm³、结合能 3 eV）：离子通量 Φ = I/(q·A) 由能量与电荷态换算得 **1.87e16 ions/cm²/s**；溅射产额 Y ≈ 0.02 atoms/ion（页面「溅射产额」行），刻蚀速率 = Y·Φ/M·ρ 折算 **0.63 nm/min** 与 **0.011 nm/s**（同值不同单位，行间自洽）。两行同源不同式，单位换算因子在页面内已给出。",
   },
-// 本批弃页：`general/speed-26`（首轮注入 10/1200/4 撞默认，换组 15/1500/5 后默认态仍 PASS ⇒
-// 「300 大链轮转速 (rpm)」「推荐链号」与注入参数无关，属静态文案 ⇒ 逃生，弃）、`general/torque`
+// 本批弃页：`machinery/speed-26`（首轮注入 10/1200/4 撞默认，换组 15/1500/5 后默认态仍 PASS ⇒
+// 「300 大链轮转速 (rpm)」「推荐链号」与注入参数无关，属静态文案 ⇒ 逃生，弃）、`machinery/torque`
 // （vMu/vRatio 单给两项即 `readInputs` 判定参数不全，产物恒为「请输入有效参数」）、
 // `general/jiguanghanjieguangbanjisuan`（焦点/离焦光斑直径 0.1μm / 40.0μm 与输入量级不自洽，公式不可手算复算 ⇒ 弃）。
 
@@ -1343,13 +1343,13 @@ const CASES = [
     ref: "精密设备基准 600/2500/10000 h，工况系数 1.6 ⇒ 润滑 375h、检查 1562.5h(显示 1563，JS toFixed 对 0.5 进位)、大修 6250h；日运行 12h ⇒ 润滑 1 个月、检查 4 个月、大修 1.4 年；年运行 12×365=4380h。"
   },
   {
-    slug: "general/speed-26",
+    slug: "machinery/speed-26",
     inputs: { v0: "15", v1: "1450", v2: "2.5" },
     expect: ["10A", "15.875", "635", "8.06", "118"],
     ref: "1450rpm ⇒ 速度系数 1.0 ⇒ 修正功率 15kW ⇒ 首个满足 maxKw≥15 且 maxRpm≥1450 的是 10A（20kW/5000rpm，节距 15.875mm；默认 5.5kW 选 08A ⇒ 链号/节距随注入变化）；z1=21、z2=round(21×2.5)=53（Math.round 半进位，再按奇齿规则已是奇）；链速=21×15.875×1450/60000=8.06m/s；推荐中心距=40×15.875=635mm；链节数=2×635/15.875+37+(32/2π)²×15.875/635=117.65 ⇒ 118 节。"
   },
   {
-    slug: "general/strength-34",
+    slug: "machinery/strength-34",
     inputs: { vForce: "30", vShear: "8", vSafety: "2.0", vSize: "12", vGrade: "640", vLoad: "combined" },
     expect: ["84.3", "355.9", "94.9", "121.7%"],
     ref: "M12 公称应力截面积 As=84.3mm²（标准值）；σ=30kN/84.3=355.9MPa，τ=8kN/84.3=94.9MPa；许用拉=640/2.0=320MPa，许用剪=320×0.6=192MPa；组合利用率=√((355.9/320)²+(94.9/192)²)=121.7% ⇒ 不通过。⚠ 「不通过」属结论串，用例本身未用它作锚（默认态也判不通过）。"
@@ -1361,13 +1361,13 @@ const CASES = [
     ref: "C/P=5 ⇒ L10=(5)^3.33×10⁶=2.1260×10⁸ 转=212.60M；钢轴承小时寿命=2.1260e8/(60×1500)=2362h ⇒ 2.36k；陶瓷×2.5=5905h ⇒ 5.91k；折年=2362/8760=0.270 年。⚠ 「20.0%」(P/C 载荷比) 与默认态同为 20% 已剔除。"
   },
   {
-    slug: "general/temp-26",
+    slug: "electrical/temp-26",
     inputs: { v0: "IIB", v1: "T4", v2: "i" },
     expect: ["Ex i IIB T4", "135", "0区、1区、2区"],
     ref: "标志按 Ex+型式+气体类别+温度组别 拼接 = 「Ex i IIB T4」；T4 最高表面温度 ≤135℃；本安型 i 适用 0 区、1 区、2 区。"
   },
   {
-    slug: "general/torque",
+    slug: "machinery/torque",
     inputs: { vMu: "0.2", vRatio: "0.6", vSize: "10", vGrade: "640" },
     expect: ["58.0", "22.27", "0.220", "384", "49.0"],
     ref: "M10 公称应力截面积 As=58.0mm²（标准值）；预紧力=0.6×640×58=22272N=22.27kN；扭矩系数 K=0.5×0.2+0.12=0.220；拧紧扭矩=0.220×22272×10/1000=49.0N·m；实际应力=22272/58=384MPa（占屈服 60%）。"
@@ -1457,7 +1457,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"plan\":\"42\",\"actual\":\"42\",\"items\":\"1\\n2\\n3\"}，输出区含「效指数 CPI： 1.0000 判定： 正常波动 建议：偏差在 ±5% 内，按计…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/bearing-load",
+    "slug": "machinery/bearing-load",
     "inputs": {
       "fr": "42",
       "fa": "42",
@@ -1470,7 +1470,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"fr\":\"42\",\"fa\":\"42\",\"xVal\":\"42\",\"yVal\":\"42\"}，输出区含「·Fa (kN) 50.0% 径向占比 50.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/bearing-1",
+    "slug": "machinery/bearing-1",
     "inputs": {
       "cVal": "42",
       "pVal": "42",
@@ -1494,7 +1494,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"abc123测试\",\"v1\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\n请选择有效的起止日期\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/bearing",
+    "slug": "machinery/bearing",
     "inputs": {
       "dVal": "42",
       "nVal": "42",
@@ -1547,7 +1547,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"abc123测试\",\"v1\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\n请选择有效的出生日期与计算日期\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/calc-200",
+    "slug": "machinery/calc-200",
     "inputs": {
       "pload": "42",
       "nVal": "42",
@@ -2615,7 +2615,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"tig\"}，输出区含「围 (V) 📋 钨极氩弧焊 (TIG) · 保护气：Ar（纯氩） 热输入偏高，…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/gongyeshebeigonglvpipei",
+    "slug": "machinery/gongyeshebeigonglvpipei",
     "inputs": {
       "vF": "42",
       "vV": "42",
@@ -3037,7 +3037,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\"}，输出区含「(kg) 安全系数较高，适用于动载荷或关键结构 剪切强度 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/pidaizhangjinjisuan",
+    "slug": "machinery/pidaizhangjinjisuan",
     "inputs": {
       "vCenter": "42",
       "vRpm": "42",
@@ -3051,7 +3051,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vCenter\":\"42\",\"vRpm\":\"42\",\"vPower\":\"42\",\"vD1\":\"42\",\"vType\":\"B\"}，输出区含「mm) 📝 带速偏低，建议减小带轮直径；带轮过小，最小推荐125mm\n暂无计算…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/power-7",
+    "slug": "electrical/power-7",
     "inputs": {
       "pTotal": "42",
       "kd": "42",
@@ -3064,7 +3064,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pTotal\":\"42\",\"kd\":\"42\",\"pf\":\"42\",\"volt\":\"42\"}，输出区含「W × 同时系数 42 = 需用 1764.0kW，计算电流 1000.0A →…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/power-voltage-1",
+    "slug": "electrical/power-voltage-1",
     "inputs": {
       "pLoad": "42",
       "pf": "42",
@@ -3103,7 +3103,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"torque\":\"42\",\"speed\":\"42\",\"volt\":\"42\",\"sf\":\"42\"}，输出区含「kW，乘安全系数 42 得 7.76kW → 推荐 11kW / 12极 / 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/power-16",
+    "slug": "machinery/power-16",
     "inputs": {
       "pVal": "42",
       "n1": "42",
@@ -3335,7 +3335,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"speed\":\"42\",\"height\":\"42\",\"route\":\"42\",\"overlap\":\"42\",\"fov\":\"42\"}，输出区含「42\n42\n42\n42\n42\n32.2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/speed-26",
+    "slug": "machinery/speed-26",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -3398,7 +3398,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"wire\":\"42\",\"cutrate\":\"42\",\"thick\":\"42\"}，输出区含「a (μm) IT10 精度等级 42.02」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/strength-34",
+    "slug": "machinery/strength-34",
     "inputs": {
       "vForce": "42",
       "vShear": "42",
@@ -3481,7 +3481,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v4\":\"42\",\"v1\":\"2\",\"v2\":\"2\",\"v3\":\"2\"}，输出区含「 维修后测试清单（42项）： 振动测试：≤2.8 mm/s 噪声测试：≤85 d…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/temp-26",
+    "slug": "electrical/temp-26",
     "inputs": {
       "v0": "IIB",
       "v1": "T2",
@@ -3506,7 +3506,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v3\":\"42\",\"v4\":\"42\",\"v1\":\"2\",\"v2\":\"2\"}，输出区含「备 | 保养等级：二级保养（月度） 使用年限：42年 | 累计运行：42h 保养…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/thread-4",
+    "slug": "machinery/thread-4",
     "inputs": {
       "v0": "abc123测试",
       "v1": "stainless"
@@ -3547,7 +3547,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"layer\":\"42\",\"infill\":\"42\",\"volume\":\"42\",\"speed\":\"42\",\"nozzle\":\"42\",\"density\":\"42\",\"filD\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n0h 0m 0s 打印时间 996.7」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/torque-1",
+    "slug": "machinery/torque-1",
     "inputs": {
       "vP": "42",
       "vN1": "42",
@@ -3561,7 +3561,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vP\":\"42\",\"vN1\":\"42\",\"vI\":\"42\",\"vSF\":\"42\",\"vType\":\"0.94\"}，输出区含「速 (rpm) 94% 传动效率 42.0 安全系数 特大型/定制减速机 机座推…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/torque-2",
+    "slug": "machinery/torque-2",
     "inputs": {
       "vT": "42",
       "vK1": "42",
@@ -3589,7 +3589,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vN\":\"42\",\"vJ\":\"42\",\"vT\":\"42\",\"vSF\":\"42\",\"vLoad\":\"0.8\"}，输出区含「42\n42\n42\n42\n0.8\n3.52」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/torque-3",
+    "slug": "machinery/torque-3",
     "inputs": {
       "vT": "42",
       "vTemp": "42",
@@ -3631,7 +3631,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vStock\":\"42\",\"vDaily\":\"42\",\"vLead\":\"42\",\"vSafety\":\"42\",\"vCost\":\"42\"}，输出区含「周转天数 (天) 3528 建议库存量 1764 再订购点 15330 年消耗量…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/torque",
+    "slug": "machinery/torque",
     "inputs": {
       "vMu": "42",
       "vRatio": "42",
@@ -3644,7 +3644,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vMu\":\"42\",\"vRatio\":\"42\",\"vSize\":\"8\",\"vGrade\":\"400\"}，输出区含「8\n400\n42\n42\n请输入有效参数（0\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/voltage-8",
+    "slug": "electrical/voltage-8",
     "inputs": {
       "vI": "42",
       "vV": "42",
@@ -3658,7 +3658,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vI\":\"42\",\"vV\":\"42\",\"vTemp\":\"42\",\"vCore\":\"0.87\",\"vMethod\":\"1.1\"}，输出区含「正后载流 (A) 91% 利用率 电缆利用率高，建议放大一档」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/voltage-9",
+    "slug": "electrical/voltage-9",
     "inputs": {
       "vI": "42",
       "vTemp": "42",
@@ -3689,7 +3689,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"current\":\"42\",\"voltage\":\"42\",\"time\":\"42\",\"equiv\":\"42\",\"area\":\"42\",\"density\":\"42\",\"efficiency\":\"42\",\"material\":\"ag\"}，输出区含「42\n42\n42\n0.001118\n42\n10.49\n42\n49.6982」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/voltage",
+    "slug": "electrical/voltage",
     "inputs": {
       "voltage": "42",
       "current": "42",
