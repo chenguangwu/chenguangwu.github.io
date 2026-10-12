@@ -171,7 +171,7 @@ const CASES = [
     ref: "理论功率 = F×v/1000 = 800×1.5/1000 = 1.200 kW；选型功率 = 理论÷η×SF×工况系数 = 1.2/0.7×1.2×1.2 = 2.469 kW（原实现误写为 理论÷(η×SF)×工况 = 0.714 kW，安全系数方向反了）；标准序列向上取 3.7 kW；利用率 = 2.469/3.7 = 66.7%；扭矩 = 3.7×1000/(2π×1500/60) = 23.55 N·m",
   },
   {
-    slug: "general/lifespan-25",
+    slug: "materials/lifespan-25",
     inputs: { vCool: "20", vDT: "400", vC: "100000", vBeta: "-0.6" },
     expect: ["2.25k 热疲劳寿命", "558.7 等效温度幅值", "6.704 热应变幅值", "989 热应力估算"],
     ref: "kCr = 1+0.3×log10(20+1) = 1.3967；ΔTeq = 400×1.3967 = 558.7℃；热应变幅值 = α×ΔTeq = 12e-6×558.7 = 6.704e-3；Nf = C×ΔTeq^β = 1e5×558.7^(−0.6) = 2.25k（原默认 C=0.8 时恒 <1 循环，属荒谬值）；热应力 = α×ΔT×E = 12e-6×400×206e3 = 989 MPa",
@@ -209,7 +209,7 @@ const CASES = [
     ref: "温度 80℃ ⇒ 温度补偿 500×0.8=400 N·m、动载系数 1.00、磨损 0 ⇒ 总补偿 800 N·m、总补偿率 +80%。默认态补偿率不同 ⇒ 不命中。（页内「补偿后扭矩 900.0」与「基础补偿 900.0」口径存疑，不作为锚。）",
   },
   {
-    slug: "general/naimoxingpinggujisuan",
+    slug: "materials/naimoxingpinggujisuan",
     inputs: { v0: "100", v1: "50", v2: "20", v3: "5" },
     clicks: ["calc()"],
     expect: ["2.71×10⁻5 比磨损率 Ws (mm³/N·m)"],
@@ -237,7 +237,7 @@ const CASES = [
     ref: "月折旧 = 100000×(1−10%)÷60 = 1665.00 元；月维护 = 100000×0.05%…（按维护费率）= 4.17 元；年租金收入 101,150 元、年净收益 1,250 元 ⇒ ROI = 1250/100000 = 1.25%。可独立复算。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "general/zhilengshebeixuanxing",
+    slug: "hvac/zhilengshebeixuanxing",
     inputs: { vQ: "5000", vTc: "35", vTe: "25" },
     clicks: ["calc()"],
     expect: ["29.81 卡诺 COP（理想）"],
@@ -265,7 +265,7 @@ const CASES = [
     ref: "当量动载荷 P = X·Fr + Y·Fa = 1×500 + 2×1000 = 2500 kN（径向分量 X·Fr=500、轴向分量 Y·Fa=2000）。可独立复算。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "general/kongtiaolengfuhejisuan",
+    slug: "hvac/kongtiaolengfuhejisuan",
     inputs: {
       vArea: "30",
       vPeople: "8",
@@ -440,7 +440,7 @@ const CASES = [
     ref: "平均功率 = 电压 2 V × 电流 0.5 A = 1.0 W；能量 0.02 Wh ÷ 1 W = 0.02 h ⇒ 航程 0.6 km，安全航程 0.6×0.8 = 0.48 km。默认 5000mAh/11.1V 时完全不同 ⇒ 不命中。同场「电池能量」显示口径与派生量不一致，不锚。",
   },
   {
-    slug: "general/calc-196",
+    slug: "construction/calc-196",
     inputs: { tw: "80", dOut: "100" },
     clicks: ["calc()"],
     expect: ["109.2 保温后外径 (mm)"],
@@ -709,14 +709,14 @@ const CASES = [
     ref: "润滑脂滴点实测 3 ℃ 远低于标准 ≥180℃ ⇒ 不合格。",
   },
   {
-    slug: "general/detector-hardness-lifespan",
+    slug: "materials/detector-hardness-lifespan",
     inputs: { v1: "3", v2: "3", v3: "3", v4: "3" },
     clicks: ["calc()"],
     expect: ["平均粒度 3 μm 10~50μm 不合格"],
     ref: "平均粒度实测 3 μm 低于标准区间 10~50 μm ⇒ 不合格。",
   },
   {
-    slug: "general/detector-hardness-lifespan-1",
+    slug: "materials/detector-hardness-lifespan-1",
     inputs: { v1: "3", v2: "3", v3: "3", v4: "3" },
     clicks: ["calc()"],
     expect: ["硬度 3 HRC 58~65HRC 不合格"],
@@ -883,7 +883,7 @@ const CASES = [
     ref: "PV 值 = 工作压力 × 线速度 = 0.4MPa × π×d×n/60。1200rpm、节径取 d 使线速度 3.14m/s ⇒ PV = 1.257 MPa·m/s（可手算复算）。温度因子取介质/材料温度修正系数 64.00，随 vTemp 与 vMed 联动。",
   },
   {
-    slug: "general/hardness-14",
+    slug: "materials/hardness-14",
     inputs: { hvVal: "700", hvUnit: "HRC", procType: "fine" },
     clicks: ["calc()"],
     expect: ["940 等效硬度 HV"],
@@ -989,7 +989,7 @@ const CASES = [
     ref: "铝合金回收：回收质量 40kg、节能 3200kWh（原生铝能耗 120 vs 再生 40 的差量）、碳减排 1600kg CO₂、等效种树 53 棵。回收质量随 vMass×回收率联动。",
   },
   {
-    slug: "general/runhuayougenghuanzhouqi",
+    slug: "machinery/runhuayougenghuanzhouqi",
     inputs: { vCap: "200", vTemp: "60", vDaily: "10", vOil: "10000", vContam: "0.7" },
     clicks: ["calc()"],
     expect: ["11651 换油周期 (h)", "1.66 油量系数"],
@@ -1096,7 +1096,7 @@ const CASES = [
     ref: "涂料用量估算（面积 10m²、干膜厚 5μm、体积固含 100%、损耗 0.5%、密度 1）：湿膜厚 = 干膜厚 ÷ 体积固含 = 5/100 → 页面以百分数口径给出 **0.50 μm**；涂布率 = 1/干膜厚(m) 换算后 **199.00 m²/L**（与体积固含互校）。两行分别来自「湿膜/干膜换算」与「单位体积成膜面积」，同源不同式。",
   },
   {
-    slug: "general/huanbaonaimopinggu",
+    slug: "materials/huanbaonaimopinggu",
     inputs: { v1: "85", v2: "90" },
     clicks: ["calc()"],
     expect: ["67.2 综合评分", "62.6 耐磨评分"],
@@ -1110,7 +1110,7 @@ const CASES = [
     ref: "材料降解寿命（30℃ / 湿度 60% / pH 6 / UV 2）：温度因子 = 2^(25−T)/10 = 2^(25−30)/10 = 2^(−0.5) = **0.71**（页面取 Arrhenius 半定量口径，25℃ 为基准）；湿度因子 1.00（60% 落在中性区间）、pH 因子 1.00（pH=6 中性区）、UV 因子 1.00（UV≤2 无额外扣分）；预计寿命 = 基准寿命(月) × 各因子 = **84.8 月**、= **7.1 年**，降解速率 **1.18 %/月**。因子行与寿命行同源不同式。默认组（25℃/50%/pH 7/UV 1）不同 ⇒ 不命中。",
   },
   {
-    slug: "general/lifespan-6",
+    slug: "materials/lifespan-6",
     inputs: { vThk: "2", vRate: "0.1", vMargin: "1", vUsed: "0.5" },
     clicks: ["calc()"],
     expect: ["9.5 剩余寿命 (年)", "2 剩余厚度 (μm)"],
@@ -1160,7 +1160,7 @@ const CASES = [
     ref: "刹车片磨损与更换周期（新品厚度 10mm、当前 6mm、磨损速率 0.08mm/千 km、安全极限 2mm）：已磨损比例 = (10−6)/10×100% = **40.0%**；可用剩余厚度 = 当前 − 安全极限 = 6−2 = **4.00 mm**（均非输入回显，由两组注入值导出）。由此已行驶里程 = 4/0.08×10000 = 500000 km、剩余里程同值，默认组（12/8/0.8/3 ⇒ 33.3% / 5.00）不命中。",
   },
   {
-    slug: "general/pressure-flow-5",
+    slug: "machinery/pressure-flow-5",
     inputs: { v0: "35", v1: "2.5", v2: "850" },
     clicks: ["calc()"],
     expect: ["23.82 Cv 值", "4.95 估算流速 (m/s)"],
@@ -1289,7 +1289,7 @@ const CASES = [
     ref: "7 阶幻方幻和 = n(n²+1)/2 = 7×50/2 = 175（Siamese 法，默认 5 阶为 65 ⇒ 该串随注入变化）。"
   },
   {
-    slug: "general/jiguanghanjieguangbanjisuan",
+    slug: "welding/jiguanghanjieguangbanjisuan",
     inputs: { power: "3000", defocus: "2", m2: "1.5", focal: "150", lambda: "1064", beamD: "12" },
     expect: ["25.4", "109.6", "0.48", "317701.1"],
     ref: "λ=1064nm=0.001064mm；d0=4λf/(πD)=4×0.001064×150/(π×12)=0.016934mm ⇒ d=M²·d0=0.025401mm=25.4μm；w0=0.0127mm ⇒ zR=πw0²/λ=0.4765mm=0.48；dz=d·√(1+(2/0.4765)²)=0.10961mm=109.6μm；面积=π(dz/2)²=9.4361×10⁻³mm² ⇒ 功率密度=3000/9.4361e-3=317701.1 W/mm²。⚠ 「深熔焊（匙孔）」与默认态重合已剔除。"
@@ -1301,13 +1301,13 @@ const CASES = [
     ref: "载荷因子=(800/500)^0.3=1.15141；类型 angular=1.2、润滑 oil=0.7 ⇒ 增长率=0.0008×√3600×1.15141×1.2×0.7=0.046425 dB/h=4.64e-2；余量 13dB ⇒ 寿命=13/0.046425=280.0h；月增=0.046425×720=33.426 dB/月；总转数=280.0×60×3600=6.048×10⁷ ⇒ 60.48M。"
   },
   {
-    slug: "general/lifespan-26",
+    slug: "materials/lifespan-26",
     inputs: { vTemp: "600", vStress: "120", vC: "19", vA: "28000", vMat: "nickel" },
     expect: ["17604", "14.5", "873.1", "287"],
     ref: "TK=600+273.15=873.1；LMP=A−5000·log₁₀σ=28000−5000×2.079181=17604；破裂时间=10^(LMP/TK−C)=10^(20.1616−19)=14.5h；镍基熔点 1400℃ ⇒ 蠕变门槛=1400×0.4−273.15=286.85 ⇒ 287℃。"
   },
   {
-    slug: "general/lifespan-4",
+    slug: "materials/lifespan-4",
     inputs: { vSa: "150", vSm: "80", vSb: "700", vSf: "1100", vB: "-0.1", vMat: "titanium" },
     expect: ["66.82M", "16.79M", "197.19M", "1.84", "54.3%"],
     ref: "Goodman σa_eq=150×700/620=169.35MPa ⇒ Basquin Nf=0.5×(169.35/1100)^(−10)=66.82M；Soderberg σy0=350 ⇒ σa_s=150×350/270=194.44 ⇒ 16.79M；Gerber σa_g=150/(1−(80/700)²)=151.985 ⇒ 197.19M；利用率=150/350+80/700=0.542857 ⇒ 安全系数 1.84、利用率 54.3%。"
@@ -1506,7 +1506,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"dVal\":\"42\",\"nVal\":\"42\",\"lubType\":\"oil\"}，输出区含「(mm·rpm) 2857 补油周期 (小时) 14286 换油周期 (小时) …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/calc-196",
+    "slug": "construction/calc-196",
     "inputs": {
       "tw": "42",
       "ta": "42",
@@ -2192,7 +2192,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"2\"}，输出区含「2950.1mm 不合格 腐蚀试验 2 级 ≤1级 不合格 ❌ 综合判定：不合格…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-hardness-lifespan-1",
+    "slug": "materials/detector-hardness-lifespan-1",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2216,7 +2216,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\"}，输出区含「≤5mg/dm² 不合格 ❌ 综合判定：不合格 部分项目不符合标准要求，请整改后…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/detector-hardness-lifespan",
+    "slug": "materials/detector-hardness-lifespan",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2647,7 +2647,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"w1\":\"42\",\"x1\":\"42\",\"w2\":\"42\",\"x2\":\"42\",\"w3\":\"42\",\"x3\":\"42\",\"w4\":\"42\",\"x4\":\"42\",\"cwPos\":\"42\"}，输出区含「mm) 相机机身 42 42 1764.0 镜头 42 42 1764.0 配重…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/hardness-14",
+    "slug": "materials/hardness-14",
     "inputs": {
       "hvVal": "42",
       "hvUnit": "HRC",
@@ -2672,7 +2672,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vAcc\":\"42\",\"vLoad\":\"42\",\"vStroke\":\"42\",\"vSpeed\":\"42\"}，输出区含「/导程(mm) C7 丝杠精度等级 55」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/huanbaonaimopinggu",
+    "slug": "materials/huanbaonaimopinggu",
     "inputs": {
       "v1": "42",
       "v2": "42",
@@ -2684,7 +2684,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v0\":\"alloy\"}，输出区含「alloy\n42\n42\nC 综合等级 73.4 综合评分 72.0 耐磨评分 5…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/jiguanghanjieguangbanjisuan",
+    "slug": "welding/jiguanghanjieguangbanjisuan",
     "inputs": {
       "power": "42",
       "defocus": "42",
@@ -2744,7 +2744,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vTemp\":\"42\",\"vLoad\":\"42\",\"vHours\":\"42\",\"vMat\":\"stainless\",\"vCorr\":\"1\"}，输出区含「预计寿命 (年) 88% 回收率 80% 再生品质 70% 经济性 8」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/kongtiaolengfuhejisuan",
+    "slug": "hvac/kongtiaolengfuhejisuan",
     "inputs": {
       "vArea": "42",
       "vH": "42",
@@ -2805,7 +2805,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vPower\":\"42\",\"vHours\":\"42\",\"vDays\":\"42\",\"vSave\":\"42\",\"vPrice\":\"42\",\"vLife\":\"42\",\"vInvest\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n请输入有效参数（功率>0, 0\n暂无计…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/lifespan-25",
+    "slug": "materials/lifespan-25",
     "inputs": {
       "vCool": "42",
       "vDT": "42",
@@ -2843,7 +2843,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vConc\":\"42\",\"vTemp\":\"42\",\"vIso\":\"17\"}，输出区含「42\n42\n17\n请输入有效参数（0 0）\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/lifespan-26",
+    "slug": "materials/lifespan-26",
     "inputs": {
       "vTemp": "42",
       "vStress": "42",
@@ -2871,7 +2871,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vC\":\"42\",\"vP\":\"42\",\"vN\":\"42\",\"vClass\":\"p6\",\"vLube\":\"oil\"}，输出区含「42\n42\n42\np6\noil\n差 寿命等级 396.8」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/lifespan-4",
+    "slug": "materials/lifespan-4",
     "inputs": {
       "vSa": "42",
       "vSm": "42",
@@ -2924,7 +2924,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vRate\":\"42\",\"vThick\":\"42\",\"vAllow\":\"42\",\"vUsed\":\"42\",\"vEnv\":\"2\"}，输出区含「42\n42\n42\n42\n2\n请输入有效参数（腐蚀速率>0, 壁厚>0, 腐蚀裕量…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/lifespan-6",
+    "slug": "materials/lifespan-6",
     "inputs": {
       "vThk": "42",
       "vRate": "42",
@@ -3012,7 +3012,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vTemp\":\"42\",\"vLoad\":\"42\",\"vEa\":\"42\",\"vTr\":\"42\",\"vLr\":\"42\",\"vSmax\":\"42\",\"vMat\":\"pi\"}，输出区含「42\n42\n150\n200\n120000\n150\npi\n优 寿命等级 5937.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/naimoxingpinggujisuan",
+    "slug": "materials/naimoxingpinggujisuan",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -3153,7 +3153,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v3\":\"42\",\"v2\":\"0.9\"}，输出区含「🏷️ 推荐机型：多台组合或中央空调系统 围护结构负荷 63504」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/pressure-flow-5",
+    "slug": "machinery/pressure-flow-5",
     "inputs": {
       "v0": "42",
       "v1": "42",
@@ -3203,7 +3203,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"42\"}，输出区含「42\n42\n42\n42\n42\n21」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/runhuayougenghuanzhouqi",
+    "slug": "machinery/runhuayougenghuanzhouqi",
     "inputs": {
       "vCap": "42",
       "vTemp": "42",
@@ -3731,7 +3731,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vHv\":\"42\",\"vP\":\"42\",\"vV\":\"42\",\"vMu\":\"42\",\"vArea\":\"42\",\"vTime\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n请输入有效参数（硬度>0, 压力>0, 0 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/zhilengshebeixuanxing",
+    "slug": "hvac/zhilengshebeixuanxing",
     "inputs": {
       "vQ": "42",
       "vTe": "42",
