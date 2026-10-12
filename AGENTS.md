@@ -91,6 +91,8 @@
 - **重定向存根保留期限（硬性）**：`TOOLBOX-REDIRECT` 存根只是**临时过渡**，最长保留 **1 个月**，到期必须物理删除（旧 URL 真正 404），**不得无限期保留**。删除前/删除时仍须按本节约提死链（此时旧 URL 已是真 404，用默认校验提交即可）。**建重定向存根的同一批次，必须**：① 同步用 `--no-verify` 把旧 URL（含 `zh-tw/` 繁体对应页）提死链；② **登记到仓库根目录 `_redirect_stubs_todo.md`**（统一维护所有待删存根的「源 URL / 目标 URL / 建存根日期 / 到期日 / 状态」），到期由维护者**主动删除**，**不依赖定时任务**，确保不漏。
 - 该脚本已 commit 入库，属运维工具、被手动触发依赖，勿随意删除或改名。
 
+- **迁移后新 URL 也必须提交收录通知（含繁体）**：删除/迁移只提旧 URL 死链不够——搜索引擎只知道"旧地址没了"，未必及时发现"新地址在哪"。**真迁移（`git mv` 到新路径）的目标页，与 `TOOLBOX-REDIRECT` 存根跳转的「目标 URL」，都必须随批用 IndexNow + Bing SubmitUrlbatch 各提交一次**，让 Bing 重新发现并收录新位置，完成「旧 URL 掉收录 + 新 URL 入收录」闭环。通道：① IndexNow（`_submit_indexnow.py` 走 sitemap 全量；针对特定新 URL 直接用 `https://api.indexnow.org/IndexNow` 投递 `urlList`）；② Bing Webmaster `SubmitUrlbatch`（`_submit_bing_url_api.py`，读 sitemap 批量）。**每条 URL 都须同时生成简体 `tools/X.html` 与繁体 `zh-tw/tools/X.html` 两个变体一并提交**（key 走脚本既有配置 / 环境变量注入，禁止明文入库，见 §3 密钥纪律）。
+
 ### 5. 兼容性约束
 
 - 不要使用过于激进的新特性，确保主流浏览器（Chrome/Safari/Firefox/Edge 最近两个大版本）可用。
