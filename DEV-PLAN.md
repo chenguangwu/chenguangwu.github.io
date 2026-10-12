@@ -89,8 +89,10 @@
 按 5 批 × ~10 页推进；批次清单在此动态登记、干完即删（完成的批次只留计数，细节写当日 memory）。
 
 - [x] **已完成 35 页**（B1 3 页 S 档 + B2/B3/B4 各 10–12 页 A 档）：分类均分 1.67 → **6.10**、薄弱 46 → **0**。逐批形态与真 bug 明细归档在 `.workbuddy/memory/2026-10-13.md`，此处不重复记账。
-- [ ] statistics B5（真工具页 4 页收尾）：sample-size-proportion / sample-variance / skewness-sample / cramers-v
-- [ ] statistics 收口：单字母 slug `p` / `t` / `z` 与 `statistics` / `statistics-4…16` / `index`（共 10 页）需先诊断是占位页还是真工具 —— 占位页按「合并或降级为分类导航」处理，不做无意义图表
+- [ ] statistics B5（8 页）：`p`（P 值）/ `t`（单样本 t）/ `z`（Z 分数）/ `statistics`（正态分布概率）/ `statistics-4`（均值置信区间）/ `statistics-5`（样本量）/ `statistics-7`（偏度峰度）/ `statistics-10`（CV 比较）
+- [ ] statistics B6（8 页收尾）：`statistics-11`（加权平均）/ `statistics-12`（均值中位众数）/ `statistics-13`（标准差方差）/ `statistics-16`（线性回归拟合）/ sample-size-proportion / sample-variance / skewness-sample / cramers-v
+- [ ] `index` 页：分类索引页（14.5KB、无输入），按「分类导航增强」处理，不做图表
+- ⚠️ **待老板决策（不擅自执行）**：已诊断出分类内功能重复 —— `p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean。**清理需下线 URL（走 `sitemap-deadlinks.xml`），影响 SEO，须老板批准后才动**；在此之前 B5/B6 照常做体验改造，不删页。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 
