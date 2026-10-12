@@ -278,7 +278,7 @@ const CASES = [
     ref: "逐字符镜像：a↔ɔ、b↔d、c↔ɔ ⇒ 输出 ɔdɒ（同时给出 transform: scaleX(-1) 的 CSS 方案）。默认态不同 ⇒ 不命中。",
   },
   {
-    slug: "finance/vin-validator",
+    slug: "automotive/vin-validator",
     inputs: { vinInput: "1M8GDM9AXKP042788" },
     clicks: ["validate()"],
     expect: ["校验位 (第 9) X"],

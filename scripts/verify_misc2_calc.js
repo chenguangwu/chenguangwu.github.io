@@ -16,7 +16,7 @@ const CASES = [
   "ref": "原 all_default 弱用例（tar=10/nic=0.8/cigs=20 恰等于页面默认）+ expect「中焦油」是 renderTable() 渲染的**静态分级表**档位词（≤5 极低 / 5-8 低 / 8-12 中 / >12 高 四档在默认态同样出现 ⇒ 零判别力）。改为 tar=5/nic=0.4/cigs=10：每日焦油 5×10 = 50.0 mg、每日尼古丁 0.4×10 = 4.00 mg、每月 50×30 = 1,500.0 mg（1.50 g）、每年 50×365 = 18,250.0 mg（18.25 g）、吸入按 25% 吸收率 50×0.25 = 12.5 mg/日。默认态 200.0 / 6,000.0 / 73,000.0 mg（跨档）"
 },
 {
-  "slug": "misc2/screen-size",
+  "slug": "it/screen-size",
   "inputs": {
     "width": "720",
     "height": "1280",
@@ -51,7 +51,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "misc2/instrument-tuning",
+  "slug": "music/instrument-tuning",
   "inputs": {
     "baseFreq": "660"
   },
@@ -61,7 +61,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "misc2/insurance-fee",
+  "slug": "express/insurance-fee",
   "inputs": {
     "value": "7500"
   },
@@ -71,7 +71,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "misc2/luggage-size",
+  "slug": "travel/luggage-size",
   "inputs": {
     "size": "20"
   },
@@ -81,7 +81,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "misc2/shoe-size",
+  "slug": "daily-goods/shoe-size",
   "inputs": {
     "footLen": "383"
   },

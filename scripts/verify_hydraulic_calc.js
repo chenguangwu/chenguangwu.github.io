@@ -494,7 +494,7 @@ const CASES = [
   ref: "注入缸径/杆径/负载。有杆腔面积 58.90 / 推程压力 7.64 MPa 为值相关结果。默认态 D=80 ⇒ 压力不同，不出现 7.64。",
 },
 {
-  slug: "hydraulic/temp-7",
+  slug: "civil/temp-7",
   inputs: { tp: "30", ta: "20", tad: "40", eta: "0.7", h: "2.5", kr: "0.6", E: "35", alpha: "12" },
   clicks: ["calc()"],
   expect: ["58.0"],
@@ -1134,7 +1134,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"Q\":\"42\",\"A\":\"42\"}，输出区含「流量 (L/s) 4200」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "hydraulic/temp-7",
+    "slug": "civil/temp-7",
     "inputs": {
       "tp": "42",
       "ta": "42",

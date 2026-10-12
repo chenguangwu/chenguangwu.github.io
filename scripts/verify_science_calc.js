@@ -177,7 +177,7 @@ const CASES = [
 
   // ── 公积金贷款额度（封顶 + 月供文案）────────────────────────
   {
-    slug: "science/provident-fund",
+    slug: "finance/provident-fund",
     inputs: { salary: "20000", selfPct: "12", empPct: "12", months: "120", loanRate: "3.1", loanYears: "30", multi: "15", cityCap: "80" },
     expect: ["800,000", "3,416.13"],
     ref: "月缴存 20000×(12%+12%)=4,800；120 月余额 576,000；余额×15 = 8,640,000 → 受当地上限 80 万封顶 ⇒ 800,000。等额本息 P=800,000、r=3.1%/12、n=360 ⇒ 月供 3,416.13。原实现不封顶（直接显示 8,640,000）且月供文案硬编码「按 50 万元」与实际额度不符",
@@ -564,7 +564,7 @@ const CASES = [
     ref: "两点距离（A=(0°,0°)、B=(0°,1°)，地球半径 6371 km）：大圆距离 = 6371×π/180 = **111.195 km**；英里换算 = 111.195×0.621371 = **69.093 mi**、海里 = **60.040 NM**；初始方位角 = **90.0°（东）**、中点 (0.00000, 0.50000)、距离 = **111194.9 m**，四行同源可交叉复算。默认坐标不同 ⇒ 不命中。",
   },
   {
-    slug: "science/phone-lookup",
+    slug: "life/phone-lookup",
     inputs: { input: "13812345678" },
     clicks: ["validate()"],
     expect: ["数字位数： 11", "推断国家： 中国（中国大陆手机号格式）"],
@@ -791,14 +791,14 @@ const CASES = [
     "ref": "配平 Fe+O2→Fe2O3 ⇒ 4Fe+3O2→2Fe2O3（Fe 4=4, O 6=6 守恒）。默认 eqInput=H2+O2=H2O ⇒ 2H2+O2→2H2O，不出现该串。"
   },
   {
-    "slug": "science/rfc-validator",
+    "slug": "tax/rfc-validator",
     "inputs": { "input": "ABCD900101ABC" },
     "clicks": ["validate()"],
     "expect": ["1990-1-1"],
     "ref": "RFC ABCD900101ABC：首字母 ABCD，日期段 900101 ⇒ 1990-01-01，个人(Persona Física)无校验位。默认输入为空 ⇒ 无此串。"
   },
   {
-    "slug": "science/text-extract-phones",
+    "slug": "text/text-extract-phones",
     "inputs": { "input": "13800138000 01012345678" },
     "checkIds": ["mobile", "landline", "dedup"],
     "clicks": ["extract()"],
@@ -813,7 +813,7 @@ const CASES = [
     "ref": "手动月龄=0(新月/大潮)，纬度 30° 修正 0.906，开阔海岸放大 1.0x ⇒ 潮差 0.86 m。默认 moonPhaseMode=auto(按真实日期) ⇒ 不同潮差，不出现 0.86。"
   },
   {
-    "slug": "science/phone-qr",
+    "slug": "it/phone-qr",
     "inputs": { "phone": "13912345678" },
     "expect": ["tel:13912345678"],
     "ref": "注入手机号 13912345678（默认 +8613800138000）。页面将手机号渲染为 tel: 文本链接 ⇒ 输出含 'tel:13912345678'，默认态 'tel:+8613800138000' 完全不含 ⇒ 0 逃生。注：renderQR 在桩下报 'leng' 错误（QR 图像生成依赖 canvas/库），但 tel: 文本链接为纯字符串、不受 canvas 影响，确定性可用。纯前端无随机。"
@@ -1439,7 +1439,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"r\":\"42\"}，输出区含「. × 1] = 1,405,006,117,752,879,898,543,1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "science/phone-lookup",
+    "slug": "life/phone-lookup",
     "inputs": {
       "input": "abc123测试"
     },
@@ -1518,7 +1518,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v\":\"42\",\"theta\":\"42\",\"g\":\"42\"}，输出区含「in(2θ)/g 9.40」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "science/provident-fund",
+    "slug": "finance/provident-fund",
     "inputs": {
       "salary": "42",
       "selfPct": "42",

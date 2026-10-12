@@ -3,7 +3,7 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
-  "slug": "niche/aquarium-light",
+  "slug": "pet/aquarium-light",
   "inputs": {},
   "clicks": [
     "selectLevel('medium');"
@@ -14,7 +14,7 @@ const CASES = [
   "ref": "clicks 注入：selectLevel('medium') 改写 currentLevel（页面初始为 'all'），renderLevelInfo 产出中光档专属正文（等级名 · 光照区间 · 档位描述 · 该档水草数），plantList 同步收敛为 5 种中光水草。旧锚「0.3-0.5」取自静态 levelGrid 卡片（默认态即渲染含该串的三档卡片）⇒ 判别力 0、原 ref 已定性为逃生项。注意本页零参 showAll() 会在兜底遍历中把 currentLevel 复位为 'all'，故只能锚 clicks 阶段的输出；清 clicks 后重跑停在「显示全部 16 种水草」⇒ 零逃生项。"
 },
 {
-  "slug": "niche/audio-sample-rate",
+  "slug": "audio/audio-sample-rate",
   "inputs": {
     "duration": "90"
   },
@@ -24,7 +24,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/candle-burn-time",
+  "slug": "life/candle-burn-time",
   "inputs": {
     "weight": "300",
     "diameter": "70"
@@ -35,7 +35,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/ceramic-firing",
+  "slug": "ceramics/ceramic-firing",
   "inputs": {
     "fireType": "glaze"
   },
@@ -67,7 +67,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/honey-estimator",
+  "slug": "beekeeping/honey-estimator",
   "inputs": {
     "hives": "15",
     "area": "50"
@@ -78,7 +78,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/lawn-mowing",
+  "slug": "gardening/lawn-mowing",
   "inputs": {
     "season": "summer"
   },
@@ -98,7 +98,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/pruning-calendar",
+  "slug": "gardening/pruning-calendar",
   "inputs": {
     "searchInput": "zzzqx"
   },
@@ -128,7 +128,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "niche/video-fps",
+  "slug": "video/video-fps",
   "inputs": {
     "duration": "15"
   },
@@ -138,7 +138,7 @@ const CASES = [
   "ref": "auto-restore"
 },
   {
-    "slug": "niche/reminder-cycle-succulent",
+    "slug": "gardening/reminder-cycle-succulent",
     "inputs": {
       "plantName": "abc123测试",
       "plantLastWater": "abc123测试"

@@ -3,7 +3,7 @@
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
-  "slug": "misc/complex-number",
+  "slug": "math/complex-number",
   "inputs": {
     "aRe": "6",
     "aIm": "4",
@@ -16,7 +16,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "misc/function-plotter",
+  "slug": "math/function-plotter",
   "inputs": {
     "xMin": "-15",
     "xMax": "10",
@@ -35,7 +35,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "misc/magic-square",
+  "slug": "math/magic-square",
   "inputs": {
     "order": "8"
   },
@@ -45,7 +45,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "misc/physics-constants",
+  "slug": "science/physics-constants",
   "inputs": {},
   "expect": [
     "原子物理"

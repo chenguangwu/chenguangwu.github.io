@@ -14,7 +14,7 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
-  { slug: "geology/dijichengzailijisuan", inputs: { c: "20", phi: "25", gamma: "19", B: "3", Df: "2", K: "2.5" }, expect: ["451.82"], ref: "Terzaghi：Nq=e^(π·tan25°)·tan²(45°+12.5°)=10.66，Nc=(Nq−1)/tan25°=20.72，Nγ=2(Nq+1)tan25°=10.88；qu=20×20.72+19×2×10.66+0.5×19×3×10.88=1129.55；fa=qu/2.5=451.82 kPa（默认 c=15/φ=20/K=2 避开）" },
+  { slug: "civil/dijichengzailijisuan", inputs: { c: "20", phi: "25", gamma: "19", B: "3", Df: "2", K: "2.5" }, expect: ["451.82"], ref: "Terzaghi：Nq=e^(π·tan25°)·tan²(45°+12.5°)=10.66，Nc=(Nq−1)/tan25°=20.72，Nγ=2(Nq+1)tan25°=10.88；qu=20×20.72+19×2×10.66+0.5×19×3×10.88=1129.55；fa=qu/2.5=451.82 kPa（默认 c=15/φ=20/K=2 避开）" },
   { slug: "geology/estimate-grade-reserve", inputs: { area: "80000", thick: "5", dens: "2.6", grade: "1.5" }, expect: ["15600.00"], ref: "V=S·M=80000×5=400000 m³；Q=V·D=400000×2.6=1040000 t；P=Q·C/100=1040000×1.5/100=15600.00 t（默认 area=50000/thick=3.5 避开）" },
   { slug: "geology/estimate-reserve-1", inputs: { s1: "1200", s2: "800", L: "60", dens: "2.6", grade: "1.2" }, expect: ["1872.00"], ref: "断面法：avgS=(1200+800)/2=1000；V=1000×60=60000；Q=60000×2.6=156000；P=156000×1.2/100=1872.00 t（默认 s1=800/s2=600 避开）" },
   { slug: "geology/soil-sample", inputs: { area: "30", dens: "9", cost: "60" }, expect: ["333.3"], ref: "N=A·D=30×9=270 点；网格间距 L=√(1/D)×1000=√(1/9)×1000=333.3 m；成本=270×60=16200 元（默认 area=20/dens=4 避开）" },
@@ -232,7 +232,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"holes\":\"42\",\"meter\":\"42\",\"waste\":\"42\",\"shifts\":\"42\",\"rate\":\"42\",\"move\":\"42\",\"other\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n报废进尺不能超过总进尺，请核对。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "geology/dijichengzailijisuan",
+    "slug": "civil/dijichengzailijisuan",
     "inputs": {
       "c": "42",
       "phi": "42",

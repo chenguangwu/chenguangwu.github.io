@@ -204,7 +204,7 @@ const CASES = [
 },
 
 {
-  "slug": "life/csv-to-markdown",
+  "slug": "data/csv-to-markdown",
   "inputs": {
     "input": "姓名,科目,成绩\n张三,数学,92\n李四,物理,88"
   },

@@ -7036,6 +7036,8 @@ async function runCaseInner(c) {
   const file = path.join(TOOLS_DIR, c.slug + ".html");
   if (!fs.existsSync(file)) return { ok: false, why: "文件不存在" };
   const html = fs.readFileSync(file, "utf8");
+  // 重定向存根（TOOLBOX-REDIRECT）无 calcTool，跳过（与 scripts/verify_calc.js 既有逻辑一致）
+  if (html.includes("TOOLBOX-REDIRECT")) return { ok: true, skipped: true, why: "redirect stub" };
 
   const defaults = {};
   for (const m of html.matchAll(/<input[^>]*id="([^"]+)"[^>]*value="([^"]*)"/g)) defaults[m[1]] = m[2];
@@ -7479,6 +7481,11 @@ async function main() {
   const fails = [];
   for (const c of cases) {
     const r = await runCase(c);
+    if (r.skipped) {
+      pass++;
+      console.log(`⏭️ ${c.slug}  SKIP (redirect stub)`);
+      continue;
+    }
     if (r.ok) {
       pass++;
       console.log(`✅ ${c.slug}  (via ${r.via})  — ${c.ref}`);

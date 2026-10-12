@@ -69,7 +69,7 @@ const CASES = [
     ref: "去默认化：1 km = 1×1000/1609.344 = 0.6214 mi。默认态不命中。"
   },
   {
-    slug: "edu/xml-html-css-geshihua-yiyou-kebuchong",
+    slug: "data/xml-html-css-geshihua-yiyou-kebuchong",
     inputs: { src: '<div class="a"><p>hi</p></div>', lang: "html", indent: "4" },
     expect: ["原 30 → 新 36", "缩进宽度：4 空格"],
     ref: "HTML 缩进 4 空格：30 字符 → 36 字符（+2 换行 +4 缩进空格），3 行，最大嵌套深度 2 层",
@@ -144,13 +144,13 @@ const CASES = [
        + "默认态 85 ⇒ 不命中 99.2。",
   },
   {
-    slug: "edu/convert-4",
+    slug: "encode/convert-4",
     inputs: { "inp": "中", "mode": "1" },
     expect: ["十进制: 20013", "十六进制: U+4E2D", "UTF-8: E4 B8 AD"],
     ref: "字符→码点：中 的码点=20013、U+4E2D、UTF-8 字节 E4 B8 AD（默认 A ⇒ 65/U+0041/41，注入失败即不命中）"
   },
   {
-    slug: "edu/convert-4",
+    slug: "encode/convert-4",
     inputs: { "inp": "4E2D", "mode": "2" },
     expect: ["字符: 中", "十进制: 20013"],
     ref: "码点→字符：十六进制 4E2D ⇒ 字符「中」、十进制 20013（默认模式为字符→码点且输入 A，得 65/U+0041，注入失败即不命中）"
@@ -431,7 +431,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"val\":\"abc123测试\",\"from\":\"8\",\"to\":\"8\"}，输出区含「abc123测试\n8\n8\n请输入有效的8进制数 8 → 8 进制」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "edu/convert-4",
+    "slug": "encode/convert-4",
     "inputs": {
       "inp": "ñ",
       "mode": "1"
@@ -644,7 +644,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"words\":\"42\",\"format\":\"standard\",\"imgs\":\"0.1\",\"paper\":\"b5\",\"fontSize\":\"1\"}，输出区含「📊 估算结果 1 页（约） 按标准文档格式估算 42 总字数 540 每页约字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "edu/xml-html-css-geshihua-yiyou-kebuchong",
+    "slug": "data/xml-html-css-geshihua-yiyou-kebuchong",
     "inputs": {
       "indent": "42",
       "src": "1\n2\n3",
