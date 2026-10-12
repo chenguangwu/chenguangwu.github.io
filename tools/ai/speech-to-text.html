@@ -121,6 +121,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button class="btn primary" id="runBtn" onclick="runAI()">开始转换</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="downloadResult('transcript')">下载 TXT</button>
     </div>
 
     <div class="result-box" id="status" style="color:var(--text-muted);font-size:13px;"></div>
@@ -129,8 +130,52 @@ s.parentNode.insertBefore(el, s);
     <div class="formula-box" style="margin-top:14px;font-size:13px;line-height:1.7;">
       本工具在浏览器本地解码音频并加载 Whisper 模型转写文字，支持 mp3 / wav / m4a 等格式，全程不上传。
     </div>
+    <div class="formula-box" style="margin-top:8px;font-size:13px;line-height:1.7;">
+      时长估算按中文正常语速约 240 字/分钟折算，仅供核对参考。
+    </div>
   </div>
 </div>
+
+<script>
+// 转写结果统计（纯函数：module 脚本推理完成后调用，可独立单测）
+// 时长按中文正常语速约 240 字/分钟估算，仅供核对参考
+function asrStats(text) {
+  var t = String(text == null ? '' : text);
+  var cjk = (t.match(/[一-鿿]/g) || []).length;
+  var words = (t.match(/[A-Za-z]+/g) || []).length;
+  var total = cjk + words;
+  return { cjk: cjk, words: words, total: total, minutes: total > 0 ? total / 240 : 0 };
+}
+function asrStatsText(text) {
+  var s = asrStats(text);
+  return '\n转写统计：'
+    + '\n中文字符：' + s.cjk + '｜英文单词数：' + s.words + '｜合计：' + s.total
+    + '\n时长估算（分钟）：' + s.minutes.toFixed(2);
+}
+function downloadTxt(filename, text) {
+  var blob = new Blob([String(text == null ? '' : text)], { type: 'text/plain;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+function downloadResult(kind) {
+  var ta = document.querySelector('#result textarea');
+  var text = ta ? ta.value : '';
+  if (!text) {
+    var st = document.getElementById('status');
+    if (st) st.textContent = '暂无可下载的结果，请先运行转换';
+    return;
+  }
+  downloadTxt(kind + '-result.txt', text);
+}
+window.asrStats = asrStats;
+window.asrStatsText = asrStatsText;
+window.downloadTxt = downloadTxt;
+window.downloadResult = downloadResult;
+</script>
 
 <script type="module">
 import { getPipeline, progressText, decodeAudioTo16k, escapeHtml } from '../../js/ai-core.js';
@@ -158,7 +203,7 @@ window.runAI = async function () {
     status.textContent = '识别中…';
     const out = await pipe(audio);
     const text = (out && out.text) || '';
-    result.innerHTML = `<p style="margin-bottom:8px;">转换结果：</p><textarea readonly style="width:100%;min-height:120px;padding:10px;border-radius:12px;border:1px solid var(--color-border);font-size:14px;">${escapeHtml(text)}</textarea>`;
+    result.innerHTML = `<p style="margin-bottom:8px;">转换结果：</p><textarea readonly style="width:100%;min-height:120px;padding:10px;border-radius:12px;border:1px solid var(--color-border);font-size:14px;">${escapeHtml(text)}</textarea><p style="margin:8px 0 0;font-size:13px;color:var(--text-muted);white-space:pre-line;">${escapeHtml(window.asrStatsText(text))}</p>`;
     status.textContent = '完成';
   } catch (err) {
     status.textContent = '出错：' + (err && err.message ? err.message : err);

@@ -143,6 +143,38 @@ function preview() {
 }
 </script>
 
+<script>
+// Top-N 分类结果统计（纯函数：module 脚本推理完成后调用，可独立单测）
+function clsStats(out) {
+  if (!out || !out.length) return null;
+  var n = out.length;
+  var top = Number(out[0] && out[0].score);
+  var second = n > 1 ? Number(out[1] && out[1].score) : null;
+  var sum = 0;
+  for (var i = 0; i < n; i++) {
+    var s = Number(out[i] && out[i].score);
+    if (isFinite(s)) sum += s;
+  }
+  var margin = (second !== null && isFinite(top) && isFinite(second)) ? (top - second) * 100 : null;
+  return { n: n, top: top, second: second, sum: sum, margin: margin };
+}
+function pctOrDash(v) {
+  return isFinite(Number(v)) ? (Number(v) * 100).toFixed(1) + '%' : '—';
+}
+function clsStatsText(out) {
+  var s = clsStats(out);
+  if (!s) return '';
+  var t = '\n置信度可视化：';
+  t += '\nTop1 置信度：' + pctOrDash(s.top);
+  if (s.second !== null) t += '｜Top2 置信度：' + pctOrDash(s.second);
+  if (s.margin !== null) t += '｜领先（百分点）：' + s.margin.toFixed(1);
+  t += '\n累计置信度：' + (s.sum * 100).toFixed(1) + '%';
+  return t;
+}
+window.clsStats = clsStats;
+window.clsStatsText = clsStatsText;
+</script>
+
 <script type="module">
 import { getPipeline, progressText, escapeHtml } from '../../js/ai-core.js';
 
@@ -161,9 +193,12 @@ window.runAI = async function () {
     const out = await pipe(url, { top_k: 5 });
     let html = '<p style="margin-bottom:8px;">识别结果（Top 5）：</p>';
     for (const item of out) {
-      const pct = (item.score * 100).toFixed(1);
-      html += `<p style="margin:6px 0;"><strong>${escapeHtml(item.label)}</strong> — 置信度 ${pct}%</p>`;
+      const sc = Number(item && item.score);
+      const pct = isFinite(sc) ? (sc * 100).toFixed(1) : '0';
+      html += `<p style="margin:6px 0;"><strong>${escapeHtml(item.label)}</strong> — 置信度：${pct}%</p>`;
+      html += `<div style="background:var(--border,#eee);border-radius:6px;height:8px;margin:2px 0 8px;overflow:hidden;"><div style="width:${pct}%;height:100%;border-radius:6px;background:var(--tool-accent,#FF6B35);"></div></div>`;
     }
+    html += `<p style="margin:8px 0 0;font-size:13px;color:var(--text-muted);white-space:pre-line;">${escapeHtml(window.clsStatsText(out))}</p>`;
     result.innerHTML = html;
     status.textContent = '完成';
   } catch (err) {

@@ -132,23 +132,57 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 
+<script>
+// 中文情感词库与命中明细（纯函数：module 脚本调用，可独立单测）
+var SENT_POS = ['好','喜欢','优秀','棒','赞','满意','漂亮','开心','爱','惊喜','强大','方便','快','清晰','专业','推荐','值得','完美','高兴','美丽','聪明','可爱','惊艳','舒适','可靠','热情','温暖','感动','震撼','极致','良心'];
+var SENT_NEG = ['差','讨厌','糟糕','烂','失望','丑','慢','贵','难','坏','问题','错误','失败','垃圾','烦','生气','痛苦','丑陋','无聊','坑','恶心','后悔','气愤','糟糕','难受','粗糙','虚伪','敷衍','愤怒'];
+
+function hasCJK(s) { return /[一-鿿]/.test(String(s == null ? '' : s)); }
+
+function zhSentimentDetail(text) {
+  var t = String(text == null ? '' : text);
+  var posHit = [], negHit = [];
+  for (var i = 0; i < SENT_POS.length; i++) if (t.indexOf(SENT_POS[i]) >= 0) posHit.push(SENT_POS[i]);
+  for (var j = 0; j < SENT_NEG.length; j++) if (t.indexOf(SENT_NEG[j]) >= 0) negHit.push(SENT_NEG[j]);
+  var p = posHit.length, n = negHit.length;
+  var label = '中性', score = 0;
+  if (p > 0 || n > 0) {
+    label = p >= n ? '正面' : '负面';
+    score = Math.max(p, n) / (p + n);
+  }
+  var density = t.length > 0 ? ((p + n) / t.length) * 100 : 0;
+  return { label: label, score: score, posHit: posHit, negHit: negHit, density: density };
+}
+
+function zhDetailText(r, text) {
+  var t = String(text == null ? '' : text);
+  var s = '\n词库命中明细：';
+  s += '\n正面词：' + r.posHit.length + ' 个' + (r.posHit.length ? '（' + r.posHit.join('、') + '）' : '');
+  s += '\n负面词：' + r.negHit.length + ' 个' + (r.negHit.length ? '（' + r.negHit.join('、') + '）' : '');
+  s += '\n情感词密度：' + r.density.toFixed(2) + '%';
+  return s;
+}
+
+// 英文 SST-2 二分类：score 为所标标签概率，补全另一极概率
+function enSentimentText(top) {
+  if (!top) return '';
+  var sc = Number(top.score);
+  if (!isFinite(sc)) return '\n模型置信度：\n正面概率：—｜负面概率：—';
+  var pos = top.label === 'POSITIVE' ? sc : 1 - sc;
+  var neg = 1 - pos;
+  return '\n模型置信度：'
+    + '\n正面概率：' + (pos * 100).toFixed(1) + '%'
+    + '｜负面概率：' + (neg * 100).toFixed(1) + '%';
+}
+
+window.hasCJK = hasCJK;
+window.zhSentimentDetail = zhSentimentDetail;
+window.zhDetailText = zhDetailText;
+window.enSentimentText = enSentimentText;
+</script>
+
 <script type="module">
 import { getPipeline, progressText, escapeHtml } from '../../js/ai-core.js';
-
-const POS = ['好','喜欢','优秀','棒','赞','满意','漂亮','开心','爱','惊喜','强大','方便','快','清晰','专业','推荐','值得','完美','高兴','美丽','聪明','可爱','惊艳','舒适','可靠','热情','温暖','感动','震撼','极致','良心'];
-const NEG = ['差','讨厌','糟糕','烂','失望','丑','慢','贵','难','坏','问题','错误','失败','垃圾','烦','生气','痛苦','丑陋','无聊','坑','恶心','后悔','气愤','糟糕','难受','粗糙','虚伪','敷衍','愤怒'];
-
-function hasCJK(s) { return /[一-鿿]/.test(s); }
-
-function zhSentiment(text) {
-  let p = 0, n = 0;
-  for (const w of POS) if (text.includes(w)) p++;
-  for (const w of NEG) if (text.includes(w)) n++;
-  if (p === 0 && n === 0) return { label: '中性', score: 0, method: '中文情感词库（无明显信号）' };
-  const label = p >= n ? '正面' : '负面';
-  const score = Math.max(p, n) / (p + n);
-  return { label, score, method: '中文情感词库' };
-}
 
 window.copyResult = function () {
   const txt = document.querySelector('#result');
@@ -168,10 +202,10 @@ window.runAI = async function () {
 
   if (hasCJK(text)) {
     status.textContent = '本地词库分析中…';
-    const r = zhSentiment(text);
+    const r = window.zhSentimentDetail(text);
     const pct = (r.score * 100).toFixed(0);
     const emoji = r.label === '正面' ? '😊' : (r.label === '负面' ? '😠' : '😐');
-    result.innerHTML = `<p style="font-size:18px;margin-bottom:6px;">${emoji} 情感倾向：<strong>${r.label}</strong></p><p>置信度：${pct}%（${escapeHtml(r.method)}）</p>`;
+    result.innerHTML = `<p style="font-size:18px;margin-bottom:6px;">${emoji} 情感倾向：<strong>${r.label}</strong></p><p>置信度：${pct}%（中文情感词库）</p><p style="margin:8px 0 0;font-size:13px;color:var(--text-muted);white-space:pre-line;">${escapeHtml(window.zhDetailText(r, text))}</p>`;
     status.textContent = '完成';
     btn.disabled = false;
     return;
@@ -186,7 +220,7 @@ window.runAI = async function () {
     const label = top.label === 'POSITIVE' ? '正面' : (top.label === 'NEGATIVE' ? '负面' : top.label);
     const emoji = label === '正面' ? '😊' : '😠';
     const pct = (top.score * 100).toFixed(1);
-    result.innerHTML = `<p style="font-size:18px;margin-bottom:6px;">${emoji} 情感倾向：<strong>${label}</strong></p><p>置信度：${pct}%（DistilBERT 模型）</p>`;
+    result.innerHTML = `<p style="font-size:18px;margin-bottom:6px;">${emoji} 情感倾向：<strong>${label}</strong></p><p>置信度：${pct}%（DistilBERT 模型）</p><p style="margin:8px 0 0;font-size:13px;color:var(--text-muted);white-space:pre-line;">${escapeHtml(window.enSentimentText(top))}</p>`;
     status.textContent = '完成';
   } catch (err) {
     status.textContent = '出错：' + (err && err.message ? err.message : err);

@@ -38,7 +38,7 @@
 ## 二、现状基线（实测，2026-10-12）
 
 - 门禁 `scripts/run_gates.py` **217/217 全过**（含 expect anti-pattern 静态门禁）；逃生项 0；CI 最近 5 个 run 全部 success。
-- 工具 **4725** 个：**A 4720 / B 1 / C 4**，A 级率 **99.9%**（209 分类；余 5 个非 A 为 `ai` 页 `<script type="module">` 度量盲区豁免，P1 convert 薄页 18 页已全部提升）。
+- 工具 **4725** 个：**A 4725 / B 0 / C 0**，A 级率 **100%**（209 分类；全站首次全部 A 级。收尾项：P1 convert 薄页 18 页提升 + `ai` 5 页 `<script type="module">` 计入 own_len 的口径修正与真实派生功能补强）。
 - `guides/` 3410 页，社交标签仅 1 页缺（`vaccine-reminder-guide.html` 系 pets 重定向存根，到期随存根删除，**不用修**）。
 - 统计三件套已集成：百度统计 + 51.la（SDK + footer 实时挂件）+ Microsoft Clarity，统一收口 `js/analytics.js`；广告点击埋点 `js/ad_metrics.js` 六位全覆盖。
 - CRITICAL_TOOL_CSS 冗余已治理（2026-09-05：引 common.css 页面零内联副本，工具页均 20KB）。

@@ -171,6 +171,7 @@
 ### 内容质量
 
 - **A 级硬标准**：`own_len ≥ 6000`，或 `≥ 3000 且 inputs ≥ 3`；含 `formula-box` / `canvas` / `data-viz` 直接判 A；**禁止用代码膨胀凑数**。
+- **`own_len` 度量口径**（`_build.py::classify_quality`）：非共享内联 `<script>` + 外置 `/js/tools/*.js` + **`<script type="module">` 内联块**（2026-10-12 修正，此前漏算致 ai 5 个浏览器本地 AI 页评级失真）；均走 shared md5 去重。新增 module 脚本页无须为提级凑数，逻辑真实即计。
 - **head-only 死壳**特征：`<body>` 无开标签 / 无 `input`+`select` / deep-dive 段误置 `<head>`（线上打开空白）。扫法 `'<body>' not in c`；重建库 `scripts/auto_shell_lib.py` + `rebuild_<cat>_batchN.py`；收口前必做三方终检（title = h1 = i18n 标题、deep-dive 仅注入 body、每页有输入控件）。
 - **两套套话残留**（逐分类必查）：① 可见 `opt-guide` / `opt-faq` → `scripts/opt_cleanup_opt_blocks.py --cat X`；② FAQPage JSON-LD 里的旧套话 → `scripts/opt_faq_ld_sync.py --cat X`。**_build.py 不重建工具页的 FAQPage LD**，必须手改并 `json.loads` 校验。
 - deep-dive 算例数字一律用 node 实跑取（含 `toFixed` 四舍五入），禁止凭印象写。

@@ -2005,6 +2005,17 @@ def classify_quality(content):
     for b in re.findall(r'<script>(.*?)</script>', content, re.S):
         if hashlib.md5(b.encode('utf-8')).hexdigest() not in shared:
             own_len += len(b)
+    # `<script type="module">` 内联块同样是页面自研逻辑，须计入 own_len。
+    # 背景（2026-10-12 实测）：tools/ai 下 5 个浏览器本地 AI 运行页
+    # （ocr / image-classification / sentiment-analysis / speech-to-text /
+    # text-summarization）的真实推理逻辑全部写在 module 脚本里
+    # （Transformers.js pipeline 加载、进度回调、结果渲染、错误处理），
+    # 而上面的正则只匹配无属性 <script>，导致这些页 own_len 被漏算、
+    # 分级从 A 误降为 C/B（评级失真，非真实薄页）。module 块与普通内联块
+    # 一样走 shared md5 去重，共享模板块不会凑数。
+    for b in re.findall(r'<script type="module">(.*?)</script>', content, re.S):
+        if hashlib.md5(b.encode('utf-8')).hexdigest() not in shared:
+            own_len += len(b)
     # 外置的页面专属脚本（由 scripts/extract_inline_scripts.py 从内联块搬移到
     # js/tools/<name>.js）仍是本页自研逻辑，须计入 own_len；否则 HTML 瘦身会让
     # 这些页的 own_len 归零、质量分级从 A 误降为 B（2026-09-05 实测踩到）。

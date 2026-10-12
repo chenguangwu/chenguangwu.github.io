@@ -123,6 +123,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button class="btn primary" id="runBtn" onclick="runAI()">开始识别</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="downloadResult('ocr')">下载 TXT</button>
     </div>
 
     <div class="result-box" id="status" style="color:var(--text-muted);font-size:13px;"></div>
@@ -142,6 +143,51 @@ function preview() {
   const url = URL.createObjectURL(f);
   box.innerHTML = `<img src="${url}" alt="图片预览" style="max-width:100%;max-height:240px;border-radius:12px;border:1px solid var(--color-border);">`;
 }
+</script>
+
+<script>
+// 识别结果统计（纯函数：module 脚本推理完成后调用，可独立单测）
+function ocrStats(text) {
+  var t = String(text == null ? '' : text);
+  var lines = t.replace(/\r/g, '').split('\n').filter(function (l) { return l.trim(); });
+  return {
+    chars: t.length,
+    noWs: t.replace(/\s/g, '').length,
+    lines: lines.length,
+    cjk: (t.match(/[一-鿿]/g) || []).length,
+    latin: (t.match(/[A-Za-z]/g) || []).length,
+    digits: (t.match(/[0-9]/g) || []).length
+  };
+}
+function ocrStatsText(text) {
+  var s = ocrStats(text);
+  return '\n识别结果统计：'
+    + '\n字符：' + s.chars + '｜不含空白：' + s.noWs + '｜行数：' + s.lines
+    + '\n中文字符：' + s.cjk + '｜英文字符：' + s.latin + '｜数字：' + s.digits;
+}
+function downloadTxt(filename, text) {
+  var blob = new Blob([String(text == null ? '' : text)], { type: 'text/plain;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+function downloadResult(kind) {
+  var ta = document.querySelector('#result textarea');
+  var text = ta ? ta.value : '';
+  if (!text) {
+    var st = document.getElementById('status');
+    if (st) st.textContent = '暂无可下载的结果，请先运行识别';
+    return;
+  }
+  downloadTxt(kind + '-result.txt', text);
+}
+window.ocrStats = ocrStats;
+window.ocrStatsText = ocrStatsText;
+window.downloadTxt = downloadTxt;
+window.downloadResult = downloadResult;
 </script>
 
 <script type="module">
@@ -170,7 +216,7 @@ window.runAI = async function () {
     status.textContent = '识别中…';
     const out = await pipe(url);
     const text = (out && out[0] && out[0].generated_text) || '';
-    result.innerHTML = `<p style="margin-bottom:8px;">识别结果：</p><textarea readonly style="width:100%;min-height:120px;padding:10px;border-radius:12px;border:1px solid var(--color-border);font-size:14px;">${escapeHtml(text)}</textarea>`;
+    result.innerHTML = `<p style="margin-bottom:8px;">识别结果：</p><textarea readonly style="width:100%;min-height:120px;padding:10px;border-radius:12px;border:1px solid var(--color-border);font-size:14px;">${escapeHtml(text)}</textarea><p style="margin:8px 0 0;font-size:13px;color:var(--text-muted);white-space:pre-line;">${escapeHtml(window.ocrStatsText(text))}</p>`;
     status.textContent = '完成';
   } catch (err) {
     status.textContent = '出错：' + (err && err.message ? err.message : err);
