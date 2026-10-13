@@ -100,12 +100,9 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 
 ### 1.7 当前分类（进行中）
 
-**`surveying`（45 页 / 起点均分 1.89 / 薄弱 31；当前 均分 7.27 / 薄弱 1）** —— 测量计算类数值工具，语义适合「图表分析（曲线/断面/差值序列）+ 明细表 + 预设 + 历史对比」；批次清单在此动态登记、干完即删。
+（surveying 已收口，见下方存档；下一分类从 §1.8 最弱候选起，建议 `legal` 1.96 / `metrology` / `hotel` 等，待老板定或按「最弱优先」开）
 
-- **剩余 6 页**：`coordinate-convert`/`leveling-calc`（3/9 组）+ `area-25`/`area-calc`/`calc-1`/`scale-converter`（5/9 组）；`distance-4` 为 TOOLBOX-REDIRECT 存根（0/9，薄弱 1 即此页，不可改造）、`index` 为导航页，均不动。
-- 已完成 39 页（SV-1~SV-4 四批，细节见当日 memory）；全类同图表范式核查：line 31.1% / bar 35.6%，合规（≤40%）。
-
-**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）。
+**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）；**`surveying` 45 页 1.89→7.78、薄弱 31→1（仅 `distance-4` 重定向存根不可改造、`index` 导航页不动；SV-1~SV-5 五批；图表范式 line 31.1%/bar 35.6% 合规；calc-1 EN 态动态标签时序 bug + convert-46 字典遗漏已修；4 个 `type="number"` 逗号输入框待修见 §2 P1）**。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 
