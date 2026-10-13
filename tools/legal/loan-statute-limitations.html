@@ -166,7 +166,7 @@ s.parentNode.insertBefore(el, s);
       <div class="input-row">
         <div>
           <label>约定还款日期</label>
-          <input type="date" id="dueDate" onchange="calculate()">
+          <input type="date" id="dueDate" value="2022-06-15" onchange="calculate()">
         </div>
       </div>
     </div>
@@ -193,7 +193,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>最后一次催款日期（发送催款函/微信/短信）</label>
-        <input type="date" id="lastDemandDate" onchange="calculate()">
+        <input type="date" id="lastDemandDate" value="2023-08-20" onchange="calculate()">
       </div>
     </div>
     
@@ -213,6 +213,23 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+  </div>
+  <div class="card">
+    <h3>📅 时效时间轴</h3>
+    <div id="lsChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="lsTable"></div>
+    <button type="button" class="btn" id="lsExport" onclick="__lsExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="lsHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="lsPresets" class="preset-bar"></div>
   </div>
   
   <div class="card">
@@ -278,6 +295,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function lsL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __lsD=null;
 function calculate(){
   const loanType = document.getElementById('loanType').value;
   const dueDate = document.getElementById('dueDate').value;
@@ -296,35 +315,35 @@ function calculate(){
   
   if(loanType === 'normal' && dueDate){
     startDate = new Date(dueDate);
-    startReason = `约定还款日期：${dueDate}（还款期限届满，债务人未还款即视为权利受损）`;
+    startReason = lsL(`约定还款日期：${dueDate}（还款期限届满，债务人未还款即视为权利受损）`, `Agreed repayment date: ${dueDate} (the term expired without payment, so the right is deemed harmed)`);
   }else if(loanType === 'installment' && lastInstallmentDate){
     startDate = new Date(lastInstallmentDate);
-    startReason = `最后一期还款日期：${lastInstallmentDate}（分期债务从最后一期届满起算）`;
+    startReason = lsL(`最后一期还款日期：${lastInstallmentDate}（分期债务从最后一期届满起算）`, `Last instalment date: ${lastInstallmentDate} (for instalment debts the period runs from the last instalment)`);
   }else if(loanType === 'demand' && claimDate){
     startDate = new Date(claimDate);
-    startReason = `主张还款/宽限期届满日：${claimDate}`;
+    startReason = lsL(`主张还款/宽限期届满日：${claimDate}`, `Date of demand or end of grace period: ${claimDate}`);
   }else if(loanType === 'iou'){
     startDate = null;
-    startReason = '没有还款日期的欠条：诉讼时效从出具欠条之日起算3年（若能证明借贷关系可按未约定还款期限处理）';
+    startReason = lsL('没有还款日期的欠条：诉讼时效从出具欠条之日起算3年（若能证明借贷关系可按未约定还款期限处理）', 'IOU without a repayment date: the 3-year period runs from the date the IOU was issued; if the loan can be proved it may be treated as having no agreed term');
   }
   
   let interruptDate = null;
   let interruptReason = '';
   const interruptDates = [];
-  if(lastDemandDate) interruptDates.push({date: new Date(lastDemandDate), reason: '催款（提出履行请求）'});
-  if(lastPaymentDate) interruptDates.push({date: new Date(lastPaymentDate), reason: '部分还款（义务人同意履行）'});
-  if(promiseDate) interruptDates.push({date: new Date(promiseDate), reason: '承诺还款（义务人同意履行）'});
+  if(lastDemandDate) interruptDates.push({date: new Date(lastDemandDate), reason: lsL('催款（提出履行请求）','Demand for performance')});
+  if(lastPaymentDate) interruptDates.push({date: new Date(lastPaymentDate), reason: lsL('部分还款（义务人同意履行）','Partial repayment, the debtor acknowledges the debt')});
+  if(promiseDate) interruptDates.push({date: new Date(promiseDate), reason: lsL('承诺还款（义务人同意履行）','Promise to repay, the debtor acknowledges the debt')});
   
   if(interruptDates.length > 0){
     interruptDates.sort((a,b) => b.date - a.date);
     interruptDate = interruptDates[0].date;
-    interruptReason = `最后一次时效中断事由：${interruptDates[0].reason}（${interruptDates[0].date.toISOString().split('T')[0]}），时效重新计算3年`;
+    interruptReason = lsL(`最后一次时效中断事由：${interruptDates[0].reason}（${interruptDates[0].date.toISOString().split('T')[0]}），时效重新计算3年`, `Latest interruption event: ${interruptDates[0].reason} (${interruptDates[0].date.toISOString().split('T')[0]}), the 3-year period restarts`);
   }
   
   const actualStartDate = interruptDate || startDate;
   
   if(!actualStartDate){
-    const __h0='<p style="color:var(--text-muted);">请填写相关日期信息</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    const __h0='<p style="color:var(--text-muted);">'+lsL('请填写相关日期信息','Please fill in the relevant dates')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
     return;
   }
   
@@ -341,47 +360,97 @@ function calculate(){
     maxProtectionDate.setFullYear(maxProtectionDate.getFullYear() + 20);
   }
   
+  __lsD = {loanType: loanType, due: dueDate, inst: lastInstallmentDate, claim: claimDate, demand: lastDemandDate, pay: lastPaymentDate, promise: promiseDate, start: actualStartDate.toISOString().split('T')[0], interrupt: interruptDate ? interruptDate.toISOString().split('T')[0] : '', expire: expirationDate.toISOString().split('T')[0], maxProt: startDate ? maxProtectionDate.toISOString().split('T')[0] : '', days: daysRemaining};
   let html = '';
-  html += `<p>起算依据：${startReason}</p>`;
+  html += `<p>${lsL('起算依据：','Basis for the start date: ')}${startReason}</p>`;
   if(interruptDate){
     html += `<p style="color:var(--success);">⏱️ ${interruptReason}</p>`;
   }
-  html += `<p style="margin-top:8px;">时效起算日：<strong>${actualStartDate.toISOString().split('T')[0]}</strong></p>`;
-  html += `<p>诉讼时效届满日：<strong style="font-size:16px;">${expirationDate.toISOString().split('T')[0]}</strong></p>`;
+  html += `<p style="margin-top:8px;">${lsL('时效起算日：','Period starts on: ')}<strong>${actualStartDate.toISOString().split('T')[0]}</strong></p>`;
+  html += `<p>${lsL('诉讼时效届满日：','Limitation period expires on: ')}<strong style="font-size:16px;">${expirationDate.toISOString().split('T')[0]}</strong></p>`;
   
   if(daysRemaining > 0){
     const years = Math.floor(daysRemaining / 365);
     const months = Math.floor((daysRemaining % 365) / 30);
     const days = daysRemaining % 30;
     let timeText = '';
-    if(years > 0) timeText += `${years}年`;
-    if(months > 0) timeText += `${months}个月`;
-    timeText += `${days}天`;
-    html += `<p style="color:var(--success);font-size:16px;font-weight:600;margin-top:8px;">✓ 距时效届满还有 ${timeText}（${daysRemaining}天）</p>`;
+    if(years > 0) timeText += years + lsL('年','y ');
+    if(months > 0) timeText += months + lsL('个月','mo ');
+    timeText += days + lsL('天','d');
+    html += `<p style="color:var(--success);font-size:16px;font-weight:600;margin-top:8px;">${lsL('✓ 距时效届满还有 ','✓ Time left before expiry: ')}${timeText} (${daysRemaining}${lsL('天',' days')})</p>`;
     if(daysRemaining < 180){
-      html += `<p style="color:#ff9800;margin-top:4px;">⚠️ 时效即将届满，请尽快主张权利或留存催款证据！</p>`;
+      html += `<p style="color:#ff9800;margin-top:4px;">${lsL('⚠️ 时效即将届满，请尽快主张权利或留存催款证据！','The limitation period is about to expire: assert your rights or preserve evidence of your demand now.')}</p>`;
     }
   }else if(daysRemaining === 0){
-    html += `<p style="color:var(--danger);font-size:16px;font-weight:600;margin-top:8px;">⚠️ 诉讼时效今日届满！</p>`;
+    html += `<p style="color:var(--danger);font-size:16px;font-weight:600;margin-top:8px;">${lsL('⚠️ 诉讼时效今日届满！','The limitation period expires today.')}</p>`;
   }else{
-    html += `<p style="color:var(--danger);font-size:16px;font-weight:600;margin-top:8px;">✗ 诉讼时效已届满 ${-daysRemaining}天！</p>`;
-    html += `<p style="margin-top:4px;font-size:13px;">如被告提出时效抗辩，法院将驳回诉讼请求；建议尝试让债务人重新出具还款承诺以恢复时效</p>`;
+    html += `<p style="color:var(--danger);font-size:16px;font-weight:600;margin-top:8px;">${lsL('✗ 诉讼时效已届满 ','The limitation period expired ')}${-daysRemaining}${lsL('天！',' days ago.')}</p>`;
+    html += `<p style="margin-top:4px;font-size:13px;">${lsL('如被告提出时效抗辩，法院将驳回诉讼请求；建议尝试让债务人重新出具还款承诺以恢复时效','If the defendant pleads the limitation defence the court will dismiss the claim; ask the debtor to issue a fresh repayment promise to revive the period.')}</p>`;
   }
   
   if(startDate){
-    html += `<p style="margin-top:12px;font-size:12px;color:var(--text-muted);">最长保护期至：${maxProtectionDate.toISOString().split('T')[0]}（20年，自权利受损之日起）</p>`;
+    html += `<p style="margin-top:12px;font-size:12px;color:var(--text-muted);">${lsL('最长保护期至：','Maximum protection until: ')}${maxProtectionDate.toISOString().split('T')[0]}${lsL('（20年，自权利受损之日起）',' (20 years from the date the right was harmed)')}</p>`;
   }
   
   html += `<div style="margin-top:12px;padding:12px;background:rgba(102,126,234,0.1);border-radius:8px;">`;
-  html += `<p style="font-size:13px;"><strong>💡 留存证据建议：</strong></p>`;
-  html += `<p style="font-size:12px;margin-top:4px;">• 书面催款函（EMS邮寄并留存底单）</p>`;
-  html += `<p style="font-size:12px;">• 微信/短信催款记录（保留原始载体，不要删除）</p>`;
-  html += `<p style="font-size:12px;">• 录音证据（明确双方身份、金额、催款意思表示）</p>`;
+  html += `<p style="font-size:13px;"><strong>${lsL('💡 留存证据建议：','How to preserve evidence')}</strong></p>`;
+  html += `<p style="font-size:12px;margin-top:4px;">${lsL('• 书面催款函（EMS邮寄并留存底单）','- A written demand sent by EMS, keep the postal receipt')}</p>`;
+  html += `<p style="font-size:12px;">${lsL('• 微信/短信催款记录（保留原始载体，不要删除）','- WeChat or SMS demand records, keep the original device and do not delete them')}</p>`;
+  html += `<p style="font-size:12px;">${lsL('• 录音证据（明确双方身份、金额、催款意思表示）','- Audio recordings that identify both parties, the amount and the demand')}</p>`;
   html += `</div>`;
   
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 }
-calculate();
+try{ calculate(); }catch(e){}
+
+function __lsExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__lsD;
+    if(!D){ var a=document.getElementById('lsChart'), b=document.getElementById('lsTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    var loanZh={normal:'定期还款',installment:'分期还款',demand:'未约定还款期限',iou:'无还款日期欠条'};
+    var loanEn={normal:'Fixed-term',installment:'Instalment',demand:'No fixed term',iou:'IOU, no date'};
+    var stat=D.days>0?(D.days<180?lsL('即将届满','Expiring soon'):lsL('时效进行中','Running')):lsL('已过时效','Expired');
+    var items=[];
+    items.push({date: D.start, label: lsL('时效起算','Period starts'), color:'#6366F1', strong:true});
+    if(D.interrupt) items.push({date: D.interrupt, label: lsL('时效中断','Interrupted'), color:'#F59E0B'});
+    items.push({date: D.expire, label: lsL('时效届满','Period ends'), color: D.days>0?'#10B981':'#EF4444', strong:true});
+    if(D.maxProt) items.push({date: D.maxProt, label: lsL('20年最长保护','20-year cap'), color:'#9CA3AF'});
+    TBKit.chart.timeline('#lsChart', {items: items, height: 130, title: lsL('时效关键节点','Key limitation dates')});
+    TBKit.matrix.table('#lsTable', {head: [lsL('项目','Item'), lsL('内容','Value')], rows: [[lsL('借款类型','Loan type'), lsL(loanZh[D.loanType]||D.loanType, loanEn[D.loanType]||D.loanType)], [lsL('时效起算日','Start date'), D.start], [lsL('时效中断日','Interruption date'), D.interrupt || lsL('无','None')], [lsL('诉讼时效届满日','Expiry date'), D.expire], [lsL('剩余天数','Days remaining'), String(D.days)], [lsL('当前状态','Status'), stat], [lsL('20年最长保护期','20-year cap'), D.maxProt || lsL('不适用','N/A')]]});
+    TBKit.history.record({[lsL('借款类型','Loan type')]: D.loanType, [lsL('约定还款日','Due date')]: D.due, [lsL('最后催款日','Last demand')]: D.demand, [lsL('届满日','Expiry date')]: D.expire, [lsL('剩余天数','Days left')]: D.days});
+  }catch(e){}
+}
+function __lsExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#lsTable','loan-statute-limitations.csv'); }catch(e){} }
+function __lsPresets(){
+  try{
+    TBKit.preset.bar('#lsPresets', [
+      {label:'定期·已催款', labelEn:'Fixed-term, demanded', values:{loanType:'normal', dueDate:'2021-04-10', lastDemandDate:'2022-09-01', lastPaymentDate:'', promiseDate:''}},
+      {label:'分期还款', labelEn:'Instalment', values:{loanType:'installment', lastInstallmentDate:'2023-03-10', lastDemandDate:'', lastPaymentDate:'', promiseDate:''}},
+      {label:'未约定期限', labelEn:'No fixed term', values:{loanType:'demand', claimDate:'2023-11-05', lastDemandDate:'', lastPaymentDate:'', promiseDate:''}},
+      {label:'时效已过', labelEn:'Already time-barred', values:{loanType:'normal', dueDate:'2019-01-10', lastDemandDate:'', lastPaymentDate:'', promiseDate:''}}
+    ], function(){ calculate(); });
+  }catch(e){}
+}
+function __lsMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#lsHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('loanType').value=g(lsL('借款类型','Loan type'),'normal');
+      document.getElementById('dueDate').value=g(lsL('约定还款日','Due date'),'');
+      document.getElementById('lastDemandDate').value=g(lsL('最后催款日','Last demand'),'');
+      calculate();
+    }, 8);
+  }catch(e){}
+}
+function __lsBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __lsExtras(); __lsPresets(); __lsMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __lsExtras(); __lsPresets(); __lsMountHist(); }
+}
+var __tb_ls0=calculate; calculate=function(){ __lsD=null; __tb_ls0(); try{ __lsExtras(); __lsMountHist(); }catch(e){} };
+__lsBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

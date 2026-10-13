@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>权利受损日期</label>
-        <input type="date" id="startDate">
+        <input type="date" id="startDate" value="2022-06-15">
       </div>
       <div>
         <label>时效类型</label>
@@ -182,6 +182,23 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result">请选择日期和时效类型</div>
+  </div>
+  <div class="card">
+    <h3>⏳ 时效剩余进度</h3>
+    <div id="slChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="slTable"></div>
+    <button type="button" class="btn" id="slExport" onclick="__slExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="slHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="slPresets" class="preset-bar"></div>
   </div>
   
   <div class="card">
@@ -246,6 +263,8 @@ function toggleInterruption(){
   section.style.display = document.getElementById('hasInterruption').checked ? 'block' : 'none';
 }
 
+function slL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __slD=null;
 function calculate(){
   const startDate = document.getElementById('startDate').value;
   const limitType = parseInt(document.getElementById('limitType').value);
@@ -253,7 +272,7 @@ function calculate(){
   const interruptionDate = document.getElementById('interruptionDate').value;
   
   if(!startDate){
-    const __h0='<p style="color:var(--danger);">请选择权利受损日期</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    const __h0='<p style="color:var(--danger);">'+slL('请选择权利受损日期','Please choose the date the right was harmed')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
     return;
   }
   
@@ -265,7 +284,7 @@ function calculate(){
     const interrupt = new Date(interruptionDate);
     if(interrupt > start){
       effectiveStart = interrupt;
-      interruptionNote = `<p>时效中断日期：<strong>${interruptionDate}</strong>，时效重新计算</p>`;
+      interruptionNote = `<p>${slL('时效中断日期：','Interruption date: ')}<strong>${interruptionDate}</strong>${slL('，时效重新计算',' , the period restarts')}</p>`;
     }
   }
   
@@ -282,26 +301,72 @@ function calculate(){
   let status = '';
   let statusColor = 'var(--success)';
   if(daysRemaining < 0){
-    status = '已过诉讼时效';
+    status = slL('已过诉讼时效','Time-barred');
     statusColor = 'var(--danger)';
   }else if(daysRemaining < 180){
-    status = '即将届满（不足6个月）';
+    status = slL('即将届满（不足6个月）','Expiring soon, under 6 months left');
     statusColor = '#ff9800';
   }else{
-    status = '时效进行中';
+    status = slL('时效进行中','Running');
   }
   
-  const typeName = limitType === 3 ? '3年普通时效' : limitType === 1 ? '1年特殊时效' : '20年最长保护期';
+  const typeName = limitType === 3 ? slL('3年普通时效','3-year general period') : limitType === 1 ? slL('1年特殊时效','1-year special period') : slL('20年最长保护期','20-year maximum period');
   
+  __slD = {start: startDate, limitType: limitType, interrupt: interruptionDate, effective: effectiveStart.toISOString().split('T')[0], expire: actualEnd.toISOString().split('T')[0], maxProt: maxEndDate.toISOString().split('T')[0], days: daysRemaining};
   const __h1=`
-    <p>时效类型：<strong>${typeName}</strong></p>
-    <p>起算日期：<strong>${startDate}</strong></p>
+    <p>${slL('时效类型：','Period type: ')}<strong>${typeName}</strong></p>
+    <p>${slL('起算日期：','Start date: ')}<strong>${startDate}</strong></p>
     ${interruptionNote}
-    <p>届满日期：<strong style="color:var(--primary);">${actualEnd.toISOString().split('T')[0]}</strong></p>
-    <p>剩余天数：<strong style="color:${statusColor};">${Math.abs(daysRemaining)}</strong> 天</p>
-    <p>当前状态：<strong style="color:${statusColor};">${status}</strong></p>
+    <p>${slL('届满日期：','Expiry date: ')}<strong style="color:var(--primary);">${actualEnd.toISOString().split('T')[0]}</strong></p>
+    <p>${slL('剩余天数：','Days remaining: ')}<strong style="color:${statusColor};">${Math.abs(daysRemaining)}</strong>${slL(' 天',' days')}</p>
+    <p>${slL('当前状态：','Current status: ')}<strong style="color:${statusColor};">${status}</strong></p>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 }
+
+function __slExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__slD;
+    if(!D){ var a=document.getElementById('slChart'), b=document.getElementById('slTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    var typeZh={3:'3年普通时效',1:'1年特殊时效',20:'20年最长保护期'};
+    var typeEn={3:'3-year general',1:'1-year special',20:'20-year maximum'};
+    var total=Math.max(1, D.limitType*365);
+    var rem=Math.max(0, D.days);
+    var col=D.days<0?'#EF4444':(D.days<180?'#F59E0B':'#10B981');
+    TBKit.chart.gauge('#slChart', {value: rem, min: 0, max: total, text: String(rem), label: slL('剩余天数','days remaining'), color: col, height: 165, title: slL('时效剩余进度','Limitation period remaining')});
+    TBKit.matrix.table('#slTable', {head: [slL('项目','Item'), slL('内容','Value')], rows: [[slL('时效类型','Type'), slL(typeZh[D.limitType]||String(D.limitType), typeEn[D.limitType]||String(D.limitType))], [slL('起算日期','Start date'), D.start], [slL('中断日期','Interruption date'), D.interrupt || slL('无','None')], [slL('届满日期','Expiry date'), D.expire], [slL('剩余天数','Days remaining'), String(D.days)], [slL('当前状态','Status'), D.days<0?slL('已过诉讼时效','Time-barred'):(D.days<180?slL('即将届满','Expiring soon'):slL('时效进行中','Running'))], [slL('20年最长保护期','20-year cap'), D.maxProt]]});
+    TBKit.history.record({[slL('起算日期','Start date')]: D.start, [slL('时效类型','Type')]: D.limitType, [slL('届满日期','Expiry date')]: D.expire, [slL('剩余天数','Days left')]: D.days});
+  }catch(e){}
+}
+function __slExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#slTable','statute-limitations.csv'); }catch(e){} }
+function __slPresets(){
+  try{
+    TBKit.preset.bar('#slPresets', [
+      {label:'普通3年', labelEn:'General 3 years', values:{startDate:'2021-04-10', limitType:'3'}},
+      {label:'特殊1年', labelEn:'Special 1 year', values:{startDate:'2023-04-01', limitType:'1'}},
+      {label:'最长20年', labelEn:'Maximum 20 years', values:{startDate:'2010-01-01', limitType:'20'}},
+      {label:'时效已过', labelEn:'Already time-barred', values:{startDate:'2018-03-01', limitType:'3'}}
+    ], function(){ calculate(); });
+  }catch(e){}
+}
+function __slMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#slHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('startDate').value=g(slL('起算日期','Start date'),'');
+      document.getElementById('limitType').value=String(g(slL('时效类型','Type'),3));
+      calculate();
+    }, 8);
+  }catch(e){}
+}
+function __slBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ try{ calculate(); }catch(e){} __slExtras(); __slPresets(); __slMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { try{ calculate(); }catch(e){} __slExtras(); __slPresets(); __slMountHist(); }
+}
+var __tb_sl0=calculate; calculate=function(){ __slD=null; __tb_sl0(); try{ __slExtras(); __slMountHist(); }catch(e){} };
+__slBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

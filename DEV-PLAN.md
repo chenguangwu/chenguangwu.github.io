@@ -124,7 +124,7 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 - `general` 57/3.4/4
 - `hydraulic` 56/3.0/11
 - `realestate` 55/4.07/0
-- `legal` 29/1.96/37（批次1 六页 overtime-pay/severance-pay/child-support/labor-compensation-n1/inheritance-share/late-payment-interest + 批次2 六页 arbitration-fee/court-fee/notarization-fee/trademark-fee/stamp-duty-legal/rent-deposit + 批次3 六页 work-injury-compensation/traffic-accident-compensation/personal-injury/divorce-property/ipr-damages/lawyer-fee-reference + 批次4 六页 marriage-property-agreement/patent-fee-calculator/consumer-protection/food-safety/double-wage-no-contract/will-witness-requirements 已收口：图表+速查表+历史+预设+导出+i18n 双语；剩余 29 页待续）
+- `legal` 25/1.96/37（批次1 六页 overtime-pay/severance-pay/child-support/labor-compensation-n1/inheritance-share/late-payment-interest + 批次2 六页 arbitration-fee/court-fee/notarization-fee/trademark-fee/stamp-duty-legal/rent-deposit + 批次3 六页 work-injury-compensation/traffic-accident-compensation/personal-injury/divorce-property/ipr-damages/lawyer-fee-reference + 批次4 六页 marriage-property-agreement/patent-fee-calculator/consumer-protection/food-safety/double-wage-no-contract/will-witness-requirements + 批次5 四页 loan-statute-limitations/debt-statute-limitations/statute-limitations/patent-term-calculator（日期时效类，timeline+gauge，补默认日期使默认态可算）已收口：图表+速查表+历史+预设+导出+i18n 双语；剩余 25 页待续）
 - `edu` 48/4.65/5
 - `marketing` 47/3.98/11
 

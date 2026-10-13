@@ -152,6 +152,23 @@ s.parentNode.insertBefore(el, s);
 
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📅 有效期时间轴</h3>
+    <div id="ptChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="ptTable"></div>
+    <button type="button" class="btn" id="ptExport" onclick="__ptExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="ptHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="ptPresets" class="preset-bar"></div>
+  </div>
 
   <div class="card">
     <h3>📊 专利保护期规则</h3>
@@ -238,6 +255,8 @@ var patentRules = {
   'design': { name: '外观设计专利', years: 15 }
 };
 
+var patentEn = {invention:'Invention', utility:'Utility model', design:'Design'};
+
 // 发明专利年费（元）按年度区间
 var inventionFees = [
   { years: '1-3年', fee: 900 },
@@ -258,7 +277,9 @@ var shortFees = [
 ];
 
 function fmtDate(d) {
-  return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+  var __zh = d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+  var __en = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  return ptL(__zh, __en);
 }
 
 function daysBetween(d1, d2) {
@@ -271,13 +292,15 @@ function addYears(date, years) {
   return d;
 }
 
+function ptL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __ptD=null;
 function calc() {
   var type = document.getElementById('patentType').value;
   var applyStr = document.getElementById('applyDate').value;
   var grantStr = document.getElementById('grantDate').value;
 
   if (!applyStr) {
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请选择专利申请日</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+ptL('请选择专利申请日','Please choose the patent filing date')+'</p>';
     return;
   }
 
@@ -292,7 +315,7 @@ function calc() {
     var cutoff = new Date('2021-06-01');
     if (applyDate < cutoff) {
       actualYears = 10;
-      note = '该外观设计专利申请日早于2021年6月1日，保护期为10年。';
+      note = ptL('该外观设计专利申请日早于2021年6月1日，保护期为10年。','This design was filed before 1 June 2021, so its term is 10 years.');
     }
   }
 
@@ -310,37 +333,38 @@ function calc() {
 
   var status, statusColor;
   if (remainDays < 0) {
-    status = '已过期';
+    status = ptL('已过期','Expired');
     statusColor = 'var(--danger)';
   } else if (remainDays < 365) {
-    status = '即将到期';
+    status = ptL('即将到期','Expiring soon');
     statusColor = 'var(--warning)';
   } else {
-    status = '有效';
+    status = ptL('有效','Valid');
     statusColor = 'var(--success)';
   }
 
+  __ptD = {type: type, years: actualYears, apply: applyStr, grant: grantStr, expire: expireDate.toISOString().split('T')[0], totalDays: totalDays, passed: Math.max(0, passedDays), remain: remainDays, progress: progress, status: status};
   var html = '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val" style="color:' + statusColor + ';">' + status + '</div><div class="lbl">当前状态</div></div>';
-  html += '<div class="stat-card"><div class="val">' + actualYears + '</div><div class="lbl">保护期（年）</div></div>';
-  html += '<div class="stat-card"><div class="val">' + fmtDate(applyDate) + '</div><div class="lbl">申请日</div></div>';
-  html += '<div class="stat-card"><div class="val">' + fmtDate(expireDate) + '</div><div class="lbl">到期日</div></div>';
+  html += '<div class="stat-card"><div class="val" style="color:' + statusColor + ';">' + status + '</div><div class="lbl">' + ptL('当前状态','Status') + '</div></div>';
+  html += '<div class="stat-card"><div class="val">' + actualYears + '</div><div class="lbl">' + ptL('保护期（年）','Term (years)') + '</div></div>';
+  html += '<div class="stat-card"><div class="val">' + fmtDate(applyDate) + '</div><div class="lbl">' + ptL('申请日','Filing date') + '</div></div>';
+  html += '<div class="stat-card"><div class="val">' + fmtDate(expireDate) + '</div><div class="lbl">' + ptL('到期日','Expiry date') + '</div></div>';
   html += '</div>';
 
-  html += '<h3 style="margin-top:16px;margin-bottom:8px;">有效期详情</h3>';
-  html += '<table><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
-  html += '<tr><td>专利类型</td><td>' + rule.name + '</td></tr>';
-  html += '<tr><td>申请日</td><td>' + fmtDate(applyDate) + '</td></tr>';
-  html += '<tr><td>保护期限</td><td>' + actualYears + '年（自申请日起算）</td></tr>';
-  html += '<tr><td>到期日</td><td><strong style="color:var(--primary);">' + fmtDate(expireDate) + '</strong></td></tr>';
-  html += '<tr><td>当前日期</td><td>' + fmtDate(today) + '</td></tr>';
-  html += '<tr><td>已过有效期</td><td>' + Math.max(0, passedYears).toFixed(1) + '年（' + Math.max(0, passedDays) + '天）</td></tr>';
-  html += '<tr><td>剩余有效期</td><td><strong style="color:' + statusColor + ';">' + Math.max(0, remainYears).toFixed(1) + '年（' + Math.max(0, remainDays) + '天）</strong></td></tr>';
+  html += '<h3 style="margin-top:16px;margin-bottom:8px;">'+ptL('有效期详情','Term details')+'</h3>';
+  html += '<table><thead><tr><th>'+ptL('项目','Item')+'</th><th>'+ptL('数值','Value')+'</th></tr></thead><tbody>';
+  html += '<tr><td>'+ptL('专利类型','Patent type')+'</td><td>' + ptL(rule.name, patentEn[type]||rule.name) + '</td></tr>';
+  html += '<tr><td>'+ptL('申请日','Filing date')+'</td><td>' + fmtDate(applyDate) + '</td></tr>';
+  html += '<tr><td>'+ptL('保护期限','Term')+'</td><td>' + actualYears + ptL('年（自申请日起算）',' years from the filing date') + '</td></tr>';
+  html += '<tr><td>'+ptL('到期日','Expiry date')+'</td><td><strong style="color:var(--primary);">' + fmtDate(expireDate) + '</strong></td></tr>';
+  html += '<tr><td>'+ptL('当前日期','Today')+'</td><td>' + fmtDate(today) + '</td></tr>';
+  html += '<tr><td>'+ptL('已过有效期','Elapsed')+'</td><td>' + Math.max(0, passedYears).toFixed(1) + ptL('年（',' years (') + Math.max(0, passedDays) + ptL('天）',' days)') + '</td></tr>';
+  html += '<tr><td>'+ptL('剩余有效期','Remaining')+'</td><td><strong style="color:' + statusColor + ';">' + Math.max(0, remainYears).toFixed(1) + ptL('年（',' years (') + Math.max(0, remainDays) + ptL('天）',' days)') + '</strong></td></tr>';
   html += '</tbody></table>';
 
   if (remainDays > 0) {
     html += '<div class="progress-bar" style="margin:12px 0;"><div class="progress-fill" style="width:' + progress.toFixed(1) + '%;"></div></div>';
-    html += '<p style="text-align:center;font-size:12px;color:var(--text-muted);">已使用 ' + progress.toFixed(1) + '%</p>';
+    html += '<p style="text-align:center;font-size:12px;color:var(--text-muted);">'+ptL('已使用 ','Consumed ')+ progress.toFixed(1) + '%</p>';
   }
 
   if (note) {
@@ -349,9 +373,9 @@ function calc() {
 
   // 年费缴纳提醒节点
   if (remainDays > 0) {
-    html += '<h3 style="margin-top:16px;margin-bottom:8px;">年费缴纳提醒节点</h3>';
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">以下为未来需缴纳的年费节点（应在申请日周年日前缴纳）</p>';
-    html += '<table><thead><tr><th>年度</th><th>缴纳截止日</th><th>距今天数</th><th>状态</th></tr></thead><tbody>';
+    html += '<h3 style="margin-top:16px;margin-bottom:8px;">'+ptL('年费缴纳提醒节点','Annuity payment reminders')+'</h3>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">'+ptL('以下为未来需缴纳的年费节点（应在申请日周年日前缴纳）','Upcoming annuity deadlines, payable before each anniversary of the filing date')+'</p>';
+    html += '<table><thead><tr><th>'+ptL('年度','Year')+'</th><th>'+ptL('缴纳截止日','Payment deadline')+'</th><th>'+ptL('距今天数','Days from today')+'</th><th>'+ptL('状态','Status')+'</th></tr></thead><tbody>';
 
     var fees = type === 'invention' ? inventionFees : shortFees;
     var hasUpcoming = false;
@@ -363,23 +387,23 @@ function calc() {
         var rowStatus = '';
         var rowColor = '';
         if (daysToPay < 0 && daysToPay > -180) {
-          rowStatus = '滞纳期（+' + Math.abs(daysToPay) + '天）';
+          rowStatus = ptL('滞纳期（+','Late by ') + Math.abs(daysToPay) + ptL('天）',' days');
           rowColor = 'var(--danger)';
         } else if (daysToPay < 0) {
           continue;
         } else if (daysToPay < 90) {
-          rowStatus = '即将到期';
+          rowStatus = ptL('即将到期','Due soon');
           rowColor = 'var(--warning)';
         } else {
-          rowStatus = '待缴纳';
+          rowStatus = ptL('待缴纳','Pending');
           rowColor = 'var(--text-light)';
         }
-        html += '<tr><td>第' + y + '年（' + feeInfo + '元）</td><td>' + fmtDate(payDate) + '</td><td style="color:' + rowColor + ';">' + (daysToPay >= 0 ? daysToPay + '天' : '已过' + Math.abs(daysToPay) + '天') + '</td><td style="color:' + rowColor + ';">' + rowStatus + '</td></tr>';
+        html += '<tr><td>'+ptL('第','Year ')+ y + ptL('年（',' (') + feeInfo + ptL('元）',' CNY)')+'</td><td>' + fmtDate(payDate) + '</td><td style="color:' + rowColor + ';">' + (daysToPay >= 0 ? daysToPay + ptL('天',' days') : ptL('已过','Overdue ') + Math.abs(daysToPay) + ptL('天',' days')) + '</td><td style="color:' + rowColor + ';">' + rowStatus + '</td></tr>';
         hasUpcoming = true;
       }
     }
     if (!hasUpcoming) {
-      html += '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">暂无待缴纳年费</td></tr>';
+      html += '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">'+ptL('暂无待缴纳年费','No annuity due')+'</td></tr>';
     }
     html += '</tbody></table>';
   }
@@ -400,9 +424,9 @@ function getFeeByYear(year, fees) {
 function renderFeeTable() {
   var type = document.getElementById('patentType').value;
   var fees = type === 'invention' ? inventionFees : shortFees;
-  var html = '<table><thead><tr><th>年度区间</th><th>年费（元/年）</th></tr></thead><tbody>';
+  var html = '<table><thead><tr><th>'+ptL('年度区间','Year range')+'</th><th>'+ptL('年费（元/年）','Annuity (CNY per year)')+'</th></tr></thead><tbody>';
   for (var i = 0; i < fees.length; i++) {
-    html += '<tr><td>第' + fees[i].years + '</td><td><strong>' + ToolBox.formatNumber(fees[i].fee) + '</strong></td></tr>';
+    html += '<tr><td>'+ptL('第'+fees[i].years,'Years '+fees[i].years.replace('年',''))+'</td><td><strong>' + ToolBox.formatNumber(fees[i].fee) + '</strong></td></tr>';
   }
   html += '</tbody></table>';
   const __g3=html;document.getElementById('feeTable').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -426,6 +450,61 @@ document.getElementById('applyDate').value = todayStr;
 document.getElementById('patentType').addEventListener('change', renderFeeTable);
 renderFeeTable();
 calc();
+
+function __ptExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__ptD;
+    if(!D){ var a=document.getElementById('ptChart'), b=document.getElementById('ptTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    var ptZh={invention:'发明专利',utility:'实用新型专利',design:'外观设计专利'};
+    var ptEn={invention:'Invention',utility:'Utility model',design:'Design'};
+    var stEn={'有效':'Valid','即将到期':'Expiring soon','已过期':'Expired'};
+    var stCol=D.remain<0?'#EF4444':(D.remain<365?'#F59E0B':'#10B981');
+    var nextPay='';
+    if(D.remain>0){
+      var a=new Date(D.apply+'T00:00:00'); var tn=new Date(); tn.setHours(0,0,0,0);
+      for(var y=1;y<=D.years;y++){ var dd=new Date(a); dd.setFullYear(dd.getFullYear()+y);
+        if(dd>tn){ nextPay=dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'); break; } }
+    }
+    var items=[];
+    items.push({date: D.apply, label: ptL('申请日','Filing'), color:'#6366F1', strong:true});
+    if(D.grant) items.push({date: D.grant, label: ptL('授权日','Grant'), color:'#10B981'});
+    if(nextPay) items.push({date: nextPay, label: ptL('下次年费','Next annuity'), color:'#F59E0B'});
+    items.push({date: D.expire, label: ptL('到期日','Expiry'), color:'#EF4444', strong:true});
+    TBKit.chart.timeline('#ptChart', {items: items, height: 130, title: ptL('有效期关键节点','Key term dates')});
+    TBKit.matrix.table('#ptTable', {head: [ptL('项目','Item'), ptL('内容','Value')], rows: [[ptL('专利类型','Patent type'), ptL(ptZh[D.type]||D.type, ptEn[D.type]||D.type)], [ptL('申请日','Filing date'), D.apply], [ptL('授权日','Grant date'), D.grant || ptL('未填写','Not set')], [ptL('保护期限(年)','Term (years)'), String(D.years)], [ptL('到期日','Expiry date'), D.expire], [ptL('剩余有效期(天)','Remaining (days)'), String(Math.max(0,D.remain))], [ptL('已使用比例','Consumed'), D.progress.toFixed(1)+'%'], [ptL('当前状态','Status'), ptL(D.status, stEn[D.status]||D.status)]]});
+    TBKit.history.record({[ptL('专利类型','Patent type')]: D.type, [ptL('申请日','Filing date')]: D.apply, [ptL('到期日','Expiry date')]: D.expire, [ptL('剩余天数','Days left')]: Math.max(0, D.remain)});
+  }catch(e){}
+}
+function __ptExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#ptTable','patent-term-calculator.csv'); }catch(e){} }
+function __ptPresets(){
+  try{
+    TBKit.preset.bar('#ptPresets', [
+      {label:'发明·20年', labelEn:'Invention, 20 years', values:{patentType:'invention', applyDate:'2015-03-20', grantDate:''}},
+      {label:'实用新型·10年', labelEn:'Utility model, 10 years', values:{patentType:'utility', applyDate:'2018-07-10', grantDate:''}},
+      {label:'外观设计·15年', labelEn:'Design, 15 years', values:{patentType:'design', applyDate:'2022-09-01', grantDate:''}},
+      {label:'外观·旧法10年', labelEn:'Design, old law 10 years', values:{patentType:'design', applyDate:'2019-05-06', grantDate:''}}
+    ], function(){ calc(); });
+  }catch(e){}
+}
+function __ptMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#ptHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('patentType').value=g(ptL('专利类型','Patent type'),'invention');
+      document.getElementById('applyDate').value=g(ptL('申请日','Filing date'),'');
+      calc();
+    }, 8);
+  }catch(e){}
+}
+function __ptBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __ptExtras(); __ptPresets(); __ptMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __ptExtras(); __ptPresets(); __ptMountHist(); }
+}
+var __tb_pt0=calc; calc=function(){ __ptD=null; __tb_pt0(); try{ __ptExtras(); __ptMountHist(); }catch(e){} };
+__ptBoot();
 </script>
 
 <!-- SEO 介绍区块 -->
