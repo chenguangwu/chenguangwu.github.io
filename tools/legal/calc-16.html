@@ -180,6 +180,55 @@ s.parentNode.insertBefore(el, s);
 
 
 <!-- 相关工具 -->
+  <div class="card">
+    <h3>📊 可视化分析</h3>
+    <div id="c16Chart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="c16Table"></div>
+    <button type="button" class="btn" id="c16Export" onclick="__c16Export()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="c16Hist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="c16Presets" class="preset-bar"></div>
+  </div>
+
+
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="calendar-qr.html" class="related-tool-card">
+      <span class="rt-icon">🔳</span>
+      <span class="rt-info"><span class="rt-name">日历二维码</span><span class="rt-desc">日历二维码</span></span>
+    </a>
+    <a href="generator-17.html" class="related-tool-card">
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">法律文书模板生成器（合同/协议）</span><span class="rt-desc">法律文书模板生成器（合同/协议）</span></span>
+    </a>
+    <a href="will-template-generator.html" class="related-tool-card">
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">遗嘱模板生成</span><span class="rt-desc">遗嘱模板生成</span></span>
+    </a>
+    <a href="calendar.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">万年历</span><span class="rt-desc">万年历</span></span>
+    </a>
+    <a href="marriage-property-agreement.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">婚姻财产协议计算器</span><span class="rt-desc">婚姻财产协议计算器</span></span>
+    </a>
+    <a href="divorce-property.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">离婚财产分割计算器</span><span class="rt-desc">离婚财产分割计算器</span></span>
+    </a>
+  </div>
+</div>
+<!-- 相关工具 -->
 <div class="related-tools" data-related-tools="1">
   <h3 class="related-tools-title">🔗 相关工具</h3>
   <div class="related-tools-grid">
@@ -251,6 +300,7 @@ function nextWorkingDay(d){
   return r;
 }
 
+function c16L(zh,en){try{if(/[?&]lang=en-US/.test(location.search))return en;if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return en;}catch(e){}return zh;}
 function calc(){
   var typeVal = document.getElementById('type').value;
   var years = parseInt(typeVal, 10);
@@ -268,12 +318,12 @@ function calc(){
   var effectiveStr = (interrupted && restartStr) ? restartStr : startStr;
 
   if(!effectiveStr){
-    res.innerHTML='<p style="color:var(--text-muted);">请选择起算日期</p>';
+    res.innerHTML='<p style="color:var(--text-muted);">'+c16L('请选择起算日期','Please select a start date')+'</p>';
     return;
   }
 
   var start = new Date(effectiveStr + 'T00:00:00');
-  if(isNaN(start)){ res.innerHTML='<p style="color:var(--danger);">日期无效</p>'; return; }
+  if(isNaN(start)){ res.innerHTML='<p style="color:var(--danger);">'+c16L('日期无效','Invalid date')+'</p>'; return; }
 
   var expiry = addYears(start, years);
   var actualExpiry = isHoliday(expiry) ? nextWorkingDay(expiry) : expiry;
@@ -283,36 +333,38 @@ function calc(){
   var remaining = daysBetween(today, actualExpiry);
   var elapsed = daysBetween(start, today);
 
-  var typeText = document.getElementById('type').options[document.getElementById('type').selectedIndex].text;
+  var C16_TYPE_EN={'3':'General limitation (3 yrs)','1':'Special limitation (1 yr)','4':'Int\'l sale/tech import-export (4 yrs)','20':'Longest protection (20 yrs)'};
+  var _en=/[?&]lang=en-US/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var typeText = _en ? (C16_TYPE_EN[typeVal]||typeVal) : document.getElementById('type').options[document.getElementById('type').selectedIndex].text;
 
   var statusHtml, countdownHtml;
   if(remaining > 0){
-    statusHtml = '<span style="color:var(--success);font-weight:700;">● 时效存续中</span>';
+    statusHtml = '<span style="color:var(--success);font-weight:700;">'+c16L('● 时效存续中','● Limitation active')+'</span>';
     var yrs = (remaining / 365.25).toFixed(2);
-    countdownHtml = '<div class="countdown">' + remaining + ' 天</div><div class="sub">约 ' + yrs + ' 年</div>';
+    countdownHtml = '<div class="countdown">' + remaining + c16L(' 天',' days') + '</div><div class="sub">'+c16L('约 ','≈ ')+ yrs + c16L(' 年',' yr') + '</div>';
   } else if(remaining === 0){
-    statusHtml = '<span style="color:var(--warning);font-weight:700;">● 今日为届满日</span>';
-    countdownHtml = '<div class="countdown" style="color:var(--warning);">0 天</div><div class="sub">今日24时届满</div>';
+    statusHtml = '<span style="color:var(--warning);font-weight:700;">'+c16L('● 今日为届满日','● Expiry is today')+'</span>';
+    countdownHtml = '<div class="countdown" style="color:var(--warning);">0'+c16L(' 天',' days')+'</div><div class="sub">'+c16L('今日24时届满','Expires 24:00 today')+'</div>';
   } else {
-    statusHtml = '<span style="color:var(--danger);font-weight:700;">● 时效已届满</span>';
-    countdownHtml = '<div class="countdown over">已过 ' + Math.abs(remaining) + ' 天</div><div class="sub">可能丧失胜诉权</div>';
+    statusHtml = '<span style="color:var(--danger);font-weight:700;">'+c16L('● 时效已届满','● Limitation expired')+'</span>';
+    countdownHtml = '<div class="countdown over">'+c16L('已过 ','Elapsed ')+ Math.abs(remaining) + c16L(' 天',' days') + '</div><div class="sub">'+c16L('可能丧失胜诉权','Risk of losing litigation right')+'</div>';
   }
 
   var expiredNote = '';
   if(isHoliday(expiry)){
-    expiredNote = '<div class="sub" style="color:var(--warning);">原届满日为周末，依法顺延至 ' + fmtDate(actualExpiry) + '</div>';
+    expiredNote = '<div class="sub" style="color:var(--warning);">'+c16L('原届满日为周末，依法顺延至 ','Original expiry falls on a weekend; extended to ')+ fmtDate(actualExpiry) + '</div>';
   }
 
-  var interruptNote = interrupted ? '<p style="font-size:13px;color:var(--secondary);">📌 因时效中断，已自 <strong>' + fmtDate(new Date(restartStr+'T00:00:00')) + '</strong> 重新起算</p>' : '';
+  var interruptNote = interrupted ? '<p style="font-size:13px;color:var(--secondary);">📌 '+c16L('因时效中断，已自 ','Limitation interrupted; restarted from ')+' <strong>' + fmtDate(new Date(restartStr+'T00:00:00')) + '</strong>'+c16L(' 重新起算',' restarted')+'</p>' : '';
 
   const __g5=interruptNote +
     '<div class="data-grid" style="margin-top:4px;">' +
-      '<div class="date-stat"><div class="sub">时效类型</div><div class="big" style="font-size:16px;">' + typeText + '</div></div>' +
-      '<div class="date-stat"><div class="sub">起算日</div><div class="big" style="font-size:16px;">' + fmtDate(start) + '</div></div>' +
-      '<div class="date-stat"><div class="sub">届满日</div><div class="big" style="font-size:16px;">' + fmtDate(actualExpiry) + '</div>' + expiredNote + '</div>' +
+      '<div class="date-stat"><div class="sub">'+c16L('时效类型','Limitation type')+'</div><div class="big" style="font-size:16px;">' + typeText + '</div></div>' +
+      '<div class="date-stat"><div class="sub">'+c16L('起算日','Start')+'</div><div class="big" style="font-size:16px;">' + fmtDate(start) + '</div></div>' +
+      '<div class="date-stat"><div class="sub">'+c16L('届满日','Expiry')+'</div><div class="big" style="font-size:16px;">' + fmtDate(actualExpiry) + '</div>' + expiredNote + '</div>' +
       '<div class="date-stat"><div class="sub">' + statusHtml + '</div>' + countdownHtml + '</div>' +
     '</div>' +
-    '<p style="margin-top:14px;">已过天数：<strong>' + Math.max(0, elapsed) + '</strong> 天　|　总时效期间：<strong>' + years + '</strong> 年</p>';res.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+    '<p style="margin-top:14px;">'+c16L('已过天数：','Elapsed days: ')+'<strong>' + Math.max(0, elapsed) + '</strong>'+c16L(' 天',' days')+c16L('　|　总时效期间：',' | Total limitation: ')+'<strong>' + years + '</strong>'+c16L(' 年',' yr')+'</p>';res.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 
 function copyRes(){
@@ -389,5 +441,71 @@ calc();
 </dl>
 </div>
 </section>
+
+<script>
+
+function c16AddYears(d,y){var x=new Date(d.getTime());x.setFullYear(x.getFullYear()+y);return x;}
+function c16IsHoliday(d){var g=d.getDay();return g===0||g===6;}
+function c16NextWork(d){var r=new Date(d.getTime());while(c16IsHoliday(r))r.setDate(r.getDate()+1);return r;}
+function c16Fmt(d){if(!(d instanceof Date)||isNaN(d))return '';return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function c16Extras(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    var typeVal=document.getElementById('type').value;
+    var years=parseInt(typeVal,10);
+    var interrupted=document.getElementById('interrupted')?document.getElementById('interrupted').checked:false;
+    var startStr=document.getElementById('startDate').value;
+    var restartStr=document.getElementById('restartDate')?document.getElementById('restartDate').value:'';
+    var eff=(interrupted&&restartStr)?restartStr:startStr;
+    if(!eff){var a=document.getElementById('c16Chart'),b=document.getElementById('c16Table');if(a)a.innerHTML='';if(b)b.innerHTML='';return;}
+    var start=new Date(eff+'T00:00:00');
+    if(isNaN(start)){return;}
+    var exp=c16AddYears(start,years);
+    var actual=c16IsHoliday(exp)?c16NextWork(exp):exp;
+    var items=[{date:c16Fmt(start),label:c16L('起算日','Start')}];
+    if(interrupted&&restartStr){items.push({date:c16Fmt(new Date(restartStr+'T00:00:00')),label:c16L('中断重算','Reset'),color:'#F59E0B'});}
+    items.push({date:c16Fmt(actual),label:c16L('届满日','Expiry'),strong:true});
+    TBKit.chart.timeline('#c16Chart',{height:130,items:items,title:c16L('诉讼时效时间线','Limitation period timeline')});
+    TBKit.matrix.table('#c16Table',{head:[c16L('项目','Item'),c16L('内容','Value')],rows:[
+      [c16L('时效类型','Type'),document.getElementById('type').options[document.getElementById('type').selectedIndex].text],
+      [c16L('起算日','Start'),c16Fmt(start)],
+      [c16L('届满日','Expiry'),c16Fmt(actual)],
+      [c16L('法定期间','Term'),years+c16L(' 年',' yr')]
+    ]});
+    TBKit.history.record({[c16L('时效类型','Type')]:document.getElementById('type').options[document.getElementById('type').selectedIndex].text,[c16L('起算日','Start')]:c16Fmt(start),[c16L('届满日','Expiry')]:c16Fmt(actual)});
+  }catch(e){}
+}
+function c16Export(){if(typeof TBKit==='undefined')return;try{TBKit.util.exportTable('#c16Table','calc-16.csv');}catch(e){}}
+function c16Presets(){
+  try{
+    TBKit.preset.bar('#c16Presets',[
+      {label:'一般3年·2023-01-01',labelEn:'General 3y · 2023-01-01',values:{type:'3',startDate:'2023-01-01',interrupted:'off',restartDate:''}},
+      {label:'特殊1年·2024-06-15',labelEn:'Special 1y · 2024-06-15',values:{type:'1',startDate:'2024-06-15',interrupted:'off',restartDate:''}},
+      {label:'最长20年·2010-05-20',labelEn:'Max 20y · 2010-05-20',values:{type:'20',startDate:'2010-05-20',interrupted:'off',restartDate:''}},
+      {label:'中断重算·2024-01-01',labelEn:'Interrupted · 2024-01-01',values:{type:'3',startDate:'2022-03-10',interrupted:'on',restartDate:'2024-01-01'}}
+    ],function(){calc();});
+  }catch(e){}
+}
+function c16MountHist(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    TBKit.history.mount('#c16Hist',function(d){
+      if(!d)return;
+      var g=function(k,dv){return (d[k]!==undefined&&d[k]!==null)?d[k]:dv;};
+      var txt=g(c16L('时效类型','Type'),'一般诉讼时效（3年）');
+      var sel=document.getElementById('type');for(var i=0;i<sel.options.length;i++){if(sel.options[i].text===txt){sel.value=sel.options[i].value;break;}}
+      var sd=g(c16L('起算日','Start'),'2023-01-01');document.getElementById('startDate').value=sd;
+      calc();
+    },8);
+  }catch(e){}
+}
+function c16Boot(){
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){c16Extras();c16Presets();c16MountHist();});}
+  else if(typeof TBKit!=='undefined'){c16Extras();c16Presets();c16MountHist();}
+}
+var __tb_c16=calc;calc=function(){try{__tb_c16();}catch(e){}try{c16Extras();c16MountHist();}catch(e){}};
+c16Boot();
+
+</script>
 </body>
 </html>
