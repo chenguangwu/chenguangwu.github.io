@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>样本标准差</label><input type="number" id="s" value="5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>样本量</label><input type="number" id="n" value="30" step="1" oninput="calc()"></div>
     <div class="input-row"><label>置信水平 %</label><input type="number" id="cl" value="95" step="any" oninput="calc()"></div>
+    <div id="ciPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__ciExport()">导出样本量敏感性 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result"></div>
+    <div id="ciChart" role="img" aria-label="结果可视化"></div>
+    <div id="ciVerdict"></div>
+    <div id="ciTable"></div>
+    <div id="ciDiff"></div>
+    <div id="ciHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -255,6 +262,69 @@ function copyResult() {
   });
 }
 calc();
+
+function __ciL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __ciNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ciPhi(z){var sg=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+sg*y);}
+function __ciVerdict(html){var b=document.getElementById('ciVerdict');if(!b)return;b.innerHTML='<div class="tbk-history"><div class="tbk-history-hd"><span style="line-height:1.7">'+html+'</span></div></div>';}
+
+function __ciZ(cl){ if(typeof normalInv==='function'){ try{var v=normalInv((1+cl/100)/2); if(isFinite(v)&&v>0)return v;}catch(e){} } var m=(1+cl/100)/2; return Math.sqrt(2)*__ciInvErf(2*m-1); }
+function __ciInvErf(y){ var lo=-8,hi=8,mid,e; for(var i=0;i<80;i++){ mid=(lo+hi)/2; e=2*__ciPhi(mid*Math.SQRT2)-1; if(e<y)lo=mid; else hi=mid; } return (lo+hi)/2; }
+function __ciExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ciTable','confidence-interval-sample-size.csv');}catch(e){} }
+function __ciExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var xb=__ciNum('xbar'),s=__ciNum('s'),n=__ciNum('n'),cl=__ciNum('cl');
+        if(!isFinite(xb)||!isFinite(s)||!isFinite(n)||!isFinite(cl)||s<=0||n<2||cl<=0||cl>=100)return;
+        var se=s/Math.sqrt(n);
+        var groups=[],orders=[90,95,99],rows2=[];
+        for(var i=0;i<orders.length;i++){
+            var c=orders[i], z=__ciZ(c), m=z*se;
+            groups.push({label:c+'%',mean:xb,spread:m});
+        }
+        var zc=__ciZ(cl), me=zc*se;
+        groups.push({label:cl+'%',mean:xb,spread:me,color:'#FF6B35'});
+        TBKit.chart.rangeBar('#ciChart',{groups:groups,height:220,
+            title:__ciL('Confidence intervals at 90 / 95 / 99% \u2014 wider confidence, wider interval','90 / 95 / 99% \u7f6e\u4fe1\u533a\u95f4\uff1a\u8d8a\u9ad8\u7684\u7f6e\u4fe1\u5ea6\u6362\u6765\u8d8a\u5bbd\u7684\u533a\u95f4')});
+        var tgt=Math.max(me*0.5, s*0.05);
+        var needN=Math.ceil(Math.pow(zc*s/tgt,2));
+        __ciVerdict(cl+'% CI = ['+(xb-me).toFixed(4)+', '+(xb+me).toFixed(4)+'] \u00b7 '+
+            __ciL('margin of error \u00b1','\u8bef\u5dee\u8fb9\u9645 \u00b1')+me.toFixed(4)+'\u3002'+
+            __ciL(' Halving it needs about ','\u82e5\u628a\u8bef\u5dee\u538b\u5230\u4e00\u534a\uff08\u00b1')+tgt.toFixed(3)+__ciL(') requires n \u2248 ','\uff09\u9700\u8981 n \u2248 ')+needN+
+            __ciL(' (4\u00d7 the current sample).',' \u4e2a\uff08\u73b0\u5728\u7684 4 \u500d\uff09\u3002'));
+        var ns=[5,10,20,30,50,100,200,500,1000,5000],rows=[];
+        for(var k=0;k<ns.length;k++){
+            var nn=ns[k], m2=__ciZ(cl)*s/Math.sqrt(nn);
+            rows.push([String(nn),m2.toFixed(4),(xb-m2).toFixed(3)+' ~ '+(xb+m2).toFixed(3),(nn===n?'\u2b50':'')]);
+        }
+        TBKit.matrix.table('#ciTable',{head:__ciL(['n','Margin of error','Interval at '+cl+'%','Current'],['n','\u8bef\u5dee\u8fb9\u9645',cl+'% \u7f6e\u4fe1\u533a\u95f4','\u5f53\u524d']),rows:rows});
+        TBKit.history.record({xbar:xb,s:s,n:n,cl:cl,me:Number(me.toFixed(4))});
+        TBKit.util.diffBox('#ciDiff',['xbar','s','n','me']);
+        TBKit.history.mount('#ciHist',function(v){
+            if(v.xbar!=null)document.getElementById('xbar').value=v.xbar;
+            if(v.s!=null)document.getElementById('s').value=v.s;
+            if(v.n!=null)document.getElementById('n').value=v.n;
+            if(v.cl!=null)document.getElementById('cl').value=v.cl;
+            calc();
+        });
+    }catch(e){}
+}
+function __ciPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#ciPresets',[
+            {label:'\u6ee1\u610f\u5ea6 4.2\uff08n=100, s=0.8\uff09',labelEn:'Satisfaction 4.2 (n=100, s=0.8)',values:{xbar:4.2,s:0.8,n:100,cl:95}},
+            {label:'\u5c0f\u6837\u672c n=10 \u5bbd\u533a\u95f4',labelEn:'Small sample n=10, wide interval',values:{xbar:50,s:5,n:10,cl:95}},
+            {label:'\u9ad8\u7cbe\u5ea6 99% n=64',labelEn:'High precision 99%, n=64',values:{xbar:120,s:15,n:64,cl:99}},
+            {label:'\u5de5\u5382\u5c3a\u5bf8 50\u00b10.2\uff08n=30\uff09',labelEn:'Factory dimension 50\u00b10.2 (n=30)',values:{xbar:50,s:0.5,n:30,cl:90}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+var __tb_ci0 = calc;
+calc = function(){ __tb_ci0(); try{ __ciExtras(); }catch(e){} };
+calc();
+__ciPresets();
+
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

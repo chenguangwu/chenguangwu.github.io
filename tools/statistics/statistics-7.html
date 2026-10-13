@@ -127,11 +127,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>数据8</label><input type="number" id="d8" value="5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>数据9</label><input type="number" id="d9" value="6" step="any" oninput="calc()"></div>
     <div class="input-row"><label>数据10</label><input type="number" id="d10" value="10" step="any" oninput="calc()"></div>
+    <div id="skPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__skExport()">导出明细 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="3" data-viz-min="-3"></div>
+    <div class="result-box" id="result"></div>
+    <div id="skChart" role="img" aria-label="结果可视化"></div>
+    <div id="skVerdict"></div>
+    <div id="skTable"></div>
+    <div id="skDiff"></div>
+    <div id="skHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -266,6 +273,70 @@ function copyResult() {
   });
 }
 calc();
+
+function __skL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __skNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __skPhi(z){var sg=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+sg*y);}
+function __skVerdict(html){var b=document.getElementById('skVerdict');if(!b)return;b.innerHTML='<div class="tbk-history"><div class="tbk-history-hd"><span style="line-height:1.7">'+html+'</span></div></div>';}
+
+function __skVals(){ var out=[]; for(var i=1;i<=10;i++){ var v=__skNum('d'+i); if(isFinite(v))out.push(v); } return out; }
+function __skStats(arr){ var n=arr.length,m=0,i; for(i=0;i<n;i++)m+=arr[i]; m/=n;
+    var m2=0,m3=0,m4=0; for(i=0;i<n;i++){ var d=arr[i]-m; m2+=d*d; m3+=d*d*d; m4+=d*d*d*d; }
+    m2/=n; m3/=n; m4/=n; var sd=Math.sqrt(m2);
+    return {n:n,mean:m,sd:sd,skew:sd>0?m3/Math.pow(m2,1.5):0,kurt:sd>0?m4/(m2*m2)-3:0}; }
+function __skExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#skTable','skewness-kurtosis-detail.csv');}catch(e){} }
+function __skExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var arr=__skVals(); if(arr.length<4)return;
+        var st=__skStats(arr), sk=st.skew, ku=st.kurt;
+        TBKit.chart.histogram('#skChart',{data:arr,bins:5,height:220,
+            title:__skL('Histogram of the 10 values','10 \u4e2a\u6570\u636e\u7684\u76f4\u65b9\u56fe')});
+        var sTXT,kTXT,adv;
+        var ask=Math.abs(sk);
+        if(ask<0.5){sTXT=__skL('approximately symmetric','\u57fa\u672c\u5bf9\u79f0');}
+        else if(ask<1){sTXT=sk>0?__skL('moderately right-skewed','\u4e2d\u7b49\u53f3\u504f'):__skL('moderately left-skewed','\u4e2d\u7b49\u5de6\u504f');}
+        else{sTXT=sk>0?__skL('strongly right-skewed','\u5f3a\u53f3\u504f'):__skL('strongly left-skewed','\u5f3a\u5de6\u504f');}
+        if(ku>1){kTXT=__skL('heavy-tailed / peaked (outliers likely)','\u5c16\u5cf0\u539a\u5c3e\uff08\u5b58\u5728\u6781\u7aef\u503c\uff09');}
+        else if(ku<-1){kTXT=__skL('flat-topped','\u5e73\u9876\u5206\u5e03');}
+        else{kTXT=__skL('close to normal tails','\u63a5\u8fd1\u6b63\u6001\u5c3e\u90e8');}
+        if(ask>=1){adv=__skL('Report the median alongside the mean, or log-transform before using mean-based tests.','\u62a5\u544a\u65f6\u540c\u65f6\u7ed9\u4e2d\u4f4d\u6570\uff0c\u6216\u5148\u505a\u5bf9\u6570\u53d8\u6362\u518d\u7528\u57fa\u4e8e\u5747\u503c\u7684\u68c0\u9a8c\u3002');}
+        else if(ku>1){adv=__skL('Check the extreme values before averaging \u2014 a few points drive the result.','\u6c42\u5747\u503c\u524d\u5148\u6838\u5bf9\u6781\u7aef\u503c\uff0c\u5c11\u6570\u70b9\u4f1a\u4e3b\u5bfc\u7ed3\u679c\u3002');}
+        else{adv=__skL('Shape is well behaved; mean-based methods are appropriate.','\u5206\u5e03\u5f62\u72b6\u826f\u597d\uff0c\u53ef\u76f4\u63a5\u4f7f\u7528\u57fa\u4e8e\u5747\u503c\u7684\u65b9\u6cd5\u3002');}
+        __skVerdict(__skL('Skewness ','\u504f\u5ea6 ')+sk.toFixed(3)+'\uff08'+sTXT+'\uff09\u00b7 '+
+            __skL('excess kurtosis ','\u8d85\u989d\u5cf0\u5ea6 ')+ku.toFixed(3)+'\uff08'+kTXT+'\uff09\u3002'+adv);
+        var rows=[];
+        for(var i=0;i<arr.length;i++){
+            var z=st.sd>0?(arr[i]-st.mean)/st.sd:0;
+            rows.push([String(i+1),String(arr[i]),(arr[i]-st.mean).toFixed(3),z.toFixed(2),Math.abs(z)>2?'\u26a0\ufe0f '+(z>0?'\u9ad8':'\u4f4e'):'\u2014']);
+        }
+        TBKit.matrix.table('#skTable',{head:__skL(['#','Value','Deviation','z','Outlier?'],['#','\u6570\u503c','\u79bb\u5747\u5dee','z','\u79bb\u7fa4']),rows:rows});
+        TBKit.history.record({data:arr.join(','),skew:Number(sk.toFixed(4)),kurt:Number(ku.toFixed(4)),mean:Number(st.mean.toFixed(3)),sd:Number(st.sd.toFixed(3))});
+        TBKit.util.diffBox('#skDiff',['skew','kurt']);
+        TBKit.history.mount('#skHist',function(v){
+            if(v.data==null)return;
+            var ps=String(v.data).split(',');
+            for(var q=0;q<10&&q<ps.length;q++){ var e2=document.getElementById('d'+(q+1)); if(e2)e2.value=ps[q]; }
+            calc();
+        });
+    }catch(e){}
+}
+function __skPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#skPresets',[
+            {label:'\u53f3\u504f\u6536\u5165\u6570\u636e',labelEn:'Right-skewed income data',values:{d1:1,d2:2,d3:2,d4:3,d5:3,d6:3,d7:4,d8:5,d9:6,d10:10}},
+            {label:'\u5747\u5300\u5206\u5e03 1~10',labelEn:'Uniform 1\u201310',values:{d1:1,d2:2,d3:3,d4:4,d5:5,d6:6,d7:7,d8:8,d9:9,d10:10}},
+            {label:'\u5c16\u5cf0\u542b\u6781\u7aef\u503c',labelEn:'Peaked with an outlier',values:{d1:5,d2:5,d3:5,d4:5,d5:5,d6:5,d7:5,d8:5,d9:5,d10:20}},
+            {label:'\u53cc\u5cf0\u5206\u5e03',labelEn:'Bimodal split',values:{d1:1,d2:1,d3:1,d4:1,d5:1,d6:9,d7:9,d8:9,d9:9,d10:9}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+var __tb_sk0 = calc;
+calc = function(){ __tb_sk0(); try{ __skExtras(); }catch(e){} };
+calc();
+__skPresets();
+
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

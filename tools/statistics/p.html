@@ -113,11 +113,18 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔬 假设检验 p 值近似">🔬 P-Value from z-Score Estimator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用正态近似法估算双尾 Z 检验的 p 值。">Enter a z statistic to approximate the two-sided p value using the normal distribution, with a note that p below 0.05 usually rejects the null hypothesis at the 5% level.</p>
     <div class="input-row"><label>Z 统计量</label><input type="number" id="z" value="2.0" step="any" oninput="calc()"></div>
+    <div id="pvPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__pvExport()">导出显著性对照 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="1" data-viz-min="0"></div>
+    <div class="result-box" id="result"></div>
+    <div id="pvChart" role="img" aria-label="结果可视化"></div>
+    <div id="pvVerdict"></div>
+    <div id="pvTable"></div>
+    <div id="pvDiff"></div>
+    <div id="pvHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -177,6 +184,59 @@ function copyResult() {
   });
 }
 calc();
+
+function __pvL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __pvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pvPhi(z){var sg=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+sg*y);}
+function __pvVerdict(html){var b=document.getElementById('pvVerdict');if(!b)return;b.innerHTML='<div class="tbk-history"><div class="tbk-history-hd"><span style="line-height:1.7">'+html+'</span></div></div>';}
+
+function __pvExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#pvTable','p-value-significance.csv');}catch(e){} }
+function __pvExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var z=__pvNum('z'); if(!isFinite(z))return;
+        var az=Math.abs(z), p=2*(1-__pvPhi(az)); if(!(p>=0))return;
+        TBKit.chart.bell('#pvChart',{mu:0,sigma:1,from:-4,to:4,shade:[-az,az],shadeColor:'#10B981',
+            markers:[{value:-az,label:'\u2212z='+az.toFixed(2)},{value:az,label:'z='+az.toFixed(2)}],height:240,
+            title:__pvL('Shaded centre = 1\u2212p; the two tails add up to p','\u4e2d\u95f4\u9634\u5f71 = 1\u2212p\uff0c\u4e24\u4fa7\u5c3e\u90e8\u5408\u8ba1 = p')});
+        var lvl,adv;
+        if(p<0.001){lvl=__pvL('evidence against H0 is extremely strong','\u53cd\u5bf9\u539f\u5047\u8bbe\u7684\u8bc1\u636e\u6781\u5f3a\uff08p<0.001\uff09');adv=__pvL('Report the effect size and confidence interval together \u2014 p alone overstates certainty.','\u62a5\u544a\u65f6\u4e00\u5e76\u7ed9\u51fa\u6548\u5e94\u91cf\u4e0e\u7f6e\u4fe1\u533a\u95f4\uff0c\u53ea\u62a5 p \u4f1a\u5938\u5927\u786e\u5b9a\u6027\u3002');}
+        else if(p<0.01){lvl=__pvL('evidence is very strong','\u8bc1\u636e\u5f88\u5f3a\uff08p<0.01\uff09');adv=__pvL('Solid at strict thresholds; check the sample was not cherry-picked.','\u5728\u4e25\u683c\u95e8\u69db\u4e0b\u4e5f\u7ad9\u5f97\u4f4f\uff1b\u540c\u65f6\u68c0\u67e5\u6837\u672c\u662f\u5426\u5b58\u5728\u6311\u9009\u6027\u3002');}
+        else if(p<0.05){lvl=__pvL('evidence is fairly strong','\u8bc1\u636e\u8f83\u5f3a\uff08p<0.05\uff09');adv=__pvL('Significant at 5% but not at 1% \u2014 phrase it as "suggestive" and consider a replication.','5%\u6c34\u5e73\u663e\u8457\u4f46\u672a\u8fbe 1%\uff0c\u5b9c\u63cf\u8ff0\u4e3a\u201c\u63d0\u793a\u6027\u201d\uff0c\u5efa\u8bae\u91cd\u590d\u9a8c\u8bc1\u3002');}
+        else if(p<0.10){lvl=__pvL('evidence is weak (marginal)','\u8bc1\u636e\u5f31\uff08\u8fb9\u7f18\u663e\u8457\uff09');adv=__pvL('Do not conclude yet \u2014 raise the sample size or pre-register a larger study.','\u6682\u4e0d\u4e0b\u7ed3\u8bba\uff1b\u6269\u5927\u6837\u672c\u91cf\u6216\u5148\u9884\u6ce8\u518c\u518d\u8bd5\u3002');}
+        else{lvl=__pvL('no evidence against H0','\u6ca1\u6709\u8db3\u591f\u8bc1\u636e\u62d2\u7edd\u539f\u5047\u8bbe');adv=__pvL('"Not significant" \u2260 "no effect"; check power before concluding equivalence.','\u201c\u4e0d\u663e\u8457\u201d\u4e0d\u7b49\u4e8e\u201c\u65e0\u6548\u5e94\u201d\uff0c\u4e0b\u7ed3\u8bba\u524d\u5148\u770b\u68c0\u9a8c\u6548\u80fd\u3002');}
+        __pvVerdict('p = '+p.toFixed(4)+' \u00b7 '+lvl+'\u3002'+adv);
+        var al=[0.20,0.10,0.05,0.01,0.001];
+        var note=['\u57fa\u672c\u4e0d\u91c7\u7528','\u63a2\u7d22\u6027\u7814\u7a76\u53ef\u63a5\u53d7','\u6700\u5e38\u7528\u7684\u663e\u8457\u6027\u95e8\u69db','\u4e25\u683c\u95e8\u69db','\u6781\u4e25\u95e8\u69db\uff08\u591a\u91cd\u6bd4\u8f83\u5e38\u7528\uff09'];
+        var noteEn=['rarely used','acceptable in exploratory work','the usual 5% threshold','strict threshold','very strict (multiple comparisons)'];
+        var rows=[];
+        for(var i=0;i<al.length;i++){
+            var a=al[i], rej=p<a;
+            rows.push([String(a),p.toFixed(4),rej?__pvL('Reject H0','\u62d2\u7edd\u539f\u5047\u8bbe'):__pvL('Fail to reject','\u4e0d\u62d2\u7edd'),__pvL(noteEn[i],note[i])]);
+        }
+        TBKit.matrix.table('#pvTable',{head:__pvL(['\u03b1','p','Decision','Note'],['\u03b1','p \u503c','\u7ed3\u8bba','\u8bf4\u660e']),rows:rows});
+        TBKit.history.record({z:z,p:Number(p.toFixed(5))});
+        TBKit.util.diffBox('#pvDiff',['z','p']);
+        TBKit.history.mount('#pvHist',function(v){ if(v.z!=null)document.getElementById('z').value=v.z; calc(); });
+    }catch(e){}
+}
+function __pvPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#pvPresets',[
+            {label:'5% \u4e34\u754c z=1.96',labelEn:'5% boundary z=1.96',values:{z:1.96}},
+            {label:'1% \u4e34\u754c z=2.576',labelEn:'1% boundary z=2.576',values:{z:2.576}},
+            {label:'A/B \u5b9e\u9a8c z=1.80',labelEn:'A/B test z=1.80',values:{z:1.8}},
+            {label:'\u660e\u663e\u4e0d\u663e\u8457 z=0.60',labelEn:'Clearly not significant z=0.60',values:{z:0.6}},
+            {label:'\u6781\u663e\u8457 z=3.40',labelEn:'Highly significant z=3.40',values:{z:3.4}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+var __tb_pv0 = calc;
+calc = function(){ __tb_pv0(); try{ __pvExtras(); }catch(e){} };
+calc();
+__pvPresets();
+
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

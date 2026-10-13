@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>置信水平 %</label><input type="number" id="cl" value="95" step="any" oninput="calc()"></div>
     <div class="input-row"><label>总体标准差估计</label><input type="number" id="sigma" value="0.5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>比例估计</label><input type="number" id="p" value="0.5" step="any" oninput="calc()"></div>
+    <div id="ssPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__ssExport()">导出样本量网格 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="500" data-viz-min="0"></div>
+    <div class="result-box" id="result"></div>
+    <div id="ssChart" role="img" aria-label="结果可视化"></div>
+    <div id="ssVerdict"></div>
+    <div id="ssTable"></div>
+    <div id="ssDiff"></div>
+    <div id="ssHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -242,6 +249,68 @@ function copyResult() {
   });
 }
 calc();
+
+function __ssL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __ssNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ssPhi(z){var sg=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+sg*y);}
+function __ssVerdict(html){var b=document.getElementById('ssVerdict');if(!b)return;b.innerHTML='<div class="tbk-history"><div class="tbk-history-hd"><span style="line-height:1.7">'+html+'</span></div></div>';}
+
+function __ssZ(cl){ if(typeof normalInv==='function'){ try{var v=normalInv((1+cl/100)/2); if(isFinite(v)&&v>0)return v;}catch(e){} } var m=(1+cl/100)/2; return Math.sqrt(2)*__ssInvErf(2*m-1); }
+function __ssInvErf(y){ var lo=-8,hi=8,mid,e; for(var i=0;i<80;i++){ mid=(lo+hi)/2; e=2*__ssPhi(mid*Math.SQRT2)-1; if(e<y)lo=mid; else hi=mid; } return (lo+hi)/2; }
+function __ssExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ssTable','sample-size-grid.csv');}catch(e){} }
+function __ssExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var me=__ssNum('me'),cl=__ssNum('cl'),sg=__ssNum('sigma'),p=__ssNum('p');
+        if(!isFinite(me)||!isFinite(cl)||!isFinite(sg)||!isFinite(p)||me<=0||cl<=0||cl>=100)return;
+        var z=__ssZ(cl);
+        var nP=Math.ceil(z*z*p*(1-p)/(me*me));
+        var nM=Math.ceil(Math.pow(z*sg/me,2));
+        var labs=[],nS=[];
+        for(var i=1;i<=10;i++){
+            var m2=i/100; labs.push((i)+'%');
+            nS.push(Math.ceil(z*z*p*(1-p)/(m2*m2)));
+        }
+        TBKit.chart.line('#ssChart',{labels:labs,series:[{name:__ssL('Required n (proportion)','\u6240\u9700\u6837\u672c\u91cf\uff08\u6bd4\u4f8b\u53e3\u5f84\uff09'),data:nS}],height:230,
+            title:__ssL('Sample size needed as the margin of error shrinks \u2014 halving the error quadruples n','\u5141\u8bb8\u8bef\u5dee\u8d8a\u5c0f\uff0c\u6240\u9700\u6837\u672c\u91cf\u8d8a\u5927\uff1a\u8bef\u5dee\u51cf\u534a\u9700 4 \u500d\u6837\u672c')});
+        var inv=Math.ceil(nP/0.9);
+        __ssVerdict(cl+'% \u7f6e\u4fe1\u5ea6\u3001\u5141\u8bb8\u8bef\u5dee '+(me*100).toFixed(2)+'%\uff1a'+
+            __ssL('proportion estimate needs n = ','\u6bd4\u4f8b\u4f30\u8ba1\u9700 n = ')+nP+__ssL(', mean estimate needs n = ','\uff1b\u5747\u503c\u4f30\u8ba1\u9700 n = ')+nM+'\u3002'+
+            __ssL(' With ~10% invalid responses, send out about ',' \u82e5\u9884\u8ba1 10% \u65e0\u6548\u6837\u672c\uff0c\u5b9e\u9645\u5e94\u53d1\u653e\u7ea6 ')+inv+__ssL(' questionnaires.',' \u4efd\u3002'));
+        var cls=[90,95,99],mes=[0.01,0.02,0.03,0.05,0.10],rows=[];
+        for(var i=0;i<cls.length;i++){
+            var zz=__ssZ(cls[i]),row=[cls[i]+'%'];
+            for(var j=0;j<mes.length;j++) row.push(String(Math.ceil(zz*zz*p*(1-p)/(mes[j]*mes[j]))));
+            rows.push(row);
+        }
+        TBKit.matrix.table('#ssTable',{head:__ssL(['Confidence','\u00b11%','\u00b12%','\u00b13%','\u00b15%','\u00b110%'],['\u7f6e\u4fe1\u6c34\u5e73','\u00b11%','\u00b12%','\u00b13%','\u00b15%','\u00b110%']),rows:rows});
+        TBKit.history.record({me:me,cl:cl,sigma:sg,p:p,nProp:nP,nMean:nM});
+        TBKit.util.diffBox('#ssDiff',['me','cl','nProp']);
+        TBKit.history.mount('#ssHist',function(v){
+            if(v.me!=null)document.getElementById('me').value=v.me;
+            if(v.cl!=null)document.getElementById('cl').value=v.cl;
+            if(v.sigma!=null)document.getElementById('sigma').value=v.sigma;
+            if(v.p!=null)document.getElementById('p').value=v.p;
+            calc();
+        });
+    }catch(e){}
+}
+function __ssPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#ssPresets',[
+            {label:'\u5168\u56fd\u95ee\u5377 \u00b13% / 95%',labelEn:'National survey \u00b13% / 95%',values:{me:0.03,cl:95,sigma:0.5,p:0.5}},
+            {label:'\u7cbe\u7ec6\u6c11\u8c03 \u00b11% / 99%',labelEn:'High-stakes poll \u00b11% / 99%',values:{me:0.01,cl:99,sigma:0.5,p:0.5}},
+            {label:'A/B \u8f6c\u5316\u7387 \u00b12% / 90%',labelEn:'A/B conversion \u00b12% / 90%',values:{me:0.02,cl:90,sigma:0.5,p:0.2}},
+            {label:'\u5747\u503c\u4f30\u8ba1 \u00b10.5 / 95%',labelEn:'Mean estimate \u00b10.5 / 95%',values:{me:0.5,cl:95,sigma:2,p:0.5}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+var __tb_ss0 = calc;
+calc = function(){ __tb_ss0(); try{ __ssExtras(); }catch(e){} };
+calc();
+__ssPresets();
+
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

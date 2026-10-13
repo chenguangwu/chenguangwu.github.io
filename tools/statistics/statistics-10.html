@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>A 标准差</label><input type="number" id="sd1" value="10" step="any" oninput="calc()"></div>
     <div class="input-row"><label>B 均值</label><input type="number" id="mean2" value="50" step="any" oninput="calc()"></div>
     <div class="input-row"><label>B 标准差</label><input type="number" id="sd2" value="8" step="any" oninput="calc()"></div>
+    <div id="cvPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__cvExport()">导出对比表 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="50" data-viz-min="0"></div>
+    <div class="result-box" id="result"></div>
+    <div id="cvChart" role="img" aria-label="结果可视化"></div>
+    <div id="cvVerdict"></div>
+    <div id="cvTable"></div>
+    <div id="cvDiff"></div>
+    <div id="cvHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -243,6 +250,62 @@ function copyResult() {
   });
 }
 calc();
+
+function __cvL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __cvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cvPhi(z){var sg=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+sg*y);}
+function __cvVerdict(html){var b=document.getElementById('cvVerdict');if(!b)return;b.innerHTML='<div class="tbk-history"><div class="tbk-history-hd"><span style="line-height:1.7">'+html+'</span></div></div>';}
+
+function __cvExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#cvTable','cv-comparison.csv');}catch(e){} }
+function __cvExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var m1=__cvNum('mean1'),s1=__cvNum('sd1'),m2=__cvNum('mean2'),s2=__cvNum('sd2');
+        if(!isFinite(m1)||!isFinite(s1)||!isFinite(m2)||!isFinite(s2)||s1<0||s2<0)return;
+        var c1=m1!==0?s1/Math.abs(m1)*100:NaN, c2=m2!==0?s2/Math.abs(m2)*100:NaN;
+        if(!isFinite(c1)||!isFinite(c2))return;
+        TBKit.chart.rangeBar('#cvChart',{groups:[
+            {label:__cvL('Group A','A \u7ec4'),mean:m1,spread:s1},
+            {label:__cvL('Group B','B \u7ec4'),mean:m2,spread:s2}
+        ],height:200,title:__cvL('Mean \u00b1 SD \u2014 overlap shows how much the two groups mix','\u5747\u503c \u00b1 \u6807\u51c6\u5dee\uff1a\u91cd\u53e0\u8d8a\u591a\u8bf4\u660e\u4e24\u7ec4\u8d8a\u96be\u5206\u5f00')});
+        var win=c1<c2?'A':'B', ratio=(c2>0?c1/c2:0);
+        var lvl=function(c){return c<10?__cvL('very stable','\u975e\u5e38\u7a33\u5b9a'):(c<20?__cvL('acceptable','\u53ef\u63a5\u53d7'):(c<30?__cvL('unstable','\u4e0d\u591f\u7a33\u5b9a'):__cvL('highly volatile','\u6ce2\u52a8\u5f88\u5927')));};
+        __cvVerdict('CV(A) = '+c1.toFixed(2)+'% \u00b7 CV(B) = '+c2.toFixed(2)+'% \u2192 '+
+            __cvL('group '+win+' is more stable','\u7b2c '+win+' \u7ec4\u66f4\u7a33\u5b9a')+'\uff08'+
+            __cvL('its CV is ','\u5176 CV \u662f\u5bf9\u65b9\u7684 ')+ratio.toFixed(2)+__cvL('\u00d7',' \u500d')+'\uff09\u3002'+
+            __cvL(' Rule of thumb: below 10% is tight, above 30% means the mean hardly represents the data.','\u7ecf\u9a8c\u503c\uff1a\u4f4e\u4e8e 10% \u5c5e\u4e8e\u96c6\u4e2d\uff0c\u8d85\u8fc7 30% \u65f6\u5747\u503c\u5df2\u96be\u4ee3\u8868\u6574\u7ec4\u6570\u636e\u3002'));
+        var rows=[
+            [__cvL('Group A','A \u7ec4'),String(m1),String(s1),c1.toFixed(2)+'%',(m1-s1).toFixed(2)+' ~ '+(m1+s1).toFixed(2),lvl(c1)],
+            [__cvL('Group B','B \u7ec4'),String(m2),String(s2),c2.toFixed(2)+'%',(m2-s2).toFixed(2)+' ~ '+(m2+s2).toFixed(2),lvl(c2)]
+        ];
+        TBKit.matrix.table('#cvTable',{head:__cvL(['Group','Mean','SD','CV','\u00b11 SD range','Stability'],['\u7ec4\u522b','\u5747\u503c','\u6807\u51c6\u5dee','CV','\u00b11 SD \u8303\u56f4','\u7a33\u5b9a\u6027']),rows:rows});
+        TBKit.history.record({mean1:m1,sd1:s1,mean2:m2,sd2:s2,cv1:Number(c1.toFixed(2)),cv2:Number(c2.toFixed(2))});
+        TBKit.util.diffBox('#cvDiff',['cv1','cv2']);
+        TBKit.history.mount('#cvHist',function(v){
+            if(v.mean1!=null)document.getElementById('mean1').value=v.mean1;
+            if(v.sd1!=null)document.getElementById('sd1').value=v.sd1;
+            if(v.mean2!=null)document.getElementById('mean2').value=v.mean2;
+            if(v.sd2!=null)document.getElementById('sd2').value=v.sd2;
+            calc();
+        });
+    }catch(e){}
+}
+function __cvPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#cvPresets',[
+            {label:'\u4e24\u57ce\u5e02\u6708\u85aa\u5bf9\u6bd4',labelEn:'Monthly salary in two cities',values:{mean1:10000,sd1:1500,mean2:8000,sd2:1600}},
+            {label:'\u4e24\u4ea7\u7ebf\u5c3a\u5bf8\u7a33\u5b9a\u6027',labelEn:'Two production lines',values:{mean1:50,sd1:0.5,mean2:120,sd2:3}},
+            {label:'\u4e24\u53ea\u57fa\u91d1\u56de\u62a5\u6ce2\u52a8',labelEn:'Two funds, return volatility',values:{mean1:8,sd1:2,mean2:12,sd2:4}},
+            {label:'\u4e24\u4e2a\u73ed\u7ea7\u8003\u8bd5\u5206\u5dee',labelEn:'Two classes, same mean',values:{mean1:75,sd1:6,mean2:75,sd2:12}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+var __tb_cv0 = calc;
+calc = function(){ __tb_cv0(); try{ __cvExtras(); }catch(e){} };
+calc();
+__cvPresets();
+
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

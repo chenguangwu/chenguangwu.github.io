@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>原始分数</label><input type="number" id="x" value="85" step="any" oninput="calc()"></div>
     <div class="input-row"><label>总体均值</label><input type="number" id="mu" value="75" step="any" oninput="calc()"></div>
     <div class="input-row"><label>总体标准差</label><input type="number" id="sigma" value="10" step="any" oninput="calc()"></div>
+    <div id="zsPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__zsExport()">导出对照表 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="3" data-viz-min="-3"></div>
+    <div class="result-box" id="result"></div>
+    <div id="zsChart" role="img" aria-label="结果可视化"></div>
+    <div id="zsVerdict"></div>
+    <div id="zsTable"></div>
+    <div id="zsDiff"></div>
+    <div id="zsHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -242,6 +249,61 @@ function copyResult() {
   });
 }
 calc();
+
+function __zsL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __zsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __zsPhi(z){var sg=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+sg*y);}
+function __zsVerdict(html){var b=document.getElementById('zsVerdict');if(!b)return;b.innerHTML='<div class="tbk-history"><div class="tbk-history-hd"><span style="line-height:1.7">'+html+'</span></div></div>';}
+
+function __zsExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#zsTable','z-score-benchmark.csv');}catch(e){} }
+function __zsExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var x=__zsNum('x'),mu=__zsNum('mu'),sg=__zsNum('sigma');
+        if(!isFinite(x)||!isFinite(mu)||!isFinite(sg)||sg<=0)return;
+        var z=(x-mu)/sg, pr=__zsPhi(z)*100, above=(1-__zsPhi(z))*10000;
+        TBKit.chart.bell('#zsChart',{mu:mu,sigma:sg,shade:[mu-4*sg,x],
+            markers:[{value:x,label:'z='+z.toFixed(2)},{value:mu,label:'\u03bc'}],height:240,
+            title:__zsL('Shaded area = percentile of x','\u9634\u5f71\u9762\u79ef = x \u7684\u767e\u5206\u4f4d')});
+        var tag;
+        if(Math.abs(z)>3){tag=__zsL('Extreme \u2014 check for data-entry error or a distinct subgroup.','\u6781\u7aef\u503c\uff1a\u68c0\u67e5\u662f\u5426\u5f55\u5165\u9519\u8bef\u6216\u5c5e\u4e8e\u7279\u6b8a\u4e9a\u7fa4\u3002');}
+        else if(Math.abs(z)>2){tag=__zsL('Unusual \u2014 roughly the outer 5% of the distribution.','\u504f\u79bb\uff1a\u5927\u81f4\u5904\u5728\u5206\u5e03\u6700\u5916 5%\u3002');}
+        else if(Math.abs(z)>1){tag=__zsL('Somewhat above/below average, still within the common range.','\u7565\u9ad8/\u7565\u4f4e\u4e8e\u5747\u503c\uff0c\u4ecd\u5728\u5e38\u89c1\u8303\u56f4\u5185\u3002');}
+        else{tag=__zsL('Typical value, close to the mean.','\u5178\u578b\u503c\uff0c\u9760\u8fd1\u5747\u503c\u3002');}
+        __zsVerdict('z = '+z.toFixed(3)+' \u00b7 '+__zsL('percentile ','\u767e\u5206\u4f4d ')+pr.toFixed(2)+'% \u00b7 '+
+            __zsL('about ','\u6bcf 10000 \u4e2a\u4e2d\u7ea6 ')+Math.round(above)+__zsL(' of 10,000 lie above it',' \u4e2a\u9ad8\u4e8e\u5b83')+'\u3002'+tag);
+        var zl=[-3,-2,-1.645,-1,-0.5,0,0.5,1,1.645,1.96,2,3],rows=[];
+        for(var i=0;i<zl.length;i++){
+            var zv=zl[i];
+            rows.push([String(zv),(__zsPhi(zv)*100).toFixed(2)+'%',String(Math.round((1-__zsPhi(zv))*10000)),(mu+zv*sg).toFixed(2)]);
+        }
+        TBKit.matrix.table('#zsTable',{head:__zsL(['z','Percentile','Above per 10,000','Value (\u03bc+z\u03c3)'],['z','\u767e\u5206\u4f4d','\u6bcf\u4e07\u4e2a\u4e2d\u9ad8\u4e8e\u5b83\u7684\u4e2a\u6570','\u5bf9\u5e94\u6570\u503c (\u03bc+z\u03c3)']),rows:rows});
+        TBKit.history.record({x:x,mu:mu,sigma:sg,z:Number(z.toFixed(4)),pr:Number(pr.toFixed(2))});
+        TBKit.util.diffBox('#zsDiff',['x','z','pr']);
+        TBKit.history.mount('#zsHist',function(v){
+            if(v.x!=null)document.getElementById('x').value=v.x;
+            if(v.mu!=null)document.getElementById('mu').value=v.mu;
+            if(v.sigma!=null)document.getElementById('sigma').value=v.sigma;
+            calc();
+        });
+    }catch(e){}
+}
+function __zsPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#zsPresets',[
+            {label:'\u8003\u8bd5 85\uff08\u03bc=75, \u03c3=10\uff09',labelEn:'Exam 85 (\u03bc=75, \u03c3=10)',values:{x:85,mu:75,sigma:10}},
+            {label:'IQ 130\uff08\u03bc=100, \u03c3=15\uff09',labelEn:'IQ 130 (\u03bc=100, \u03c3=15)',values:{x:130,mu:100,sigma:15}},
+            {label:'\u8eab\u9ad8 152cm\uff08\u03bc=165, \u03c3=6\uff09',labelEn:'Height 152cm (\u03bc=165, \u03c3=6)',values:{x:152,mu:165,sigma:6}},
+            {label:'\u6708\u85aa 25000\uff08\u03bc=18000, \u03c3=6000\uff09',labelEn:'Salary 25000 (\u03bc=18000, \u03c3=6000)',values:{x:25000,mu:18000,sigma:6000}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+var __tb_zs0 = calc;
+calc = function(){ __tb_zs0(); try{ __zsExtras(); }catch(e){} };
+calc();
+__zsPresets();
+
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

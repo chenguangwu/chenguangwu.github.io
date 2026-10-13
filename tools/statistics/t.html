@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>假设总体均值</label><input type="number" id="mu0" value="50" step="any" oninput="calc()"></div>
     <div class="input-row"><label>样本标准差</label><input type="number" id="s" value="4" step="any" oninput="calc()"></div>
     <div class="input-row"><label>样本量</label><input type="number" id="n" value="25" step="1" oninput="calc()"></div>
+    <div id="ttPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__ttExport()">导出临界值对照 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="5" data-viz-min="-5"></div>
+    <div class="result-box" id="result"></div>
+    <div id="ttChart" role="img" aria-label="结果可视化"></div>
+    <div id="ttVerdict"></div>
+    <div id="ttTable"></div>
+    <div id="ttDiff"></div>
+    <div id="ttHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -256,6 +263,68 @@ function copyResult() {
   });
 }
 calc();
+
+function __ttL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __ttNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ttPhi(z){var sg=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+sg*y);}
+function __ttVerdict(html){var b=document.getElementById('ttVerdict');if(!b)return;b.innerHTML='<div class="tbk-history"><div class="tbk-history-hd"><span style="line-height:1.7">'+html+'</span></div></div>';}
+
+function __ttLgamma(x){var c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];var y=x,t=x+5.5;t-=(x+0.5)*Math.log(t);var ser=1.000000000190015;for(var j=0;j<6;j++){y+=1;ser+=c[j]/y;}return -t+Math.log(2.5066282746310005*ser/x);}
+function __ttPdf(x,df){var lg=__ttLgamma((df+1)/2)-__ttLgamma(df/2)-0.5*Math.log(df*Math.PI);return Math.exp(lg)*Math.pow(1+x*x/df,-(df+1)/2);}
+function __ttExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ttTable','t-critical-values.csv');}catch(e){} }
+function __ttExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var xb=__ttNum('xbar'),m0=__ttNum('mu0'),s=__ttNum('s'),n=__ttNum('n');
+        if(!isFinite(xb)||!isFinite(m0)||!isFinite(s)||!isFinite(n)||s<=0||n<2)return;
+        var df=n-1, t=(xb-m0)/(s/Math.sqrt(n)), at=Math.abs(t);
+        var tc=TBKit.util.tCrit(df,0.05), p2=TBKit.util.tP2(t,df);
+        var tc1=TBKit.util.tCrit(df,0.01);
+        var labs=[],tS=[],nS=[];
+        for(var i=-40;i<=40;i++){
+            var xv=i/10; labs.push(xv.toFixed(1));
+            tS.push(__ttPdf(xv,df));
+            nS.push(Math.exp(-0.5*xv*xv)/Math.sqrt(2*Math.PI));
+        }
+        TBKit.chart.line('#ttChart',{labels:labs,series:[
+            {name:'t(df='+df+')',data:tS},{name:__ttL('Normal','\u6b63\u6001'),data:nS}
+        ],height:250,area:false,title:__ttL('t distribution vs normal \u2014 heavier tails mean a larger critical value','t \u5206\u5e03\u4e0e\u6b63\u6001\u5bf9\u6bd4\uff1a\u5c3e\u90e8\u66f4\u539a\uff0c\u4e34\u754c\u503c\u66f4\u5927')});
+        var verdict=__ttL('|t| = ','|t| = ')+at.toFixed(3)+__ttL(' vs critical t = ','\uff0c5% \u53cc\u4fa7\u4e34\u754c\u503c = ')+tc.toFixed(3)+'\uff1a'+(at>tc?__ttL('reject H0 at the 5% level \u2014 the difference is unlikely to be chance.','\u5728 5% \u6c34\u5e73\u62d2\u7edd\u539f\u5047\u8bbe\uff0c\u5dee\u5f02\u4e0d\u592a\u53ef\u80fd\u662f\u5076\u7136\u3002'):__ttL('not significant at 5% \u2014 raise n or reduce noise before concluding.','5% \u6c34\u5e73\u4e0d\u663e\u8457\uff1b\u5148\u589e\u5927\u6837\u672c\u6216\u964d\u4f4e\u6ce2\u52a8\u518d\u4e0b\u7ed3\u8bba\u3002'));
+        verdict+=__ttL(' Two-tailed p \u2248 ','\u53cc\u4fa7 p \u2248 ')+(isFinite(p2)?p2.toFixed(4):'\u2014')+'\uff1b'+(at>tc1?__ttL('also significant at 1%.','1% \u6c34\u5e73\u4e5f\u663e\u8457\u3002'):__ttL('not significant at 1%.','1% \u6c34\u5e73\u4e0d\u663e\u8457\u3002'));
+        __ttVerdict(verdict);
+        var dfs=[1,2,3,5,10,20,30,60,120,10000],rows=[];
+        for(var k=0;k<dfs.length;k++){
+            var d=dfs[k];
+            rows.push([(d>=10000?'\u221e':String(d)),TBKit.util.tCrit(d,0.05).toFixed(3),TBKit.util.tCrit(d,0.01).toFixed(3),(d===df?'\u2b50 '+__ttL('current df','\u5f53\u524d df'):'')]);
+        }
+        TBKit.matrix.table('#ttTable',{head:__ttL(['df','t (5% two-tailed)','t (1% two-tailed)',''],['df','5% \u53cc\u4fa7\u4e34\u754c','1% \u53cc\u4fa7\u4e34\u754c','\u5907\u6ce8']),rows:rows});
+        TBKit.history.record({xbar:xb,mu0:m0,s:s,n:n,t:Number(t.toFixed(4))});
+        TBKit.util.diffBox('#ttDiff',['xbar','s','n','t']);
+        TBKit.history.mount('#ttHist',function(v){
+            if(v.xbar!=null)document.getElementById('xbar').value=v.xbar;
+            if(v.mu0!=null)document.getElementById('mu0').value=v.mu0;
+            if(v.s!=null)document.getElementById('s').value=v.s;
+            if(v.n!=null)document.getElementById('n').value=v.n;
+            calc();
+        });
+    }catch(e){}
+}
+function __ttPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#ttPresets',[
+            {label:'\u6559\u5b66\u6539\u8fdb n=25\uff1at=2.5',labelEn:'Teaching gain n=25: t=2.5',values:{xbar:52,mu0:50,s:4,n:25}},
+            {label:'\u5c0f\u6837\u672c n=5 \u5dee\u5f02\u4e0d\u663e\u8457',labelEn:'Small sample n=5, not significant',values:{xbar:103,mu0:100,s:6,n:5}},
+            {label:'\u836f\u6548 n=36 \u663e\u8457',labelEn:'Drug effect n=36, significant',values:{xbar:8.2,mu0:8,s:1.5,n:36}},
+            {label:'\u5927\u6837\u672c n=200 \u5fae\u5c0f\u5dee\u5f02',labelEn:'Large sample n=200, tiny difference',values:{xbar:50.5,mu0:50,s:12,n:200}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+var __tb_tt0 = calc;
+calc = function(){ __tb_tt0(); try{ __ttExtras(); }catch(e){} };
+calc();
+__ttPresets();
+
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
