@@ -135,16 +135,23 @@ s.parentNode.insertBefore(el, s);
       <div class="formula-eq">A = 长 × 宽（矩形）或 ½|Σ(x_i·y_{i+1}−x_{i+1}·y_i)|</div>
       <p class="formula-desc">多边形面积与周长计算（鞋带公式），支持动态增减顶点并可视化</p>
     </div>
+    <input type="hidden" id="acRoute" value="">
     <div class="pts-head"><div>点号</div><div>x (m)</div><div>y (m)</div><div></div></div>
     <div id="pts"></div>
     <button type="button" class="add-btn" onclick="addPt()">+ 添加顶点</button>
+    <div id="acaPresets"></div>
     <div class="toolbar" style="margin-top:14px;">
       <button type="button" class="btn primary" onclick="calc()">计算</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="__acaExport()">导出 CSV</button>
       <button type="button" class="btn" onclick="loadDemo()">示例</button>
     </div>
     <div class="result-grid" id="grid"></div>
     <div class="result-box" id="detail"></div>
+    <div id="acaChart"></div>
+    <div id="acaTable"></div>
+    <div id="acaDiff"></div>
+    <div id="acaHist"></div>
     <div class="canvas-wrap"><canvas id="cv"></canvas></div>
     <div class="info-box">面积公式（鞋带法）：A = ½|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)|；周长为相邻顶点距离之和。顶点应按顺时针或逆时针顺序输入。</div>
   </div>
@@ -212,6 +219,7 @@ function addPt(){PTS.push({x:0,y:0});renderPts();calc();}
 function delPt(i){if(PTS.length>3){PTS.splice(i,1);renderPts();calc();}}
 function loadDemo(){PTS=[{x:0,y:0},{x:120,y:0},{x:120,y:90},{x:40,y:90},{x:0,y:60}];renderPts();calc();}
 function calc(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var grid=document.getElementById('grid'),det=document.getElementById('detail');
   if(PTS.length<3){grid.innerHTML='';det.innerHTML='至少需要3个顶点';return;}
   var n=PTS.length,sumA=0,peri=0;
@@ -227,18 +235,19 @@ function calc(){
   var denom=area*6;var sign=sumA<0?-1:1;
   cx=cx/denom*sign;cy=cy/denom*sign;
   var mu=area/666.667; // 亩 (1亩≈666.67m²)
-  const __g4='<div class="result-item"><div class="val">'+area.toFixed(2)+'</div><div class="lbl">面积 m²</div></div>'+
-    '<div class="result-item"><div class="val">'+mu.toFixed(3)+'</div><div class="lbl">面积 亩</div></div>'+
-    '<div class="result-item"><div class="val">'+peri.toFixed(2)+'</div><div class="lbl">周长 m</div></div>'+
-    '<div class="result-item"><div class="val">('+cx.toFixed(1)+', '+cy.toFixed(1)+')</div><div class="lbl">重心坐标</div></div>';grid.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  const __g5='<p>📊 '+n+' 个顶点，面积 = <strong>'+area.toFixed(2)+' m²</strong>（'+mu.toFixed(3)+' 亩），周长 = <strong>'+peri.toFixed(2)+' m</strong></p>'+
-    '<p>重心坐标：('+cx.toFixed(2)+', '+cy.toFixed(2)+')</p>'+
-    '<p>面积 = ½|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)| = ½|'+sumA.toFixed(2)+'| = '+area.toFixed(2)+' m²</p>';det.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g4='<div class="result-item"><div class="val">'+area.toFixed(2)+'</div><div class="lbl">'+(__EN?'Area (m²)':'面积 m²')+'</div></div>'+
+    '<div class="result-item"><div class="val">'+mu.toFixed(3)+'</div><div class="lbl">'+(__EN?'Area (mu)':'面积 亩')+'</div></div>'+
+    '<div class="result-item"><div class="val">'+peri.toFixed(2)+'</div><div class="lbl">'+(__EN?'Perimeter (m)':'周长 m')+'</div></div>'+
+    '<div class="result-item"><div class="val">('+cx.toFixed(1)+', '+cy.toFixed(1)+')</div><div class="lbl">'+(__EN?'Centroid':'重心坐标')+'</div></div>';grid.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g5=(__EN?'<p>📊 '+n+' vertices, area = <strong>':'<p>📊 '+n+' 个顶点，面积 = <strong>')+area.toFixed(2)+' m²</strong>'+(__EN?' (':'（')+mu.toFixed(3)+(__EN?' mu), perimeter = <strong>':' 亩），周长 = <strong>')+peri.toFixed(2)+' m</strong></p>'+
+    (__EN?'<p>Centroid: (':'<p>重心坐标：(')+cx.toFixed(2)+', '+cy.toFixed(2)+')</p>'+
+    (__EN?'<p>Area = ½|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)| = ½|':'<p>面积 = ½|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)| = ½|')+sumA.toFixed(2)+'| = '+area.toFixed(2)+' m²</p>';det.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   draw();
 }
 function draw(){
   var cv=document.getElementById('cv');
-  var W=cv.parentElement.clientWidth,dpr=window.devicePixelRatio||1;
+  if(!cv||typeof cv.getContext!=='function')return;
+  var W=(cv.parentElement&&cv.parentElement.clientWidth)||cv.width||600,dpr=window.devicePixelRatio||1;
   cv.width=W*dpr;cv.height=260*dpr;cv.style.width=W+'px';cv.style.height='260px';
   var ctx=cv.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,260);
   if(PTS.length<3)return;
@@ -263,6 +272,66 @@ function copyResult(){
   ToolBox.copyText(t, i18nText());
 }
 renderPts();calc();
+
+function __acaN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __acaList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __acaL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __acaExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#acaTable','polygon-area.csv');}catch(e){} }
+function __acaRoute(name){
+  var P=name==='lshape'?[{x:0,y:0},{x:80,y:0},{x:80,y:40},{x:40,y:40},{x:40,y:70},{x:0,y:70}]
+    :name==='triangle'?[{x:0,y:0},{x:100,y:0},{x:50,y:60}]
+    :[{x:0,y:0},{x:60,y:0},{x:60,y:40},{x:0,y:40}];
+  PTS.length=0;P.forEach(function(p){PTS.push(p);});
+  renderPts();
+}
+function __acaExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        if(PTS.length<3)return;
+        var n=PTS.length,labs=[],edges=[],rows=[],peri=0,i,j,d,sumA=0;
+        for(i=0;i<n;i++){
+            j=(i+1)%n;
+            d=Math.sqrt(Math.pow(PTS[j].x-PTS[i].x,2)+Math.pow(PTS[j].y-PTS[i].y,2));
+            peri+=d;sumA+=PTS[i].x*PTS[j].y-PTS[j].x*PTS[i].y;
+            labs.push('P'+(i+1)+'-P'+(j+1));
+            edges.push(Number(d.toFixed(2)));
+            rows.push(__acaL(['P'+(i+1),PTS[i].x.toFixed(2),PTS[i].y.toFixed(2),d.toFixed(2),peri.toFixed(2)],['P'+(i+1),PTS[i].x.toFixed(2),PTS[i].y.toFixed(2),d.toFixed(2),peri.toFixed(2)]));
+        }
+        TBKit.chart.bar('#acaChart',{labels:labs,series:[{name:__acaL('edge length (m)','边长 (m)'),data:edges}],height:220,title:__acaL('Edge lengths ('+n+' vertices, perimeter '+peri.toFixed(2)+' m)','各边边长（'+n+' 顶点，周长 '+peri.toFixed(2)+' m）')});
+        TBKit.matrix.table('#acaTable',{head:__acaL(['Point','x (m)','y (m)','Edge to next (m)','Cumulative perimeter (m)'],['点号','x (m)','y (m)','到下一点边长 (m)','累计周长 (m)']),rows:rows});
+        TBKit.history.record({pts:JSON.stringify(PTS),area:Number((Math.abs(sumA)/2).toFixed(2)),peri:Number(peri.toFixed(2))});
+        TBKit.util.diffBox('#acaDiff',['area']);
+        TBKit.history.mount('#acaHist',function(v){ if(v.pts==null)return;
+            try{ var arr=JSON.parse(v.pts); if(arr&&arr.length>=3){ PTS.length=0; arr.forEach(function(p){PTS.push(p);}); renderPts(); } }catch(e){}
+            calc(); });
+    }catch(e){}
+}
+function __acaPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#acaPresets',[
+            {label:'矩形 60×40（2400 m²）',labelEn:'Rectangle 60x40 (2400 m²)',values:{acRoute:'rect'}},
+            {label:'L 形地块（6 顶点）',labelEn:'L-shaped parcel (6 vertices)',values:{acRoute:'lshape'}},
+            {label:'三角形地块（3 顶点）',labelEn:'Triangular parcel (3 vertices)',values:{acRoute:'triangle'}}
+        ],function(){
+            var r=(document.getElementById('acRoute')||{}).value||'rect';
+            try{ __acaRoute(r); }catch(e){}
+            calc();
+        });
+    }catch(e){}
+}
+
+var __tb_aca0 = calc;
+calc = function(){ __tb_aca0(); try{ __acaExtras(); }catch(e){} };
+function __acaBoot(){ try{ __acaPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __acaBoot();
+else document.addEventListener("DOMContentLoaded", __acaBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

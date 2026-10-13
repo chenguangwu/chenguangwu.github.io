@@ -124,12 +124,16 @@ s.parentNode.insertBefore(el, s);
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
       <div><label>公摊面积 (m²)</label><input type="number" id="v1" value="20" step="any" oninput="calc()" enterkeyhint="done" aria-label="产权"></div>
     </div>
+    <div id="a5Presets"></div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
+      <button class="btn" onclick="__a5Export()">导出 CSV</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="a5Chart"></div>
+    <div id="a5Table"></div>
     <div class="info-box">💡 建筑面积 = 套内 + 公摊；得房率 = 套内 ÷ 建筑面积；公摊系数 = 公摊 ÷ 套内。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -588,7 +592,7 @@ function renderHistory(){
   if(!box)return;
   try{
     var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
-    if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
+    if(list.length===0){box.innerHTML=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'<div class="history-empty">No calculation records</div>':'<div class="history-empty">暂无计算记录</div>';return;}
     var html='<div class="history-list">';
     list.forEach(function(h){
       html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+')">'+
@@ -597,7 +601,7 @@ function renderHistory(){
     });
     html+='</div>';
     const __g4=html;box.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
+  }catch(e){box.innerHTML=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'<div class="history-empty">Failed to load history</div>':'<div class="history-empty">读取记录失败</div>';}
 }
 function restoreHistory(a,b){
   document.getElementById('v0').value=a;
@@ -624,20 +628,21 @@ calc();
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
+    var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
     var __ig=__tbInputGuard(['v0', 'v1'],["套内面积 (m²)", "公摊面积 (m²)"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
 var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML=__EN?'<div class="info-box">Enter two valid numbers before calculating.</div>':'<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
   var items=[];
-  items.push([(A+B).toFixed(2), "建筑面积（m²）"]);
-  items.push([(A/(A+B)*100).toFixed(2)+"%", "得房率"]);
-  items.push([(B/(A+B)*100).toFixed(2)+"%", "公摊率"]);
-  items.push([(B/A).toFixed(4), "公摊系数"]);
+  items.push([(A+B).toFixed(2), __EN?"Total floor area (m²)":"建筑面积（m²）"]);
+  items.push([(A/(A+B)*100).toFixed(2)+"%", __EN?"Usable area ratio":"得房率"]);
+  items.push([(B/(A+B)*100).toFixed(2)+"%", __EN?"Shared area ratio":"公摊率"]);
+  items.push([(B/A).toFixed(4), __EN?"Shared area coefficient":"公摊系数"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 建筑面积 = 套内 + 公摊；得房率 = 套内 ÷ 建筑面积；公摊系数 = 公摊 ÷ 套内。';
+  html+=__EN?'💡 Total floor area = usable + shared; usable ratio = usable / total; shared coefficient = shared / usable.':'💡 建筑面积 = 套内 + 公摊；得房率 = 套内 ÷ 建筑面积；公摊系数 = 公摊 ÷ 套内。';
   const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
@@ -646,6 +651,49 @@ function resetAll(){
   if(a)a.value='100';if(b)b.value='20';calc();
 }
 try{calc();}catch(e){}
+
+function __a5N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __a5List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __a5L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __a5Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#a5Table','floor-area.csv');}catch(e){} }
+function __a5Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var A=__a5N('v0'),B=__a5N('v1');
+        if(!(A>0)||!(B>=0))return;
+        var total=A+B;
+        if(!(total>0))return;
+        var ratio=A/total*100, shared=B/total*100, coef=B/A;
+        TBKit.chart.gauge('#a5Chart',{value:Number(ratio.toFixed(2)),min:0,max:100,height:220,
+            title:__a5L('Usable area ratio','得房率'),text:ratio.toFixed(2)+'%',label:__a5L('usable / total floor area','套内 / 建筑面积')});
+        var rows=__a5L(
+            [['usable area (m²)',A.toFixed(3)],['shared area (m²)',B.toFixed(3)],['total floor area (m²)',total.toFixed(3)],['usable ratio (%)',ratio.toFixed(2)],['shared ratio (%)',shared.toFixed(2)],['shared coefficient',coef.toFixed(4)],['total (mu)',(total/666.67).toFixed(4)],['typical residential range','70% - 80%']],
+            [['套内面积 (m²)',A.toFixed(3)],['公摊面积 (m²)',B.toFixed(3)],['建筑面积 (m²)',total.toFixed(3)],['得房率 (%)',ratio.toFixed(2)],['公摊率 (%)',shared.toFixed(2)],['公摊系数',coef.toFixed(4)],['折合亩数',(total/666.67).toFixed(4)],['住宅常见区间','70% - 80%']]);
+        TBKit.matrix.table('#a5Table',{head:__a5L(['Metric','Value'],['指标','数值']),rows:rows});
+    }catch(e){}
+}
+function __a5Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#a5Presets',[
+            {label:'刚需 85+30（得房 73.91%）',labelEn:'Essential 85+30 (73.91% usable)',values:{v0:85,v1:30}},
+            {label:'改善 70+20（得房 77.78%）',labelEn:'Upgrade 70+20 (77.78% usable)',values:{v0:70,v1:20}},
+            {label:'低密 100+15（得房 86.96%）',labelEn:'Low-density 100+15 (86.96% usable)',values:{v0:100,v1:15}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_a50 = calc;
+calc = function(){ __tb_a50(); try{ __a5Extras(); }catch(e){} };
+function __a5Boot(){ try{ __a5Presets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __a5Boot();
+else document.addEventListener("DOMContentLoaded", __a5Boot);
 </script>
 
 <!-- SEO 介绍区块 -->

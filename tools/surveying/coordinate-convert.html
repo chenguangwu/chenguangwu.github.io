@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div id="cmWrap" style="display:none;"><label>中央子午线 L0 (°)</label><input type="number" id="cm" value="117" step="0.1" oninput="calc()"></div>
     </div>
+    <div id="ccPresets"></div>
     <div class="toolbar" style="margin-top:14px;">
       <button type="button" class="btn primary" onclick="calc()">计算</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="__ccExport()">导出 CSV</button>
     </div>
     <div class="result-grid" id="grid"></div>
     <div class="result-box" id="detail"></div>
+    <div id="ccChart"></div>
+    <div id="ccTable"></div>
+    <div id="ccDiff"></div>
+    <div id="ccHist"></div>
     <div class="info-box">采用 CGCS2000 椭球（a=6378137，f=1/298.257222101）。高斯投影横坐标加 500km 偏移，并前置带号。结果仅供工程参考，正式成果须经专业软件严密计算。</div>
   </div>
 
@@ -209,6 +215,7 @@ function meridianArc(B){
 }
 function v(id){return parseFloat(document.getElementById(id).value);}
 function calc(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var L=v('lon'),B=v('lat'),zm=document.getElementById('zone').value;
   document.getElementById('cmWrap').style.display=(zm==='custom')?'block':'none';
   var grid=document.getElementById('grid'),det=document.getElementById('detail');
@@ -228,14 +235,14 @@ function calc(){
   var gamma=r2d(sinB*l*(1+(1+3*eta2+2*eta2*eta2)/3*c2*l2+(2-t*t)/15*c4*l4));
   var yEast=y+500000;
   var yFull=(typeof n==='number')?(n*1000000+yEast):yEast;
-  const __g3='<div class="result-item"><div class="val">'+x.toFixed(3)+'</div><div class="lbl">纵坐标 x（北）m</div></div>'+
-    '<div class="result-item"><div class="val">'+yEast.toFixed(3)+'</div><div class="lbl">横坐标 y（东，含偏移）m</div></div>'+
-    '<div class="result-item"><div class="val">'+gamma.toFixed(4)+'°</div><div class="lbl">子午线收敛角</div></div>';grid.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  const __g4='<p>📊 大地坐标 (L, B) = ('+L.toFixed(6)+'°, '+B.toFixed(6)+'°)</p>'+
-    '<p>带号：<strong>'+(typeof n==='number'?n:'自定义')+'</strong>，中央子午线 L0 = <strong>'+L0.toFixed(1)+'°</strong></p>'+
-    '<p>高斯平面坐标：x = <strong>'+x.toFixed(3)+' m</strong>，y = <strong>'+yEast.toFixed(3)+' m</strong>（含500km偏移）</p>'+
-    '<p>带号前置完整横坐标：<strong>'+yFull.toFixed(0)+'</strong></p>'+
-    '<p>子午线收敛角 γ = <strong>'+gamma.toFixed(4)+'°</strong>（正值表示偏东）</p>';det.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g3='<div class="result-item"><div class="val">'+x.toFixed(3)+'</div><div class="lbl">'+(__EN?'Northing x (m)':'纵坐标 x（北）m')+'</div></div>'+
+    '<div class="result-item"><div class="val">'+yEast.toFixed(3)+'</div><div class="lbl">'+(__EN?'Easting y (m, +500km)':'横坐标 y（东，含偏移）m')+'</div></div>'+
+    '<div class="result-item"><div class="val">'+gamma.toFixed(4)+'°</div><div class="lbl">'+(__EN?'Meridian convergence':'子午线收敛角')+'</div></div>';grid.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g4=(__EN?'<p>📊 Geodetic (L, B) = (':'<p>📊 大地坐标 (L, B) = (')+L.toFixed(6)+'°, '+B.toFixed(6)+'°)</p>'+
+    (__EN?'<p>Zone: <strong>':'<p>带号：<strong>')+(typeof n==='number'?n:(__EN?'custom':'自定义'))+'</strong>'+(__EN?', central meridian L0 = <strong>':'，中央子午线 L0 = <strong>')+L0.toFixed(1)+'°</strong></p>'+
+    (__EN?'<p>Gauss plane: x = <strong>':'<p>高斯平面坐标：x = <strong>')+x.toFixed(3)+' m</strong>'+(__EN?', y = <strong>':'，y = <strong>')+yEast.toFixed(3)+' m</strong>'+(__EN?' (+500km offset)':'（含500km偏移）')+'</p>'+
+    (__EN?'<p>Full easting with zone prefix: <strong>':'<p>带号前置完整横坐标：<strong>')+yFull.toFixed(0)+'</strong></p>'+
+    (__EN?'<p>Meridian convergence gamma = <strong>':'<p>子午线收敛角 γ = <strong>')+gamma.toFixed(4)+'°</strong>'+(__EN?' (positive = east)':'（正值表示偏东）')+'</p>';det.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){
   var t=document.getElementById('detail').innerText;
@@ -243,6 +250,73 @@ function copyResult(){
   ToolBox.copyText(t, i18nText());
 }
 calc();
+
+function __ccN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ccList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __ccL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __ccExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ccTable','coordinate-convert.csv');}catch(e){} }
+function __ccExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var L=__ccN('lon'),B=__ccN('lat'),zm=document.getElementById('zone').value;
+        if(!isFinite(L)||!isFinite(B))return;
+        var L0,n;
+        if(zm==='3'){n=Math.round(L/3);L0=3*n;}
+        else if(zm==='6'){n=Math.floor(L/6)+1;L0=6*n-3;}
+        else{L0=__ccN('cm')||0;n=null;}
+        var Br=d2r(B),l=d2r(L-L0);
+        var sinB=Math.sin(Br),cosB=Math.cos(Br),t=Math.tan(Br);
+        var N=a/Math.sqrt(1-e2*sinB*sinB);
+        var M=a*(1-e2)/Math.pow(1-e2*sinB*sinB,1.5);
+        var R=Math.sqrt(M*N);
+        var X=meridianArc(Br);
+        var eta2=ep2*cosB*cosB;
+        var l2=l*l,l4=l2*l2,c2=cosB*cosB,c4=c2*c2;
+        var x=X+N/2*t*c2*l2*(1+(5-t*t+9*eta2+4*eta2*eta2)/12*c2*l2+(61-58*t*t+Math.pow(t,4))/360*c4*l4);
+        var y=N*cosB*l*(1+(1-t*t+eta2)/6*c2*l2+(5-18*t*t+Math.pow(t,4)+14*eta2-58*t*t*eta2)/120*c4*l4);
+        var gamma=r2d(sinB*l*(1+(1+3*eta2+2*eta2*eta2)/3*c2*l2+(2-t*t)/15*c4*l4));
+        var yEast=y+500000;
+        var yFull=(n!=null)?(n*1000000+yEast):yEast;
+        var ls=[],ppm=[],i;
+        for(i=-6;i<=6;i++){ var ld=i*0.25, lr=d2r(ld), ym=N*cosB*lr; ls.push(ld.toFixed(2)); ppm.push(Number((ym*ym/(2*R*R)*1e6).toFixed(2))); }
+        var edgePpm=Number((Math.pow(N*cosB*d2r(1.5),2)/(2*R*R)*1e6).toFixed(2));
+        TBKit.chart.line('#ccChart',{labels:ls,series:[
+            {name:__ccL('length deformation (ppm)','长度变形 (ppm)'),data:ppm}
+        ],height:230,title:__ccL('Length deformation vs longitude difference (B='+B.toFixed(4)+' deg)','长度变形随经差变化（B='+B.toFixed(4)+'°）')});
+        var rows=__ccL(
+            [['zoning',(zm==='3'?'3-degree band':zm==='6'?'6-degree band':'custom central meridian')],['zone number n',(n!=null?n:'—')],['central meridian L0 (deg)',L0.toFixed(1)],['longitude difference l (deg)',(L-L0).toFixed(4)],['northing x (m)',x.toFixed(3)],['easting y +500km (m)',yEast.toFixed(3)],['full easting with zone prefix',yFull.toFixed(0)],['meridian convergence (deg)',gamma.toFixed(4)],['prime vertical radius N (m)',N.toFixed(1)],['meridian arc X (m)',X.toFixed(1)],['edge length deformation at 1.5 deg (ppm)',edgePpm]],
+            [['分带方式',(zm==='3'?'3 度带':zm==='6'?'6 度带':'自定义中央子午线')],['带号 n',(n!=null?n:'—')],['中央子午线 L0 (°)',L0.toFixed(1)],['经差 l (°)',(L-L0).toFixed(4)],['纵坐标 x (m)',x.toFixed(3)],['横坐标 y（含500km偏移）(m)',yEast.toFixed(3)],['带号前置完整横坐标',yFull.toFixed(0)],['子午线收敛角 (°)',gamma.toFixed(4)],['卯酉圈曲率半径 N (m)',N.toFixed(1)],['子午线弧长 X (m)',X.toFixed(1)],['边缘（经差1.5°）长度变形 (ppm)',edgePpm]]);
+        TBKit.matrix.table('#ccTable',{head:__ccL(['Element','Value'],['要素','数值']),rows:rows});
+        TBKit.history.record({x:Number(x.toFixed(3)),lon:L,lat:B,zone:zm,cm:(zm==='custom'?(__ccN('cm')||0):0)});
+        TBKit.util.diffBox('#ccDiff',['x']);
+        TBKit.history.mount('#ccHist',function(v){ if(v.x==null)return;
+            document.getElementById('lon').value=v.lon;document.getElementById('lat').value=v.lat;document.getElementById('zone').value=v.zone;
+            if(v.zone==='custom')document.getElementById('cm').value=v.cm;
+            calc(); });
+    }catch(e){}
+}
+function __ccPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#ccPresets',[
+            {label:'北京 116.41/39.90（3度带）',labelEn:'Beijing 116.41/39.90 (3-deg)',values:{lon:116.4074,lat:39.9042,zone:'3'}},
+            {label:'上海 121.47/31.23（3度带）',labelEn:'Shanghai 121.47/31.23 (3-deg)',values:{lon:121.4737,lat:31.2304,zone:'3'}},
+            {label:'西安 108.94/34.34（自定义 CM 108）',labelEn:'Xian 108.94/34.34 (custom CM 108)',values:{lon:108.9402,lat:34.3416,zone:'custom',cm:108}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_cc0 = calc;
+calc = function(){ __tb_cc0(); try{ __ccExtras(); }catch(e){} };
+function __ccBoot(){ try{ __ccPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __ccBoot();
+else document.addEventListener("DOMContentLoaded", __ccBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

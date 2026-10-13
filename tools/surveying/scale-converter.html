@@ -132,6 +132,7 @@ s.parentNode.insertBefore(el, s);
       <div class="formula-eq">图上长 = 实地长 / 比例尺分母</div>
       <p class="formula-desc">地形图比例尺与图上/实际距离的相互换算</p>
     </div>
+    <input type="hidden" id="scMode" value="ra">
     <div class="tabs">
       <button type="button" class="tab-btn active" onclick="setMode('ra')">图上→实际</button>
       <button type="button" class="tab-btn" onclick="setMode('ar')">实际→图上</button>
@@ -139,12 +140,18 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div id="panel"></div>
     <div class="scale-presets" id="presets"></div>
+    <div id="scPresets"></div>
     <div class="toolbar" style="margin-top:14px;">
       <button type="button" class="btn primary" onclick="calc()">计算</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="__scExport()">导出 CSV</button>
     </div>
     <div class="result-grid" id="grid"></div>
     <div class="result-box" id="detail"></div>
+    <div id="scChart"></div>
+    <div id="scTable"></div>
+    <div id="scDiff"></div>
+    <div id="scHist"></div>
     <div class="info-box">公式：实际距离 = 图上距离 × 比例尺分母 N；图上距离 = 实际距离 / N。常用单位：1 km = 1000 m = 100000 cm。</div>
   </div>
 
@@ -198,21 +205,21 @@ s.parentNode.insertBefore(el, s);
 var mode='ra';
 var PRESETS=[500,1000,2000,5000,10000,25000,50000,100000,250000,500000,1000000];
 var FIELDS={
-  ra:{title:'已知比例尺与图上距离，求实际距离',fields:[
-    {id:'n',label:'比例尺分母 N（1:N）',val:5000},
-    {id:'map',label:'图上距离',val:5},
-    {id:'unit',label:'图上单位',opts:[['cm','cm'],['mm','mm'],['m','m']]}
+  ra:{title:'已知比例尺与图上距离，求实际距离',titleEn:'Scale and map distance given, find ground distance',fields:[
+    {id:'n',label:'比例尺分母 N（1:N）',labelEn:'Scale denominator N (1:N)',val:5000},
+    {id:'map',label:'图上距离',labelEn:'Map distance',val:5},
+    {id:'unit',label:'图上单位',labelEn:'Map unit',opts:[['cm','cm'],['mm','mm'],['m','m']]}
   ]},
-  ar:{title:'已知比例尺与实际距离，求图上距离',fields:[
-    {id:'n',label:'比例尺分母 N（1:N）',val:5000},
-    {id:'real',label:'实际距离',val:250},
-    {id:'unit',label:'实际单位',opts:[['m','m'],['km','km'],['cm','cm']]}
+  ar:{title:'已知比例尺与实际距离，求图上距离',titleEn:'Scale and ground distance given, find map distance',fields:[
+    {id:'n',label:'比例尺分母 N（1:N）',labelEn:'Scale denominator N (1:N)',val:5000},
+    {id:'real',label:'实际距离',labelEn:'Ground distance',val:250},
+    {id:'unit',label:'实际单位',labelEn:'Ground unit',opts:[['m','m'],['km','km'],['cm','cm']]}
   ]},
-  scale:{title:'已知图上与实际距离，求比例尺',fields:[
-    {id:'map',label:'图上距离',val:5},
-    {id:'mu',label:'图上单位',opts:[['cm','cm'],['mm','mm'],['m','m']]},
-    {id:'real',label:'实际距离',val:250},
-    {id:'ru',label:'实际单位',opts:[['m','m'],['km','km'],['cm','cm']]}
+  scale:{title:'已知图上与实际距离，求比例尺',titleEn:'Map and ground distance given, find scale',fields:[
+    {id:'map',label:'图上距离',labelEn:'Map distance',val:5},
+    {id:'mu',label:'图上单位',labelEn:'Map unit',opts:[['cm','cm'],['mm','mm'],['m','m']]},
+    {id:'real',label:'实际距离',labelEn:'Ground distance',val:250},
+    {id:'ru',label:'实际单位',labelEn:'Ground unit',opts:[['m','m'],['km','km'],['cm','cm']]}
   ]}
 };
 function unitToCm(val,unit){return val*{cm:1,mm:0.1,m:100,km:100000}[unit];}
@@ -224,12 +231,13 @@ function setMode(m){
 }
 function renderPanel(){
   var cfg=FIELDS[mode];
-  var html='<p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;font-weight:600;">'+cfg.title+'</p><div class="field-grid">';
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var html='<p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;font-weight:600;">'+(__EN?(cfg.titleEn||cfg.title):cfg.title)+'</p><div class="field-grid">';
   cfg.fields.forEach(function(f){
     if(f.opts){
-      html+='<div><label>'+f.label+'</label><select id="'+f.id+'" onchange="calc()">'+f.opts.map(function(o){return '<option value="'+o[0]+'">'+o[1]+'</option>';}).join('')+'</select></div>';
+      html+='<div><label>'+(__EN?(f.labelEn||f.label):f.label)+'</label><select id="'+f.id+'" onchange="calc()">'+f.opts.map(function(o){return '<option value="'+o[0]+'">'+o[1]+'</option>';}).join('')+'</select></div>';
     }else{
-      html+='<div><label>'+f.label+'</label><input type="number" id="'+f.id+'" value="'+f.val+'" step="any" oninput="calc()"></div>';
+      html+='<div><label>'+(__EN?(f.labelEn||f.label):f.label)+'</label><input type="number" id="'+f.id+'" value="'+f.val+'" step="any" oninput="calc()"></div>';
     }
   });
   html+='</div>';
@@ -248,34 +256,35 @@ function setN(n){var el=document.getElementById('n');if(el){el.value=n;calc();}}
 function v(id){return parseFloat(document.getElementById(id).value);}
 function fmt(n){return n.toLocaleString('zh-CN',{maximumFractionDigits:4});}
 function calc(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var grid=document.getElementById('grid'),det=document.getElementById('detail');
   if(mode==='ra'){
     var N=v('n'),map=v('map'),unit=document.getElementById('unit').value;
     if(isNaN(N)||isNaN(map)||N<=0){grid.innerHTML='';det.innerHTML='';return;}
     var realCm=map*{cm:1,mm:0.1,m:100}[unit]*N;
     var realM=realCm/100;
-    const __g5='<div class="result-item"><div class="val">'+fmt(realM)+'</div><div class="lbl">实际距离 m</div></div>'+
-      '<div class="result-item"><div class="val">'+fmt(realM/1000)+'</div><div class="lbl">实际距离 km</div></div>';grid.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
-    const __g6='<p>比例尺 1:'+fmt(N)+'，图上 '+map+' '+unit+'</p>'+
-      '<p>实际距离 = '+map+' × '+fmt(N)+' = <strong>'+fmt(realM)+' m</strong>（'+fmt(realM/1000)+' km）</p>';det.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+    const __g5='<div class="result-item"><div class="val">'+fmt(realM)+'</div><div class="lbl">'+(__EN?'Ground distance (m)':'实际距离 m')+'</div></div>'+
+      '<div class="result-item"><div class="val">'+fmt(realM/1000)+'</div><div class="lbl">'+(__EN?'Ground distance (km)':'实际距离 km')+'</div></div>';grid.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+    const __g6=(__EN?'<p>Scale 1:'+fmt(N)+', map ':'<p>比例尺 1:'+fmt(N)+'，图上 ')+map+' '+unit+'</p>'+
+      (__EN?'<p>Ground distance = '+map+' x '+fmt(N)+' = <strong>':'<p>实际距离 = '+map+' × '+fmt(N)+' = <strong>')+fmt(realM)+' m</strong>'+(__EN?' (':'（')+fmt(realM/1000)+' km'+(__EN?')':'）')+'</p>';det.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   }else if(mode==='ar'){
     var N=v('n'),real=v('real'),unit=document.getElementById('unit').value;
     if(isNaN(N)||isNaN(real)||N<=0){grid.innerHTML='';det.innerHTML='';return;}
     var realCm=real*{m:100,km:100000,cm:1}[unit];
     var mapCm=realCm/N;
-    const __g9='<div class="result-item"><div class="val">'+fmt(mapCm)+'</div><div class="lbl">图上距离 cm</div></div>'+
-      '<div class="result-item"><div class="val">'+fmt(mapCm*10)+'</div><div class="lbl">图上距离 mm</div></div>';grid.innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
-    const __g10='<p>比例尺 1:'+fmt(N)+'，实际 '+real+' '+unit+'</p>'+
-      '<p>图上距离 = '+real+' '+unit+' ÷ '+fmt(N)+' = <strong>'+fmt(mapCm)+' cm</strong>（'+fmt(mapCm*10)+' mm）</p>';det.innerHTML=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
+    const __g9='<div class="result-item"><div class="val">'+fmt(mapCm)+'</div><div class="lbl">'+(__EN?'Map distance (cm)':'图上距离 cm')+'</div></div>'+
+      '<div class="result-item"><div class="val">'+fmt(mapCm*10)+'</div><div class="lbl">'+(__EN?'Map distance (mm)':'图上距离 mm')+'</div></div>';grid.innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
+    const __g10=(__EN?'<p>Scale 1:'+fmt(N)+', ground ':'<p>比例尺 1:'+fmt(N)+'，实际 ')+real+' '+unit+'</p>'+
+      (__EN?'<p>Map distance = '+real+' '+unit+' / '+fmt(N)+' = <strong>':'<p>图上距离 = '+real+' '+unit+' ÷ '+fmt(N)+' = <strong>')+fmt(mapCm)+' cm</strong>'+(__EN?' (':'（')+fmt(mapCm*10)+' mm'+(__EN?')':'）')+'</p>';det.innerHTML=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
   }else{
     var map=v('map'),mu=document.getElementById('mu').value,real=v('real'),ru=document.getElementById('ru').value;
     if(isNaN(map)||isNaN(real)||map<=0){grid.innerHTML='';det.innerHTML='';return;}
     var mapCm=unitToCm(map,mu),realCm=unitToCm(real,ru);
     var N=realCm/mapCm;
-    const __g13='<div class="result-item"><div class="val">1:'+fmt(Math.round(N))+'</div><div class="lbl">比例尺</div></div>'+
-      '<div class="result-item"><div class="val">1:'+fmt(N.toFixed(0))+'</div><div class="lbl">近似比例尺</div></div>';grid.innerHTML=(typeof __g13==='number'?(isFinite(__g13)?__g13:'—'):String(__g13).replace(/Infinity|NaN/g,'—'));
-    const __g14='<p>图上 '+map+' '+mu+' = 实际 '+real+' '+ru+'</p>'+
-      '<p>比例尺分母 N = '+realCm.toFixed(2)+' ÷ '+mapCm.toFixed(2)+' = <strong>'+fmt(N.toFixed(0))+'</strong>（1:'+fmt(N.toFixed(0))+'）</p>';det.innerHTML=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
+    const __g13='<div class="result-item"><div class="val">1:'+fmt(Math.round(N))+'</div><div class="lbl">'+(__EN?'Scale':'比例尺')+'</div></div>'+
+      '<div class="result-item"><div class="val">1:'+fmt(N.toFixed(0))+'</div><div class="lbl">'+(__EN?'Approximate scale':'近似比例尺')+'</div></div>';grid.innerHTML=(typeof __g13==='number'?(isFinite(__g13)?__g13:'—'):String(__g13).replace(/Infinity|NaN/g,'—'));
+    const __g14=(__EN?'<p>Map '+map+' '+mu+' = ground '+real+' '+ru+'</p>':'<p>图上 '+map+' '+mu+' = 实际 '+real+' '+ru+'</p>')+
+      (__EN?'<p>Denominator N = '+realCm.toFixed(2)+' / '+mapCm.toFixed(2)+' = <strong>':'<p>比例尺分母 N = '+realCm.toFixed(2)+' ÷ '+mapCm.toFixed(2)+' = <strong>')+fmt(N.toFixed(0))+'</strong>'+(__EN?' (1:':'（1:')+fmt(N.toFixed(0))+(__EN?')':'）')+'</p>';det.innerHTML=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
   }
 }
 function copyResult(){
@@ -284,6 +293,63 @@ function copyResult(){
   ToolBox.copyText(t, i18nText());
 }
 renderPresets();renderPanel();calc();
+
+function __scN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __scList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __scL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __scExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#scTable','scale-converter.csv');}catch(e){} }
+var __scPM={ra:{n:500,map:2,unit:'cm'},ar:{n:5000,real:250,unit:'m'},scale:{map:5,mu:'cm',real:50,ru:'m'}};
+function __scExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var NS=[500,1000,2000,5000,10000,25000,50000,100000];
+        var labs=NS.map(function(n){return '1:'+n.toLocaleString();});
+        var data=NS.map(function(n){return Number((n/100).toFixed(2));});
+        TBKit.chart.line('#scChart',{labels:labs,series:[
+            {name:__scL('ground distance per 1 cm on map (m)','图上 1 cm 对应实地距离 (m)'),data:data}
+        ],height:230,title:__scL('Ground distance per 1 cm on map vs scale','图上 1 cm 对应实地距离随比例尺变化')});
+        var rows=[],i;
+        for(i=0;i<NS.length;i++){
+            rows.push(__scL(['1:'+NS[i].toLocaleString(),(NS[i]/100).toFixed(2),(NS[i]/100000).toFixed(4),(NS[i]/10).toFixed(1)],
+                               ['1:'+NS[i].toLocaleString(),(NS[i]/100).toFixed(2),(NS[i]/100000).toFixed(4),(NS[i]/10).toFixed(1)]));
+        }
+        TBKit.matrix.table('#scTable',{head:__scL(['Scale','Ground per 1cm (m)','Ground per 1cm (km)','Ground per 1mm (m)'],['比例尺','图上 1cm → 实地 (m)','图上 1cm → 实地 (km)','图上 1mm → 实地 (m)']),rows:rows});
+        TBKit.history.record({mode:mode,n:(document.getElementById('n')||{}).value||'',map:(document.getElementById('map')||{}).value||'',real:(document.getElementById('real')||{}).value||''});
+        TBKit.util.diffBox('#scDiff',['mode']);
+        TBKit.history.mount('#scHist',function(v){ if(v.mode==null)return;
+            try{ setMode(v.mode); }catch(e){}
+            ['n','map','real'].forEach(function(k){ var e=document.getElementById(k); if(e&&v[k]) e.value=v[k]; });
+            calc(); });
+    }catch(e){}
+}
+function __scPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#scPresets',[
+            {label:'1:500 地形图（图上 2cm→实地）',labelEn:'1:500 topo map (2cm to ground)',values:{scMode:'ra'}},
+            {label:'1:5000（实地 250m→图上）',labelEn:'1:5000 (250m ground to map)',values:{scMode:'ar'}},
+            {label:'图上 5cm=实地 50m 求比例尺',labelEn:'5cm map = 50m ground, find scale',values:{scMode:'scale'}}
+        ],function(){
+            var m=(document.getElementById('scMode')||{}).value||'ra';
+            try{ setMode(m); }catch(e){}
+            var p=__scPM[m]||{};
+            for(var k in p){ var e=document.getElementById(k); if(e){ e.value=p[k]; } }
+            calc();
+        });
+    }catch(e){}
+}
+
+var __tb_sc0 = calc;
+calc = function(){ __tb_sc0(); try{ __scExtras(); }catch(e){} };
+function __scBoot(){ try{ __scPresets(); }catch(e){} try{ renderPanel(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __scBoot();
+else document.addEventListener("DOMContentLoaded", __scBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

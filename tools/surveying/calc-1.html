@@ -148,12 +148,18 @@ s.parentNode.insertBefore(el, s);
 
     <div id="sections"></div>
 
+    <div id="c1Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcLeveling()">平差计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__c1Export()">导出 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="c1Chart"></div>
+    <div id="c1Table"></div>
+    <div id="c1Diff"></div>
+    <div id="c1Hist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,13 +208,14 @@ s.parentNode.insertBefore(el, s);
 let sectionCount = 0;
 
 function addSection(data) {
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   sectionCount++;
   const div = document.createElement('div');
   div.className = 'input-row';
   div.id = 'sec-' + sectionCount;
   const __g1=`
-    <div><label>测段 ${sectionCount} 高差 h（m）</label><input type="number" class="dh" value="${data ? data.dh : ''}" step="0.001"></div>
-    <div><label>测站数 n / 距离 L（m）</label><input type="number" class="factor" value="${data ? data.factor : ''}" step="0.1" min="0.1"></div>
+    <div><label>${__EN?'Section '+sectionCount+' observed diff h (m)':'测段 '+sectionCount+' 高差 h（m）'}</label><input type="number" id="dh-${sectionCount}" class="dh" value="${data ? data.dh : ''}" step="0.001"></div>
+    <div><label>${__EN?'Setups n / distance L (m)':'测站数 n / 距离 L（m）'}</label><input type="number" id="fc-${sectionCount}" class="factor" value="${data ? data.factor : ''}" step="0.1" min="0.1"></div>
     <div style="display:flex;align-items:flex-end;"><button class="btn danger" style="flex:0 0 auto;" onclick="removeSection(${sectionCount})">删除</button></div>
   `;div.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   document.getElementById('sections').appendChild(div);
@@ -236,6 +243,7 @@ function loadExample() {
 }
 
 function calcLeveling() {
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   const H0 = parseFloat(document.getElementById('bmStart').value) || 0;
   const Hn = parseFloat(document.getElementById('bmEnd').value) || 0;
   const method = document.getElementById('method').value;
@@ -245,25 +253,37 @@ function calcLeveling() {
   let sumObs = 0;
   let sumFactor = 0;
 
-  rows.forEach(row => {
-    const dh = parseFloat(row.querySelector('.dh').value) || 0;
-    const f = parseFloat(row.querySelector('.factor').value) || 0;
-    sections.push({ dh, f });
-    sumObs += dh;
-    sumFactor += f;
-  });
+  // 优先按 id 直读（addSection 模板为每个测段生成 dh-<n>/fc-<n>；已删除测段的 getElementById 返 null 即跳过）
+  for (let si = 1; si <= sectionCount; si++) {
+    const de = document.getElementById('dh-' + si), fe = document.getElementById('fc-' + si);
+    if (de && fe) {
+      const dh = parseFloat(de.value) || 0, f = parseFloat(fe.value) || 0;
+      sections.push({ dh, f });
+      sumObs += dh;
+      sumFactor += f;
+    }
+  }
+  if (!sections.length) {
+    rows.forEach(row => {
+      const dh = parseFloat(row.querySelector('.dh').value) || 0;
+      const f = parseFloat(row.querySelector('.factor').value) || 0;
+      sections.push({ dh, f });
+      sumObs += dh;
+      sumFactor += f;
+    });
+  }
 
   if (sections.length === 0) {
-    ToolBox.setResult('result', '<p class="tip-error">请至少添加一个测段。</p>');
+    ToolBox.setResult('result', __EN?'<p class="tip-error">Add at least one section.</p>':'<p class="tip-error">请至少添加一个测段。</p>');
     return;
   }
 
   const fh = sumObs - (Hn - H0);
-  let tableHtml = '<table><thead><tr><th>测段</th><th>观测高差（m）</th><th>' + (method === 'station' ? '测站数' : '距离（m）') + '</th><th>改正数（mm）</th><th>平差后高差（m）</th><th>高程（m）</th></tr></thead><tbody>';
+  let tableHtml = '<table><thead><tr><th>'+(__EN?'Section':'测段')+'</th><th>'+(__EN?'Observed diff (m)':'观测高差（m）')+'</th><th>' + (method === 'station' ? (__EN?'Setups':'测站数') : (__EN?'Distance (m)':'距离（m）')) + '</th><th>'+(__EN?'Correction (mm)':'改正数（mm）')+'</th><th>'+(__EN?'Adjusted diff (m)':'平差后高差（m）')+'</th><th>'+(__EN?'Elevation (m)':'高程（m）')+'</th></tr></thead><tbody>';
 
   let H = H0;
   sections.forEach((s, idx) => {
-    const vi = -fh * (s.f / sumFactor);
+    const vi = sumFactor > 0 ? -fh * (s.f / sumFactor) : 0;
     const dhAdj = s.dh + vi;
     H += dhAdj;
     tableHtml += `<tr><td>${idx + 1}</td><td>${s.dh.toFixed(4)}</td><td>${s.f.toFixed(1)}</td><td>${(vi * 1000).toFixed(2)}</td><td>${dhAdj.toFixed(4)}</td><td>${H.toFixed(3)}</td></tr>`;
@@ -280,12 +300,12 @@ function calcLeveling() {
 
   const html = `
     <div class="data-grid">
-      <div class="data-card"><div class="num">${sumObs.toFixed(4)}</div><div class="label">Σh 观测（m）</div></div>
-      <div class="data-card"><div class="num">${(Hn - H0).toFixed(4)}</div><div class="label">理论高差（m）</div></div>
-      <div class="data-card"><div class="num">${(fh * 1000).toFixed(2)}</div><div class="label">闭合差 f<sub>h</sub>（mm）</div></div>
-      <div class="data-card"><div class="num">${tolerance.toFixed(1)}</div><div class="label">容许闭合差（mm）</div></div>
+      <div class="data-card"><div class="num">${sumObs.toFixed(4)}</div><div class="label">${__EN?'Σh observed (m)':'Σh 观测（m）'}</div></div>
+      <div class="data-card"><div class="num">${(Hn - H0).toFixed(4)}</div><div class="label">${__EN?'Theoretical diff (m)':'理论高差（m）'}</div></div>
+      <div class="data-card"><div class="num">${(fh * 1000).toFixed(2)}</div><div class="label">${__EN?'Closing error f<sub>h</sub> (mm)':'闭合差 f<sub>h</sub>（mm）'}</div></div>
+      <div class="data-card"><div class="num">${tolerance.toFixed(1)}</div><div class="label">${__EN?'Allowable closing error (mm)':'容许闭合差（mm）'}</div></div>
     </div>
-    <p style="margin-top:12px;font-size:14px;">闭合差判定：${pass ? '<span class="grade-tag grade-excellent">合格</span>' : '<span class="grade-tag grade-fail">超限</span>'}</p>
+    <p style="margin-top:12px;font-size:14px;">${__EN?'Closing error check: ':'闭合差判定：'}${pass ? '<span class="grade-tag grade-excellent">'+(__EN?'Pass':'合格')+'</span>' : '<span class="grade-tag grade-fail">'+(__EN?'Out of limit':'超限')+'</span>'}</p>
     <div style="margin-top:16px;">${tableHtml}</div>
   `;
   const __g3=html;ToolBox.setResult('result',(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')));
@@ -298,7 +318,61 @@ function resetForm() {
   clearSections();
 }
 
-loadExample();
+function __c1N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __c1List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __c1L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __c1Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#c1Table','leveling-adjustment.csv');}catch(e){} }
+function __c1Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var H0=__c1N('bmStart'),Hn=__c1N('bmEnd'),method=document.getElementById('method').value;
+        var secs=[],sumObs=0,sumFactor=0,si;
+        for(si=1;si<=sectionCount;si++){
+            var de=document.getElementById('dh-'+si),fe=document.getElementById('fc-'+si);
+            if(de&&fe){ var dh=parseFloat(de.value)||0,f=parseFloat(fe.value)||0; secs.push({dh:dh,f:f}); sumObs+=dh; sumFactor+=f; }
+        }
+        if(!secs.length)return;
+        var fh=sumObs-(Hn-H0);
+        var labs=[],corr=[],rows=[],H=H0;
+        secs.forEach(function(s,idx){
+            var vi=sumFactor>0?(-fh*(s.f/sumFactor)):0;
+            var adj=s.dh+vi;H+=adj;
+            labs.push((idx+1)+'');
+            corr.push(Number((vi*1000).toFixed(2)));
+            rows.push(__c1L([(idx+1)+'',s.dh.toFixed(4),s.f.toFixed(1),(vi*1000).toFixed(2),adj.toFixed(4),H.toFixed(3)],[(idx+1)+'',s.dh.toFixed(4),s.f.toFixed(1),(vi*1000).toFixed(2),adj.toFixed(4),H.toFixed(3)]));
+        });
+        TBKit.chart.bar('#c1Chart',{labels:labs,series:[{name:__c1L('correction (mm)','改正数 (mm)'),data:corr}],height:220,title:__c1L('Corrections per section (fh='+(fh*1000).toFixed(2)+' mm)','各测段改正数（闭合差 '+(fh*1000).toFixed(2)+' mm）')});
+        TBKit.matrix.table('#c1Table',{head:__c1L(['Section','Observed diff (m)',(method==='station'?'Setups':'Distance (m)'),'Correction (mm)','Adjusted diff (m)','Elevation (m)'],['测段','观测高差 (m)',(method==='station'?'测站数':'距离 (m)'),'改正数 (mm)','平差后高差 (m)','高程 (m)']),rows:rows});
+        TBKit.history.record({fh:Number((fh*1000).toFixed(2)),bmStart:H0,bmEnd:Hn,method:method,sections:JSON.stringify(secs)});
+        TBKit.util.diffBox('#c1Diff',['fh']);
+        TBKit.history.mount('#c1Hist',function(v){ if(v.fh==null)return;
+            document.getElementById('bmStart').value=v.bmStart;document.getElementById('bmEnd').value=v.bmEnd;document.getElementById('method').value=v.method;
+            try{ var arr=JSON.parse(v.sections); if(arr&&arr.length){ clearSections(); arr.forEach(function(s){ addSection({dh:s.dh,factor:s.f}); }); } }catch(e){}
+            calcLeveling(); });
+    }catch(e){}
+}
+function __c1Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#c1Presets',[
+            {label:'示例路线（测站数分配）',labelEn:'Example run (by setups)',values:{bmStart:100,bmEnd:105.632,method:'station','dh-1':1.256,'dh-2':2.318,'dh-3':-0.742,'dh-4':2.805,'fc-1':4,'fc-2':6,'fc-3':5,'fc-4':7}},
+            {label:'附合水准（距离分配，fh=0）',labelEn:'Anchored run (by distance, fh=0)',values:{bmStart:50,bmEnd:50.286,method:'distance','dh-1':0.100,'dh-2':0.086,'dh-3':0.050,'dh-4':0.050,'fc-1':800,'fc-2':1200,'fc-3':700,'fc-4':900}},
+            {label:'超限案例（fh=637mm）',labelEn:'Out-of-limit case (fh=637mm)',values:{bmStart:100,bmEnd:105.000,method:'station','dh-1':1.256,'dh-2':2.318,'dh-3':-0.742,'dh-4':2.805,'fc-1':4,'fc-2':6,'fc-3':5,'fc-4':7}}
+        ],function(){ calcLeveling(); });
+    }catch(e){}
+}
+
+var __tb_c10 = calcLeveling;
+calcLeveling = function(){ __tb_c10(); try{ __c1Extras(); }catch(e){} };
+function __c1Boot(){ try{ loadExample(); }catch(e){} try{ __c1Presets(); }catch(e){} try{ calcLeveling(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __c1Boot();
+else document.addEventListener("DOMContentLoaded", __c1Boot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

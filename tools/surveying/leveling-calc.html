@@ -139,15 +139,22 @@ s.parentNode.insertBefore(el, s);
       <div><label>终点已知高程 Hn (m，闭合水准填)</label><input type="number" id="hn" value="50.000" step="0.001" oninput="calc()"></div>
       <div><label>容许闭合差系数 (mm·√km⁻¹)</label><input type="number" id="tol" value="40" step="1" oninput="calc()"></div>
     </div>
+    <input type="hidden" id="lcRoute" value="">
     <div class="stn-head"><div>测站</div><div>后视 a (m)</div><div>前视 b (m)</div><div>测段距离 (km)</div><div>高差 (m)</div></div>
     <div id="stations"></div>
     <button type="button" class="add-btn" onclick="addStation()">+ 添加测站</button>
+    <div id="lcPresets"></div>
     <div class="toolbar" style="margin-top:14px;">
       <button type="button" class="btn primary" onclick="calc()">计算</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="__lcExport()">导出 CSV</button>
     </div>
     <div class="result-grid" id="grid"></div>
     <div class="result-box" id="detail"></div>
+    <div id="lcChart"></div>
+    <div id="lcTable"></div>
+    <div id="lcDiff"></div>
+    <div id="lcHist"></div>
     <div class="info-box">高差 h = a − b（后视减前视）；高程逐站累加。闭合差 fh = 实测终点高程 − 已知高程；容许闭合差 = ±系数×√(ΣL) mm。普通水准系数常取 ±40。</div>
   </div>
 
@@ -218,6 +225,7 @@ function addStation(){STN.push({a:0,b:0,L:0.5});renderStations();calc();}
 function delStation(i){if(STN.length>1){STN.splice(i,1);renderStations();calc();}}
 function v(id){return parseFloat(document.getElementById(id).value);}
 function calc(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var h0=v('h0'),hn=v('hn'),tol=v('tol');
   var grid=document.getElementById('grid'),det=document.getElementById('detail');
   if(isNaN(h0)){grid.innerHTML='';det.innerHTML='';return;}
@@ -229,20 +237,19 @@ function calc(){
     rows.push([i+1,a.toFixed(3),b.toFixed(3),L.toFixed(2),h.toFixed(3),cur.toFixed(3)]);
   });
   var hEnd=h0+sumH;
-  var cards='<div class="result-item"><div class="val">'+sumH.toFixed(3)+'</div><div class="lbl">累计高差 m</div></div>'+
-    '<div class="result-item"><div class="val">'+hEnd.toFixed(3)+'</div><div class="lbl">终点实测高程 m</div></div>'+
-    '<div class="result-item"><div class="val">'+sumL.toFixed(2)+'</div><div class="lbl">路线总长 km</div></div>';
-  var detailHtml='<h3>高程计算表</h3>'+ToolBox.createTable(
-    ['测站','后视a','前视b','距离km','高差m','高程m'],rows);
+  var cards='<div class="result-item"><div class="val">'+sumH.toFixed(3)+'</div><div class="lbl">'+(__EN?'Cumulative diff (m)':'累计高差 m')+'</div></div>'+
+    '<div class="result-item"><div class="val">'+hEnd.toFixed(3)+'</div><div class="lbl">'+(__EN?'End elevation (m)':'终点实测高程 m')+'</div></div>'+
+    '<div class="result-item"><div class="val">'+sumL.toFixed(2)+'</div><div class="lbl">'+(__EN?'Route length (km)':'路线总长 km')+'</div></div>';
+  var detailHtml=(__EN?'<h3>Elevation table</h3>':'<h3>高程计算表</h3>')+ToolBox.createTable(__EN?['Station','Backsight a','Foresight b','Distance (km)','Diff (m)','Elevation (m)']:['测站','后视a','前视b','距离km','高差m','高程m'],rows);
   if(!isNaN(hn)){
     var fh=(hEnd-hn)*1000; // mm
     var allow=tol*Math.sqrt(sumL||0);
     var ok=Math.abs(fh)<=allow;
     var cls=ok?'grade-excellent':'grade-fail';
-    cards+='<div class="result-item"><div class="val">'+fh.toFixed(1)+'</div><div class="lbl">闭合差 mm</div></div>';
-    detailHtml+='<p style="margin-top:10px;">闭合差 fh = '+hEnd.toFixed(3)+' − '+hn.toFixed(3)+' = <strong>'+(fh/1000).toFixed(3)+' m</strong>（'+fh.toFixed(1)+' mm）</p>'+
-      '<p>容许闭合差 = ±'+tol+'×√'+sumL.toFixed(2)+' = ±'+allow.toFixed(1)+' mm</p>'+
-      '<p>检核：<span class="grade-tag '+cls+'">'+(ok?'符合精度要求':'超限，需重测')+'</span></p>';
+    cards+='<div class="result-item"><div class="val">'+fh.toFixed(1)+'</div><div class="lbl">'+(__EN?'Closing error (mm)':'闭合差 mm')+'</div></div>';
+    detailHtml+=(__EN?'<p style="margin-top:10px;">Closing error fh = ':'<p style="margin-top:10px;">闭合差 fh = ')+hEnd.toFixed(3)+' − '+hn.toFixed(3)+' = <strong>'+(fh/1000).toFixed(3)+' m</strong>'+(__EN?' (':'（')+fh.toFixed(1)+' mm'+(__EN?')':'）')+'</p>'+
+      (__EN?'<p>Allowable closing error = ±':'<p>容许闭合差 = ±')+tol+'×√'+sumL.toFixed(2)+' = ±'+allow.toFixed(1)+' mm</p>'+
+      (__EN?'<p>Check: <span class="grade-tag '+cls+'">':'<p>检核：<span class="grade-tag '+cls+'">')+(ok?(__EN?'Pass':'符合精度要求'):(__EN?'Out of limit - re-survey':'超限，需重测'))+'</span></p>';
   }
   const __g4=cards;grid.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const __g5=detailHtml;det.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
@@ -254,6 +261,70 @@ function copyResult(){
 }
 renderStations();
 calc();
+
+function __lcN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lcList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __lcL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __lcExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#lcTable','leveling-calc.csv');}catch(e){} }
+function __lcRoute(name){
+  var D3=[{a:1.524,b:0.897,L:0.8},{a:1.342,b:1.105,L:1.0},{a:0.981,b:1.432,L:0.9}];
+  var D4=[{a:1.100,b:0.900,L:0.6},{a:1.500,b:1.200,L:0.8},{a:0.800,b:1.100,L:0.7},{a:1.200,b:0.986,L:0.6}];
+  var src=name==='mtn4'?D4:D3;
+  STN.length=0;src.forEach(function(s){STN.push(s);});
+  renderStations();
+}
+function __lcExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var h0=__lcN('h0');
+        if(!isFinite(h0))return;
+        var labs=[],elev=[],rows=[],cur=h0,sumH=0,sumL=0;
+        STN.forEach(function(s,i){
+            var a=parseFloat(s.a)||0,b=parseFloat(s.b)||0,L=parseFloat(s.L)||0;
+            var h=a-b;sumH+=h;sumL+=L;cur+=h;
+            labs.push((i+1)+'');
+            elev.push(Number(cur.toFixed(3)));
+            rows.push(__lcL([(i+1)+'',a.toFixed(3),b.toFixed(3),L.toFixed(2),h.toFixed(3),cur.toFixed(3)],[(i+1)+'',a.toFixed(3),b.toFixed(3),L.toFixed(2),h.toFixed(3),cur.toFixed(3)]));
+        });
+        if(!labs.length)return;
+        TBKit.chart.line('#lcChart',{labels:labs,series:[
+            {name:__lcL('station elevation (m)','测站高程 (m)'),data:elev}
+        ],height:230,title:__lcL('Elevation profile (H0='+h0.toFixed(3)+' m)','高程剖面（起点高程 '+h0.toFixed(3)+' m）')});
+        TBKit.matrix.table('#lcTable',{head:__lcL(['Station','Backsight a (m)','Foresight b (m)','Distance (km)','Diff (m)','Elevation (m)'],['测站','后视 a (m)','前视 b (m)','距离 (km)','高差 (m)','高程 (m)']),rows:rows});
+        TBKit.history.record({sumH:Number(sumH.toFixed(3)),h0:h0,hn:__lcN('hn'),tol:__lcN('tol'),stn:JSON.stringify(STN)});
+        TBKit.util.diffBox('#lcDiff',['sumH']);
+        TBKit.history.mount('#lcHist',function(v){ if(v.sumH==null)return;
+            document.getElementById('h0').value=v.h0;document.getElementById('hn').value=v.hn;document.getElementById('tol').value=v.tol;
+            try{ var arr=JSON.parse(v.stn); if(arr&&arr.length){ STN.length=0; arr.forEach(function(s){STN.push(s);}); renderStations(); } }catch(e){}
+            calc(); });
+    }catch(e){}
+}
+function __lcPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#lcPresets',[
+            {label:'闭合路线 3 站（fh=0）',labelEn:'Closed loop 3 stations (fh=0)',values:{h0:50,hn:50.413,tol:40,lcRoute:'loop3'}},
+            {label:'附合路线（tol 30）',labelEn:'Anchored run (tol 30)',values:{h0:52.300,hn:51.800,tol:30,lcRoute:'anchored'}},
+            {label:'四等山地 4 站（tol 20）',labelEn:'4th-order mountain 4 stations (tol 20)',values:{h0:100,hn:100.414,tol:20,lcRoute:'mtn4'}}
+        ],function(){
+            var r=(document.getElementById('lcRoute')||{}).value||'loop3';
+            try{ __lcRoute(r); }catch(e){}
+            calc();
+        });
+    }catch(e){}
+}
+
+var __tb_lc0 = calc;
+calc = function(){ __tb_lc0(); try{ __lcExtras(); }catch(e){} };
+function __lcBoot(){ try{ __lcPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __lcBoot();
+else document.addEventListener("DOMContentLoaded", __lcBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

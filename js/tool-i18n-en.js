@@ -13,6 +13,7 @@ window.__TI18N_EN = {
     '添加':'Add','删除':'Delete','移除':'Remove','确定':'OK','取消':'Cancel','关闭':'Close',
     '打开':'Open','搜索':'Search','筛选':'Filter','排序':'Sort','刷新':'Refresh','导出':'Export','导出 CSV':'Export CSV',
     '导入':'Import','打印':'Print','分享':'Share','重置全部':'Reset All',
+    '添加测站':'Add Station','添加测段':'Add Section','平差计算':'Adjust','图上→实际':'Map→Ground','实际→图上':'Ground→Map','图上+实际→比例尺':'Map+Ground→Scale',
     '输入关键词':'Input Keyword','输入数据（逗号或换行分隔）':'Input Data (comma/newline separated)',
     '输入数值':'Input Value','生成数量':'Count to Generate','从':'From','到':'To','换算系数':'Conversion Factor',
     '模拟次数':'Simulation Count','概率(%)':'Probability (%)','输入文本':'Input Text','性别':'Gender',
