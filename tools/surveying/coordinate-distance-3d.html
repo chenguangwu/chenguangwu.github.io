@@ -150,12 +150,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="c3Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__c3Export()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="c3Chart" role="img" aria-label="结果可视化"></div>
+    <div id="c3Table"></div>
+    <div id="c3Diff"></div>
+    <div id="c3Hist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -216,6 +223,45 @@ function resetForm(){document.getElementById('x1').value = '0';
       document.getElementById('z2').value = '50';
       calcTool();}
 calcTool();
+
+function __c3N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __c3List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __c3L(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __c3Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#c3Table','distance-3d.csv');}catch(e){} }
+function __c3Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var x1=__c3N('x1'),y1=__c3N('y1'),z1=__c3N('z1'),x2=__c3N('x2'),y2=__c3N('y2'),z2=__c3N('z2');
+        var hd=Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)), dz=z2-z1;
+        var d=Math.sqrt(hd*hd+dz*dz);
+        TBKit.chart.bar('#c3Chart',{labels:['水平距离','高差 |Δz|','空间距离'],series:[{name:__c3L('m','米'),data:[hd,Math.abs(dz),d]}],height:220,title:__c3L('3D distance decomposition','三维距离分解')});
+        var rows=__c3L(
+            [['P1',x1.toFixed(2)+', '+y1.toFixed(2)+', '+z1.toFixed(2)],['P2',x2.toFixed(2)+', '+y2.toFixed(2)+', '+z2.toFixed(2)],['Δx',(x2-x1).toFixed(3)],['Δy',(y2-y1).toFixed(3)],['Δz',dz.toFixed(3)],['horizontal',hd.toFixed(3)],['slope distance',d.toFixed(3)],['grade (%)',(hd>0?(dz/hd*100).toFixed(2):'—')]],
+            [['P1',x1.toFixed(2)+', '+y1.toFixed(2)+', '+z1.toFixed(2)],['P2',x2.toFixed(2)+', '+y2.toFixed(2)+', '+z2.toFixed(2)],['Δx',(x2-x1).toFixed(3)],['Δy',(y2-y1).toFixed(3)],['Δz',dz.toFixed(3)],['水平距离',hd.toFixed(3)],['空间距离',d.toFixed(3)],['坡度 (%)',(hd>0?(dz/hd*100).toFixed(2):'—')]]);
+        TBKit.matrix.table('#c3Table',{head:__c3L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({d:Number(d.toFixed(3))});
+        TBKit.util.diffBox('#c3Diff',['d']);
+        TBKit.history.mount('#c3Hist',function(v){ if(v.d!=null){document.getElementById('x1').value=v.x1;document.getElementById('y1').value=v.y1;document.getElementById('z1').value=v.z1;document.getElementById('x2').value=v.x2;document.getElementById('y2').value=v.y2;document.getElementById('z2').value=v.z2;} calcTool(); });
+    }catch(e){}
+}
+function __c3Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#c3Presets',[
+            {label:'标准 (0,0,0)-(100,100,50)',labelEn:'Standard (0,0,0)-(100,100,50)',values:{x1:0,y1:0,z1:0,x2:100,y2:100,z2:50}},
+            {label:'纯水平 (0,0,0)-(100,100,0)',labelEn:'Flat (0,0,0)-(100,100,0)',values:{x1:0,y1:0,z1:0,x2:100,y2:100,z2:0}},
+            {label:'纯高差 (0,0,0)-(0,0,50)',labelEn:'Vertical (0,0,0)-(0,0,50)',values:{x1:0,y1:0,z1:0,x2:0,y2:0,z2:50}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_c30 = calcTool;
+calcTool = function(){ __tb_c30(); try{ __c3Extras(); }catch(e){} };
+function __c3Boot(){ try{ __c3Presets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __c3Boot);
+else __c3Boot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

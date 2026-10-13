@@ -134,12 +134,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="spPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__spExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="spChart" role="img" aria-label="结果可视化"></div>
+    <div id="spTable"></div>
+    <div id="spDiff"></div>
+    <div id="spHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +259,47 @@ function resetForm(){document.getElementById('h').value = '5';
       document.getElementById('d').value = '100';
       calcTool();}
 calcTool();
+
+function __spN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __spL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __spExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#spTable','slope-percent.csv');}catch(e){} }
+function __spExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var h=__spN('h'), d=__spN('d');
+        if(!(d>0))return;
+        var pct=h/d*100, ang=Math.atan(h/d)*180/Math.PI, sl=Math.sqrt(h*h+d*d);
+        var angs=[],data=[],i;
+        for(i=0;i<=15;i++){ var a=i*3; angs.push(a+'°'); data.push(Math.tan(a*Math.PI/180)*100); }
+        TBKit.chart.line('#spChart',{labels:angs,series:[{name:__spL('grade (%)','坡度 (%)'),data:data}],height:230,title:__spL('Grade percent vs slope angle','坡度百分比随坡度角变化')});
+        var rows=__spL(
+            [['rise h',h.toFixed(3)],['run d',d.toFixed(3)],['grade (%)',pct.toFixed(2)],['slope angle (°)',ang.toFixed(2)],['slope distance',sl.toFixed(3)],['grade ratio 1:m',(1/(h/d||1)).toFixed(2)],['current angle on curve',angs[Math.max(0,Math.min(15,Math.round(ang/3)))]+'' ]],
+            [['高差 h',h.toFixed(3)],['水平距离 d',d.toFixed(3)],['坡度 (%)',pct.toFixed(2)],['坡度角 (°)',ang.toFixed(2)],['斜距',sl.toFixed(3)],['坡度倒数 1:m',(1/(h/d||1)).toFixed(2)],['对应曲线点',angs[Math.max(0,Math.min(15,Math.round(ang/3)))]+'' ]]);
+        TBKit.matrix.table('#spTable',{head:__spL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({pct:Number(pct.toFixed(2))});
+        TBKit.util.diffBox('#spDiff',['pct']);
+        TBKit.history.mount('#spHist',function(v){ if(v.pct!=null){document.getElementById('h').value=v.h;document.getElementById('d').value=v.d;} calcTool(); });
+    }catch(e){}
+}
+function __spPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#spPresets',[
+            {label:'平坡 1/100',labelEn:'Gentle 1/100',values:{h:1,d:100}},
+            {label:'标准 5/100',labelEn:'Standard 5/100',values:{h:5,d:100}},
+            {label:'陡坡 20/100',labelEn:'Steep 20/100',values:{h:20,d:100}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_sp0 = calcTool;
+calcTool = function(){ __tb_sp0(); try{ __spExtras(); }catch(e){} };
+function __spBoot(){ try{ __spPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __spBoot);
+else __spBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

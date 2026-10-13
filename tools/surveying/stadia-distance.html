@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sdPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sdExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="sdChart" role="img" aria-label="结果可视化"></div>
+    <div id="sdTable"></div>
+    <div id="sdDiff"></div>
+    <div id="sdHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,48 @@ function resetForm(){document.getElementById('s').value = '1.2';
       document.getElementById('a').value = '5';
       calcTool();}
 calcTool();
+
+function __sdN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sdList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __sdL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __sdExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#sdTable','stadia-distance.csv');}catch(e){} }
+function __sdExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var s=__sdN('s'), a=__sdN('a');
+        if(!(s>0))return;
+        function D(aa){ return 100*s*Math.cos(aa*Math.PI/180)*Math.cos(aa*Math.PI/180); }
+        var angs=[],data=[],i;
+        for(i=0;i<=10;i++){ var aa=i*3; angs.push(aa+'°'); data.push(D(aa)); }
+        TBKit.chart.line('#sdChart',{labels:angs,series:[{name:__sdL('horizontal distance (m)','水平视距 (m)'),data:data}],height:230,title:__sdL('Stadia correction: D vs vertical angle','视距修正：水平距离随竖直角变化')});
+        var rad=a*Math.PI/180;
+        var rows=__sdL(
+            [['staff interval s',s.toFixed(3)],['vertical angle (°)',a.toFixed(3)],['horizontal distance (m)',D(a).toFixed(3)],['height difference (m)',(100*s*Math.sin(rad)*Math.cos(rad)).toFixed(3)],['100×s (m)',(100*s).toFixed(3)],['correction factor',(Math.cos(rad)*Math.cos(rad)).toFixed(4)],['loss vs flat (m)',(100*s-D(a)).toFixed(3)]],
+            [['尺间隔 s',s.toFixed(3)],['竖直角 (°)',a.toFixed(3)],['水平视距 (m)',D(a).toFixed(3)],['高差 (m)',(100*s*Math.sin(rad)*Math.cos(rad)).toFixed(3)],['斜距 100×s (m)',(100*s).toFixed(3)],['修正系数',(Math.cos(rad)*Math.cos(rad)).toFixed(4)],['较水平损失 (m)',(100*s-D(a)).toFixed(3)]]);
+        TBKit.matrix.table('#sdTable',{head:__sdL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({D:Number(D(a).toFixed(3))});
+        TBKit.util.diffBox('#sdDiff',['D']);
+        TBKit.history.mount('#sdHist',function(v){ if(v.D!=null){document.getElementById('s').value=v.s;document.getElementById('a').value=v.a;} calcTool(); });
+    }catch(e){}
+}
+function __sdPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#sdPresets',[
+            {label:'水平观测 s=1.2 a=0',labelEn:'Flat s=1.2 a=0',values:{s:1.2,a:0}},
+            {label:'小竖角 s=1.2 a=5',labelEn:'Small angle s=1.2 a=5',values:{s:1.2,a:5}},
+            {label:'大竖角 s=2 a=15',labelEn:'Large angle s=2 a=15',values:{s:2,a:15}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_sd0 = calcTool;
+calcTool = function(){ __tb_sd0(); try{ __sdExtras(); }catch(e){} };
+function __sdBoot(){ try{ __sdPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __sdBoot);
+else __sdBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

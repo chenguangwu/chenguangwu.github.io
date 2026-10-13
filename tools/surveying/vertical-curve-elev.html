@@ -146,12 +146,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="vcPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__vcExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="vcChart" role="img" aria-label="结果可视化"></div>
+    <div id="vcTable"></div>
+    <div id="vcDiff"></div>
+    <div id="vcHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +273,48 @@ function resetForm(){document.getElementById('y0').value = '100';
       document.getElementById('x').value = '20';
       calcTool();}
 calcTool();
+
+function __vcN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __vcList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __vcL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __vcExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#vcTable','vertical-curve.csv');}catch(e){} }
+function __vcExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var y0=__vcN('y0'), g1=__vcN('g1')/100, g2=__vcN('g2')/100, L=__vcN('L'), x=__vcN('x');
+        if(!(L>0))return;
+        function elev(xx){ return y0+g1*xx+(g2-g1)*xx*xx/(2*L); }
+        var labs=[],data=[],i;
+        for(i=0;i<=20;i++){ var xx=L*i/20; labs.push(xx.toFixed(0)); data.push(elev(xx)); }
+        TBKit.chart.line('#vcChart',{labels:labs,series:[{name:__vcL('elevation (m)','高程 (m)'),data:data}],height:230,title:__vcL('Vertical curve profile (L='+L+'m)','竖曲线高程剖面（L='+L+'m）')});
+        var y=elev(x);
+        var rows=__vcL(
+            [['PVI elevation',y0.toFixed(3)],['grade g1 (%)',(g1*100).toFixed(2)],['grade g2 (%)',(g2*100).toFixed(2)],['curve length L (m)',L.toFixed(2)],['station x (m)',x.toFixed(2)],['elevation at x',y.toFixed(3)],['rise from PVI',(y-y0).toFixed(3)],['start elevation',elev(0).toFixed(3)],['end elevation',elev(L).toFixed(3)],['K value (L/|A|)',(L/Math.abs(g2*100-g1*100)).toFixed(2)]],
+            [['变坡点高程',y0.toFixed(3)],['前坡比 g1 (%)',(g1*100).toFixed(2)],['后坡比 g2 (%)',(g2*100).toFixed(2)],['曲线长 L (m)',L.toFixed(2)],['桩距 x (m)',x.toFixed(2)],['该桩高程',y.toFixed(3)],['相对变坡点高差',(y-y0).toFixed(3)],['起点高程',elev(0).toFixed(3)],['终点高程',elev(L).toFixed(3)],['K 值 (L/|A|)',(L/Math.abs(g2*100-g1*100)).toFixed(2)]]);
+        TBKit.matrix.table('#vcTable',{head:__vcL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({y:Number(y.toFixed(3))});
+        TBKit.util.diffBox('#vcDiff',['y']);
+        TBKit.history.mount('#vcHist',function(v){ if(v.y!=null){document.getElementById('y0').value=v.y0;document.getElementById('g1').value=v.g1;document.getElementById('g2').value=v.g2;document.getElementById('L').value=v.L;document.getElementById('x').value=v.x;} calcTool(); });
+    }catch(e){}
+}
+function __vcPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#vcPresets',[
+            {label:'凸曲线 +3%→-2%',labelEn:'Convex +3%→-2%',values:{y0:100,g1:3,g2:-2,L:60,x:20}},
+            {label:'凹曲线 -2%→+3%',labelEn:'Concave -2%→+3%',values:{y0:100,g1:-2,g2:3,L:60,x:30}},
+            {label:'同向渐变 2%→4%',labelEn:'Same-grade 2%→4%',values:{y0:50,g1:2,g2:4,L:80,x:40}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_vc0 = calcTool;
+calcTool = function(){ __tb_vc0(); try{ __vcExtras(); }catch(e){} };
+function __vcBoot(){ try{ __vcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __vcBoot);
+else __vcBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

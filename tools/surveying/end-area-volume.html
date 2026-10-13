@@ -136,12 +136,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="evPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__evExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="evChart" role="img" aria-label="结果可视化"></div>
+    <div id="evTable"></div>
+    <div id="evDiff"></div>
+    <div id="evHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +208,46 @@ function resetForm(){document.getElementById('A1').value = '10';
       document.getElementById('L').value = '50';
       calcTool();}
 calcTool();
+
+function __evN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __evList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __evL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __evExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#evTable','end-area-volume.csv');}catch(e){} }
+function __evExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var A1=__evN('A1'), A2=__evN('A2'), L=__evN('L');
+        if(!(L>0&&A1>=0&&A2>=0))return;
+        var V=(A1+A2)/2*L, avg=(A1+A2)/2;
+        var pris=(A1>=0&&A2>=0)?(A1+A2+Math.sqrt(A1*A2))/6*L:V;
+        TBKit.chart.bar('#evChart',{labels:['平均断面法','棱柱法（修正）'],series:[{name:__evL('volume (m³)','体积 (m³)'),data:[V,pris]}],height:220,title:__evL('Average-end vs prismoidal formula','平均断面法 vs 棱柱法')});
+        var rows=__evL(
+            [['area A1 (m²)',A1.toFixed(3)],['area A2 (m²)',A2.toFixed(3)],['length L (m)',L.toFixed(2)],['average area (m²)',avg.toFixed(3)],['volume avg-end (m³)',V.toFixed(2)],['volume prismoidal (m³)',pris.toFixed(2)],['correction (m³)',(pris-V).toFixed(2)],['area difference',Math.abs(A1-A2).toFixed(3)]],
+            [['断面 A1 (m²)',A1.toFixed(3)],['断面 A2 (m²)',A2.toFixed(3)],['长度 L (m)',L.toFixed(2)],['平均断面面积 (m²)',avg.toFixed(3)],['平均断面法体积 (m³)',V.toFixed(2)],['棱柱法体积 (m³)',pris.toFixed(2)],['修正量 (m³)',(pris-V).toFixed(2)],['面积差',Math.abs(A1-A2).toFixed(3)]]);
+        TBKit.matrix.table('#evTable',{head:__evL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({V:Number(V.toFixed(2))});
+        TBKit.util.diffBox('#evDiff',['V']);
+        TBKit.history.mount('#evHist',function(v){ if(v.V!=null){document.getElementById('A1').value=v.A1;document.getElementById('A2').value=v.A2;document.getElementById('L').value=v.L;} calcTool(); });
+    }catch(e){}
+}
+function __evPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#evPresets',[
+            {label:'渐变 10→20',labelEn:'Transition 10→20',values:{A1:10,A2:20,L:50}},
+            {label:'等断面 10→10',labelEn:'Uniform 10→10',values:{A1:10,A2:10,L:50}},
+            {label:'大差 5→40',labelEn:'Large diff 5→40',values:{A1:5,A2:40,L:60}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_ev0 = calcTool;
+calcTool = function(){ __tb_ev0(); try{ __evExtras(); }catch(e){} };
+function __evBoot(){ try{ __evPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __evBoot);
+else __evBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

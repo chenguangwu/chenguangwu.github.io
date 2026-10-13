@@ -142,12 +142,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="c2Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__c2Export()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="c2Chart" role="img" aria-label="结果可视化"></div>
+    <div id="c2Table"></div>
+    <div id="c2Diff"></div>
+    <div id="c2Hist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -206,6 +213,45 @@ function resetForm(){document.getElementById('x1').value = '0';
       document.getElementById('y2').value = '4';
       calcTool();}
 calcTool();
+
+function __c2N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __c2List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __c2L(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __c2Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#c2Table','distance-2d.csv');}catch(e){} }
+function __c2Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var x1=__c2N('x1'),y1=__c2N('y1'),x2=__c2N('x2'),y2=__c2N('y2');
+        var D=Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+        var az=Math.atan2(x2-x1,y2-y1)*180/Math.PI; if(az<0)az+=360;
+        TBKit.chart.scatter('#c2Chart',{points:[[x1,y1],[x2,y2]],height:230,xLabel:__c2L('X','X 轴'),title:__c2L('Two points in plane ('+D.toFixed(2)+' m)','平面两点（距离 '+D.toFixed(2)+' m）')});
+        var rows=__c2L(
+            [['P1 (x, y)',x1.toFixed(3)+', '+y1.toFixed(3)],['P2 (x, y)',x2.toFixed(3)+', '+y2.toFixed(3)],['Δx',(x2-x1).toFixed(3)],['Δy',(y2-y1).toFixed(3)],['distance D (m)',D.toFixed(3)],['azimuth (°)',az.toFixed(2)],['midpoint','('+((x1+x2)/2).toFixed(2)+', '+((y1+y2)/2).toFixed(2)+')']],
+            [['P1 (x, y)',x1.toFixed(3)+', '+y1.toFixed(3)],['P2 (x, y)',x2.toFixed(3)+', '+y2.toFixed(3)],['Δx',(x2-x1).toFixed(3)],['Δy',(y2-y1).toFixed(3)],['水平距离 D (m)',D.toFixed(3)],['方位角 (°)',az.toFixed(2)],['中点','('+((x1+x2)/2).toFixed(2)+', '+((y1+y2)/2).toFixed(2)+')']]);
+        TBKit.matrix.table('#c2Table',{head:__c2L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({D:Number(D.toFixed(3))});
+        TBKit.util.diffBox('#c2Diff',['D']);
+        TBKit.history.mount('#c2Hist',function(v){ if(v.D!=null){document.getElementById('x1').value=v.x1;document.getElementById('y1').value=v.y1;document.getElementById('x2').value=v.x2;document.getElementById('y2').value=v.y2;} calcTool(); });
+    }catch(e){}
+}
+function __c2Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#c2Presets',[
+            {label:'3-4-5 三角形',labelEn:'3-4-5 triangle',values:{x1:0,y1:0,x2:3,y2:4}},
+            {label:'轴对齐 (0,0)-(10,0)',labelEn:'Axis-aligned (0,0)-(10,0)',values:{x1:0,y1:0,x2:10,y2:0}},
+            {label:'对角 (2,3)-(8,9)',labelEn:'Diagonal (2,3)-(8,9)',values:{x1:2,y1:3,x2:8,y2:9}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_c20 = calcTool;
+calcTool = function(){ __tb_c20(); try{ __c2Extras(); }catch(e){} };
+function __c2Boot(){ try{ __c2Presets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __c2Boot);
+else __c2Boot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
