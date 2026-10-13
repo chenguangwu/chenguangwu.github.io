@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>层数</label><input type="number" id="L" value="12" step="any" oninput="calc()"></div>
     <div class="input-row"><label>隐藏维度</label><input type="number" id="d" value="768" step="any" oninput="calc()"></div>
     <div class="input-row"><label>词表大小</label><input type="number" id="vocab" value="30000" step="any" oninput="calc()"></div>
+    <div id="tpPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__tpExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="tpChart" role="img" aria-label="结果可视化"></div>
+    <div id="tpTable"></div>
+    <div id="tpDiff"></div>
+    <div id="tpHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -218,6 +225,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __tpN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tpList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __tpL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __tpExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#tpTable','transformer-params.csv');}catch(e){} }
+function __tpExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var L=__tpN('L'), d=__tpN('d'), vocab=__tpN('vocab');
+        if(!(L>0&&d>0&&vocab>0))return;
+        var main=12*L*d*d/1e8, emb=vocab*d/1e8, total=main+emb;
+        TBKit.chart.pie('#tpChart',{items:[
+            {label:__tpL('Transformer body','Transformer 主体'),value:main},
+            {label:__tpL('Embeddings','词表嵌入'),value:emb}
+        ],height:230,title:__tpL('Parameter share','参数占比')});
+        var rows=__tpL(
+            [['layers L',L.toFixed(0)],['model dim d',d.toFixed(0)],['vocab size',vocab.toFixed(0)],['body params (×1e8)',main.toFixed(2)],['embedding params (×1e8)',emb.toFixed(2)],['total (×1e8)',total.toFixed(2)],['params per layer (M)',(12*d*d/1e6).toFixed(2)]],
+            [['层数 L',L.toFixed(0)],['模型维度 d',d.toFixed(0)],['词表大小',vocab.toFixed(0)],['主体参数 (亿)',main.toFixed(2)],['嵌入参数 (亿)',emb.toFixed(2)],['合计 (亿)',total.toFixed(2)],['每层参数 (M)',(12*d*d/1e6).toFixed(2)]]);
+        TBKit.matrix.table('#tpTable',{head:__tpL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({total:Number(total.toFixed(2))});
+        TBKit.util.diffBox('#tpDiff',['total']);
+        TBKit.history.mount('#tpHist',function(v){ if(v.total!=null){document.getElementById('L').value=v.L;document.getElementById('d').value=v.d;document.getElementById('vocab').value=v.vocab;} calc(); });
+    }catch(e){}
+}
+function __tpPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#tpPresets',[
+            {label:'GPT-2 small L12 d768 v50257',labelEn:'GPT-2 small L12 d768 v50257',values:{L:12,d:768,vocab:50257}},
+            {label:'BERT-base L12 d768 v30522',labelEn:'BERT-base L12 d768 v30522',values:{L:12,d:768,vocab:30522}},
+            {label:'GPT-3 级 L96 d12288 v50257',labelEn:'GPT-3 scale L96 d12288 v50257',values:{L:96,d:12288,vocab:50257}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_tp0 = calc;
+calc = function(){ __tb_tp0(); try{ __tpExtras(); }catch(e){} };
+function __tpBoot(){ try{ __tpPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __tpBoot);
+else __tpBoot();
 </script>
 
 <script type="application/ld+json">

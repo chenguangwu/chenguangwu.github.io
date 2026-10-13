@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>对话 tokens</label><input type="number" id="prompt" value="1500" step="any" oninput="calc()"></div>
     <div class="input-row"><label>回复 tokens</label><input type="number" id="resp" value="1000" step="any" oninput="calc()"></div>
     <div class="input-row"><label>上下文上限</label><input type="number" id="ctx" value="128000" step="any" oninput="calc()"></div>
+    <div id="cwPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__cwExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="cwChart" role="img" aria-label="结果可视化"></div>
+    <div id="cwTable"></div>
+    <div id="cwDiff"></div>
+    <div id="cwHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -225,6 +232,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __cwN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cwList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __cwL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __cwExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#cwTable','context-window.csv');}catch(e){} }
+function __cwExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var system=__cwN('system'), prompt=__cwN('prompt'), resp=__cwN('resp'), ctx=__cwN('ctx');
+        if(!(ctx>0))return;
+        var used=system+prompt+resp, pct=used/ctx*100, left=ctx-used;
+        TBKit.chart.gauge('#cwChart',{value:pct,max:100,text:pct.toFixed(1)+'%',label:__cwL('context usage','上下文占用率'),height:170,title:__cwL('Context window usage','上下文窗口占用')});
+        var rows=__cwL(
+            [['system tokens',system.toFixed(0)],['prompt tokens',prompt.toFixed(0)],['response budget',resp.toFixed(0)],['used',used.toFixed(0)],['context window',ctx.toFixed(0)],['remaining',left.toFixed(0)],['usage',pct.toFixed(1)+'%'],['over budget?',used>ctx?'YES':'no']],
+            [['系统提示',system.toFixed(0)],['用户输入',prompt.toFixed(0)],['回复预留',resp.toFixed(0)],['已用',used.toFixed(0)],['上下文窗口',ctx.toFixed(0)],['剩余',left.toFixed(0)],['占用率',pct.toFixed(1)+'%'],['是否超限',used>ctx?'已超':'未超']]);
+        TBKit.matrix.table('#cwTable',{head:__cwL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({pct:Number(pct.toFixed(1))});
+        TBKit.util.diffBox('#cwDiff',['pct']);
+        TBKit.history.mount('#cwHist',function(v){ if(v.pct!=null){document.getElementById('system').value=v.system;document.getElementById('prompt').value=v.prompt;document.getElementById('resp').value=v.resp;document.getElementById('ctx').value=v.ctx;} calc(); });
+    }catch(e){}
+}
+function __cwPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#cwPresets',[
+            {label:'短问答 ctx=8K',labelEn:'Short chat ctx=8K',values:{system:200,prompt:500,resp:500,ctx:8192}},
+            {label:'长文档 ctx=32K',labelEn:'Long doc ctx=32K',values:{system:500,prompt:30000,resp:2000,ctx:32768}},
+            {label:'代码助手 ctx=16K',labelEn:'Code assistant ctx=16K',values:{system:1000,prompt:8000,resp:4000,ctx:16384}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_cw0 = calc;
+calc = function(){ __tb_cw0(); try{ __cwExtras(); }catch(e){} };
+function __cwBoot(){ try{ __cwPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __cwBoot);
+else __cwBoot();
 </script>
 
 <script type="application/ld+json">

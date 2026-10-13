@@ -100,7 +100,8 @@
 - [x] **AI-1 已完成 7 页**（lr-decay/lr-warmup/dropout/l1-l2-regularization/cross-entropy/epoch-time/min-max）：单页 2–3/9 → **8/9**；接入图表/明细表/预设/历史/对比/CSV 导出；boot 推迟到 DOMContentLoaded 避开 tool-kit.js(defer) 时序。
 - [x] **AI-2 已完成 8 页**（sigmoid/softmax/relu-leakyrelu/precision-recall/roc-auc/cosine-similarity/elbow-wcss/rmse）：单页 3–4/9 → **8/9**；范式轮换（line×3 sigmoid/relu/roc-auc、bar×3 pr/elbow/rmse、pie softmax、scatter cosine，均 ≤40%）；roc-auc 自实现 erf 高斯重叠图、cosine 向量散点；真实加载顺序冒烟 63 页零抛错。
 - ⚠️ **顺带修复系统性首屏回归**：统计 B1–B6 共 48 页此前用「解析期直接 calc()/__xxPresets()」，因 tool-kit.js 为 defer，首屏 TBKit 未定义导致图表/预设/历史全部跳过（仅手动重算才出现，线上不可见但无报错）。统一改为 DOMContentLoaded 后渲染，已用真实加载顺序冒烟验证 55 页全部首屏可见、零抛错。
-- [ ] AI-3+：剩余 50 页（大量 4–5/9，含 softmax-2/cohens-kappa/token 系/flops 系/transformer-params 等），继续按薄弱度推进。
+- [x] **AI-3 已完成 10 页**（cohens-kappa/transformer-params/training-flops/vram-estimate/context-window/temperature-scaling/k-means/model-accuracy/flops/attention-flops）：单页 3–5/9 → **8/9**；范式轮换（line×3 vram/flops/attention、bar×3 kappa/k-means/temperature、gauge×2 context/accuracy、pie transformer、scatter training，累计 line 40%/bar 36% 不超上限）；数值独立复算 28 项全对；真实加载顺序冒烟 73 页零抛错。
+- [ ] AI-4+：剩余 40 页（4–5/9），继续按薄弱度推进。**注意：line 范式已触 40% 上限，后续批优先 bar/pie/gauge/scatter**。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 

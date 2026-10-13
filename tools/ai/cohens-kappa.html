@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>TN</label><input type="number" id="tn" value="40" step="any" oninput="calc()"></div>
     <div class="input-row"><label>FP</label><input type="number" id="fp" value="10" step="any" oninput="calc()"></div>
     <div class="input-row"><label>FN</label><input type="number" id="fn" value="5" step="any" oninput="calc()"></div>
+    <div id="ckPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__ckExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="ckChart" role="img" aria-label="结果可视化"></div>
+    <div id="ckTable"></div>
+    <div id="ckDiff"></div>
+    <div id="ckHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -225,6 +232,49 @@ function copyResult() {
   });
 }
 calc();
+
+function __ckN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ckList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __ckL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __ckExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ckTable','cohens-kappa.csv');}catch(e){} }
+function __ckExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var tp=__ckN('tp'), tn=__ckN('tn'), fp=__ckN('fp'), fn=__ckN('fn');
+        var tot=tp+tn+fp+fn;
+        if(!(tot>0))return;
+        var Po=(tp+tn)/tot;
+        var Pe=((tp+fp)*(tp+fn)+(tn+fn)*(tn+fp))/(tot*tot);
+        var kappa=(Po-Pe)/(1-Pe);
+        TBKit.chart.bar('#ckChart',{labels:['观测一致 Po','期望一致 Pe','Kappa κ'],series:[{name:__ckL('agreement','一致性'),data:[Po,Pe,kappa]}],height:220,title:__ckL('Observed vs expected agreement','观测一致 vs 期望一致')});
+        var lvl = kappa<0?__ckL('poor (<0)','差 (<0)'):kappa<0.2?__ckL('slight (0–0.2)','轻微 (0–0.2)'):kappa<0.4?__ckL('fair (0.2–0.4)','一般 (0.2–0.4)'):kappa<0.6?__ckL('moderate (0.4–0.6)','中等 (0.4–0.6)'):kappa<0.8?__ckL('substantial (0.6–0.8)','较强 (0.6–0.8)'):__ckL('almost perfect (0.8–1)','极强 (0.8–1)');
+        var rows=__ckL(
+            [['true positive TP',tp.toFixed(0)],['true negative TN',tn.toFixed(0)],['false positive FP',fp.toFixed(0)],['false negative FN',fn.toFixed(0)],['total',tot.toFixed(0)],['observed agreement Po',Po.toFixed(3)],['expected agreement Pe',Pe.toFixed(3)],["Cohen's κ",kappa.toFixed(3)],['Landis-Koch level',lvl]],
+            [['真正例 TP',tp.toFixed(0)],['真负例 TN',tn.toFixed(0)],['假正例 FP',fp.toFixed(0)],['假负例 FN',fn.toFixed(0)],['总数',tot.toFixed(0)],['观测一致 Po',Po.toFixed(3)],['期望一致 Pe',Pe.toFixed(3)],["Cohen's κ",kappa.toFixed(3)],['Landis-Koch 强度',lvl]]);
+        TBKit.matrix.table('#ckTable',{head:__ckL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({kappa:Number(kappa.toFixed(3))});
+        TBKit.util.diffBox('#ckDiff',['kappa']);
+        TBKit.history.mount('#ckHist',function(v){ if(v.kappa!=null){document.getElementById('tp').value=v.tp;document.getElementById('tn').value=v.tn;document.getElementById('fp').value=v.fp;document.getElementById('fn').value=v.fn;} calc(); });
+    }catch(e){}
+}
+function __ckPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#ckPresets',[
+            {label:'完全一致 50/50/0/0',labelEn:'Perfect 50/50/0/0',values:{tp:50,tn:50,fp:0,fn:0}},
+            {label:'一般一致 40/35/10/15',labelEn:'Fair 40/35/10/15',values:{tp:40,tn:35,fp:10,fn:15}},
+            {label:'接近随机 25/25/25/25',labelEn:'Near chance 25/25/25/25',values:{tp:25,tn:25,fp:25,fn:25}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ck0 = calc;
+calc = function(){ __tb_ck0(); try{ __ckExtras(); }catch(e){} };
+function __ckBoot(){ try{ __ckPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ckBoot);
+else __ckBoot();
 </script>
 
 <script type="application/ld+json">

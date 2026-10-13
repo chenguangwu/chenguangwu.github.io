@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>序列长度</label><input type="number" id="S" value="1024" step="any" oninput="calc()"></div>
     <div class="input-row"><label>维度</label><input type="number" id="d" value="768" step="any" oninput="calc()"></div>
     <div class="input-row"><label>层数</label><input type="number" id="layers" value="12" step="any" oninput="calc()"></div>
+    <div id="afPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__afExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="afChart" role="img" aria-label="结果可视化"></div>
+    <div id="afTable"></div>
+    <div id="afDiff"></div>
+    <div id="afHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -218,6 +225,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __afN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __afList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __afL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __afExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#afTable','attention-flops.csv');}catch(e){} }
+function __afExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var S=__afN('S'), d=__afN('d'), layers=__afN('layers');
+        if(!(S>0&&d>0&&layers>0))return;
+        var one=4*S*S*d, g=one*layers/1e9;
+        var Ss=[128,256,512,1024,2048,4096,8192,16384,32768];
+        var labs=Ss.map(function(x){return x>=1024?(x/1024)+'K':String(x);});
+        TBKit.chart.line('#afChart',{labels:labs,series:[{name:__afL('GFLOPs','GFLOPs'),data:Ss.map(function(x){return 4*x*x*d*layers/1e9;})}],height:230,title:__afL('Attention GFLOPs vs sequence length (∝ S²)','注意力 GFLOPs 随序列长度平方增长')});
+        var rows=__afL(
+            [['sequence S',S.toFixed(0)],['head dim d',d.toFixed(0)],['layers',layers.toFixed(0)],['per-layer FLOPs',one.toFixed(0)],['total GFLOPs',g.toFixed(1)],['GFLOPs per 1k tokens',(4*1000*1000*d*layers/1e9).toFixed(3)],['cost if S×2',(g*4).toFixed(1)+' GFLOP']],
+            [['序列长度 S',S.toFixed(0)],['头维度 d',d.toFixed(0)],['层数',layers.toFixed(0)],['单层 FLOPs',one.toFixed(0)],['全模型 GFLOPs',g.toFixed(1)],['每 1k token GFLOPs',(4*1000*1000*d*layers/1e9).toFixed(3)],['S 翻倍后开销',(g*4).toFixed(1)+' GFLOP']]);
+        TBKit.matrix.table('#afTable',{head:__afL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({gflops:Number(g.toFixed(1))});
+        TBKit.util.diffBox('#afDiff',['gflops']);
+        TBKit.history.mount('#afHist',function(v){ if(v.gflops!=null){document.getElementById('S').value=v.S;document.getElementById('d').value=v.d;document.getElementById('layers').value=v.layers;} calc(); });
+    }catch(e){}
+}
+function __afPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#afPresets',[
+            {label:'短序列 S=512 d=768 L=12',labelEn:'Short S=512 d=768 L=12',values:{S:512,d:768,layers:12}},
+            {label:'4K 长文 S=4096 d=4096 L=32',labelEn:'4K long S=4096 d=4096 L=32',values:{S:4096,d:4096,layers:32}},
+            {label:'32K 长上下文 S=32768 d=8192 L=80',labelEn:'32K long ctx S=32768 d=8192 L=80',values:{S:32768,d:8192,layers:80}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_af0 = calc;
+calc = function(){ __tb_af0(); try{ __afExtras(); }catch(e){} };
+function __afBoot(){ try{ __afPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __afBoot);
+else __afBoot();
 </script>
 
 <script type="application/ld+json">

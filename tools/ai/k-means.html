@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>聚类数</label><input type="number" id="k" value="5" step="1" oninput="calc()"></div>
     <div class="input-row"><label>维度</label><input type="number" id="dim" value="10" step="1" oninput="calc()"></div>
     <div class="input-row"><label>簇内散布</label><input type="number" id="spread" value="2" step="any" oninput="calc()"></div>
+    <div id="kmPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__kmExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="10000" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="10000" data-viz-min="0">
+    <div id="kmChart" role="img" aria-label="结果可视化"></div>
+    <div id="kmTable"></div>
+    <div id="kmDiff"></div>
+    <div id="kmHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -225,6 +232,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __kmN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __kmList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __kmL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __kmExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#kmTable','k-means.csv');}catch(e){} }
+function __kmExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var n=__kmN('n'), k=__kmN('k'), dim=__kmN('dim'), spread=__kmN('spread');
+        if(!(n>0&&k>0&&dim>0&&spread>0))return;
+        var inertia=n*dim*spread*spread/k, per=Math.ceil(n/k), db=k*spread/(spread+0.1);
+        var ks=[2,3,4,5,6,7,8,9,10];
+        TBKit.chart.bar('#kmChart',{labels:ks.map(function(x){return 'k='+x;}),series:[{name:__kmL('inertia','Inertia'),data:ks.map(function(x){return n*dim*spread*spread/x;})}],height:230,title:__kmL('Inertia vs k (elbow curve)','Inertia 随 k 变化（手肘曲线）')});
+        var rows=__kmL(
+            [['samples n',n.toFixed(0)],['clusters k',k.toFixed(0)],['dimensions',dim.toFixed(0)],['spread',spread.toFixed(2)],['inertia est.',inertia.toFixed(2)],['samples per cluster',per.toFixed(0)],['Davies-Bouldin est.',db.toFixed(2)],['inertia/n·dim',(inertia/(n*dim)).toFixed(3)]],
+            [['样本数 n',n.toFixed(0)],['簇数 k',k.toFixed(0)],['维度',dim.toFixed(0)],['簇内散布',spread.toFixed(2)],['Inertia 估算',inertia.toFixed(2)],['每簇样本',per.toFixed(0)],['Davies-Bouldin 估算',db.toFixed(2)],['inertia/(n·dim)',(inertia/(n*dim)).toFixed(3)]]);
+        TBKit.matrix.table('#kmTable',{head:__kmL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({inertia:Number(inertia.toFixed(2))});
+        TBKit.util.diffBox('#kmDiff',['inertia']);
+        TBKit.history.mount('#kmHist',function(v){ if(v.inertia!=null){document.getElementById('n').value=v.n;document.getElementById('k').value=v.k;document.getElementById('dim').value=v.dim;document.getElementById('spread').value=v.spread;} calc(); });
+    }catch(e){}
+}
+function __kmPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#kmPresets',[
+            {label:'小样本 n=100 k=3',labelEn:'Small n=100 k=3',values:{n:100,k:3,dim:2,spread:1}},
+            {label:'中样本 n=1000 k=5',labelEn:'Medium n=1000 k=5',values:{n:1000,k:5,dim:10,spread:2}},
+            {label:'大样本 n=10000 k=10',labelEn:'Large n=10000 k=10',values:{n:10000,k:10,dim:16,spread:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_km0 = calc;
+calc = function(){ __tb_km0(); try{ __kmExtras(); }catch(e){} };
+function __kmBoot(){ try{ __kmPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __kmBoot);
+else __kmBoot();
 </script>
 
 <script type="application/ld+json">

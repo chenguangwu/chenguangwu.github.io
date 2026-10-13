@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>参数量(亿)</label><input type="number" id="N" value="10" step="any" oninput="calc()"></div>
     <div class="input-row"><label>训练 tokens(亿)</label><input type="number" id="D" value="200" step="any" oninput="calc()"></div>
     <div class="input-row"><label>GPU 数</label><input type="number" id="gpus" value="8" step="any" oninput="calc()"></div>
+    <div id="tfPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__tfExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="tfChart" role="img" aria-label="结果可视化"></div>
+    <div id="tfTable"></div>
+    <div id="tfDiff"></div>
+    <div id="tfHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -221,6 +228,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __tfN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tfList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __tfL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __tfExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#tfTable','training-flops.csv');}catch(e){} }
+function __tfExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var N=__tfN('N'), D=__tfN('D'), gpus=__tfN('gpus');
+        if(!(N>0&&D>0&&gpus>0))return;
+        var flops=6*N*D;
+        function months(g){ return flops*1e18/(g*1e15*3600*24*30); }
+        var gs=[1,8,64,512,4096];
+        var pts=gs.map(function(g){return [g,months(g)];});
+        TBKit.chart.scatter('#tfChart',{points:pts,height:230,xLabel:__tfL('GPU count','GPU 数'),title:__tfL('Training time vs GPU count','训练时长随 GPU 数下降')});
+        var rows=__tfL(
+            [['params N (×1e9)',N.toFixed(2)],['tokens D (×1e9)',D.toFixed(2)],['total FLOPs (×1e18)',flops.toFixed(2)],['GPUs',gpus.toFixed(0)],['est. months @1e15 FLOP/s per GPU',months(gpus).toFixed(3)],['months if ×8 GPUs',months(gpus*8).toFixed(3)]],
+            [['参数量 N (十亿)',N.toFixed(2)],['训练 token D (十亿)',D.toFixed(2)],['总算力 (×1e18)',flops.toFixed(2)],['GPU 数',gpus.toFixed(0)],['预计月数 @单卡 1e15/s',months(gpus).toFixed(3)],['GPU×8 后月数',months(gpus*8).toFixed(3)]]);
+        TBKit.matrix.table('#tfTable',{head:__tfL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({months:Number(months(gpus).toFixed(3))});
+        TBKit.util.diffBox('#tfDiff',['months']);
+        TBKit.history.mount('#tfHist',function(v){ if(v.months!=null){document.getElementById('N').value=v.N;document.getElementById('D').value=v.D;document.getElementById('gpus').value=v.gpus;} calc(); });
+    }catch(e){}
+}
+function __tfPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#tfPresets',[
+            {label:'小模型 N1 D100 64 卡',labelEn:'Small N1 D100 64 GPUs',values:{N:1,D:100,gpus:64}},
+            {label:'7B 级 N7 D1400 1024 卡',labelEn:'7B-scale N7 D1400 1024 GPUs',values:{N:7,D:1400,gpus:1024}},
+            {label:'70B 级 N70 D2000 8192 卡',labelEn:'70B-scale N70 D2000 8192 GPUs',values:{N:70,D:2000,gpus:8192}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_tf0 = calc;
+calc = function(){ __tb_tf0(); try{ __tfExtras(); }catch(e){} };
+function __tfBoot(){ try{ __tfPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __tfBoot);
+else __tfBoot();
 </script>
 
 <script type="application/ld+json">
