@@ -140,10 +140,12 @@ s.parentNode.insertBefore(el, s);
       <textarea id="dirData" rows="6" placeholder="0.0200,180.0210&#10;90.3025,270.3020&#10;180.0000,0.0010">0.0200,180.0210
 90.3025,270.3020
 180.0000,0.0010</textarea>
+      <div id="caPresetsDir"></div>
       <div class="toolbar" style="margin-top:12px;">
         <button class="btn primary" type="button" onclick="calcDir()">🧮 计算</button>
         <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
         <button class="btn" type="button" onclick="resetDir()">🗑️ 重置</button>
+        <button class="btn" onclick="__caExport()">导出 CSV</button>
       </div>
       <div class="result-box" id="dirRes"></div>
       <div class="info-box">💡 盘左盘右均值消除视准轴误差；2C = 盘左 −（盘右±180°），各测回2C互差应不超限差</div>
@@ -166,14 +168,21 @@ s.parentNode.insertBefore(el, s);
       <textarea id="repData" rows="5" placeholder="每行一个角度值">90.3025
 90.3020
 90.3030</textarea>
+      <div id="caPresetsRep"></div>
       <div class="toolbar" style="margin-top:12px;">
         <button class="btn primary" type="button" onclick="calcRep()">🧮 计算</button>
         <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
         <button class="btn" type="button" onclick="resetRep()">🗑️ 重置</button>
+        <button class="btn" onclick="__caExport()">导出 CSV</button>
       </div>
       <div class="result-box" id="repRes"></div>
       <div class="info-box">💡 复测法通过多次累测降低读数误差；均值标准误差 SE = s/√n，n 为复测次数</div>
+    </div>      <div class="info-box">💡 复测法通过多次累测降低读数误差；均值标准误差 SE = s/√n，n 为复测次数</div>
     </div>
+    <div id="caChart"></div>
+    <div id="caTable"></div>
+    <div id="caDiff"></div>
+    <div id="caHist"></div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -251,6 +260,7 @@ function stdDev(arr){
 }
 // 方向观测法
 function calcDir(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var fmt=document.getElementById('fmtDir').value;
   var prec=parseFloat(document.getElementById('precDir').value)||2;
   var lines=document.getElementById('dirData').value.split(/\n/).map(function(s){return s.trim();}).filter(Boolean);
@@ -259,7 +269,7 @@ function calcDir(){
     var p=lines[i].split(',');
     if(p.length<2){continue;}
     var L=parseAngle(p[0],fmt), R=parseAngle(p[1],fmt);
-    if(L===null||R===null){rows.push([(i+1),'读数无效','','','']);continue;}
+    if(L===null||R===null){rows.push([(i+1),(__EN?'Invalid reading':'读数无效'),'','','']);continue;}
     // 盘右归算到盘左同向：R±180
     var Rc=R>=180?R-180:R+180;
     var c2=L-Rc; // 2C（度）
@@ -269,7 +279,7 @@ function calcDir(){
     c2Arr.push(c2);
     rows.push([(i+1), toSrv(L), toSrv(R), toDMS(mv), c2.toFixed(1)+'″']);
   }
-  if(meanArr.length===0){const __h0='<p style="color:var(--danger);">请输入有效的盘左/盘右读数</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('dirRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('dirRes').innerHTML=__h0;return;}
+  if(meanArr.length===0){const __h0=(__EN?'<p style="color:var(--danger);">Enter valid face left/right readings</p>':'<p style="color:var(--danger);">请输入有效的盘左/盘右读数</p>');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('dirRes').innerHTML=(__EN?'<p style="color:var(--danger)">⚠ Result contains invalid values - check that inputs are valid positive numbers.</p>':'<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>');return;}document.getElementById('dirRes').innerHTML=__h0;return;}
   var mFinal=mean(meanArr);
   var sd=stdDev(meanArr)*3600; // 秒
   var se=sd/Math.sqrt(meanArr.length);
@@ -279,19 +289,20 @@ function calcDir(){
   var tol2C = prec*6+6;
 
   var html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+toDMS(mFinal)+'</div><div class="label">方向均值（平差角）</div></div>'+
-    '<div class="data-card"><div class="num">'+toSrv(mFinal)+'</div><div class="label">测量格式</div></div>'+
-    '<div class="data-card"><div class="num">'+sd.toFixed(2)+'″</div><div class="label">标准差 s</div></div>'+
-    '<div class="data-card"><div class="num">'+se.toFixed(2)+'″</div><div class="label">标准误差 SE</div></div>'+
+    '<div class="data-card"><div class="num">'+toDMS(mFinal)+'</div><div class="label">'+(__EN?'Mean direction (adjusted)':'方向均值（平差角）')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+toSrv(mFinal)+'</div><div class="label">'+(__EN?'Survey format':'测量格式')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+sd.toFixed(2)+'″</div><div class="label">'+(__EN?'Std dev s':'标准差 s')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+se.toFixed(2)+'″</div><div class="label">'+(__EN?'Std error SE':'标准误差 SE')+'</div></div>'+
     '</div>'+
-    '<h3 style="margin-top:14px;">📋 各测回计算</h3>'+
-    ToolBox.createTable(['测回','盘左','盘右','方向均值','2C'], rows);
+    (__EN?'<h3 style="margin-top:14px;">📋 Per-set computation</h3>':'<h3 style="margin-top:14px;">📋 各测回计算</h3>')+
+    ToolBox.createTable(__EN?['Set','Face left','Face right','Mean direction','2C']:['测回','盘左','盘右','方向均值','2C'], rows);
   var c2Grade = c2Range<=tol2C?'grade-good':'grade-fail';
-  html+='<p style="margin-top:8px;font-size:13px;">2C 互差 <strong>'+c2Range.toFixed(1)+'″</strong>（限差 '+tol2C.toFixed(0)+'″）<span class="grade-tag '+c2Grade+'">'+(c2Range<=tol2C?'合格':'超限')+'</span></p>';
-  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('dirRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('dirRes').innerHTML=__h1;
+  html+=(__EN?'<p style="margin-top:8px;font-size:13px;">2C discrepancy <strong>':'<p style="margin-top:8px;font-size:13px;">2C 互差 <strong>')+c2Range.toFixed(1)+'″</strong>'+(__EN?' (limit ':'（限差 ')+tol2C.toFixed(0)+'″'+(__EN?')<span class="grade-tag '+c2Grade+'">':'）<span class="grade-tag '+c2Grade+'">')+(c2Range<=tol2C?(__EN?'Pass':'合格'):(__EN?'Out of limit':'超限'))+'</span></p>';
+  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('dirRes').innerHTML=(__EN?'<p style="color:var(--danger)">⚠ Result contains invalid values - check that inputs are valid positive numbers.</p>':'<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>');return;}document.getElementById('dirRes').innerHTML=__h1;
 }
 // 复测法
 function calcRep(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var fmt=document.getElementById('fmtRep').value;
   var prec=parseFloat(document.getElementById('precRep').value)||6;
   var n=parseInt(document.getElementById('repN').value,10)||1;
@@ -301,7 +312,7 @@ function calcRep(){
     var v=parseAngle(lines[i],fmt);
     if(v!==null) vals.push(v);
   }
-  if(vals.length===0){const __h2='<p style="color:var(--danger);">请输入有效的角度读数</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('repRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('repRes').innerHTML=__h2;return;}
+  if(vals.length===0){const __h2=(__EN?'<p style="color:var(--danger);">Enter valid angle readings</p>':'<p style="color:var(--danger);">请输入有效的角度读数</p>');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('repRes').innerHTML=(__EN?'<p style="color:var(--danger)">⚠ Result contains invalid values - check that inputs are valid positive numbers.</p>':'<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>');return;}document.getElementById('repRes').innerHTML=__h2;return;}
   var m=mean(vals);
   var sd=stdDev(vals)*3600;
   var se=sd/Math.sqrt(vals.length);
@@ -318,17 +329,17 @@ function calcRep(){
   var range=(Math.max.apply(null,vals)-Math.min.apply(null,vals))*3600;
 
   var html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+toDMS(m)+'</div><div class="label">角度均值（平差角）</div></div>'+
-    '<div class="data-card"><div class="num">'+toSrv(m)+'</div><div class="label">测量格式</div></div>'+
-    '<div class="data-card"><div class="num">'+sd.toFixed(2)+'″</div><div class="label">标准差 s</div></div>'+
-    '<div class="data-card"><div class="num">'+se.toFixed(2)+'″</div><div class="label">标准误差 SE</div></div>'+
+    '<div class="data-card"><div class="num">'+toDMS(m)+'</div><div class="label">'+(__EN?'Mean direction (adjusted)':'角度均值（平差角）')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+toSrv(m)+'</div><div class="label">'+(__EN?'Survey format':'测量格式')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+sd.toFixed(2)+'″</div><div class="label">'+(__EN?'Std dev s':'标准差 s')+'</div></div>'+
+    '<div class="data-card"><div class="num">'+se.toFixed(2)+'″</div><div class="label">'+(__EN?'Std error SE':'标准误差 SE')+'</div></div>'+
     '</div>'+
-    '<h3 style="margin-top:14px;">📋 各次观测残差</h3>'+
-    ToolBox.createTable(['次序','角度','测量格式','残差'], rows);
+    (__EN?'<h3 style="margin-top:14px;">📋 Per-observation residuals</h3>':'<h3 style="margin-top:14px;">📋 各次观测残差</h3>')+
+    ToolBox.createTable(__EN?['No.','Angle','Survey format','Residual']:['次序','角度','测量格式','残差'], rows);
   var grade = range<=tolDiff?'grade-good':'grade-fail';
-  html+='<p style="margin-top:8px;font-size:13px;">观测值较差 <strong>'+range.toFixed(1)+'″</strong>（限差 '+tolDiff.toFixed(1)+'″）<span class="grade-tag '+grade+'">'+(range<=tolDiff?'合格':'超限')+'</span></p>';
-  html+='<p style="font-size:12px;color:var(--text-muted);">复测 '+n+' 次，读数误差理论标准误差 ≈ '+readErr.toFixed(2)+'″（仪器精度 '+prec+'″）</p>';
-  const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('repRes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('repRes').innerHTML=__h3;
+  html+=(__EN?'<p style="margin-top:8px;font-size:13px;">Observation range <strong>':'<p style="margin-top:8px;font-size:13px;">观测值较差 <strong>')+range.toFixed(1)+'″</strong>'+(__EN?' (limit ':'（限差 ')+tolDiff.toFixed(1)+'″'+(__EN?')<span class="grade-tag '+grade+'">':'）<span class="grade-tag '+grade+'">')+(range<=tolDiff?(__EN?'Pass':'合格'):(__EN?'Out of limit':'超限'))+'</span></p>';
+  html+=(__EN?'<p style="font-size:12px;color:var(--text-muted);">Repetitions: ':'<p style="font-size:12px;color:var(--text-muted);">复测 ')+n+(__EN?', theoretical reading-error SE ≈ ':' 次，读数误差理论标准误差 ≈ ')+readErr.toFixed(2)+'″'+(__EN?' (instrument precision ':'（仪器精度 ')+prec+'″)</p>';
+  const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('repRes').innerHTML=(__EN?'<p style="color:var(--danger)">⚠ Result contains invalid values - check that inputs are valid positive numbers.</p>':'<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>');return;}document.getElementById('repRes').innerHTML=__h3;
 }
 function copyRes(){
   var text=[document.getElementById('dirRes').innerText,document.getElementById('repRes').innerText].join('\n').trim();
@@ -355,6 +366,111 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('repData').addEventListener('keydown',function(e){ if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();calcRep();} });
   calcDir(); calcRep();
 });
+
+function __caN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __caList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __caL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __caExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#caTable','angle-measurement.csv');}catch(e){} }
+function __caActive(){
+    var act='dir';
+    try{
+        var tcs=document.querySelectorAll('.tab-content');
+        for(var i=0;i<tcs.length;i++){ if(tcs[i].classList&&tcs[i].classList.contains('active')){ act=(tcs[i].id==='tabRep')?'rep':'dir'; } }
+    }catch(e){}
+    return act;
+}
+function __caExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var act=__caActive();
+        var rows, title, key;
+        if(act==='rep'){
+            var fmt=document.getElementById('fmtRep').value;
+            var lines=document.getElementById('repData').value.split(/\n/).map(function(s){return s.trim();}).filter(Boolean);
+            var vals=[];
+            lines.forEach(function(ln){ var v=parseAngle(ln,fmt); if(v!==null)vals.push(v); });
+            if(!vals.length)return;
+            var m=mean(vals), sd=stdDev(vals)*3600;
+            var labs=[],res=[];
+            rows=[];
+            vals.forEach(function(v,i){ labs.push((i+1)+''); res.push(Number(((v-m)*3600).toFixed(1)));
+                rows.push(__caL([(i+1)+'',toDMS(v),toSrv(v),((v-m)*3600).toFixed(1)+'″'],[(i+1)+'',toDMS(v),toSrv(v),((v-m)*3600).toFixed(1)+'″'])); });
+            title=__caL('Repetition residuals (n='+vals.length+', s='+sd.toFixed(2)+'″)','复测法各次残差（n='+vals.length+'，s='+sd.toFixed(2)+'″）');
+            key=Number(m.toFixed(4));
+            TBKit.history.record({m:key,md:'rep',repData:document.getElementById('repData').value,fmtRep:fmt,precRep:document.getElementById('precRep').value,repN:document.getElementById('repN').value,dirData:document.getElementById('dirData').value,fmtDir:document.getElementById('fmtDir').value,precDir:document.getElementById('precDir').value});
+        }else{
+            var fmtd=document.getElementById('fmtDir').value;
+            var lns=document.getElementById('dirData').value.split(/\n/).map(function(s){return s.trim();}).filter(Boolean);
+            var c2=[],means=[];
+            rows=[];
+            lns.forEach(function(ln,i){
+                var p=ln.split(',');
+                if(p.length<2)return;
+                var L=parseAngle(p[0],fmtd), R=parseAngle(p[1],fmtd);
+                if(L===null||R===null)return;
+                var Rc=R>=180?R-180:R+180;
+                var c2v=(L-Rc)*3600;
+                var mv=mean([L,Rc]);
+                c2.push(c2v); means.push(mv);
+                rows.push(__caL([(i+1)+'',toSrv(L),toSrv(R),toDMS(mv),c2v.toFixed(1)+'″'],[(i+1)+'',toSrv(L),toSrv(R),toDMS(mv),c2v.toFixed(1)+'″']));
+            });
+            if(!c2.length)return;
+            var mF=mean(means), sdD=stdDev(means)*3600;
+            var labs2=c2.map(function(_,i){return (i+1)+'';});
+            title=__caL('2C discrepancy per set (s='+sdD.toFixed(2)+'″)','方向法各测回 2C 互差（s='+sdD.toFixed(2)+'″）');
+            key=Number(mF.toFixed(4));
+            TBKit.history.record({m:key,md:'dir',dirData:document.getElementById('dirData').value,fmtDir:fmtd,precDir:document.getElementById('precDir').value,repData:document.getElementById('repData').value,fmtRep:document.getElementById('fmtRep').value,precRep:document.getElementById('precRep').value,repN:document.getElementById('repN').value});
+            TBKit.chart.bar('#caChart',{labels:labs2,series:[{name:__caL('2C (″)','2C (″)'),data:c2.map(function(x){return Number(x.toFixed(1));})}],height:220,title:title});
+            TBKit.matrix.table('#caTable',{head:__caL(['Set','Face left','Face right','Mean direction','2C'],['测回','盘左','盘右','方向均值','2C']),rows:rows});
+            TBKit.util.diffBox('#caDiff',['m']);
+            TBKit.history.mount('#caHist',function(v){ if(v.m==null)return;
+                document.getElementById('dirData').value=v.dirData;document.getElementById('fmtDir').value=v.fmtDir;document.getElementById('precDir').value=v.precDir;
+                document.getElementById('repData').value=v.repData;document.getElementById('fmtRep').value=v.fmtRep;document.getElementById('precRep').value=v.precRep;document.getElementById('repN').value=v.repN;
+                try{ var bs=document.querySelectorAll('.tab-btn'); if(bs.length) switchTab(v.md==='rep'?bs[1]:bs[0], v.md==='rep'?'tabRep':'tabDir'); }catch(e){}
+                if(v.md==='rep'){ try{calcRep();}catch(e){} } else { try{calcDir();}catch(e){} }
+            });
+            return;
+        }
+        TBKit.chart.bar('#caChart',{labels:labs,series:[{name:__caL('residual (″)','残差 (″)'),data:res}],height:220,title:title});
+        TBKit.matrix.table('#caTable',{head:__caL(['No.','Angle','Survey format','Residual'],['次序','角度','测量格式','残差']),rows:rows});
+        TBKit.util.diffBox('#caDiff',['m']);
+        TBKit.history.mount('#caHist',function(v){ if(v.m==null)return;
+            document.getElementById('dirData').value=v.dirData;document.getElementById('fmtDir').value=v.fmtDir;document.getElementById('precDir').value=v.precDir;
+            document.getElementById('repData').value=v.repData;document.getElementById('fmtRep').value=v.fmtRep;document.getElementById('precRep').value=v.precRep;document.getElementById('repN').value=v.repN;
+            try{ var bs=document.querySelectorAll('.tab-btn'); if(bs.length) switchTab(v.md==='rep'?bs[1]:bs[0], v.md==='rep'?'tabRep':'tabDir'); }catch(e){}
+            if(v.md==='rep'){ try{calcRep();}catch(e){} } else { try{calcDir();}catch(e){} }
+        });
+    }catch(e){}
+}
+function __caPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#caPresetsDir',[
+            {label:'方向法 DJ6 三测回',labelEn:'Direction DJ6 3 sets',values:{dirData:'0.0200,180.0210\n90.3025,270.3020\n180.0000,0.0010',fmtDir:'srv',precDir:2}},
+            {label:'方向法 DJ2 两测回',labelEn:'Direction DJ2 2 sets',values:{dirData:'0.0008,180.0012\n90.1504,270.1500',fmtDir:'srv',precDir:6}},
+            {label:'方向法 十进制度',labelEn:'Direction decimal',values:{dirData:'0.0333,180.0350\n90.5042,270.5033',fmtDir:'dec',precDir:2}}
+        ],function(){ try{ var bs=document.querySelectorAll('.tab-btn'); if(bs.length) switchTab(bs[0],'tabDir'); }catch(e){} try{calcDir();}catch(e){} });
+        TBKit.preset.bar('#caPresetsRep',[
+            {label:'复测法 3 次',labelEn:'Repetition 3x',values:{repData:'90.3025\n90.3020\n90.3030',fmtRep:'srv',precRep:6,repN:3}},
+            {label:'复测法 4 次',labelEn:'Repetition 4x',values:{repData:'45.1525\n45.1531\n45.1528\n45.1534',fmtRep:'srv',precRep:6,repN:4}},
+            {label:'复测法 十进制度 2 次',labelEn:'Repetition decimal 2x',values:{repData:'60.2567\n60.2571',fmtRep:'dec',precRep:6,repN:2}}
+        ],function(){ try{ var bs=document.querySelectorAll('.tab-btn'); if(bs.length) switchTab(bs[1],'tabRep'); }catch(e){} try{calcRep();}catch(e){} });
+    }catch(e){}
+}
+
+var __tb_ca0 = calcDir;
+calcDir = function(){ __tb_ca0(); try{ __caExtras(); }catch(e){} };
+var __tb_ca1 = calcRep;
+calcRep = function(){ __tb_ca1(); try{ __caExtras(); }catch(e){} };
+function __caBoot(){ try{ __caPresets(); }catch(e){} try{ calcDir(); }catch(e){} try{ calcRep(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __caBoot();
+else document.addEventListener("DOMContentLoaded", __caBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

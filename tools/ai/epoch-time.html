@@ -270,8 +270,12 @@ function __etPresets(){
 var __tb_et0 = calc;
 calc = function(){ __tb_et0(); try{ __etExtras(); }catch(e){} };
 function __etBoot(){ try{ __etPresets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __etBoot);
-else __etBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __etBoot();
+else document.addEventListener("DOMContentLoaded", __etBoot);
 </script>
 
 <script type="application/ld+json">

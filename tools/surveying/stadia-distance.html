@@ -229,7 +229,7 @@ function __sdExtras(){
             [['staff interval s',s.toFixed(3)],['vertical angle (°)',a.toFixed(3)],['horizontal distance (m)',D(a).toFixed(3)],['height difference (m)',(100*s*Math.sin(rad)*Math.cos(rad)).toFixed(3)],['100×s (m)',(100*s).toFixed(3)],['correction factor',(Math.cos(rad)*Math.cos(rad)).toFixed(4)],['loss vs flat (m)',(100*s-D(a)).toFixed(3)]],
             [['尺间隔 s',s.toFixed(3)],['竖直角 (°)',a.toFixed(3)],['水平视距 (m)',D(a).toFixed(3)],['高差 (m)',(100*s*Math.sin(rad)*Math.cos(rad)).toFixed(3)],['斜距 100×s (m)',(100*s).toFixed(3)],['修正系数',(Math.cos(rad)*Math.cos(rad)).toFixed(4)],['较水平损失 (m)',(100*s-D(a)).toFixed(3)]]);
         TBKit.matrix.table('#sdTable',{head:__sdL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({D:Number(D(a).toFixed(3))});
+        TBKit.history.record({D:Number(D(a).toFixed(3)),s:s,a:a});
         TBKit.util.diffBox('#sdDiff',['D']);
         TBKit.history.mount('#sdHist',function(v){ if(v.D!=null){document.getElementById('s').value=v.s;document.getElementById('a').value=v.a;} calcTool(); });
     }catch(e){}
@@ -248,8 +248,12 @@ function __sdPresets(){
 var __tb_sd0 = calcTool;
 calcTool = function(){ __tb_sd0(); try{ __sdExtras(); }catch(e){} };
 function __sdBoot(){ try{ __sdPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __sdBoot);
-else __sdBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __sdBoot();
+else document.addEventListener("DOMContentLoaded", __sdBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

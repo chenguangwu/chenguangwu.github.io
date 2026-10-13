@@ -245,7 +245,7 @@ function __c3Extras(){
             [['P1',x1.toFixed(2)+', '+y1.toFixed(2)+', '+z1.toFixed(2)],['P2',x2.toFixed(2)+', '+y2.toFixed(2)+', '+z2.toFixed(2)],['Δx',(x2-x1).toFixed(3)],['Δy',(y2-y1).toFixed(3)],['Δz',dz.toFixed(3)],['horizontal',hd.toFixed(3)],['slope distance',d.toFixed(3)],['grade (%)',(hd>0?(dz/hd*100).toFixed(2):'—')]],
             [['P1',x1.toFixed(2)+', '+y1.toFixed(2)+', '+z1.toFixed(2)],['P2',x2.toFixed(2)+', '+y2.toFixed(2)+', '+z2.toFixed(2)],['Δx',(x2-x1).toFixed(3)],['Δy',(y2-y1).toFixed(3)],['Δz',dz.toFixed(3)],['水平距离',hd.toFixed(3)],['空间距离',d.toFixed(3)],['坡度 (%)',(hd>0?(dz/hd*100).toFixed(2):'—')]]);
         TBKit.matrix.table('#c3Table',{head:__c3L(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({d:Number(d.toFixed(3))});
+        TBKit.history.record({d:Number(d.toFixed(3)),x1:x1,y1:y1,z1:z1,x2:x2,y2:y2,z2:z2});
         TBKit.util.diffBox('#c3Diff',['d']);
         TBKit.history.mount('#c3Hist',function(v){ if(v.d!=null){document.getElementById('x1').value=v.x1;document.getElementById('y1').value=v.y1;document.getElementById('z1').value=v.z1;document.getElementById('x2').value=v.x2;document.getElementById('y2').value=v.y2;document.getElementById('z2').value=v.z2;} calcTool(); });
     }catch(e){}
@@ -264,8 +264,12 @@ function __c3Presets(){
 var __tb_c30 = calcTool;
 calcTool = function(){ __tb_c30(); try{ __c3Extras(); }catch(e){} };
 function __c3Boot(){ try{ __c3Presets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __c3Boot);
-else __c3Boot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __c3Boot();
+else document.addEventListener("DOMContentLoaded", __c3Boot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

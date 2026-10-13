@@ -236,7 +236,7 @@ function __ccExtras(){
             [['radius R',R.toFixed(3)],['deflection Δ (°)',d.toFixed(3)],['tangent T (m)',T.toFixed(3)],['curve length L (m)',L.toFixed(3)],['external E (m)',E.toFixed(3)],['mid ordinate M (m)',M.toFixed(3)],['tangent-curve diff q (m)',q.toFixed(3)],['T/L ratio',(T/L).toFixed(4)]],
             [['半径 R',R.toFixed(3)],['交角 Δ (°)',d.toFixed(3)],['切线长 T (m)',T.toFixed(3)],['曲线长 L (m)',L.toFixed(3)],['外距 E (m)',E.toFixed(3)],['中点弦距 M (m)',M.toFixed(3)],['切曲差 q (m)',q.toFixed(3)],['T/L 比值',(T/L).toFixed(4)]]);
         TBKit.matrix.table('#ccTable',{head:__ccL(['Element','Value'],['要素','数值']),rows:rows});
-        TBKit.history.record({L:Number(L.toFixed(3))});
+        TBKit.history.record({L:Number(L.toFixed(3)),R:R,d:d});
         TBKit.util.diffBox('#ccDiff',['L']);
         TBKit.history.mount('#ccHist',function(v){ if(v.L!=null){document.getElementById('R').value=v.R;document.getElementById('d').value=v.d;} calcTool(); });
     }catch(e){}
@@ -255,8 +255,12 @@ function __ccPresets(){
 var __tb_cc0 = calcTool;
 calcTool = function(){ __tb_cc0(); try{ __ccExtras(); }catch(e){} };
 function __ccBoot(){ try{ __ccPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ccBoot);
-else __ccBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __ccBoot();
+else document.addEventListener("DOMContentLoaded", __ccBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

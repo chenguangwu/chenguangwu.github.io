@@ -233,7 +233,7 @@ function __acExtras(){
             [['vertices',n],['area (m²)',area.toFixed(2)],['area (mu)',(area/666.67).toFixed(4)],['area (km²)',(area/1e6).toFixed(6)],['perimeter (m)',peri.toFixed(3)],['mean edge (m)',(peri/n).toFixed(3)],['shoelace sum |s|',Math.abs(s).toFixed(2)]],
             [['顶点数',n],['面积 (m²)',area.toFixed(2)],['面积 (亩)',(area/666.67).toFixed(4)],['面积 (km²)',(area/1e6).toFixed(6)],['周长 (m)',peri.toFixed(3)],['平均边长 (m)',(peri/n).toFixed(3)],['鞋带和 |s|',Math.abs(s).toFixed(2)]]);
         TBKit.matrix.table('#acTable',{head:__acL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({area:Number(area.toFixed(2))});
+        TBKit.history.record({area:Number(area.toFixed(2)),xs:document.getElementById('xs').value,ys:document.getElementById('ys').value});
         TBKit.util.diffBox('#acDiff',['area']);
         TBKit.history.mount('#acHist',function(v){ if(v.area!=null){document.getElementById('xs').value=v.xs;document.getElementById('ys').value=v.ys;} calcTool(); });
     }catch(e){}
@@ -252,8 +252,12 @@ function __acPresets(){
 var __tb_ac0 = calcTool;
 calcTool = function(){ __tb_ac0(); try{ __acExtras(); }catch(e){} };
 function __acBoot(){ try{ __acPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __acBoot);
-else __acBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __acBoot();
+else document.addEventListener("DOMContentLoaded", __acBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

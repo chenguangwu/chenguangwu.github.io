@@ -228,7 +228,7 @@ function __epExtras(){
             [['base area A (m²)',A.toFixed(3)],['height h (m)',h.toFixed(3)],['volume V=Ah/3 (m³)',V.toFixed(2)],['volume (10³ m³)',(V/1000).toFixed(6)],['A/h ratio',(A/h).toFixed(4)],['V/A ratio',(V/A).toFixed(4)],['equivalent prism volume (m³)',(A*h).toFixed(2)],['pyramid/prism ratio',(V/(A*h)).toFixed(4)]],
             [['底面积 A (m²)',A.toFixed(3)],['高度 h (m)',h.toFixed(3)],['体积 V=Ah/3 (m³)',V.toFixed(2)],['体积（千立方米）',(V/1000).toFixed(6)],['底面积与高之比',(A/h).toFixed(4)],['体积与底面积比',(V/A).toFixed(4)],['等效棱柱体积 (m³)',(A*h).toFixed(2)],['锥体/棱柱比',(V/(A*h)).toFixed(4)]]);
         TBKit.matrix.table('#epTable',{head:__epL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({V:Number(V.toFixed(2))});
+        TBKit.history.record({V:Number(V.toFixed(2)),A:A,h:h});
         TBKit.util.diffBox('#epDiff',['V']);
         TBKit.history.mount('#epHist',function(v){ if(v.V!=null){document.getElementById('A').value=v.A;document.getElementById('h').value=v.h;} calcTool(); });
     }catch(e){}
@@ -247,8 +247,12 @@ function __epPresets(){
 var __tb_ep0 = calcTool;
 calcTool = function(){ __tb_ep0(); try{ __epExtras(); }catch(e){} };
 function __epBoot(){ try{ __epPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __epBoot);
-else __epBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __epBoot();
+else document.addEventListener("DOMContentLoaded", __epBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

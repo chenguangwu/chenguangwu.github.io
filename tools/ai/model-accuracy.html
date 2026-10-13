@@ -266,8 +266,12 @@ function __maPresets(){
 var __tb_ma0 = calc;
 calc = function(){ __tb_ma0(); try{ __maExtras(); }catch(e){} };
 function __maBoot(){ try{ __maPresets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __maBoot);
-else __maBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __maBoot();
+else document.addEventListener("DOMContentLoaded", __maBoot);
 </script>
 
 <script type="application/ld+json">

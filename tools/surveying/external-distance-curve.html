@@ -230,7 +230,7 @@ function __edExtras(){
             [['radius R (m)',R.toFixed(3)],['deflection Δ (°)',D.toFixed(3)],['external E (m)',E.toFixed(3)],['tangent T (m)',T.toFixed(3)],['arc L (m)',Lr.toFixed(3)],['mid ordinate M (m)',M.toFixed(3)],['E/M ratio',(E/M).toFixed(4)],['E/L ratio',(E/Lr).toFixed(4)]],
             [['半径 R (m)',R.toFixed(3)],['交角 Δ (°)',D.toFixed(3)],['外距 E (m)',E.toFixed(3)],['切线长 T (m)',T.toFixed(3)],['弧长 L (m)',Lr.toFixed(3)],['中点垂距 M (m)',M.toFixed(3)],['E/M 比值',(E/M).toFixed(4)],['E/L 比值',(E/Lr).toFixed(4)]]);
         TBKit.matrix.table('#edTable',{head:__edL(['Element','Value'],['要素','数值']),rows:rows});
-        TBKit.history.record({E:Number(E.toFixed(3))});
+        TBKit.history.record({E:Number(E.toFixed(3)),R:R,D:D});
         TBKit.util.diffBox('#edDiff',['E']);
         TBKit.history.mount('#edHist',function(v){ if(v.E!=null){document.getElementById('R').value=v.R;document.getElementById('D').value=v.D;} calcTool(); });
     }catch(e){}
@@ -249,8 +249,12 @@ function __edPresets(){
 var __tb_ed0 = calcTool;
 calcTool = function(){ __tb_ed0(); try{ __edExtras(); }catch(e){} };
 function __edBoot(){ try{ __edPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __edBoot);
-else __edBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __edBoot();
+else document.addEventListener("DOMContentLoaded", __edBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

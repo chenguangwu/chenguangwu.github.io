@@ -279,8 +279,12 @@ function __raPresets(){
 var __tb_ra0 = calc;
 calc = function(){ __tb_ra0(); try{ __raExtras(); }catch(e){} };
 function __raBoot(){ try{ __raPresets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __raBoot);
-else __raBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __raBoot();
+else document.addEventListener("DOMContentLoaded", __raBoot);
 </script>
 <section class="opt-guide"><h2>如何使用ROC AUC 近似</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>正例平均得分</li><li>负例平均得分</li><li>正例标准差</li><li>负例标准差</li></ul><h2>适用场景</h2><p>AUC 为 ROC 曲线下面积，等价于随机正样本得分高于随机负样本的概率。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>AUC 高但线上效果差？</dt><dd>AUC 只反映排序能力，不保证某业务阈值下的准确率/召回；且训练/验证分布若与线上偏移，AUC 高也可能落地差。</dd><dt>样本极不平衡 AUC 还准吗？</dt><dd>AUC 本身对不平衡稳健(基于排序)，但正类极少时估计方差大、且业务更关心正类召回，应辅以 PR-AUC。</dd></dl></section>
 

@@ -124,12 +124,18 @@ s.parentNode.insertBefore(el, s);
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
       <div><label>宗地短边 (m)</label><input type="number" id="v1" value="80" step="any" oninput="calc()" enterkeyhint="done" aria-label="面积"></div>
     </div>
+    <div id="arPresets"></div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
+      <button class="btn" onclick="__arExport()">导出 CSV</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="arChart"></div>
+    <div id="arTable"></div>
+    <div id="arDiff"></div>
+    <div id="arHist"></div>
     <div class="info-box">💡 宗地面积 = 长 × 宽；对角线 = √(长²+宽²)；1 亩 ≈ 666.67 m²。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -469,7 +475,7 @@ function saveHistory(a,b){
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
     var now=new Date();
-    var item={a:a,b:b,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    var item={a:a,b:b,time:now.toLocaleString((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'en-US':'zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
     list.unshift(item);
     if(list.length>5)list=list.slice(0,5);
     localStorage.setItem(key,JSON.stringify(list));
@@ -477,20 +483,21 @@ function saveHistory(a,b){
   }catch(e){}
 }
 function renderHistory(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var box=document.getElementById('historyBox');
   if(!box)return;
   try{
     var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
-    if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
+    if(list.length===0){box.innerHTML=__EN?'<div class="history-empty">No records yet</div>':'<div class="history-empty">暂无计算记录</div>';return;}
     var html='<div class="history-list">';
     list.forEach(function(h){
       html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+')">'+
         '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">A='+h.a+' &nbsp; B='+h.b+'</div></div>'+
-        '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
+        '<span style="font-size:12px;color:var(--primary);">'+(__EN?'Restore':'恢复')+'</span></div>';
     });
     html+='</div>';
     const __g3=html;box.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
+  }catch(e){box.innerHTML=__EN?'<div class="history-empty">Failed to read records</div>':'<div class="history-empty">读取记录失败</div>';}
 }
 function restoreHistory(a,b){
   document.getElementById('v0').value=a;
@@ -517,19 +524,20 @@ calc();
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML=__EN?'<div class="info-box">Enter two valid numbers before calculating.</div>':'<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
   var items=[];
-  items.push([(A*B).toFixed(2), "宗地面积（m²）"]);
-  items.push([(2*(A+B)).toFixed(2), "周长（m）"]);
-  items.push([(Math.sqrt(A*A+B*B)).toFixed(2), "对角线（m）"]);
-  items.push([(A*B/666.67).toFixed(4), "折合亩数（亩）"]);
+  items.push([(A*B).toFixed(2), __EN?"Parcel area (m²)":"宗地面积（m²）"]);
+  items.push([(2*(A+B)).toFixed(2), __EN?"Perimeter (m)":"周长（m）"]);
+  items.push([(Math.sqrt(A*A+B*B)).toFixed(2), __EN?"Diagonal (m)":"对角线（m）"]);
+  items.push([(A*B/666.67).toFixed(4), __EN?"Area (mu)":"折合亩数（亩）"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 宗地面积 = 长 × 宽；对角线 = √(长²+宽²)；1 亩 ≈ 666.67 m²。';
+  html+=__EN?'💡 Parcel area = length × width; diagonal = √(L²+W²); 1 mu ≈ 666.67 m².':'💡 宗地面积 = 长 × 宽；对角线 = √(长²+宽²)；1 亩 ≈ 666.67 m²。';
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
@@ -538,6 +546,49 @@ function resetAll(){
   if(a)a.value='120';if(b)b.value='80';calc();
 }
 try{calc();}catch(e){}
+
+function __arN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __arList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __arL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __arExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#arTable','cadastral-area.csv');}catch(e){} }
+function __arExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var A=__arN('v0'), B=__arN('v1');
+        if(!(A>0&&B>0))return;
+        var area=A*B, peri=2*(A+B), diag=Math.sqrt(A*A+B*B), mu=area/666.67;
+        TBKit.chart.bar('#arChart',{labels:[__arL('current area','当前面积'),__arL('length +10%','长 +10%'),__arL('width +10%','宽 +10%')],series:[{name:__arL('area (m²)','面积 (m²)'),data:[Number(area.toFixed(2)),Number((A*1.1*B).toFixed(2)),Number((A*B*1.1).toFixed(2))]}],height:220,title:__arL('Area sensitivity (L='+A+'m, W='+B+'m)','面积敏感性（长 '+A+'m，宽 '+B+'m）')});
+        var rows=__arL(
+            [['length L (m)',A.toFixed(3)],['width W (m)',B.toFixed(3)],['area (m²)',area.toFixed(2)],['perimeter (m)',peri.toFixed(2)],['diagonal (m)',diag.toFixed(3)],['area (mu)',mu.toFixed(4)],['area (ha)',(area/10000).toFixed(6)],['length/width ratio',(A/B).toFixed(3)]],
+            [['宗地长边 (m)',A.toFixed(3)],['宗地宽边 (m)',B.toFixed(3)],['宗地面积 (m²)',area.toFixed(2)],['周长 (m)',peri.toFixed(2)],['对角线 (m)',diag.toFixed(3)],['折合亩数 (亩)',mu.toFixed(4)],['折合公顷',(area/10000).toFixed(6)],['长宽比',(A/B).toFixed(3)]]);
+        TBKit.matrix.table('#arTable',{head:__arL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({area:Number(area.toFixed(2)),v0:A,v1:B});
+        TBKit.util.diffBox('#arDiff',['area']);
+        TBKit.history.mount('#arHist',function(v){ if(v.area!=null){document.getElementById('v0').value=v.v0;document.getElementById('v1').value=v.v1;} calc(); });
+    }catch(e){}
+}
+function __arPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#arPresets',[
+            {label:'住宅 30×20',labelEn:'Residential 30x20',values:{v0:30,v1:20}},
+            {label:'商业 50×40',labelEn:'Commercial 50x40',values:{v0:50,v1:40}},
+            {label:'农用地 100×66.67（约10亩）',labelEn:'Farmland 100x66.67 (~10 mu)',values:{v0:100,v1:66.67}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ar0 = calc;
+calc = function(){ __tb_ar0(); try{ __arExtras(); }catch(e){} };
+function __arBoot(){ try{ __arPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __arBoot();
+else document.addEventListener("DOMContentLoaded", __arBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

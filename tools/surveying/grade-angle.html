@@ -275,7 +275,7 @@ function __gaExtras(){
             [['slope angle (°)',a.toFixed(2)],['grade (%)',pct.toFixed(2)],['grade ratio 1:n',(1/Math.tan(rad)).toFixed(3)],['sin α',Math.sin(rad).toFixed(4)],['cos α',Math.cos(rad).toFixed(4)],['tan α',Math.tan(rad).toFixed(4)],['complement (90-α)°',(90-a).toFixed(2)]],
             [['坡度角 (°)',a.toFixed(2)],['坡度 (%)',pct.toFixed(2)],['坡比 1:n',(1/Math.tan(rad)).toFixed(3)],['sin α',Math.sin(rad).toFixed(4)],['cos α',Math.cos(rad).toFixed(4)],['tan α',Math.tan(rad).toFixed(4)],['余角 (90-α)°',(90-a).toFixed(2)]]);
         TBKit.matrix.table('#gaTable',{head:__gaL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({pct:Number(pct.toFixed(2))});
+        TBKit.history.record({pct:Number(pct.toFixed(2)),a:a});
         TBKit.util.diffBox('#gaDiff',['pct']);
         TBKit.history.mount('#gaHist',function(v){ if(v.pct!=null){document.getElementById('a').value=v.a;} calcTool(); });
     }catch(e){}
@@ -294,8 +294,12 @@ function __gaPresets(){
 var __tb_ga0 = calcTool;
 calcTool = function(){ __tb_ga0(); try{ __gaExtras(); }catch(e){} };
 function __gaBoot(){ try{ __gaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __gaBoot);
-else __gaBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __gaBoot();
+else document.addEventListener("DOMContentLoaded", __gaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

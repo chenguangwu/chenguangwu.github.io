@@ -116,8 +116,13 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>十进制度 DD</label><input type="number" id="dd" value="39.9042" step="any" oninput="calc()"></div><div><label>度 D</label><input type="number" id="d" value="39" step="any" oninput="calc()"></div></div>
 <div class="input-row"><div><label>分 M</label><input type="number" id="m" value="54" step="any" oninput="calc()"></div><div><label>秒 S</label><input type="number" id="s" value="15.12" step="any" oninput="calc()"></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">换算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div id="c4Presets"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">换算</button><button type="button" class="btn" onclick="__c4Export()">导出 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
+    <div id="c4Chart"></div>
+    <div id="c4Table"></div>
+    <div id="c4Diff"></div>
+    <div id="c4Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -169,8 +174,53 @@ s.parentNode.insertBefore(el, s);
 <script>
 function toDMS(dd){var sign=dd<0?"-":"";var a=Math.abs(dd);var D=Math.floor(a);var mf=(a-D)*60;var M=Math.floor(mf);var S=(mf-M)*60;if(S>=59.9995){S=0;M+=1;if(M>=60){M=0;D+=1;}}return {d:sign+D,m:M,s:S};}
 function toDD(d,m,s){var sign=(String(d).charAt(0)==="-"||d<0)?-1:1;return sign*(Math.abs(d)+m/60+s/3600);}
-function calc(){var dd=+document.getElementById("dd").value||0;var D=+document.getElementById("d").value||0;var M=+document.getElementById("m").value||0;var S=+document.getElementById("s").value||0;var r=toDMS(dd);var dd2=toDD(D,M,S);var r2=toDMS(dd2);var km=Math.abs(dd)*111.32;var fmt=function(x){return x.toFixed(5);};var h="<p style='font-size:22px;color:var(--primary);'><strong>"+Math.abs(r.d)+"° "+r.m+"′ "+r.s.toFixed(2)+"″</strong></p><table style='width:100%;font-size:13px;margin-top:8px'><tr><th align=left>方向</th><th align=left>结果</th></tr><tr><td>DD → DMS</td><td><strong>"+Math.abs(r.d)+"° "+r.m+"′ "+r.s.toFixed(3)+"″</strong></td></tr><tr><td>DMS → DD</td><td><strong>"+fmt(dd2)+"°</strong></td></tr><tr><td>DMS → DD → DMS（回代校验）</td><td><strong>"+Math.abs(r2.d)+"° "+r2.m+"′ "+r2.s.toFixed(3)+"″</strong></td></tr><tr><td>该纬度距赤道弧长</td><td><strong>"+km.toFixed(2)+" km</strong></td></tr></table><p style='font-size:12px;color:var(--text-muted);margin-top:8px'>1° ≈ 111.32 km ｜ 1′ ≈ 1.855 km ｜ 1″ ≈ 30.9 m</p>";document.getElementById("res").innerHTML=h;}
+function calc(){var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());var dd=+document.getElementById("dd").value||0;var D=+document.getElementById("d").value||0;var M=+document.getElementById("m").value||0;var S=+document.getElementById("s").value||0;var r=toDMS(dd);var dd2=toDD(D,M,S);var r2=toDMS(dd2);var km=Math.abs(dd)*111.32;var fmt=function(x){return x.toFixed(5);};var h=__EN?("<p style='font-size:22px;color:var(--primary);'><strong>"+Math.abs(r.d)+"° "+r.m+"′ "+r.s.toFixed(2)+"″</strong></p><table style='width:100%;font-size:13px;margin-top:8px'><tr><th align=left>Direction</th><th align=left>Result</th></tr><tr><td>DD to DMS</td><td><strong>"+Math.abs(r.d)+"° "+r.m+"′ "+r.s.toFixed(3)+"″</strong></td></tr><tr><td>DMS to DD</td><td><strong>"+fmt(dd2)+"°</strong></td></tr><tr><td>DMS to DD to DMS (round-trip)</td><td><strong>"+Math.abs(r2.d)+"° "+r2.m+"′ "+r2.s.toFixed(3)+"″</strong></td></tr><tr><td>Arc length to equator</td><td><strong>"+km.toFixed(2)+" km</strong></td></tr></table><p style='font-size:12px;color:var(--text-muted);margin-top:8px'>1° ≈ 111.32 km | 1′ ≈ 1.855 km | 1″ ≈ 30.9 m</p>"):("<p style='font-size:22px;color:var(--primary);'><strong>"+Math.abs(r.d)+"° "+r.m+"′ "+r.s.toFixed(2)+"″</strong></p><table style='width:100%;font-size:13px;margin-top:8px'><tr><th align=left>方向</th><th align=left>结果</th></tr><tr><td>DD → DMS</td><td><strong>"+Math.abs(r.d)+"° "+r.m+"′ "+r.s.toFixed(3)+"″</strong></td></tr><tr><td>DMS → DD</td><td><strong>"+fmt(dd2)+"°</strong></td></tr><tr><td>DMS → DD → DMS（回代校验）</td><td><strong>"+Math.abs(r2.d)+"° "+r2.m+"′ "+r2.s.toFixed(3)+"″</strong></td></tr><tr><td>该纬度距赤道弧长</td><td><strong>"+km.toFixed(2)+" km</strong></td></tr></table><p style='font-size:12px;color:var(--text-muted);margin-top:8px'>1° ≈ 111.32 km ｜ 1′ ≈ 1.855 km ｜ 1″ ≈ 30.9 m</p>");document.getElementById("res").innerHTML=h;}
 function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+
+function __c4N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __c4List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __c4L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __c4Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#c4Table','dms-convert.csv');}catch(e){} }
+function __c4Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var dd=__c4N('dd'), D=__c4N('d'), M=__c4N('m'), S=__c4N('s');
+        var dd2=D+M/60+S/3600;
+        var sign=D<0?-1:1;
+        var a=Math.abs(dd), Di=Math.floor(a), mf=(a-Di)*60, Mi=Math.floor(mf), Si=(mf-Mi)*60;
+        if(Si>=59.9995){Si=0;Mi+=1;if(Mi>=60){Mi=0;Di+=1;}}
+        TBKit.chart.bar('#c4Chart',{labels:[__c4L('degrees','度'),__c4L('minutes','分'),__c4L('seconds','秒')],series:[{name:__c4L('value in degrees','折算为度'),data:[Di,Number((Mi/60).toFixed(6)),Number((Si/3600).toFixed(6))]}],height:220,title:__c4L('DMS components converted to degrees (DD='+dd.toFixed(5)+')','度分秒各分量折算为度（DD='+dd.toFixed(5)+'）')});
+        var rows=__c4L(
+            [['decimal degrees DD',dd.toFixed(5)],['DMS',Di+'° '+Mi+'′ '+Si.toFixed(3)+'″'],['DMS back to DD',dd2.toFixed(5)],['round-trip DMS',(function(){var a2=Math.abs(dd2),d2=Math.floor(a2),m2=(a2-d2)*60,mi2=Math.floor(m2),s2=(m2-mi2)*60;return d2+'° '+mi2+'′ '+s2.toFixed(3)+'″';})()],['arc length to equator (km)',(Math.abs(dd)*111.32).toFixed(2)]],
+            [['十进制度 DD',dd.toFixed(5)],['度分秒 DMS',Di+'° '+Mi+'′ '+Si.toFixed(3)+'″'],['度分秒 → 十进制度',dd2.toFixed(5)],['回代校验 DMS',(function(){var a2=Math.abs(dd2),d2=Math.floor(a2),m2=(a2-d2)*60,mi2=Math.floor(m2),s2=(m2-mi2)*60;return d2+'° '+mi2+'′ '+s2.toFixed(3)+'″';})()],['距赤道弧长 (km)',(Math.abs(dd)*111.32).toFixed(2)]]);
+        TBKit.matrix.table('#c4Table',{head:__c4L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({dd:Number(dd.toFixed(5)),d:D,m:M,s:S});
+        TBKit.util.diffBox('#c4Diff',['dd']);
+        TBKit.history.mount('#c4Hist',function(v){ if(v.dd!=null){document.getElementById('dd').value=v.dd;document.getElementById('d').value=v.d;document.getElementById('m').value=v.m;document.getElementById('s').value=v.s;} calc(); });
+    }catch(e){}
+}
+function __c4Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#c4Presets',[
+            {label:'北京 39.9042°',labelEn:'Beijing 39.9042',values:{dd:39.9042,d:39,m:54,s:15.12}},
+            {label:'上海 31.2304°',labelEn:'Shanghai 31.2304',values:{dd:31.2304,d:31,m:13,s:49.44}},
+            {label:'三亚 18.2528°',labelEn:'Sanya 18.2528',values:{dd:18.2528,d:18,m:15,s:10.08}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_c40 = calc;
+calc = function(){ __tb_c40(); try{ __c4Extras(); }catch(e){} };
+function __c4Boot(){ try{ __c4Presets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __c4Boot();
+else document.addEventListener("DOMContentLoaded", __c4Boot);
 </script>
 
 <!-- SEO 介绍区块 -->

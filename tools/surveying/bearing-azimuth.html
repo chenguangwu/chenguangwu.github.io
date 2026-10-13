@@ -230,7 +230,7 @@ function __baExtras(){
             [['ΔN',dn.toFixed(3)],['ΔE',de.toFixed(3)],['azimuth (°)',az.toFixed(2)],['distance (m)',d.toFixed(3)],['quadrant',quad],['angle from east (°)',(90-az).toFixed(2)],['angle from north (°)',az.toFixed(2)]],
             [['ΔN',dn.toFixed(3)],['ΔE',de.toFixed(3)],['方位角 (°)',az.toFixed(2)],['水平距离 (m)',d.toFixed(3)],['所在象限',quad],['与正东夹角 (°)',(90-az).toFixed(2)],['与正北夹角 (°)',az.toFixed(2)]]);
         TBKit.matrix.table('#baTable',{head:__baL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({az:Number(az.toFixed(2))});
+        TBKit.history.record({az:Number(az.toFixed(2)),dn:dn,de:de});
         TBKit.util.diffBox('#baDiff',['az']);
         TBKit.history.mount('#baHist',function(v){ if(v.az!=null){document.getElementById('dn').value=v.dn;document.getElementById('de').value=v.de;} calcTool(); });
     }catch(e){}
@@ -249,8 +249,12 @@ function __baPresets(){
 var __tb_ba0 = calcTool;
 calcTool = function(){ __tb_ba0(); try{ __baExtras(); }catch(e){} };
 function __baBoot(){ try{ __baPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __baBoot);
-else __baBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __baBoot();
+else document.addEventListener("DOMContentLoaded", __baBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -224,7 +224,7 @@ function __asExtras(){
             [['PDOP',pdop.toFixed(2)],['HDOP',hdop.toFixed(2)],['VDOP',vdop.toFixed(2)],['satellites',sc],['UERE (m)',uere.toFixed(2)],['computed PDOP',calcPdop.toFixed(3)],['horizontal error (m)',hErr.toFixed(2)],['vertical error (m)',vErr.toFixed(2)],['3D error (m)',pErr.toFixed(2)],['grade',grade]],
             [['PDOP',pdop.toFixed(2)],['HDOP',hdop.toFixed(2)],['VDOP',vdop.toFixed(2)],['可见卫星',sc],['UERE (m)',uere.toFixed(2)],['PDOP 计算值',calcPdop.toFixed(3)],['水平误差 (m)',hErr.toFixed(2)],['垂直误差 (m)',vErr.toFixed(2)],['三维误差 (m)',pErr.toFixed(2)],['精度等级',pdop<=1?'理想（特级）':pdop<=2?'优秀':pdop<=5?'良好':pdop<=10?'一般':'差']]);
         TBKit.matrix.table('#asTable',{head:__asL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({pErr:Number(pErr.toFixed(2))});
+        TBKit.history.record({pErr:Number(pErr.toFixed(2)),pdop:pdop,hdop:hdop,vdop:vdop,satCount:sc,uere:uere});
         TBKit.util.diffBox('#asDiff',['pErr']);
         TBKit.history.mount('#asHist',function(v){ if(v.pErr!=null){document.getElementById('pdop').value=v.pdop;document.getElementById('hdop').value=v.hdop;document.getElementById('vdop').value=v.vdop;document.getElementById('satCount').value=v.satCount;document.getElementById('uere').value=v.uere;} calc(); });
     }catch(e){}
@@ -243,8 +243,12 @@ function __asPresets(){
 var __tb_as0 = calc;
 calc = function(){ __tb_as0(); try{ __asExtras(); }catch(e){} };
 function __asBoot(){ try{ __asPresets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __asBoot);
-else __asBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __asBoot();
+else document.addEventListener("DOMContentLoaded", __asBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

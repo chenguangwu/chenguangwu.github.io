@@ -133,6 +133,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="tab-btn active" onclick="setMode('inv')">坐标反算（两点→距离方位角）</button>
       <button type="button" class="tab-btn" onclick="setMode('fwd')">坐标正算（一点+距离方位角→另一点）</button>
     </div>
+    <div id="dcPresetsInv"></div>
     <div id="invPanel">
       <div class="field-grid">
         <div><label>A 点 x (m)</label><input type="number" id="x1" value="1000" step="0.001" oninput="calc()"></div>
@@ -141,6 +142,7 @@ s.parentNode.insertBefore(el, s);
         <div><label>B 点 y (m)</label><input type="number" id="y2" value="2600" step="0.001" oninput="calc()"></div>
       </div>
     </div>
+    <div id="dcPresetsFwd"></div>
     <div id="fwdPanel" style="display:none;">
       <div class="field-grid">
         <div><label>起点 x (m)</label><input type="number" id="fx1" value="1000" step="0.001" oninput="calc()"></div>
@@ -152,9 +154,14 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:14px;">
       <button type="button" class="btn primary" onclick="calc()">计算</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="__dcExport()">导出 CSV</button>
     </div>
     <div class="result-grid" id="grid"></div>
     <div class="result-box" id="detail"></div>
+    <div id="dcChart"></div>
+    <div id="dcTable"></div>
+    <div id="dcDiff"></div>
+    <div id="dcHist"></div>
     <div class="info-box">方位角从正北顺时针计，0—360°。反算公式：S=√(Δx²+Δy²)，α=atan2(Δx,Δy)；正算：x₂=x₁+S·sinα，y₂=y₁+S·cosα。</div>
   </div>
 
@@ -208,7 +215,7 @@ s.parentNode.insertBefore(el, s);
 var mode='inv';
 function v(id){return parseFloat(document.getElementById(id).value);}
 function azName(az){
-  var dirs=['正北','北偏东','东北','东偏北','正东','东偏南','东南','南偏东','正南','南偏西','西南','西偏南','正西','西偏北','西北','北偏西'];
+  var dirs=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']:['正北','北偏东','东北','东偏北','正东','东偏南','东南','南偏东','正南','南偏西','西南','西偏南','正西','西偏北','西北','北偏西'];
   return dirs[Math.round(az/22.5)%16];
 }
 function setMode(m){
@@ -219,6 +226,7 @@ function setMode(m){
   calc();
 }
 function calc(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var grid=document.getElementById('grid'),det=document.getElementById('detail');
   if(mode==='inv'){
     var x1=v('x1'),y1=v('y1'),x2=v('x2'),y2=v('y2');
@@ -227,23 +235,23 @@ function calc(){
     var S=Math.sqrt(dx*dx+dy*dy);
     var az=Math.atan2(dx,dy)*180/Math.PI;
     if(az<0)az+=360;
-    const __g3='<div class="result-item"><div class="val">'+S.toFixed(3)+'</div><div class="lbl">水平距离 m</div></div>'+
-      '<div class="result-item"><div class="val">'+az.toFixed(4)+'°</div><div class="lbl">方位角</div></div>'+
-      '<div class="result-item"><div class="val">'+azName(az)+'</div><div class="lbl">方向</div></div>';grid.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    const __g3='<div class="result-item"><div class="val">'+S.toFixed(3)+'</div><div class="lbl">'+(__EN?'Horizontal distance (m)':'水平距离 m')+'</div></div>'+
+      '<div class="result-item"><div class="val">'+az.toFixed(4)+'°</div><div class="lbl">'+(__EN?'Azimuth':'方位角')+'</div></div>'+
+      '<div class="result-item"><div class="val">'+azName(az)+'</div><div class="lbl">'+(__EN?'Direction':'方向')+'</div></div>';grid.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
     const __g4='<p>📊 A('+x1.toFixed(3)+', '+y1.toFixed(3)+') → B('+x2.toFixed(3)+', '+y2.toFixed(3)+')</p>'+
-      '<p>Δx = '+dx.toFixed(3)+'，Δy = '+dy.toFixed(3)+'</p>'+
-      '<p>水平距离 S = <strong>'+S.toFixed(3)+' m</strong></p>'+
-      '<p>方位角 α = <strong>'+az.toFixed(4)+'°</strong>（'+azName(az)+'）</p>';det.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+      (__EN?'<p>Δx = ':'<p>Δx = ')+dx.toFixed(3)+(__EN?', Δy = ':'，Δy = ')+dy.toFixed(3)+'</p>'+
+      (__EN?'<p>Horizontal distance S = <strong>':'<p>水平距离 S = <strong>')+S.toFixed(3)+' m</strong></p>'+
+      (__EN?'<p>Azimuth α = <strong>':'<p>方位角 α = <strong>')+az.toFixed(4)+(__EN?'°</strong> ('+azName(az)+')</p>':'°</strong>（'+azName(az)+'）</p>');det.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   }else{
     var x1=v('fx1'),y1=v('fy1'),S=v('fs'),a=v('fa');
     if([x1,y1,S,a].some(isNaN)){grid.innerHTML='';det.innerHTML='';return;}
     var ar=a*Math.PI/180;
     var x2=x1+S*Math.sin(ar),y2=y1+S*Math.cos(ar);
-    const __g7='<div class="result-item"><div class="val">'+x2.toFixed(3)+'</div><div class="lbl">终点 x (m)</div></div>'+
-      '<div class="result-item"><div class="val">'+y2.toFixed(3)+'</div><div class="lbl">终点 y (m)</div></div>'+
-      '<div class="result-item"><div class="val">'+azName(((a%360)+360)%360)+'</div><div class="lbl">方向</div></div>';grid.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
-    const __g8='<p>📊 起点('+x1.toFixed(3)+', '+y1.toFixed(3)+')，距离 '+S.toFixed(3)+' m，方位角 '+a.toFixed(4)+'°</p>'+
-      '<p>终点坐标：<strong>('+x2.toFixed(3)+', '+y2.toFixed(3)+')</strong></p>'+
+    const __g7='<div class="result-item"><div class="val">'+x2.toFixed(3)+'</div><div class="lbl">'+(__EN?'End x (m)':'终点 x (m)')+'</div></div>'+
+      '<div class="result-item"><div class="val">'+y2.toFixed(3)+'</div><div class="lbl">'+(__EN?'End y (m)':'终点 y (m)')+'</div></div>'+
+      '<div class="result-item"><div class="val">'+azName(((a%360)+360)%360)+'</div><div class="lbl">'+(__EN?'Direction':'方向')+'</div></div>';grid.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+    const __g8=(__EN?'<p>📊 Start (':'<p>📊 起点(')+x1.toFixed(3)+', '+y1.toFixed(3)+(__EN?'), distance ':'，距离 ')+S.toFixed(3)+' m'+(__EN?', azimuth ':'，方位角 ')+a.toFixed(4)+'°</p>'+
+      (__EN?'<p>End coordinates: <strong>(':'<p>终点坐标：<strong>(')+x2.toFixed(3)+', '+y2.toFixed(3)+')</strong></p>'+
       '<p>x₂ = x₁ + S·sinα = '+x1.toFixed(3)+' + '+S.toFixed(3)+'×sin('+a.toFixed(4)+'°)</p>'+
       '<p>y₂ = y₁ + S·cosα = '+y1.toFixed(3)+' + '+S.toFixed(3)+'×cos('+a.toFixed(4)+'°)</p>';det.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   }
@@ -254,6 +262,74 @@ function copyResult(){
   ToolBox.copyText(t, i18nText());
 }
 calc();
+
+function __dcN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dcList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __dcL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __dcExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#dcTable','distance-calc.csv');}catch(e){} }
+function __dcExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var md=(typeof mode!=='undefined'&&mode==='fwd')?'fwd':'inv';
+        var rows, pts, title;
+        if(md==='inv'){
+            var x1=__dcN('x1'),y1=__dcN('y1'),x2=__dcN('x2'),y2=__dcN('y2');
+            if([x1,y1,x2,y2].some(function(n){return isNaN(n);}))return;
+            var dx=x2-x1,dy=y2-y1,S=Math.sqrt(dx*dx+dy*dy);
+            var az=Math.atan2(dx,dy)*180/Math.PI; if(az<0)az+=360;
+            pts=[[x1,y1],[x2,y2]];
+            title=__dcL('Inverse: A to B (S='+S.toFixed(2)+' m)','坐标反算：A→B（距离 '+S.toFixed(2)+' m）');
+            rows=__dcL(
+                [['A x (m)',x1.toFixed(3)],['A y (m)',y1.toFixed(3)],['B x (m)',x2.toFixed(3)],['B y (m)',y2.toFixed(3)],['Δx (m)',dx.toFixed(3)],['Δy (m)',dy.toFixed(3)],['distance S (m)',S.toFixed(3)],['azimuth (°)',az.toFixed(4)]],
+                [['A 点 x (m)',x1.toFixed(3)],['A 点 y (m)',y1.toFixed(3)],['B 点 x (m)',x2.toFixed(3)],['B 点 y (m)',y2.toFixed(3)],['Δx (m)',dx.toFixed(3)],['Δy (m)',dy.toFixed(3)],['水平距离 S (m)',S.toFixed(3)],['方位角 (°)',az.toFixed(4)]]);
+            TBKit.history.record({S:Number(S.toFixed(3)),md:'inv',x1:x1,y1:y1,x2:x2,y2:y2,fx1:document.getElementById('fx1').value,fy1:document.getElementById('fy1').value,fs:document.getElementById('fs').value,fa:document.getElementById('fa').value});
+        }else{
+            var fx1=__dcN('fx1'),fy1=__dcN('fy1'),fs=__dcN('fs'),fa=__dcN('fa');
+            if([fx1,fy1,fs,fa].some(function(n){return isNaN(n);}))return;
+            var ar=fa*Math.PI/180, ex=fx1+fs*Math.sin(ar), ey=fy1+fs*Math.cos(ar);
+            pts=[[fx1,fy1],[ex,ey]];
+            title=__dcL('Forward: start to end (S='+fs.toFixed(2)+' m)','坐标正算：起点→终点（距离 '+fs.toFixed(2)+' m）');
+            rows=__dcL(
+                [['start x (m)',fx1.toFixed(3)],['start y (m)',fy1.toFixed(3)],['distance S (m)',fs.toFixed(3)],['azimuth (°)',fa.toFixed(4)],['end x (m)',ex.toFixed(3)],['end y (m)',ey.toFixed(3)]],
+                [['起点 x (m)',fx1.toFixed(3)],['起点 y (m)',fy1.toFixed(3)],['水平距离 S (m)',fs.toFixed(3)],['方位角 (°)',fa.toFixed(4)],['终点 x (m)',ex.toFixed(3)],['终点 y (m)',ey.toFixed(3)]]);
+            TBKit.history.record({S:Number(fs.toFixed(3)),md:'fwd',x1:document.getElementById('x1').value,y1:document.getElementById('y1').value,x2:document.getElementById('x2').value,y2:document.getElementById('y2').value,fx1:fx1,fy1:fy1,fs:fs,fa:fa});
+        }
+        TBKit.chart.scatter('#dcChart',{points:pts,fit:true,height:230,title:title});
+        TBKit.matrix.table('#dcTable',{head:__dcL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.util.diffBox('#dcDiff',['S']);
+        TBKit.history.mount('#dcHist',function(v){ if(v.S==null)return;
+            if(v.md==='fwd'){document.getElementById('fx1').value=v.fx1;document.getElementById('fy1').value=v.fy1;document.getElementById('fs').value=v.fs;document.getElementById('fa').value=v.fa;try{setMode('fwd');}catch(e){}}
+            else{document.getElementById('x1').value=v.x1;document.getElementById('y1').value=v.y1;document.getElementById('x2').value=v.x2;document.getElementById('y2').value=v.y2;try{setMode('inv');}catch(e){}}
+        });
+    }catch(e){}
+}
+function __dcPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#dcPresetsInv',[
+            {label:'控制网 1000,2000→1500,2600',labelEn:'Control net A(1000,2000) B(1500,2600)',values:{x1:1000,y1:2000,x2:1500,y2:2600}},
+            {label:'方格网 0,0→80,60',labelEn:'Grid A(0,0) B(80,60)',values:{x1:0,y1:0,x2:80,y2:60}},
+            {label:'远点 500,500→-300,1200',labelEn:'Far A(500,500) B(-300,1200)',values:{x1:500,y1:500,x2:-300,y2:1200}}
+        ],function(){ try{setMode('inv');}catch(e){} });
+        TBKit.preset.bar('#dcPresetsFwd',[
+            {label:'极坐标放样 S781 α50.19°',labelEn:'Polar staking S781 az50.19',values:{fx1:1000,fy1:2000,fs:781.025,fa:50.1944}},
+            {label:'短边 S120 α90°',labelEn:'Short S120 az90',values:{fx1:5000,fy1:3000,fs:120.5,fa:90}},
+            {label:'定向 S50 α0°',labelEn:'Due north S50 az0',values:{fx1:0,fy1:0,fs:50,fa:0}}
+        ],function(){ try{setMode('fwd');}catch(e){} });
+    }catch(e){}
+}
+
+var __tb_dc0 = calc;
+calc = function(){ __tb_dc0(); try{ __dcExtras(); }catch(e){} };
+function __dcBoot(){ try{ __dcPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __dcBoot();
+else document.addEventListener("DOMContentLoaded", __dcBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

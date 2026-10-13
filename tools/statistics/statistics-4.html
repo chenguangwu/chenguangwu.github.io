@@ -323,8 +323,12 @@ function __ciPresets(){
 var __tb_ci0 = calc;
 calc = function(){ __tb_ci0(); try{ __ciExtras(); }catch(e){} };
 function __ciBoot(){ try{ __ciPresets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ciBoot);
-else __ciBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __ciBoot();
+else document.addEventListener("DOMContentLoaded", __ciBoot);
 
 
 </script>

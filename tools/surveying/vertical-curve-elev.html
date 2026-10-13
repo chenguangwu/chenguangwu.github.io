@@ -298,7 +298,7 @@ function __vcExtras(){
             [['PVI elevation',y0.toFixed(3)],['grade g1 (%)',(g1*100).toFixed(2)],['grade g2 (%)',(g2*100).toFixed(2)],['curve length L (m)',L.toFixed(2)],['station x (m)',x.toFixed(2)],['elevation at x',y.toFixed(3)],['rise from PVI',(y-y0).toFixed(3)],['start elevation',elev(0).toFixed(3)],['end elevation',elev(L).toFixed(3)],['K value (L/|A|)',(L/Math.abs(g2*100-g1*100)).toFixed(2)]],
             [['变坡点高程',y0.toFixed(3)],['前坡比 g1 (%)',(g1*100).toFixed(2)],['后坡比 g2 (%)',(g2*100).toFixed(2)],['曲线长 L (m)',L.toFixed(2)],['桩距 x (m)',x.toFixed(2)],['该桩高程',y.toFixed(3)],['相对变坡点高差',(y-y0).toFixed(3)],['起点高程',elev(0).toFixed(3)],['终点高程',elev(L).toFixed(3)],['K 值 (L/|A|)',(L/Math.abs(g2*100-g1*100)).toFixed(2)]]);
         TBKit.matrix.table('#vcTable',{head:__vcL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({y:Number(y.toFixed(3))});
+        TBKit.history.record({y:Number(y.toFixed(3)),y0:y0,g1:g1,g2:g2,L:L,x:x});
         TBKit.util.diffBox('#vcDiff',['y']);
         TBKit.history.mount('#vcHist',function(v){ if(v.y!=null){document.getElementById('y0').value=v.y0;document.getElementById('g1').value=v.g1;document.getElementById('g2').value=v.g2;document.getElementById('L').value=v.L;document.getElementById('x').value=v.x;} calcTool(); });
     }catch(e){}
@@ -317,8 +317,12 @@ function __vcPresets(){
 var __tb_vc0 = calcTool;
 calcTool = function(){ __tb_vc0(); try{ __vcExtras(); }catch(e){} };
 function __vcBoot(){ try{ __vcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __vcBoot);
-else __vcBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __vcBoot();
+else document.addEventListener("DOMContentLoaded", __vcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

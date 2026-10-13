@@ -231,7 +231,7 @@ function __crExtras(){
             [['original x',x.toFixed(3)],['original y',y.toFixed(3)],['rotation θ (°)',t.toFixed(3)],['rotated x′',xp.toFixed(3)],['rotated y′',yp.toFixed(3)],['radius r',r.toFixed(3)],['radius check r′',rp.toFixed(3)],['radius error',Math.abs(rp-r).toFixed(6)]],
             [['原坐标 x',x.toFixed(3)],['原坐标 y',y.toFixed(3)],['旋转角 θ (°)',t.toFixed(3)],['旋转后 x′',xp.toFixed(3)],['旋转后 y′',yp.toFixed(3)],['旋转半径 r',r.toFixed(3)],['校验半径 r′',rp.toFixed(3)],['半径误差',Math.abs(rp-r).toFixed(6)]]);
         TBKit.matrix.table('#crTable',{head:__crL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({xp:Number(xp.toFixed(3))});
+        TBKit.history.record({xp:Number(xp.toFixed(3)),x:x,y:y,t:t});
         TBKit.util.diffBox('#crDiff',['xp','yp']);
         TBKit.history.mount('#crHist',function(v){ if(v.xp!=null){document.getElementById('x').value=v.x;document.getElementById('y').value=v.y;document.getElementById('t').value=v.t;} calcTool(); });
     }catch(e){}
@@ -250,8 +250,12 @@ function __crPresets(){
 var __tb_cr0 = calcTool;
 calcTool = function(){ __tb_cr0(); try{ __crExtras(); }catch(e){} };
 function __crBoot(){ try{ __crPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __crBoot);
-else __crBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __crBoot();
+else document.addEventListener("DOMContentLoaded", __crBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

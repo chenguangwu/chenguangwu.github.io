@@ -145,12 +145,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pvPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pvExport()">导出 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pvChart"></div>
+    <div id="pvTable"></div>
+    <div id="pvDiff"></div>
+    <div id="pvHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -211,6 +217,58 @@ function resetForm(){document.getElementById('A1').value = '10';
       document.getElementById('L').value = '50';
       calcTool();}
 calcTool();
+
+function __pvN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pvList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __pvL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+var __pvT={'棱台体积 V (米³)':'Prismoidal volume V (m³)','平均断面法体积（对比）(米³)':'Average-end-area volume (m³)','中断面与端面均值之差 (米²)':'Mid vs end mean diff (m²)'};
+var __tb_pv_dg=dataGrid;
+dataGrid=function(rows){if(typeof TBKit!=='undefined'&&TBKit.util.isEn()){rows=rows.map(function(r){return[(typeof r[0]==='string'?(__pvT[r[0]]||r[0]):r[0]),(r[1]==null?r[1]:(__pvT[r[1]]||r[1]))];});}return __tb_pv_dg(rows);};
+
+
+function __pvExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#pvTable','prismoidal-volume.csv');}catch(e){} }
+function __pvExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var A1=__pvN('A1'),Am=__pvN('Am'),A2=__pvN('A2'),L=__pvN('L');
+        if(!(L>0))return;
+        var V=L/6*(A1+4*Am+A2), Vavg=L*(A1+A2)/2;
+        var Ls=[],d1=[],d2=[],i;
+        for(i=1;i<=10;i++){ var ll=L*i/5; Ls.push(ll.toFixed(0)); d1.push(Number((ll/6*(A1+4*Am+A2)).toFixed(2))); d2.push(Number((ll*(A1+A2)/2).toFixed(2))); }
+        TBKit.chart.line('#pvChart',{labels:Ls,series:[
+            {name:__pvL('prismoidal formula','棱台法'),data:d1},
+            {name:__pvL('average end area','平均断面法'),data:d2}
+        ],height:230,title:__pvL('Volume vs spacing L (A1='+A1+', Am='+Am+', A2='+A2+')','体积随间距 L 变化（A1='+A1+'，Am='+Am+'，A2='+A2+'）')});
+        var rows=__pvL(
+            [['end area A1 (m2)',A1.toFixed(3)],['mid area Am (m2)',Am.toFixed(3)],['end area A2 (m2)',A2.toFixed(3)],['spacing L (m)',L.toFixed(3)],['prismoidal V (m3)',V.toFixed(2)],['average-end V (m3)',Vavg.toFixed(2)],['difference (m3)',(V-Vavg).toFixed(2)],['difference (%)',(Vavg!=0?((V-Vavg)/Vavg*100).toFixed(3):'—')]],
+            [['端面积 A1 (米²)',A1.toFixed(3)],['中截面 Am (米²)',Am.toFixed(3)],['端面积 A2 (米²)',A2.toFixed(3)],['间距 L (m)',L.toFixed(3)],['棱台体积 V (米³)',V.toFixed(2)],['平均断面法体积 (米³)',Vavg.toFixed(2)],['两法差值 (米³)',(V-Vavg).toFixed(2)],['差值占比 (%)',(Vavg!=0?((V-Vavg)/Vavg*100).toFixed(3):'—')]]);
+        TBKit.matrix.table('#pvTable',{head:__pvL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({V:Number(V.toFixed(2)),A1:A1,Am:Am,A2:A2,L:L});
+        TBKit.util.diffBox('#pvDiff',['V']);
+        TBKit.history.mount('#pvHist',function(v){ if(v.V!=null){document.getElementById('A1').value=v.A1;document.getElementById('Am').value=v.Am;document.getElementById('A2').value=v.A2;document.getElementById('L').value=v.L;} calcTool(); });
+    }catch(e){}
+}
+function __pvPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#pvPresets',[
+            {label:'路堑 10/15/20 L50',labelEn:'Cut 10/15/20 L50',values:{A1:10,Am:15,A2:20,L:50}},
+            {label:'基坑 8/20/32 L30',labelEn:'Pit 8/20/32 L30',values:{A1:8,Am:20,A2:32,L:30}},
+            {label:'河道 50/80/110 L200',labelEn:'Channel 50/80/110 L200',values:{A1:50,Am:80,A2:110,L:200}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_pv0 = calcTool;
+calcTool = function(){ __tb_pv0(); try{ __pvExtras(); }catch(e){} };
+function __pvBoot(){ try{ __pvPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __pvBoot();
+else document.addEventListener("DOMContentLoaded", __pvBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

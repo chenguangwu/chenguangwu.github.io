@@ -121,8 +121,13 @@ s.parentNode.insertBefore(el, s);
   <label>线状要素长度 L（米，点缓冲填 0）</label>
   <input type="number" id="L" value="100" step="10" min="0" oninput="calc()">
 </div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
+<div id="anPresets"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算</button><button type="button" class="btn" onclick="__anExport()">导出 CSV</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div>
+    <div id="anChart"></div>
+    <div id="anTable"></div>
+    <div id="anDiff"></div>
+    <div id="anHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -173,9 +178,58 @@ s.parentNode.insertBefore(el, s);
 <script>
 function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function calc(){var r=num('r'),L=num('L');if(r<=0){document.getElementById('res').innerHTML='<p>缓冲半径需大于 0。</p>';return;}var PI=Math.PI;var aPoint=PI*r*r;var aLine=2*r*L+PI*r*r;var peri=2*PI*r+2*L;var html='<p>点缓冲面积：<strong>'+fmt(aPoint)+' ㎡</strong></p><p>线缓冲面积（胶囊形）：<strong style="color:var(--primary);">'+fmt(aLine)+' ㎡</strong></p><p>缓冲周长：<strong>'+fmt(peri)+' m</strong></p><p>说明：线长 '+fmt(L,0)+' m，半径 '+fmt(r,0)+' m；线长填 0 时线缓冲面积退化为点缓冲面积。</p>';html+='<p>线缓冲为点缓冲面积的 <strong>'+fmt(L>0?aLine/aPoint:0,2)+' 倍</strong>；面积换算：点缓冲 '+fmt(aPoint/10000,4)+' 公顷、线缓冲 '+fmt(aLine/10000,4)+' 公顷；缓冲周长 '+fmt(peri/1000,4)+' km。</p>';const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
+function calc(){var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());var r=num('r'),L=num('L');if(r<=0){document.getElementById('res').innerHTML=__EN?'<p>Buffer radius must be greater than 0.</p>':'<p>缓冲半径需大于 0。</p>';return;}var PI=Math.PI;var aPoint=PI*r*r;var aLine=2*r*L+PI*r*r;var peri=2*PI*r+2*L;var html=__EN?('<p>Point buffer area: <strong>'+fmt(aPoint)+' m²</strong></p><p>Line buffer area (capsule): <strong style="color:var(--primary);">'+fmt(aLine)+' m²</strong></p><p>Buffer perimeter: <strong>'+fmt(peri)+' m</strong></p><p>Note: line length '+fmt(L,0)+' m, radius '+fmt(r,0)+' m; with line length 0 the line buffer degenerates to the point buffer.</p>'):('<p>点缓冲面积：<strong>'+fmt(aPoint)+' ㎡</strong></p><p>线缓冲面积（胶囊形）：<strong style="color:var(--primary);">'+fmt(aLine)+' ㎡</strong></p><p>缓冲周长：<strong>'+fmt(peri)+' m</strong></p><p>说明：线长 '+fmt(L,0)+' m，半径 '+fmt(r,0)+' m；线长填 0 时线缓冲面积退化为点缓冲面积。</p>');html+=__EN?('<p>Line buffer is <strong>'+fmt(L>0?aLine/aPoint:0,2)+'x</strong> the point buffer; area conversion: point buffer '+fmt(aPoint/10000,4)+' ha, line buffer '+fmt(aLine/10000,4)+' ha; perimeter '+fmt(peri/1000,4)+' km.</p>'):('<p>线缓冲为点缓冲面积的 <strong>'+fmt(L>0?aLine/aPoint:0,2)+' 倍</strong>；面积换算：点缓冲 '+fmt(aPoint/10000,4)+' 公顷、线缓冲 '+fmt(aLine/10000,4)+' 公顷；缓冲周长 '+fmt(peri/1000,4)+' km。</p>');const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
 calc();
 function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
+
+function __anN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __anList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __anL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __anExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#anTable','buffer-analysis.csv');}catch(e){} }
+function __anExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var r=__anN('r'), L=__anN('L');
+        if(!(r>0))return;
+        var PI=Math.PI, aPoint=PI*r*r, aLine=2*r*L+PI*r*r, peri=2*PI*r+2*L;
+        var rs=[],d1=[],d2=[],i;
+        var step=Math.max(r/4,1);
+        for(i=0;i<=8;i++){ var rr=Math.max(r/2+i*step,1); rs.push(rr.toFixed(0)); d1.push(Number((PI*rr*rr).toFixed(2))); d2.push(Number((2*rr*L+PI*rr*rr).toFixed(2))); }
+        TBKit.chart.line('#anChart',{labels:rs.map(function(x){return x+'m';}),series:[
+            {name:__anL('point buffer area (m²)','点缓冲面积 (m²)'),data:d1},
+            {name:__anL('line buffer area (m²)','线缓冲面积 (m²)'),data:d2}
+        ],height:230,title:__anL('Buffer area vs radius (L='+L+'m)','缓冲面积随半径变化（L='+L+'m）')});
+        var rows=__anL(
+            [['radius r (m)',r.toFixed(3)],['line length L (m)',L.toFixed(3)],['point buffer area (m²)',aPoint.toFixed(2)],['line buffer area (m²)',aLine.toFixed(2)],['perimeter (m)',peri.toFixed(2)],['line/point ratio',(L>0?(aLine/aPoint).toFixed(2):'—')],['point buffer (ha)',(aPoint/10000).toFixed(4)],['line buffer (ha)',(aLine/10000).toFixed(4)]],
+            [['缓冲半径 r (m)',r.toFixed(3)],['线长 L (m)',L.toFixed(3)],['点缓冲面积 (m²)',aPoint.toFixed(2)],['线缓冲面积 (m²)',aLine.toFixed(2)],['缓冲周长 (m)',peri.toFixed(2)],['线/点缓冲比',(L>0?(aLine/aPoint).toFixed(2):'—')],['点缓冲 (公顷)',(aPoint/10000).toFixed(4)],['线缓冲 (公顷)',(aLine/10000).toFixed(4)]]);
+        TBKit.matrix.table('#anTable',{head:__anL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({aLine:Number(aLine.toFixed(2)),r:r,L:L});
+        TBKit.util.diffBox('#anDiff',['aLine']);
+        TBKit.history.mount('#anHist',function(v){ if(v.aLine!=null){document.getElementById('r').value=v.r;document.getElementById('L').value=v.L;} calc(); });
+    }catch(e){}
+}
+function __anPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#anPresets',[
+            {label:'河道 r50 L2000',labelEn:'River r50 L2000',values:{r:50,L:2000}},
+            {label:'道路 r30 L1000',labelEn:'Road r30 L1000',values:{r:30,L:1000}},
+            {label:'噪声 r100 L500',labelEn:'Noise r100 L500',values:{r:100,L:500}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_an0 = calc;
+calc = function(){ __tb_an0(); try{ __anExtras(); }catch(e){} };
+function __anBoot(){ try{ __anPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __anBoot();
+else document.addEventListener("DOMContentLoaded", __anBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

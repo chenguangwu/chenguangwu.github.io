@@ -127,8 +127,13 @@ s.parentNode.insertBefore(el, s);
   <label>单期变化速率阈值（mm/期）</label>
   <input type="number" id="vr" value="2" step="0.5" min="0" oninput="calc()">
 </div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div id="acPresets"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">统计分析</button><button type="button" class="btn" onclick="__acExport()">导出 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
 <div class="result-box" id="res"></div>
+    <div id="acChart"></div>
+    <div id="acTable"></div>
+    <div id="acDiff"></div>
+    <div id="acHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -180,6 +185,7 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function calc(){
+var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
 var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
 var thr=num("thr"),vr=num("vr");
 var arr=[];
@@ -189,23 +195,85 @@ var name=p[0]||"",v=parseFloat(p[1]);
 if(isNaN(v))return;
 arr.push({name:name,v:v});
 });
-if(!arr.length){document.getElementById("res").innerHTML='<p>请按「周期,累计变形量(mm)」逐行输入</p>';return;}
+if(!arr.length){document.getElementById("res").innerHTML=__EN?'<p>Enter one "cycle,cumulative deformation (mm)" per line</p>':'<p>请按「周期,累计变形量(mm)」逐行输入</p>';return;}
 var rows='',prev=0,maxS=0,maxN="—",sum=0;
 arr.forEach(function(o,i){
 var d=o.v-prev; prev=o.v; sum+=d;
 if(d>maxS){maxS=d;maxN=o.name;}
-rows+='<tr><td>'+o.name+'</td><td>'+o.v.toFixed(2)+'</td><td>'+d.toFixed(2)+'</td><td>'+(d>vr?'超速率':'正常')+'</td></tr>';
+rows+='<tr><td>'+o.name+'</td><td>'+o.v.toFixed(2)+'</td><td>'+d.toFixed(2)+'</td><td>'+(d>vr?(__EN?'Over rate':'超速率'):(__EN?'Normal':'正常'))+'</td></tr>';
 });
 var n=arr.length, total=arr[n-1].v, avg=total/n;
 var overT=total>thr;
-const __g2='<p>监测期数：<strong>'+n+'</strong></p>'+
-'<p>累计变形：<strong style="color:var(--primary);">'+total.toFixed(2)+'</strong> mm（预警阈值 '+thr+' mm）</p>'+
-'<p>最大单期变化：<strong>'+maxS.toFixed(2)+'</strong> mm（'+maxN+'，速率阈值 '+vr+' mm/期）</p>'+
-'<p>平均变化速率：<strong>'+avg.toFixed(2)+'</strong> mm/期</p>'+
-'<p>预警判定：<strong>'+(overT?'累计变形已超阈值，需加密监测并采取控制措施':'累计变形未超阈值')+'</strong>'+'；'+(maxS>vr?'存在单期速率超标段':'各期变化速率均在阈值内')+'</p>'+
-'<table><thead><tr><th>周期</th><th>累计变形(mm)</th><th>本期变化(mm)</th><th>速率判定</th></tr></thead><tbody>'+rows+'</tbody></table>';document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+const __g2=(__EN?'<p>Cycles: <strong>':'<p>监测期数：<strong>')+n+'</strong></p>'+
+(__EN?'<p>Cumulative deformation: <strong style="color:var(--primary);">':'<p>累计变形：<strong style="color:var(--primary);">')+total.toFixed(2)+(__EN?'</strong> mm (threshold '+thr+' mm)</p>':'</strong> mm（预警阈值 '+thr+' mm）</p>')+
+(__EN?'<p>Max per-cycle change: <strong>':'<p>最大单期变化：<strong>')+maxS.toFixed(2)+(__EN?'</strong> mm ('+maxN+', rate threshold '+vr+' mm/cycle)</p>':'</strong> mm（'+maxN+'，速率阈值 '+vr+' mm/期）</p>')+
+(__EN?'<p>Average rate: <strong>':'<p>平均变化速率：<strong>')+avg.toFixed(2)+(__EN?'</strong> mm/cycle</p>':'</strong> mm/期</p>')+
+(__EN?'<p>Warning: <strong>':'<p>预警判定：<strong>')+(overT?(__EN?'Cumulative deformation exceeds the threshold - intensify monitoring and take control measures':'累计变形已超阈值，需加密监测并采取控制措施'):(__EN?'Cumulative deformation within threshold':'累计变形未超阈值'))+'</strong>'+(__EN?'; ':'；')+(maxS>vr?(__EN?'Per-cycle rate exceeds the limit in some cycles':'存在单期速率超标段'):(__EN?'All per-cycle rates within threshold':'各期变化速率均在阈值内'))+'</p>'+
+(__EN?'<table><thead><tr><th>Cycle</th><th>Cumulative (mm)</th><th>Change (mm)</th><th>Rate check</th></tr></thead><tbody>':'<table><thead><tr><th>周期</th><th>累计变形(mm)</th><th>本期变化(mm)</th><th>速率判定</th></tr></thead><tbody>')+rows+'</tbody></table>';document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+
+function __acN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __acList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __acL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __acExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#acTable','deformation-cycles.csv');}catch(e){} }
+function __acReadData(){
+    var lines=document.getElementById('data').value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+    var arr=[];
+    lines.forEach(function(ln){
+        var p=ln.split(/[,，\t ]+/);
+        var name=p[0]||"",v=parseFloat(p[1]);
+        if(!isNaN(v))arr.push({name:name,v:v});
+    });
+    return arr;
+}
+function __acExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var arr=__acReadData();
+        if(!arr.length)return;
+        var thr=__acN('thr'), vr=__acN('vr');
+        var labs=[],cum=[],chg=[],prev=0;
+        arr.forEach(function(o){ labs.push(o.name); cum.push(Number(o.v.toFixed(2))); chg.push(Number((o.v-prev).toFixed(2))); prev=o.v; });
+        var total=arr[arr.length-1].v, maxS=0;
+        for(var i=1;i<arr.length;i++){ var d=arr[i].v-arr[i-1].v; if(d>maxS)maxS=d; }
+        if(arr.length===1)maxS=arr[0].v;
+        TBKit.chart.line('#acChart',{labels:labs,series:[
+            {name:__acL('cumulative deformation (mm)','累计变形 (mm)'),data:cum},
+            {name:__acL('per-cycle change (mm)','本期变化 (mm)'),data:chg}
+        ],height:230,title:__acL('Deformation monitoring cycles (threshold '+thr+' mm, rate '+vr+' mm)','变形监测周期（阈值 '+thr+' mm，速率 '+vr+' mm）')});
+        var rows=[],prev2=0;
+        arr.forEach(function(o,i){ var d=o.v-prev2; prev2=o.v;
+            rows.push(__acL([o.name,o.v.toFixed(2),d.toFixed(2),(d>vr?'Over rate':'Normal')],[o.name,o.v.toFixed(2),d.toFixed(2),(d>vr?'超速率':'正常')]));
+        });
+        TBKit.matrix.table('#acTable',{head:__acL(['Cycle','Cumulative (mm)','Change (mm)','Rate check'],['周期','累计变形(mm)','本期变化(mm)','速率判定']),rows:rows});
+        TBKit.history.record({total:Number(total.toFixed(2)),data:document.getElementById('data').value,thr:thr,vr:vr});
+        TBKit.util.diffBox('#acDiff',['total']);
+        TBKit.history.mount('#acHist',function(v){ if(v.total!=null){document.getElementById('data').value=v.data;document.getElementById('thr').value=v.thr;document.getElementById('vr').value=v.vr;} calc(); });
+    }catch(e){}
+}
+function __acPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#acPresets',[
+            {label:'基坑沉降 5 期',labelEn:'Pit settlement 5 cycles',values:{data:'W1,1.5\nW2,3.8\nW3,6.9\nW4,9.4\nW5,11.2',thr:10,vr:2.5}},
+            {label:'边坡位移 6 期',labelEn:'Slope displacement 6 cycles',values:{data:'D1,2.0\nD2,3.1\nD3,5.6\nD4,6.2\nD5,8.9\nD6,10.5',thr:12,vr:3}},
+            {label:'建筑倾斜 4 期',labelEn:'Building tilt 4 cycles',values:{data:'T1,0.8\nT2,1.2\nT3,2.6\nT4,3.1',thr:4,vr:1.5}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ac0 = calc;
+calc = function(){ __tb_ac0(); try{ __acExtras(); }catch(e){} };
+function __acBoot(){ try{ __acPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __acBoot();
+else document.addEventListener("DOMContentLoaded", __acBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

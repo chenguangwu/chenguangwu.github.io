@@ -229,7 +229,7 @@ function __bfExtras(){
             [['ΔN',dN.toFixed(3)],['ΔE',dE.toFixed(3)],['azimuth α (°)',az.toFixed(2)],['distance',d.toFixed(3)],['quadrant',q],['quadrantal bearing',rb],['bearing angle (°)',(az>180?az-180:(az>90?180-az:az)).toFixed(2)]],
             [['北增量 ΔN',dN.toFixed(3)],['东增量 ΔE',dE.toFixed(3)],['方位角 α (°)',az.toFixed(2)],['两点距离',d.toFixed(3)],['所在象限',q],['象限角',rb],['象限角值 (°)',(az>180?az-180:(az>90?180-az:az)).toFixed(2)]]);
         TBKit.matrix.table('#bfTable',{head:__bfL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({az:Number(az.toFixed(2))});
+        TBKit.history.record({az:Number(az.toFixed(2)),dN:dN,dE:dE});
         TBKit.util.diffBox('#bfDiff',['az']);
         TBKit.history.mount('#bfHist',function(v){ if(v.az!=null){document.getElementById('dN').value=v.dN;document.getElementById('dE').value=v.dE;} calcTool(); });
     }catch(e){}
@@ -248,8 +248,12 @@ function __bfPresets(){
 var __tb_bf0 = calcTool;
 calcTool = function(){ __tb_bf0(); try{ __bfExtras(); }catch(e){} };
 function __bfBoot(){ try{ __bfPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __bfBoot);
-else __bfBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __bfBoot();
+else document.addEventListener("DOMContentLoaded", __bfBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

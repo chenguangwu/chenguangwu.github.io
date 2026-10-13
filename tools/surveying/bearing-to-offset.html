@@ -227,7 +227,7 @@ function __boExtras(){
             [['distance D (m)',D.toFixed(3)],['azimuth α (°)',a.toFixed(3)],['ΔN (m)',dN.toFixed(3)],['ΔE (m)',dE.toFixed(3)],['back-azimuth (°)',back.toFixed(3)],['ΔN/D',(dN/D).toFixed(4)],['ΔE/D',(dE/D).toFixed(4)]],
             [['距离 D (m)',D.toFixed(3)],['方位角 α (°)',a.toFixed(3)],['北增量 ΔN (m)',dN.toFixed(3)],['东增量 ΔE (m)',dE.toFixed(3)],['反算方位角 (°)',back.toFixed(3)],['ΔN/D',(dN/D).toFixed(4)],['ΔE/D',(dE/D).toFixed(4)]]);
         TBKit.matrix.table('#boTable',{head:__boL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({dN:Number(dN.toFixed(3))});
+        TBKit.history.record({dN:Number(dN.toFixed(3)),D:D,a:a});
         TBKit.util.diffBox('#boDiff',['dN','dE']);
         TBKit.history.mount('#boHist',function(v){ if(v.dN!=null){document.getElementById('D').value=v.D;document.getElementById('a').value=v.a;} calcTool(); });
     }catch(e){}
@@ -246,8 +246,12 @@ function __boPresets(){
 var __tb_bo0 = calcTool;
 calcTool = function(){ __tb_bo0(); try{ __boExtras(); }catch(e){} };
 function __boBoot(){ try{ __boPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __boBoot);
-else __boBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __boBoot();
+else document.addEventListener("DOMContentLoaded", __boBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -269,8 +269,12 @@ function __ahPresets(){
 var __tb_ah0 = calc;
 calc = function(){ __tb_ah0(); try{ __ahExtras(); }catch(e){} };
 function __ahBoot(){ try{ __ahPresets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ahBoot);
-else __ahBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __ahBoot();
+else document.addEventListener("DOMContentLoaded", __ahBoot);
 </script>
 <section class="opt-guide"><h2>如何使用注意力头维度</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>模型维度</li><li>头数</li><li>FFN 维度</li></ul><h2>适用场景</h2><p>每头维度 d_head=d_model/h，需整除；常见 d_model=512,h=8→d_head=64。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>头数越多越好吗？</dt><dd>不一定。头数增加提升并行关注不同子空间的能力，但 d_head 随之变小、每头容量受限；过大头数收益递减且增算力。</dd><dt>d_head 不整除怎么办？</dt><dd>需调整 d_model 或头数使其整除，否则框架会报错或 padding 引入冗余；常见组合保证 d_model%h==0。</dd></dl></section>
 

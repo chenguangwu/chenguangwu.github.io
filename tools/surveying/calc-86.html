@@ -124,12 +124,18 @@ s.parentNode.insertBefore(el, s);
       <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
       <div><label>转角 α (°)</label><input type="number" id="v1" value="45" step="any" oninput="calc()" enterkeyhint="done" aria-label="横断面"></div>
     </div>
+    <div id="c8Presets"></div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
+      <button class="btn" onclick="__c8Export()">导出 CSV</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="c8Chart"></div>
+    <div id="c8Table"></div>
+    <div id="c8Diff"></div>
+    <div id="c8Hist"></div>
     <div class="info-box">💡 T = R·tan(α/2)；E = R(sec(α/2)−1)；L = R·α·π/180；C = 2R·sin(α/2)。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -469,7 +475,7 @@ function saveHistory(a,b){
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
     var now=new Date();
-    var item={a:a,b:b,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    var item={a:a,b:b,time:now.toLocaleString((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'en-US':'zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
     list.unshift(item);
     if(list.length>5)list=list.slice(0,5);
     localStorage.setItem(key,JSON.stringify(list));
@@ -477,20 +483,21 @@ function saveHistory(a,b){
   }catch(e){}
 }
 function renderHistory(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var box=document.getElementById('historyBox');
   if(!box)return;
   try{
     var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
-    if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
+    if(list.length===0){box.innerHTML=__EN?'<div class="history-empty">No records yet</div>':'<div class="history-empty">暂无计算记录</div>';return;}
     var html='<div class="history-list">';
     list.forEach(function(h){
       html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+')">'+
         '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">A='+h.a+' &nbsp; B='+h.b+'</div></div>'+
-        '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
+        '<span style="font-size:12px;color:var(--primary);">'+(__EN?'Restore':'恢复')+'</span></div>';
     });
     html+='</div>';
     const __g3=html;box.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
+  }catch(e){box.innerHTML=__EN?'<div class="history-empty">Failed to read records</div>':'<div class="history-empty">读取记录失败</div>';}
 }
 function restoreHistory(a,b){
   document.getElementById('v0').value=a;
@@ -517,20 +524,21 @@ calc();
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!isFinite(A)||!isFinite(B)){box.innerHTML=__EN?'<div class="info-box">Enter two valid numbers before calculating.</div>':'<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
   var items=[];
-  items.push([(A*Math.tan(B*Math.PI/180/2)).toFixed(3), "切线长 T（m）"]);
-  items.push([(A*(1/Math.cos(B*Math.PI/180/2)-1)).toFixed(3), "外距 E（m）"]);
-  items.push([(A*B*Math.PI/180).toFixed(3), "曲线长 L（m）"]);
-  items.push([(2*A*Math.sin(B*Math.PI/180/2)).toFixed(3), "弦长 C（m）"]);
-  items.push([(A*(1-Math.cos(B*Math.PI/180/2))).toFixed(3), "中点垂距 M（m）"]);
+  items.push([(A*Math.tan(B*Math.PI/180/2)).toFixed(3), __EN?"Tangent T (m)":"切线长 T（m）"]);
+  items.push([(A*(1/Math.cos(B*Math.PI/180/2)-1)).toFixed(3), __EN?"External E (m)":"外距 E（m）"]);
+  items.push([(A*B*Math.PI/180).toFixed(3), __EN?"Arc L (m)":"曲线长 L（m）"]);
+  items.push([(2*A*Math.sin(B*Math.PI/180/2)).toFixed(3), __EN?"Chord C (m)":"弦长 C（m）"]);
+  items.push([(A*(1-Math.cos(B*Math.PI/180/2))).toFixed(3), __EN?"Mid ordinate M (m)":"中点垂距 M（m）"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 T = R·tan(α/2)；E = R(sec(α/2)−1)；L = R·α·π/180；C = 2R·sin(α/2)。';
+  html+=__EN?'💡 T = R·tan(α/2); E = R(sec(α/2)−1); L = R·α·π/180; C = 2R·sin(α/2).':'💡 T = R·tan(α/2)；E = R(sec(α/2)−1)；L = R·α·π/180；C = 2R·sin(α/2)。';
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
@@ -539,6 +547,50 @@ function resetAll(){
   if(a)a.value='200';if(b)b.value='45';calc();
 }
 try{calc();}catch(e){}
+
+function __c8N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __c8List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __c8L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __c8Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#c8Table','curve-elements.csv');}catch(e){} }
+function __c8Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var R=__c8N('v0'), a=__c8N('v1');
+        if(!(R>0&&a>0&&a<360))return;
+        var h=a*Math.PI/360;
+        var T=R*Math.tan(h), E=R*(1/Math.cos(h)-1), L=R*a*Math.PI/180, C=2*R*Math.sin(h), M=R*(1-Math.cos(h));
+        TBKit.chart.bar('#c8Chart',{labels:[__c8L('tangent T','切线长 T'),__c8L('external E','外距 E'),__c8L('arc L','曲线长 L'),__c8L('chord C','弦长 C'),__c8L('mid ordinate M','中点垂距 M')],series:[{name:__c8L('length (m)','长度 (m)'),data:[Number(T.toFixed(3)),Number(E.toFixed(3)),Number(L.toFixed(3)),Number(C.toFixed(3)),Number(M.toFixed(3))]}],height:220,title:__c8L('Curve elements (R='+R+'m, α='+a+'°)','圆曲线要素（R='+R+'m，α='+a+'°）')});
+        var rows=__c8L(
+            [['radius R (m)',R.toFixed(3)],['deflection α (°)',a.toFixed(3)],['tangent T (m)',T.toFixed(3)],['external E (m)',E.toFixed(3)],['arc L (m)',L.toFixed(3)],['chord C (m)',C.toFixed(3)],['mid ordinate M (m)',M.toFixed(3)],['correction q (m)',(2*T-L).toFixed(3)]],
+            [['半径 R (m)',R.toFixed(3)],['转角 α (°)',a.toFixed(3)],['切线长 T (m)',T.toFixed(3)],['外距 E (m)',E.toFixed(3)],['曲线长 L (m)',L.toFixed(3)],['弦长 C (m)',C.toFixed(3)],['中点垂距 M (m)',M.toFixed(3)],['切曲差 q (m)',(2*T-L).toFixed(3)]]);
+        TBKit.matrix.table('#c8Table',{head:__c8L(['Element','Value'],['要素','数值']),rows:rows});
+        TBKit.history.record({L:Number(L.toFixed(3)),v0:R,v1:a});
+        TBKit.util.diffBox('#c8Diff',['L']);
+        TBKit.history.mount('#c8Hist',function(v){ if(v.L!=null){document.getElementById('v0').value=v.v0;document.getElementById('v1').value=v.v1;} calc(); });
+    }catch(e){}
+}
+function __c8Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#c8Presets',[
+            {label:'高速 R2000 α25°',labelEn:'Freeway R2000 a25',values:{v0:2000,v1:25}},
+            {label:'城市道路 R500 α45°',labelEn:'Urban R500 a45',values:{v0:500,v1:45}},
+            {label:'山区公路 R100 α60°',labelEn:'Mountain R100 a60',values:{v0:100,v1:60}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_c80 = calc;
+calc = function(){ __tb_c80(); try{ __c8Extras(); }catch(e){} };
+function __c8Boot(){ try{ __c8Presets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __c8Boot();
+else document.addEventListener("DOMContentLoaded", __c8Boot);
 </script>
 
 <!-- SEO 介绍区块 -->

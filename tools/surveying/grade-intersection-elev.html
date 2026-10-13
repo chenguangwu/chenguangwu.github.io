@@ -294,7 +294,7 @@ function __giExtras(){
             [['grade g1',g1.toFixed(4)],['grade g2',g2.toFixed(4)],['curve length L (m)',L.toFixed(2)],['station x (m)',x.toFixed(2)],['elevation y (m)',y(x).toFixed(4)],['tangent elevation g1·x (m)',(g1*x).toFixed(4)],['tangent-curve diff (m)',(g1*x-y(x)).toFixed(4)],['tangent length T=L/2 (m)',(L/2).toFixed(3)],['external E = L|A|/8 (m)',(L*A/8).toFixed(4)],['K value (L/|A%|)',(L/(A*100)).toFixed(2)]],
             [['前坡 g₁',g1.toFixed(4)],['后坡 g₂',g2.toFixed(4)],['曲线长 L (m)',L.toFixed(2)],['距起点 x (m)',x.toFixed(2)],['相对高程 y (m)',y(x).toFixed(4)],['切线高程 g₁·x (m)',(g1*x).toFixed(4)],['切垂差 (m)',(g1*x-y(x)).toFixed(4)],['切线长 T=L/2 (m)',(L/2).toFixed(3)],['外矢距 E = L|A|/8 (m)',(L*A/8).toFixed(4)],['K 值 (L/|A%|)',(L/(A*100)).toFixed(2)]]);
         TBKit.matrix.table('#giTable',{head:__giL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({y:Number(y(x).toFixed(4))});
+        TBKit.history.record({y:Number(y(x).toFixed(4)),g1:g1,g2:g2,L:L,x:x});
         TBKit.util.diffBox('#giDiff',['y']);
         TBKit.history.mount('#giHist',function(v){ if(v.y!=null){document.getElementById('g1').value=v.g1;document.getElementById('g2').value=v.g2;document.getElementById('L').value=v.L;document.getElementById('x').value=v.x;} calcTool(); });
     }catch(e){}
@@ -313,8 +313,12 @@ function __giPresets(){
 var __tb_gi0 = calcTool;
 calcTool = function(){ __tb_gi0(); try{ __giExtras(); }catch(e){} };
 function __giBoot(){ try{ __giPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __giBoot);
-else __giBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __giBoot();
+else document.addEventListener("DOMContentLoaded", __giBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

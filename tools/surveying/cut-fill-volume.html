@@ -231,7 +231,7 @@ function __cvExtras(){
             [['area A1 (m²)',a1.toFixed(3)],['area A2 (m²)',a2.toFixed(3)],['length L (m)',l.toFixed(2)],['average area (m²)',avg.toFixed(3)],['volume (m³)',v.toFixed(2)],['volume (km³×10⁻³)',(v/1000).toFixed(3)],['per metre (m³/m)',(v/l).toFixed(3)],['area difference',Math.abs(a1-a2).toFixed(3)]],
             [['断面 A1 (m²)',a1.toFixed(3)],['断面 A2 (m²)',a2.toFixed(3)],['长度 L (m)',l.toFixed(2)],['平均断面积 (m²)',avg.toFixed(3)],['体积 (m³)',v.toFixed(2)],['体积 (千m³)',(v/1000).toFixed(3)],['每米方量 (m³/m)',(v/l).toFixed(3)],['面积差',Math.abs(a1-a2).toFixed(3)]]);
         TBKit.matrix.table('#cvTable',{head:__cvL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({v:Number(v.toFixed(2))});
+        TBKit.history.record({v:Number(v.toFixed(2)),a1:a1,a2:a2,l:l});
         TBKit.util.diffBox('#cvDiff',['v']);
         TBKit.history.mount('#cvHist',function(v){ if(v.v!=null){document.getElementById('a1').value=v.a1;document.getElementById('a2').value=v.a2;document.getElementById('l').value=v.l;} calcTool(); });
     }catch(e){}
@@ -250,8 +250,12 @@ function __cvPresets(){
 var __tb_cv0 = calcTool;
 calcTool = function(){ __tb_cv0(); try{ __cvExtras(); }catch(e){} };
 function __cvBoot(){ try{ __cvPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __cvBoot);
-else __cvBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __cvBoot();
+else document.addEventListener("DOMContentLoaded", __cvBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

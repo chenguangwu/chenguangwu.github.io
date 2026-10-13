@@ -231,7 +231,7 @@ function __hdExtras(){
             [['slope distance S (m)',l.toFixed(3)],['vertical angle (°)',a.toFixed(3)],['horizontal d (m)',d.toFixed(3)],['height diff (m)',dh.toFixed(3)],['grade (%)',(Math.tan(rad)*100).toFixed(3)],['S−d (m)',(l-d).toFixed(3)],['reduction factor cos α',Math.cos(rad).toFixed(4)]],
             [['斜距 S (m)',l.toFixed(3)],['竖直角 (°)',a.toFixed(3)],['水平距离 (m)',d.toFixed(3)],['高差 (m)',dh.toFixed(3)],['坡度 (%)',(Math.tan(rad)*100).toFixed(3)],['斜距与水平距差 (m)',(l-d).toFixed(3)],['改正系数 cos α',Math.cos(rad).toFixed(4)]]);
         TBKit.matrix.table('#hdTable',{head:__hdL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({d:Number(d.toFixed(3))});
+        TBKit.history.record({d:Number(d.toFixed(3)),l:l,a:a});
         TBKit.util.diffBox('#hdDiff',['d']);
         TBKit.history.mount('#hdHist',function(v){ if(v.d!=null){document.getElementById('l').value=v.l;document.getElementById('a').value=v.a;} calcTool(); });
     }catch(e){}
@@ -250,8 +250,12 @@ function __hdPresets(){
 var __tb_hd0 = calcTool;
 calcTool = function(){ __tb_hd0(); try{ __hdExtras(); }catch(e){} };
 function __hdBoot(){ try{ __hdPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __hdBoot);
-else __hdBoot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __hdBoot();
+else document.addEventListener("DOMContentLoaded", __hdBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

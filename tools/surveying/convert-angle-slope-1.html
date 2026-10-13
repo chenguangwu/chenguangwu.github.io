@@ -117,8 +117,13 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>输入值</label><input type="number" id="val" value="10" oninput="calc()"></div></div>
 <div class="input-row"><div><label>从</label><select id="from" onchange="calc()"><option value="pct" selected>百分比 (%)</option><option value="deg">角度 (°)</option></select></div>
 <div><label>到</label><select id="to" onchange="calc()"><option value="pct">百分比 (%)</option><option value="deg" selected>角度 (°)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">转换</button></div>
-<div class="result-box" id="res"></div></div>
+<div id="csPresets"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">转换</button><button type="button" class="btn" onclick="__csExport()">导出 CSV</button></div>
+<div class="result-box" id="res"></div>
+    <div id="csChart"></div>
+    <div id="csTable"></div>
+    <div id="csDiff"></div>
+    <div id="csHist"></div></div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -130,8 +135,54 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
-function calc(){var v=+document.getElementById('val').value||0;var from=document.getElementById('from').value;var to=document.getElementById('to').value;var out='';if(v<0){out='坡度应非负';}else{var pct,deg;if(from==='pct'){pct=v;deg=Math.atan(v/100)*180/Math.PI;}else{deg=v;pct=Math.tan(v*Math.PI/180)*100;}var res=(to==='pct')?pct:deg;out='<p style="font-size:22px;color:var(--primary);"><strong>'+res.toFixed(2)+' '+(to==='pct'?'%':'°')+'</strong></p><p style="font-size:13px;color:var(--text-muted);">百分比 '+pct.toFixed(4)+' % ｜ 角度 '+deg.toFixed(4)+' ° ｜ 千分比 '+(pct*10).toFixed(3)+' ‰ ｜ 比值 1 : '+(pct>0?(100/pct).toFixed(3):'∞')+' ｜ 弧度 '+(deg*Math.PI/180).toFixed(5)+' rad ｜ sin '+(Math.sin(deg*Math.PI/180)).toFixed(5)+'</p>';}const __g0=out;document.getElementById('res').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));}calc();
+function calc(){var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());var v=+document.getElementById('val').value||0;var from=document.getElementById('from').value;var to=document.getElementById('to').value;var out='';if(v<0){out=__EN?'Slope must be non-negative':'坡度应非负';}else{var pct,deg;if(from==='pct'){pct=v;deg=Math.atan(v/100)*180/Math.PI;}else{deg=v;pct=Math.tan(v*Math.PI/180)*100;}var res=(to==='pct')?pct:deg;out='<p style="font-size:22px;color:var(--primary);"><strong>'+res.toFixed(2)+' '+(to==='pct'?'%':'°')+'</strong></p><p style="font-size:13px;color:var(--text-muted);">'+(__EN?"Percent ":"百分比 ")+pct.toFixed(4)+(__EN?" % | Angle ":" % ｜ 角度 ")+deg.toFixed(4)+(__EN?" ° | Per-mille ":" ° ｜ 千分比 ")+(pct*10).toFixed(3)+(__EN?" ‰ | Ratio 1 : ":" ‰ ｜ 比值 1 : ")+(pct>0?(100/pct).toFixed(3):'∞')+(__EN?" | Radians ":" ｜ 弧度 ")+(deg*Math.PI/180).toFixed(5)+(__EN?" rad | sin ":" rad ｜ sin ")+(Math.sin(deg*Math.PI/180)).toFixed(5)+'</p>';}const __g0=out;document.getElementById('res').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));}calc();
 <!-- TOOLBOX-REALIZED -->
+
+function __csN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __csList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __csL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __csExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#csTable','slope-convert.csv');}catch(e){} }
+function __csExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var v=__csN('val');
+        var from=document.getElementById('from').value, to=document.getElementById('to').value;
+        var pcts=[1,2,3,5,10,15,20,25,30,50,75,100];
+        var degs=pcts.map(function(p){return Number((Math.atan(p/100)*180/Math.PI).toFixed(2));});
+        TBKit.chart.bar('#csChart',{labels:pcts.map(function(p){return p+'%';}),series:[{name:__csL('angle (°)','角度 (°)'),data:degs}],height:220,title:__csL('Common slope percent to angle','常见坡度百分比与角度对照')});
+        var pct,deg;
+        if(from==='pct'){pct=v;deg=Math.atan(v/100)*180/Math.PI;}else{deg=v;pct=Math.tan(v*Math.PI/180)*100;}
+        var rows=__csL(
+            [['input',v.toFixed(4)],['percent (%)',pct.toFixed(4)],['angle (°)',deg.toFixed(4)],['per-mille (‰)',(pct*10).toFixed(3)],['ratio 1 :',(pct>0?(100/pct).toFixed(3):'∞')],['radians',(deg*Math.PI/180).toFixed(5)],['sin',(Math.sin(deg*Math.PI/180)).toFixed(5)]],
+            [['输入值',v.toFixed(4)],['百分比 (%)',pct.toFixed(4)],['角度 (°)',deg.toFixed(4)],['千分比 (‰)',(pct*10).toFixed(3)],['比值 1 :',(pct>0?(100/pct).toFixed(3):'∞')],['弧度',(deg*Math.PI/180).toFixed(5)],['sin',(Math.sin(deg*Math.PI/180)).toFixed(5)]]);
+        TBKit.matrix.table('#csTable',{head:__csL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({pct:Number(pct.toFixed(4)),val:v,from:from,to:to});
+        TBKit.util.diffBox('#csDiff',['pct']);
+        TBKit.history.mount('#csHist',function(v){ if(v.pct!=null){document.getElementById('val').value=v.val;document.getElementById('from').value=v.from;document.getElementById('to').value=v.to;} calc(); });
+    }catch(e){}
+}
+function __csPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#csPresets',[
+            {label:'公路 5% → 2.86°',labelEn:'Highway 5% = 2.86 deg',values:{val:5,from:'pct',to:'deg'}},
+            {label:'铁路 30‰ → 1.72°',labelEn:'Railway 30 ppm = 1.72 deg',values:{val:3,from:'pct',to:'deg'}},
+            {label:'边坡 1:1 → 45°',labelEn:'Slope 1:1 = 45 deg',values:{val:100,from:'pct',to:'deg'}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_cs0 = calc;
+calc = function(){ __tb_cs0(); try{ __csExtras(); }catch(e){} };
+function __csBoot(){ try{ __csPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __csBoot();
+else document.addEventListener("DOMContentLoaded", __csBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

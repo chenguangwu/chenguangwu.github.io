@@ -270,8 +270,12 @@ function __a6Presets(){
 var __tb_a60 = calc;
 calc = function(){ __tb_a60(); try{ __a6Extras(); }catch(e){} };
 function __a6Boot(){ try{ __a6Presets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __a6Boot);
-else __a6Boot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __a6Boot();
+else document.addEventListener("DOMContentLoaded", __a6Boot);
 </script>
 <section class="opt-guide"><h2>如何使用参数数量估算</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>输入维度</li><li>输出维度</li><li>是否含偏置 1=是</li><li>是否卷积 1=是</li></ul><h2>适用场景</h2><p>全连接层参数=(输入维度+1)×输出维度，+1 为偏置。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>为什么卷积层参数量远小于全连接？</dt><dd>卷积权值共享且局部连接，参数只与核大小、通道数有关，与特征图尺寸无关；全连接则随输入输出维度乘积增长。</dd><dt>偏置是否总要加？</dt><dd>并非必须。BN 后接的卷积常设 bias=False 以免冗余；最后一层或需学习截距时保留偏置。</dd></dl></section>
 

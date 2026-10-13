@@ -200,7 +200,7 @@ function __c3Extras(){
             [['slope distance S (m)',S.toFixed(4)],['angle α (°)',a.toFixed(4)],['horizontal D (m)',D.toFixed(4)],['height diff h (m)',H.toFixed(4)],['grade (%)',g.toFixed(2)],['grade level',lv],['reduction S−D (m)',(S-D).toFixed(4)],['reduction (%)',((S-D)/S*100).toFixed(3)]],
             [['斜距 S (m)',S.toFixed(4)],['竖角 α (°)',a.toFixed(4)],['平距 D (m)',D.toFixed(4)],['高差 h (m)',H.toFixed(4)],['坡度 (%)',g.toFixed(2)],['坡度等级',g<3?'平缓，可安全通行':g<10?'缓坡':g<25?'陡坡，注意压实':'极陡，须措施防护'],['斜距改正量 (m)',(S-D).toFixed(4)],['改正量占比 (%)',((S-D)/S*100).toFixed(3)]]);
         TBKit.matrix.table('#c3Table',{head:__c3L(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({D:Number(D.toFixed(4))});
+        TBKit.history.record({D:Number(D.toFixed(4)),slope:S,angle:a});
         TBKit.util.diffBox('#c3Diff',['D']);
         TBKit.history.mount('#c3Hist',function(v){ if(v.D!=null){document.getElementById('slope').value=v.slope;document.getElementById('angle').value=v.angle;} calc(); });
     }catch(e){}
@@ -219,8 +219,12 @@ function __c3Presets(){
 var __tb_c30 = calc;
 calc = function(){ __tb_c30(); try{ __c3Extras(); }catch(e){} };
 function __c3Boot(){ try{ __c3Presets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __c3Boot);
-else __c3Boot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __c3Boot();
+else document.addEventListener("DOMContentLoaded", __c3Boot);
 </script>
 
 <!-- SEO 介绍区块 -->

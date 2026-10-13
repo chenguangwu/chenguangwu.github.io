@@ -339,8 +339,12 @@ function __a9Presets(){
 var __tb_a90 = calc;
 calc = function(){ __tb_a90(); try{ __a9Extras(); }catch(e){} };
 function __a9Boot(){ try{ __a9Presets(); }catch(e){} try{ calc(); }catch(e){} }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __a9Boot);
-else __a9Boot();
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __a9Boot();
+else document.addEventListener("DOMContentLoaded", __a9Boot);
 </script>
 <section class="opt-guide"><h2>如何使用信息增益近似</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>根节点正例比例</li><li>左子树正例比例</li><li>左子树权重</li><li>右子树正例比例</li></ul><h2>适用场景</h2><p>信息熵 H=−Σpᵢlog₂pᵢ；基尼不纯度 G=1−Σpᵢ²，均衡量节点混杂度。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>信息增益和基尼该用哪个？</dt><dd>两者结论常一致。基尼计算免对数更快，对多数类错误更敏感；熵对不纯度变化更敏感、偏向多值特征，需用增益率修正偏置。</dd><dt>为什么信息增益偏向取值多的特征？</dt><dd>取值越多越容易把样本分得更纯，增益天然偏大。C4.5 用增益率(增益/分支熵)惩罚多值特征以纠偏。</dd></dl></section>
 

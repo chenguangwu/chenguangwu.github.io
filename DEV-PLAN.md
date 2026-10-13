@@ -82,6 +82,7 @@
 - 质量优先于速度：每批允许慢，但不允许「加模块不加价值」——**禁止为凑分堆砌装饰性卡片**，每个新增模块必须回答「用户为什么愿意多停留 30 秒」。
 - 不得降 A 级率、不得降门禁通过数、不得引入新外部依赖（CDN 亦禁，组件自绘）。
 - 页面体积增速受控：单页增量 ≤ 8KB（组件走共享 `js/tool-kit.js`，不内联堆代码）。
+- 🔴 **`__xxBoot` 启动判定唯一正确形态**：`if (document.readyState && document.readyState !== "loading") __xxBoot(); else document.addEventListener("DOMContentLoaded", __xxBoot);` —— harness 的 document 桩不提供 readyState（undefined），旧写法 `=== "loading"` 会走 else 在**脚本求值时**立即启动 boot，早于页面自身 DOMContentLoaded init ⇒ 元素创建顺序改变 ⇒ verify 跨元素多行 expect 失配（surveying/calc-angle-2 门禁事故 84/85）。生产浏览器解析期/已加载两种 readyState 行为与旧写法逐字节一致 ⇒ 线上零影响，仅修桩路径（2026-10-13 已批量修正 149 页：ai 64/statistics 48/surveying 37）。
 
 #### i18n 双语硬性规则（2026-10-13 立；每批必查，违反即打回）
 
@@ -99,12 +100,10 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 
 ### 1.7 当前分类（进行中）
 
-**`surveying`（45 页 / 起点均分 1.89 / 薄弱 31；当前 均分 6.40 / 薄弱 1）** —— 测量计算类数值工具，语义适合「图表分析（曲线/断面/差值序列）+ 明细表 + 预设 + 历史对比」；批次清单在此动态登记、干完即删。
+**`surveying`（45 页 / 起点均分 1.89 / 薄弱 31；当前 均分 7.27 / 薄弱 1）** —— 测量计算类数值工具，语义适合「图表分析（曲线/断面/差值序列）+ 明细表 + 预设 + 历史对比」；批次清单在此动态登记、干完即删。
 
-- [x] **SV-1 已完成 10 页**（circular-curve/vertical-curve-elev/coordinate-distance-2d/coordinate-distance-3d/bearing-azimuth/slope-percent/grade-angle/cut-fill-volume/end-area-volume/stadia-distance）：单页 2–3/9 → **8/9**；范式 line×4/bar×3/scatter×2/gauge×1；提交 `aa7dce1f21`（CI success）。
-- [x] **SV-2 已完成 10 页**（area-coordinates/bearing-from-coordinates/bearing-to-offset/chord-length-curve/coordinate-rotation/elevation-diff/grade-intersection-elev/horizontal-distance/reduced-level-bsfs/triangulation-side）：单页 3–4/9 → **8/9**；范式 line×3/bar×5/scatter×1/gauge×1；提交 `a9222d9d17`（CI success）。
-- [x] **SV-3 已完成 8 页 + i18n 补救 20 页**（horizontal-from-slope/middle-ordinate-curve/subtense-distance/tangent-length-curve/earthwork-pyramid-volume/external-distance-curve/assessor-16/convert-33）：单页 3–5/9 → **8/9**；范式 line×4/bar×3/gauge×1；数值独立复算 43 项全对；i18n 补救覆盖 SV-1/SV-2 全部 20 页（helper 逻辑写反、dataGrid 英译包装、InputGuard 模板、aria、GEN_UI_MAP 补「导出 CSV」、面包屑 aria-label），EN 态门禁 28/28 零中文。
-- **剩余 17 页**：`analysis-17`/`analysis-cycle`/`area-24`/`calc-86`/`calc-angle-2`/`convert-46`/`distance-calc`/`prismoidal-volume`（4/9 组 8 页）+ `area-25`/`area-calc`/`calc-1`/`scale-converter`（5/9 组 4 页）+ `convert-angle-slope-1`/`coordinate-convert`/`leveling-calc`（3/9 组 3 页，视语义定档）；`distance-4` 为 TOOLBOX-REDIRECT 存根不动、`index` 为导航页不动。
+- **剩余 6 页**：`coordinate-convert`/`leveling-calc`（3/9 组）+ `area-25`/`area-calc`/`calc-1`/`scale-converter`（5/9 组）；`distance-4` 为 TOOLBOX-REDIRECT 存根（0/9，薄弱 1 即此页，不可改造）、`index` 为导航页，均不动。
+- 已完成 39 页（SV-1~SV-4 四批，细节见当日 memory）；全类同图表范式核查：line 31.1% / bar 35.6%，合规（≤40%）。
 
 **已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）。
 
