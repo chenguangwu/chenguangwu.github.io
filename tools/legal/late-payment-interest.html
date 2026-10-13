@@ -197,6 +197,13 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="lpChart" style="width:100%;height:260px;margin:12px 0;"></div>
+    <div id="lpTable"></div>
+    <div id="lpDiff"></div>
+    <div id="lpHist"></div>
+    <div id="lpPresets"></div>
+    <button id="lpExport" onclick="lpExport()" style="margin-top:10px;">导出CSV</button>
+
   </div>
   
   <div class="card">
@@ -259,6 +266,8 @@ document.getElementById('interestType').addEventListener('change', function(){
   document.getElementById('customRateDiv').style.display = this.value === 'custom' ? 'block' : 'none';
 });
 
+lpL=function(a,b){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return b;}catch(e){}return a;};
+var lpD=null;
 function calculate(){
   const principal = parseFloat(document.getElementById('principal').value) || 0;
   const type = document.getElementById('interestType').value;
@@ -277,32 +286,66 @@ function calculate(){
   const end = new Date(document.getElementById('endDate').value);
   const days = Math.max(0, Math.ceil((end - due) / (1000*60*60*24)));
   
-  let annualRate, rateName;
+  let annualRate, rateName, rateNameEn;
   switch(type){
-    case 'lpr1x': annualRate = lpr; rateName = `${lpr}%（LPR 1倍）`; break;
-    case 'lpr15x': annualRate = lpr * 1.5; rateName = `${(lpr*1.5).toFixed(2)}%（LPR×1.5）`; break;
-    case 'lpr2x': annualRate = lpr * 2; rateName = `${(lpr*2).toFixed(2)}%（LPR×2）`; break;
-    case 'lpr4x': annualRate = lpr * 4; rateName = `${(lpr*4).toFixed(2)}%（LPR×4倍，民间借贷上限）`; break;
-    case 'double': annualRate = 0.0175 * 365; rateName = '日万分之一点七五（加倍债务利息）'; break;
-    case 'custom': annualRate = custom; rateName = `${custom}%（自定义）`; break;
+    case 'lpr1x': annualRate = lpr; rateName = `${lpr}%（LPR 1倍）`; rateNameEn = `${lpr}% (LPR 1x)`; break;
+    case 'lpr15x': annualRate = lpr * 1.5; rateName = `${(lpr*1.5).toFixed(2)}%（LPR×1.5）`; rateNameEn = `${(lpr*1.5).toFixed(2)}% (LPR x1.5)`; break;
+    case 'lpr2x': annualRate = lpr * 2; rateName = `${(lpr*2).toFixed(2)}%（LPR×2）`; rateNameEn = `${(lpr*2).toFixed(2)}% (LPR x2)`; break;
+    case 'lpr4x': annualRate = lpr * 4; rateName = `${(lpr*4).toFixed(2)}%（LPR×4倍，民间借贷上限）`; rateNameEn = `${(lpr*4).toFixed(2)}% (LPR x4, private-lending cap)`; break;
+    case 'double': annualRate = 0.0175 * 365; rateName = '日万分之一点七五（加倍债务利息）'; rateNameEn = '0.0175% daily (double debt interest)'; break;
+    case 'custom': annualRate = custom; rateName = `${custom}%（自定义）`; rateNameEn = `${custom}% (custom)`; break;
   }
   
   const interest = principal * (annualRate / 100) * (days / 365);
   const dailyInterest = principal * (annualRate / 100) / 365;
   const total = principal + interest;
   
-  let html = `<p>本金：<strong>${ToolBox.formatNumber(principal)}</strong> 元</p>`;
-  html += `<p>逾期天数：<strong>${days}</strong> 天</p>`;
-  html += `<p>适用利率：<strong>${rateName}</strong></p>`;
-  html += `<p>日利息：<strong>${ToolBox.formatNumber(dailyInterest, 2)}</strong> 元</p>`;
+  let html = `<p>${lpL('本金：','Principal:')}<strong>${ToolBox.formatNumber(principal)}</strong> ${lpL('元','CNY')}</p>`;
+  html += `<p>${lpL('逾期天数：','Overdue days:')}<strong>${days}</strong> ${lpL('天','days')}</p>`;
+  html += `<p>${lpL('适用利率：','Applied rate:')}<strong>${lpL(rateName, rateNameEn)}</strong></p>`;
+  html += `<p>${lpL('日利息：','Daily interest:')}<strong>${ToolBox.formatNumber(dailyInterest, 2)}</strong> ${lpL('元','CNY')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>逾期利息：<strong>${ToolBox.formatNumber(interest, 2)}</strong> 元</p>`;
-  html += `<p>本息合计：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total, 2)}</strong> 元</p>`;
+  html += `<p>${lpL('逾期利息：','Overdue interest:')}<strong>${ToolBox.formatNumber(interest, 2)}</strong> ${lpL('元','CNY')}</p>`;
+  html += `<p>${lpL('本息合计：','Total principal+interest:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total, 2)}</strong> ${lpL('元','CNY')}</p>`;
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}lpD={principal:Number(principal.toFixed(2)),days:days,dailyInterest:Number(dailyInterest.toFixed(2)),interest:Number(interest.toFixed(2)),total:Number(total.toFixed(2)),rateName:rateName};document.getElementById('result').innerHTML=__h0;
 }
-document.getElementById('endDate').value = new Date().toISOString().split('T')[0];
-calculate();
+var __tb_lp0 = calculate;
+calculate = function(){ __tb_lp0(); try{ lpExtras(); }catch(e){} };
+
+function lpExtras(){
+  if(typeof TBKit==='undefined'||!lpD)return;
+  try{
+    var d=lpD;
+    var labels=[lpL('本金','Principal'),lpL('逾期利息','Overdue interest'),lpL('本息合计','Total')];
+    var data=[Number(d.principal.toFixed(2)),Number(d.interest.toFixed(2)),Number(d.total.toFixed(2))];
+    TBKit.chart.bar('#lpChart',{labels:labels,series:[{name:lpL('金额 (元)','Amount (CNY)'),data:data}],height:240,title:lpL('逾期利息构成','Overdue interest breakdown')});
+    var rows=[
+      lpL(['本金 (元)','逾期天数','日利息 (元)','逾期利息 (元)','本息合计 (元)'],['Principal (CNY)','Overdue days','Daily (CNY)','Interest (CNY)','Total (CNY)']),
+      lpL([String(d.principal.toFixed(2)),String(d.days),String(d.dailyInterest.toFixed(2)),String(d.interest.toFixed(2)),String(d.total.toFixed(2))],[String(d.principal.toFixed(2)),String(d.days),String(d.dailyInterest.toFixed(2)),String(d.interest.toFixed(2)),String(d.total.toFixed(2))])
+    ];
+    TBKit.matrix.table('#lpTable',{head:rows[0],rows:[rows[1]]});
+    TBKit.history.record({principal:Number(d.principal.toFixed(2)),days:d.days,total:Number(d.total.toFixed(2))});
+    TBKit.util.diffBox('#lpDiff',['total']);
+    TBKit.history.mount('#lpHist',function(v){ try{ if(v.principal!=null)document.getElementById('principal').value=v.principal; calculate(); }catch(e){} });
+  }catch(e){}
+}
+function lpExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#lpTable','late-payment-interest.csv');}catch(e){} }
+
+
+function lpPresets(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    TBKit.preset.bar('#lpPresets',[
+      {label:'本金10万 LPR1倍 逾期90天',labelEn:'100k, LPR 1x, 90 days',values:{principal:'100000',interestType:'lpr1x',dueDate:'2024-01-01',endDate:'2024-04-01',lprRate:'3.45'}},
+      {label:'本金50万 LPR4倍 逾期30天',labelEn:'500k, LPR 4x, 30 days',values:{principal:'500000',interestType:'lpr4x',dueDate:'2024-03-01',endDate:'2024-03-31',lprRate:'3.45'}}
+    ],function(){ calculate(); });
+  }catch(e){}
+}
+
+function lpBoot(){ try{ lpPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") lpBoot(); else document.addEventListener("DOMContentLoaded", lpBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

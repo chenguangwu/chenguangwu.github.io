@@ -651,9 +651,9 @@ const CASES = [
       "interestType": "lpr15x"
     },
     "expect": [
-      "lpr15x\nabc123测试\n42\nabc123测试\n42\n42\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+      "lpr15x\n42\nabc123测试\nabc123测试\n42\n42\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"principal\":\"42\",\"dueDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"customRate\":\"42\",\"lprRate\":\"42\",\"interestType\":\"lpr15x\"}，输出区含「lpr15x\nabc123测试\n42\nabc123测试\n42\n42\n⚠ 计算结果…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"principal\":\"42\",\"dueDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"customRate\":\"42\",\"lprRate\":\"42\",\"interestType\":\"lpr15x\"}，输出区含「lpr15x\n42\nabc123测试\nabc123测试\n42\n42\n⚠ 计算结果…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "legal/labor-compensation",

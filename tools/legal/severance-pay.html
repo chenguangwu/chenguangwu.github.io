@@ -180,6 +180,13 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="seChart" style="width:100%;height:260px;margin:12px 0;"></div>
+    <div id="seTable"></div>
+    <div id="seDiff"></div>
+    <div id="seHist"></div>
+    <div id="sePresets"></div>
+    <button id="seExport" onclick="seExport()" style="margin-top:10px;">导出CSV</button>
+
   </div>
   
   <div class="card">
@@ -241,6 +248,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+seL=function(a,b){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return b;}catch(e){}return a;};
+var seD=null;
 function calculate(){
   const years = parseFloat(document.getElementById('workYears').value) || 0;
   const salary = parseFloat(document.getElementById('monthlySalary').value) || 0;
@@ -268,19 +277,55 @@ function calculate(){
   const nCompensation = n * effectiveSalary;
   const illegalCompensation = nCompensation * 2;
   const total = type === 'illegal' ? illegalCompensation : nCompensation;
-  const multiplier = type === 'illegal' ? '2N（违法解除）' : 'N（合法解除）';
+  const multiplier = type === 'illegal' ? seL('2N（违法解除）','2N (illegal dismissal)') : seL('N（合法解除）','N (legal dismissal)');
   
   const __h0=`
-    <p>工作年限：<strong>${years}</strong> 年 → 补偿年限 <strong>${n}</strong> 个月</p>
-    <p>月工资基数：<strong>${ToolBox.formatNumber(effectiveSalary)}</strong> 元 ${isCapped ? '<span style="color:var(--text-muted);font-size:12px;">（已封顶）</span>' : ''}</p>
-    <p>赔偿标准：<strong>${multiplier}</strong></p>
+    <p>${seL('工作年限：','Work years:')}<strong>${years}</strong> ${seL('年 → 补偿年限','yr → tenure')} <strong>${n}</strong> ${seL('个月','months')}</p>
+    <p>${seL('月工资基数：','Monthly base:')}<strong>${ToolBox.formatNumber(effectiveSalary)}</strong> ${seL('元','CNY')} ${isCapped ? '<span style="color:var(--text-muted);font-size:12px;">（'+seL('已封顶','capped')+'）</span>' : ''}</p>
+    <p>${seL('赔偿标准：','Standard:')}<strong>${multiplier}</strong></p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>经济补偿金（N）：${ToolBox.formatNumber(nCompensation)} 元</p>
-    <p>应支付总额：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>
-    ${type === 'illegal' ? '<p style="color:var(--danger);font-size:13px;margin-top:8px;">注：违法解除赔偿金已包含经济补偿金部分，不再另行支付N</p>' : ''}
-  `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    <p>${seL('经济补偿金（N）：','Economic comp (N):')}${ToolBox.formatNumber(nCompensation)} ${seL('元','CNY')}</p>
+    <p>${seL('应支付总额：','Total payable:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${seL('元','CNY')}</p>
+    ${type === 'illegal' ? ('<p style="color:var(--danger);font-size:13px;margin-top:8px;">'+seL('注：违法解除赔偿金已包含经济补偿金部分，不再另行支付N','Note: the illegal-dismissal penalty already includes economic compensation; N is not paid separately')+'</p>') : ''}
+  `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}seD={workYears:years,monthlySalary:salary,effectiveSalary:Number(effectiveSalary.toFixed(2)),n:n,nCompensation:Number(nCompensation.toFixed(2)),total:Number(total.toFixed(2)),type:type};document.getElementById('result').innerHTML=__h0;
 }
-calculate();
+var __tb_se0 = calculate;
+calculate = function(){ __tb_se0(); try{ seExtras(); }catch(e){} };
+
+function seExtras(){
+  if(typeof TBKit==='undefined'||!seD)return;
+  try{
+    var d=seD;
+    var base=d.type==='illegal'?d.total:d.nCompensation;
+    var labels=[seL('补偿年限N·月','Tenure N (months)'),seL('经济补偿N','Comp. N'),seL('应支付总额','Total payable')];
+    var data=[Number(d.n.toFixed(2)),Number(d.nCompensation.toFixed(2)),Number(d.total.toFixed(2))];
+    TBKit.chart.bar('#seChart',{labels:labels,series:[{name:seL('金额 (元)','Amount (CNY)'),data:data}],height:240,title:seL('赔偿金构成','Severance breakdown')});
+    var rows=[
+      seL(['工作年限','补偿月数 N','月工资基数 (元)','赔偿标准','应支付总额 (元)'],['Work years','Tenure N (mo)','Monthly base (CNY)','Standard','Total (CNY)']),
+      seL([String(d.workYears),String(d.n),String(d.effectiveSalary.toFixed(2)),d.type==='illegal'?seL('2N 违法解除','2N illegal'):seL('N 合法解除','N legal'),String(d.total.toFixed(2))],[String(d.workYears),String(d.n),String(d.effectiveSalary.toFixed(2)),d.type==='illegal'?'2N illegal':'N legal',String(d.total.toFixed(2))])
+    ];
+    TBKit.matrix.table('#seTable',{head:rows[0],rows:[rows[1]]});
+    TBKit.history.record({workYears:d.workYears,monthlySalary:d.monthlySalary,type:d.type,total:Number(d.total.toFixed(2))});
+    TBKit.util.diffBox('#seDiff',['total']);
+    TBKit.history.mount('#seHist',function(v){ try{ if(v.workYears!=null)document.getElementById('workYears').value=v.workYears; if(v.monthlySalary!=null)document.getElementById('monthlySalary').value=v.monthlySalary; if(v.type!=null)document.getElementById('terminationType').value=v.type; calculate(); }catch(e){} });
+  }catch(e){}
+}
+function seExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#seTable','severance-pay.csv');}catch(e){} }
+
+
+function sePresets(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    TBKit.preset.bar('#sePresets',[
+      {label:'合法解除 工作3年 月薪10000',labelEn:'Legal: 3 yrs, 10000/mo',values:{workYears:'3',monthlySalary:'10000',salaryCap:'0',terminationType:'legal'}},
+      {label:'违法解除 工作5年 月薪20000 封顶',labelEn:'Illegal: 5 yrs, 20000/mo capped',values:{workYears:'5',monthlySalary:'20000',salaryCap:'15000',terminationType:'illegal'}}
+    ],function(){ calculate(); });
+  }catch(e){}
+}
+
+function seBoot(){ try{ sePresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") seBoot(); else document.addEventListener("DOMContentLoaded", seBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

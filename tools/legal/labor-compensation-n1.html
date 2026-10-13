@@ -183,6 +183,13 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="lcChart" style="width:100%;height:260px;margin:12px 0;"></div>
+    <div id="lcTable"></div>
+    <div id="lcDiff"></div>
+    <div id="lcHist"></div>
+    <div id="lcPresets"></div>
+    <button id="lcExport" onclick="lcExport()" style="margin-top:10px;">导出CSV</button>
+
   </div>
   
   <div class="card">
@@ -242,6 +249,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+lcL=function(a,b){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return b;}catch(e){}return a;};
+var lcD=null;
 function calculate(){
   const years = parseFloat(document.getElementById('workYears').value) || 0;
   const salary = parseFloat(document.getElementById('monthlySalary').value) || 0;
@@ -271,23 +280,58 @@ function calculate(){
   const total = nCompensation + noticePay;
   
   let html = `
-    <p>工作年限：<strong>${years}</strong> 年</p>
-    <p>补偿年限（N）：<strong>${n}</strong> 个月</p>
-    <p>月工资基数：<strong>${ToolBox.formatNumber(effectiveSalary)}</strong> 元 ${isCapped ? '<span style="color:var(--text-muted);font-size:12px;">（已按社平3倍封顶）</span>' : ''}</p>
+    <p>${lcL('工作年限：','Work years:')}<strong>${years}</strong> ${lcL('年','yr')}</p>
+    <p>${lcL('补偿年限（N）：','Tenure (N):')}<strong>${n}</strong> ${lcL('个月','months')}</p>
+    <p>${lcL('月工资基数：','Monthly base:')}<strong>${ToolBox.formatNumber(effectiveSalary)}</strong> ${lcL('元','CNY')} ${isCapped ? '<span style="color:var(--text-muted);font-size:12px;">（'+lcL('已按社平3倍封顶','capped at 3x avg')+'）</span>' : ''}</p>
   `;
   
   if(noticeGiven === 0){
-    html += `<p>代通知金（+1）：<strong>${ToolBox.formatNumber(noticePay)}</strong> 元（按上月工资标准）</p>`;
+    html += `<p>${lcL('代通知金（+1）：','Notice pay (+1):')}<strong>${ToolBox.formatNumber(noticePay)}</strong> ${lcL('元（按上月工资标准）','CNY (last month salary)')}</p>`;
   }
   
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>N倍经济补偿：<strong>${ToolBox.formatNumber(nCompensation)}</strong> 元</p>
-    <p>应支付总额：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>
+    <p>${lcL('N倍经济补偿：','N compensation:')}<strong>${ToolBox.formatNumber(nCompensation)}</strong> ${lcL('元','CNY')}</p>
+    <p>${lcL('应支付总额：','Total payable:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${lcL('元','CNY')}</p>
   `;
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}lcD={workYears:years,monthlySalary:salary,effectiveSalary:Number(effectiveSalary.toFixed(2)),n:n,nCompensation:Number(nCompensation.toFixed(2)),noticePay:Number(noticePay.toFixed(2)),total:Number(total.toFixed(2))};document.getElementById('result').innerHTML=__h0;
 }
-calculate();
+var __tb_lc0 = calculate;
+calculate = function(){ __tb_lc0(); try{ lcExtras(); }catch(e){} };
+
+function lcExtras(){
+  if(typeof TBKit==='undefined'||!lcD)return;
+  try{
+    var d=lcD;
+    var labels=[lcL('N经济补偿','N comp'),lcL('代通知金','Notice pay'),lcL('应支付总额','Total')];
+    var data=[Number(d.nCompensation.toFixed(2)),Number(d.noticePay.toFixed(2)),Number(d.total.toFixed(2))];
+    TBKit.chart.bar('#lcChart',{labels:labels,series:[{name:lcL('金额 (元)','Amount (CNY)'),data:data}],height:240,title:lcL('N+1 构成','N+1 breakdown')});
+    var rows=[
+      lcL(['工作年限','补偿月数 N','月工资基数 (元)','N经济补偿 (元)','代通知金 (元)','应支付总额 (元)'],['Work years','Tenure N','Monthly base','N comp','Notice pay','Total']),
+      lcL([String(d.workYears),String(d.n),String(d.effectiveSalary.toFixed(2)),String(d.nCompensation.toFixed(2)),String(d.noticePay.toFixed(2)),String(d.total.toFixed(2))],[String(d.workYears),String(d.n),String(d.effectiveSalary.toFixed(2)),String(d.nCompensation.toFixed(2)),String(d.noticePay.toFixed(2)),String(d.total.toFixed(2))])
+    ];
+    TBKit.matrix.table('#lcTable',{head:rows[0],rows:[rows[1]]});
+    TBKit.history.record({workYears:d.workYears,monthlySalary:d.monthlySalary,total:Number(d.total.toFixed(2))});
+    TBKit.util.diffBox('#lcDiff',['total']);
+    TBKit.history.mount('#lcHist',function(v){ try{ if(v.workYears!=null)document.getElementById('workYears').value=v.workYears; if(v.monthlySalary!=null)document.getElementById('monthlySalary').value=v.monthlySalary; calculate(); }catch(e){} });
+  }catch(e){}
+}
+function lcExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#lcTable','labor-compensation-n1.csv');}catch(e){} }
+
+
+function lcPresets(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    TBKit.preset.bar('#lcPresets',[
+      {label:'未提前通知 工作3年 月薪12000',labelEn:'No notice, 3 yrs, 12000/mo',values:{workYears:'3',monthlySalary:'12000',salaryCap:'0',noticeGiven:'0'}},
+      {label:'已通知 工作8年 月薪30000 封顶',labelEn:'Notice given, 8 yrs, 30000/mo capped',values:{workYears:'8',monthlySalary:'30000',salaryCap:'20000',noticeGiven:'1'}}
+    ],function(){ calculate(); });
+  }catch(e){}
+}
+
+function lcBoot(){ try{ lcPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") lcBoot(); else document.addEventListener("DOMContentLoaded", lcBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

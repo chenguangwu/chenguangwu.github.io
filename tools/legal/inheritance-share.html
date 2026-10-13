@@ -213,6 +213,13 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="ihChart" style="width:100%;height:260px;margin:12px 0;"></div>
+    <div id="ihTable"></div>
+    <div id="ihDiff"></div>
+    <div id="ihHist"></div>
+    <div id="ihPresets"></div>
+    <button id="ihExport" onclick="ihExport()" style="margin-top:10px;">导出CSV</button>
+
   </div>
   
   <div class="card">
@@ -273,6 +280,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+ihL=function(a,b){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return b;}catch(e){}return a;};
+var ihD=null;
 function calculate(){
   const estate = parseFloat(document.getElementById('estateValue').value) || 0;
   const spouse = parseInt(document.getElementById('spouse').value);
@@ -290,29 +299,64 @@ function calculate(){
   
   let html = '';
   if(firstOrderCount === 0){
-    html += `<p style="color:var(--danger);">无第一顺序继承人，由第二顺序继承人（兄弟姐妹、祖父母、外祖父母）继承</p>`;
+    html += `<p style="color:var(--danger);">${ihL('无第一顺序继承人，由第二顺序继承人（兄弟姐妹、祖父母、外祖父母）继承','No first-order heirs; passes to second-order heirs (siblings, paternal/maternal grandparents)')}</p>`;
   }else{
     const perShare = estate / firstOrderCount;
-    html += `<p>第一顺序继承人共 <strong>${firstOrderCount}</strong> 人，人均继承份额：<strong>${ToolBox.formatNumber(perShare)}</strong> 元</p>`;
+    html += `<p>${ihL('第一顺序继承人共','First-order heirs:')} <strong>${firstOrderCount}</strong> ${ihL('人，人均继承份额：','persons, per share:')} <strong>${ToolBox.formatNumber(perShare)}</strong> ${ihL('元','CNY')}</p>`;
     html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-    html += `<h4 style="margin-bottom:8px;">分配明细：</h4>`;
-    if(spouse) html += `<p>• 配偶：<strong>${ToolBox.formatNumber(perShare)}</strong> 元</p>`;
-    if(children > 0) html += `<p>• ${children}名子女（均分）：每人 <strong>${ToolBox.formatNumber(perShare)}</strong> 元</p>`;
-    if(father) html += `<p>• 父亲：<strong>${ToolBox.formatNumber(perShare)}</strong> 元</p>`;
-    if(mother) html += `<p>• 母亲：<strong>${ToolBox.formatNumber(perShare)}</strong> 元</p>`;
-    if(hasWidow) html += `<p>• 丧偶儿媳/女婿（尽主要赡养义务）：<strong>${ToolBox.formatNumber(perShare)}</strong> 元</p>`;
+    html += `<h4 style="margin-bottom:8px;">${ihL('分配明细：','Breakdown:')}</h4>`;
+    if(spouse) html += `<p>• ${ihL('配偶：','Spouse:')}<strong>${ToolBox.formatNumber(perShare)}</strong> ${ihL('元','CNY')}</p>`;
+    if(children > 0) html += `<p>• ${children}${ihL('名子女（均分）：每人','children (equal): each')} <strong>${ToolBox.formatNumber(perShare)}</strong> ${ihL('元','CNY')}</p>`;
+    if(father) html += `<p>• ${ihL('父亲：','Father:')}<strong>${ToolBox.formatNumber(perShare)}</strong> ${ihL('元','CNY')}</p>`;
+    if(mother) html += `<p>• ${ihL('母亲：','Mother:')}<strong>${ToolBox.formatNumber(perShare)}</strong> ${ihL('元','CNY')}</p>`;
+    if(hasWidow) html += `<p>• ${ihL('丧偶儿媳/女婿（尽主要赡养义务）：','Widow/son-in-law (main support):')}<strong>${ToolBox.formatNumber(perShare)}</strong> ${ihL('元','CNY')}</p>`;
   }
   
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>遗产总额：<strong style="color:var(--primary);">${ToolBox.formatNumber(estate)}</strong> 元</p>`;
+  html += `<p>${ihL('遗产总额：','Total estate:')}<strong style="color:var(--primary);">${ToolBox.formatNumber(estate)}</strong> ${ihL('元','CNY')}</p>`;
   if(hasWill){
-    html += `<p style="color:#ff9800;font-size:13px;margin-top:8px;">⚠️ 存在遗嘱，遗嘱继承优先于法定继承，此计算仅供参考</p>`;
+    html += `<p style="color:#ff9800;font-size:13px;margin-top:8px;">${ihL('⚠️ 存在遗嘱，遗嘱继承优先于法定继承，此计算仅供参考','Note: a will exists; testate succession prevails over intestate; this estimate is for reference only')}</p>`;
   }
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：未考虑胎儿预留份、代位继承、转继承、多分/少分情形；夫妻共同财产需先分割一半给配偶</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${ihL('注：未考虑胎儿预留份、代位继承、转继承、多分/少分情形；夫妻共同财产需先分割一半给配偶','Note: excludes reserved share for fetus, representation/subrogation succession, and increased/decreased shares; community property must first be split 50% to the spouse')}</p>`;
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}ihD={estate:Number(estate.toFixed(2)),firstOrderCount:firstOrderCount,perShare:(typeof perShare!=='undefined'?Number(perShare.toFixed(2)):0),spouse:spouse,children:children,father:father,mother:mother,widowCount:widowCount};document.getElementById('result').innerHTML=__h0;
 }
-calculate();
+var __tb_ih0 = calculate;
+calculate = function(){ __tb_ih0(); try{ ihExtras(); }catch(e){} };
+
+function ihExtras(){
+  if(typeof TBKit==='undefined'||!ihD)return;
+  try{
+    var d=ihD;
+    var labels=[ihL('配偶','Spouse'),ihL('子女人均','Children avg'),ihL('父亲','Father'),ihL('母亲','Mother'),ihL('丧偶赡养','Widow care')];
+    var data=[d.spouse>0?Number(d.perShare.toFixed(2)):0,d.children>0?Number(d.perShare.toFixed(2)):0,d.father>0?Number(d.perShare.toFixed(2)):0,d.mother>0?Number(d.perShare.toFixed(2)):0,d.widowCount>0?Number(d.perShare.toFixed(2)):0];
+    TBKit.chart.bar('#ihChart',{labels:labels,series:[{name:ihL('继承份额 (元)','Share (CNY)'),data:data}],height:240,title:ihL('继承人份额','Heir shares')});
+    var rows=[
+      ihL(['第一顺序人数','人均份额 (元)','遗产总额 (元)'],['Heirs count','Per share (CNY)','Estate (CNY)']),
+      ihL([String(d.firstOrderCount),String(d.perShare.toFixed(2)),String(d.estate.toFixed(2))],[String(d.firstOrderCount),String(d.perShare.toFixed(2)),String(d.estate.toFixed(2))])
+    ];
+    TBKit.matrix.table('#ihTable',{head:rows[0],rows:[rows[1]]});
+    TBKit.history.record({estate:Number(d.estate.toFixed(2)),firstOrderCount:d.firstOrderCount,perShare:Number(d.perShare.toFixed(2))});
+    TBKit.util.diffBox('#ihDiff',['perShare']);
+    TBKit.history.mount('#ihHist',function(v){ try{ if(v.estate!=null)document.getElementById('estateValue').value=v.estate; calculate(); }catch(e){} });
+  }catch(e){}
+}
+function ihExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ihTable','inheritance-share.csv');}catch(e){} }
+
+
+function ihPresets(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    TBKit.preset.bar('#ihPresets',[
+      {label:'配偶+1子+父母 遗产100万',labelEn:'Spouse+1 child+parents, 1M',values:{estateValue:'1000000',spouse:'1',children:'1',father:'1',mother:'1'}},
+      {label:'仅配偶 遗产50万',labelEn:'Spouse only, 500k',values:{estateValue:'500000',spouse:'1',children:'0',father:'0',mother:'0'}}
+    ],function(){ calculate(); });
+  }catch(e){}
+}
+
+function ihBoot(){ try{ ihPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") ihBoot(); else document.addEventListener("DOMContentLoaded", ihBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

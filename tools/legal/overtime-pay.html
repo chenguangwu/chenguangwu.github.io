@@ -216,6 +216,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="otChart"></div>
+    <div id="otTable"></div>
+    <div id="otDiff"></div>
+    <div id="otHist"></div>
+    <div id="otPresets"></div>
+    <button type="button" class="btn" data-zh="⬇ 导出 CSV" onclick="__otExport()">⬇ Export CSV</button>
   </div>
   
   <div class="card">
@@ -275,6 +281,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function __otL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+var __otD=null;
 function toggleCalcType(){
   const type = document.getElementById('calcType').value;
   document.getElementById('hoursInputs').style.display = type === 'hours' ? 'block' : 'none';
@@ -313,19 +321,53 @@ function calculate(){
   const total = weekdayPay + weekendPay + holidayPay;
   
   const __h0=`
-    <p>日工资：<strong>${ToolBox.formatNumber(dailyWage, 2)}</strong> 元/天</p>
-    <p>小时工资：<strong>${ToolBox.formatNumber(hourlyWage, 2)}</strong> 元/小时</p>
+    <p>${__otL('日工资：','Daily wage:')}<strong>${ToolBox.formatNumber(dailyWage, 2)}</strong> ${__otL('元/天','CNY/day')}</p>
+    <p>${__otL('小时工资：','Hourly wage:')}<strong>${ToolBox.formatNumber(hourlyWage, 2)}</strong> ${__otL('元/小时','CNY/hr')}</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
     ${type === 'hours' ? `
-      <p>工作日加班费（150%）：<strong>${ToolBox.formatNumber(weekdayPay, 2)}</strong> 元</p>
+      <p>${__otL('工作日加班费（150%）：','Weekday OT pay (150%):')}<strong>${ToolBox.formatNumber(weekdayPay, 2)}</strong> ${__otL('元','CNY')}</p>
     ` : ''}
-    <p>休息日加班费（200%）：<strong>${ToolBox.formatNumber(weekendPay, 2)}</strong> 元</p>
-    <p>法定节假日加班费（300%）：<strong>${ToolBox.formatNumber(holidayPay, 2)}</strong> 元</p>
+    <p>${__otL('休息日加班费（200%）：','Rest-day OT pay (200%):')}<strong>${ToolBox.formatNumber(weekendPay, 2)}</strong> ${__otL('元','CNY')}</p>
+    <p>${__otL('法定节假日加班费（300%）：','Statutory holiday OT pay (300%):')}<strong>${ToolBox.formatNumber(holidayPay, 2)}</strong> ${__otL('元','CNY')}</p>
     <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>加班费合计：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total, 2)}</strong> 元</p>
-  `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    <p>${__otL('加班费合计：','Total overtime pay:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total, 2)}</strong> ${__otL('元','CNY')}</p>
+  `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+__otL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ Invalid result. Please enter a valid positive number.')+'</p>';return;}__otD={dailyWage:dailyWage,hourlyWage:hourlyWage,weekdayPay:weekdayPay,weekendPay:weekendPay,holidayPay:holidayPay,total:total,type:type,monthlySalary:salary};document.getElementById('result').innerHTML=__h0;
 }
-calculate();
+var __tb_ot0 = calculate;
+calculate = function(){ __tb_ot0(); try{ __otExtras(); }catch(e){} };
+function __otExtras(){
+  if(typeof TBKit==='undefined'||!__otD)return;
+  try{
+    var d=__otD;
+    var payLabels=[__otL('日工资基准','Daily base'),__otL('工作日','Weekday'),__otL('休息日','Rest-day'),__otL('法定节假日','Statutory holiday'),__otL('合计','Total')];
+    var payData=[Number(d.dailyWage.toFixed(2)),Number(d.weekdayPay.toFixed(2)),Number(d.weekendPay.toFixed(2)),Number(d.holidayPay.toFixed(2)),Number(d.total.toFixed(2))];
+    TBKit.chart.bar('#otChart',{labels:payLabels,series:[{name:__otL('金额 (元)','Amount (CNY)'),data:payData}],height:240,title:__otL('加班费构成','Overtime pay breakdown')});
+    var payRows=[
+      __otL(['日工资',d.dailyWage.toFixed(2)],['Daily wage',d.dailyWage.toFixed(2)]),
+      __otL(['小时工资',d.hourlyWage.toFixed(2)],['Hourly wage',d.hourlyWage.toFixed(2)]),
+      __otL(['工作日加班费（150%）',d.weekdayPay.toFixed(2)],['Weekday OT (150%)',d.weekdayPay.toFixed(2)]),
+      __otL(['休息日加班费（200%）',d.weekendPay.toFixed(2)],['Rest-day OT (200%)',d.weekendPay.toFixed(2)]),
+      __otL(['法定节假日加班费（300%）',d.holidayPay.toFixed(2)],['Statutory holiday OT (300%)',d.holidayPay.toFixed(2)]),
+      __otL(['加班费合计',d.total.toFixed(2)],['Total',d.total.toFixed(2)])
+    ];
+    TBKit.matrix.table('#otTable',{head:__otL(['项目','金额 (元)'],['Item','Amount (CNY)']),rows:payRows});
+    TBKit.history.record({salary:d.monthlySalary,total:Number(d.total.toFixed(2))});
+    TBKit.util.diffBox('#otDiff',['total']);
+    TBKit.history.mount('#otHist',function(v){ try{ if(v.salary!=null)document.getElementById('monthlySalary').value=v.salary; calculate(); }catch(e){} });
+  }catch(e){}
+}
+function __otExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#otTable','overtime-pay.csv');}catch(e){} }
+function __otPresets(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    TBKit.preset.bar('#otPresets',[
+      {label:'标准双休 月薪8000 时薪8h',labelEn:'Standard: 8000/mo, 8h/day, double rest',values:{monthlySalary:'8000',workDays:'21.75',hoursPerDay:'8',weekdayHours:'10',weekendHours:'8',holidayHours:'8',calcType:'hours'}},
+      {label:'综合工时 月薪15000',labelEn:'Comprehensive: 15000/mo, 20.83 days',values:{monthlySalary:'15000',workDays:'20.83',hoursPerDay:'8',weekdayHours:'36',weekendHours:'0',holidayHours:'8',calcType:'hours'}}
+    ],function(){ calculate(); });
+  }catch(e){}
+}
+function __otBoot(){ try{ __otPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") __otBoot(); else document.addEventListener("DOMContentLoaded", __otBoot);
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

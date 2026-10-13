@@ -212,6 +212,13 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="csChart" style="width:100%;height:260px;margin:12px 0;"></div>
+    <div id="csTable"></div>
+    <div id="csDiff"></div>
+    <div id="csHist"></div>
+    <div id="csPresets"></div>
+    <button id="csExport" onclick="csExport()" style="margin-top:10px;">导出CSV</button>
+
   </div>
   
   <div class="card">
@@ -280,6 +287,8 @@ document.getElementById('paymentRatio').addEventListener('change', function(){
   document.getElementById('customRatioDiv').style.display = this.value === 'custom' ? 'block' : 'none';
 });
 
+csL=function(a,b){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return b;}catch(e){}return a;};
+var csD=null;
 function calculate(){
   const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
   const childCount = parseInt(document.getElementById('childCount').value);
@@ -311,21 +320,56 @@ function calculate(){
   const totalMonthly = baseSupport + specialMonthly;
   const totalAll = totalMonthly * monthsTo18;
   
-  let html = `<p>支付方月收入：<strong>${ToolBox.formatNumber(income)}</strong> 元</p>`;
-  html += `<p>支付比例：<strong>${Math.round(ratio*100)}%</strong></p>`;
-  html += `<p>子女年龄：${childAge}岁，距成年还有 <strong>${yearsTo18}</strong> 年（${monthsTo18}个月）</p>`;
+  let html = `<p>${csL('支付方月收入：','Payer monthly income:')}<strong>${ToolBox.formatNumber(income)}</strong> ${csL('元','CNY')}</p>`;
+  html += `<p>${csL('支付比例：','Payment ratio:')}<strong>${Math.round(ratio*100)}%</strong></p>`;
+  html += `<p>${csL('子女年龄：','Child age:')}${childAge}${csL('岁，距成年还有','yr, years to adulthood:')} <strong>${yearsTo18}</strong> ${csL('年（','yr (')}${monthsTo18}${csL('个月）','mo)')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>基础抚养费/月：<strong>${ToolBox.formatNumber(baseSupport)}</strong> 元 ${baseSupport === livingCost ? '<span style="color:#ff9800;font-size:12px;">（不低于当地生活水平）</span>' : ''}</p>`;
+  html += `<p>${csL('基础抚养费/月：','Base support/mo:')}<strong>${ToolBox.formatNumber(baseSupport)}</strong> ${csL('元','CNY')} ${baseSupport === livingCost ? '<span style="color:#ff9800;font-size:12px;">（'+csL('不低于当地生活水平','not below local living standard')+'）</span>' : ''}</p>`;
   if(hasSpecial){
-    html += `<p>教育/医疗分摊/月：${ToolBox.formatNumber(specialMonthly)} 元</p>`;
+    html += `<p>${csL('教育/医疗分摊/月：','Edu/medical share/mo:')}${ToolBox.formatNumber(specialMonthly)} ${csL('元','CNY')}</p>`;
   }
-  html += `<p>每月应支付：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(totalMonthly)}</strong> 元</p>`;
-  html += `<p>至18岁总额（估算）：<strong>${ToolBox.formatNumber(totalAll)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：抚养费包括生活费、教育费、医疗费；大额支出可另行主张；法院会综合子女实际需要、父母负担能力、当地生活水平确定</p>`;
+  html += `<p>${csL('每月应支付：','Total/mo:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(totalMonthly)}</strong> ${csL('元','CNY')}</p>`;
+  html += `<p>${csL('至18岁总额（估算）：','Total to 18 (est):')}<strong>${ToolBox.formatNumber(totalAll)}</strong> ${csL('元','CNY')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${csL('注：抚养费包括生活费、教育费、医疗费；大额支出可另行主张；法院会综合子女实际需要、父母负担能力、当地生活水平确定','Note: child support covers living, education, and medical expenses; extraordinary costs may be claimed separately; courts weigh the child’s actual needs, parents’ capacity, and local living standards')}</p>`;
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}csD={income:Number(income.toFixed(2)),ratio:ratio,childAge:childAge,baseSupport:Number(baseSupport.toFixed(2)),specialMonthly:Number(specialMonthly.toFixed(2)),totalMonthly:Number(totalMonthly.toFixed(2)),totalAll:Number(totalAll.toFixed(2))};document.getElementById('result').innerHTML=__h0;
 }
-calculate();
+var __tb_cs0 = calculate;
+calculate = function(){ __tb_cs0(); try{ csExtras(); }catch(e){} };
+
+function csExtras(){
+  if(typeof TBKit==='undefined'||!csD)return;
+  try{
+    var d=csD;
+    var labels=[csL('基础抚养费/月','Base support/mo'),csL('特教医疗分摊/月','Special/mo'),csL('每月应支付','Total/mo'),csL('至18岁总额','Total to 18')];
+    var data=[Number(d.baseSupport.toFixed(2)),Number(d.specialMonthly.toFixed(2)),Number(d.totalMonthly.toFixed(2)),Number(d.totalAll.toFixed(2))];
+    TBKit.chart.bar('#csChart',{labels:labels,series:[{name:csL('金额 (元)','Amount (CNY)'),data:data}],height:240,title:csL('抚养费构成','Child support breakdown')});
+    var rows=[
+      csL(['支付方月收入 (元)','支付比例','子女年龄','基础抚养费/月 (元)','每月应支付 (元)','至18岁总额 (元)'],['Income (CNY)','Ratio','Child age','Base/mo (CNY)','Total/mo (CNY)','Total to 18 (CNY)']),
+      csL([String(d.income.toFixed(2)),String(Math.round(d.ratio*100))+'%',String(d.childAge),String(d.baseSupport.toFixed(2)),String(d.totalMonthly.toFixed(2)),String(d.totalAll.toFixed(2))],[String(d.income.toFixed(2)),String(Math.round(d.ratio*100))+'%',String(d.childAge),String(d.baseSupport.toFixed(2)),String(d.totalMonthly.toFixed(2)),String(d.totalAll.toFixed(2))])
+    ];
+    TBKit.matrix.table('#csTable',{head:rows[0],rows:[rows[1]]});
+    TBKit.history.record({income:Number(d.income.toFixed(2)),ratio:Math.round(d.ratio*100),childAge:d.childAge,totalMonthly:Number(d.totalMonthly.toFixed(2))});
+    TBKit.util.diffBox('#csDiff',['totalMonthly']);
+    TBKit.history.mount('#csHist',function(v){ try{ if(v.income!=null)document.getElementById('monthlyIncome').value=v.income; if(v.childAge!=null)document.getElementById('childAge').value=v.childAge; calculate(); }catch(e){} });
+  }catch(e){}
+}
+function csExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#csTable','child-support.csv');}catch(e){} }
+
+
+function csPresets(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    TBKit.preset.bar('#csPresets',[
+      {label:'月入8000 1孩5岁 20%',labelEn:'Income 8000, 1 child 5yo, 20%',values:{monthlyIncome:'8000',childCount:'1',childAge:'5',livingCost:'1000',paymentRatio:'20'}},
+      {label:'月入15000 2孩 含特教',labelEn:'Income 15000, 2 children, special',values:{monthlyIncome:'15000',childCount:'2',childAge:'8',livingCost:'1500',paymentRatio:'25',hasSpecialExpense:'on',specialExpense:'12000',specialRatio:'0.5'}}
+    ],function(){ calculate(); });
+  }catch(e){}
+}
+
+function csBoot(){ try{ csPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") csBoot(); else document.addEventListener("DOMContentLoaded", csBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
