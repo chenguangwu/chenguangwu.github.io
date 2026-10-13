@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>假正例 FP</label><input type="number" id="fp" value="10" step="1" oninput="calc()"></div>
     <div class="input-row"><label>假反例 FN</label><input type="number" id="fn" value="15" step="1" oninput="calc()"></div>
     <div class="input-row"><label>真反例 TN</label><input type="number" id="tn" value="95" step="1" oninput="calc()"></div>
+    <div id="b4Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__b4Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="b4Chart" role="img" aria-label="结果可视化"></div>
+    <div id="b4Table"></div>
+    <div id="b4Diff"></div>
+    <div id="b4Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -227,6 +234,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __b4N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __b4List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __b4L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __b4Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#b4Table','classification-metrics.csv');}catch(e){} }
+function __b4Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var tp=__b4N('tp'), fp=__b4N('fp'), fn=__b4N('fn'), tn=__b4N('tn');
+        var tot=tp+fp+fn+tn;
+        if(!(tot>0&&tp+fp>0&&tp+fn>0))return;
+        var acc=(tp+tn)/tot*100, prec=tp/(tp+fp)*100, rec=tp/(tp+fn)*100;
+        var f1=2*tp/(2*tp+fp+fn)*100;
+        TBKit.chart.bar('#b4Chart',{labels:['准确率','精确率','召回率','F1'],series:[{name:__b4L('%','%'),data:[acc,prec,rec,f1]}],height:220,title:__b4L('Classification metrics','分类指标对比')});
+        var rows=__b4L(
+            [['TP',tp.toFixed(0)],['FP',fp.toFixed(0)],['FN',fn.toFixed(0)],['TN',tn.toFixed(0)],['accuracy',acc.toFixed(2)+'%'],['precision',prec.toFixed(2)+'%'],['recall',rec.toFixed(2)+'%'],['F1',f1.toFixed(2)+'%'],['balanced acc',((tp/(tp+fn)+tn/(fp+tn))/2*100).toFixed(2)+'%']],
+            [['TP',tp.toFixed(0)],['FP',fp.toFixed(0)],['FN',fn.toFixed(0)],['TN',tn.toFixed(0)],['准确率',acc.toFixed(2)+'%'],['精确率',prec.toFixed(2)+'%'],['召回率',rec.toFixed(2)+'%'],['F1',f1.toFixed(2)+'%'],['平衡准确率',((tp/(tp+fn)+tn/(fp+tn))/2*100).toFixed(2)+'%']]);
+        TBKit.matrix.table('#b4Table',{head:__b4L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({f1:Number(f1.toFixed(2))});
+        TBKit.util.diffBox('#b4Diff',['f1']);
+        TBKit.history.mount('#b4Hist',function(v){ if(v.f1!=null){document.getElementById('tp').value=v.tp;document.getElementById('fp').value=v.fp;document.getElementById('fn').value=v.fn;document.getElementById('tn').value=v.tn;} calc(); });
+    }catch(e){}
+}
+function __b4Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#b4Presets',[
+            {label:'均衡 80/10/15/95',labelEn:'Balanced 80/10/15/95',values:{tp:80,fp:10,fn:15,tn:95}},
+            {label:'精确优先 90/2/40/68',labelEn:'Precision-first 90/2/40/68',values:{tp:90,fp:2,fn:40,tn:68}},
+            {label:'召回优先 95/40/5/60',labelEn:'Recall-first 95/40/5/60',values:{tp:95,fp:40,fn:5,tn:60}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_b40 = calc;
+calc = function(){ __tb_b40(); try{ __b4Extras(); }catch(e){} };
+function __b4Boot(){ try{ __b4Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __b4Boot);
+else __b4Boot();
 </script>
 
 <script type="application/ld+json">

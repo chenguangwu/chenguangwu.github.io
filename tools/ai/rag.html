@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>相关文档总数</label><input type="number" id="relevant_total" value="10" step="1" oninput="calc()"></div>
     <div class="input-row"><label>检索返回数</label><input type="number" id="retrieved" value="5" step="1" oninput="calc()"></div>
     <div class="input-row"><label>检索中相关文档数</label><input type="number" id="relevant_retrieved" value="4" step="1" oninput="calc()"></div>
+    <div id="rgPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__rgExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="rgChart" role="img" aria-label="结果可视化"></div>
+    <div id="rgTable"></div>
+    <div id="rgDiff"></div>
+    <div id="rgHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -225,6 +232,51 @@ function copyResult() {
   });
 }
 calc();
+
+function __rgN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rgList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __rgL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __rgExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#rgTable','rag-retrieval.csv');}catch(e){} }
+function __rgExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var rt=__rgN('relevant_total'), ret=__rgN('retrieved'), rr=__rgN('relevant_retrieved');
+        if(!(rt>0&&ret>0))return;
+        if(rr>rt||rr>ret)return;
+        var recall=rr/rt*100, prec=rr/ret*100, f1=2*(recall/100*prec/100)/(recall/100+prec/100)*100;
+        var miss=rt-rr, wrong=ret-rr;
+        TBKit.chart.pie('#rgChart',{items:[
+            {label:__rgL('hit (relevant & retrieved)','命中（相关且检索到）'),value:rr},
+            {label:__rgL('missed (relevant, not retrieved)','漏检（相关未检索到）'),value:miss},
+            {label:__rgL('noise (retrieved, irrelevant)','误检（不相关但检索到）'),value:wrong||0.000001}
+        ],height:230,title:__rgL('Retrieval outcome composition','检索结果构成')});
+        var rows=__rgL(
+            [['relevant total',rt.toFixed(0)],['retrieved',ret.toFixed(0)],['relevant retrieved',rr.toFixed(0)],['recall',recall.toFixed(2)+'%'],['precision',prec.toFixed(2)+'%'],['F1',f1.toFixed(2)+'%'],['missed',miss.toFixed(0)],['noise',wrong.toFixed(0)],['hit rate',(rr>0?100:0).toFixed(0)+'%']],
+            [['相关文档总数',rt.toFixed(0)],['检索返回数',ret.toFixed(0)],['相关且检索到',rr.toFixed(0)],['召回率',recall.toFixed(2)+'%'],['精确率',prec.toFixed(2)+'%'],['F1',f1.toFixed(2)+'%'],['漏检数',miss.toFixed(0)],['误检数',wrong.toFixed(0)],['命中率',(rr>0?100:0).toFixed(0)+'%']]);
+        TBKit.matrix.table('#rgTable',{head:__rgL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({f1:Number(f1.toFixed(2))});
+        TBKit.util.diffBox('#rgDiff',['f1']);
+        TBKit.history.mount('#rgHist',function(v){ if(v.f1!=null){document.getElementById('relevant_total').value=v.relevant_total;document.getElementById('retrieved').value=v.retrieved;document.getElementById('relevant_retrieved').value=v.relevant_retrieved;} calc(); });
+    }catch(e){}
+}
+function __rgPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#rgPresets',[
+            {label:'均衡 10/5/4',labelEn:'Balanced 10/5/4',values:{relevant_total:10,retrieved:5,relevant_retrieved:4}},
+            {label:'高召回 10/8/7',labelEn:'High recall 10/8/7',values:{relevant_total:10,retrieved:8,relevant_retrieved:7}},
+            {label:'高精确 10/3/3',labelEn:'High precision 10/3/3',values:{relevant_total:10,retrieved:3,relevant_retrieved:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_rg0 = calc;
+calc = function(){ __tb_rg0(); try{ __rgExtras(); }catch(e){} };
+function __rgBoot(){ try{ __rgPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __rgBoot);
+else __rgBoot();
 </script>
 
 <script type="application/ld+json">

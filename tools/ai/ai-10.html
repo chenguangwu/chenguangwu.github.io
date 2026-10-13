@@ -122,11 +122,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>步长</label><input type="number" id="s" value="1" step="1" oninput="calc()"></div>
     <div class="input-row"><label>填充</label><input type="number" id="p" value="1" step="1" oninput="calc()"></div>
     <div class="input-row"><label>空洞率</label><input type="number" id="d" value="1" step="1" oninput="calc()"></div>
+    <div id="b1Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__b1Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="224" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="224" data-viz-min="0">
+    <div id="b1Chart" role="img" aria-label="结果可视化"></div>
+    <div id="b1Table"></div>
+    <div id="b1Diff"></div>
+    <div id="b1Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -227,6 +234,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __b1N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __b1List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __b1L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __b1Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#b1Table','conv-output-size.csv');}catch(e){} }
+function __b1Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var w=__b1N('w'), k=__b1N('k'), s=__b1N('s'), p=__b1N('p'), d=__b1N('d');
+        if(!(w>0&&k>0&&s>0&&d>0&&p>=0))return;
+        function out(x){ return Math.floor((x+2*p-k-(k-1)*(d-1))/s)+1; }
+        var rf=k+(k-1)*(d-1);
+        var ws=[32,64,96,128,224,384];
+        TBKit.chart.bar('#b1Chart',{labels:ws.map(function(x){return String(x);}),series:[{name:__b1L('output size','输出尺寸'),data:ws.map(out)}],height:220,title:__b1L('Conv output size vs input (k='+k+', s='+s+', p='+p+')','卷积输出尺寸随输入边长变化')});
+        var rows=__b1L(
+            [['input size',w.toFixed(0)],['kernel k',k.toFixed(0)],['stride s',s.toFixed(0)],['padding p',p.toFixed(0)],['dilation d',d.toFixed(0)],['output size',out(w).toFixed(0)],['receptive field',rf.toFixed(0)],['param reduction ratio',(1-Math.pow(rf/w,2)).toFixed(4)]],
+            [['输入边长',w.toFixed(0)],['卷积核 k',k.toFixed(0)],['步长 s',s.toFixed(0)],['填充 p',p.toFixed(0)],['膨胀 d',d.toFixed(0)],['输出尺寸',out(w).toFixed(0)],['感受野',rf.toFixed(0)],['参数减少比',(1-Math.pow(rf/w,2)).toFixed(4)]]);
+        TBKit.matrix.table('#b1Table',{head:__b1L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({out:Number(out(w).toFixed(0))});
+        TBKit.util.diffBox('#b1Diff',['out']);
+        TBKit.history.mount('#b1Hist',function(v){ if(v.out!=null){document.getElementById('w').value=v.w;document.getElementById('k').value=v.k;document.getElementById('s').value=v.s;document.getElementById('p').value=v.p;document.getElementById('d').value=v.d;} calc(); });
+    }catch(e){}
+}
+function __b1Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#b1Presets',[
+            {label:'标准 3×3 s1 p1',labelEn:'Standard 3×3 s1 p1',values:{w:224,k:3,s:1,p:1,d:1}},
+            {label:'下采样 3×3 s2 p1',labelEn:'Downsample 3×3 s2 p1',values:{w:224,k:3,s:2,p:1,d:1}},
+            {label:'膨胀 3×3 d2 s1 p2',labelEn:'Dilated 3×3 d2 s1 p2',values:{w:224,k:3,s:1,p:2,d:2}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_b10 = calc;
+calc = function(){ __tb_b10(); try{ __b1Extras(); }catch(e){} };
+function __b1Boot(){ try{ __b1Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __b1Boot);
+else __b1Boot();
 </script>
 
 <script type="application/ld+json">

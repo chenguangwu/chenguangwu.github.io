@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>查询 q2</label><input type="number" id="q2" value="0" step="any" oninput="calc()"></div>
     <div class="input-row"><label>文档 d1</label><input type="number" id="d1" value="0.8" step="any" oninput="calc()"></div>
     <div class="input-row"><label>文档 d2</label><input type="number" id="d2" value="0.6" step="any" oninput="calc()"></div>
+    <div id="b3Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__b3Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="-1"></div>
+    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="-1">
+    <div id="b3Chart" role="img" aria-label="结果可视化"></div>
+    <div id="b3Table"></div>
+    <div id="b3Diff"></div>
+    <div id="b3Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -224,6 +231,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __b3N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __b3List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __b3L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __b3Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#b3Table','q-d-similarity.csv');}catch(e){} }
+function __b3Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var q1=__b3N('q1'),q2=__b3N('q2'),d1=__b3N('d1'),d2=__b3N('d2');
+        var nq=Math.sqrt(q1*q1+q2*q2), nd=Math.sqrt(d1*d1+d2*d2);
+        if(!(nq>0&&nd>0))return;
+        var dot=q1*d1+q2*d2, cos=dot/(nq*nd);
+        TBKit.chart.gauge('#b3Chart',{value:cos,min:-1,max:1,text:cos.toFixed(4),label:__b3L('cosine similarity','余弦相似度'),height:170,title:__b3L('Query–document similarity','查询-文档相似度')});
+        var rows=__b3L(
+            [['query q','('+q1+', '+q2+')'],['document d','('+d1+', '+d2+')'],['dot product',dot.toFixed(4)],['|q|',nq.toFixed(4)],['|d|',nd.toFixed(4)],['cosine similarity',cos.toFixed(4)],['angle (°)',(Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI).toFixed(2)],['relevance',cos>0.8?__b3L('high','高'):cos>0.5?__b3L('medium','中'):__b3L('low','低')]],
+            [['查询 q','('+q1+', '+q2+')'],['文档 d','('+d1+', '+d2+')'],['点积',dot.toFixed(4)],['|q|',nq.toFixed(4)],['|d|',nd.toFixed(4)],['余弦相似度',cos.toFixed(4)],['夹角 (°)',(Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI).toFixed(2)],['相关性',cos>0.8?'高':cos>0.5?'中':'低']]);
+        TBKit.matrix.table('#b3Table',{head:__b3L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({cos:Number(cos.toFixed(4))});
+        TBKit.util.diffBox('#b3Diff',['cos']);
+        TBKit.history.mount('#b3Hist',function(v){ if(v.cos!=null){document.getElementById('q1').value=v.q1;document.getElementById('q2').value=v.q2;document.getElementById('d1').value=v.d1;document.getElementById('d2').value=v.d2;} calc(); });
+    }catch(e){}
+}
+function __b3Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#b3Presets',[
+            {label:'高相关 (1,0)/(0.8,0.6)',labelEn:'High (1,0)/(0.8,0.6)',values:{q1:1,q2:0,d1:0.8,d2:0.6}},
+            {label:'部分相关 (1,1)/(1,0)',labelEn:'Partial (1,1)/(1,0)',values:{q1:1,q2:1,d1:1,d2:0}},
+            {label:'不相关 (1,0)/(0,1)',labelEn:'Unrelated (1,0)/(0,1)',values:{q1:1,q2:0,d1:0,d2:1}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_b30 = calc;
+calc = function(){ __tb_b30(); try{ __b3Extras(); }catch(e){} };
+function __b3Boot(){ try{ __b3Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __b3Boot);
+else __b3Boot();
 </script>
 
 <script type="application/ld+json">

@@ -103,7 +103,8 @@
 - [x] **AI-3 已完成 10 页**（cohens-kappa/transformer-params/training-flops/vram-estimate/context-window/temperature-scaling/k-means/model-accuracy/flops/attention-flops）：单页 3–5/9 → **8/9**；范式轮换（line×3 vram/flops/attention、bar×3 kappa/k-means/temperature、gauge×2 context/accuracy、pie transformer、scatter training，累计 line 40%/bar 36% 不超上限）；数值独立复算 28 项全对；真实加载顺序冒烟 73 页零抛错。
 - [x] **AI-4 已完成 12 页**（attention-head-dim/auc-rank/best-epoch/grad-accumulation/inference-throughput/quantization-ratio/softmax-2/specificity/steps-per-epoch/token/token-usage/multi-agent-overhead）：单页 3/9 → **8/9**；范式 bar×5/pie×4/gauge×2/scatter×1（累计 bar 37.8%/line 27% 合规）；数值独立复算 16 项全对；真实加载顺序冒烟 85 页零抛错。
 - [x] **AI-5 已完成 12 页**（ai-4/ai-6/ai-7/ai-8/ai-9/ai-11/ai-13/ai-15/ai-16/ai-17/l1-l2/token-2）：单页 3/9 → **8/9**；范式 bar×4/pie×5/gauge×2/line×1（累计 bar 36.7%/line 22.4%/pie 22.4% 合规）；数值独立复算 60 项全对；真实加载顺序冒烟 97 页零抛错；ai-15 贝叶斯 PPV/NPV 双曲线、ai-7 MCC 仪表盘。
-- [ ] AI-6（末批）：剩余 7 个数值页（ai-5/ai-10/ai-12/ai-14/augmentation-multiplier/rag/ai）+ 8 个文本/文件上传类页（ocr/sentiment/speech-to-text/text-summarization/prompt-generator/text-summarizer/code-review/image-classification，无数值输入，拟按文本工具特性另议或维持）。
+- [x] **AI-6 已完成 7 页（数值页收口）**（ai-5/ai-10/ai-12/ai-14/augmentation-multiplier/rag/ai）：单页 3–4/9 → **8/9**；范式 line×2/bar×2/pie×2/gauge×1（累计 bar 35.7%/line 23.2%/pie 23.2% 合规）；数值独立复算 27 项全对；**顺带修一个真 bug**：`ai` 页平衡准确率把百分数 recall 与比率 specificity 混算得 4255.76%，已改为统一比率；真实加载顺序冒烟 104 页零抛错。**`ai` 数值页全部收口（56 页 8/9）。**
+- [ ] AI-7（文本工具收尾）：剩余 8 个非数值页（ocr/sentiment-analysis/speech-to-text/text-summarization/ai-code-review/ai-prompt-generator/ai-text-summarizer/image-classification + index 导航页）无数值输入，需走「文本向」模板：示例预设（一键填入样本文本）+ 结果导出 + 历史记录 + 结构化明细表（分句/分段），不做数值图表。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 

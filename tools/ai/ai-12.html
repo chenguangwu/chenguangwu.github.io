@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>原始样本数</label><input type="number" id="base" value="1000" step="1" oninput="calc()"></div>
     <div class="input-row"><label>每种样本增强次数</label><input type="number" id="aug" value="5" step="1" oninput="calc()"></div>
     <div class="input-row"><label>增强多样性系数 0-1</label><input type="number" id="diversity" value="0.5" step="any" oninput="calc()"></div>
+    <div id="b2Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__b2Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="10000" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="10000" data-viz-min="0">
+    <div id="b2Chart" role="img" aria-label="结果可视化"></div>
+    <div id="b2Table"></div>
+    <div id="b2Diff"></div>
+    <div id="b2Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -220,6 +227,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __b2N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __b2List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __b2L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __b2Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#b2Table','augmentation.csv');}catch(e){} }
+function __b2Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var base=__b2N('base'), aug=__b2N('aug'), div=__b2N('diversity');
+        if(!(base>0&&aug>=1&&div>=0&&div<=1))return;
+        var theo=base*aug, eff=base*(1+(aug-1)*div), added=eff-base;
+        TBKit.chart.pie('#b2Chart',{items:[
+            {label:__b2L('original','原始样本'),value:base},
+            {label:__b2L('effective new','有效新增'),value:added}
+        ],height:230,title:__b2L('Dataset: original vs effective new','数据集：原始 vs 有效新增')});
+        var rows=__b2L(
+            [['base samples',base.toFixed(0)],['augmentation variants',aug.toFixed(0)],['diversity',div.toFixed(2)],['theoretical total',theo.toFixed(0)],['effective equivalent',eff.toFixed(0)],['effective new',added.toFixed(0)],['efficiency',(eff/theo*100).toFixed(1)+'%'],['verdict',eff>5000?__b2L('sufficient data','数据量充足'):__b2L('collect more real data','建议继续收集真实数据')]],
+            [['原始样本',base.toFixed(0)],['增强变体数',aug.toFixed(0)],['多样性系数',div.toFixed(2)],['理论扩充量',theo.toFixed(0)],['有效等效量',eff.toFixed(0)],['有效新增',added.toFixed(0)],['有效率',(eff/theo*100).toFixed(1)+'%'],['结论',eff>5000?'数据量充足':'建议继续收集真实数据']]);
+        TBKit.matrix.table('#b2Table',{head:__b2L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({eff:Number(eff.toFixed(0))});
+        TBKit.util.diffBox('#b2Diff',['eff']);
+        TBKit.history.mount('#b2Hist',function(v){ if(v.eff!=null){document.getElementById('base').value=v.base;document.getElementById('aug').value=v.aug;document.getElementById('diversity').value=v.div;} calc(); });
+    }catch(e){}
+}
+function __b2Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#b2Presets',[
+            {label:'保守 1000×5 div0.5',labelEn:'Conservative 1000×5 div0.5',values:{base:1000,aug:5,diversity:0.5}},
+            {label:'激进 1000×10 div0.8',labelEn:'Aggressive 1000×10 div0.8',values:{base:1000,aug:10,diversity:0.8}},
+            {label:'低多样 2000×4 div0.2',labelEn:'Low diversity 2000×4 div0.2',values:{base:2000,aug:4,diversity:0.2}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_b20 = calc;
+calc = function(){ __tb_b20(); try{ __b2Extras(); }catch(e){} };
+function __b2Boot(){ try{ __b2Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __b2Boot);
+else __b2Boot();
 </script>
 
 <script type="application/ld+json">

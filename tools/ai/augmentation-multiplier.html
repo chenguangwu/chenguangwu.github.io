@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>原始样本数</label><input type="number" id="orig" value="1000" step="any" oninput="calc()"></div>
     <div class="input-row"><label>变换种类</label><input type="number" id="transforms" value="3" step="any" oninput="calc()"></div>
     <div class="input-row"><label>每种倍数</label><input type="number" id="factor" value="2" step="any" oninput="calc()"></div>
+    <div id="b5Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__b5Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="b5Chart" role="img" aria-label="结果可视化"></div>
+    <div id="b5Table"></div>
+    <div id="b5Diff"></div>
+    <div id="b5Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -216,6 +223,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __b5N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __b5List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __b5L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __b5Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#b5Table','augmentation-multiplier.csv');}catch(e){} }
+function __b5Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var orig=__b5N('orig'), tr=__b5N('transforms'), f=__b5N('factor');
+        if(!(orig>0&&tr>=0&&f>0))return;
+        var total=orig*(1+f*tr);
+        var ts=[];for(var i=0;i<=Math.min(tr+3,12);i++)ts.push(i);
+        TBKit.chart.line('#b5Chart',{labels:ts.map(function(t){return String(t);}),series:[{name:__b5L('total samples','总样本'),data:ts.map(function(t){return orig*(1+f*t);})}],height:230,title:__b5L('Augmented total vs transforms','增强总量随变换数线性增长')});
+        var rows=__b5L(
+            [['original samples',orig.toFixed(0)],['transforms',tr.toFixed(0)],['factor per transform',f.toFixed(2)],['new samples per transform',(orig*f).toFixed(0)],['augmented total',total.toFixed(0)],['multiplier',(1+f*tr).toFixed(2)+'×'],['growth vs original',(total/orig).toFixed(2)+'×']],
+            [['原始样本',orig.toFixed(0)],['变换数',tr.toFixed(0)],['每变换倍率',f.toFixed(2)],['每变换新增样本',(orig*f).toFixed(0)],['增强后总量',total.toFixed(0)],['总倍率',(1+f*tr).toFixed(2)+'×'],['相对原始增长',(total/orig).toFixed(2)+'×']]);
+        TBKit.matrix.table('#b5Table',{head:__b5L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({total:Number(total.toFixed(0))});
+        TBKit.util.diffBox('#b5Diff',['total']);
+        TBKit.history.mount('#b5Hist',function(v){ if(v.total!=null){document.getElementById('orig').value=v.orig;document.getElementById('transforms').value=v.transforms;document.getElementById('factor').value=v.factor;} calc(); });
+    }catch(e){}
+}
+function __b5Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#b5Presets',[
+            {label:'轻扩 1000×3×2',labelEn:'Light 1000×3×2',values:{orig:1000,transforms:3,factor:2}},
+            {label:'中扩 1000×5×3',labelEn:'Medium 1000×5×3',values:{orig:1000,transforms:5,factor:3}},
+            {label:'重扩 500×8×4',labelEn:'Heavy 500×8×4',values:{orig:500,transforms:8,factor:4}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_b50 = calc;
+calc = function(){ __tb_b50(); try{ __b5Extras(); }catch(e){} };
+function __b5Boot(){ try{ __b5Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __b5Boot);
+else __b5Boot();
 </script>
 
 <script type="application/ld+json">

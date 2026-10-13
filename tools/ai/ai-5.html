@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>样本总数</label><input type="number" id="samples" value="10000" step="1" oninput="calc()"></div>
     <div class="input-row"><label>Batch size</label><input type="number" id="batch" value="32" step="1" oninput="calc()"></div>
     <div class="input-row"><label>训练 epoch 数</label><input type="number" id="epochs" value="10" step="1" oninput="calc()"></div>
+    <div id="a5Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__a5Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="5000" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="5000" data-viz-min="0">
+    <div id="a5Chart" role="img" aria-label="结果可视化"></div>
+    <div id="a5Table"></div>
+    <div id="a5Diff"></div>
+    <div id="a5Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -223,6 +230,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __a5N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __a5List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __a5L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __a5Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#a5Table','training-steps.csv');}catch(e){} }
+function __a5Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var samples=__a5N('samples'), batch=__a5N('batch'), epochs=__a5N('epochs');
+        if(!(samples>0&&batch>0&&epochs>0))return;
+        var per=Math.ceil(samples/batch), total=per*epochs, last=samples%batch||batch;
+        var labels=[],data=[],acc=0;
+        for(var e=1;e<=epochs;e++){acc+=per;labels.push('E'+e);data.push(acc);}
+        TBKit.chart.line('#a5Chart',{labels:labels,series:[{name:__a5L('cumulative steps','累计步数'),data:data}],height:230,title:__a5L('Cumulative steps over epochs','累计步数随轮次增长')});
+        var rows=__a5L(
+            [['samples',samples.toFixed(0)],['batch size',batch.toFixed(0)],['epochs',epochs.toFixed(0)],['steps per epoch',per.toFixed(0)],['total steps',total.toFixed(0)],['last batch size',last.toFixed(0)],['samples seen',(per*batch*epochs).toFixed(0)]],
+            [['样本数',samples.toFixed(0)],['批大小',batch.toFixed(0)],['轮数',epochs.toFixed(0)],['每轮步数',per.toFixed(0)],['总步数',total.toFixed(0)],['最后一批大小',last.toFixed(0)],['实际见过样本数',(per*batch*epochs).toFixed(0)]]);
+        TBKit.matrix.table('#a5Table',{head:__a5L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({total:Number(total.toFixed(0))});
+        TBKit.util.diffBox('#a5Diff',['total']);
+        TBKit.history.mount('#a5Hist',function(v){ if(v.total!=null){document.getElementById('samples').value=v.samples;document.getElementById('batch').value=v.batch;document.getElementById('epochs').value=v.epochs;} calc(); });
+    }catch(e){}
+}
+function __a5Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#a5Presets',[
+            {label:'小数据 10k/32/10 轮',labelEn:'Small 10k/32/10 epochs',values:{samples:10000,batch:32,epochs:10}},
+            {label:'中等 50k/64/50 轮',labelEn:'Medium 50k/64/50 epochs',values:{samples:50000,batch:64,epochs:50}},
+            {label:'大规模 1M/256/3 轮',labelEn:'Large 1M/256/3 epochs',values:{samples:1000000,batch:256,epochs:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_a50 = calc;
+calc = function(){ __tb_a50(); try{ __a5Extras(); }catch(e){} };
+function __a5Boot(){ try{ __a5Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __a5Boot);
+else __a5Boot();
 </script>
 
 <script type="application/ld+json">
