@@ -121,13 +121,19 @@ s.parentNode.insertBefore(el, s);
       <textarea id="text" rows="5" placeholder="输入要分析的句子，例如：这部电影太精彩了，强烈推荐！" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--color-border);font-size:14px;resize:vertical;"></textarea>
     </div>
 
+    <div id="sxPresets"></div>
     <div class="toolbar">
+      <button type="button" class="btn" onclick="__sxExport()">导出 CSV</button>
       <button class="btn primary" id="runBtn" onclick="runAI()">分析情感</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="status" style="color:var(--text-muted);font-size:13px;"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="sxTable"></div>
+    <div id="sxDiff"></div>
+    <div id="sxHist"></div>
+</div>
 
     <div class="formula-box" style="margin-top:14px;font-size:13px;line-height:1.7;">
       本工具在浏览器本地对文本做情感分析（中文内置情感词库 / 英文 DistilBERT 模型），输出情感极性，全程不上传。
@@ -262,6 +268,55 @@ window.runAI = async function () {
     btn.disabled = false;
   }
 };
+
+function __sxT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __sxR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
+function __sxSent(t){return String(t||'').split(/[。！？.!?\n]+/).filter(function(s){return s.trim();}).length;}
+function __sxL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __sxPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#sxPresets',[
+            {label:'正面评价（中文）',labelEn:'Positive review (zh)',values:{text:'这家餐厅的服务非常好，菜品新鲜美味，价格也很实惠，下次还会再来。'}},
+            {label:'负面评价（中文）',labelEn:'Negative review (zh)',values:{text:'等了很久才上菜，味道一般，服务态度差，真的很失望。'}},
+            {label:'英文样本',labelEn:'English sample',values:{text:'This movie was absolutely fantastic, with great acting and a compelling story.'}}
+        ],function(){ runAI(); });
+    }catch(e){}
+}
+
+
+function __sxExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#sxTable','sentiment-analysis.csv');}catch(e){} }
+function __sxExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var text=__sxT('text').trim();
+        var rt=__sxR('result');
+        var m1=/情感倾向：\s*([^\s（(]+)/.exec(rt), m2=/置信度：\s*([\d.]+)/.exec(rt);
+        var label=m1?m1[1]:'—', conf=m2?parseFloat(m2[1]):null;
+        var d=window.zhSentimentDetail?window.zhSentimentDetail(text):null;
+        var rows=__sxL(
+            [['sentiment',label],['confidence',conf!=null?conf.toFixed(1)+'%':'—'],['positive words hit',d?d.posHit.length:'—'],['negative words hit',d?d.negHit.length:'—'],['word density',d?d.density.toFixed(2)+'%':'—'],['text length',text.length],['sentences',__sxSent(text)]],
+            [['情感倾向',label],['置信度',conf!=null?conf.toFixed(1)+'%':'—'],['正面命中词',d?d.posHit.length:'—'],['负面命中词',d?d.negHit.length:'—'],['情感词密度',d?d.density.toFixed(2)+'%':'—'],['文本长度',text.length],['句子数',__sxSent(text)]]);
+        TBKit.matrix.table('#sxTable',{head:__sxL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({text:text.slice(0,300),label:label,conf:conf});
+        TBKit.util.diffBox('#sxDiff',['conf']);
+        TBKit.history.mount('#sxHist',function(v){ if(v.label!=null){document.getElementById('text').value=v.text||''; runAI(); } });
+    }catch(e){}
+}
+
+var __tb_sx0 = runAI;
+runAI = function(){
+  var __p = null;
+  try { __p = __tb_sx0.apply(this, arguments); } catch(e) {}
+  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __sxExtras(); }catch(e){} }, 80); }); }
+  else { try{ __sxExtras(); }catch(e){} }
+  return __p;
+};
+function __sxBoot(){ try{ __sxPresets(); }catch(e){} try{ __sxExtras(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __sxBoot);
+else __sxBoot();
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->

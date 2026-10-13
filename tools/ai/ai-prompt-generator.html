@@ -202,13 +202,19 @@ s.parentNode.insertBefore(el, s);
       </select>
     </div>
 
+    <div id="pgPresets"></div>
     <div class="toolbar">
+      <button type="button" class="btn" onclick="__pgExport()">导出 CSV</button>
       <button type="button" class="btn primary" onclick="generate()">生成提示词</button>
       <button type="button" class="btn" onclick="copyResult()">复制</button>
       <button type="button" class="btn" onclick="random()">随机示例</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="pgTable"></div>
+    <div id="pgDiff"></div>
+    <div id="pgHist"></div>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -327,6 +333,50 @@ function random() {
 }
 
 renderScenes();
+
+function __pgT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __pgR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
+function __pgL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __pgExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#pgTable','prompt-generator.csv');}catch(e){} }
+function __pgExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var role=__pgT('role'), task=__pgT('task'), ctx=__pgT('context'), req=__pgT('requirement');
+        var rt=__pgR('result');
+        var filled=[role,task,ctx,req].filter(function(s){return s.trim();}).length;
+        var rows=__pgL(
+            [['role',role||'—'],['task chars',task.length],['context chars',ctx.length],['requirement chars',req.length],['input total',role.length+task.length+ctx.length+req.length],['fields filled',filled+'/4'],['generated length',rt.length]],
+            [['角色',role||'—'],['任务字数',task.length],['上下文字数',ctx.length],['要求字数',req.length],['输入总长度',role.length+task.length+ctx.length+req.length],['已填字段',filled+'/4'],['生成结果长度',rt.length]]);
+        TBKit.matrix.table('#pgTable',{head:__pgL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({role:role,task:task.slice(0,200),context:ctx.slice(0,200),requirement:req,len:rt.length});
+        TBKit.util.diffBox('#pgDiff',['len']);
+        TBKit.history.mount('#pgHist',function(v){ if(v.len!=null){document.getElementById('role').value=v.role||'';document.getElementById('task').value=v.task||'';document.getElementById('context').value=v.context||'';document.getElementById('requirement').value=v.requirement||''; generate(); } });
+    }catch(e){}
+}
+function __pgPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#pgPresets',[
+            {label:'代码审查助手',labelEn:'Code review assistant',values:{role:'资深代码审查专家',task:'审查以下代码的安全性问题与性能瓶颈，给出修改建议',context:'代码为 JavaScript，运行在浏览器环境，允许使用现代 ES2020 语法',requirement:'输出按严重程度分级，每条建议附修改后的代码示例'}},
+            {label:'营销文案写手',labelEn:'Marketing copywriter',values:{role:'电商营销文案专家',task:'为一款降噪耳机写三版详情页文案，突出续航与佩戴舒适度',context:'目标用户为通勤上班族，价格区间 800-1200 元',requirement:'每版不超过 120 字，风格分别为专业、感性、活泼'}},
+            {label:'学习规划师',labelEn:'Study planner',values:{role:'个性化学习规划师',task:'制定一份四周的前端学习计划，每周给出目标与检验标准',context:'学习者有一定 HTML/CSS 基础，每周可投入 10 小时',requirement:'按周拆分，标注重点与可选进阶内容'}}
+        ],function(){ generate(); });
+    }catch(e){}
+}
+
+var __tb_pg0 = generate;
+generate = function(){
+  var __p = null;
+  try { __p = __tb_pg0.apply(this, arguments); } catch(e) {}
+  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __pgExtras(); }catch(e){} }, 80); }); }
+  else { try{ __pgExtras(); }catch(e){} }
+  return __p;
+};
+function __pgBoot(){ try{ __pgPresets(); }catch(e){} try{ __pgExtras(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __pgBoot);
+else __pgBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

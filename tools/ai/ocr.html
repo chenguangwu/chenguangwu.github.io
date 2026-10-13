@@ -124,13 +124,18 @@ s.parentNode.insertBefore(el, s);
     <div id="preview" style="margin-bottom:12px;"></div>
 
     <div class="toolbar">
+      <button type="button" class="btn" onclick="__ocExport()">导出 CSV</button>
       <button class="btn primary" id="runBtn" onclick="runAI()">开始识别</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
       <button class="btn" onclick="downloadResult('ocr')">下载 TXT</button>
     </div>
 
     <div class="result-box" id="status" style="color:var(--text-muted);font-size:13px;"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="ocTable"></div>
+    <div id="ocDiff"></div>
+    <div id="ocHist"></div>
+</div>
 
     <div class="formula-box" style="margin-top:14px;font-size:13px;line-height:1.7;">
       本工具在浏览器本地加载 OCR 模型，对上传图片执行文字检测与识别，全程不依赖服务器、图片不上传。
@@ -258,6 +263,42 @@ window.runAI = async function () {
     btn.disabled = false;
   }
 };
+
+function __ocT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __ocR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
+function __ocSent(t){return String(t||'').split(/[。！？.!?\n]+/).filter(function(s){return s.trim();}).length;}
+function __ocL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __ocExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ocTable','ocr-stats.csv');}catch(e){} }
+function __ocExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var res=document.getElementById('result');
+        var ta=res?res.querySelector('textarea'):null;
+        var txt=ta?(ta.value||''):'';
+        var s=window.ocrStats?window.ocrStats(txt):null;
+        var rows=__ocL(
+            [['recognized chars',s?s.chars:'—'],['non-whitespace',s?s.noWs:'—'],['lines',s?s.lines:'—'],['CJK chars',s?s.cjk:'—'],['latin chars',s?s.latin:'—'],['digits',s?s.digits:'—']],
+            [['识别字符数',s?s.chars:'—'],['非空白字符',s?s.noWs:'—'],['行数',s?s.lines:'—'],['中文字符',s?s.cjk:'—'],['英文字符',s?s.latin:'—'],['数字',s?s.digits:'—']]);
+        TBKit.matrix.table('#ocTable',{head:__ocL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({chars:s?s.chars:0});
+        TBKit.util.diffBox('#ocDiff',['chars']);
+        TBKit.history.mount('#ocHist',function(v){ if(v.chars!=null){ runAI(); } });
+    }catch(e){}
+}
+
+var __tb_oc0 = runAI;
+runAI = function(){
+  var __p = null;
+  try { __p = __tb_oc0.apply(this, arguments); } catch(e) {}
+  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __ocExtras(); }catch(e){} }, 80); }); }
+  else { try{ __ocExtras(); }catch(e){} }
+  return __p;
+};
+function __ocBoot(){ try{ __ocPresets(); }catch(e){} try{ __ocExtras(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ocBoot);
+else __ocBoot();
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->

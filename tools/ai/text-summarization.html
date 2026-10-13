@@ -130,14 +130,20 @@ s.parentNode.insertBefore(el, s);
       </select>
     </div>
 
+    <div id="tsPresets"></div>
     <div class="toolbar">
+      <button type="button" class="btn" onclick="__tsExport()">导出 CSV</button>
       <button class="btn primary" id="runBtn" onclick="runAI()">生成摘要</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
       <button class="btn" onclick="downloadResult('summary')">下载 TXT</button>
     </div>
 
     <div class="result-box" id="status" style="color:var(--text-muted);font-size:13px;"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="tsTable"></div>
+    <div id="tsDiff"></div>
+    <div id="tsHist"></div>
+</div>
 
     <div class="formula-box" style="margin-top:14px;font-size:13px;line-height:1.7;">
       本工具在浏览器本地加载摘要模型，对输入文本生成摘要（英文较长段落效果最佳），全程不上传。
@@ -251,6 +257,55 @@ window.runAI = async function () {
     btn.disabled = false;
   }
 };
+
+function __tsT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __tsR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
+function __tsSent(t){return String(t||'').split(/[。！？.!?\n]+/).filter(function(s){return s.trim();}).length;}
+function __tsL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __tsPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#tsPresets',[
+            {label:'科技新闻（英文）',labelEn:'Tech news (en)',values:{text:'OpenAI released a new model that improves reasoning while reducing inference cost. The company says the update will be available to developers next month, with pricing unchanged for existing tiers.'}},
+            {label:'产品公告（英文）',labelEn:'Product note (en)',values:{text:'Our team shipped a new dashboard this week. It loads faster, supports dark mode, and lets you export reports to CSV. Early feedback has been positive, and we plan to add alerts next.'}},
+            {label:'长段落（英文）',labelEn:'Long paragraph (en)',values:{text:'The city council approved the new transit plan after months of debate. The plan adds two bus lines, extends night service, and funds protected bike lanes downtown. Construction is expected to begin in spring.'}}
+        ],function(){ runAI(); });
+    }catch(e){}
+}
+
+
+function __tsExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#tsTable','text-summarization.csv');}catch(e){} }
+function __tsExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var text=__tsT('text').trim();
+        var res=document.getElementById('result');
+        var ta=res?res.querySelector('textarea'):null;
+        var sum=ta?(ta.value||''):'';
+        var s=window.sumStats?window.sumStats(text,sum):null;
+        var rows=__tsL(
+            [['original chars',s?s.orig:'—'],['summary chars',s?s.sum:'—'],['compression ratio',s?s.ratio.toFixed(1)+'%':'—'],['original sentences',__tsSent(text)],['summary sentences',__tsSent(sum)],['has summary',sum?'yes':'no']],
+            [['原文字数',s?s.orig:'—'],['摘要字数',s?s.sum:'—'],['压缩率',s?s.ratio.toFixed(1)+'%':'—'],['原文句数',__tsSent(text)],['摘要句数',__tsSent(sum)],['是否已生成',sum?'是':'否']]);
+        TBKit.matrix.table('#tsTable',{head:__tsL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({text:text.slice(0,300),ratio:s?Number(s.ratio.toFixed(1)):0});
+        TBKit.util.diffBox('#tsDiff',['ratio']);
+        TBKit.history.mount('#tsHist',function(v){ if(v.ratio!=null){document.getElementById('text').value=v.text||''; runAI(); } });
+    }catch(e){}
+}
+
+var __tb_ts0 = runAI;
+runAI = function(){
+  var __p = null;
+  try { __p = __tb_ts0.apply(this, arguments); } catch(e) {}
+  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __tsExtras(); }catch(e){} }, 80); }); }
+  else { try{ __tsExtras(); }catch(e){} }
+  return __p;
+};
+function __tsBoot(){ try{ __tsPresets(); }catch(e){} try{ __tsExtras(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __tsBoot);
+else __tsBoot();
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->

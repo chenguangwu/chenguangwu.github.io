@@ -122,13 +122,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <button type="button" class="btn" onclick="__stExport()">导出 CSV</button>
       <button class="btn primary" id="runBtn" onclick="runAI()">开始转换</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
       <button class="btn" onclick="downloadResult('transcript')">下载 TXT</button>
     </div>
 
     <div class="result-box" id="status" style="color:var(--text-muted);font-size:13px;"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="stTable"></div>
+    <div id="stDiff"></div>
+    <div id="stHist"></div>
+</div>
 
     <div class="formula-box" style="margin-top:14px;font-size:13px;line-height:1.7;">
       本工具在浏览器本地解码音频并加载 Whisper 模型转写文字，支持 mp3 / wav / m4a 等格式，全程不上传。
@@ -245,6 +250,42 @@ window.runAI = async function () {
     btn.disabled = false;
   }
 };
+
+function __stT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __stR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
+function __stSent(t){return String(t||'').split(/[。！？.!?\n]+/).filter(function(s){return s.trim();}).length;}
+function __stL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __stExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#stTable','asr-stats.csv');}catch(e){} }
+function __stExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var res=document.getElementById('result');
+        var ta=res?res.querySelector('textarea'):null;
+        var txt=ta?(ta.value||''):'';
+        var s=window.asrStats?window.asrStats(txt):null;
+        var rows=__stL(
+            [['transcribed chars',s?s.chars:'—'],['non-whitespace',s?s.noWs:'—'],['lines',s?s.lines:'—'],['CJK chars',s?s.cjk:'—'],['latin chars',s?s.latin:'—'],['digits',s?s.digits:'—']],
+            [['转写字符数',s?s.chars:'—'],['非空白字符',s?s.noWs:'—'],['行数',s?s.lines:'—'],['中文字符',s?s.cjk:'—'],['英文字符',s?s.latin:'—'],['数字',s?s.digits:'—']]);
+        TBKit.matrix.table('#stTable',{head:__stL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({chars:s?s.chars:0});
+        TBKit.util.diffBox('#stDiff',['chars']);
+        TBKit.history.mount('#stHist',function(v){ if(v.chars!=null){ runAI(); } });
+    }catch(e){}
+}
+
+var __tb_st0 = runAI;
+runAI = function(){
+  var __p = null;
+  try { __p = __tb_st0.apply(this, arguments); } catch(e) {}
+  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __stExtras(); }catch(e){} }, 80); }); }
+  else { try{ __stExtras(); }catch(e){} }
+  return __p;
+};
+function __stBoot(){ try{ __stPresets(); }catch(e){} try{ __stExtras(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __stBoot);
+else __stBoot();
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->

@@ -124,11 +124,16 @@ s.parentNode.insertBefore(el, s);
     <div id="preview" style="margin-bottom:12px;"></div>
 
     <div class="toolbar">
+      <button type="button" class="btn" onclick="__icExport()">导出 CSV</button>
       <button class="btn primary" id="runBtn" onclick="runAI()">开始识别</button>
     </div>
 
     <div class="result-box" id="status" style="color:var(--text-muted);font-size:13px;"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="icTable"></div>
+    <div id="icDiff"></div>
+    <div id="icHist"></div>
+</div>
 
     <div class="formula-box" style="margin-top:14px;font-size:13px;line-height:1.7;">
       本工具在浏览器本地加载图像分类模型，对上传图片推理并返回置信度最高的前 5 个类别，全程不上传。
@@ -241,6 +246,41 @@ window.runAI = async function () {
     btn.disabled = false;
   }
 };
+
+function __icT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __icR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
+function __icSent(t){return String(t||'').split(/[。！？.!?\n]+/).filter(function(s){return s.trim();}).length;}
+function __icL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __icExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#icTable','classification-stats.csv');}catch(e){} }
+function __icExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var rt=__icR('result');
+        var ms=rt.match(/置信度：\s*([\d.]+)%/g)||[];
+        var top=ms.length?ms[0].replace(/[^\d.]/g,'')+'%':'—';
+        var rows=__icL(
+            [['top-1 confidence',top],['labels returned',ms.length],['result length',rt.length],['image selected',(document.getElementById('img')&&document.getElementById('img').files&&document.getElementById('img').files.length)?'yes':'no']],
+            [['Top1 置信度',top],['返回类别数',ms.length],['结果长度',rt.length],['已选图片',(document.getElementById('img')&&document.getElementById('img').files&&document.getElementById('img').files.length)?'是':'否']]);
+        TBKit.matrix.table('#icTable',{head:__icL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({top:ms.length?parseFloat(ms[0].replace(/[^\d.]/g,'')):0,n:ms.length});
+        TBKit.util.diffBox('#icDiff',['top']);
+        TBKit.history.mount('#icHist',function(v){ if(v.top!=null){ runAI(); } });
+    }catch(e){}
+}
+
+var __tb_ic0 = runAI;
+runAI = function(){
+  var __p = null;
+  try { __p = __tb_ic0.apply(this, arguments); } catch(e) {}
+  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __icExtras(); }catch(e){} }, 80); }); }
+  else { try{ __icExtras(); }catch(e){} }
+  return __p;
+};
+function __icBoot(){ try{ __icPresets(); }catch(e){} try{ __icExtras(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __icBoot);
+else __icBoot();
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->

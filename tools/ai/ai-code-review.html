@@ -178,14 +178,20 @@ s.parentNode.insertBefore(el, s);
       <textarea id="code" class="code-area" placeholder="粘贴需要审查的代码..."></textarea>
     </div>
 
+    <div id="crPresets"></div>
     <div class="toolbar">
+      <button type="button" class="btn" onclick="__crExport()">导出 CSV</button>
       <button type="button" class="btn primary" onclick="review()">开始审查</button>
       <button type="button" class="btn" onclick="clearCode()">清空</button>
       <button type="button" class="btn" onclick="loadSample()">示例代码</button>
     </div>
 
     <div id="scoreBox"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="crTable"></div>
+    <div id="crDiff"></div>
+    <div id="crHist"></div>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -358,6 +364,58 @@ function loadSample() {
 }
 
 ToolBox.initToolTheme();
+
+function __crT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __crR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
+function __crSent(t){return String(t||'').split(/[。！？.!?\n]+/).filter(function(s){return s.trim();}).length;}
+function __crL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __crPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#crPresets',[
+            {label:'问题代码（含 eval/var）',labelEn:'Smelly code (eval/var)',values:{code:'function getUserInfo(id) {\n  var data = fetch("/api/user/" + id);\n  if (data == null) {\n    return { error: "Not found" };\n  }\n  var result = eval("Math.sqrt(" + id + ")");\n  console.log(data);\n  return data;\n}'}},
+            {label:'规范代码',labelEn:'Clean code',values:{code:'function add(a, b) {\n  const sum = a + b;\n  return sum;\n}\n\nconst total = add(1, 2);\nconsole.log("total:", total);'}},
+            {label:'含死循环风险',labelEn:'Loop risk',values:{code:'function run() {\n  for (var i = 0; i < 10; i--) {\n    console.log(i);\n  }\n  while (true) {\n    break;\n  }\n}'}}
+        ],function(){ review(); });
+    }catch(e){}
+}
+
+
+function __crExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#crTable','code-review.csv');}catch(e){} }
+function __crExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var code=__crT('code');
+        var res=document.getElementById('result');
+        var items=res?res.querySelectorAll('.issue-item'):[];
+        var e=0,w=0,inf=0;
+        for(var i=0;i<items.length;i++){
+            var c=items[i].className||'';
+            if(c.indexOf('error')>=0)e++;else if(c.indexOf('warn')>=0)w++;else inf++;
+        }
+        var rows=__crL(
+            [['lines',code.split('\n').length],['chars',code.length],['issues found',items.length],['🔴 error',e],['🟡 warn',w],['🔵 info',inf]],
+            [['代码行数',code.split('\n').length],['字符数',code.length],['问题总数',items.length],['🔴 严重',e],['🟡 警告',w],['🔵 提示',inf]]);
+        TBKit.matrix.table('#crTable',{head:__crL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({code:code.slice(0,300),issues:items.length});
+        TBKit.util.diffBox('#crDiff',['issues']);
+        TBKit.history.mount('#crHist',function(v){ if(v.issues!=null){document.getElementById('code').value=v.code||''; review(); } });
+    }catch(e){}
+}
+
+var __tb_cr0 = review;
+review = function(){
+  var __p = null;
+  try { __p = __tb_cr0.apply(this, arguments); } catch(e) {}
+  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __crExtras(); }catch(e){} }, 80); }); }
+  else { try{ __crExtras(); }catch(e){} }
+  return __p;
+};
+function __crBoot(){ try{ __crPresets(); }catch(e){} try{ __crExtras(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __crBoot);
+else __crBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

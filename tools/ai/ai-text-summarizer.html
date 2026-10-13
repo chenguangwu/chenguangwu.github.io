@@ -172,7 +172,9 @@ s.parentNode.insertBefore(el, s);
       <input type="range" id="ratio" min="1" max="10" value="3" oninput="document.getElementById('ratioVal').textContent=this.value" style="width:100%;">
     </div>
 
+    <div id="tzPresets"></div>
     <div class="toolbar">
+      <button type="button" class="btn" onclick="__tzExport()">导出 CSV</button>
       <button type="button" class="btn primary" onclick="summarize()">生成摘要</button>
       <button type="button" class="btn" onclick="copySummary()">复制摘要</button>
       <button type="button" class="btn" onclick="extractKeywords()">提取关键词</button>
@@ -180,7 +182,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="stat-row" id="stat"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="tzTable"></div>
+    <div id="tzDiff"></div>
+    <div id="tzHist"></div>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -391,6 +397,53 @@ function loadSample() {
 }
 
 ToolBox.initToolTheme();
+
+function __tzT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __tzR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
+function __tzSent(t){return String(t||'').split(/[。！？.!?\n]+/).filter(function(s){return s.trim();}).length;}
+function __tzL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __tzPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#tzPresets',[
+            {label:'科技长文',labelEn:'Tech article',values:{input:'人工智能正在改变软件开发方式。开发者可以用大模型生成代码、审查缺陷、编写文档。但自动化也带来新的挑战：代码质量参差不齐，安全漏洞更难发现。团队需要建立审查机制，确保生成代码符合规范。未来，人机协作将成为主流模式。'}},
+            {label:'新闻段落',labelEn:'News paragraph',values:{input:'昨天，市政府公布了新的交通规划。规划包括修建三条地铁线路和十个公交枢纽。预计总投资超过三百亿元，工期为五年。官员表示，该规划将缓解市中心拥堵，缩短通勤时间。'}},
+            {label:'产品描述',labelEn:'Product description',values:{input:'这款耳机采用主动降噪技术，能有效隔绝环境噪音。续航时间长达三十小时，支持快速充电。人体工学设计佩戴舒适，适合长时间使用。音质经过专业调校，低音浑厚，高音清亮。'}}
+        ],function(){ summarize(); });
+    }catch(e){}
+}
+
+
+function __tzExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#tzTable','text-summarizer.csv');}catch(e){} }
+function __tzExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var text=__tzT('input').trim();
+        var rt=__tzR('result');
+        var m=/压缩比：\s*([\d.]+)%/.exec(rt);
+        var rows=__tzL(
+            [['original sentences',__tzSent(text)],['original length',text.length],['compression ratio',m?m[1]+'%':'—'],['summary length',rt.length],['summary sentences',__tzSent(rt)]],
+            [['原文句数',__tzSent(text)],['原文长度',text.length],['压缩比',m?m[1]+'%':'—'],['摘要长度',rt.length],['摘要句数',__tzSent(rt)]]);
+        TBKit.matrix.table('#tzTable',{head:__tzL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({text:text.slice(0,300),ratio:m?parseFloat(m[1]):0});
+        TBKit.util.diffBox('#tzDiff',['ratio']);
+        TBKit.history.mount('#tzHist',function(v){ if(v.ratio!=null){document.getElementById('input').value=v.text||''; summarize(); } });
+    }catch(e){}
+}
+
+var __tb_tz0 = summarize;
+summarize = function(){
+  var __p = null;
+  try { __p = __tb_tz0.apply(this, arguments); } catch(e) {}
+  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __tzExtras(); }catch(e){} }, 80); }); }
+  else { try{ __tzExtras(); }catch(e){} }
+  return __p;
+};
+function __tzBoot(){ try{ __tzPresets(); }catch(e){} try{ __tzExtras(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __tzBoot);
+else __tzBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
