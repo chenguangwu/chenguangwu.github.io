@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>智能体数</label><input type="number" id="agents" value="5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>通信轮次</label><input type="number" id="rounds" value="10" step="any" oninput="calc()"></div>
     <div class="input-row"><label>单消息 KB</label><input type="number" id="size" value="2" step="any" oninput="calc()"></div>
+    <div id="moPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__moExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="moChart" role="img" aria-label="结果可视化"></div>
+    <div id="moTable"></div>
+    <div id="moDiff"></div>
+    <div id="moHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -218,6 +225,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __moN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __moList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __moL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __moExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#moTable','multi-agent-overhead.csv');}catch(e){} }
+function __moExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var agents=__moN('agents'), rounds=__moN('rounds'), size=__moN('size');
+        if(!(agents>1&&rounds>0&&size>0))return;
+        var msgs=agents*(agents-1)*rounds, traffic=msgs*size;
+        var as=[2,3,4,5,6,7,8,9,10];
+        TBKit.chart.scatter('#moChart',{points:as.map(function(a){return [a,a*(a-1)*rounds];}),height:230,xLabel:__moL('agents','智能体数'),title:__moL('Messages vs agent count (∝ n²)','消息数随智能体数平方增长')});
+        var rows=__moL(
+            [['agents',agents.toFixed(0)],['rounds',rounds.toFixed(0)],['message size (KB)',size.toFixed(1)],['pairwise channels',(agents*(agents-1)).toFixed(0)],['total messages',msgs.toFixed(0)],['total traffic (KB)',traffic.toFixed(0)],['messages per agent',(agents*(agents-1)*rounds/agents).toFixed(0)],['growth if +1 agent',(((agents+1)*agents*rounds)/msgs).toFixed(2)+'×']],
+            [['智能体数',agents.toFixed(0)],['对话轮数',rounds.toFixed(0)],['消息大小 (KB)',size.toFixed(1)],['两两通道数',(agents*(agents-1)).toFixed(0)],['消息总数',msgs.toFixed(0)],['总流量 (KB)',traffic.toFixed(0)],['每智能体消息',(agents*(agents-1)*rounds/agents).toFixed(0)],['增加 1 个智能体后',(((agents+1)*agents*rounds)/msgs).toFixed(2)+'×']]);
+        TBKit.matrix.table('#moTable',{head:__moL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({msgs:Number(msgs.toFixed(0))});
+        TBKit.util.diffBox('#moDiff',['msgs']);
+        TBKit.history.mount('#moHist',function(v){ if(v.msgs!=null){document.getElementById('agents').value=v.agents;document.getElementById('rounds').value=v.rounds;document.getElementById('size').value=v.size;} calc(); });
+    }catch(e){}
+}
+function __moPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#moPresets',[
+            {label:'小组 3 智能体 5 轮',labelEn:'Small 3 agents 5 rounds',values:{agents:3,rounds:5,size:2}},
+            {label:'标准 5 智能体 10 轮',labelEn:'Standard 5 agents 10 rounds',values:{agents:5,rounds:10,size:2}},
+            {label:'大群 10 智能体 20 轮',labelEn:'Large 10 agents 20 rounds',values:{agents:10,rounds:20,size:4}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_mo0 = calc;
+calc = function(){ __tb_mo0(); try{ __moExtras(); }catch(e){} };
+function __moBoot(){ try{ __moPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __moBoot);
+else __moBoot();
 </script>
 
 <script type="application/ld+json">

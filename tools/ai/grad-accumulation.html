@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>目标批次</label><input type="number" id="target" value="256" step="any" oninput="calc()"></div>
     <div class="input-row"><label>单卡批次</label><input type="number" id="perGpu" value="8" step="any" oninput="calc()"></div>
     <div class="input-row"><label>GPU 数</label><input type="number" id="gpus" value="4" step="any" oninput="calc()"></div>
+    <div id="gaPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__gaExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="gaChart" role="img" aria-label="结果可视化"></div>
+    <div id="gaTable"></div>
+    <div id="gaDiff"></div>
+    <div id="gaHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -219,6 +226,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __gaN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gaList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __gaL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __gaExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#gaTable','grad-accumulation.csv');}catch(e){} }
+function __gaExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var target=__gaN('target'), perGpu=__gaN('perGpu'), gpus=__gaN('gpus');
+        if(!(target>0&&perGpu>0&&gpus>0))return;
+        var perStep=perGpu*gpus, accum=Math.ceil(target/perStep);
+        var gs=[1,2,4,8,16];
+        TBKit.chart.bar('#gaChart',{labels:gs.map(function(g){return g+'×';}),series:[{name:__gaL('accum steps','累积步数'),data:gs.map(function(g){return Math.ceil(target/(perGpu*g));})}],height:220,title:__gaL('Accumulation steps vs GPU count','累积步数随 GPU 数下降')});
+        var rows=__gaL(
+            [['target effective batch',target.toFixed(0)],['per-GPU batch',perGpu.toFixed(0)],['GPUs',gpus.toFixed(0)],['samples per step',perStep.toFixed(0)],['accumulation steps',accum.toFixed(0)],['actual effective batch',(perStep*accum).toFixed(0)],['steps saved vs 1 GPU',(Math.ceil(target/perGpu)-accum).toFixed(0)]],
+            [['目标等效 batch',target.toFixed(0)],['单卡 batch',perGpu.toFixed(0)],['GPU 数',gpus.toFixed(0)],['每步样本数',perStep.toFixed(0)],['累积步数',accum.toFixed(0)],['实际等效 batch',(perStep*accum).toFixed(0)],['相比单卡省步数',(Math.ceil(target/perGpu)-accum).toFixed(0)]]);
+        TBKit.matrix.table('#gaTable',{head:__gaL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({accum:Number(accum.toFixed(0))});
+        TBKit.util.diffBox('#gaDiff',['accum']);
+        TBKit.history.mount('#gaHist',function(v){ if(v.accum!=null){document.getElementById('target').value=v.target;document.getElementById('perGpu').value=v.perGpu;document.getElementById('gpus').value=v.gpus;} calc(); });
+    }catch(e){}
+}
+function __gaPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#gaPresets',[
+            {label:'大模型 512/4/8 卡',labelEn:'Large model 512/4/8 GPUs',values:{target:512,perGpu:4,gpus:8}},
+            {label:'标准 256/8/4 卡',labelEn:'Standard 256/8/4 GPUs',values:{target:256,perGpu:8,gpus:4}},
+            {label:'轻量 64/16/2 卡',labelEn:'Light 64/16/2 GPUs',values:{target:64,perGpu:16,gpus:2}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ga0 = calc;
+calc = function(){ __tb_ga0(); try{ __gaExtras(); }catch(e){} };
+function __gaBoot(){ try{ __gaPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __gaBoot);
+else __gaBoot();
 </script>
 
 <script type="application/ld+json">

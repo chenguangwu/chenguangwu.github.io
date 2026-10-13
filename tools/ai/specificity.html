@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>TN</label><input type="number" id="tn" value="60" step="any" oninput="calc()"></div>
     <div class="input-row"><label>FP</label><input type="number" id="fp" value="15" step="any" oninput="calc()"></div>
     <div class="input-row"><label>样本总数</label><input type="number" id="total" value="200" step="any" oninput="calc()"></div>
+    <div id="spPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__spExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="spChart" role="img" aria-label="结果可视化"></div>
+    <div id="spTable"></div>
+    <div id="spDiff"></div>
+    <div id="spHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -223,6 +230,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __spN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __spL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __spExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#spTable','specificity.csv');}catch(e){} }
+function __spExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var tn=__spN('tn'), fp=__spN('fp'), total=__spN('total');
+        if(!(tn+fp>0))return;
+        var spec=tn/(tn+fp)*100, fpr=fp/(tn+fp)*100, negShare=(tn+fp)/total*100;
+        TBKit.chart.gauge('#spChart',{value:spec,max:100,text:spec.toFixed(2)+'%',label:__spL('specificity (TNR)','特异度（真负率）'),height:170,title:__spL('Specificity','特异度')});
+        var rows=__spL(
+            [['true negatives TN',tn.toFixed(0)],['false positives FP',fp.toFixed(0)],['actual negatives',(tn+fp).toFixed(0)],['total samples',total.toFixed(0)],['specificity (TNR)',spec.toFixed(2)+'%'],['false positive rate',fpr.toFixed(2)+'%'],['negative share',negShare.toFixed(1)+'%']],
+            [['真负例 TN',tn.toFixed(0)],['假正例 FP',fp.toFixed(0)],['实际负例数',(tn+fp).toFixed(0)],['总样本数',total.toFixed(0)],['特异度（真负率）',spec.toFixed(2)+'%'],['假阳性率',fpr.toFixed(2)+'%'],['负类占比',negShare.toFixed(1)+'%']]);
+        TBKit.matrix.table('#spTable',{head:__spL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({spec:Number(spec.toFixed(2))});
+        TBKit.util.diffBox('#spDiff',['spec']);
+        TBKit.history.mount('#spHist',function(v){ if(v.spec!=null){document.getElementById('tn').value=v.tn;document.getElementById('fp').value=v.fp;document.getElementById('total').value=v.total;} calc(); });
+    }catch(e){}
+}
+function __spPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#spPresets',[
+            {label:'高特异 95/5/200',labelEn:'High spec 95/5/200',values:{tn:95,fp:5,total:200}},
+            {label:'平衡 60/15/200',labelEn:'Balanced 60/15/200',values:{tn:60,fp:15,total:200}},
+            {label:'低特异 30/45/200',labelEn:'Low spec 30/45/200',values:{tn:30,fp:45,total:200}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_sp0 = calc;
+calc = function(){ __tb_sp0(); try{ __spExtras(); }catch(e){} };
+function __spBoot(){ try{ __spPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __spBoot);
+else __spBoot();
 </script>
 
 <script type="application/ld+json">

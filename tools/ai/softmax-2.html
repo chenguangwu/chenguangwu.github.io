@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>Logit 2</label><input type="number" id="z2" value="1" step="any" oninput="calc()"></div>
     <div class="input-row"><label>Logit 3</label><input type="number" id="z3" value="0.5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>温度 T</label><input type="number" id="t" value="1" step="any" oninput="calc()"></div>
+    <div id="s2Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__s2Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="s2Chart" role="img" aria-label="结果可视化"></div>
+    <div id="s2Table"></div>
+    <div id="s2Diff"></div>
+    <div id="s2Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -230,6 +237,50 @@ function copyResult() {
   });
 }
 calc();
+
+function __s2N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __s2List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __s2L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __s2Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#s2Table','softmax-2.csv');}catch(e){} }
+function __s2Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var z1=__s2N('z1'), z2=__s2N('z2'), z3=__s2N('z3'), t=__s2N('t');
+        if(!(t>0))return;
+        function sm(tt){ var e=[Math.exp(z1/tt),Math.exp(z2/tt),Math.exp(z3/tt)]; var s=e[0]+e[1]+e[2]; return e.map(function(v){return v/s;}); }
+        var p=sm(t), ent=-p[0]*Math.log(p[0])-p[1]*Math.log(p[1])-p[2]*Math.log(p[2]);
+        TBKit.chart.pie('#s2Chart',{items:[
+            {label:__s2L('class 1','类别 1'),value:p[0]*100},
+            {label:__s2L('class 2','类别 2'),value:p[1]*100},
+            {label:__s2L('class 3','类别 3'),value:p[2]*100}
+        ],height:230,title:__s2L('Softmax distribution at T','当前温度 T 下的概率分布')});
+        var rows=__s2L(
+            [['z1',z1.toFixed(3)],['z2',z2.toFixed(3)],['z3',z3.toFixed(3)],['temperature T',t.toFixed(2)],['P1 at T/2',(sm(t/2)[0]*100).toFixed(2)+'%'],['P1 at T',(p[0]*100).toFixed(2)+'%'],['P1 at 2T',(sm(t*2)[0]*100).toFixed(2)+'%'],['entropy (max 1.099)',ent.toFixed(4)],['argmax','class '+(p.indexOf(Math.max.apply(null,p))+1)]],
+            [['z1',z1.toFixed(3)],['z2',z2.toFixed(3)],['z3',z3.toFixed(3)],['温度 T',t.toFixed(2)],['T/2 时 P1',(sm(t/2)[0]*100).toFixed(2)+'%'],['T 时 P1',(p[0]*100).toFixed(2)+'%'],['2T 时 P1',(sm(t*2)[0]*100).toFixed(2)+'%'],['分布熵 (上限 1.099)',ent.toFixed(4)],['预测类别','类别 '+(p.indexOf(Math.max.apply(null,p))+1)]]);
+        TBKit.matrix.table('#s2Table',{head:__s2L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({ent:Number(ent.toFixed(4))});
+        TBKit.util.diffBox('#s2Diff',['ent']);
+        TBKit.history.mount('#s2Hist',function(v){ if(v.ent!=null){document.getElementById('z1').value=v.z1;document.getElementById('z2').value=v.z2;document.getElementById('z3').value=v.z3;document.getElementById('t').value=v.t;} calc(); });
+    }catch(e){}
+}
+function __s2Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#s2Presets',[
+            {label:'尖锐 T=0.5 z=4/1/0',labelEn:'Sharp T=0.5 z=4/1/0',values:{z1:4,z2:1,z3:0,t:0.5}},
+            {label:'标准 T=1 z=2/1/0.5',labelEn:'Standard T=1 z=2/1/0.5',values:{z1:2,z2:1,z3:0.5,t:1}},
+            {label:'平滑 T=3 z=2/1/0.5',labelEn:'Smooth T=3 z=2/1/0.5',values:{z1:2,z2:1,z3:0.5,t:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_s20 = calc;
+calc = function(){ __tb_s20(); try{ __s2Extras(); }catch(e){} };
+function __s2Boot(){ try{ __s2Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __s2Boot);
+else __s2Boot();
 </script>
 
 <script type="application/ld+json">

@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>生成 tokens</label><input type="number" id="tokens" value="200" step="any" oninput="calc()"></div>
     <div class="input-row"><label>耗时 秒</label><input type="number" id="sec" value="4" step="any" oninput="calc()"></div>
     <div class="input-row"><label>并发数</label><input type="number" id="batch" value="1" step="any" oninput="calc()"></div>
+    <div id="itPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__itExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="itChart" role="img" aria-label="结果可视化"></div>
+    <div id="itTable"></div>
+    <div id="itDiff"></div>
+    <div id="itHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -221,6 +228,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __itN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __itList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __itL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __itExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#itTable','inference-throughput.csv');}catch(e){} }
+function __itExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var tokens=__itN('tokens'), sec=__itN('sec'), batch=__itN('batch');
+        if(!(tokens>0&&sec>0&&batch>0))return;
+        var tp=tokens/sec, per=tokens/(sec*batch), lat=sec/batch;
+        var bs=[1,2,4,8,16];
+        TBKit.chart.bar('#itChart',{labels:bs.map(function(b){return 'b='+b;}),series:[{name:__itL('latency per request (s)','单请求时延 (s)'),data:bs.map(function(b){return sec/b;})}],height:220,title:__itL('Per-request latency vs batch','单请求时延随 batch 下降')});
+        var rows=__itL(
+            [['tokens generated',tokens.toFixed(0)],['elapsed (s)',sec.toFixed(2)],['batch size',batch.toFixed(0)],['throughput (tok/s)',tp.toFixed(1)],['per-request (tok/s)',per.toFixed(1)],['latency per request (s)',lat.toFixed(2)],['ms per token',(sec/tokens*1000).toFixed(1)]],
+            [['生成 token 数',tokens.toFixed(0)],['耗时 (s)',sec.toFixed(2)],['批大小',batch.toFixed(0)],['总吞吐 (tok/s)',tp.toFixed(1)],['单请求吞吐 (tok/s)',per.toFixed(1)],['单请求时延 (s)',lat.toFixed(2)],['每 token 毫秒',(sec/tokens*1000).toFixed(1)]]);
+        TBKit.matrix.table('#itTable',{head:__itL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({tp:Number(tp.toFixed(1))});
+        TBKit.util.diffBox('#itDiff',['tp']);
+        TBKit.history.mount('#itHist',function(v){ if(v.tp!=null){document.getElementById('tokens').value=v.tokens;document.getElementById('sec').value=v.sec;document.getElementById('batch').value=v.batch;} calc(); });
+    }catch(e){}
+}
+function __itPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#itPresets',[
+            {label:'慢速 200tok/4s/b1',labelEn:'Slow 200tok/4s/b1',values:{tokens:200,sec:4,batch:1}},
+            {label:'标准 2000tok/2s/b4',labelEn:'Standard 2000tok/2s/b4',values:{tokens:2000,sec:2,batch:4}},
+            {label:'快速 8000tok/1s/b8',labelEn:'Fast 8000tok/1s/b8',values:{tokens:8000,sec:1,batch:8}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_it0 = calc;
+calc = function(){ __tb_it0(); try{ __itExtras(); }catch(e){} };
+function __itBoot(){ try{ __itPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __itBoot);
+else __itBoot();
 </script>
 
 <script type="application/ld+json">

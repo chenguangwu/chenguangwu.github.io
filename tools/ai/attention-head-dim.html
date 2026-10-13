@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>模型维度</label><input type="number" id="d" value="768" step="any" oninput="calc()"></div>
     <div class="input-row"><label>头数</label><input type="number" id="heads" value="12" step="any" oninput="calc()"></div>
     <div class="input-row"><label>FFN 维度</label><input type="number" id="ffn" value="3072" step="any" oninput="calc()"></div>
+    <div id="ahPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__ahExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="ahChart" role="img" aria-label="结果可视化"></div>
+    <div id="ahTable"></div>
+    <div id="ahDiff"></div>
+    <div id="ahHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -222,6 +229,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __ahN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ahList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __ahL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __ahExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ahTable','attention-head-dim.csv');}catch(e){} }
+function __ahExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var d=__ahN('d'), heads=__ahN('heads'), ffn=__ahN('ffn');
+        if(!(d>0&&heads>0&&ffn>0))return;
+        var perHead=d/heads, qkvo=4*d*d, ffnP=2*d*ffn, total=qkvo+ffnP;
+        TBKit.chart.pie('#ahChart',{items:[
+            {label:__ahL('QKVO projections','QKVO 投影'),value:qkvo},
+            {label:__ahL('FFN','FFN 前馈'),value:ffnP}
+        ],height:230,title:__ahL('Per-layer parameter share','单层参数占比')});
+        var rows=__ahL(
+            [['model dim d',d.toFixed(0)],['heads',heads.toFixed(0)],['per-head dim',perHead.toFixed(1)],['divisible?',d%heads===0?'yes':'NO'],['QKVO params',qkvo.toFixed(0)],['FFN params',ffnP.toFixed(0)],['per-layer total',total.toFixed(0)],['FFN share',(ffnP/total*100).toFixed(1)+'%']],
+            [['模型维度 d',d.toFixed(0)],['注意力头数',heads.toFixed(0)],['每头维度',perHead.toFixed(1)],['能否整除',d%heads===0?'可以':'不能'],['QKVO 参数',qkvo.toFixed(0)],['FFN 参数',ffnP.toFixed(0)],['单层总参数',total.toFixed(0)],['FFN 占比',(ffnP/total*100).toFixed(1)+'%']]);
+        TBKit.matrix.table('#ahTable',{head:__ahL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({total:Number(total.toFixed(0))});
+        TBKit.util.diffBox('#ahDiff',['total']);
+        TBKit.history.mount('#ahHist',function(v){ if(v.total!=null){document.getElementById('d').value=v.d;document.getElementById('heads').value=v.heads;document.getElementById('ffn').value=v.ffn;} calc(); });
+    }catch(e){}
+}
+function __ahPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#ahPresets',[
+            {label:'BERT 级 d768 h12 ffn3072',labelEn:'BERT-scale d768 h12 ffn3072',values:{d:768,heads:12,ffn:3072}},
+            {label:'GPT-2 级 d768 h12 ffn3072',labelEn:'GPT-2-scale d768 h12 ffn3072',values:{d:768,heads:12,ffn:3072}},
+            {label:'LLaMA-7B d4096 h32 ffn11008',labelEn:'LLaMA-7B d4096 h32 ffn11008',values:{d:4096,heads:32,ffn:11008}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ah0 = calc;
+calc = function(){ __tb_ah0(); try{ __ahExtras(); }catch(e){} };
+function __ahBoot(){ try{ __ahPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ahBoot);
+else __ahBoot();
 </script>
 <section class="opt-guide"><h2>如何使用注意力头维度</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>模型维度</li><li>头数</li><li>FFN 维度</li></ul><h2>适用场景</h2><p>每头维度 d_head=d_model/h，需整除；常见 d_model=512,h=8→d_head=64。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>头数越多越好吗？</dt><dd>不一定。头数增加提升并行关注不同子空间的能力，但 d_head 随之变小、每头容量受限；过大头数收益递减且增算力。</dd><dt>d_head 不整除怎么办？</dt><dd>需调整 d_model 或头数使其整除，否则框架会报错或 padding 引入冗余；常见组合保证 d_model%h==0。</dd></dl></section>
 

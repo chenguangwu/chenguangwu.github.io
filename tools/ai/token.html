@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>字符数</label><input type="number" id="chars" value="500" step="1" oninput="calc()"></div>
     <div class="input-row"><label>语言系数 1=中文 0.3=英文</label><input type="number" id="lang" value="1" step="any" oninput="calc()"></div>
     <div class="input-row"><label>平均词长</label><input type="number" id="overlap" value="1.5" step="any" oninput="calc()"></div>
+    <div id="tkPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__tkExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="1000" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="1000" data-viz-min="0">
+    <div id="tkChart" role="img" aria-label="结果可视化"></div>
+    <div id="tkTable"></div>
+    <div id="tkDiff"></div>
+    <div id="tkHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -223,6 +230,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __tkN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tkList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __tkL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __tkExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#tkTable','token.csv');}catch(e){} }
+function __tkExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var chars=__tkN('chars'), lang=__tkN('lang'), overlap=__tkN('overlap');
+        if(!(chars>0&&overlap>0))return;
+        var tok=Math.ceil(chars*lang/overlap);
+        var cs=[500,1000,2000,5000,10000];
+        TBKit.chart.bar('#tkChart',{labels:cs.map(function(c){return c>=1000?(c/1000)+'k':String(c);}),series:[{name:__tkL('tokens','Token 数'),data:cs.map(function(c){return Math.ceil(c*lang/overlap);})}],height:220,title:__tkL('Token estimate vs text length','Token 估算随文本长度线性增长')});
+        var rows=__tkL(
+            [['characters',chars.toFixed(0)],['lang factor',lang.toFixed(2)],['chars per token',overlap.toFixed(2)],['estimated tokens',tok.toFixed(0)],['English reference (×0.3)',Math.ceil(chars*0.3/overlap).toFixed(0)],['tokens per 1M chars',(1e6*lang/overlap).toExponential(2)]],
+            [['字符数',chars.toFixed(0)],['语言系数',lang.toFixed(2)],['每 token 字符',overlap.toFixed(2)],['估算 token 数',tok.toFixed(0)],['英文参考 (×0.3)',Math.ceil(chars*0.3/overlap).toFixed(0)],['百万字符 token 数',(1e6*lang/overlap).toExponential(2)]]);
+        TBKit.matrix.table('#tkTable',{head:__tkL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({tokens:Number(tok.toFixed(0))});
+        TBKit.util.diffBox('#tkDiff',['tokens']);
+        TBKit.history.mount('#tkHist',function(v){ if(v.tokens!=null){document.getElementById('chars').value=v.chars;document.getElementById('lang').value=v.lang;document.getElementById('overlap').value=v.overlap;} calc(); });
+    }catch(e){}
+}
+function __tkPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#tkPresets',[
+            {label:'中文短文 500 字',labelEn:'Chinese short 500 chars',values:{chars:500,lang:1,overlap:1.5}},
+            {label:'中文长文 5000 字',labelEn:'Chinese long 5000 chars',values:{chars:5000,lang:1,overlap:1.5}},
+            {label:'英文 500 字符',labelEn:'English 500 chars',values:{chars:500,lang:0.3,overlap:1.5}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_tk0 = calc;
+calc = function(){ __tb_tk0(); try{ __tkExtras(); }catch(e){} };
+function __tkBoot(){ try{ __tkPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __tkBoot);
+else __tkBoot();
 </script>
 
 <script type="application/ld+json">

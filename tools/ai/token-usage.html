@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>中文字数</label><input type="number" id="cn" value="500" step="any" oninput="calc()"></div>
     <div class="input-row"><label>英文词数</label><input type="number" id="enWords" value="300" step="any" oninput="calc()"></div>
     <div class="input-row"><label>代码片段 tokens</label><input type="number" id="code" value="50" step="any" oninput="calc()"></div>
+    <div id="tuPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__tuExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="tuChart" role="img" aria-label="结果可视化"></div>
+    <div id="tuTable"></div>
+    <div id="tuDiff"></div>
+    <div id="tuHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -216,6 +223,50 @@ function copyResult() {
   });
 }
 calc();
+
+function __tuN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tuList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __tuL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __tuExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#tuTable','token-usage.csv');}catch(e){} }
+function __tuExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var cn=__tuN('cn'), enWords=__tuN('enWords'), code=__tuN('code');
+        if(!(cn>=0&&enWords>=0&&code>=0))return;
+        if(cn+enWords+code<=0)return;
+        var tCn=cn/1.5, tEn=enWords/0.75, total=tCn+tEn+code;
+        TBKit.chart.pie('#tuChart',{items:[
+            {label:__tuL('Chinese','中文'),value:tCn},
+            {label:__tuL('English','英文'),value:tEn},
+            {label:__tuL('Code','代码'),value:code}
+        ],height:230,title:__tuL('Token composition','Token 构成')});
+        var rows=__tuL(
+            [['Chinese chars',cn.toFixed(0)],['English words',enWords.toFixed(0)],['code lines',code.toFixed(0)],['Chinese tokens',tCn.toFixed(0)],['English tokens',tEn.toFixed(0)],['code tokens',code.toFixed(0)],['total tokens',total.toFixed(0)],['Chinese share',(tCn/total*100).toFixed(1)+'%']],
+            [['中文字符',cn.toFixed(0)],['英文单词',enWords.toFixed(0)],['代码行数',code.toFixed(0)],['中文 tokens',tCn.toFixed(0)],['英文 tokens',tEn.toFixed(0)],['代码 tokens',code.toFixed(0)],['合计 tokens',total.toFixed(0)],['中文占比',(tCn/total*100).toFixed(1)+'%']]);
+        TBKit.matrix.table('#tuTable',{head:__tuL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({total:Number(total.toFixed(0))});
+        TBKit.util.diffBox('#tuDiff',['total']);
+        TBKit.history.mount('#tuHist',function(v){ if(v.total!=null){document.getElementById('cn').value=v.cn;document.getElementById('enWords').value=v.enWords;document.getElementById('code').value=v.code;} calc(); });
+    }catch(e){}
+}
+function __tuPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#tuPresets',[
+            {label:'技术文档 500/300/50',labelEn:'Tech doc 500/300/50',values:{cn:500,enWords:300,code:50}},
+            {label:'纯中文 1000/0/0',labelEn:'Pure Chinese 1000/0/0',values:{cn:1000,enWords:0,code:0}},
+            {label:'代码为主 100/50/500',labelEn:'Code-heavy 100/50/500',values:{cn:100,enWords:50,code:500}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_tu0 = calc;
+calc = function(){ __tb_tu0(); try{ __tuExtras(); }catch(e){} };
+function __tuBoot(){ try{ __tuPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __tuBoot);
+else __tuBoot();
 </script>
 
 <script type="application/ld+json">

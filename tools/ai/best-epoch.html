@@ -122,11 +122,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>loss 轮3</label><input type="number" id="l3" value="0.45" step="any" oninput="calc()"></div>
     <div class="input-row"><label>loss 轮4</label><input type="number" id="l4" value="0.38" step="any" oninput="calc()"></div>
     <div class="input-row"><label>loss 轮5</label><input type="number" id="l5" value="0.39" step="any" oninput="calc()"></div>
+    <div id="bePresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__beExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="beChart" role="img" aria-label="结果可视化"></div>
+    <div id="beTable"></div>
+    <div id="beDiff"></div>
+    <div id="beHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -222,6 +229,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __beN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __beList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __beL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __beExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#beTable','best-epoch.csv');}catch(e){} }
+function __beExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var ls=[__beN('l1'),__beN('l2'),__beN('l3'),__beN('l4'),__beN('l5')];
+        if(ls.some(function(x){return !isFinite(x);}))return;
+        var mn=Math.min.apply(null,ls), mi=ls.indexOf(mn);
+        var over = ls[ls.length-1]>mn*1.05;
+        TBKit.chart.bar('#beChart',{labels:['E1','E2','E3','E4','E5'],series:[{name:__beL('loss','损失'),data:ls}],height:220,title:__beL('Validation loss per epoch','各轮验证损失')});
+        var rows=__beL(
+            [['E1 loss',ls[0].toFixed(4)],['E2 loss',ls[1].toFixed(4)],['E3 loss',ls[2].toFixed(4)],['E4 loss',ls[3].toFixed(4)],['E5 loss',ls[4].toFixed(4)],['min loss',mn.toFixed(4)],['best epoch',(mi+1).toFixed(0)],['overfitting?',over?'likely (loss rising)':'no']],
+            [['第 1 轮 loss',ls[0].toFixed(4)],['第 2 轮 loss',ls[1].toFixed(4)],['第 3 轮 loss',ls[2].toFixed(4)],['第 4 轮 loss',ls[3].toFixed(4)],['第 5 轮 loss',ls[4].toFixed(4)],['最小 loss',mn.toFixed(4)],['最佳轮次',(mi+1).toFixed(0)],['过拟合迹象',over?'疑似（loss 回升）':'无']]);
+        TBKit.matrix.table('#beTable',{head:__beL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({best:Number(mn.toFixed(4))});
+        TBKit.util.diffBox('#beDiff',['best']);
+        TBKit.history.mount('#beHist',function(v){ if(v.best!=null){[1,2,3,4,5].forEach(function(i){document.getElementById('l'+i).value=v['l'+i];});} calc(); });
+    }catch(e){}
+}
+function __bePresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#bePresets',[
+            {label:'正常收敛 0.5→0.30',labelEn:'Converging 0.5→0.30',values:{l1:0.5,l2:0.4,l3:0.35,l4:0.32,l5:0.30}},
+            {label:'过拟合 0.38 后回升',labelEn:'Overfitting after 0.38',values:{l1:0.5,l2:0.35,l3:0.30,l4:0.33,l5:0.38}},
+            {label:'震荡 0.45→0.41',labelEn:'Oscillating 0.45→0.41',values:{l1:0.5,l2:0.45,l3:0.42,l4:0.43,l5:0.41}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_be0 = calc;
+calc = function(){ __tb_be0(); try{ __beExtras(); }catch(e){} };
+function __beBoot(){ try{ __bePresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __beBoot);
+else __beBoot();
 </script>
 
 <script type="application/ld+json">

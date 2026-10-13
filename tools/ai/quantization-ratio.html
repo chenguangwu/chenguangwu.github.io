@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>参数量(百万)</label><input type="number" id="params" value="7000" step="any" oninput="calc()"></div>
     <div class="input-row"><label>原字节/参</label><input type="number" id="fromB" value="4" step="any" oninput="calc()"></div>
     <div class="input-row"><label>量化字节/参</label><input type="number" id="toB" value="1" step="any" oninput="calc()"></div>
+    <div id="qrPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__qrExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="qrChart" role="img" aria-label="结果可视化"></div>
+    <div id="qrTable"></div>
+    <div id="qrDiff"></div>
+    <div id="qrHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -223,6 +230,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __qrN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __qrList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __qrL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __qrExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#qrTable','quantization-ratio.csv');}catch(e){} }
+function __qrExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var params=__qrN('params'), fromB=__qrN('fromB'), toB=__qrN('toB');
+        if(!(params>0&&fromB>0&&toB>0))return;
+        var before=params*fromB, after=params*toB, saved=before-after, ratio=fromB/toB;
+        TBKit.chart.pie('#qrChart',{items:[
+            {label:__qrL('after quant','量化后'),value:after},
+            {label:__qrL('saved','节省'),value:saved}
+        ],height:230,title:__qrL('Size: kept vs saved','体积：保留 vs 节省')});
+        var rows=__qrL(
+            [['params (M)',params.toFixed(0)],['from bytes/param',fromB.toFixed(1)],['to bytes/param',toB.toFixed(1)],['before (MB)',before.toFixed(0)],['after (MB)',after.toFixed(0)],['saved (MB)',saved.toFixed(0)],['compression ratio',ratio.toFixed(2)+'×'],['space saved',(saved/before*100).toFixed(1)+'%']],
+            [['参数量 (M)',params.toFixed(0)],['量化前字节/参数',fromB.toFixed(1)],['量化后字节/参数',toB.toFixed(1)],['原体积 (MB)',before.toFixed(0)],['新体积 (MB)',after.toFixed(0)],['节省 (MB)',saved.toFixed(0)],['压缩比',ratio.toFixed(2)+'×'],['空间节省率',(saved/before*100).toFixed(1)+'%']]);
+        TBKit.matrix.table('#qrTable',{head:__qrL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({ratio:Number(ratio.toFixed(2))});
+        TBKit.util.diffBox('#qrDiff',['ratio']);
+        TBKit.history.mount('#qrHist',function(v){ if(v.ratio!=null){document.getElementById('params').value=v.params;document.getElementById('fromB').value=v.fromB;document.getElementById('toB').value=v.toB;} calc(); });
+    }catch(e){}
+}
+function __qrPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#qrPresets',[
+            {label:'FP16→INT8 7B',labelEn:'FP16→INT8 7B',values:{params:7000,fromB:2,toB:1}},
+            {label:'FP16→INT4 7B',labelEn:'FP16→INT4 7B',values:{params:7000,fromB:2,toB:0.5}},
+            {label:'FP32→INT8 7B',labelEn:'FP32→INT8 7B',values:{params:7000,fromB:4,toB:1}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_qr0 = calc;
+calc = function(){ __tb_qr0(); try{ __qrExtras(); }catch(e){} };
+function __qrBoot(){ try{ __qrPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __qrBoot);
+else __qrBoot();
 </script>
 
 <script type="application/ld+json">

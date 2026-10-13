@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>正样本数</label><input type="number" id="nPos" value="20" step="any" oninput="calc()"></div>
     <div class="input-row"><label>负样本数</label><input type="number" id="nNeg" value="20" step="any" oninput="calc()"></div>
     <div class="input-row"><label>正样本秩和</label><input type="number" id="sumRank" value="500" step="any" oninput="calc()"></div>
+    <div id="arPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__arExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="arChart" role="img" aria-label="结果可视化"></div>
+    <div id="arTable"></div>
+    <div id="arDiff"></div>
+    <div id="arHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -221,6 +228,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __arN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __arList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __arL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __arExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#arTable','auc-rank.csv');}catch(e){} }
+function __arExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var nPos=__arN('nPos'), nNeg=__arN('nNeg'), sumRank=__arN('sumRank');
+        if(!(nPos>0&&nNeg>0))return;
+        var U=sumRank-nPos*(nPos+1)/2, auc=U/(nPos*nNeg);
+        var lvl = auc>=0.9?__arL('excellent','优秀'):auc>=0.8?__arL('good','良好'):auc>=0.7?__arL('fair','一般'):auc>=0.6?__arL('poor','较差'):__arL('fail','不合格');
+        TBKit.chart.gauge('#arChart',{value:auc,max:1,text:auc.toFixed(4),label:__arL('AUC (Mann-Whitney U)','AUC（Mann-Whitney U）'),height:170,title:__arL('AUC from rank sum','由秩和计算的 AUC')});
+        var rows=__arL(
+            [['positives nPos',nPos.toFixed(0)],['negatives nNeg',nNeg.toFixed(0)],['rank sum of positives',sumRank.toFixed(0)],['min possible rank sum',(nPos*(nPos+1)/2).toFixed(0)],['U statistic',U.toFixed(0)],['max U (nPos×nNeg)',(nPos*nNeg).toFixed(0)],['AUC',auc.toFixed(4)],['level',lvl]],
+            [['正例数 nPos',nPos.toFixed(0)],['负例数 nNeg',nNeg.toFixed(0)],['正例秩和',sumRank.toFixed(0)],['最小可能秩和',(nPos*(nPos+1)/2).toFixed(0)],['U 统计量',U.toFixed(0)],['U 上限 (nPos×nNeg)',(nPos*nNeg).toFixed(0)],['AUC',auc.toFixed(4)],['评级',lvl]]);
+        TBKit.matrix.table('#arTable',{head:__arL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({auc:Number(auc.toFixed(4))});
+        TBKit.util.diffBox('#arDiff',['auc']);
+        TBKit.history.mount('#arHist',function(v){ if(v.auc!=null){document.getElementById('nPos').value=v.nPos;document.getElementById('nNeg').value=v.nNeg;document.getElementById('sumRank').value=v.sumRank;} calc(); });
+    }catch(e){}
+}
+function __arPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#arPresets',[
+            {label:'完美排序 AUC=1 (20/20/610)',labelEn:'Perfect AUC=1 (20/20/610)',values:{nPos:20,nNeg:20,sumRank:610}},
+            {label:'随机水平 AUC=0.5 (20/20/410)',labelEn:'Chance AUC=0.5 (20/20/410)',values:{nPos:20,nNeg:20,sumRank:410}},
+            {label:'偏弱 AUC=0.375 (20/20/360)',labelEn:'Weak AUC=0.375 (20/20/360)',values:{nPos:20,nNeg:20,sumRank:360}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ar0 = calc;
+calc = function(){ __tb_ar0(); try{ __arExtras(); }catch(e){} };
+function __arBoot(){ try{ __arPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __arBoot);
+else __arBoot();
 </script>
 
 <script type="application/ld+json">
