@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bfPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bfExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="bfChart" role="img" aria-label="结果可视化"></div>
+    <div id="bfTable"></div>
+    <div id="bfDiff"></div>
+    <div id="bfHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,48 @@ function resetForm(){document.getElementById('dN').value = '100';
       document.getElementById('dE').value = '100';
       calcTool();}
 calcTool();
+
+function __bfN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bfList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __bfL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __bfExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#bfTable','bearing-from-coordinates.csv');}catch(e){} }
+function __bfExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var dN=__bfN('dN'), dE=__bfN('dE');
+        if(!(dN||dE))return;
+        var az=Math.atan2(dE,dN)*180/Math.PI; if(az<0)az+=360;
+        var d=Math.sqrt(dN*dN+dE*dE);
+        var q=(dN>0?(dE>0?'第一象限 NE':'第四象限 NW'):(dE>0?'第二象限 SE':'第三象限 SW'));
+        var rb=(dN>=0?(dE>=0?'N'+az.toFixed(2)+'°E':'N'+(360-az).toFixed(2)+'°W'):(dE>=0?'S'+(180-az).toFixed(2)+'°E':'S'+(az-180).toFixed(2)+'°W'));
+        TBKit.chart.gauge('#bfChart',{value:az,max:360,text:az.toFixed(2)+'°',label:__bfL('azimuth','方位角'),height:170,title:__bfL('Azimuth from coordinate increments','由坐标增量反算方位角')});
+        var rows=__bfL(
+            [['ΔN',dN.toFixed(3)],['ΔE',dE.toFixed(3)],['azimuth α (°)',az.toFixed(2)],['distance',d.toFixed(3)],['quadrant',q],['quadrantal bearing',rb],['bearing angle (°)',(az>180?az-180:(az>90?180-az:az)).toFixed(2)]],
+            [['北增量 ΔN',dN.toFixed(3)],['东增量 ΔE',dE.toFixed(3)],['方位角 α (°)',az.toFixed(2)],['两点距离',d.toFixed(3)],['所在象限',q],['象限角',rb],['象限角值 (°)',(az>180?az-180:(az>90?180-az:az)).toFixed(2)]]);
+        TBKit.matrix.table('#bfTable',{head:__bfL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({az:Number(az.toFixed(2))});
+        TBKit.util.diffBox('#bfDiff',['az']);
+        TBKit.history.mount('#bfHist',function(v){ if(v.az!=null){document.getElementById('dN').value=v.dN;document.getElementById('dE').value=v.dE;} calcTool(); });
+    }catch(e){}
+}
+function __bfPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#bfPresets',[
+            {label:'东北 45°',labelEn:'NE 45°',values:{dN:100,dE:100}},
+            {label:'正东 90°',labelEn:'Due east 90°',values:{dN:0,dE:100}},
+            {label:'东南 135°',labelEn:'SE 135°',values:{dN:-100,dE:100}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_bf0 = calcTool;
+calcTool = function(){ __tb_bf0(); try{ __bfExtras(); }catch(e){} };
+function __bfBoot(){ try{ __bfPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __bfBoot);
+else __bfBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

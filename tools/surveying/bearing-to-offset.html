@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="boPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__boExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="boChart" role="img" aria-label="结果可视化"></div>
+    <div id="boTable"></div>
+    <div id="boDiff"></div>
+    <div id="boHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,46 @@ function resetForm(){document.getElementById('D').value = '100';
       document.getElementById('a').value = '30';
       calcTool();}
 calcTool();
+
+function __boN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __boList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __boL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __boExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#boTable','bearing-to-offset.csv');}catch(e){} }
+function __boExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var D=__boN('D'), a=__boN('a');
+        if(!(D>0))return;
+        var rad=a*Math.PI/180, dN=D*Math.cos(rad), dE=D*Math.sin(rad);
+        var back=Math.atan2(dE,dN)*180/Math.PI; if(back<0)back+=360;
+        TBKit.chart.bar('#boChart',{labels:['ΔN 北向','ΔE 东向'],series:[{name:__boL('offset (m)','增量 (m)'),data:[dN,dE]}],height:220,title:__boL('Distance-azimuth to increments (D='+D+'m, α='+a+'°)','距离方位角反算增量（D='+D+'m，α='+a+'°）')});
+        var rows=__boL(
+            [['distance D (m)',D.toFixed(3)],['azimuth α (°)',a.toFixed(3)],['ΔN (m)',dN.toFixed(3)],['ΔE (m)',dE.toFixed(3)],['back-azimuth (°)',back.toFixed(3)],['ΔN/D',(dN/D).toFixed(4)],['ΔE/D',(dE/D).toFixed(4)]],
+            [['距离 D (m)',D.toFixed(3)],['方位角 α (°)',a.toFixed(3)],['北增量 ΔN (m)',dN.toFixed(3)],['东增量 ΔE (m)',dE.toFixed(3)],['反算方位角 (°)',back.toFixed(3)],['ΔN/D',(dN/D).toFixed(4)],['ΔE/D',(dE/D).toFixed(4)]]);
+        TBKit.matrix.table('#boTable',{head:__boL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({dN:Number(dN.toFixed(3))});
+        TBKit.util.diffBox('#boDiff',['dN','dE']);
+        TBKit.history.mount('#boHist',function(v){ if(v.dN!=null){document.getElementById('D').value=v.D;document.getElementById('a').value=v.a;} calcTool(); });
+    }catch(e){}
+}
+function __boPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#boPresets',[
+            {label:'北偏东 30°',labelEn:'NE 30°',values:{D:100,a:30}},
+            {label:'正东 90°',labelEn:'Due east',values:{D:100,a:90}},
+            {label:'南偏西 225°',labelEn:'SW 225°',values:{D:150,a:225}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_bo0 = calcTool;
+calcTool = function(){ __tb_bo0(); try{ __boExtras(); }catch(e){} };
+function __boBoot(){ try{ __boPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __boBoot);
+else __boBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

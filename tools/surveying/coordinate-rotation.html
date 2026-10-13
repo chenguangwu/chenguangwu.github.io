@@ -136,12 +136,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="crPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__crExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="crChart" role="img" aria-label="结果可视化"></div>
+    <div id="crTable"></div>
+    <div id="crDiff"></div>
+    <div id="crHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +208,46 @@ function resetForm(){document.getElementById('x').value = '10';
       document.getElementById('t').value = '30';
       calcTool();}
 calcTool();
+
+function __crN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __crList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __crL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __crExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#crTable','coordinate-rotation.csv');}catch(e){} }
+function __crExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var x=__crN('x'), y=__crN('y'), t=__crN('t');
+        var rad=t*Math.PI/180;
+        var xp=x*Math.cos(rad)-y*Math.sin(rad), yp=x*Math.sin(rad)+y*Math.cos(rad);
+        var r=Math.sqrt(x*x+y*y), rp=Math.sqrt(xp*xp+yp*yp);
+        TBKit.chart.scatter('#crChart',{points:[[x,y],[xp,yp]],height:230,xLabel:__crL('X','X 轴'),title:__crL('Rotation: ('+x.toFixed(2)+', '+y.toFixed(2)+') → ('+xp.toFixed(2)+', '+yp.toFixed(2)+')','坐标旋转：('+x.toFixed(2)+', '+y.toFixed(2)+') → ('+xp.toFixed(2)+', '+yp.toFixed(2)+')')});
+        var rows=__crL(
+            [['original x',x.toFixed(3)],['original y',y.toFixed(3)],['rotation θ (°)',t.toFixed(3)],['rotated x′',xp.toFixed(3)],['rotated y′',yp.toFixed(3)],['radius r',r.toFixed(3)],['radius check r′',rp.toFixed(3)],['radius error',Math.abs(rp-r).toFixed(6)]],
+            [['原坐标 x',x.toFixed(3)],['原坐标 y',y.toFixed(3)],['旋转角 θ (°)',t.toFixed(3)],['旋转后 x′',xp.toFixed(3)],['旋转后 y′',yp.toFixed(3)],['旋转半径 r',r.toFixed(3)],['校验半径 r′',rp.toFixed(3)],['半径误差',Math.abs(rp-r).toFixed(6)]]);
+        TBKit.matrix.table('#crTable',{head:__crL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({xp:Number(xp.toFixed(3))});
+        TBKit.util.diffBox('#crDiff',['xp','yp']);
+        TBKit.history.mount('#crHist',function(v){ if(v.xp!=null){document.getElementById('x').value=v.x;document.getElementById('y').value=v.y;document.getElementById('t').value=v.t;} calcTool(); });
+    }catch(e){}
+}
+function __crPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#crPresets',[
+            {label:'旋转 30°',labelEn:'Rotate 30°',values:{x:10,y:0,t:30}},
+            {label:'旋转 45°',labelEn:'Rotate 45°',values:{x:10,y:0,t:45}},
+            {label:'旋转 90°',labelEn:'Rotate 90°',values:{x:10,y:5,t:90}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_cr0 = calcTool;
+calcTool = function(){ __tb_cr0(); try{ __crExtras(); }catch(e){} };
+function __crBoot(){ try{ __crPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __crBoot);
+else __crBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

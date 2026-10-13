@@ -142,12 +142,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="giPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__giExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="giChart" role="img" aria-label="结果可视化"></div>
+    <div id="giTable"></div>
+    <div id="giDiff"></div>
+    <div id="giHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +269,48 @@ function resetForm(){document.getElementById('g1').value = '0.02';
       document.getElementById('x').value = '100';
       calcTool();}
 calcTool();
+
+function __giN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __giList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __giL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __giExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#giTable','grade-intersection-elev.csv');}catch(e){} }
+function __giExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var g1=__giN('g1'), g2=__giN('g2'), L=__giN('L'), x=__giN('x');
+        if(!(L>0))return;
+        function y(xx){ return g1*xx+(g2-g1)/(2*L)*xx*xx; }
+        var labs=[],data=[],i;
+        for(i=0;i<=20;i++){ var xx=L*i/20; labs.push(xx.toFixed(0)); data.push(Number(y(xx).toFixed(4))); }
+        TBKit.chart.line('#giChart',{labels:labs,series:[{name:__giL('curve elevation (m)','曲线高程 (m)'),data:data}],height:230,title:__giL('Vertical curve profile (L='+L+'m)','竖曲线高程剖面（L='+L+'m）')});
+        var A=Math.abs(g2-g1);
+        var rows=__giL(
+            [['grade g1',g1.toFixed(4)],['grade g2',g2.toFixed(4)],['curve length L (m)',L.toFixed(2)],['station x (m)',x.toFixed(2)],['elevation y (m)',y(x).toFixed(4)],['tangent elevation g1·x (m)',(g1*x).toFixed(4)],['tangent-curve diff (m)',(g1*x-y(x)).toFixed(4)],['tangent length T=L/2 (m)',(L/2).toFixed(3)],['external E = L|A|/8 (m)',(L*A/8).toFixed(4)],['K value (L/|A%|)',(L/(A*100)).toFixed(2)]],
+            [['前坡 g₁',g1.toFixed(4)],['后坡 g₂',g2.toFixed(4)],['曲线长 L (m)',L.toFixed(2)],['距起点 x (m)',x.toFixed(2)],['相对高程 y (m)',y(x).toFixed(4)],['切线高程 g₁·x (m)',(g1*x).toFixed(4)],['切垂差 (m)',(g1*x-y(x)).toFixed(4)],['切线长 T=L/2 (m)',(L/2).toFixed(3)],['外矢距 E = L|A|/8 (m)',(L*A/8).toFixed(4)],['K 值 (L/|A%|)',(L/(A*100)).toFixed(2)]]);
+        TBKit.matrix.table('#giTable',{head:__giL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({y:Number(y(x).toFixed(4))});
+        TBKit.util.diffBox('#giDiff',['y']);
+        TBKit.history.mount('#giHist',function(v){ if(v.y!=null){document.getElementById('g1').value=v.g1;document.getElementById('g2').value=v.g2;document.getElementById('L').value=v.L;document.getElementById('x').value=v.x;} calcTool(); });
+    }catch(e){}
+}
+function __giPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#giPresets',[
+            {label:'凸曲线 +2%→-1%',labelEn:'Convex +2%→-1%',values:{g1:0.02,g2:-0.01,L:200,x:100}},
+            {label:'凹曲线 -2%→+3%',labelEn:'Concave -2%→+3%',values:{g1:-0.02,g2:0.03,L:150,x:75}},
+            {label:'同向 3%→5%',labelEn:'Same-grade 3%→5%',values:{g1:0.03,g2:0.05,L:120,x:60}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_gi0 = calcTool;
+calcTool = function(){ __tb_gi0(); try{ __giExtras(); }catch(e){} };
+function __giBoot(){ try{ __giPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __giBoot);
+else __giBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

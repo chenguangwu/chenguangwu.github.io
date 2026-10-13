@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hdPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hdExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="hdChart" role="img" aria-label="结果可视化"></div>
+    <div id="hdTable"></div>
+    <div id="hdDiff"></div>
+    <div id="hdHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,50 @@ function resetForm(){document.getElementById('l').value = '150';
       document.getElementById('a').value = '10';
       calcTool();}
 calcTool();
+
+function __hdN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hdList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __hdL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __hdExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#hdTable','horizontal-distance.csv');}catch(e){} }
+function __hdExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var l=__hdN('l'), a=__hdN('a');
+        if(!(l>0))return;
+        var rad=a*Math.PI/180, d=l*Math.cos(rad), dh=l*Math.sin(rad);
+        var angs=[],ds=[],hs=[],i;
+        for(i=0;i<=12;i++){ var aa=i*5; var rr=aa*Math.PI/180; angs.push(aa+'°'); ds.push(Number((l*Math.cos(rr)).toFixed(3))); hs.push(Number((l*Math.sin(rr)).toFixed(3))); }
+        TBKit.chart.line('#hdChart',{labels:angs,series:[
+            {name:__hdL('horizontal (m)','水平距离 (m)'),data:ds},
+            {name:__hdL('height diff (m)','高差 (m)'),data:hs}
+        ],height:230,title:__hdL('Slope-to-horizontal vs angle (S='+l+'m)','斜距改平距随竖直角变化（S='+l+'m）')});
+        var rows=__hdL(
+            [['slope distance S (m)',l.toFixed(3)],['vertical angle (°)',a.toFixed(3)],['horizontal d (m)',d.toFixed(3)],['height diff (m)',dh.toFixed(3)],['grade (%)',(Math.tan(rad)*100).toFixed(3)],['S−d (m)',(l-d).toFixed(3)],['reduction factor cos α',Math.cos(rad).toFixed(4)]],
+            [['斜距 S (m)',l.toFixed(3)],['竖直角 (°)',a.toFixed(3)],['水平距离 (m)',d.toFixed(3)],['高差 (m)',dh.toFixed(3)],['坡度 (%)',(Math.tan(rad)*100).toFixed(3)],['斜距与水平距差 (m)',(l-d).toFixed(3)],['改正系数 cos α',Math.cos(rad).toFixed(4)]]);
+        TBKit.matrix.table('#hdTable',{head:__hdL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({d:Number(d.toFixed(3))});
+        TBKit.util.diffBox('#hdDiff',['d']);
+        TBKit.history.mount('#hdHist',function(v){ if(v.d!=null){document.getElementById('l').value=v.l;document.getElementById('a').value=v.a;} calcTool(); });
+    }catch(e){}
+}
+function __hdPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#hdPresets',[
+            {label:'水平 S150 α0°',labelEn:'Flat S150 a0',values:{l:150,a:0}},
+            {label:'标准 S150 α10°',labelEn:'Standard S150 a10',values:{l:150,a:10}},
+            {label:'陡坡 S100 α30°',labelEn:'Steep S100 a30',values:{l:100,a:30}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_hd0 = calcTool;
+calcTool = function(){ __tb_hd0(); try{ __hdExtras(); }catch(e){} };
+function __hdBoot(){ try{ __hdPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __hdBoot);
+else __hdBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

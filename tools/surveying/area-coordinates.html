@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="acPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__acExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="acChart" role="img" aria-label="结果可视化"></div>
+    <div id="acTable"></div>
+    <div id="acDiff"></div>
+    <div id="acHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +205,51 @@ function resetForm(){document.getElementById('xs').value = '0,100,100,0';
       document.getElementById('ys').value = '0,0,100,100';
       calcTool();}
 calcTool();
+
+function __acN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __acList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __acL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __acExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#acTable','area-coordinates.csv');}catch(e){} }
+function __acExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var xs=__acList(document.getElementById('xs').value), ys=__acList(document.getElementById('ys').value);
+        var n=Math.min(xs.length,ys.length);
+        if(n<3)return;
+        var s=0,i;
+        for(i=0;i<n;i++){var j=(i+1)%n;s+=xs[i]*ys[j]-xs[j]*ys[i];}
+        var area=Math.abs(s)/2;
+        var edges=[],peri=0;
+        for(i=0;i<n;i++){var j=(i+1)%n;var e=Math.sqrt((xs[j]-xs[i])*(xs[j]-xs[i])+(ys[j]-ys[i])*(ys[j]-ys[i]));edges.push(Number(e.toFixed(3)));peri+=e;}
+        var labs=[];for(i=0;i<n;i++)labs.push('边'+(i+1));
+        TBKit.chart.bar('#acChart',{labels:labs,series:[{name:__acL('edge length (m)','边长 (m)'),data:edges}],height:220,title:__acL('Polygon edge lengths ('+n+' vertices)','多边形各边长度（'+n+' 顶点）')});
+        var rows=__acL(
+            [['vertices',n],['area (m²)',area.toFixed(2)],['area (mu)',(area/666.67).toFixed(4)],['area (km²)',(area/1e6).toFixed(6)],['perimeter (m)',peri.toFixed(3)],['mean edge (m)',(peri/n).toFixed(3)],['shoelace sum |s|',Math.abs(s).toFixed(2)]],
+            [['顶点数',n],['面积 (m²)',area.toFixed(2)],['面积 (亩)',(area/666.67).toFixed(4)],['面积 (km²)',(area/1e6).toFixed(6)],['周长 (m)',peri.toFixed(3)],['平均边长 (m)',(peri/n).toFixed(3)],['鞋带和 |s|',Math.abs(s).toFixed(2)]]);
+        TBKit.matrix.table('#acTable',{head:__acL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({area:Number(area.toFixed(2))});
+        TBKit.util.diffBox('#acDiff',['area']);
+        TBKit.history.mount('#acHist',function(v){ if(v.area!=null){document.getElementById('xs').value=v.xs;document.getElementById('ys').value=v.ys;} calcTool(); });
+    }catch(e){}
+}
+function __acPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#acPresets',[
+            {label:'正方形 100×100',labelEn:'Square 100x100',values:{xs:'0,100,100,0',ys:'0,0,100,100'}},
+            {label:'矩形 50×200',labelEn:'Rectangle 50x200',values:{xs:'0,200,200,0',ys:'0,0,50,50'}},
+            {label:'三角形 3-4-5',labelEn:'Triangle 3-4-5',values:{xs:'0,60,0',ys:'0,0,80'}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_ac0 = calcTool;
+calcTool = function(){ __tb_ac0(); try{ __acExtras(); }catch(e){} };
+function __acBoot(){ try{ __acPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __acBoot);
+else __acBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

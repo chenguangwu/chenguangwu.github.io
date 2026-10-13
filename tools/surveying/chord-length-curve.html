@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="clPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__clExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="clChart" role="img" aria-label="结果可视化"></div>
+    <div id="clTable"></div>
+    <div id="clDiff"></div>
+    <div id="clHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,55 @@ function resetForm(){document.getElementById('R').value = '100';
       document.getElementById('D').value = '60';
       calcTool();}
 calcTool();
+
+function __clN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __clList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __clL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __clExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#clTable','chord-length-curve.csv');}catch(e){} }
+function __clExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var R=__clN('R'), D=__clN('D');
+        if(!(R>0&&D>0&&D<360))return;
+        var rad=D*Math.PI/180, h=rad/2;
+        var C=2*R*Math.sin(h), Lr=R*rad, E=R*(1/Math.cos(h)-1), M=R*(1-Math.cos(h));
+        var ds=[],i;
+        for(i=10;i<=120;i+=10)ds.push(i);
+        function ch(dd){ var hh=dd*Math.PI/360; return 2*R*Math.sin(hh); }
+        function arc(dd){ return R*dd*Math.PI/180; }
+        function ext(dd){ var hh=dd*Math.PI/360; return R*(1/Math.cos(hh)-1); }
+        TBKit.chart.line('#clChart',{labels:ds.map(function(d){return d+'°';}),series:[
+            {name:__clL('chord C','弦长 C'),data:ds.map(ch)},
+            {name:__clL('arc L','弧长 L'),data:ds.map(arc)},
+            {name:__clL('external E','外距 E'),data:ds.map(ext)}
+        ],height:230,title:__clL('Chord/arc/external vs deflection (R='+R+'m)','弦长/弧长/外距随交角变化（R='+R+'m）')});
+        var rows=__clL(
+            [['radius R (m)',R.toFixed(3)],['deflection Δ (°)',D.toFixed(3)],['chord C (m)',C.toFixed(3)],['arc L (m)',Lr.toFixed(3)],['external E (m)',E.toFixed(3)],['mid ordinate M (m)',M.toFixed(3)],['C/L ratio',(C/Lr).toFixed(4)],['chord-arc diff (m)',(Lr-C).toFixed(3)]],
+            [['半径 R (m)',R.toFixed(3)],['交角 Δ (°)',D.toFixed(3)],['弦长 C (m)',C.toFixed(3)],['弧长 L (m)',Lr.toFixed(3)],['外距 E (m)',E.toFixed(3)],['中点垂距 M (m)',M.toFixed(3)],['C/L 比值',(C/Lr).toFixed(4)],['弦弧差 (m)',(Lr-C).toFixed(3)]]);
+        TBKit.matrix.table('#clTable',{head:__clL(['Element','Value'],['要素','数值']),rows:rows});
+        TBKit.history.record({C:Number(C.toFixed(3))});
+        TBKit.util.diffBox('#clDiff',['C']);
+        TBKit.history.mount('#clHist',function(v){ if(v.C!=null){document.getElementById('R').value=v.R;document.getElementById('D').value=v.D;} calcTool(); });
+    }catch(e){}
+}
+function __clPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#clPresets',[
+            {label:'R100 Δ60°',labelEn:'R100 D60',values:{R:100,D:60}},
+            {label:'R200 Δ30°',labelEn:'R200 D30',values:{R:200,D:30}},
+            {label:'R50 Δ90°',labelEn:'R50 D90',values:{R:50,D:90}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_cl0 = calcTool;
+calcTool = function(){ __tb_cl0(); try{ __clExtras(); }catch(e){} };
+function __clBoot(){ try{ __clPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __clBoot);
+else __clBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

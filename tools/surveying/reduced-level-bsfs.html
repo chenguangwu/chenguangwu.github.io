@@ -136,12 +136,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rlPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rlExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="rlChart" role="img" aria-label="结果可视化"></div>
+    <div id="rlTable"></div>
+    <div id="rlDiff"></div>
+    <div id="rlHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +208,44 @@ function resetForm(){document.getElementById('BM').value = '100';
       document.getElementById('FS').value = '0.5';
       calcTool();}
 calcTool();
+
+function __rlN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rlList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __rlL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __rlExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#rlTable','reduced-level-bsfs.csv');}catch(e){} }
+function __rlExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var BM=__rlN('BM'), BS=__rlN('BS'), FS=__rlN('FS');
+        var HI=BM+BS, RL=BM+BS-FS;
+        TBKit.chart.bar('#rlChart',{labels:['已知高程 BM','视线高 HI','待定点 RL'],series:[{name:__rlL('elevation (m)','高程 (m)'),data:[BM,HI,RL]}],height:220,title:__rlL('Leveling elevations (BM→HI→RL)','水准高程传递（BM→HI→RL）')});
+        var rows=__rlL(
+            [['BM elevation (m)',BM.toFixed(3)],['backsight BS (m)',BS.toFixed(3)],['foresight FS (m)',FS.toFixed(3)],['height of instrument HI (m)',HI.toFixed(3)],['reduced level RL (m)',RL.toFixed(3)],['rise BS−FS (m)',(BS-FS).toFixed(3)],['check HI−FS',(HI-FS).toFixed(3)]],
+            [['已知点高程 BM (m)',BM.toFixed(3)],['后视读数 BS (m)',BS.toFixed(3)],['前视读数 FS (m)',FS.toFixed(3)],['视线高 HI (m)',HI.toFixed(3)],['待定点高程 RL (m)',RL.toFixed(3)],['高差 BS−FS (m)',(BS-FS).toFixed(3)],['检核 HI−FS',(HI-FS).toFixed(3)]]);
+        TBKit.matrix.table('#rlTable',{head:__rlL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({RL:Number(RL.toFixed(3))});
+        TBKit.util.diffBox('#rlDiff',['RL']);
+        TBKit.history.mount('#rlHist',function(v){ if(v.RL!=null){document.getElementById('BM').value=v.BM;document.getElementById('BS').value=v.BS;document.getElementById('FS').value=v.FS;} calcTool(); });
+    }catch(e){}
+}
+function __rlPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#rlPresets',[
+            {label:'标准 BM100 BS1.5 FS0.5',labelEn:'Standard',values:{BM:100,BS:1.5,FS:0.5}},
+            {label:'高差 1m',labelEn:'Rise 1m',values:{BM:50,BS:2.0,FS:1.0}},
+            {label:'下降 0.5m',labelEn:'Fall 0.5m',values:{BM:50,BS:1.0,FS:1.5}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_rl0 = calcTool;
+calcTool = function(){ __tb_rl0(); try{ __rlExtras(); }catch(e){} };
+function __rlBoot(){ try{ __rlPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __rlBoot);
+else __rlBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="edPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__edExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="edChart" role="img" aria-label="结果可视化"></div>
+    <div id="edTable"></div>
+    <div id="edDiff"></div>
+    <div id="edHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,48 @@ function resetForm(){document.getElementById('bs').value = '1.5,1.2,1.0';
       document.getElementById('fs').value = '1.3,1.4,0.9';
       calcTool();}
 calcTool();
+
+function __edN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __edList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __edL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __edExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#edTable','elevation-diff.csv');}catch(e){} }
+function __edExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var bs=__edList(document.getElementById('bs').value), fs=__edList(document.getElementById('fs').value);
+        var n=Math.max(bs.length,fs.length);
+        if(n<1)return;
+        var hs=[],h=0,i;
+        for(i=0;i<n;i++){var d=(bs[i]||0)-(fs[i]||0);hs.push(Number(d.toFixed(4)));h+=d;}
+        var labs=[];for(i=0;i<n;i++)labs.push('站'+(i+1));
+        TBKit.chart.bar('#edChart',{labels:labs,series:[{name:__edL('height diff (m)','高差 (m)'),data:hs}],height:220,title:__edL('Per-station height difference ('+n+' stations)','各站高差（'+n+' 站）')});
+        var rows=__edL(
+            [['stations',n],['total diff (m)',h.toFixed(3)],['mean per station (m)',(h/n).toFixed(4)],['BS readings',bs.join(', ')],['FS readings',fs.join(', ')],['max station diff (m)',Math.max.apply(null,hs.map(Math.abs)).toFixed(4)],['closure tolerance ±12√n (mm)',(12*Math.sqrt(n)).toFixed(1)]],
+            [['测站数',n],['总高差 (m)',h.toFixed(3)],['平均站差 (m)',(h/n).toFixed(4)],['后视读数',bs.join(', ')],['前视读数',fs.join(', ')],['最大站差 (m)',Math.max.apply(null,hs.map(Math.abs)).toFixed(4)],['限差 ±12√n (mm)',(12*Math.sqrt(n)).toFixed(1)]]);
+        TBKit.matrix.table('#edTable',{head:__edL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({h:Number(h.toFixed(3))});
+        TBKit.util.diffBox('#edDiff',['h']);
+        TBKit.history.mount('#edHist',function(v){ if(v.h!=null){document.getElementById('bs').value=v.bs;document.getElementById('fs').value=v.fs;} calcTool(); });
+    }catch(e){}
+}
+function __edPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#edPresets',[
+            {label:'三站往返',labelEn:'3-station run',values:{bs:'1.5,1.2,1.0',fs:'1.3,1.4,0.9'}},
+            {label:'等站距平差',labelEn:'Level run',values:{bs:'1.432,1.305,1.558',fs:'1.102,1.288,1.411'}},
+            {label:'单站',labelEn:'Single station',values:{bs:'2.135',fs:'0.876'}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_ed0 = calcTool;
+calcTool = function(){ __tb_ed0(); try{ __edExtras(); }catch(e){} };
+function __edBoot(){ try{ __edPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __edBoot);
+else __edBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

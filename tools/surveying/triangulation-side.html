@@ -136,12 +136,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tsPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tsExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="tsChart" role="img" aria-label="结果可视化"></div>
+    <div id="tsTable"></div>
+    <div id="tsDiff"></div>
+    <div id="tsHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +262,48 @@ function resetForm(){document.getElementById('a').value = '100';
       document.getElementById('B').value = '60';
       calcTool();}
 calcTool();
+
+function __tsN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tsList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __tsL(en,zh){return (typeof TBKit==='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __tsExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#tsTable','triangulation-side.csv');}catch(e){} }
+function __tsExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var a=__tsN('a'), A=__tsN('A'), B=__tsN('B');
+        var Ar=A*Math.PI/180, Br=B*Math.PI/180;
+        if(!(a>0&&A>0&&B>0&&A+B<180))return;
+        var b=a*Math.sin(Br)/Math.sin(Ar);
+        var C=180-A-B, c=a*Math.sin((C*Math.PI/180))/Math.sin(Ar);
+        var area=0.5*b*c*Math.sin(Ar);
+        TBKit.chart.bar('#tsChart',{labels:['边 a','边 b','边 c'],series:[{name:__tsL('side (m)','边长 (m)'),data:[a,b,c]}],height:220,title:__tsL('Triangle sides by sine rule','正弦定理三边解算')});
+        var rows=__tsL(
+            [['side a (m)',a.toFixed(3)],['angle A (°)',A.toFixed(2)],['angle B (°)',B.toFixed(2)],['angle C (°)',C.toFixed(2)],['side b (m)',b.toFixed(3)],['side c (m)',c.toFixed(3)],['perimeter (m)',(a+b+c).toFixed(3)],['area (m²)',area.toFixed(3)]],
+            [['已知边 a (m)',a.toFixed(3)],['对角 A (°)',A.toFixed(2)],['对角 B (°)',B.toFixed(2)],['第三角 C (°)',C.toFixed(2)],['待求边 b (m)',b.toFixed(3)],['第三边 c (m)',c.toFixed(3)],['周长 (m)',(a+b+c).toFixed(3)],['面积 (m²)',area.toFixed(3)]]);
+        TBKit.matrix.table('#tsTable',{head:__tsL(['Element','Value'],['要素','数值']),rows:rows});
+        TBKit.history.record({b:Number(b.toFixed(3))});
+        TBKit.util.diffBox('#tsDiff',['b','c']);
+        TBKit.history.mount('#tsHist',function(v){ if(v.b!=null){document.getElementById('a').value=v.a;document.getElementById('A').value=v.A;document.getElementById('B').value=v.B;} calcTool(); });
+    }catch(e){}
+}
+function __tsPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#tsPresets',[
+            {label:'45°/60° 典型',labelEn:'45/60 typical',values:{a:100,A:45,B:60}},
+            {label:'等边 60/60',labelEn:'Equilateral',values:{a:100,A:60,B:60}},
+            {label:'直角 30/90',labelEn:'Right 30/90',values:{a:100,A:30,B:90}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_ts0 = calcTool;
+calcTool = function(){ __tb_ts0(); try{ __tsExtras(); }catch(e){} };
+function __tsBoot(){ try{ __tsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __tsBoot);
+else __tsBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
