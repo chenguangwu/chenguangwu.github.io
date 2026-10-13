@@ -192,6 +192,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 待遇构成</h3>
+    <div id="wiChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="wiTable"></div>
+    <button type="button" class="btn" id="wiExport" onclick="__wiExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="wiHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="wiPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 伤残待遇标准（一次性）</h3>
@@ -263,59 +280,112 @@ const disabilityMonths = {1:27,2:25,3:23,4:21,5:18,6:16,7:13,8:11,9:9,10:7};
 const medicalMonths = {5:24,6:18,7:15,8:10,9:8,10:4};
 const employmentMonths = {5:36,6:30,7:15,8:10,9:8,10:4};
 
+function wiL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __wiD=null; var __wiChart=null;
 function calculate(){
   const level = parseInt(document.getElementById('disabilityLevel').value);
   const salary = parseFloat(document.getElementById('monthlySalary').value) || 0;
   const avgSalary = parseFloat(document.getElementById('avgSalary').value) || 0;
   const terminate = document.getElementById('terminateRelation').value === '1';
+  let wiAllow=0, wiMed=0, wiEmp=0, wiTot=0;
   
   const subsidyMonths = disabilityMonths[level];
   const oneTimeSubsidy = subsidyMonths * salary;
   
-  let html = `<p>伤残等级：<strong>${level}级</strong></p>`;
-  html += `<p>一次性伤残补助金：<strong>${subsidyMonths}</strong>个月 × ${ToolBox.formatNumber(salary)}元 = <strong>${ToolBox.formatNumber(oneTimeSubsidy)}</strong>元</p>`;
+  let html = `<p>${wiL('伤残等级：','Disability grade:')}<strong>${level}</strong>${wiL('级','')}</p>`;
+  html += `<p>${wiL('一次性伤残补助金：','Lump-sum disability grant:')}<strong>${subsidyMonths}</strong>${wiL('个月 × ','months × ')}${ToolBox.formatNumber(salary)}${wiL('元 = ','yuan = ')}<strong>${ToolBox.formatNumber(oneTimeSubsidy)}</strong>${wiL('元','yuan')}</p>`;
   
   if(level <= 4){
     const allowanceRates = {1:0.9,2:0.85,3:0.8,4:0.75};
     const rate = allowanceRates[level];
-    html += `<p>伤残津贴（按月）：<strong>${ToolBox.formatNumber(salary * rate, 2)}</strong>元/月（本人工资${Math.round(rate*100)}%，退休后停发转养老保险）</p>`;
+    html += `<p>${wiL('伤残津贴（按月）：','Disability allowance (monthly):')}<strong>${ToolBox.formatNumber(salary * rate, 2)}</strong>${wiL('元/月（本人工资','yuan/month (')}${Math.round(rate*100)}${wiL('%，退休后停发转养老保险）','% of wage, stops at retirement)')}</p>`;
+    wiAllow = salary * rate;
   }else if(level <= 6){
     const allowanceRates = {5:0.7,6:0.6};
     const rate = allowanceRates[level];
-    html += `<p>伤残津贴（按月，保留劳动关系）：<strong>${ToolBox.formatNumber(salary * rate, 2)}</strong>元/月（本人工资${Math.round(rate*100)}%）</p>`;
+    html += `<p>${wiL('伤残津贴（按月，保留劳动关系）：','Disability allowance (monthly, relation kept):')}<strong>${ToolBox.formatNumber(salary * rate, 2)}</strong>${wiL('元/月（本人工资','yuan/month (')}${Math.round(rate*100)}${wiL('%）','%)')}</p>`;
+    wiAllow = salary * rate;
     
     if(terminate){
       const medical = medicalMonths[level] * avgSalary;
       const employment = employmentMonths[level] * avgSalary;
+      wiMed = medical; wiEmp = employment; wiTot = oneTimeSubsidy + medical + employment;
       html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-      html += `<p>一次性工伤医疗补助金：<strong>${medicalMonths[level]}</strong>个月社平工资 = <strong>${ToolBox.formatNumber(medical)}</strong>元</p>`;
-      html += `<p>一次性伤残就业补助金：<strong>${employmentMonths[level]}</strong>个月社平工资 = <strong>${ToolBox.formatNumber(employment)}</strong>元</p>`;
+      html += `<p>${wiL('一次性工伤医疗补助金：','One-time work injury medical grant:')}<strong>${medicalMonths[level]}</strong>${wiL('个月社平工资 = ','months of avg wage = ')}<strong>${ToolBox.formatNumber(medical)}</strong>${wiL('元','yuan')}</p>`;
+      html += `<p>${wiL('一次性伤残就业补助金：','One-time disability employment grant:')}<strong>${employmentMonths[level]}</strong>${wiL('个月社平工资 = ','months of avg wage = ')}<strong>${ToolBox.formatNumber(employment)}</strong>${wiL('元','yuan')}</p>`;
       
-      const total = oneTimeSubsidy + medical + employment;
+      const total = wiTot;
       html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-      html += `<p>一次性待遇合计：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong>元</p>`;
+      html += `<p>${wiL('一次性待遇合计：','Total one-time benefits:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong>${wiL('元','yuan')}</p>`;
     }
   }else{
     if(terminate){
       const medical = medicalMonths[level] * avgSalary;
       const employment = employmentMonths[level] * avgSalary;
+      wiMed = medical; wiEmp = employment; wiTot = oneTimeSubsidy + medical + employment;
       html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-      html += `<p>一次性工伤医疗补助金：<strong>${medicalMonths[level]}</strong>个月社平工资 = <strong>${ToolBox.formatNumber(medical)}</strong>元</p>`;
-      html += `<p>一次性伤残就业补助金：<strong>${employmentMonths[level]}</strong>个月社平工资 = <strong>${ToolBox.formatNumber(employment)}</strong>元</p>`;
+      html += `<p>${wiL('一次性工伤医疗补助金：','One-time work injury medical grant:')}<strong>${medicalMonths[level]}</strong>${wiL('个月社平工资 = ','months of avg wage = ')}<strong>${ToolBox.formatNumber(medical)}</strong>${wiL('元','yuan')}</p>`;
+      html += `<p>${wiL('一次性伤残就业补助金：','One-time disability employment grant:')}<strong>${employmentMonths[level]}</strong>${wiL('个月社平工资 = ','months of avg wage = ')}<strong>${ToolBox.formatNumber(employment)}</strong>${wiL('元','yuan')}</p>`;
       
-      const total = oneTimeSubsidy + medical + employment;
+      const total = wiTot;
       html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-      html += `<p>一次性待遇合计：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong>元</p>`;
+      html += `<p>${wiL('一次性待遇合计：','Total one-time benefits:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong>${wiL('元','yuan')}</p>`;
     }else{
-      html += `<p style="color:var(--text-muted);">七至十级保留劳动关系无伤残津贴，解除/终止时可获医疗和就业补助金</p>`;
+      html += `<p style="color:var(--text-muted);">${wiL('七至十级保留劳动关系无伤残津贴，解除/终止时可获医疗和就业补助金','Grades 7–10 with relation kept have no allowance; medical and employment grants apply upon termination')}</p>`;
     }
   }
   
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：以上为主要待遇，另含医疗费、住院伙食补助、停工留薪期工资、护理费等据实计算</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${wiL('注：以上为主要待遇，另含医疗费、住院伙食补助、停工留薪期工资、护理费等据实计算','Note: above are main benefits; medical fees, hospitalization food allowance, wage during suspension, nursing fees etc. are calculated separately')}</p>`;
   
+  __wiD = {level: level, levelText: wiL(level+'级','Grade '+level), salary: salary, avgSalary: avgSalary, terminate: terminate, subsidy: oneTimeSubsidy, allowanceMonthly: wiAllow, medical: wiMed, employment: wiEmp, total: wiTot};
+  window.__wiChart = {labels: [], data: []};
+  window.__wiChart.labels.push(wiL('一次性伤残补助金','One-time grant')); window.__wiChart.data.push(oneTimeSubsidy);
+  if(level<=4){ window.__wiChart.labels.push(wiL('年伤残津贴(×12)','Annual allowance ×12')); window.__wiChart.data.push(wiAllow*12); }
+  if(wiMed>0){ window.__wiChart.labels.push(wiL('工伤医疗补助金','Medical grant')); window.__wiChart.data.push(wiMed); }
+  if(wiEmp>0){ window.__wiChart.labels.push(wiL('伤残就业补助金','Employment grant')); window.__wiChart.data.push(wiEmp); }
+  if(wiTot>0){ window.__wiChart.labels.push(wiL('一次性待遇合计','Total one-time')); window.__wiChart.data.push(wiTot); }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __wiExtras(){
+  if(window.__wiChart && window.__wiChart.data && window.__wiChart.data.length){
+    TBKit.chart.bar('#wiChart', {labels: window.__wiChart.labels, series:[{name: wiL('金额','Amount'), data: window.__wiChart.data}], height: 240, title: wiL('工伤待遇构成','Work Injury Benefit Composition')});
+  }
+  if(__wiD){
+    var rows = [
+      [wiL('伤残等级','Grade'), __wiD.levelText],
+      [wiL('本人月工资','Monthly wage'), ToolBox.formatNumber(__wiD.salary)],
+      [wiL('当地社平工资','Local avg wage'), ToolBox.formatNumber(__wiD.avgSalary)],
+      [wiL('一次性伤残补助金','One-time grant'), ToolBox.formatNumber(__wiD.subsidy)],
+      [wiL('伤残津贴/月','Monthly allowance'), ToolBox.formatNumber(__wiD.allowanceMonthly)],
+      [wiL('一次性工伤医疗补助金','Medical grant'), ToolBox.formatNumber(__wiD.medical)],
+      [wiL('一次性伤残就业补助金','Employment grant'), ToolBox.formatNumber(__wiD.employment)],
+      [wiL('一次性待遇合计','Total one-time'), ToolBox.formatNumber(__wiD.total)]
+    ];
+    TBKit.matrix.table('#wiTable', {head:[wiL('项目','Item'), wiL('数值','Value')], rows: rows});
+    TBKit.history.record({[wiL('等级','Grade')]: __wiD.levelText, [wiL('补助金','Grant')]: ToolBox.formatNumber(__wiD.subsidy), [wiL('合计','Total')]: ToolBox.formatNumber(__wiD.total)});
+  }
+}
+function __wiExport(){ TBKit.util.exportTable('#wiTable', 'work-injury-compensation.csv'); }
+function __wiPresets(){
+  TBKit.preset.bar('#wiPresets', [
+    {label:'八级解除', labelEn:'Grade 8 terminated', values:{disabilityLevel:'8', monthlySalary:'8000', avgSalary:'8000', terminateRelation:'1'}},
+    {label:'一级保留', labelEn:'Grade 1 kept', values:{disabilityLevel:'1', monthlySalary:'8000', avgSalary:'8000', terminateRelation:'0'}},
+    {label:'五级解除', labelEn:'Grade 5 terminated', values:{disabilityLevel:'5', monthlySalary:'10000', avgSalary:'9000', terminateRelation:'1'}},
+    {label:'十级解除', labelEn:'Grade 10 terminated', values:{disabilityLevel:'10', monthlySalary:'6000', avgSalary:'7000', terminateRelation:'1'}}
+  ], function(){ calculate(); });
+}
+function __wiMountHist(){
+  TBKit.history.mount('#wiHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('disabilityLevel').value=d.level||'5'; document.getElementById('monthlySalary').value=d.salary||8000; document.getElementById('avgSalary').value=d.avgSalary||8000; document.getElementById('terminateRelation').value=d.terminate?'1':'0'; calculate(); } }, 8);
+}
+function __wiBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __wiExtras(); __wiPresets(); __wiMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __wiExtras(); __wiPresets(); __wiMountHist(); }
+}
+var __tb_wi0=calculate; calculate=function(){__tb_wi0();try{__wiExtras();}catch(e){}};
+__wiBoot();
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

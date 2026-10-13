@@ -203,6 +203,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 财产构成</h3>
+    <div id="dpChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="dpTable"></div>
+    <button type="button" class="btn" id="dpExport" onclick="__dpExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="dpHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="dpPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 分割原则</h3>
@@ -265,6 +282,8 @@ document.getElementById('splitRatio').addEventListener('change', function(){
   document.getElementById('customRatioDiv').style.display = this.value === 'custom' ? 'block' : 'none';
 });
 
+function dpL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __dpD=null; var __dpChart=null;
 function calculate(){
   const houseValue = parseFloat(document.getElementById('houseValue').value) || 0;
   const houseLoan = parseFloat(document.getElementById('houseLoan').value) || 0;
@@ -289,26 +308,72 @@ function calculate(){
   const myShare = netAssets * myRatio;
   const spouseShare = netAssets * (1 - myRatio);
   
-  let html = `<h3 style="margin-bottom:8px;">财产明细</h3>`;
-  html += `<p>房产净值：${ToolBox.formatNumber(houseEquity)} 元（价值${ToolBox.formatNumber(houseValue)} - 贷款${ToolBox.formatNumber(houseLoan)}）</p>`;
-  html += `<p>存款/理财：${ToolBox.formatNumber(savings)} 元</p>`;
-  html += `<p>车辆价值：${ToolBox.formatNumber(carValue)} 元</p>`;
-  html += `<p>其他财产：${ToolBox.formatNumber(otherAssets)} 元</p>`;
-  html += `<p>共同债务：- ${ToolBox.formatNumber(jointDebt)} 元</p>`;
+  let html = `<h3 style="margin-bottom:8px;">${dpL('财产明细','Property Details')}</h3>`;
+  html += `<p>${dpL('房产净值：','House equity:')}${ToolBox.formatNumber(houseEquity)} ${dpL('元（价值','yuan (value ')}${ToolBox.formatNumber(houseValue)} ${dpL('- 贷款','- loan ')}${ToolBox.formatNumber(houseLoan)}${dpL('）',')')}</p>`;
+  html += `<p>${dpL('存款/理财：','Deposit/investments:')}${ToolBox.formatNumber(savings)} ${dpL('元','yuan')}</p>`;
+  html += `<p>${dpL('车辆价值：','Car value:')}${ToolBox.formatNumber(carValue)} ${dpL('元','yuan')}</p>`;
+  html += `<p>${dpL('其他财产：','Other assets:')}${ToolBox.formatNumber(otherAssets)} ${dpL('元','yuan')}</p>`;
+  html += `<p>${dpL('共同债务：','Joint debt:')}- ${ToolBox.formatNumber(jointDebt)} ${dpL('元','yuan')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>共同财产净值：<strong>${ToolBox.formatNumber(netAssets)}</strong> 元</p>`;
-  html += `<p>分割比例：我方 ${Math.round(myRatio*100)}% / 对方 ${Math.round((1-myRatio)*100)}%</p>`;
+  html += `<p>${dpL('共同财产净值：','Net joint property:')}<strong>${ToolBox.formatNumber(netAssets)}</strong> ${dpL('元','yuan')}</p>`;
+  html += `<p>${dpL('分割比例：我方 ','Split ratio - mine ')}${Math.round(myRatio*100)}% ${dpL('/ 对方 ','/ spouse ')}${Math.round((1-myRatio)*100)}%</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>我方应得：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(myShare)}</strong> 元</p>`;
-  html += `<p>对方应得：<strong>${ToolBox.formatNumber(spouseShare)}</strong> 元</p>`;
+  html += `<p>${dpL('我方应得：','My share:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(myShare)}</strong> ${dpL('元','yuan')}</p>`;
+  html += `<p>${dpL('对方应得：','Spouse share:')}<strong>${ToolBox.formatNumber(spouseShare)}</strong> ${dpL('元','yuan')}</p>`;
   if(hasPreNup){
-    html += `<p style="color:#ff9800;font-size:13px;margin-top:8px;">⚠️ 存在婚前财产协议，具体分割需按协议约定执行</p>`;
+    html += `<p style="color:#ff9800;font-size:13px;margin-top:8px;">${dpL('⚠️ 存在婚前财产协议，具体分割需按协议约定执行','Warning: a prenuptial agreement exists; division must follow its terms')}</p>`;
   }
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：以上仅为参考，房产分割需考虑登记情况、出资来源、婚前/婚后购买等因素</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${dpL('注：以上仅为参考，房产分割需考虑登记情况、出资来源、婚前/婚后购买等因素','Note: for reference only; house division also depends on registration, funding source, and pre-/post-marriage purchase')}</p>`;
+
+  __dpD = {houseValue: houseValue, houseLoan: houseLoan, savings: savings, carValue: carValue, otherAssets: otherAssets, jointDebt: jointDebt, myRatio: myRatio, netAssets: netAssets, myShare: myShare, spouseShare: spouseShare, hasPreNup: hasPreNup};
+  window.__dpChart = {labels: [], data: []};
+  var dpItems = [['房产净值','House equity',houseEquity],['存款/理财','Deposit',savings],['车辆价值','Car',carValue],['其他财产','Other',otherAssets],['共同债务','Joint debt',jointDebt]];
+  for(var dp=0; dp<dpItems.length; dp++){ window.__dpChart.labels.push(dpL(dpItems[dp][0], dpItems[dp][1])); window.__dpChart.data.push(dpItems[dp][2]); }
+  window.__dpChart.labels.push(dpL('我方应得','My share')); window.__dpChart.data.push(myShare);
+  window.__dpChart.labels.push(dpL('对方应得','Spouse share')); window.__dpChart.data.push(spouseShare);
   
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __dpExtras(){
+  if(window.__dpChart && window.__dpChart.data && window.__dpChart.data.length){
+    TBKit.chart.bar('#dpChart', {labels: window.__dpChart.labels, series:[{name: dpL('金额','Amount'), data: window.__dpChart.data}], height: 240, title: dpL('离婚财产分割构成','Divorce Property Division')});
+  }
+  if(__dpD){
+    var rows = [
+      [dpL('房产净值','House equity'), ToolBox.formatNumber(__dpD.houseValue-__dpD.houseLoan)],
+      [dpL('存款/理财','Deposit'), ToolBox.formatNumber(__dpD.savings)],
+      [dpL('车辆价值','Car'), ToolBox.formatNumber(__dpD.carValue)],
+      [dpL('其他财产','Other'), ToolBox.formatNumber(__dpD.otherAssets)],
+      [dpL('共同债务','Joint debt'), ToolBox.formatNumber(-__dpD.jointDebt)],
+      [dpL('共同财产净值','Net joint'), ToolBox.formatNumber(__dpD.netAssets)],
+      [dpL('我方应得','My share'), ToolBox.formatNumber(__dpD.myShare)],
+      [dpL('对方应得','Spouse share'), ToolBox.formatNumber(__dpD.spouseShare)]
+    ];
+    TBKit.matrix.table('#dpTable', {head:[dpL('项目','Item'), dpL('数值','Value')], rows: rows});
+    TBKit.history.record({[dpL('分割比','Ratio')]: Math.round(__dpD.myRatio*100)+'%', [dpL('我方应得','My share')]: ToolBox.formatNumber(__dpD.myShare), [dpL('婚前协议','PreNup')]: __dpD.hasPreNup?dpL('有','Yes'):dpL('无','No')});
+  }
+}
+function __dpExport(){ TBKit.util.exportTable('#dpTable', 'divorce-property.csv'); }
+function __dpPresets(){
+  TBKit.preset.bar('#dpPresets', [
+    {label:'均等分割', labelEn:'Equal split', values:{houseValue:'200', houseLoan:'80', savings:'50', carValue:'20', otherAssets:'10', jointDebt:'30', splitRatio:'0.5', hasPreNup:false}},
+    {label:'我方70%', labelEn:'Mine 70%', values:{houseValue:'200', houseLoan:'80', savings:'50', carValue:'20', otherAssets:'10', jointDebt:'30', splitRatio:'custom', customRatio:'70', hasPreNup:false}},
+    {label:'有婚前协议', labelEn:'With prenup', values:{houseValue:'300', houseLoan:'100', savings:'80', carValue:'30', otherAssets:'20', jointDebt:'50', splitRatio:'0.5', hasPreNup:true}},
+    {label:'全归对方', labelEn:'All to spouse', values:{houseValue:'200', houseLoan:'80', savings:'50', carValue:'20', otherAssets:'10', jointDebt:'30', splitRatio:'custom', customRatio:'0', hasPreNup:false}}
+  ], function(){ calculate(); });
+}
+function __dpMountHist(){
+  TBKit.history.mount('#dpHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('houseValue').value=d.houseValue||0; document.getElementById('houseLoan').value=d.houseLoan||0; document.getElementById('savings').value=d.savings||0; document.getElementById('carValue').value=d.carValue||0; document.getElementById('otherAssets').value=d.otherAssets||0; document.getElementById('jointDebt').value=d.jointDebt||0; document.getElementById('splitRatio').value='0.5'; document.getElementById('customRatio').value=Math.round(d.myRatio*100); document.getElementById('hasPreNup').checked=!!d.hasPreNup; calculate(); } }, 8);
+}
+function __dpBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __dpExtras(); __dpPresets(); __dpMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __dpExtras(); __dpPresets(); __dpMountHist(); }
+}
+var __tb_dp0=calculate; calculate=function(){__tb_dp0();try{__dpExtras();}catch(e){}};
+__dpBoot();
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

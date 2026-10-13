@@ -206,6 +206,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 赔偿构成</h3>
+    <div id="iprChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="iprTable"></div>
+    <button type="button" class="btn" id="iprExport" onclick="__iprExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="iprHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="iprPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 赔偿计算顺序</h3>
@@ -270,6 +287,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function ipL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __iprD=null; var __iprChart=null;
 function calculate(){
   const ipType = document.getElementById('ipType').value;
   const method = document.getElementById('calcMethod').value;
@@ -289,46 +308,84 @@ function calculate(){
   };
   
   const typeNames = {
-    trademark: '商标权', patent: '专利权', copyright: '著作权', tradeSecret: '商业秘密'
+    trademark: ['商标权','Trademark'], patent: ['专利权','Patent'], copyright: ['著作权','Copyright'], tradeSecret: ['商业秘密','Trade secret']
   };
   
   switch(method){
     case 'actualLoss':
       compensatory = base;
-      methodNote = '按权利人实际损失计算';
+      methodNote = ipL('按权利人实际损失计算','By actual loss of right holder');
       break;
     case 'infringerProfit':
       compensatory = base;
-      methodNote = '按侵权人违法所得计算';
+      methodNote = ipL('按侵权人违法所得计算','By infringer illegal gain');
       break;
     case 'royalty':
-      compensatory = royalty * multiplier >= 1 ? royalty : royalty;
-      methodNote = '参照许可使用费合理确定（通常1-3倍）';
       compensatory = royalty * (multiplier >= 1 && multiplier <= 3 ? multiplier : 2);
+      methodNote = ipL('参照许可使用费合理确定（通常1-3倍）','Reasonably by license fee (usually 1-3x)');
       break;
     case 'statutory':
       compensatory = Math.min(Math.max(base, statutoryLimits[ipType].min), statutoryLimits[ipType].max);
-      methodNote = `法定赔偿（${typeNames[ipType]}限额：${ToolBox.formatNumber(statutoryLimits[ipType].min)}-${ToolBox.formatNumber(statutoryLimits[ipType].max)}元）`;
+      methodNote = ipL('法定赔偿（','Statutory damages (') + ipL(typeNames[ipType][0], typeNames[ipType][1]) + ipL('限额：','limit: ') + ToolBox.formatNumber(statutoryLimits[ipType].min) + '-' + ToolBox.formatNumber(statutoryLimits[ipType].max) + ipL('元）',' yuan)');
       break;
     case 'punitive':
       compensatory = base * multiplier;
-      methodNote = `惩罚性赔偿（${multiplier}倍）`;
+      methodNote = ipL('惩罚性赔偿（','Punitive damages (') + multiplier + ipL('倍）','x)');
       break;
   }
   
   const total = compensatory + expenses;
   
-  let html = `<p>权利类型：<strong>${typeNames[ipType]}</strong></p>`;
-  html += `<p>计算方式：<strong>${methodNote}</strong></p>`;
-  html += `<p>补偿性赔偿：<strong>${ToolBox.formatNumber(compensatory)}</strong> 元</p>`;
-  html += `<p>合理维权开支：<strong>${ToolBox.formatNumber(expenses)}</strong> 元</p>`;
+  let html = `<p>${ipL('权利类型：','IP type:')}<strong>${ipL(typeNames[ipType][0], typeNames[ipType][1])}</strong></p>`;
+  html += `<p>${ipL('计算方式：','Method:')}<strong>${methodNote}</strong></p>`;
+  html += `<p>${ipL('补偿性赔偿：','Compensatory:')}<strong>${ToolBox.formatNumber(compensatory)}</strong> ${ipL('元','yuan')}</p>`;
+  html += `<p>${ipL('合理维权开支：','Reasonable enforcement costs:')}<strong>${ToolBox.formatNumber(expenses)}</strong> ${ipL('元','yuan')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>赔偿总额：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：赔偿计算顺序有法定优先级，惩罚性赔偿需满足"恶意+情节严重"；法定赔偿由法院自由裁量，此处仅供参考</p>`;
+  html += `<p>${ipL('赔偿总额：','Total damages:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${ipL('元','yuan')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${ipL('注：赔偿计算顺序有法定优先级，惩罚性赔偿需满足"恶意+情节严重"；法定赔偿由法院自由裁量，此处仅供参考','Note: damages follow a statutory priority order; punitive damages require willfulness and aggravating circumstances; statutory damages are at court discretion, for reference only')}</p>`;
+
+  __iprD = {ipType: ipType, method: method, base: base, royalty: royalty, multiplier: multiplier, expenses: expenses, compensatory: compensatory, total: total};
+  window.__iprChart = {labels: [ipL('补偿性赔偿','Compensatory'), ipL('合理维权开支','Enforcement costs')], data: [compensatory, expenses]};
   
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __iprExtras(){
+  if(window.__iprChart && window.__iprChart.data && window.__iprChart.data.length){
+    TBKit.chart.bar('#iprChart', {labels: window.__iprChart.labels, series:[{name: ipL('金额','Amount'), data: window.__iprChart.data}], height: 240, title: ipL('知识产权赔偿构成','IP Damages Composition')});
+  }
+  if(__iprD){
+    var rows = [
+      [ipL('权利类型','IP type'), ipL({'trademark':'商标权','patent':'专利权','copyright':'著作权','tradeSecret':'商业秘密'}[__iprD.ipType]||__iprD.ipType, {'trademark':'Trademark','patent':'Patent','copyright':'Copyright','tradeSecret':'Trade secret'}[__iprD.ipType]||__iprD.ipType)],
+      [ipL('计算方式','Method'), __iprD.method],
+      [ipL('补偿性赔偿','Compensatory'), ToolBox.formatNumber(__iprD.compensatory)],
+      [ipL('合理维权开支','Enforcement costs'), ToolBox.formatNumber(__iprD.expenses)],
+      [ipL('赔偿总额','Total'), ToolBox.formatNumber(__iprD.total)]
+    ];
+    TBKit.matrix.table('#iprTable', {head:[ipL('项目','Item'), ipL('数值','Value')], rows: rows});
+    TBKit.history.record({[ipL('权利','IP')]: __iprD.ipType, [ipL('方式','Method')]: __iprD.method, [ipL('总额','Total')]: ToolBox.formatNumber(__iprD.total)});
+  }
+}
+function __iprExport(){ TBKit.util.exportTable('#iprTable', 'ipr-damages.csv'); }
+function __iprPresets(){
+  TBKit.preset.bar('#iprPresets', [
+    {label:'商标实际损失', labelEn:'TM actual loss', values:{ipType:'trademark', calcMethod:'actualLoss', baseAmount:'100000', royaltyAmount:'0', punitiveMultiplier:'1', reasonableExpenses:'20000'}},
+    {label:'专利法定赔偿', labelEn:'Patent statutory', values:{ipType:'patent', calcMethod:'statutory', baseAmount:'500000', royaltyAmount:'0', punitiveMultiplier:'1', reasonableExpenses:'30000'}},
+    {label:'著作权惩罚3倍', labelEn:'Copyright punitive 3x', values:{ipType:'copyright', calcMethod:'punitive', baseAmount:'80000', royaltyAmount:'0', punitiveMultiplier:'3', reasonableExpenses:'15000'}},
+    {label:'商业秘密许可2倍', labelEn:'Trade secret royalty 2x', values:{ipType:'tradeSecret', calcMethod:'royalty', baseAmount:'0', royaltyAmount:'50000', punitiveMultiplier:'2', reasonableExpenses:'10000'}}
+  ], function(){ calculate(); });
+}
+function __iprMountHist(){
+  TBKit.history.mount('#iprHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('ipType').value=d.ipType||'trademark'; document.getElementById('calcMethod').value=d.method||'actualLoss'; document.getElementById('baseAmount').value=d.base||0; document.getElementById('royaltyAmount').value=d.royalty||0; document.getElementById('punitiveMultiplier').value=d.multiplier||1; document.getElementById('reasonableExpenses').value=d.expenses||0; calculate(); } }, 8);
+}
+function __iprBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __iprExtras(); __iprPresets(); __iprMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __iprExtras(); __iprPresets(); __iprMountHist(); }
+}
+var __tb_ipr0=calculate; calculate=function(){__tb_ipr0();try{__iprExtras();}catch(e){}};
+__iprBoot();
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

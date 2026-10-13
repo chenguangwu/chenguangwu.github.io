@@ -234,6 +234,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 费用构成</h3>
+    <div id="lfChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="lfTable"></div>
+    <button type="button" class="btn" id="lfExport" onclick="__lfExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="lfHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="lfPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 收费说明</h3>
@@ -299,6 +316,8 @@ document.getElementById('caseType').addEventListener('change', function(){
   document.getElementById('riskInputs').style.display = type === 'risk' ? 'block' : 'none';
 });
 
+function lfL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __lfD=null; var __lfChart=null;
 function calculate(){
   const type = document.getElementById('caseType').value;
   const region = document.getElementById('region').value;
@@ -307,15 +326,12 @@ function calculate(){
   const regionFactor = region === 'other' ? 0.7 : 1;
   
   let fee = 0;
-  let feeRange = '';
-  
+
   if(type === 'civil'){
     if(amount <= 100000){
       fee = 5000;
-      feeRange = '5000-10000元';
     }else if(amount <= 500000){
       fee = 5000 + (amount - 100000) * 0.05;
-      feeRange = `约${ToolBox.formatNumber(fee)}元（5%累进）`;
     }else if(amount <= 1000000){
       fee = 25000 + (amount - 500000) * 0.04;
     }else if(amount <= 5000000){
@@ -326,35 +342,71 @@ function calculate(){
       fee = 265000 + (amount - 10000000) * 0.01;
     }
     fee *= regionFactor;
-    feeRange = `${ToolBox.formatNumber(fee * 0.8, 0)} - ${ToolBox.formatNumber(fee * 1.2, 0)}元（参考区间）`;
   }else if(type === 'criminal'){
     const criminalStage = document.getElementById('criminalStageType').value;
     const criminalFees = {investigation: 6000, prosecution: 8000, trial: 15000, second: 20000};
     fee = criminalFees[criminalStage] * regionFactor;
-    feeRange = `${ToolBox.formatNumber(fee * 0.7, 0)} - ${ToolBox.formatNumber(fee * 1.5, 0)}元`;
   }else if(type === 'admin'){
     fee = 8000 * regionFactor;
-    feeRange = `${ToolBox.formatNumber(fee * 0.8, 0)} - ${ToolBox.formatNumber(fee * 1.5, 0)}元`;
   }else if(type === 'hourly'){
     const level = document.getElementById('lawyerLevel').value;
     const hours = parseFloat(document.getElementById('hours').value) || 0;
     const hourlyRates = {junior: 500, mid: 1500, senior: 3000};
     fee = hourlyRates[level] * hours * regionFactor;
-    feeRange = `${ToolBox.formatNumber(fee * 0.8, 0)} - ${ToolBox.formatNumber(fee * 1.2, 0)}元`;
   }else if(type === 'risk'){
     const baseFee = parseFloat(document.getElementById('baseFee').value) || 0;
     const ratio = parseFloat(document.getElementById('riskRatio').value) || 15;
     fee = baseFee;
-    const successFee = amount * (ratio / 100);
-    feeRange = `基础费${ToolBox.formatNumber(baseFee)} + 胜诉提成${ratio}%即${ToolBox.formatNumber(successFee)} = ${ToolBox.formatNumber(baseFee + successFee)}（上限不超30%）`;
   }
   
-  let html = `<p>收费参考：<strong>${feeRange}</strong></p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：以上仅供参考，律师费受案件复杂程度、律师经验、地区差异等因素影响，具体由双方协商确定。曾代理一审又代理二审的通常减半收费。</p>`;
+  const lfTypeName = {civil:['民事案件','Civil case'], criminal:['刑事案件','Criminal case'], admin:['行政案件','Administrative case'], hourly:['计时收费','Hourly billing'], risk:['风险代理','Contingency']};
+  let html = `<p>${lfL('案件类型：','Case type:')}<strong>${lfL(lfTypeName[type][0], lfTypeName[type][1])}</strong></p>`;
+  html += `<p>${lfL('参考收费：','Reference fee:')}<strong>${ToolBox.formatNumber(fee)}</strong> ${lfL('元','yuan')}</p>`;
+  html += `<p>${lfL('参考区间：','Reference range:')}${ToolBox.formatNumber(fee*0.8,0)} - ${ToolBox.formatNumber(fee*1.2,0)} ${lfL('元','yuan')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${lfL('注：以上仅供参考，律师费受案件复杂程度、律师经验、地区差异等因素影响，具体由双方协商确定。曾代理一审又代理二审的通常减半收费。','Note: for reference only; lawyer fees vary by case complexity, lawyer experience and region; determined by mutual agreement. Representing both first and second instance is usually charged at half.')}</p>`;
+
+  __lfD = {type: type, region: region, amount: amount, stage: stage, fee: fee};
+  window.__lfChart = {labels: [lfL('参考收费','Reference fee'), lfL('区间下限','Lower bound'), lfL('区间上限','Upper bound')], data: [fee, fee*0.8, fee*1.2]};
   
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __lfExtras(){
+  if(window.__lfChart && window.__lfChart.data && window.__lfChart.data.length){
+    TBKit.chart.bar('#lfChart', {labels: window.__lfChart.labels, series:[{name: lfL('金额','Amount'), data: window.__lfChart.data}], height: 240, title: lfL('律师费参考构成','Lawyer Fee Reference Composition')});
+  }
+  if(__lfD){
+    var rows = [
+      [lfL('案件类型','Case type'), lfL({'civil':'民事案件','criminal':'刑事案件','admin':'行政案件','hourly':'计时收费','risk':'风险代理'}[__lfD.type]||__lfD.type, {'civil':'Civil','criminal':'Criminal','admin':'Administrative','hourly':'Hourly','risk':'Contingency'}[__lfD.type]||__lfD.type)],
+      [lfL('标的额','Amount in dispute'), ToolBox.formatNumber(__lfD.amount)],
+      [lfL('参考收费','Reference fee'), ToolBox.formatNumber(__lfD.fee)],
+      [lfL('区间下限','Lower bound'), ToolBox.formatNumber(__lfD.fee*0.8)],
+      [lfL('区间上限','Upper bound'), ToolBox.formatNumber(__lfD.fee*1.2)]
+    ];
+    TBKit.matrix.table('#lfTable', {head:[lfL('项目','Item'), lfL('数值','Value')], rows: rows});
+    TBKit.history.record({[lfL('类型','Type')]: __lfD.type, [lfL('参考收费','Fee')]: ToolBox.formatNumber(__lfD.fee)});
+  }
+}
+function __lfExport(){ TBKit.util.exportTable('#lfTable', 'lawyer-fee-reference.csv'); }
+function __lfPresets(){
+  TBKit.preset.bar('#lfPresets', [
+    {label:'民事100万', labelEn:'Civil 1M', values:{caseType:'civil', region:'first', amount:'1000000', stage:'first'}},
+    {label:'刑事审判', labelEn:'Criminal trial', values:{caseType:'criminal', region:'first', amount:'0', stage:'first', criminalStageType:'trial'}},
+    {label:'计时高级20h', labelEn:'Senior 20h', values:{caseType:'hourly', region:'first', amount:'0', stage:'first', lawyerLevel:'senior', hours:'20'}},
+    {label:'风险代理', labelEn:'Contingency', values:{caseType:'risk', region:'first', amount:'500000', stage:'first', baseFee:'10000', riskRatio:'15'}}
+  ], function(){ calculate(); });
+}
+function __lfMountHist(){
+  TBKit.history.mount('#lfHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('caseType').value=d.type||'civil'; document.getElementById('region').value=d.region||'first'; document.getElementById('amount').value=d.amount||0; document.getElementById('stage').value=d.stage||'first'; calculate(); } }, 8);
+}
+function __lfBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __lfExtras(); __lfPresets(); __lfMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __lfExtras(); __lfPresets(); __lfMountHist(); }
+}
+var __tb_lf0=calculate; calculate=function(){__tb_lf0();try{__lfExtras();}catch(e){}};
+__lfBoot();
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

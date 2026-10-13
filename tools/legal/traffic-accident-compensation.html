@@ -229,6 +229,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 赔偿构成</h3>
+    <div id="taChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="taTable"></div>
+    <button type="button" class="btn" id="taExport" onclick="__taExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="taHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="taPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 赔偿项目说明</h3>
@@ -287,6 +304,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function taL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __taD=null; var __taChart=null;
 function calculate(){
   const liability = parseFloat(document.getElementById('liability').value);
   const injuryLevel = document.getElementById('injuryLevel').value;
@@ -331,34 +350,80 @@ function calculate(){
   const subtotal = medical + missedWork + nursing + hospitalFood + transport + disabilityDeath + funeralExpense + dependentExp + propertyLoss + mentalDistress;
   const total = subtotal * liability;
   
-  let html = `<h3 style="margin-bottom:8px;">赔偿明细</h3>`;
-  html += `<p>医疗费：${ToolBox.formatNumber(medical)} 元</p>`;
-  html += `<p>误工费：${ToolBox.formatNumber(missedWork)} 元（${missedDays}天）</p>`;
-  html += `<p>护理费（估算）：${ToolBox.formatNumber(nursing)} 元</p>`;
-  html += `<p>住院伙食补助费（估算）：${ToolBox.formatNumber(hospitalFood)} 元</p>`;
-  html += `<p>交通费（估算）：${ToolBox.formatNumber(transport)} 元</p>`;
+  let html = `<h3 style="margin-bottom:8px;">${taL('赔偿明细','Compensation Details')}</h3>`;
+  html += `<p>${taL('医疗费：','Medical expenses:')}${ToolBox.formatNumber(medical)} ${taL('元','yuan')}</p>`;
+  html += `<p>${taL('误工费：','Lost income:')}${ToolBox.formatNumber(missedWork)} ${taL('元（','yuan (')}${missedDays}${taL('天）','days)')}</p>`;
+  html += `<p>${taL('护理费（估算）：','Nursing care (est):')}${ToolBox.formatNumber(nursing)} ${taL('元','yuan')}</p>`;
+  html += `<p>${taL('住院伙食补助费（估算）：','Hospital food allowance (est):')}${ToolBox.formatNumber(hospitalFood)} ${taL('元','yuan')}</p>`;
+  html += `<p>${taL('交通费（估算）：','Transport (est):')}${ToolBox.formatNumber(transport)} ${taL('元','yuan')}</p>`;
   if(disabilityDeath > 0){
-    html += `<p>${injuryLevel === 'death' ? '死亡' : '残疾'}赔偿金：${ToolBox.formatNumber(disabilityDeath)} 元（${compYears}年×${disabilityRate*100}%）</p>`;
+    html += `<p>${taL(injuryLevel === 'death' ? '死亡赔偿金：' : '残疾赔偿金：', injuryLevel === 'death' ? 'Death compensation: ' : 'Disability compensation: ')}${ToolBox.formatNumber(disabilityDeath)} ${taL('元（','yuan (')}${compYears}${taL('年×','years x ')}${disabilityRate*100}${taL('%）','%)')}</p>`;
   }
   if(funeralExpense > 0){
-    html += `<p>丧葬费：${ToolBox.formatNumber(funeralExpense)} 元</p>`;
+    html += `<p>${taL('丧葬费：','Funeral expense:')}${ToolBox.formatNumber(funeralExpense)} ${taL('元','yuan')}</p>`;
   }
   if(dependentExp > 0){
-    html += `<p>被扶养人生活费：${ToolBox.formatNumber(dependentExp)} 元</p>`;
+    html += `<p>${taL('被扶养人生活费：','Living cost of dependents:')}${ToolBox.formatNumber(dependentExp)} ${taL('元','yuan')}</p>`;
   }
-  html += `<p>财产损失（估算）：${ToolBox.formatNumber(propertyLoss)} 元</p>`;
+  html += `<p>${taL('财产损失（估算）：','Property loss (est):')}${ToolBox.formatNumber(propertyLoss)} ${taL('元','yuan')}</p>`;
   if(mentalDistress > 0){
-    html += `<p>精神损害抚慰金（估算）：${ToolBox.formatNumber(mentalDistress)} 元</p>`;
+    html += `<p>${taL('精神损害抚慰金（估算）：','Mental distress solatium (est):')}${ToolBox.formatNumber(mentalDistress)} ${taL('元','yuan')}</p>`;
   }
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>损失合计：${ToolBox.formatNumber(subtotal)} 元</p>`;
-  html += `<p>责任比例：<strong>${Math.round(liability*100)}%</strong></p>`;
-  html += `<p>对方应赔偿：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：交强险限额内不分责任，超出部分按责任比例；护理费、伙食补助、精神抚慰金等因地而异，仅供参考</p>`;
+  html += `<p>${taL('损失合计：','Total loss:')}${ToolBox.formatNumber(subtotal)} ${taL('元','yuan')}</p>`;
+  html += `<p>${taL('责任比例：','Liability ratio:')}<strong>${Math.round(liability*100)}%</strong></p>`;
+  html += `<p>${taL('对方应赔偿：','Other party shall pay:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${taL('元','yuan')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${taL('注：交强险限额内不分责任，超出部分按责任比例；护理费、伙食补助、精神抚慰金等因地而异，仅供参考','Note: within the compulsory insurance limit liability is not apportioned; beyond it the ratio applies; nursing, food and solatium vary by region, for reference only')}</p>`;
+
+  __taD = {liability: liability, injuryLevel: injuryLevel, age: age, subtotal: subtotal, total: total, medical: medical, missedWork: missedWork, disabilityDeath: disabilityDeath, funeralExpense: funeralExpense, mentalDistress: mentalDistress, dependentExp: dependentExp};
+  window.__taChart = {labels: [], data: []};
+  var taItems = [['医疗费','Medical expenses',medical],['误工费','Lost income',missedWork],['护理费','Nursing',nursing],['住院伙食补助','Hospital food',hospitalFood],['交通费','Transport',transport],['残疾/死亡赔偿金','Disability/Death comp',disabilityDeath],['丧葬费','Funeral',funeralExpense],['被扶养人生活费','Dependent living',dependentExp],['财产损失','Property loss',propertyLoss],['精神抚慰金','Solatium',mentalDistress]];
+  for(var ti=0; ti<taItems.length; ti++){ if(taItems[ti][2] > 0){ window.__taChart.labels.push(taL(taItems[ti][0], taItems[ti][1])); window.__taChart.data.push(taItems[ti][2]); } }
   
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __taExtras(){
+  if(window.__taChart && window.__taChart.data && window.__taChart.data.length){
+    TBKit.chart.bar('#taChart', {labels: window.__taChart.labels, series:[{name: taL('金额','Amount'), data: window.__taChart.data}], height: 240, title: taL('交通事故赔偿构成','Traffic Accident Compensation Composition')});
+  }
+  if(__taD){
+    var rows = [
+      [taL('责任比例','Liability'), Math.round(__taD.liability*100)+'%'],
+      [taL('伤残/死亡等级','Injury/Death grade'), __taD.injuryLevel],
+      [taL('医疗费','Medical'), ToolBox.formatNumber(__taD.medical)],
+      [taL('误工费','Lost income'), ToolBox.formatNumber(__taD.missedWork)],
+      [taL('残疾/死亡赔偿金','Disability/Death comp'), ToolBox.formatNumber(__taD.disabilityDeath)],
+      [taL('丧葬费','Funeral'), ToolBox.formatNumber(__taD.funeralExpense)],
+      [taL('精神抚慰金','Solatium'), ToolBox.formatNumber(__taD.mentalDistress)],
+      [taL('被扶养人生活费','Dependent living'), ToolBox.formatNumber(__taD.dependentExp)],
+      [taL('损失合计','Total loss'), ToolBox.formatNumber(__taD.subtotal)],
+      [taL('对方应赔偿','Payable by other'), ToolBox.formatNumber(__taD.total)]
+    ];
+    TBKit.matrix.table('#taTable', {head:[taL('项目','Item'), taL('数值','Value')], rows: rows});
+    TBKit.history.record({[taL('责任比','Ratio')]: Math.round(__taD.liability*100)+'%', [taL('损失合计','Total loss')]: ToolBox.formatNumber(__taD.subtotal), [taL('对方应赔','Payable')]: ToolBox.formatNumber(__taD.total)});
+  }
+}
+function __taExport(){ TBKit.util.exportTable('#taTable', 'traffic-accident-compensation.csv'); }
+function __taPresets(){
+  TBKit.preset.bar('#taPresets', [
+    {label:'全责十级伤', labelEn:'Full liab. gr10', values:{liability:'1', injuryLevel:'10', age:'35', disposableIncome:'50000', avgWage:'8000', dependentExpense:'0', medicalExpense:'20000', hospitalDays:'15', monthlyIncome:'8000', missedDays:'90'}},
+    {label:'同责死亡', labelEn:'Equal liab. death', values:{liability:'0.5', injuryLevel:'death', age:'60', disposableIncome:'50000', avgWage:'8000', dependentExpense:'30000', medicalExpense:'50000', hospitalDays:'30', monthlyIncome:'8000', missedDays:'120'}},
+    {label:'主责八级伤', labelEn:'Major liab. gr8', values:{liability:'0.7', injuryLevel:'8', age:'40', disposableIncome:'60000', avgWage:'9000', dependentExpense:'0', medicalExpense:'30000', hospitalDays:'20', monthlyIncome:'9000', missedDays:'100'}},
+    {label:'全责无伤残', labelEn:'Full liab. no injury', values:{liability:'1', injuryLevel:'0', age:'30', disposableIncome:'50000', avgWage:'8000', dependentExpense:'0', medicalExpense:'15000', hospitalDays:'10', monthlyIncome:'8000', missedDays:'30'}}
+  ], function(){ calculate(); });
+}
+function __taMountHist(){
+  TBKit.history.mount('#taHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('liability').value=(typeof d.liability==='number')?d.liability:(d.liability||'1'); document.getElementById('injuryLevel').value=d.injuryLevel||'0'; document.getElementById('age').value=d.age||35; document.getElementById('disposableIncome').value='50000'; document.getElementById('avgWage').value='8000'; document.getElementById('dependentExpense').value=d.dependentExp||0; document.getElementById('medicalExpense').value=d.medical||0; document.getElementById('hospitalDays').value='15'; document.getElementById('monthlyIncome').value='8000'; document.getElementById('missedDays').value='90'; calculate(); } }, 8);
+}
+function __taBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __taExtras(); __taPresets(); __taMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __taExtras(); __taPresets(); __taMountHist(); }
+}
+var __tb_ta0=calculate; calculate=function(){__tb_ta0();try{__taExtras();}catch(e){}};
+__taBoot();
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

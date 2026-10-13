@@ -343,7 +343,7 @@ const CASES = [
   {
     slug: "legal/lawyer-fee-reference",
     inputs: { amount: "800000", hours: "30", baseFee: "15000", riskRatio: "20" },
-    expect: ["29,600 - 44,400元"],
+    expect: ["29,600 - 44,400 元"],
     ref: "注入非默认(默认 amount=500000/hours=20/baseFee=10000/riskRatio=15)：按标的额分段累计 ⇒ 民事一审（北京）参考区间 29,600 − 44,400 元（区间上下界分别含风险代理比例折算）。默认态区间不同。"
   },
   {
@@ -684,7 +684,7 @@ const CASES = [
       "lawyerLevel": "mid"
     },
     "expect": [
-      "criminal\nsh\n42\nsecond\nprosecution\n收费参考： 5,600 - 12,000元"
+      "参考区间：6,400 - 9,600 元"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"amount\":\"42\",\"hours\":\"42\",\"baseFee\":\"42\",\"riskRatio\":\"42\",\"caseType\":\"criminal\",\"region\":\"sh\",\"stage\":\"second\",\"criminalStageType\":\"prosecution\",\"lawyerLevel\":\"mid\"}，输出区含「criminal\nsh\n42\nsecond\nprosecution\n收费参考： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

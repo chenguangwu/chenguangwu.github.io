@@ -219,6 +219,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 赔偿构成</h3>
+    <div id="piChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="piTable"></div>
+    <button type="button" class="btn" id="piExport" onclick="__piExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="piHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="piPresets" class="preset-bar"></div>
+  </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -267,6 +284,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function piL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __piD=null; var __piChart=null;
 function calculate(){
   const level = document.getElementById('disabilityLevel').value;
   const age = parseInt(document.getElementById('age').value) || 0;
@@ -298,24 +317,66 @@ function calculate(){
   
   const total = medical + missedWork + nursing + food + transport + disabilityDeath + funeral + mental;
   
-  let html = `<h3 style="margin-bottom:8px;">赔偿明细</h3>`;
-  html += `<p>医疗费：${ToolBox.formatNumber(medical)} 元</p>`;
-  html += `<p>误工费：${ToolBox.formatNumber(missedWork)} 元</p>`;
-  html += `<p>护理费：${ToolBox.formatNumber(nursing)} 元</p>`;
-  html += `<p>住院伙食补助费：${ToolBox.formatNumber(food)} 元</p>`;
-  html += `<p>交通费（估算）：${ToolBox.formatNumber(transport)} 元</p>`;
+  let html = `<h3 style="margin-bottom:8px;">${piL('赔偿明细','Compensation Details')}</h3>`;
+  html += `<p>${piL('医疗费：','Medical expenses:')}${ToolBox.formatNumber(medical)} ${piL('元','yuan')}</p>`;
+  html += `<p>${piL('误工费：','Lost income:')}${ToolBox.formatNumber(missedWork)} ${piL('元','yuan')}</p>`;
+  html += `<p>${piL('护理费：','Nursing care:')}${ToolBox.formatNumber(nursing)} ${piL('元','yuan')}</p>`;
+  html += `<p>${piL('住院伙食补助费：','Hospital food allowance:')}${ToolBox.formatNumber(food)} ${piL('元','yuan')}</p>`;
+  html += `<p>${piL('交通费（估算）：','Transport (est):')}${ToolBox.formatNumber(transport)} ${piL('元','yuan')}</p>`;
   if(rate > 0){
-    html += `<p>${level === 'death' ? '死亡' : '残疾'}赔偿金：${ToolBox.formatNumber(disabilityDeath)} 元（${compYears}年×${Math.round(rate*100)}%）</p>`;
+    html += `<p>${piL(level === 'death' ? '死亡赔偿金：' : '残疾赔偿金：', level === 'death' ? 'Death compensation: ' : 'Disability compensation: ')}${ToolBox.formatNumber(disabilityDeath)} ${piL('元（','yuan (')}${compYears}${piL('年×','years x ')}${Math.round(rate*100)}${piL('%）','%)')}</p>`;
   }
-  if(funeral > 0) html += `<p>丧葬费：${ToolBox.formatNumber(funeral)} 元</p>`;
-  if(mental > 0) html += `<p>精神损害抚慰金（估算）：${ToolBox.formatNumber(mental)} 元</p>`;
+  if(funeral > 0) html += `<p>${piL('丧葬费：','Funeral expense:')}${ToolBox.formatNumber(funeral)} ${piL('元','yuan')}</p>`;
+  if(mental > 0) html += `<p>${piL('精神损害抚慰金（估算）：','Mental distress solatium (est):')}${ToolBox.formatNumber(mental)} ${piL('元','yuan')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>赔偿总额：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：未计入被扶养人生活费、残疾辅助器具费、营养费、后续治疗费等；各地标准不同，仅供参考</p>`;
+  html += `<p>${piL('赔偿总额：','Total compensation:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${piL('元','yuan')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${piL('注：未计入被扶养人生活费、残疾辅助器具费、营养费、后续治疗费等；各地标准不同，仅供参考','Note: living cost of dependents, assistive devices, nutrition and follow-up treatment are not included; standards vary by region, for reference only')}</p>`;
+
+  __piD = {level: level, age: age, income: income, avgWage: avgWage, medical: medical, monthlyWage: monthlyWage, missedDays: missedDays, nursingDays: nursingDays, foodPerDay: foodPerDay, hospitalDays: hospitalDays, total: total};
+  window.__piChart = {labels: [], data: []};
+  var piItems = [['医疗费','Medical',medical],['误工费','Lost income',missedWork],['护理费','Nursing',nursing],['住院伙食补助','Hospital food',food],['交通费','Transport',transport],['残疾/死亡赔偿金','Disability/Death comp',disabilityDeath],['丧葬费','Funeral',funeral],['精神抚慰金','Solatium',mental]];
+  for(var pi=0; pi<piItems.length; pi++){ if(piItems[pi][2] > 0){ window.__piChart.labels.push(piL(piItems[pi][0], piItems[pi][1])); window.__piChart.data.push(piItems[pi][2]); } }
   
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __piExtras(){
+  if(window.__piChart && window.__piChart.data && window.__piChart.data.length){
+    TBKit.chart.bar('#piChart', {labels: window.__piChart.labels, series:[{name: piL('金额','Amount'), data: window.__piChart.data}], height: 240, title: piL('人身损害赔偿构成','Personal Injury Compensation Composition')});
+  }
+  if(__piD){
+    var rows = [
+      [piL('伤残/死亡等级','Injury/Death grade'), __piD.level],
+      [piL('年龄','Age'), __piD.age],
+      [piL('医疗费','Medical'), ToolBox.formatNumber(__piD.medical)],
+      [piL('误工费','Lost income'), ToolBox.formatNumber(__piD.medical?__piD.monthlyWage*__piD.missedDays/30:0)],
+      [piL('残疾/死亡赔偿金','Disability/Death comp'), ToolBox.formatNumber(__piD.income*((__piD.age<60?20:(__piD.age<75?20-(__piD.age-60):5)))*(__piD.level==='death'?1:(__piD.level==='0'?0:parseInt(__piD.level)/10)))],
+      [piL('赔偿总额','Total'), ToolBox.formatNumber(__piD.total)]
+    ];
+    TBKit.matrix.table('#piTable', {head:[piL('项目','Item'), piL('数值','Value')], rows: rows});
+    TBKit.history.record({[piL('等级','Grade')]: __piD.level, [piL('赔偿总额','Total')]: ToolBox.formatNumber(__piD.total)});
+  }
+}
+function __piExport(){ TBKit.util.exportTable('#piTable', 'personal-injury.csv'); }
+function __piPresets(){
+  TBKit.preset.bar('#piPresets', [
+    {label:'一级伤残', labelEn:'Grade 1 injury', values:{disabilityLevel:'1', age:'40', income:'80000', avgWage:'8000', medical:'50000', monthlyWage:'8000', missedDays:'120', nursingDays:'60', foodAllowance:'100', hospitalDays:'60'}},
+    {label:'死亡案件', labelEn:'Death case', values:{disabilityLevel:'death', age:'55', income:'80000', avgWage:'8000', medical:'80000', monthlyWage:'8000', missedDays:'30', nursingDays:'0', foodAllowance:'100', hospitalDays:'30'}},
+    {label:'十级伤残', labelEn:'Grade 10 injury', values:{disabilityLevel:'10', age:'30', income:'60000', avgWage:'7000', medical:'20000', monthlyWage:'7000', missedDays:'60', nursingDays:'20', foodAllowance:'80', hospitalDays:'20'}},
+    {label:'未构成伤残', labelEn:'No injury grade', values:{disabilityLevel:'0', age:'25', income:'50000', avgWage:'6000', medical:'10000', monthlyWage:'6000', missedDays:'15', nursingDays:'5', foodAllowance:'80', hospitalDays:'10'}}
+  ], function(){ calculate(); });
+}
+function __piMountHist(){
+  TBKit.history.mount('#piHist', function(rec){ if(rec && rec.d){ var d=rec.d; document.getElementById('disabilityLevel').value=d.level||'0'; document.getElementById('age').value=d.age||35; document.getElementById('income').value=d.income||50000; document.getElementById('avgWage').value=d.avgWage||8000; document.getElementById('medical').value=d.medical||0; document.getElementById('monthlyWage').value=d.monthlyWage||8000; document.getElementById('missedDays').value=d.missedDays||0; document.getElementById('nursingDays').value=d.nursingDays||0; document.getElementById('foodAllowance').value=d.foodPerDay||0; document.getElementById('hospitalDays').value=d.hospitalDays||0; calculate(); } }, 8);
+}
+function __piBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __piExtras(); __piPresets(); __piMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __piExtras(); __piPresets(); __piMountHist(); }
+}
+var __tb_pi0=calculate; calculate=function(){__tb_pi0();try{__piExtras();}catch(e){}};
+__piBoot();
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

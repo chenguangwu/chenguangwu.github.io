@@ -124,7 +124,7 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 - `general` 57/3.4/4
 - `hydraulic` 56/3.0/11
 - `realestate` 55/4.07/0
-- `legal` 47/1.96/37（批次1 六页 overtime-pay/severance-pay/child-support/labor-compensation-n1/inheritance-share/late-payment-interest 已收口：图表+预设+历史+导出+i18n 双语；剩余 47 页待续）
+- `legal` 35/1.96/37（批次1 六页 overtime-pay/severance-pay/child-support/labor-compensation-n1/inheritance-share/late-payment-interest + 批次2 六页 arbitration-fee/court-fee/notarization-fee/trademark-fee/stamp-duty-legal/rent-deposit + 批次3 六页 work-injury-compensation/traffic-accident-compensation/personal-injury/divorce-property/ipr-damages/lawyer-fee-reference 已收口：图表+速查表+历史+预设+导出+i18n 双语；剩余 35 页待续）
 - `edu` 48/4.65/5
 - `marketing` 47/3.98/11
 
