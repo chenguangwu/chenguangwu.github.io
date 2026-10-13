@@ -135,12 +135,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="edPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__edExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="edChart"></div>
+    <div id="edTable"></div>
+    <div id="edDiff"></div>
+    <div id="edHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +207,50 @@ function resetForm(){document.getElementById('R').value = '100';
       document.getElementById('D').value = '60';
       calcTool();}
 calcTool();
+
+function __edN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __edList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __edL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+var __edT={'外距 E (米)':'External E (m)','曲线长 L (米)':'Arc length L (m)','切线长 T (米)':'Tangent T (m)','圆心角 (°)':'Central angle (°)'};
+var __tb_ed_dg=dataGrid;
+dataGrid=function(rows){if(typeof TBKit!=='undefined'&&TBKit.util.isEn()){rows=rows.map(function(r){return[(typeof r[0]==='string'?(__edT[r[0]]||r[0]):r[0]),(r[1]==null?r[1]:(__edT[r[1]]||r[1]))];});}return __tb_ed_dg(rows);};
+
+
+function __edExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#edTable','external-distance-curve.csv');}catch(e){} }
+function __edExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var R=__edN('R'), D=__edN('D');
+        if(!(R>0&&D>0&&D<360))return;
+        var rad=D*Math.PI/180, h=rad/2;
+        var E=R*(1/Math.cos(h)-1), Lr=R*rad, T=R*Math.tan(h), M=R*(1-Math.cos(h));
+        TBKit.chart.bar('#edChart',{labels:[__edL('external E','外距 E'),__edL('tangent T','切线长 T'),__edL('arc L','弧长 L'),__edL('mid ordinate M','中点垂距 M')],series:[{name:__edL('length (m)','长度 (m)'),data:[E,T,Lr,M]}],height:220,title:__edL('Curve elements at R='+R+'m Δ='+D+'°','圆曲线要素（R='+R+'m Δ='+D+'°）')});
+        var rows=__edL(
+            [['radius R (m)',R.toFixed(3)],['deflection Δ (°)',D.toFixed(3)],['external E (m)',E.toFixed(3)],['tangent T (m)',T.toFixed(3)],['arc L (m)',Lr.toFixed(3)],['mid ordinate M (m)',M.toFixed(3)],['E/M ratio',(E/M).toFixed(4)],['E/L ratio',(E/Lr).toFixed(4)]],
+            [['半径 R (m)',R.toFixed(3)],['交角 Δ (°)',D.toFixed(3)],['外距 E (m)',E.toFixed(3)],['切线长 T (m)',T.toFixed(3)],['弧长 L (m)',Lr.toFixed(3)],['中点垂距 M (m)',M.toFixed(3)],['E/M 比值',(E/M).toFixed(4)],['E/L 比值',(E/Lr).toFixed(4)]]);
+        TBKit.matrix.table('#edTable',{head:__edL(['Element','Value'],['要素','数值']),rows:rows});
+        TBKit.history.record({E:Number(E.toFixed(3))});
+        TBKit.util.diffBox('#edDiff',['E']);
+        TBKit.history.mount('#edHist',function(v){ if(v.E!=null){document.getElementById('R').value=v.R;document.getElementById('D').value=v.D;} calcTool(); });
+    }catch(e){}
+}
+function __edPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#edPresets',[
+            {label:'R100 Δ60°',labelEn:'R100 D60',values:{R:100,D:60}},
+            {label:'R300 Δ30°',labelEn:'R300 D30',values:{R:300,D:30}},
+            {label:'R50 Δ90°',labelEn:'R50 D90',values:{R:50,D:90}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_ed0 = calcTool;
+calcTool = function(){ __tb_ed0(); try{ __edExtras(); }catch(e){} };
+function __edBoot(){ try{ __edPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __edBoot);
+else __edBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

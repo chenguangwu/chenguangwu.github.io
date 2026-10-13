@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="stChart"></div>
+    <div id="stTable"></div>
+    <div id="stDiff"></div>
+    <div id="stHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -181,8 +188,8 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>function __tbInputGuard(_ids,_labels){
-  var __TPL='请填写「%s」后再计算。';
-  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var __TPL=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Please fill in "%s" before calculating.':'请填写「%s」后再计算。';
+  var __TPL2=(typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p style=\"color:var(--danger)\">⚠ \"%s\" is a denominator and cannot be 0.</p>":"<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
   var _REQ=['c', 'th'];
   for(var _i=0;_i<_ids.length;_i++){
@@ -251,6 +258,53 @@ function resetForm(){document.getElementById('c').value = '2';
       document.getElementById('th').value = '0.0573';
       calcTool();}
 calcTool();
+
+function __stN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __stL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+var __stT={'距离 D (米)':'Distance D (m)','距离 (km)':'Distance (km)','视差角 (°)':'Parallax angle (°)','视距标尺长度 (米)':'Subtense base length (m)'};
+var __tb_st_dg=dataGrid;
+dataGrid=function(rows){if(typeof TBKit!=='undefined'&&TBKit.util.isEn()){rows=rows.map(function(r){return[(typeof r[0]==='string'?(__stT[r[0]]||r[0]):r[0]),(r[1]==null?r[1]:(__stT[r[1]]||r[1]))];});}return __tb_st_dg(rows);};
+
+
+function __stExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#stTable','subtense-distance.csv');}catch(e){} }
+function __stExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var c=__stN('c'), th=__stN('th');
+        if(!(c>0&&th>0&&th<90))return;
+        function D(aa){ return c/Math.tan(aa*Math.PI/180); }
+        var angs=[0.02,0.04,0.06,0.08,0.10,0.15,0.20], i;
+        var labs=[],data=[];
+        for(i=0;i<angs.length;i++){ labs.push(angs[i].toFixed(2)+'°'); data.push(Number(D(angs[i]).toFixed(2))); }
+        TBKit.chart.line('#stChart',{labels:labs,series:[{name:__stL('distance D (m)','距离 D (m)'),data:data}],height:230,title:__stL('Subtense distance vs parallax angle (c='+c+'m)','横基尺距离随视差角变化（c='+c+'m）')});
+        var Dc=D(th);
+        var rows=__stL(
+            [['base length c (m)',c.toFixed(3)],['parallax angle θ (°)',th.toFixed(4)],['distance D (m)',Dc.toFixed(2)],['distance (km)',(Dc/1000).toFixed(4)],['half-angle θ/2 (°)',(th/2).toFixed(4)],['D/c ratio',(Dc/c).toFixed(1)],['sensitivity ΔD/Δθ (m/°)',(-c/(Math.sin(th*Math.PI/180)*Math.sin(th*Math.PI/180))*Math.PI/180).toFixed(0)]],
+            [['横基尺长 c (m)',c.toFixed(3)],['视差角 θ (°)',th.toFixed(4)],['距离 D (m)',Dc.toFixed(2)],['距离 (km)',(Dc/1000).toFixed(4)],['半角 θ/2 (°)',(th/2).toFixed(4)],['D/c 比值',(Dc/c).toFixed(1)],['灵敏度 ΔD/Δθ (m/°)',(-c/(Math.sin(th*Math.PI/180)*Math.sin(th*Math.PI/180))*Math.PI/180).toFixed(0)]]);
+        TBKit.matrix.table('#stTable',{head:__stL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({D:Number(Dc.toFixed(2))});
+        TBKit.util.diffBox('#stDiff',['D']);
+        TBKit.history.mount('#stHist',function(v){ if(v.D!=null){document.getElementById('c').value=v.c;document.getElementById('th').value=v.th;} calcTool(); });
+    }catch(e){}
+}
+function __stPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#stPresets',[
+            {label:'2km c=2 θ≈0.057°',labelEn:'2km c=2',values:{c:2,th:0.0573}},
+            {label:'1km c=2 θ≈0.115°',labelEn:'1km c=2',values:{c:2,th:0.1146}},
+            {label:'500m c=1 θ≈0.23°',labelEn:'500m c=1',values:{c:1,th:0.2293}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_st0 = calcTool;
+calcTool = function(){ __tb_st0(); try{ __stExtras(); }catch(e){} };
+function __stBoot(){ try{ __stPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __stBoot);
+else __stBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

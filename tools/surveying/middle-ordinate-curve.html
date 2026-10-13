@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="moPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__moExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="moChart"></div>
+    <div id="moTable"></div>
+    <div id="moDiff"></div>
+    <div id="moHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,59 @@ function resetForm(){document.getElementById('R').value = '100';
       document.getElementById('D').value = '60';
       calcTool();}
 calcTool();
+
+function __moN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __moList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __moL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+var __moT={'中点垂距 M (米)':'Middle ordinate M (m)','曲线长 L (米)':'Arc length L (m)','外距 E (米)':'External E (m)','圆心角 (°)':'Central angle (°)'};
+var __tb_mo_dg=dataGrid;
+dataGrid=function(rows){if(typeof TBKit!=='undefined'&&TBKit.util.isEn()){rows=rows.map(function(r){return[(typeof r[0]==='string'?(__moT[r[0]]||r[0]):r[0]),(r[1]==null?r[1]:(__moT[r[1]]||r[1]))];});}return __tb_mo_dg(rows);};
+
+
+function __moExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#moTable','middle-ordinate-curve.csv');}catch(e){} }
+function __moExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var R=__moN('R'), D=__moN('D');
+        if(!(R>0&&D>0&&D<360))return;
+        var rad=D*Math.PI/180, h=rad/2;
+        var M=R*(1-Math.cos(h)), Lr=R*rad, E=R*(1/Math.cos(h)-1), T=R*Math.tan(h);
+        var ds=[],i;
+        for(i=10;i<=120;i+=10)ds.push(i);
+        function mm(dd){ var hh=dd*Math.PI/360; return R*(1-Math.cos(hh)); }
+        function ee(dd){ var hh=dd*Math.PI/360; return R*(1/Math.cos(hh)-1); }
+        function ll(dd){ return R*dd*Math.PI/180; }
+        TBKit.chart.line('#moChart',{labels:ds.map(function(d){return d+'°';}),series:[
+            {name:__moL('mid ordinate M','中点垂距 M'),data:ds.map(mm)},
+            {name:__moL('external E','外距 E'),data:ds.map(ee)},
+            {name:__moL('arc L','弧长 L'),data:ds.map(ll)}
+        ],height:230,title:__moL('M/E/L vs deflection (R='+R+'m)','垂距/外距/弧长随交角变化（R='+R+'m）')});
+        var rows=__moL(
+            [['radius R (m)',R.toFixed(3)],['deflection Δ (°)',D.toFixed(3)],['mid ordinate M (m)',M.toFixed(3)],['external E (m)',E.toFixed(3)],['arc L (m)',Lr.toFixed(3)],['tangent T (m)',T.toFixed(3)],['M/L ratio',(M/Lr).toFixed(4)],['M/E ratio',(M/E).toFixed(4)]],
+            [['半径 R (m)',R.toFixed(3)],['交角 Δ (°)',D.toFixed(3)],['中点垂距 M (m)',M.toFixed(3)],['外距 E (m)',E.toFixed(3)],['弧长 L (m)',Lr.toFixed(3)],['切线长 T (m)',T.toFixed(3)],['M/L 比值',(M/Lr).toFixed(4)],['M/E 比值',(M/E).toFixed(4)]]);
+        TBKit.matrix.table('#moTable',{head:__moL(['Element','Value'],['要素','数值']),rows:rows});
+        TBKit.history.record({M:Number(M.toFixed(3))});
+        TBKit.util.diffBox('#moDiff',['M']);
+        TBKit.history.mount('#moHist',function(v){ if(v.M!=null){document.getElementById('R').value=v.R;document.getElementById('D').value=v.D;} calcTool(); });
+    }catch(e){}
+}
+function __moPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#moPresets',[
+            {label:'R100 Δ60°',labelEn:'R100 D60',values:{R:100,D:60}},
+            {label:'R200 Δ30°',labelEn:'R200 D30',values:{R:200,D:30}},
+            {label:'R50 Δ90°',labelEn:'R50 D90',values:{R:50,D:90}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_mo0 = calcTool;
+calcTool = function(){ __tb_mo0(); try{ __moExtras(); }catch(e){} };
+function __moBoot(){ try{ __moPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __moBoot);
+else __moBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

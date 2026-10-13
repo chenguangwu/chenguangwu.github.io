@@ -123,8 +123,14 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><div><label>VDOP值</label><input type="number" id="vdop" value="2.2" step="0.1" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>可见卫星数</label><input type="number" id="satCount" value="8" step="1" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>UERE用户测距误差 (m)</label><input type="number" id="uere" value="3.0" step="0.1" style="font-size:16px;" oninput="calc()"></div></div>
-    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估精度</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
+    <div id="asPresets"></div>
+    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估精度</button><button type="button" class="btn" onclick="__asExport()">导出 CSV</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
     <div class="result-box" id="res"></div>
+    <div id="asChart"></div>
+    <div id="asTable"></div>
+    <div id="asDiff"></div>
+    <div id="asHist"></div>
+
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -180,23 +186,65 @@ function calc(){
   var pdop=+document.getElementById('pdop').value||0;var hdop=+document.getElementById('hdop').value||0;
   var vdop=+document.getElementById('vdop').value||0;var sc=+document.getElementById('satCount').value||0;
   var uere=+document.getElementById('uere').value||3;
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var calcPdop=Math.sqrt(hdop*hdop+vdop*vdop);
   var hErr=hdop*uere,vErr=vdop*uere,pErr=pdop*uere;
-  var grade=pdop<=1?'理想（特级）':pdop<=2?'优秀':pdop<=5?'良好':pdop<=10?'一般':'差';
+  var grade=__EN?(pdop<=1?'Ideal (special grade)':pdop<=2?'Excellent':pdop<=5?'Good':pdop<=10?'Fair':'Poor'):(pdop<=1?'理想（特级）':pdop<=2?'优秀':pdop<=5?'良好':pdop<=10?'一般':'差');
   var color=pdop<=5?'var(--success)':pdop<=10?'var(--warning)':'var(--danger)';
-  var h='<p style="font-weight:600;">GPS定位精度评估</p>';
-  h+='<p>PDOP：<strong style="font-size:20px;color:'+color+';">'+pdop+'</strong></p>';
-  h+='<p>HDOP：'+hdop+' | VDOP：'+vdop+'</p>';
-  h+='<p>可见卫星：'+sc+'颗'+(sc>=6?' ✓':' ⚠不足')+'</p>';
-  h+='<p>PDOP验证：计算值='+calcPdop.toFixed(3)+(Math.abs(pdop-calcPdop)<0.1?' ✓':' ⚠差异')+'</p>';
-  h+='<p>水平误差：±'+hErr.toFixed(2)+'m | 垂直误差：±'+vErr.toFixed(2)+'m | 三维误差：±'+pErr.toFixed(2)+'m</p>';
-  h+='<p>精度等级：<strong style="font-size:22px;color:'+color+';">'+grade+'</strong></p>';
-  if(pdop>5)h+='<div class="tip-box tip-warn" style="margin-top:8px;">PDOP偏高，建议等待更多卫星或使用RTK。</div>';
-  if(sc<5)h+='<div class="tip-box tip-error" style="margin-top:8px;">卫星数不足5颗，无法可靠3D定位。</div>';
+  var h='<p style="font-weight:600;">'+(__EN?'GPS Positioning Accuracy Assessment':'GPS定位精度评估')+'</p>';
+  h+='<p>'+(__EN?'PDOP: ':'PDOP：')+'<strong style="font-size:20px;color:'+color+';">'+pdop+'</strong></p>';
+  h+='<p>'+(__EN?'HDOP: ':'HDOP：')+hdop+' | '+(__EN?'VDOP: ':'VDOP：')+vdop+'</p>';
+  h+='<p>'+(__EN?'Visible satellites: ':'可见卫星：')+sc+(__EN?(sc>=6?' ✓':' ⚠ insufficient'):'颗'+(sc>=6?' ✓':' ⚠不足'))+'</p>';
+  h+='<p>'+(__EN?'PDOP check: computed=':'PDOP验证：计算值=')+calcPdop.toFixed(3)+(Math.abs(pdop-calcPdop)<0.1?' ✓':(__EN?' ⚠ mismatch':' ⚠差异'))+'</p>';
+  h+='<p>'+(__EN?'Horizontal error: ±':'水平误差：±')+hErr.toFixed(2)+'m | '+(__EN?'Vertical error: ±':'垂直误差：±')+vErr.toFixed(2)+'m | '+(__EN?'3D error: ±':'三维误差：±')+pErr.toFixed(2)+'m</p>';
+  h+='<p>'+(__EN?'Grade: ':'精度等级：')+'<strong style="font-size:22px;color:'+color+';">'+grade+'</strong></p>';
+  if(pdop>5)h+='<div class="tip-box tip-warn" style="margin-top:8px;">'+(__EN?'High PDOP — wait for more satellites or use RTK.':'PDOP偏高，建议等待更多卫星或使用RTK。')+'</div>';
+  if(sc<5)h+='<div class="tip-box tip-error" style="margin-top:8px;">'+(__EN?'Fewer than 5 satellites — reliable 3D positioning impossible.':'卫星数不足5颗，无法可靠3D定位。')+'</div>';
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyReport(){ToolBox.copyText(document.getElementById('res').innerText, i18nText('msg045'));}
 calc();
+
+function __asN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __asList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __asL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __asExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#asTable','gps-accuracy.csv');}catch(e){} }
+function __asExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var pdop=__asN('pdop'),hdop=__asN('hdop'),vdop=__asN('vdop'),sc=__asN('satCount'),uere=__asN('uere');
+        if(!(uere>0))return;
+        var calcPdop=Math.sqrt(hdop*hdop+vdop*vdop);
+        var hErr=hdop*uere,vErr=vdop*uere,pErr=pdop*uere;
+        TBKit.chart.bar('#asChart',{labels:[__asL('Horizontal error','水平误差'),__asL('Vertical error','垂直误差'),__asL('3D error','三维误差')],series:[{name:__asL('error (m)','误差 (m)'),data:[hErr,vErr,pErr]}],height:220,title:__asL('Positional errors (UERE='+uere+'m)','定位误差（UERE='+uere+'m）')});
+        var grade=pdop<=1?'Ideal':pdop<=2?'Excellent':pdop<=5?'Good':pdop<=10?'Fair':'Poor';
+        var rows=__asL(
+            [['PDOP',pdop.toFixed(2)],['HDOP',hdop.toFixed(2)],['VDOP',vdop.toFixed(2)],['satellites',sc],['UERE (m)',uere.toFixed(2)],['computed PDOP',calcPdop.toFixed(3)],['horizontal error (m)',hErr.toFixed(2)],['vertical error (m)',vErr.toFixed(2)],['3D error (m)',pErr.toFixed(2)],['grade',grade]],
+            [['PDOP',pdop.toFixed(2)],['HDOP',hdop.toFixed(2)],['VDOP',vdop.toFixed(2)],['可见卫星',sc],['UERE (m)',uere.toFixed(2)],['PDOP 计算值',calcPdop.toFixed(3)],['水平误差 (m)',hErr.toFixed(2)],['垂直误差 (m)',vErr.toFixed(2)],['三维误差 (m)',pErr.toFixed(2)],['精度等级',pdop<=1?'理想（特级）':pdop<=2?'优秀':pdop<=5?'良好':pdop<=10?'一般':'差']]);
+        TBKit.matrix.table('#asTable',{head:__asL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({pErr:Number(pErr.toFixed(2))});
+        TBKit.util.diffBox('#asDiff',['pErr']);
+        TBKit.history.mount('#asHist',function(v){ if(v.pErr!=null){document.getElementById('pdop').value=v.pdop;document.getElementById('hdop').value=v.hdop;document.getElementById('vdop').value=v.vdop;document.getElementById('satCount').value=v.satCount;document.getElementById('uere').value=v.uere;} calc(); });
+    }catch(e){}
+}
+function __asPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#asPresets',[
+            {label:'理想 PDOP≈1',labelEn:'Ideal PDOP~1',values:{pdop:1.2,hdop:0.9,vdop:0.8,satCount:12,uere:3}},
+            {label:'良好 PDOP≈3',labelEn:'Good PDOP~3',values:{pdop:2.5,hdop:1.8,vdop:2.2,satCount:8,uere:3}},
+            {label:'偏差 PDOP≈8',labelEn:'Poor PDOP~8',values:{pdop:8,hdop:6,vdop:5,satCount:4,uere:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_as0 = calc;
+calc = function(){ __tb_as0(); try{ __asExtras(); }catch(e){} };
+function __asBoot(){ try{ __asPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __asBoot);
+else __asBoot();
 </script>
 
 <!-- SEO 介绍区块 -->

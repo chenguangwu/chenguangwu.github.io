@@ -132,12 +132,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="epPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__epExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="epChart"></div>
+    <div id="epTable"></div>
+    <div id="epDiff"></div>
+    <div id="epHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +204,51 @@ function resetForm(){document.getElementById('A').value = '100';
       document.getElementById('h').value = '3';
       calcTool();}
 calcTool();
+
+function __epN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __epList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __epL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+var __epT={'锥体体积 V (米³)':'Pyramid volume V (m³)','体积（千立方米）':'Volume (10³ m³)','底面积与高之比':'Base area / height','体积与底面积比':'Volume / base area'};
+var __tb_ep_dg=dataGrid;
+dataGrid=function(rows){if(typeof TBKit!=='undefined'&&TBKit.util.isEn()){rows=rows.map(function(r){return[(typeof r[0]==='string'?(__epT[r[0]]||r[0]):r[0]),(r[1]==null?r[1]:(__epT[r[1]]||r[1]))];});}return __tb_ep_dg(rows);};
+
+
+function __epExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#epTable','earthwork-pyramid-volume.csv');}catch(e){} }
+function __epExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var A=__epN('A'), h=__epN('h');
+        if(!(A>0&&h>0))return;
+        var V=A*h/3;
+        var hs=[],data=[],i;
+        for(i=1;i<=12;i++){ var hh=h*i/6; hs.push(hh.toFixed(1)); data.push(Number((A*hh/3).toFixed(2))); }
+        TBKit.chart.line('#epChart',{labels:hs,series:[{name:__epL('volume (m³)','体积 (m³)'),data:data}],height:230,title:__epL('Pyramid volume vs height (A='+A+'m²)','锥体体积随高度变化（A='+A+'m²）')});
+        var rows=__epL(
+            [['base area A (m²)',A.toFixed(3)],['height h (m)',h.toFixed(3)],['volume V=Ah/3 (m³)',V.toFixed(2)],['volume (10³ m³)',(V/1000).toFixed(6)],['A/h ratio',(A/h).toFixed(4)],['V/A ratio',(V/A).toFixed(4)],['equivalent prism volume (m³)',(A*h).toFixed(2)],['pyramid/prism ratio',(V/(A*h)).toFixed(4)]],
+            [['底面积 A (m²)',A.toFixed(3)],['高度 h (m)',h.toFixed(3)],['体积 V=Ah/3 (m³)',V.toFixed(2)],['体积（千立方米）',(V/1000).toFixed(6)],['底面积与高之比',(A/h).toFixed(4)],['体积与底面积比',(V/A).toFixed(4)],['等效棱柱体积 (m³)',(A*h).toFixed(2)],['锥体/棱柱比',(V/(A*h)).toFixed(4)]]);
+        TBKit.matrix.table('#epTable',{head:__epL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({V:Number(V.toFixed(2))});
+        TBKit.util.diffBox('#epDiff',['V']);
+        TBKit.history.mount('#epHist',function(v){ if(v.V!=null){document.getElementById('A').value=v.A;document.getElementById('h').value=v.h;} calcTool(); });
+    }catch(e){}
+}
+function __epPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#epPresets',[
+            {label:'基坑 A100 h3',labelEn:'Pit A100 h3',values:{A:100,h:3}},
+            {label:'料堆 A50 h2',labelEn:'Stockpile A50 h2',values:{A:50,h:2}},
+            {label:'大坑 A200 h5',labelEn:'Large pit A200 h5',values:{A:200,h:5}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_ep0 = calcTool;
+calcTool = function(){ __tb_ep0(); try{ __epExtras(); }catch(e){} };
+function __epBoot(){ try{ __epPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __epBoot);
+else __epBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

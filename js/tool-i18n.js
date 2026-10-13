@@ -63,6 +63,10 @@
         indLink.textContent = icon + ' ' + I18n.indName({ key: ind, name: nameZh }, ind);
       }
     }
+    // 面包屑导航 aria-label 双语（2026-10-13）：静态 HTML 属性不被文本节点级翻译覆盖，
+    // 英文态曾残留中文「面包屑导航」。I18n.t 幂等，中英切换无损还原。
+    var bcNav = document.querySelector('.breadcrumb[aria-label]');
+    if (bcNav) bcNav.setAttribute('aria-label', I18n.t('bc.nav', '面包屑导航'));
 
     // 相关工具标题
     var rt = document.querySelector('.related-tools-title') || document.querySelector('.related-tools h3');

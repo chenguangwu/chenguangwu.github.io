@@ -69,7 +69,7 @@
 1. **诊断**：`python3 scripts/_ux_baseline.py <ind>` → 取该分类 slug 级薄弱清单，按「薄弱度 × 语义可塑性」排批次。
 2. **定档定形态**：每页标 S/A/B + P1–P12 范式，检查同范式占比 ≤40%。
 3. **改造**：只改 `tools/<ind>/<slug>.html` 源正文区；**不改文件名、不改 URL、不动已验证的计算内核**（发现真 bug 才动，并按「四真缺陷」口径记录）。
-4. **i18n 同步**：新文案进 en 字典（`?lang=en-US` 内容区零中文），`data-zh` 按既有机制标注。
+4. **i18n 同步（硬性规则见 §1.6，每批必查）**：所有新增动态文案中英双语齐全（helper/dataGrid 包装/InputGuard/preset labelEn/静态按钮 GEN_UI_MAP），跑 EN 零中文门禁（含防真空断言），`?lang=en-US` 内容区零中文。
 5. **verify 用例同步**：功能变化必须同步改 expect，**禁降判别力**；跑 `discriminate_check.js`，逃生项须 0。
 6. **构建 + 门禁**：`python3 _build.py` → `python3 scripts/run_gates.py`（218/218 不退、A 级率 100% 不退、UX 门禁无回退）。
 7. **复测**：`python3 scripts/_ux_baseline.py <ind>` 分数只升不降。
@@ -83,29 +83,30 @@
 - 不得降 A 级率、不得降门禁通过数、不得引入新外部依赖（CDN 亦禁，组件自绘）。
 - 页面体积增速受控：单页增量 ≤ 8KB（组件走共享 `js/tool-kit.js`，不内联堆代码）。
 
+#### i18n 双语硬性规则（2026-10-13 立；每批必查，违反即打回）
+
+UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格单元格、结果区 `setResult`/innerHTML、preset 文案、InputGuard 提示、aria-label）必须中英双语齐全，`?lang=en-US` 内容区零中文。硬规则：
+
+1. **helper 唯一正确形态**：`(typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh` —— TBKit 未加载走中文、isEn 走英文。**禁止写反条件**（曾因漏 `!` 导致英文态图表标题/序列全中文，20 页批量返工）。
+2. **extras 动态串全部过 helper**：图表 title/series/labels、gauge 标签、`labs.push()`、象限/档位三元式等运行时生成串一律 `__xxL('EN','中文')`；**禁止裸中文串直出**。
+3. **原始 dataGrid 标签/值位**：页面原有 `dataGrid(rows)` 的中文标签与档位值，用 `__xxT` 键名表 + 包装器翻译（`var __tb_xx_dg=dataGrid; dataGrid=function(rows){…}`），键名必须与页面实际标签**逐字一致**（提取时勿丢字，曾因丢字出 EN 残龙）。
+4. **InputGuard 模板 isEn 分支**：`请填写「%s」后再计算。` 类提示须 `(isEn)?'Please fill in "%s" before calculating.':中文`。
+5. **preset.bar 的 label/labelEn 成对**：新增预设必须同时给 `labelEn`（tool-kit 英文态自动切）。
+6. **静态按钮文案进 `GEN_UI_MAP`**（`js/tool-i18n-en.js`，精确短语匹配 label/button/.toolbar .btn/select option）；漏配则英文态按钮直出中文（本轮补了「导出 CSV」→「Export CSV」）。**改 `js/**` 必须连 `sw.js` 一起提交**。
+7. **每批必跑 EN 零中文门禁**（chart 标题/序列/labels/gauge、table 单元格、resHtml、preset labelEn 完备性、注入容器 aria-label），且**必须带防真空断言**（`charts.length===0` 判失败——曾因守卫翻转变异导致图表全挂、门禁真空通过）。
+8. **结果可视化容器**：不写 `role="img" aria-label="结果可视化"` 类中文 aria（图表自带语义，英文态会残留）。
+9. 🔴 **严禁对守卫/符号形态做批量正则「统一」**：曾用两遍 blanket 正则把 extras 守卫 `===` 误翻 `!==`，TBKit 一加载 extras 提前返回、图表全挂，而冒烟与门禁都没发现。批量脚本只准靶向替换具体串；apply 脚本结尾必须带 SELF-CHECK（守卫计数、无翻转守卫）；中途断言失败 ⇒ `git checkout` 整批还原重跑，禁止续跑。
+
 ### 1.7 当前分类（进行中）
 
-**试点：`statistics`（52 页 / 起点均分 1.67 / 薄弱 46；当前 均分 7.58 / 薄弱 0）** —— 语义最适合图表化（分布、检验、抽样），已用它跑通 SOP 与组件库。
-按 6 批推进；批次清单在此动态登记、干完即删（完成的批次只留计数，细节写当日 memory）。
+**`surveying`（45 页 / 起点均分 1.89 / 薄弱 31；当前 均分 6.40 / 薄弱 1）** —— 测量计算类数值工具，语义适合「图表分析（曲线/断面/差值序列）+ 明细表 + 预设 + 历史对比」；批次清单在此动态登记、干完即删。
 
-- [x] **B1–B4 已完成 35 页**（B1 3 页 S 档 + B2/B3/B4 各 10–12 页 A 档）：分类均分 1.67 → **6.10**、薄弱 46 → **0**。
-- [x] **B5 已完成 8 页**（p/t/z/statistics/statistics-4/5/7/10）：均分 6.10 → **6.81**；顺带修复多页正态 CDF 漏除 √2 真 bug。
-- [x] **B6 已完成 10 页**（statistics-11/12/13/16 + sample-size-proportion/sample-variance/skewness-sample/cramers-v 从零接入；chi-square-test/coefficient-of-variation 补图表）：均分 6.81 → **7.58**、薄弱(≤2) **0**。
-- [x] `index` 页：分类索引页（无输入），按导航页处理，不做图表。
-- ⚠️ **待老板决策（不擅自执行）**：已诊断出分类内功能重复 —— `p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean。**清理需下线 URL（走 `sitemap-deadlinks.xml`），影响 SEO，须老板批准后才动**；此前 B5/B6 已照常做体验改造，不删页。
-- 📌 **分类收口结论**：52 页全部达 7–8/9（仅余 11 个 7/9 页缺图表+tabs，已属高质量，可选补图表）。`statistics` 试点达成「个性化 + 驻留/跨工具」目标，SOP 与组件库 `js/tool-kit.js` 已固化。
+- [x] **SV-1 已完成 10 页**（circular-curve/vertical-curve-elev/coordinate-distance-2d/coordinate-distance-3d/bearing-azimuth/slope-percent/grade-angle/cut-fill-volume/end-area-volume/stadia-distance）：单页 2–3/9 → **8/9**；范式 line×4/bar×3/scatter×2/gauge×1；提交 `aa7dce1f21`（CI success）。
+- [x] **SV-2 已完成 10 页**（area-coordinates/bearing-from-coordinates/bearing-to-offset/chord-length-curve/coordinate-rotation/elevation-diff/grade-intersection-elev/horizontal-distance/reduced-level-bsfs/triangulation-side）：单页 3–4/9 → **8/9**；范式 line×3/bar×5/scatter×1/gauge×1；提交 `a9222d9d17`（CI success）。
+- [x] **SV-3 已完成 8 页 + i18n 补救 20 页**（horizontal-from-slope/middle-ordinate-curve/subtense-distance/tangent-length-curve/earthwork-pyramid-volume/external-distance-curve/assessor-16/convert-33）：单页 3–5/9 → **8/9**；范式 line×4/bar×3/gauge×1；数值独立复算 43 项全对；i18n 补救覆盖 SV-1/SV-2 全部 20 页（helper 逻辑写反、dataGrid 英译包装、InputGuard 模板、aria、GEN_UI_MAP 补「导出 CSV」、面包屑 aria-label），EN 态门禁 28/28 零中文。
+- **剩余 17 页**：`analysis-17`/`analysis-cycle`/`area-24`/`calc-86`/`calc-angle-2`/`convert-46`/`distance-calc`/`prismoidal-volume`（4/9 组 8 页）+ `area-25`/`area-calc`/`calc-1`/`scale-converter`（5/9 组 4 页）+ `convert-angle-slope-1`/`coordinate-convert`/`leveling-calc`（3/9 组 3 页，视语义定档）；`distance-4` 为 TOOLBOX-REDIRECT 存根不动、`index` 为导航页不动。
 
-**当前分类切换：`ai`（65 页 / 起点均分 2.31 / 薄弱 47）** —— 紧接 statistics 后开工（最弱优先）。ML 超参/训练类数值计算器，语义适合「图表分析（衰减/预热/损失曲线）+ 明细表 + 预设 + 历史对比」。
-
-- [x] **AI-1 已完成 7 页**（lr-decay/lr-warmup/dropout/l1-l2-regularization/cross-entropy/epoch-time/min-max）：单页 2–3/9 → **8/9**；接入图表/明细表/预设/历史/对比/CSV 导出；boot 推迟到 DOMContentLoaded 避开 tool-kit.js(defer) 时序。
-- [x] **AI-2 已完成 8 页**（sigmoid/softmax/relu-leakyrelu/precision-recall/roc-auc/cosine-similarity/elbow-wcss/rmse）：单页 3–4/9 → **8/9**；范式轮换（line×3 sigmoid/relu/roc-auc、bar×3 pr/elbow/rmse、pie softmax、scatter cosine，均 ≤40%）；roc-auc 自实现 erf 高斯重叠图、cosine 向量散点；真实加载顺序冒烟 63 页零抛错。
-- ⚠️ **顺带修复系统性首屏回归**：统计 B1–B6 共 48 页此前用「解析期直接 calc()/__xxPresets()」，因 tool-kit.js 为 defer，首屏 TBKit 未定义导致图表/预设/历史全部跳过（仅手动重算才出现，线上不可见但无报错）。统一改为 DOMContentLoaded 后渲染，已用真实加载顺序冒烟验证 55 页全部首屏可见、零抛错。
-- [x] **AI-3 已完成 10 页**（cohens-kappa/transformer-params/training-flops/vram-estimate/context-window/temperature-scaling/k-means/model-accuracy/flops/attention-flops）：单页 3–5/9 → **8/9**；范式轮换（line×3 vram/flops/attention、bar×3 kappa/k-means/temperature、gauge×2 context/accuracy、pie transformer、scatter training，累计 line 40%/bar 36% 不超上限）；数值独立复算 28 项全对；真实加载顺序冒烟 73 页零抛错。
-- [x] **AI-4 已完成 12 页**（attention-head-dim/auc-rank/best-epoch/grad-accumulation/inference-throughput/quantization-ratio/softmax-2/specificity/steps-per-epoch/token/token-usage/multi-agent-overhead）：单页 3/9 → **8/9**；范式 bar×5/pie×4/gauge×2/scatter×1（累计 bar 37.8%/line 27% 合规）；数值独立复算 16 项全对；真实加载顺序冒烟 85 页零抛错。
-- [x] **AI-5 已完成 12 页**（ai-4/ai-6/ai-7/ai-8/ai-9/ai-11/ai-13/ai-15/ai-16/ai-17/l1-l2/token-2）：单页 3/9 → **8/9**；范式 bar×4/pie×5/gauge×2/line×1（累计 bar 36.7%/line 22.4%/pie 22.4% 合规）；数值独立复算 60 项全对；真实加载顺序冒烟 97 页零抛错；ai-15 贝叶斯 PPV/NPV 双曲线、ai-7 MCC 仪表盘。
-- [x] **AI-6 已完成 7 页（数值页收口）**（ai-5/ai-10/ai-12/ai-14/augmentation-multiplier/rag/ai）：单页 3–4/9 → **8/9**；范式 line×2/bar×2/pie×2/gauge×1（累计 bar 35.7%/line 23.2%/pie 23.2% 合规）；数值独立复算 27 项全对；**顺带修一个真 bug**：`ai` 页平衡准确率把百分数 recall 与比率 specificity 混算得 4255.76%，已改为统一比率；真实加载顺序冒烟 104 页零抛错。**`ai` 数值页全部收口（56 页 8/9）。**
-- [x] **AI-7 已完成 8 页（文本/文件工具收口）**（sentiment-analysis/text-summarization/ai-text-summarizer/ai-code-review/ai-prompt-generator/ocr/speech-to-text/image-classification）：单页 2–5/9 → **6–7/9**；文本向模板（示例预设一键填入样本文本/代码 + 结构化明细表 + 历史回放 + CSV 导出 + 上次对比）；触发器包装兼容同步与异步（runAI 为 async，promise resolve 后跑 extras）；冒烟桩需补 `ToolBox.initToolTheme` 与「模块脚本剥 import 后按经典脚本跑」（这些页用 ESM 加载 Transformers.js）；真实加载顺序冒烟 112 页零抛错。
-- 📌 **`ai` 分类收口**：65 页均分 **2.31 → 7.77**、薄弱页(≤2) **47 → 0**。56 个数值页全部 8/9；8 个文本/文件工具 6–7/9（无数值序列，图表范式本就不适用，已达该类工具实际上限）；`index` 为分类导航页（无输入），按导航页处理。范式分布 bar 18(32.7%)/line 11(20%)/pie 11(20%)/gauge 7/scatter 4，全类 ≤40%。
+**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 
@@ -130,7 +131,6 @@
 - `legal` 53/1.96/37
 - `edu` 48/4.65/5
 - `marketing` 47/3.98/11
-- `surveying` 45/1.89/31
 
 #### W2 中坚（20–44 页，按薄弱数降序先啃最弱，2472 页合计）
 

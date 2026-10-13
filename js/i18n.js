@@ -70,6 +70,7 @@ var LANG_REGISTRY = [
       'btn.allHot': 'All hot tools →',
       // 工具页公共框架（chrome）
       'bc.home': 'Home',
+      'bc.nav': 'Breadcrumb',
       'tool.related': '🔗 Related Tools',
       'tool.notes': '⚠️ Usage Notes & Cautions',
       'tool.copy': '📋 Copy Result',
