@@ -186,6 +186,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="sdChart"></div>
+    <div id="sdTable"></div>
+    <div id="sdDiff"></div>
+    <div id="sdHist"></div>
+    <div id="sdPresets"></div>
+    <button type="button" class="btn" id="sdExport" onclick="__sdExport()">导出CSV</button>
   </div>
   
   <div class="card">
@@ -259,6 +265,8 @@ function toggleNoAmount(){
   calculate();
 }
 
+function sdL(zh, en){ try{ if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __sdD = null;
 function calculate(){
   const type = document.getElementById('docType').value;
   let amount = parseFloat(document.getElementById('amount').value) || 0;
@@ -266,16 +274,16 @@ function calculate(){
   const noAmount = document.getElementById('noAmount').checked;
   
   const rates = {
-    purchase: {rate: 0.0003, name:'买卖合同', perPiece: false},
-    loan: {rate: 0.00005, name:'借款合同', perPiece: false},
-    lease: {rate: 0.001, name:'租赁合同', perPiece: false},
-    contracting: {rate: 0.0003, name:'建设工程合同', perPiece: false},
-    technology: {rate: 0.0003, name:'技术合同', perPiece: false},
-    property: {rate: 0.0005, name:'产权转移书据', perPiece: false},
-    business: {rate: 0.00025, name:'营业账簿', perPiece: false},
-    right: {rate: 0, name:'权利/许可证照', perPiece: 5},
-    storage: {rate: 0.001, name:'仓储/保管合同', perPiece: false},
-    insurance: {rate: 0.001, name:'财产保险合同', perPiece: false}
+    purchase: {rate: 0.0003, name:'买卖合同', nameEn:'Sales contract', perPiece: false},
+    loan: {rate: 0.00005, name:'借款合同', nameEn:'Loan contract', perPiece: false},
+    lease: {rate: 0.001, name:'租赁合同', nameEn:'Lease contract', perPiece: false},
+    contracting: {rate: 0.0003, name:'建设工程合同', nameEn:'Construction contract', perPiece: false},
+    technology: {rate: 0.0003, name:'技术合同', nameEn:'Technology contract', perPiece: false},
+    property: {rate: 0.0005, name:'产权转移书据', nameEn:'Property transfer document', perPiece: false},
+    business: {rate: 0.00025, name:'营业账簿', nameEn:'Business ledger', perPiece: false},
+    right: {rate: 0, name:'权利/许可证照', nameEn:'Rights/licences', perPiece: 5},
+    storage: {rate: 0.001, name:'仓储/保管合同', nameEn:'Storage/custody contract', perPiece: false},
+    insurance: {rate: 0.001, name:'财产保险合同', nameEn:'Property insurance contract', perPiece: false}
   };
   
   let tax = 0;
@@ -297,16 +305,56 @@ function calculate(){
   
   if(smallScale) tax *= 0.5;
   
-  let html = `<p>凭证类型：<strong>${info.name}</strong></p>`;
-  if(!info.perPiece && amount > 0) html += `<p>计税金额：<strong>${ToolBox.formatNumber(amount)}</strong> 元</p>`;
-  html += `<p>税率：<strong>${info.perPiece ? '按件' : (info.rate * 10000).toFixed(2) + '‱（万分之' + (info.rate * 10000).toFixed(2) + '）'}</strong></p>`;
-  if(smallScale) html += `<p style="color:#ff9800;">小规模纳税人：减半征收</p>`;
+  __sdD = {type:type, name:sdL(info.name, info.nameEn), amount:amount, tax:tax, smallScale:smallScale};
+  var rateVal = (info.rate * 10000).toFixed(2);
+  var rateTxt = info.perPiece ? sdL('按件','Per item') : (rateVal + '‱ (' + sdL('万分之','per ten-thousand') + ' ' + rateVal + ')');
+  let html = `<p>${sdL('凭证类型：','Voucher type:')}<strong>${sdL(info.name, info.nameEn)}</strong></p>`;
+  if(!info.perPiece && amount > 0) html += `<p>${sdL('计税金额：','Taxable amount:')}<strong>${ToolBox.formatNumber(amount)}</strong> ${sdL('元','CNY')}</p>`;
+  html += `<p>${sdL('税率：','Tax rate:')}<strong>${rateTxt}</strong></p>`;
+  if(smallScale) html += `<p style="color:#ff9800;">${sdL('小规模纳税人：减半征收','Small-scale taxpayer: halved')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>应缴印花税：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(tax, 2)}</strong> 元</p>`;
+  html += `<p>${sdL('应缴印花税：','Stamp duty payable:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(tax, 2)}</strong> ${sdL('元','CNY')}</p>`;
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+sdL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ Invalid input: please enter valid positive numbers.')+'</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+var __tb_sd0 = calculate;
+calculate = function(){ __tb_sd0(); try{ __sdExtras(); }catch(e){} };
+function __sdExtras(){
+  try{
+    if(typeof TBKit==='undefined') return;
+    var D = (typeof __sdD!=='undefined')?__sdD:null; if(!D) return;
+    var labels = [sdL('计税金额','Taxable amount'), sdL('应缴印花税','Stamp duty')];
+    var data = [Number(D.amount.toFixed(2)), Number(D.tax.toFixed(2))];
+    var series = [{name: sdL('金额','Amount'), data: data}];
+    TBKit.chart.bar('#sdChart', { labels: labels, series: series, height:240, title: sdL('印花税构成','Stamp duty breakdown') });
+    var mhead = [sdL('项目','Item'), sdL('金额(元)','Amount (CNY)')];
+    var mrows = [
+      [sdL('凭证类型','Voucher type'), D.name],
+      [sdL('计税金额','Taxable amount'), D.amount>0?ToolBox.formatNumber(D.amount):sdL('无','N/A')],
+      [sdL('小规模纳税人','Small-scale'), D.smallScale?sdL('是（减半）','Yes (halved)'):sdL('否','No')],
+      [sdL('应缴印花税','Stamp duty'), ToolBox.formatNumber(D.tax,2)]
+    ];
+    TBKit.matrix.table('#sdTable', { head: mhead, rows: mrows });
+    TBKit.history.record({ [sdL('凭证','Voucher')]: D.name, [sdL('税额','Tax')]: D.tax });
+    try{ TBKit.history.mount('#sdHist', function(d){ if(d){} }); }catch(e){}
+  }catch(e){}
+}
+function __sdExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#sdTable','stamp-duty-legal.csv'); }catch(e){} }
+function __sdPresets(){
+  try{
+    TBKit.preset.bar('#sdPresets', [
+      { label:'买卖合同·10万', labelEn:'Sales · 100K', values:{ docType:'purchase', amount:100000, smallScale:false, noAmount:false } },
+      { label:'借款合同·50万', labelEn:'Loan · 500K', values:{ docType:'loan', amount:500000, smallScale:false, noAmount:false } },
+      { label:'租赁·小规模', labelEn:'Lease · Small', values:{ docType:'lease', amount:30000, smallScale:true, noAmount:false } },
+      { label:'执照·按件', labelEn:'Licence · Per item', values:{ docType:'right', amount:0, smallScale:false, noAmount:false } }
+    ], function(){ try{ calculate(); }catch(e){} });
+  }catch(e){}
+}
+function __sdBoot(){ try{ __sdPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") __sdBoot(); else document.addEventListener("DOMContentLoaded", __sdBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

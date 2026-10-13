@@ -178,6 +178,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="cfChart"></div>
+    <div id="cfTable"></div>
+    <div id="cfDiff"></div>
+    <div id="cfHist"></div>
+    <div id="cfPresets"></div>
+    <button type="button" class="btn" id="cfExport" onclick="__cfExport()">导出CSV</button>
   </div>
   
   <div class="card">
@@ -251,6 +257,8 @@ function toggleDivorce(){
   calculate();
 }
 
+function cfL(zh, en){ try{ if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __cfD = null;
 function calculate(){
   const type = document.getElementById('caseType').value;
   const amount = parseFloat(document.getElementById('amount').value) || 0;
@@ -271,25 +279,25 @@ function calculate(){
       else if(amount <= 10000000) fee = amount * 0.007 + 11800;
       else if(amount <= 20000000) fee = amount * 0.006 + 21800;
       else fee = amount * 0.005 + 41800;
-      detail = '财产案件受理费';
+      detail = cfL('财产案件受理费','Property case acceptance fee');
       break;
     case 'divorce':
       fee = 200;
       if(amount > 200000) fee += (amount - 200000) * 0.005;
-      detail = '离婚案件（50-300元，财产超20万部分0.5%）';
+      detail = cfL('离婚案件（50-300元，财产超20万部分0.5%）','Divorce case (50-300 CNY; 0.5% on amount over 200k)');
       break;
     case 'labor':
       fee = 10;
-      detail = '劳动争议案件每件10元';
+      detail = cfL('劳动争议案件每件10元','Labor dispute 10 CNY per case');
       break;
     case 'ipr':
       if(amount <= 0) fee = 500;
       else fee = amount <= 10000 ? 500 : Math.min(500 + amount * 0.01, 1000);
-      detail = '知识产权案件（无争议金额500-1000元，有金额按财产案件）';
+      detail = cfL('知识产权案件（无争议金额500-1000元，有金额按财产案件）','IP case (500-1000 CNY if no amount; property rules if amount)');
       break;
     case 'administrative':
       fee = 50;
-      detail = '行政案件每件50元（商标/专利行政案件100元）';
+      detail = cfL('行政案件每件50元（商标/专利行政案件100元）','Administrative case 50 CNY (100 for trademark/patent)');
       break;
   }
   
@@ -297,20 +305,59 @@ function calculate(){
   let reduction = '';
   if(simplified){
     finalFee = fee / 2;
-    reduction = `<p>减半收取（简易程序/调解/撤诉）：<strong>${ToolBox.formatNumber(finalFee, 2)}</strong> 元</p>`;
+    reduction = '<p>'+cfL('减半收取（简易程序/调解/撤诉）：','Reduced by half (summary procedure / mediation / withdrawal):')+'<strong>'+ToolBox.formatNumber(finalFee, 2)+'</strong> '+cfL('元','CNY')+'</p>';
   }
   
-  let html = `<p>案件类型：${detail}</p>`;
-  html += `<p>标的金额：<strong>${ToolBox.formatNumber(amount)}</strong> 元</p>`;
-  html += `<p>全额受理费：<strong>${ToolBox.formatNumber(fee, 2)}</strong> 元</p>`;
+  __cfD = {type:type, detail:detail, amount:amount, fee:fee, finalFee:finalFee, simplified:simplified};
+  let html = `<p>${cfL('案件类型：','Case type:')}${detail}</p>`;
+  html += `<p>${cfL('标的金额：','Subject amount:')}<strong>${ToolBox.formatNumber(amount)}</strong> ${cfL('元','CNY')}</p>`;
+  html += `<p>${cfL('全额受理费：','Full acceptance fee:')}<strong>${ToolBox.formatNumber(fee, 2)}</strong> ${cfL('元','CNY')}</p>`;
   if(reduction) html += reduction;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>应预交诉讼费：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(finalFee, 2)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：诉讼费由原告预交，最终由败诉方承担；适用简易程序、调解、撤诉可减半；申请执行、保全等另行收费</p>`;
+  html += `<p>${cfL('应预交诉讼费：','Court fee payable:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(finalFee, 2)}</strong> ${cfL('元','CNY')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${cfL('注：诉讼费由原告预交，最终由败诉方承担；适用简易程序、调解、撤诉可减半；申请执行、保全等另行收费','Note: the plaintiff advances the fee and the losing party ultimately bears it; summary procedure, mediation, or withdrawal halves it; execution and preservation fees are charged separately')}</p>`;
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+cfL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ Invalid input: please enter valid positive numbers.')+'</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+var __tb_cf0 = calculate;
+calculate = function(){ __tb_cf0(); try{ __cfExtras(); }catch(e){} };
+function __cfExtras(){
+  try{
+    if(typeof TBKit==='undefined') return;
+    var D = (typeof __cfD!=='undefined')?__cfD:null; if(!D) return;
+    var labels = [cfL('全额受理费','Full fee'), cfL('应预交','Payable')];
+    var data = [Number(D.fee.toFixed(2)), Number(D.finalFee.toFixed(2))];
+    var series = [{name: cfL('金额','Amount'), data: data}];
+    TBKit.chart.bar('#cfChart', { labels: labels, series: series, height:240, title: cfL('诉讼费构成','Court fee breakdown') });
+    var mhead = [cfL('项目','Item'), cfL('金额(元)','Amount (CNY)')];
+    var mrows = [
+      [cfL('案件类型','Case type'), D.detail],
+      [cfL('标的金额','Subject amount'), ToolBox.formatNumber(D.amount)],
+      [cfL('全额受理费','Full acceptance fee'), ToolBox.formatNumber(D.fee,2)],
+      [cfL('减半收取','Half reduction'), D.simplified? cfL('是','Yes'):cfL('否','No')],
+      [cfL('应预交诉讼费','Court fee payable'), ToolBox.formatNumber(D.finalFee,2)]
+    ];
+    TBKit.matrix.table('#cfTable', { head: mhead, rows: mrows });
+    TBKit.history.record({ [cfL('类型','Type')]: D.detail, [cfL('标的','Amount')]: D.amount, [cfL('应预交','Payable')]: D.finalFee });
+    try{ TBKit.history.mount('#cfHist', function(d){ if(d){} }); }catch(e){}
+  }catch(e){}
+}
+function __cfExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#cfTable','court-fee.csv'); }catch(e){} }
+function __cfPresets(){
+  try{
+    TBKit.preset.bar('#cfPresets', [
+      { label:'财产·50万', labelEn:'Property · 500K', values:{ caseType:'property', amount:500000, simplified:false } },
+      { label:'离婚·100万', labelEn:'Divorce · 1M', values:{ caseType:'divorce', amount:1000000, simplified:false } },
+      { label:'劳动', labelEn:'Labor', values:{ caseType:'labor', amount:0, simplified:false } },
+      { label:'财产·简易', labelEn:'Property · Summary', values:{ caseType:'property', amount:800000, simplified:true } }
+    ], function(){ try{ calculate(); }catch(e){} });
+  }catch(e){}
+}
+function __cfBoot(){ try{ __cfPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") __cfBoot(); else document.addEventListener("DOMContentLoaded", __cfBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

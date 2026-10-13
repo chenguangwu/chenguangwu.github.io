@@ -167,16 +167,16 @@ s.parentNode.insertBefore(el, s);
     
     <h3 style="margin-top:16px;">房东可能主张扣减项目</h3>
     <div class="checkbox-row">
-      <label><input type="checkbox" class="deduction" value="unpaidRent" data-amount="0" onchange="calculate()"> 欠缴租金</label>
-      <label><input type="checkbox" class="deduction" value="utility" data-amount="0" onchange="calculate()"> 欠缴水电燃气费</label>
+      <label><input type="checkbox" class="deduction" id="unpaidRent" value="unpaidRent" data-amount="0" onchange="calculate()"> 欠缴租金</label>
+      <label><input type="checkbox" class="deduction" id="utility" value="utility" data-amount="0" onchange="calculate()"> 欠缴水电燃气费</label>
     </div>
     <div class="checkbox-row">
-      <label><input type="checkbox" class="deduction" value="damage" data-amount="0" onchange="calculate()"> 房屋/物品损坏</label>
-      <label><input type="checkbox" class="deduction" value="cleaning" data-amount="0" onchange="calculate()"> 清洁费</label>
+      <label><input type="checkbox" class="deduction" id="damage" value="damage" data-amount="0" onchange="calculate()"> 房屋/物品损坏</label>
+      <label><input type="checkbox" class="deduction" id="cleaning" value="cleaning" data-amount="0" onchange="calculate()"> 清洁费</label>
     </div>
     <div class="checkbox-row">
-      <label><input type="checkbox" class="deduction" value="earlyTerm" data-amount="0" onchange="calculate()"> 提前退租违约金</label>
-      <label><input type="checkbox" class="deduction" value="normalWear" data-amount="0" onchange="calculate()"> 正常使用损耗（违法扣减）</label>
+      <label><input type="checkbox" class="deduction" id="earlyTerm" value="earlyTerm" data-amount="0" onchange="calculate()"> 提前退租违约金</label>
+      <label><input type="checkbox" class="deduction" id="normalWear" value="normalWear" data-amount="0" onchange="calculate()"> 正常使用损耗（违法扣减）</label>
     </div>
     
     <div id="customDeductions" style="margin-top:12px;">
@@ -199,6 +199,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="rdChart"></div>
+    <div id="rdTable"></div>
+    <div id="rdDiff"></div>
+    <div id="rdHist"></div>
+    <div id="rdPresets"></div>
+    <button type="button" class="btn" id="rdExport" onclick="__rdExport()">导出CSV</button>
   </div>
   
   <div class="card">
@@ -259,6 +265,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function rdL(zh, en){ try{ if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __rdD = null;
 function calculate(){
   const rent = parseFloat(document.getElementById('monthlyRent').value) || 0;
   const months = parseInt(document.getElementById('depositMonths').value);
@@ -271,23 +279,23 @@ function calculate(){
   
   if(document.querySelector('.deduction[value="unpaidRent"]').checked){
     legalDeductions += rent;
-    advice.push('欠缴租金可从押金扣除，建议核对实际欠缴金额');
+    advice.push(rdL('欠缴租金可从押金扣除，建议核对实际欠缴金额','Unpaid rent may be deducted from the deposit; verify the actual amount owed'));
   }
   if(document.querySelector('.deduction[value="damage"]').checked){
     legalDeductions += 500;
-    advice.push('房屋损坏需提供证据证明是承租人原因造成，且应按折旧后价值赔偿，不是全新价格');
+    advice.push(rdL('房屋损坏需提供证据证明是承租人原因造成，且应按折旧后价值赔偿，不是全新价格','Property damage requires proof it was caused by the tenant, and compensation should be based on depreciated value, not full replacement cost'));
   }
   if(document.querySelector('.deduction[value="cleaning"]').checked){
     illegalDeductions += 200;
-    advice.push('清洁费无约定一般不应由租客承担，日常清洁是租客义务但退房时不应收取额外清洁费（除非合同明确约定且房屋确实异常脏乱）');
+    advice.push(rdL('清洁费无约定一般不应由租客承担，日常清洁是租客义务但退房时不应收取额外清洁费（除非合同明确约定且房屋确实异常脏乱）','Cleaning fees without a contract clause generally should not be charged to the tenant; routine cleaning is the tenant\'s duty, but an extra move-out fee is not allowed unless clearly agreed and the unit is genuinely filthy'));
   }
   if(document.querySelector('.deduction[value="normalWear"]').checked){
     illegalDeductions += 1000;
-    advice.push('正常使用损耗（墙面轻微痕迹、地板正常磨损、家电老化等）不得扣减押金，这是出租方应承担的折旧成本');
+    advice.push(rdL('正常使用损耗（墙面轻微痕迹、地板正常磨损、家电老化等）不得扣减押金，这是出租方应承担的折旧成本','Normal wear and tear (minor wall marks, normal floor wear, appliance ageing) must not be deducted; this depreciation cost is borne by the landlord'));
   }
   if(document.querySelector('.deduction[value="earlyTerm"]').checked){
     legalDeductions += rent;
-    advice.push('提前退租违约金看合同约定，约定过高可请求法院调整（一般不超过1-2个月租金）');
+    advice.push(rdL('提前退租违约金看合同约定，约定过高可请求法院调整（一般不超过1-2个月租金）','Early-termination penalty depends on the contract; if excessive, a court may reduce it (usually up to 1-2 months\' rent)'));
   }
   
   legalDeductions += otherDeduction;
@@ -296,32 +304,71 @@ function calculate(){
   const wrongfullyWithheld = totalDeposit - legalDeductions - illegalDeductions;
   
   if(document.getElementById('noRefund').checked){
-    advice.push('房东无理由拒不退还的，可向法院起诉要求退还并支付逾期利息（按LPR计算）');
+    advice.push(rdL('房东无理由拒不退还的，可向法院起诉要求退还并支付逾期利息（按LPR计算）','If the landlord refuses a refund without reason, you may sue for return plus overdue interest (based on LPR)'));
   }
   if(document.getElementById('illegalSublet').checked){
-    advice.push('房东擅自进入房屋或换锁属于侵权，可报警或起诉');
+    advice.push(rdL('房东擅自进入房屋或换锁属于侵权，可报警或起诉','The landlord entering without permission or changing locks is an infringement; you may call the police or sue'));
   }
   if(document.getElementById('noInventory').checked){
-    advice.push('未做房屋交割清单对双方都有风险，房东主张物品损坏需承担举证责任');
+    advice.push(rdL('未做房屋交割清单对双方都有风险，房东主张物品损坏需承担举证责任','Skipping a move-in/move-out inventory is risky for both sides; the landlord must prove any claimed damage'));
   }
   
-  let html = `<p>押金总额：<strong>${ToolBox.formatNumber(totalDeposit)}</strong> 元（${months}个月租金）</p>`;
-  html += `<p>合法可扣金额（估算）：${ToolBox.formatNumber(legalDeductions)} 元</p>`;
-  html += `<p>违法扣减金额（估算）：${ToolBox.formatNumber(Math.max(0, illegalDeductions))} 元</p>`;
+  __rdD = {totalDeposit:totalDeposit, months:months, rent:rent, legalDeductions:legalDeductions, illegalDeductions:Math.max(0, illegalDeductions), shouldRefund:Math.max(0, shouldRefund), adviceCount:advice.length};
+  let html = `<p>${rdL('押金总额：','Total deposit:')}<strong>${ToolBox.formatNumber(totalDeposit)}</strong> ${rdL('元（','CNY (')}${months}${rdL('个月租金）',' months\' rent)')}</p>`;
+  html += `<p>${rdL('合法可扣金额（估算）：','Lawful deductions (est.):')}${ToolBox.formatNumber(legalDeductions)} ${rdL('元','CNY')}</p>`;
+  html += `<p>${rdL('违法扣减金额（估算）：','Unlawful deductions (est.):')}${ToolBox.formatNumber(Math.max(0, illegalDeductions))} ${rdL('元','CNY')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>应退还金额：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(Math.max(0, shouldRefund))}</strong> 元</p>`;
+  html += `<p>${rdL('应退还金额：','Amount refundable:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(Math.max(0, shouldRefund))}</strong> ${rdL('元','CNY')}</p>`;
   
   if(advice.length > 0){
     html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-    html += `<h4 style="margin-bottom:8px;">📝 维权建议：</h4>`;
+    html += `<h4 style="margin-bottom:8px;">${rdL('📝 维权建议：','📝 Suggestions:')}</h4>`;
     advice.forEach(a => {
       html += `<p style="font-size:13px;">• ${a}</p>`;
     });
   }
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+rdL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ Invalid input: please enter valid positive numbers.')+'</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+var __tb_rd0 = calculate;
+calculate = function(){ __tb_rd0(); try{ __rdExtras(); }catch(e){} };
+function __rdExtras(){
+  try{
+    if(typeof TBKit==='undefined') return;
+    var D = (typeof __rdD!=='undefined')?__rdD:null; if(!D) return;
+    var labels = [rdL('押金总额','Total deposit'), rdL('合法可扣','Lawful'), rdL('违法扣减','Unlawful'), rdL('应退还','Refundable')];
+    var data = [Number(D.totalDeposit.toFixed(2)), Number(D.legalDeductions.toFixed(2)), Number(D.illegalDeductions.toFixed(2)), Number(D.shouldRefund.toFixed(2))];
+    var series = [{name: rdL('金额','Amount'), data: data}];
+    TBKit.chart.bar('#rdChart', { labels: labels, series: series, height:240, title: rdL('押金与扣减构成','Deposit & deductions') });
+    var mhead = [rdL('项目','Item'), rdL('金额(元)','Amount (CNY)')];
+    var mrows = [
+      [rdL('押金总额','Total deposit'), ToolBox.formatNumber(D.totalDeposit)],
+      [rdL('合法可扣','Lawful deductions'), ToolBox.formatNumber(D.legalDeductions)],
+      [rdL('违法扣减','Unlawful deductions'), ToolBox.formatNumber(D.illegalDeductions)],
+      [rdL('应退还','Refundable'), ToolBox.formatNumber(D.shouldRefund)],
+      [rdL('建议条数','Tips'), D.adviceCount]
+    ];
+    TBKit.matrix.table('#rdTable', { head: mhead, rows: mrows });
+    TBKit.history.record({ [rdL('月租','Rent')]: D.rent, [rdL('应退','Refund')]: D.shouldRefund });
+    try{ TBKit.history.mount('#rdHist', function(d){ if(d){} }); }catch(e){}
+  }catch(e){}
+}
+function __rdExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#rdTable','rent-deposit.csv'); }catch(e){} }
+function __rdPresets(){
+  try{
+    TBKit.preset.bar('#rdPresets', [
+      { label:'标准（无扣减）', labelEn:'Standard', values:{ monthlyRent:3000, depositMonths:'2', otherDeduction:0, unpaidRent:false, utility:false, damage:false, cleaning:false, earlyTerm:false, normalWear:false, noReceipt:false, noInventory:false, illegalSublet:false, noRefund:false } },
+      { label:'欠租+损坏', labelEn:'Rent+Damage', values:{ monthlyRent:3000, depositMonths:'2', otherDeduction:0, unpaidRent:true, utility:false, damage:true, cleaning:false, earlyTerm:false, normalWear:false, noReceipt:false, noInventory:false, illegalSublet:false, noRefund:false } },
+      { label:'违法清洁扣减', labelEn:'Illegal cleaning', values:{ monthlyRent:4000, depositMonths:'2', otherDeduction:0, unpaidRent:false, utility:false, damage:false, cleaning:true, earlyTerm:false, normalWear:true, noReceipt:false, noInventory:false, illegalSublet:false, noRefund:false } },
+      { label:'拒退+侵权', labelEn:'Refuse+Intrude', values:{ monthlyRent:5000, depositMonths:'2', otherDeduction:0, unpaidRent:false, utility:false, damage:false, cleaning:false, earlyTerm:false, normalWear:false, noReceipt:false, noInventory:false, illegalSublet:true, noRefund:true } }
+    ], function(){ try{ calculate(); }catch(e){} });
+  }catch(e){}
+}
+function __rdBoot(){ try{ __rdPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") __rdBoot(); else document.addEventListener("DOMContentLoaded", __rdBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

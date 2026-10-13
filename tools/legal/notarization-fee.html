@@ -193,6 +193,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="nfChart"></div>
+    <div id="nfTable"></div>
+    <div id="nfDiff"></div>
+    <div id="nfHist"></div>
+    <div id="nfPresets"></div>
+    <button type="button" class="btn" id="nfExport" onclick="__nfExport()">导出CSV</button>
   </div>
   
   <div class="card">
@@ -260,6 +266,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function nfL(zh, en){ try{ if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __nfD = null;
 function calculate(){
   const type = document.getElementById('notaryType').value;
   const amount = parseFloat(document.getElementById('amount').value) || 0;
@@ -279,49 +287,89 @@ function calculate(){
       else if(amount <= 5000000) baseFee = 9400 + (amount - 1000000) * 0.006;
       else if(amount <= 10000000) baseFee = 33400 + (amount - 5000000) * 0.003;
       else baseFee = 48400 + (amount - 10000000) * 0.001;
-      desc = '财产继承/赠与/遗赠公证（按受益额累进）';
+      desc = nfL('财产继承/赠与/遗赠公证（按受益额累进）','Inheritance/gift/bequest notarization (progressive by benefit amount)');
       break;
     case 'contract':
       if(amount <= 0){
-        baseFee = 300; desc = '合同/协议（不涉及财产）';
+        baseFee = 300; desc = nfL('合同/协议（不涉及财产）','Contract/agreement (no property involved)');
       }else{
         if(amount <= 20000) baseFee = 200;
         else if(amount <= 100000) baseFee = 200 + (amount - 20000) * 0.008;
         else if(amount <= 500000) baseFee = 840 + (amount - 100000) * 0.006;
         else if(amount <= 1000000) baseFee = 3240 + (amount - 500000) * 0.004;
         else baseFee = 5240 + (amount - 1000000) * 0.002;
-        desc = '合同/协议公证（按标的额累进）';
+        desc = nfL('合同/协议公证（按标的额累进）','Contract/agreement notarization (progressive by amount)');
       }
       break;
-    case 'power': baseFee = 200; desc = '委托/声明/保证书公证'; break;
-    case 'birth': baseFee = 80; desc = '出生/生存/死亡/身份等公证'; break;
-    case 'marriage': baseFee = 100; desc = '婚姻状况/亲属关系公证'; break;
-    case 'education': baseFee = 80; desc = '学历/学位/经历公证'; break;
-    case 'signature': baseFee = 150; desc = '签名/印鉴属实公证'; break;
-    case 'copy': baseFee = 100; desc = '副本/影印本与原本相符公证'; break;
-    case 'will': baseFee = 400; desc = '遗嘱公证'; break;
-    case 'preservation': baseFee = 1000; desc = '证据保全公证（视类型浮动）'; break;
+    case 'power': baseFee = 200; desc = nfL('委托/声明/保证书公证','Power of attorney/declaration/guarantee'); break;
+    case 'birth': baseFee = 80; desc = nfL('出生/生存/死亡/身份等公证','Birth/alive/death/identity notarization'); break;
+    case 'marriage': baseFee = 100; desc = nfL('婚姻状况/亲属关系公证','Marital status/kinship notarization'); break;
+    case 'education': baseFee = 80; desc = nfL('学历/学位/经历公证','Education/degree/experience notarization'); break;
+    case 'signature': baseFee = 150; desc = nfL('签名/印鉴属实公证','Signature/seal authenticity'); break;
+    case 'copy': baseFee = 100; desc = nfL('副本/影印本与原本相符公证','Copy certified true to original'); break;
+    case 'will': baseFee = 400; desc = nfL('遗嘱公证','Will notarization'); break;
+    case 'preservation': baseFee = 1000; desc = nfL('证据保全公证（视类型浮动）','Evidence preservation (varies by type)'); break;
     case 'enforce':
       if(amount > 0) baseFee = amount * 0.003;
       else baseFee = 300;
-      desc = '赋予债权文书强制执行效力';
+      desc = nfL('赋予债权文书强制执行效力','Empowering enforcement of creditor documents');
       break;
   }
   
   const total = baseFee + copyFee + transFee;
   
-  let html = `<p>公证事项：${desc}</p>`;
-  if(amount > 0) html += `<p>标的/受益额：<strong>${ToolBox.formatNumber(amount)}</strong> 元</p>`;
-  html += `<p>公证费（基础）：<strong>${ToolBox.formatNumber(baseFee, 2)}</strong> 元</p>`;
-  if(copyFee > 0) html += `<p>副本费（${copies - 1}份）：${ToolBox.formatNumber(copyFee)} 元</p>`;
-  if(transFee > 0) html += `<p>翻译费：${ToolBox.formatNumber(transFee)} 元</p>`;
+  __nfD = {type:type, desc:desc, amount:amount, baseFee:baseFee, copyFee:copyFee, transFee:transFee, total:total};
+  let html = `<p>${nfL('公证事项：','Notarization item:')}<strong>${desc}</strong></p>`;
+  if(amount > 0) html += `<p>${nfL('标的/受益额：','Subject/beneficiary amount:')}<strong>${ToolBox.formatNumber(amount)}</strong> ${nfL('元','CNY')}</p>`;
+  html += `<p>${nfL('公证费（基础）：','Base notary fee:')}<strong>${ToolBox.formatNumber(baseFee, 2)}</strong> ${nfL('元','CNY')}</p>`;
+  if(copyFee > 0) html += `<p>${nfL('副本费（'+ (copies - 1) +'份）：','Copy fee ('+ (copies - 1) +' copies):')}${ToolBox.formatNumber(copyFee)} ${nfL('元','CNY')}</p>`;
+  if(transFee > 0) html += `<p>${nfL('翻译费：','Translation fee:')}${ToolBox.formatNumber(transFee)} ${nfL('元','CNY')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>公证费合计：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total, 2)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：各地收费标准有差异，实际费用以当地公证处公示为准；加急、上门、外出调查等服务另行收费</p>`;
+  html += `<p>${nfL('公证费合计：','Total notary fee:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total, 2)}</strong> ${nfL('元','CNY')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${nfL('注：各地收费标准有差异，实际费用以当地公证处公示为准；加急、上门、外出调查等服务另行收费','Note: fees vary by region; actual charges follow the local notary office. Expedited, on-site, and investigation services are billed separately')}</p>`;
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+nfL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ Invalid input: please enter valid positive numbers.')+'</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+var __tb_nf0 = calculate;
+calculate = function(){ __tb_nf0(); try{ __nfExtras(); }catch(e){} };
+function __nfExtras(){
+  try{
+    if(typeof TBKit==='undefined') return;
+    var D = (typeof __nfD!=='undefined')?__nfD:null; if(!D) return;
+    var labels = [nfL('基础公证费','Base fee'), nfL('副本费','Copy fee'), nfL('翻译费','Translation'), nfL('合计','Total')];
+    var data = [Number(D.baseFee.toFixed(2)), Number(D.copyFee.toFixed(2)), Number(D.transFee.toFixed(2)), Number(D.total.toFixed(2))];
+    var series = [{name: nfL('金额','Amount'), data: data}];
+    TBKit.chart.bar('#nfChart', { labels: labels, series: series, height:240, title: nfL('公证费构成','Notary fee breakdown') });
+    var mhead = [nfL('项目','Item'), nfL('金额(元)','Amount (CNY)')];
+    var mrows = [
+      [nfL('公证事项','Item'), D.desc],
+      [nfL('标的/受益额','Subject amount'), D.amount>0?ToolBox.formatNumber(D.amount):nfL('无','N/A')],
+      [nfL('基础公证费','Base fee'), ToolBox.formatNumber(D.baseFee,2)],
+      [nfL('副本费','Copy fee'), ToolBox.formatNumber(D.copyFee)],
+      [nfL('翻译费','Translation'), ToolBox.formatNumber(D.transFee)],
+      [nfL('公证费合计','Total'), ToolBox.formatNumber(D.total,2)]
+    ];
+    TBKit.matrix.table('#nfTable', { head: mhead, rows: mrows });
+    TBKit.history.record({ [nfL('事项','Item')]: D.desc, [nfL('金额','Amount')]: D.total });
+    try{ TBKit.history.mount('#nfHist', function(d){ if(d){} }); }catch(e){}
+  }catch(e){}
+}
+function __nfExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#nfTable','notarization-fee.csv'); }catch(e){} }
+function __nfPresets(){
+  try{
+    TBKit.preset.bar('#nfPresets', [
+      { label:'继承·100万', labelEn:'Inheritance · 1M', values:{ notaryType:'property', amount:1000000, copies:2, translation:0 } },
+      { label:'合同·50万', labelEn:'Contract · 500K', values:{ notaryType:'contract', amount:500000, copies:1, translation:0 } },
+      { label:'遗嘱', labelEn:'Will', values:{ notaryType:'will', amount:0, copies:1, translation:0 } },
+      { label:'出生', labelEn:'Birth', values:{ notaryType:'birth', amount:0, copies:1, translation:0 } }
+    ], function(){ try{ calculate(); }catch(e){} });
+  }catch(e){}
+}
+function __nfBoot(){ try{ __nfPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") __nfBoot(); else document.addEventListener("DOMContentLoaded", __nfBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

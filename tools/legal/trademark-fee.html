@@ -194,6 +194,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="tmChart"></div>
+    <div id="tmTable"></div>
+    <div id="tmDiff"></div>
+    <div id="tmHist"></div>
+    <div id="tmPresets"></div>
+    <button type="button" class="btn" id="tmExport" onclick="__tmExport()">导出CSV</button>
   </div>
   
   <div class="card">
@@ -260,6 +266,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function tmL(zh, en){ try{ if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __tmD = null;
 function calculate(){
   const type = document.getElementById('businessType').value;
   const classes = parseInt(document.getElementById('classCount').value) || 1;
@@ -283,43 +291,82 @@ function calculate(){
     
     if(isCollectiveCert){
       feePerClass = isOnline ? 1350 : 1500;
-      detail = '集体商标/证明商标注册';
+      detail = tmL('集体商标/证明商标注册','Collective/certification mark registration');
     }else{
-      detail = `商标注册（${isOnline ? '网上' : '纸质'}申请，10项内）`;
+      detail = tmL('商标注册（'+(isOnline?'网上':'纸质')+'申请，10项内）','Trademark registration ('+(isOnline?'online':'paper')+' application, up to 10 items)');
     }
   }else if(type === 'renewal'){
     feePerClass = isOnline ? 450 : 500;
-    detail = '商标续展注册';
+    detail = tmL('商标续展注册','Trademark renewal');
   }else if(type === 'assignment'){
     feePerClass = isOnline ? 450 : 500;
-    detail = '商标转让注册';
+    detail = tmL('商标转让注册','Trademark assignment');
   }else if(type === 'change'){
     feePerClass = isOnline ? 0 : 150;
-    detail = `变更申请（${isOnline ? '网上申请免费' : '纸质申请'}）`;
+    detail = tmL('变更申请（'+(isOnline?'网上申请免费':'纸质申请')+'）','Change application ('+(isOnline?'free online':'paper')+')');
   }else if(type === 'opposition'){
     feePerClass = isOnline ? 450 : 500;
-    detail = '商标异议申请';
+    detail = tmL('商标异议申请','Trademark opposition');
   }else if(type === 'review'){
     feePerClass = isOnline ? 675 : 750;
-    detail = '驳回复审';
+    detail = tmL('驳回复审','Refusal review');
   }else if(type === 'invalid'){
     feePerClass = isOnline ? 450 : 500;
-    detail = '无效宣告申请';
+    detail = tmL('无效宣告申请','Invalidation action');
   }
   
   const total = feePerClass * classes + extra;
   
-  let html = `<p>业务类型：<strong>${detail}</strong></p>`;
-  html += `<p>类别数量：<strong>${classes}</strong> 个</p>`;
-  if(extra > 0) html += `<p>超项加收：<strong>${ToolBox.formatNumber(extra)}</strong> 元</p>`;
+  __tmD = {type:type, detail:detail, classes:classes, extra:extra, total:total, feePerClass:feePerClass};
+  let html = `<p>${tmL('业务类型：','Service type:')}<strong>${detail}</strong></p>`;
+  html += `<p>${tmL('类别数量：','Number of classes:')}<strong>${classes}</strong> ${tmL('个','classes')}</p>`;
+  if(extra > 0) html += `<p>${tmL('超项加收：','Extra-items surcharge:')}<strong>${ToolBox.formatNumber(extra)}</strong> ${tmL('元','CNY')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>应缴官费：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：此为官方费用，不含代理服务费；建议委托专业商标代理机构提高注册成功率</p>`;
+  html += `<p>${tmL('应缴官费：','Official fee payable:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${tmL('元','CNY')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${tmL('注：此为官方费用，不含代理服务费；建议委托专业商标代理机构提高注册成功率','Note: this is the official fee only, excluding agency service fees; engaging a professional trademark agent is recommended to improve registration success')}</p>`;
   
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+tmL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ Invalid input: please enter valid positive numbers.')+'</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 document.getElementById('newRegOptions').style.display = 'block';
 calculate();
+
+var __tb_tm0 = calculate;
+calculate = function(){ __tb_tm0(); try{ __tmExtras(); }catch(e){} };
+function __tmExtras(){
+  try{
+    if(typeof TBKit==='undefined') return;
+    var D = (typeof __tmD!=='undefined')?__tmD:null; if(!D) return;
+    var baseAmt = Number((D.total - D.extra).toFixed(2));
+    var labels = [tmL('基础官费','Base fee'), tmL('超项加收','Surcharge'), tmL('合计','Total')];
+    var data = [baseAmt, Number(D.extra.toFixed(2)), Number(D.total.toFixed(2))];
+    var series = [{name: tmL('金额','Amount'), data: data}];
+    TBKit.chart.bar('#tmChart', { labels: labels, series: series, height:240, title: tmL('商标费构成','Trademark fee breakdown') });
+    var mhead = [tmL('项目','Item'), tmL('金额(元)','Amount (CNY)')];
+    var mrows = [
+      [tmL('业务类型','Service type'), D.detail],
+      [tmL('类别数量','Classes'), D.classes],
+      [tmL('超项加收','Surcharge'), D.extra>0?ToolBox.formatNumber(D.extra):tmL('无','N/A')],
+      [tmL('应缴官费','Official fee'), ToolBox.formatNumber(D.total)]
+    ];
+    TBKit.matrix.table('#tmTable', { head: mhead, rows: mrows });
+    TBKit.history.record({ [tmL('业务','Service')]: D.detail, [tmL('官费','Fee')]: D.total });
+    try{ TBKit.history.mount('#tmHist', function(d){ if(d){} }); }catch(e){}
+  }catch(e){}
+}
+function __tmExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#tmTable','trademark-fee.csv'); }catch(e){} }
+function __tmPresets(){
+  try{
+    TBKit.preset.bar('#tmPresets', [
+      { label:'新申请·网上', labelEn:'New · Online', values:{ businessType:'new', classCount:1, applyMethod:'online', collectiveCert:false, itemCount:'10' } },
+      { label:'续展·纸质', labelEn:'Renewal · Paper', values:{ businessType:'renewal', classCount:1, applyMethod:'paper', collectiveCert:false } },
+      { label:'转让·1类', labelEn:'Assignment · 1 class', values:{ businessType:'assignment', classCount:1, applyMethod:'online' } },
+      { label:'异议·网上', labelEn:'Opposition · Online', values:{ businessType:'opposition', classCount:1, applyMethod:'online' } }
+    ], function(){ try{ calculate(); }catch(e){} });
+  }catch(e){}
+}
+function __tmBoot(){ try{ __tmPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") __tmBoot(); else document.addEventListener("DOMContentLoaded", __tmBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

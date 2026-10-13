@@ -178,6 +178,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+    <div id="afChart"></div>
+    <div id="afTable"></div>
+    <div id="afDiff"></div>
+    <div id="afHist"></div>
+    <div id="afPresets"></div>
+    <button type="button" class="btn" id="afExport" onclick="__afExport()">导出CSV</button>
   </div>
   
   <div class="card">
@@ -236,14 +242,18 @@ s.parentNode.insertBefore(el, s);
 </div>
 <!-- /注意事项区块 -->
 </div>
+</script>
 <script>
+function afL(zh, en){ try{ if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __afD = null;
 function calculate(){
   const org = document.getElementById('arbitrationOrg').value;
   let amount = parseFloat(document.getElementById('amount').value) || 0;
   const summary = document.getElementById('summaryProcedure').checked;
   
   if(org === 'labor'){
-    const __h0='<p><strong>劳动争议仲裁不收费</strong>，仲裁经费由财政保障</p><p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：对仲裁裁决不服向法院起诉的，诉讼费10元/件</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    __afD={org:'labor',orgName:afL('劳动仲裁','Labor arbitration'),amount:0,acceptFee:0,handlingFee:0,total:0,summary:false};
+    const __h0='<p><strong>'+afL('劳动争议仲裁不收费','Labor arbitration is free')+'</strong>，'+afL('仲裁经费由财政保障','funded by the government')+'</p><p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+afL('注：对仲裁裁决不服向法院起诉的，诉讼费10元/件','Note: Appealing an unfavorable award to court costs 10 CNY per case')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
     return;
   }
   
@@ -282,19 +292,59 @@ function calculate(){
   if(summary) total *= 0.7;
   
   const orgNames = {general:'一般仲裁机构', cietac:'贸仲（CIETAC）', bac:'北仲（BAC）', labor:'劳动仲裁'};
+  const orgNamesEn = {general:'General arbitration body', cietac:'CIETAC', bac:'BAC', labor:'Labor arbitration'};
   
-  let html = `<p>仲裁机构：<strong>${orgNames[org]}</strong></p>`;
-  html += `<p>争议金额：<strong>${ToolBox.formatNumber(amount)}</strong> 元</p>`;
-  html += `<p>案件受理费：<strong>${ToolBox.formatNumber(acceptFee, 2)}</strong> 元</p>`;
-  html += `<p>案件处理费：<strong>${ToolBox.formatNumber(handlingFee, 2)}</strong> 元</p>`;
-  if(summary) html += `<p style="color:#ff9800;">简易程序：按70%收取</p>`;
+  __afD = {org:org, orgName:afL(orgNames[org], orgNamesEn[org]), amount:amount, acceptFee:acceptFee, handlingFee:handlingFee, total:total, summary:summary};
+  let html = `<p>${afL('仲裁机构：','Arbitration body:')}<strong>${afL(orgNames[org], orgNamesEn[org])}</strong></p>`;
+  html += `<p>${afL('争议金额：','Disputed amount:')}<strong>${ToolBox.formatNumber(amount)}</strong> ${afL('元','CNY')}</p>`;
+  html += `<p>${afL('案件受理费：','Filing fee:')}<strong>${ToolBox.formatNumber(acceptFee, 2)}</strong> ${afL('元','CNY')}</p>`;
+  html += `<p>${afL('案件处理费：','Handling fee:')}<strong>${ToolBox.formatNumber(handlingFee, 2)}</strong> ${afL('元','CNY')}</p>`;
+  if(summary) html += `<p style="color:#ff9800;">${afL('简易程序：按70%收取','Summary procedure: 70% of fees')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>仲裁费合计：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total, 2)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：以上为参考金额，实际费用以仲裁机构核定为准；财产保全、鉴定、翻译等费用另行收取</p>`;
+  html += `<p>${afL('仲裁费合计：','Total arbitration fee:')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total, 2)}</strong> ${afL('元','CNY')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${afL('注：以上为参考金额，实际费用以仲裁机构核定为准；财产保全、鉴定、翻译等费用另行收取','Note: this is a reference amount; actual fees are subject to the arbitration commission. Property preservation, appraisal, translation and other fees are charged separately')}</p>`;
   
-  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">'+afL('⚠ 计算结果含无效值，请检查输入是否为有效正数。','⚠ Invalid input: please enter valid positive numbers.')+'</p>';return;}document.getElementById('result').innerHTML=__h1;
 }
 calculate();
+
+var __tb_af0 = calculate;
+calculate = function(){ __tb_af0(); try{ __afExtras(); }catch(e){} };
+function __afExtras(){
+  try{
+    if(typeof TBKit==='undefined') return;
+    var D = (typeof __afD!=='undefined')?__afD:null; if(!D) return;
+    var labels = [afL('案件受理费','Filing fee'), afL('案件处理费','Handling fee'), afL('合计','Total')];
+    var data = [Number(D.acceptFee.toFixed(2)), Number(D.handlingFee.toFixed(2)), Number(D.total.toFixed(2))];
+    var series = [{name: afL('金额','Amount'), data: data}];
+    TBKit.chart.bar('#afChart', { labels: labels, series: series, height:240, title: afL('仲裁费构成','Arbitration fee breakdown') });
+    var mhead = [afL('项目','Item'), afL('金额(元)','Amount (CNY)')];
+    var mrows = [
+      [afL('争议金额','Disputed amount'), ToolBox.formatNumber(D.amount)],
+      [afL('案件受理费','Filing fee'), ToolBox.formatNumber(D.acceptFee,2)],
+      [afL('案件处理费','Handling fee'), ToolBox.formatNumber(D.handlingFee,2)],
+      [afL('简易程序折扣','Summary discount'), D.summary? '-30%':afL('无','N/A')],
+      [afL('仲裁费合计','Total'), ToolBox.formatNumber(D.total,2)]
+    ];
+    TBKit.matrix.table('#afTable', { head: mhead, rows: mrows });
+    TBKit.history.record({ [afL('机构','Body')]: D.orgName, [afL('金额','Amount')]: D.amount, [afL('合计','Total')]: D.total });
+    try{ TBKit.history.mount('#afHist', function(d){ if(d){} }); }catch(e){}
+  }catch(e){}
+}
+function __afExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#afTable','arbitration-fee.csv'); }catch(e){} }
+function __afPresets(){
+  try{
+    TBKit.preset.bar('#afPresets', [
+      { label:'贸仲·100万', labelEn:'CIETAC · 1M', values:{ arbitrationOrg:'cietac', amount:1000000, summaryProcedure:false } },
+      { label:'北仲·50万', labelEn:'BAC · 500K', values:{ arbitrationOrg:'bac', amount:500000, summaryProcedure:false } },
+      { label:'一般·30万', labelEn:'General · 300K', values:{ arbitrationOrg:'general', amount:300000, summaryProcedure:false } },
+      { label:'一般·简易', labelEn:'General · Summary', values:{ arbitrationOrg:'general', amount:200000, summaryProcedure:true } }
+    ], function(){ try{ calculate(); }catch(e){} });
+  }catch(e){}
+}
+function __afBoot(){ try{ __afPresets(); }catch(e){} try{ calculate(); }catch(e){} }
+if (document.readyState && document.readyState !== "loading") __afBoot(); else document.addEventListener("DOMContentLoaded", __afBoot);
+
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
