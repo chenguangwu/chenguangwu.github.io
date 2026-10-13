@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>真实标签 0/1</label><input type="number" id="y" value="1" step="1" oninput="calc()"></div>
     <div class="input-row"><label>预测概率</label><input type="number" id="p" value="0.8" step="any" oninput="calc()"></div>
     <div class="input-row"><label>样本数</label><input type="number" id="n" value="1" step="any" oninput="calc()"></div>
+    <div id="cePresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__ceExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="ceChart" role="img" aria-label="结果可视化"></div>
+    <div id="ceTable"></div>
+    <div id="ceDiff"></div>
+    <div id="ceHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -221,6 +228,49 @@ function copyResult() {
   });
 }
 calc();
+
+function __ceN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ceList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __ceL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __ceExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ceTable','cross-entropy.csv');}catch(e){} }
+function __ceExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var y=__ceN('y'), p=__ceN('p'), n=__ceN('n');
+        if(!(y===0||y===1))return;
+        if(!(p>0&&p<1))return;
+        var loss=-(y*Math.log(p)+(1-y)*Math.log(1-p));
+        var batch=loss*n;
+        var labels=[],data=[];
+        for(var pp=0.02;pp<0.99;pp+=0.04){labels.push(pp.toFixed(2));var lp=-(y*Math.log(pp)+(1-y)*Math.log(1-pp));data.push(isFinite(lp)?lp:0);}
+        TBKit.chart.line('#ceChart',{labels:labels,series:[{name:__ceL('loss','损失'),data:data}],height:230,title:__ceL('BCE loss vs predicted p (y='+y+')','损失随预测概率变化 (y='+y+')')});
+        var rows=__ceL(
+            [['label y',y.toFixed(0)],['predicted p',p.toFixed(4)],['single-sample loss',loss.toFixed(4)],['batch loss (×'+n.toFixed(0)+')',batch.toFixed(4)]],
+            [['标签 y',y.toFixed(0)],['预测概率 p',p.toFixed(4)],['单样本损失',loss.toFixed(4)],['批量损失 (×'+n.toFixed(0)+')',batch.toFixed(4)]]);
+        TBKit.matrix.table('#ceTable',{head:__ceL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({y:y,p:p,n:n,loss:Number(loss.toFixed(4))});
+        TBKit.util.diffBox('#ceDiff',['loss']);
+        TBKit.history.mount('#ceHist',function(v){ if(v.loss!=null){document.getElementById('y').value=v.y;document.getElementById('p').value=v.p;document.getElementById('n').value=v.n;} calc(); });
+    }catch(e){}
+}
+function __cePresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#cePresets',[
+            {label:'正类 y=1 p=0.9 n=32',labelEn:'Positive y=1 p=0.9 n=32',values:{y:1,p:0.9,n:32}},
+            {label:'负类 y=0 p=0.1 n=64',labelEn:'Negative y=0 p=0.1 n=64',values:{y:0,p:0.1,n:64}},
+            {label:'最不确定 y=1 p=0.5 n=16',labelEn:'Most uncertain y=1 p=0.5 n=16',values:{y:1,p:0.5,n:16}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ce0 = calc;
+calc = function(){ __tb_ce0(); try{ __ceExtras(); }catch(e){} };
+function __ceBoot(){ try{ __cePresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ceBoot);
+else __ceBoot();
 </script>
 
 <script type="application/ld+json">

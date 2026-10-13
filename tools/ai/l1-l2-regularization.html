@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>权重2</label><input type="number" id="w2" value="-0.3" step="any" oninput="calc()"></div>
     <div class="input-row"><label>权重3</label><input type="number" id="w3" value="1.2" step="any" oninput="calc()"></div>
     <div class="input-row"><label>权重4</label><input type="number" id="w4" value="-0.8" step="any" oninput="calc()"></div>
+    <div id="l1Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__l1Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="l1Chart" role="img" aria-label="结果可视化"></div>
+    <div id="l1Table"></div>
+    <div id="l1Diff"></div>
+    <div id="l1Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -220,6 +227,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __l1N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __l1List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __l1L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __l1Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#l1Table','l1-l2-regularization.csv');}catch(e){} }
+function __l1Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var w=[__l1N('w1'),__l1N('w2'),__l1N('w3'),__l1N('w4')];
+        if(w.some(function(x){return !isFinite(x);}))return;
+        var L1=w.reduce(function(a,b){return a+Math.abs(b);},0);
+        var L2=Math.sqrt(w.reduce(function(a,b){return a+b*b;},0));
+        TBKit.chart.bar('#l1Chart',{labels:['w1','w2','w3','w4'],series:[{name:__l1L('|w|','绝对值'),data:w.map(function(v){return Math.abs(v);})},{name:'w²',data:w.map(function(v){return v*v;})}],height:230,title:__l1L('Weights: |w| and w²','权重：|w| 与 w²')});
+        var rows=__l1L(
+            [['w1',w[0].toFixed(3),Math.abs(w[0]).toFixed(3),w[0]*w[0].toFixed(3)],['w2',w[1].toFixed(3),Math.abs(w[1]).toFixed(3),w[1]*w[1].toFixed(3)],['w3',w[2].toFixed(3),Math.abs(w[2]).toFixed(3),w[2]*w[2].toFixed(3)],['w4',w[3].toFixed(3),Math.abs(w[3]).toFixed(3),w[3]*w[3].toFixed(3)],['L1 norm',L1.toFixed(3),'',''],[('L2 norm'),L2.toFixed(3),'','']],
+            [['w1',w[0].toFixed(3),Math.abs(w[0]).toFixed(3),w[0]*w[0].toFixed(3)],['w2',w[1].toFixed(3),Math.abs(w[1]).toFixed(3),w[1]*w[1].toFixed(3)],['w3',w[2].toFixed(3),Math.abs(w[2]).toFixed(3),w[2]*w[2].toFixed(3)],['w4',w[3].toFixed(3),Math.abs(w[3]).toFixed(3),w[3]*w[3].toFixed(3)],['L1 范数',L1.toFixed(3),'',''],[('L2 范数'),L2.toFixed(3),'','']]);
+        TBKit.matrix.table('#l1Table',{head:__l1L(['weight','value','|w|','w²'],['权重','数值','|w|','w²']),rows:rows});
+        TBKit.history.record({l1:Number(L1.toFixed(3)),l2:Number(L2.toFixed(3))});
+        TBKit.util.diffBox('#l1Diff',['l2']);
+        TBKit.history.mount('#l1Hist',function(v){ if(v.l2!=null){[1,2,3,4].forEach(function(i){if(v['w'+i]!=null)document.getElementById('w'+i).value=v['w'+i];});} calc(); });
+    }catch(e){}
+}
+function __l1Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#l1Presets',[
+            {label:'混合 [0.5,-1.2,0.3,2.0]',labelEn:'Mixed [0.5,-1.2,0.3,2.0]',values:{w1:0.5,w2:-1.2,w3:0.3,w4:2.0}},
+            {label:'全 1 [1,1,1,1]',labelEn:'All ones [1,1,1,1]',values:{w1:1,w2:1,w3:1,w4:1}},
+            {label:'单峰 [0,0,0,3]',labelEn:'Single [0,0,0,3]',values:{w1:0,w2:0,w3:0,w4:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_l10 = calc;
+calc = function(){ __tb_l10(); try{ __l1Extras(); }catch(e){} };
+function __l1Boot(){ try{ __l1Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __l1Boot);
+else __l1Boot();
 </script>
 
 <script type="application/ld+json">

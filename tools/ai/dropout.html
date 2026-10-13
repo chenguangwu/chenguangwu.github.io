@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>Dropout 率</label><input type="number" id="rate" value="0.5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>输入值</label><input type="number" id="x" value="2" step="any" oninput="calc()"></div>
     <div class="input-row"><label>神经元数</label><input type="number" id="n" value="100" step="1" oninput="calc()"></div>
+    <div id="dpPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__dpExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="5" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="5" data-viz-min="0">
+    <div id="dpChart" role="img" aria-label="结果可视化"></div>
+    <div id="dpTable"></div>
+    <div id="dpDiff"></div>
+    <div id="dpHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -222,6 +229,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __dpN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dpList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __dpL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __dpExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#dpTable','dropout.csv');}catch(e){} }
+function __dpExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var r=__dpN('rate'), x=__dpN('x'), n=__dpN('n');
+        if(!(r>0&&r<1&&isFinite(x)&&n>=0))return;
+        var keep=1-r, out=x*keep, act=n*keep, sc=1/(1-r);
+        TBKit.chart.bar('#dpChart',{labels:['rate','keep'],series:[{name:__dpL('prob','概率'),data:[r,keep]}],height:200,title:__dpL('Dropout rate vs keep probability','丢弃率 vs 保留概率')});
+        var rows=__dpL(
+            [['dropout rate',r.toFixed(2)],['keep probability',keep.toFixed(2)],['expected output',out.toFixed(2)],['expected active neurons',act.toFixed(0)],['scale factor',sc.toFixed(2)]],
+            [['丢弃率',r.toFixed(2)],['保留概率',keep.toFixed(2)],['期望输出',out.toFixed(2)],['期望活跃神经元',act.toFixed(0)],['缩放因子',sc.toFixed(2)]]);
+        TBKit.matrix.table('#dpTable',{head:__dpL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({rate:r,x:x,n:n,keep:Number(keep.toFixed(3))});
+        TBKit.util.diffBox('#dpDiff',['keep']);
+        TBKit.history.mount('#dpHist',function(v){ if(v.rate!=null){document.getElementById('rate').value=v.rate;document.getElementById('x').value=v.x;document.getElementById('n').value=v.n;} calc(); });
+    }catch(e){}
+}
+function __dpPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#dpPresets',[
+            {label:'常用 0.2 x=10 n=100',labelEn:'Common 0.2 x=10 n=100',values:{rate:0.2,x:10,n:100}},
+            {label:'激进 0.5 x=5 n=50',labelEn:'Aggressive 0.5 x=5 n=50',values:{rate:0.5,x:5,n:50}},
+            {label:'保守 0.1 x=8 n=200',labelEn:'Conservative 0.1 x=8 n=200',values:{rate:0.1,x:8,n:200}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_dp0 = calc;
+calc = function(){ __tb_dp0(); try{ __dpExtras(); }catch(e){} };
+function __dpBoot(){ try{ __dpPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __dpBoot);
+else __dpBoot();
 </script>
 
 <script type="application/ld+json">

@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>初始 LR</label><input type="number" id="lr0" value="0.001" step="any" oninput="calc()"></div>
     <div class="input-row"><label>衰减率</label><input type="number" id="gamma" value="0.95" step="any" oninput="calc()"></div>
     <div class="input-row"><label>轮数</label><input type="number" id="epoch" value="10" step="any" oninput="calc()"></div>
+    <div id="ldPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__ldExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="ldChart" role="img" aria-label="结果可视化"></div>
+    <div id="ldTable"></div>
+    <div id="ldDiff"></div>
+    <div id="ldHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -216,6 +223,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __ldN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ldList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __ldL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __ldExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ldTable','lr-decay.csv');}catch(e){} }
+function __ldExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var lr0=__ldN('lr0'), g=__ldN('gamma'), ep=__ldN('epoch');
+        if(!(lr0>0&&g>0&&ep>=0))return;
+        var cur=lr0*Math.pow(g,ep);
+        var labels=[],data=[];
+        for(var i=0;i<=ep+5;i++){labels.push(String(i));data.push(lr0*Math.pow(g,i));}
+        TBKit.chart.line('#ldChart',{labels:labels,series:[{name:__ldL('LR','学习率'),data:data}],height:230,title:__ldL('LR decay over epochs','学习率随轮次衰减')});
+        var rows=__ldL(
+            [['initial LR',lr0.toFixed(6)],['decay γ',g.toFixed(4)],['current epoch',ep.toFixed(0)],['current LR',cur.toFixed(6)],['LR after +5 epochs',(lr0*Math.pow(g,ep+5)).toFixed(6)]],
+            [['初始学习率',lr0.toFixed(6)],['衰减系数 γ',g.toFixed(4)],['当前轮次',ep.toFixed(0)],['当前学习率',cur.toFixed(6)],['再训 5 轮后',(lr0*Math.pow(g,ep+5)).toFixed(6)]]);
+        TBKit.matrix.table('#ldTable',{head:__ldL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({lr0:lr0,gamma:g,epoch:ep,lr:Number(cur.toFixed(6))});
+        TBKit.util.diffBox('#ldDiff',['lr']);
+        TBKit.history.mount('#ldHist',function(v){ if(v.lr0!=null){document.getElementById('lr0').value=v.lr0;document.getElementById('gamma').value=v.gamma;document.getElementById('epoch').value=v.epoch;} calc(); });
+    }catch(e){}
+}
+function __ldPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#ldPresets',[
+            {label:'step decay lr0=0.1 γ=0.95 ep=10',labelEn:'step decay lr0=0.1 γ=0.95 ep=10',values:{lr0:0.1,gamma:0.95,epoch:10}},
+            {label:'余弦式 lr0=0.01 γ=0.9 ep=30',labelEn:'cosine-like lr0=0.01 γ=0.9 ep=30',values:{lr0:0.01,gamma:0.9,epoch:30}},
+            {label:'慢衰减 lr0=1 γ=0.99 ep=50',labelEn:'slow lr0=1 γ=0.99 ep=50',values:{lr0:1,gamma:0.99,epoch:50}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ld0 = calc;
+calc = function(){ __tb_ld0(); try{ __ldExtras(); }catch(e){} };
+function __ldBoot(){ try{ __ldPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ldBoot);
+else __ldBoot();
 </script>
 
 <script type="application/ld+json">

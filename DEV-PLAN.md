@@ -85,14 +85,15 @@
 
 ### 1.7 当前分类（进行中）
 
-**试点：`statistics`（52 页 / 起点均分 1.67 / 薄弱 46；当前 均分 6.10 / 薄弱 0）** —— 语义最适合图表化（分布、检验、抽样），用它跑通 SOP 与组件库。
-按 5 批 × ~10 页推进；批次清单在此动态登记、干完即删（完成的批次只留计数，细节写当日 memory）。
+**试点：`statistics`（52 页 / 起点均分 1.67 / 薄弱 46；当前 均分 7.58 / 薄弱 0）** —— 语义最适合图表化（分布、检验、抽样），已用它跑通 SOP 与组件库。
+按 6 批推进；批次清单在此动态登记、干完即删（完成的批次只留计数，细节写当日 memory）。
 
-- [x] **已完成 35 页**（B1 3 页 S 档 + B2/B3/B4 各 10–12 页 A 档）：分类均分 1.67 → **6.10**、薄弱 46 → **0**。逐批形态与真 bug 明细归档在 `.workbuddy/memory/2026-10-13.md`，此处不重复记账。
-- [ ] statistics B5（8 页）：`p`（P 值）/ `t`（单样本 t）/ `z`（Z 分数）/ `statistics`（正态分布概率）/ `statistics-4`（均值置信区间）/ `statistics-5`（样本量）/ `statistics-7`（偏度峰度）/ `statistics-10`（CV 比较）
-- [ ] statistics B6（8 页收尾）：`statistics-11`（加权平均）/ `statistics-12`（均值中位众数）/ `statistics-13`（标准差方差）/ `statistics-16`（线性回归拟合）/ sample-size-proportion / sample-variance / skewness-sample / cramers-v
-- [ ] `index` 页：分类索引页（14.5KB、无输入），按「分类导航增强」处理，不做图表
-- ⚠️ **待老板决策（不擅自执行）**：已诊断出分类内功能重复 —— `p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean。**清理需下线 URL（走 `sitemap-deadlinks.xml`），影响 SEO，须老板批准后才动**；在此之前 B5/B6 照常做体验改造，不删页。
+- [x] **B1–B4 已完成 35 页**（B1 3 页 S 档 + B2/B3/B4 各 10–12 页 A 档）：分类均分 1.67 → **6.10**、薄弱 46 → **0**。
+- [x] **B5 已完成 8 页**（p/t/z/statistics/statistics-4/5/7/10）：均分 6.10 → **6.81**；顺带修复多页正态 CDF 漏除 √2 真 bug。
+- [x] **B6 已完成 10 页**（statistics-11/12/13/16 + sample-size-proportion/sample-variance/skewness-sample/cramers-v 从零接入；chi-square-test/coefficient-of-variation 补图表）：均分 6.81 → **7.58**、薄弱(≤2) **0**。
+- [x] `index` 页：分类索引页（无输入），按导航页处理，不做图表。
+- ⚠️ **待老板决策（不擅自执行）**：已诊断出分类内功能重复 —— `p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean。**清理需下线 URL（走 `sitemap-deadlinks.xml`），影响 SEO，须老板批准后才动**；此前 B5/B6 已照常做体验改造，不删页。
+- 📌 **分类收口结论**：52 页全部达 7–8/9（仅余 11 个 7/9 页缺图表+tabs，已属高质量，可选补图表）。`statistics` 试点达成「个性化 + 驻留/跨工具」目标，SOP 与组件库 `js/tool-kit.js` 已固化。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 

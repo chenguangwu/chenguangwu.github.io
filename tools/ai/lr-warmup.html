@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>总步数</label><input type="number" id="steps" value="10000" step="any" oninput="calc()"></div>
     <div class="input-row"><label>预热比例</label><input type="number" id="ratio" value="0.1" step="any" oninput="calc()"></div>
     <div class="input-row"><label>峰值 LR</label><input type="number" id="peakLr" value="0.001" step="any" oninput="calc()"></div>
+    <div id="lwPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__lwExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="lwChart" role="img" aria-label="结果可视化"></div>
+    <div id="lwTable"></div>
+    <div id="lwDiff"></div>
+    <div id="lwHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -218,6 +225,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __lwN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lwList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __lwL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __lwExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#lwTable','lr-warmup.csv');}catch(e){} }
+function __lwExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var steps=__lwN('steps'), ratio=__lwN('ratio'), peak=__lwN('peakLr');
+        if(!(steps>0&&ratio>0&&peak>0))return;
+        var warm=steps*ratio;
+        var labels=[],data=[];
+        for(var i=0;i<=warm;i++){labels.push(String(i));data.push(peak*(warm>0?i/warm:0));}
+        TBKit.chart.line('#lwChart',{labels:labels,series:[{name:__lwL('LR','学习率'),data:data}],height:230,title:__lwL('Linear warmup 0 → peak','线性预热 0 → 峰值')});
+        var rows=__lwL(
+            [['total steps',steps.toFixed(0)],['warmup ratio',ratio.toFixed(3)],['warmup steps',warm.toFixed(0)],['peak LR',peak.toFixed(6)],['LR at half warmup',(peak*0.5).toFixed(6)]],
+            [['总步数',steps.toFixed(0)],['预热比例',ratio.toFixed(3)],['预热步数',warm.toFixed(0)],['峰值学习率',peak.toFixed(6)],['预热中点学习率',(peak*0.5).toFixed(6)]]);
+        TBKit.matrix.table('#lwTable',{head:__lwL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({steps:steps,ratio:ratio,peakLr:peak});
+        TBKit.util.diffBox('#lwDiff',['peakLr']);
+        TBKit.history.mount('#lwHist',function(v){ if(v.peakLr!=null){document.getElementById('steps').value=v.steps;document.getElementById('ratio').value=v.ratio;document.getElementById('peakLr').value=v.peakLr;} calc(); });
+    }catch(e){}
+}
+function __lwPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#lwPresets',[
+            {label:'1k 步 10% 预热 peak=0.01',labelEn:'1k steps 10% warmup peak=0.01',values:{steps:1000,ratio:0.1,peakLr:0.01}},
+            {label:'2k 步 20% 预热 peak=0.05',labelEn:'2k steps 20% warmup peak=0.05',values:{steps:2000,ratio:0.2,peakLr:0.05}},
+            {label:'500 步 30% 预热 peak=0.1',labelEn:'500 steps 30% warmup peak=0.1',values:{steps:500,ratio:0.3,peakLr:0.1}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_lw0 = calc;
+calc = function(){ __tb_lw0(); try{ __lwExtras(); }catch(e){} };
+function __lwBoot(){ try{ __lwPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __lwBoot);
+else __lwBoot();
 </script>
 
 <script type="application/ld+json">

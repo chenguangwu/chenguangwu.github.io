@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>数据集规模</label><input type="number" id="data" value="50000" step="any" oninput="calc()"></div>
     <div class="input-row"><label>批次</label><input type="number" id="batch" value="64" step="any" oninput="calc()"></div>
     <div class="input-row"><label>吞吐 样本/s</label><input type="number" id="speed" value="200" step="any" oninput="calc()"></div>
+    <div id="etPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__etExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="etChart" role="img" aria-label="结果可视化"></div>
+    <div id="etTable"></div>
+    <div id="etDiff"></div>
+    <div id="etHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -223,6 +230,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __etN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __etList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __etL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __etExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#etTable','epoch-time.csv');}catch(e){} }
+function __etExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var epochs=__etN('epochs'), data=__etN('data'), batch=__etN('batch'), speed=__etN('speed');
+        if(!(epochs>0&&data>0&&batch>0&&speed>0))return;
+        var steps=Math.ceil(epochs*data/batch);
+        var hours=epochs*data/batch/speed/3600;
+        var labels=[],d=[];
+        for(var i=0;i<=epochs;i++){labels.push(String(i));d.push(i*data/batch/speed/3600);}
+        TBKit.chart.line('#etChart',{labels:labels,series:[{name:__etL('hours','小时'),data:d}],height:230,title:__etL('Cumulative training time (h)','累计训练时长 (小时)')});
+        var rows=__etL(
+            [['epochs',epochs.toFixed(0)],['dataset size',data.toFixed(0)],['batch size',batch.toFixed(0)],['speed (samples/s)',speed.toFixed(0)],['total steps',steps.toFixed(0)],['train time (h)',hours.toFixed(2)]],
+            [['轮次',epochs.toFixed(0)],['数据集规模',data.toFixed(0)],['批大小',batch.toFixed(0)],['速度 (样本/秒)',speed.toFixed(0)],['总步数',steps.toFixed(0)],['训练时长 (h)',hours.toFixed(2)]]);
+        TBKit.matrix.table('#etTable',{head:__etL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({steps:steps,hours:Number(hours.toFixed(3))});
+        TBKit.util.diffBox('#etDiff',['hours']);
+        TBKit.history.mount('#etHist',function(v){ if(v.hours!=null){document.getElementById('epochs').value=v.epochs;document.getElementById('data').value=v.data;document.getElementById('batch').value=v.batch;document.getElementById('speed').value=v.speed;} calc(); });
+    }catch(e){}
+}
+function __etPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#etPresets',[
+            {label:'小数据 10k/32 @200',labelEn:'Small 10k/32 @200',values:{epochs:50,data:10000,batch:32,speed:200}},
+            {label:'中等 50k/64 @500',labelEn:'Medium 50k/64 @500',values:{epochs:100,data:50000,batch:64,speed:500}},
+            {label:'轻量 1k/16 @100',labelEn:'Light 1k/16 @100',values:{epochs:10,data:1000,batch:16,speed:100}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_et0 = calc;
+calc = function(){ __tb_et0(); try{ __etExtras(); }catch(e){} };
+function __etBoot(){ try{ __etPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __etBoot);
+else __etBoot();
 </script>
 
 <script type="application/ld+json">

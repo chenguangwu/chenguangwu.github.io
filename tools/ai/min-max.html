@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>最小值</label><input type="number" id="min" value="50" step="any" oninput="calc()"></div>
     <div class="input-row"><label>最大值</label><input type="number" id="max" value="100" step="any" oninput="calc()"></div>
     <div class="input-row"><label>目标范围 1=[0,1] 2=[-1,1]</label><input type="number" id="range" value="1" step="1" oninput="calc()"></div>
+    <div id="mxPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__mxExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="-1"></div>
+    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="-1">
+    <div id="mxChart" role="img" aria-label="结果可视化"></div>
+    <div id="mxTable"></div>
+    <div id="mxDiff"></div>
+    <div id="mxHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -226,6 +233,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __mxN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mxList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __mxL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __mxExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#mxTable','min-max-normalization.csv');}catch(e){} }
+function __mxExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var x=__mxN('x'), mn=__mxN('min'), mx=__mxN('max'), rg=__mxN('range');
+        if(!(mx>mn))return;
+        var n01=(x-mn)/(mx-mn), n11=2*n01-1, z=(x-(mn+mx)/2)/((mx-mn)/2);
+        TBKit.chart.bar('#mxChart',{labels:['[0,1]','[-1,1]','z'],series:[{name:__mxL('normalized','归一化'),data:[n01,n11,z]}],height:200,title:__mxL('Normalized outputs','归一化输出')});
+        var rows=__mxL(
+            [['x',x.toFixed(4)],['min',mn.toFixed(4)],['max',mx.toFixed(4)],['range',rg.toFixed(4)],['min-max [0,1]',n01.toFixed(4)],['min-max [-1,1]',n11.toFixed(4)],['z-score',z.toFixed(4)]],
+            [['x',x.toFixed(4)],['最小值',mn.toFixed(4)],['最大值',mx.toFixed(4)],['区间',rg.toFixed(4)],['min-max [0,1]',n01.toFixed(4)],['min-max [-1,1]',n11.toFixed(4)],['z-score',z.toFixed(4)]]);
+        TBKit.matrix.table('#mxTable',{head:__mxL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({x:x,min:mn,max:mx,n01:Number(n01.toFixed(4))});
+        TBKit.util.diffBox('#mxDiff',['n01']);
+        TBKit.history.mount('#mxHist',function(v){ if(v.n01!=null){document.getElementById('x').value=v.x;document.getElementById('min').value=v.min;document.getElementById('max').value=v.max;} calc(); });
+    }catch(e){}
+}
+function __mxPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#mxPresets',[
+            {label:'[0,10] 取 5',labelEn:'[0,10] take 5',values:{x:5,min:0,max:10,range:10}},
+            {label:'[50,100] 取 75',labelEn:'[50,100] take 75',values:{x:75,min:50,max:100,range:50}},
+            {label:'[-1,1] 取 0',labelEn:'[-1,1] take 0',values:{x:0,min:-1,max:1,range:2}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_mx0 = calc;
+calc = function(){ __tb_mx0(); try{ __mxExtras(); }catch(e){} };
+function __mxBoot(){ try{ __mxPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __mxBoot);
+else __mxBoot();
 </script>
 
 <script type="application/ld+json">
