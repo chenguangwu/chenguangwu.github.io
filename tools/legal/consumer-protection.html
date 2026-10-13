@@ -179,6 +179,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 赔偿构成</h3>
+    <div id="cpChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="cpTable"></div>
+    <button type="button" class="btn" id="cpExport" onclick="__cpExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="cpHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="cpPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 消法赔偿规则</h3>
@@ -240,6 +257,8 @@ document.getElementById('hasDamage').addEventListener('change', function(){
   document.getElementById('damageSection').style.display = this.checked ? 'block' : 'none';
 });
 
+function cpL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __cpD=null;
 function calculate(){
   const price = parseFloat(document.getElementById('price').value) || 0;
   const fraudType = document.getElementById('fraudType').value;
@@ -250,56 +269,95 @@ function calculate(){
   let refund = price;
   let punitive = 0;
   let minAmount = 500;
-  let title = '退一赔三';
-  let legalBasis = '《消费者权益保护法》第55条第1款';
+  let title = cpL('退一赔三','Refund plus triple damages');
+  let legalBasis = cpL('《消费者权益保护法》第55条第1款','Consumer Rights Protection Law, Art. 55(1)');
   
   if(fraudType === 'food'){
     punitive = price * 10;
     minAmount = 1000;
-    title = '退一赔十';
-    legalBasis = '《食品安全法》第148条';
+    title = cpL('退一赔十','Refund plus tenfold damages');
+    legalBasis = cpL('《食品安全法》第148条','Food Safety Law, Art. 148');
     punitive = Math.max(punitive, minAmount);
   }else if(fraudType === 'general'){
     punitive = price * 3;
     punitive = Math.max(punitive, minAmount);
   }else{
-    title = '人身损害惩罚性赔偿';
-    legalBasis = '《消费者权益保护法》第55条第2款';
+    title = cpL('人身损害惩罚性赔偿','Punitive damages for personal injury');
+    legalBasis = cpL('《消费者权益保护法》第55条第2款','Consumer Rights Protection Law, Art. 55(2)');
     punitive = damage * 2;
   }
   
   let total = refund + punitive + (hasDamage ? damage : 0);
   
-  let html = `<p>适用规则：<strong>${title}</strong></p>`;
-  html += `<p>法律依据：${legalBasis}</p>`;
+  let html = `<p>${cpL('适用规则：','Rule applied: ')}<strong>${title}</strong></p>`;
+  html += `<p>${cpL('法律依据：','Legal basis: ')}${legalBasis}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>退还货款：<strong>${ToolBox.formatNumber(refund)}</strong> 元</p>`;
+  html += `<p>${cpL('退还货款：','Refund: ')}<strong>${ToolBox.formatNumber(refund)}</strong> ${cpL('元','CNY')}</p>`;
   if(fraudType !== 'productLiability'){
-    html += `<p>${fraudType === 'food' ? '十倍' : '三倍'}赔偿金：<strong>${ToolBox.formatNumber(punitive)}</strong> 元 ${punitive <= minAmount ? `<span style="font-size:12px;color:#ff9800;">（保底${minAmount}元）</span>` : ''}</p>`;
+    html += `<p>${fraudType === 'food' ? cpL('十倍','Tenfold') : cpL('三倍','Triple')}${cpL('赔偿金：',' damages: ')}<strong>${ToolBox.formatNumber(punitive)}</strong> ${cpL('元','CNY')} ${punitive <= minAmount ? `<span style="font-size:12px;color:#ff9800;">${cpL('（保底','(floor ')}${minAmount}${cpL('元）',' CNY)')}</span>` : ''}</p>`;
   }
   if(hasDamage){
-    html += `<p>实际损失（医疗费等）：<strong>${ToolBox.formatNumber(damage)}</strong> 元</p>`;
+    html += `<p>${cpL('实际损失（医疗费等）：','Actual loss, medical and similar: ')}<strong>${ToolBox.formatNumber(damage)}</strong> ${cpL('元','CNY')}</p>`;
     if(fraudType === 'productLiability' && knowingly){
-      html += `<p>二倍以下惩罚性赔偿：<strong>${ToolBox.formatNumber(punitive)}</strong> 元（损失×2）</p>`;
+      html += `<p>${cpL('二倍以下惩罚性赔偿：','Punitive damages up to double: ')}<strong>${ToolBox.formatNumber(punitive)}</strong> ${cpL('元（损失×2）',' CNY, loss times two')}</p>`;
     }
   }
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>可主张总额：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>`;
+  html += `<p>${cpL('可主张总额：','Total claimable: ')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${cpL('元','CNY')}</p>`;
   
   let commonFraud = [];
-  commonFraud.push('虚假宣传、以假充真、以次充好');
-  commonFraud.push('销售掺杂掺假商品、假冒注册商标商品');
-  commonFraud.push('虚构原价/优惠价、虚假折价');
-  commonFraud.push('隐瞒商品瑕疵、故意告知虚假情况');
+  commonFraud.push(cpL('虚假宣传、以假充真、以次充好','False advertising, passing fakes off as genuine, shoddy goods as quality'));
+  commonFraud.push(cpL('销售掺杂掺假商品、假冒注册商标商品','Selling adulterated goods or goods with a counterfeit registered trademark'));
+  commonFraud.push(cpL('虚构原价/优惠价、虚假折价','Invented original or discount prices, fake markdowns'));
+  commonFraud.push(cpL('隐瞒商品瑕疵、故意告知虚假情况','Concealing defects or deliberately giving false information'));
   if(fraudType !== 'productLiability'){
     html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-    html += `<p style="font-size:13px;"><strong>常见欺诈行为：</strong></p>`;
-    html += `<p style="font-size:12px;color:var(--text-light);">• 虚假宣传、以假充真、以次充好<br>• 销售掺杂掺假/假冒商品<br>• 虚构原价、虚假优惠折价<br>• 故意隐瞒瑕疵、告知虚假情况</p>`;
+    html += `<p style="font-size:13px;"><strong>${cpL('常见欺诈行为：','Common forms of fraud:')}</strong></p>`;
+    html += `<p style="font-size:12px;color:var(--text-light);">${cpL('• 虚假宣传、以假充真、以次充好<br>• 销售掺杂掺假/假冒商品<br>• 虚构原价、虚假优惠折价<br>• 故意隐瞒瑕疵、告知虚假情况','• False advertising, fakes passed off as genuine, shoddy goods as quality<br>• Selling adulterated or counterfeit goods<br>• Invented original prices or fake discounts<br>• Deliberately concealing defects or giving false information')}</p>`;
   }
   
+  __cpD = {price: price, fraudType: fraudType, hasDamage: hasDamage, knowingly: knowingly, damage: damage, refund: refund, punitive: punitive, total: total, title: title, minAmount: minAmount};
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __cpExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__cpD; if(!D) return;
+    TBKit.chart.bar('#cpChart', {labels: [cpL('退还货款','Refund'), cpL('惩罚性赔偿','Punitive'), cpL('实际损失','Actual loss')], series: [{name: cpL('金额(元)','Amount (CNY)'), data: [D.refund, D.punitive, (D.hasDamage?D.damage:0)]}], height: 240, title: cpL('赔偿构成','Compensation breakdown')});
+    TBKit.matrix.table('#cpTable', {head: [cpL('项目','Item'), cpL('金额(元)','Amount (CNY)')], rows: [[cpL('适用规则','Rule'), cpL(D.title, D.title)], [cpL('商品价款','Price'), String(D.price)], [cpL('退还货款','Refund'), String(D.refund)], [cpL('惩罚性赔偿','Punitive'), String(D.punitive)], [cpL('实际损失','Actual loss'), String(D.hasDamage?D.damage:0)], [cpL('可主张总额','Claimable total'), String(D.total)]]});
+    TBKit.history.record({[cpL('价款','Price')]: D.price, [cpL('类型','Type')]: D.fraudType, [cpL('惩罚性','Punitive')]: D.punitive, [cpL('合计','Total')]: D.total});
+  }catch(e){}
+}
+function __cpExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#cpTable','consumer-protection.csv'); }catch(e){} }
+function __cpPresets(){
+  try{
+    TBKit.preset.bar('#cpPresets', [
+      {label:'一般欺诈·5000', labelEn:'General fraud · 5,000', values:{price:'5000', fraudType:'general', damageAmount:'0'}},
+      {label:'食品·1000', labelEn:'Food · 1,000', values:{price:'1000', fraudType:'food', damageAmount:'0'}},
+      {label:'食品·200含损失', labelEn:'Food · 200 with loss', values:{price:'200', fraudType:'food', damageAmount:'5000'}},
+      {label:'人身损害·2万', labelEn:'Personal injury · 20k', values:{price:'3000', fraudType:'productLiability', damageAmount:'20000'}}
+    ], function(){ calculate(); });
+  }catch(e){}
+}
+function __cpMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#cpHist', function(d){
+      if(!d) return;
+      document.getElementById('price').value=d[cpL('价款','Price')]||0;
+      document.getElementById('fraudType').value=d[cpL('类型','Type')]||'general';
+      calculate();
+    }, 8);
+  }catch(e){}
+}
+function __cpBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __cpExtras(); __cpPresets(); __cpMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __cpExtras(); __cpPresets(); __cpMountHist(); }
+}
+var __tb_cp0=calculate; calculate=function(){ __tb_cp0(); try{ __cpExtras(); }catch(e){} };
+__cpBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

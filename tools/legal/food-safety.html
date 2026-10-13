@@ -186,6 +186,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 赔偿构成</h3>
+    <div id="fsChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="fsTable"></div>
+    <button type="button" class="btn" id="fsExport" onclick="__fsExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="fsHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="fsPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 食品安全法要点</h3>
@@ -250,6 +267,8 @@ function toggleDamage(){
   calculate();
 }
 
+function fsL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __fsD=null;
 function calculate(){
   const price = parseFloat(document.getElementById('foodPrice').value) || 0;
   const damage = parseFloat(document.getElementById('damageAmount').value) || 0;
@@ -264,27 +283,66 @@ function calculate(){
   const penalty = Math.max(pricePenalty, lossPenalty);
   const total = refund + (hasDamage ? damage : 0) + penalty;
   
-  let html = `<p>食品价款：<strong>${ToolBox.formatNumber(price)}</strong> 元</p>`;
-  html += `<p>退还货款：<strong>${ToolBox.formatNumber(refund)}</strong> 元</p>`;
-  html += `<p>价款十倍赔偿：<strong>${ToolBox.formatNumber(pricePenalty)}</strong> 元 ${pricePenalty <= 1000 ? '<span style="font-size:12px;color:#ff9800;">（保底1000元）</span>' : ''}</p>`;
+  let html = `<p>${fsL('食品价款：','Food price: ')}<strong>${ToolBox.formatNumber(price)}</strong> ${fsL('元','CNY')}</p>`;
+  html += `<p>${fsL('退还货款：','Refund: ')}<strong>${ToolBox.formatNumber(refund)}</strong> ${fsL('元','CNY')}</p>`;
+  html += `<p>${fsL('价款十倍赔偿：','Tenfold the price: ')}<strong>${ToolBox.formatNumber(pricePenalty)}</strong> ${fsL('元','CNY')} ${pricePenalty <= 1000 ? '<span style="font-size:12px;color:#ff9800;">'+fsL('（保底1000元）','(floor CNY 1,000)')+'</span>' : ''}</p>`;
   if(hasDamage){
-    html += `<p>实际损失：<strong>${ToolBox.formatNumber(damage)}</strong> 元</p>`;
-    html += `<p>损失三倍赔偿：<strong>${ToolBox.formatNumber(lossPenalty)}</strong> 元</p>`;
+    html += `<p>${fsL('实际损失：','Actual loss: ')}<strong>${ToolBox.formatNumber(damage)}</strong> ${fsL('元','CNY')}</p>`;
+    html += `<p>${fsL('损失三倍赔偿：','Triple the loss: ')}<strong>${ToolBox.formatNumber(lossPenalty)}</strong> ${fsL('元','CNY')}</p>`;
   }
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>可主张总额：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>`;
+  html += `<p>${fsL('可主张总额：','Total claimable: ')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${fsL('元','CNY')}</p>`;
   
   if(!knowingly && price > 0){
-    html += `<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">注：向销售者索赔需证明其"明知"不符合标准；向生产者索赔无需证明明知</p>`;
+    html += `<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">${fsL('注：向销售者索赔需证明其','Note: claiming against the seller requires proving the seller ')}"${fsL('明知','knew')}"${fsL('不符合标准；向生产者索赔无需证明明知',' the food was non-compliant; no such proof is needed against the producer')}</p>`;
   }
   
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<h4 style="margin-bottom:8px;">⚠️ 常见不符合食品安全标准情形：</h4>`;
-  html += `<p style="font-size:12px;color:var(--text-light);">• 超过保质期、腐败变质、霉变生虫<br>• 致病性微生物、农药残留、兽药残留、生物毒素、重金属等超标<br>• 超范围、超限量使用食品添加剂<br>• 无标签的预包装食品、进口食品无中文标签<br>• 标注虚假生产日期、保质期或超过保质期<br>• 病死、毒死或死因不明的禽、畜、兽、水产动物肉类</p>`;
+  html += `<h4 style="margin-bottom:8px;">⚠️ ${fsL('常见不符合食品安全标准情形：','Common cases of non-compliance with food safety standards:')}</h4>`;
+  html += `<p style="font-size:12px;color:var(--text-light);">${fsL('• 超过保质期、腐败变质、霉变生虫<br>• 致病性微生物、农药残留、兽药残留、生物毒素、重金属等超标<br>• 超范围、超限量使用食品添加剂<br>• 无标签的预包装食品、进口食品无中文标签<br>• 标注虚假生产日期、保质期或超过保质期<br>• 病死、毒死或死因不明的禽、畜、兽、水产动物肉类','• Past its shelf life, spoiled, mouldy or infested<br>• Pathogenic microbes, pesticide or veterinary drug residues, biotoxins or heavy metals above permitted limits<br>• Food additives used outside their permitted scope or above permitted levels<br>• Prepacked food with no label, or imported food with no Chinese label<br>• Falsely stated production or shelf-life dates, or food past its shelf life<br>• Meat from poultry, livestock or aquatic animals that died of disease, poisoning or unknown causes')}</p>`;
   
+  __fsD = {price: price, damage: damage, hasDamage: hasDamage, knowingly: knowingly, refund: refund, pricePenalty: pricePenalty, lossPenalty: lossPenalty, penalty: penalty, total: total};
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __fsExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__fsD; if(!D) return;
+    TBKit.chart.bar('#fsChart', {labels: [fsL('退还货款','Refund'), fsL('价款十倍','10x price'), fsL('损失三倍','3x loss')], series: [{name: fsL('金额(元)','Amount (CNY)'), data: [D.refund, D.pricePenalty, D.lossPenalty]}], height: 240, title: fsL('赔偿构成','Compensation breakdown')});
+    TBKit.matrix.table('#fsTable', {head: [fsL('项目','Item'), fsL('金额(元)','Amount (CNY)')], rows: [[fsL('食品价款','Food price'), String(D.price)], [fsL('退还货款','Refund'), String(D.refund)], [fsL('价款十倍赔偿','10x price'), String(D.pricePenalty)], [fsL('损失三倍赔偿','3x loss'), String(D.lossPenalty)], [fsL('就高取赔偿','Penalty, higher of'), String(D.penalty)], [fsL('可主张总额','Claimable total'), String(D.total)]]});
+    TBKit.history.record({[fsL('价款','Price')]: D.price, [fsL('损失','Loss')]: D.damage, [fsL('赔偿','Penalty')]: D.penalty, [fsL('合计','Total')]: D.total});
+  }catch(e){}
+}
+function __fsExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#fsTable','food-safety.csv'); }catch(e){} }
+function __fsPresets(){
+  try{
+    TBKit.preset.bar('#fsPresets', [
+      {label:'价款50元', labelEn:'Price ¥50', values:{foodPrice:'50', damageAmount:'0'}},
+      {label:'价款800元', labelEn:'Price ¥800', values:{foodPrice:'800', damageAmount:'0'}},
+      {label:'含损失·5000', labelEn:'With loss ¥5,000', values:{foodPrice:'200', damageAmount:'5000', causedDamage:true}},
+      {label:'大额损失·5万', labelEn:'Large loss ¥50k', values:{foodPrice:'1000', damageAmount:'50000', causedDamage:true}}
+    ], function(){ calculate(); });
+  }catch(e){}
+}
+function __fsMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#fsHist', function(d){
+      if(!d) return;
+      document.getElementById('foodPrice').value=d[fsL('价款','Price')]||0;
+      document.getElementById('damageAmount').value=d[fsL('损失','Loss')]||0;
+      calculate();
+    }, 8);
+  }catch(e){}
+}
+function __fsBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __fsExtras(); __fsPresets(); __fsMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __fsExtras(); __fsPresets(); __fsMountHist(); }
+}
+var __tb_fs0=calculate; calculate=function(){ __tb_fs0(); try{ __fsExtras(); }catch(e){} };
+__fsBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

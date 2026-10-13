@@ -206,6 +206,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 财产构成与分割</h3>
+    <div id="mpChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="mpTable"></div>
+    <button type="button" class="btn" id="mpExport" onclick="__mpExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="mpHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="mpPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 夫妻财产约定法律要点</h3>
@@ -280,6 +297,8 @@ function syncRatio(){
   calculate();
 }
 
+function mpL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __mpD=null;
 function calculate(){
   const houseValue = parseFloat(document.getElementById('houseValue').value) || 0;
   const carValue = parseFloat(document.getElementById('carValue').value) || 0;
@@ -297,36 +316,82 @@ function calculate(){
   const maleAmount = netAssets * maleRatio / 100;
   const femaleAmount = netAssets * femaleRatio / 100;
   
-  let html = '<h3 style="margin-bottom:12px;">财产分割明细</h3>';
-  html += '<table><tr><th>财产项目</th><th>金额（万元）</th></tr>';
-  html += `<tr><td>房产</td><td>${houseValue.toFixed(2)}</td></tr>`;
-  html += `<tr><td>车辆</td><td>${carValue.toFixed(2)}</td></tr>`;
-  html += `<tr><td>存款/理财</td><td>${savings.toFixed(2)}</td></tr>`;
-  html += `<tr><td>股票/基金</td><td>${investments.toFixed(2)}</td></tr>`;
-  html += `<tr><td>其他财产</td><td>${otherAssets.toFixed(2)}</td></tr>`;
-  html += `<tr><td><strong>财产总额</strong></td><td><strong>${totalAssets.toFixed(2)}</strong></td></tr>`;
-  html += `<tr><td>共同债务（扣除）</td><td>-${jointDebt.toFixed(2)}</td></tr>`;
-  html += `<tr><td><strong>可分配净资产</strong></td><td><strong>${netAssets.toFixed(2)}</strong></td></tr>`;
+  let html = '<h3 style="margin-bottom:12px;">' + mpL('财产分割明细','Asset division breakdown') + '</h3>';
+  html += '<table><tr><th>' + mpL('财产项目','Asset item') + '</th><th>' + mpL('金额（万元）','Amount (10k CNY)') + '</th></tr>';
+  html += `<tr><td>${mpL('房产','House')}</td><td>${houseValue.toFixed(2)}</td></tr>`;
+  html += `<tr><td>${mpL('车辆','Car')}</td><td>${carValue.toFixed(2)}</td></tr>`;
+  html += `<tr><td>${mpL('存款/理财','Savings')}</td><td>${savings.toFixed(2)}</td></tr>`;
+  html += `<tr><td>${mpL('股票/基金','Investments')}</td><td>${investments.toFixed(2)}</td></tr>`;
+  html += `<tr><td>${mpL('其他财产','Other assets')}</td><td>${otherAssets.toFixed(2)}</td></tr>`;
+  html += `<tr><td><strong>${mpL('财产总额','Total assets')}</strong></td><td><strong>${totalAssets.toFixed(2)}</strong></td></tr>`;
+  html += `<tr><td>${mpL('共同债务（扣除）','Joint debt, deducted')}</td><td>-${jointDebt.toFixed(2)}</td></tr>`;
+  html += `<tr><td><strong>${mpL('可分配净资产','Net assets available')}</strong></td><td><strong>${netAssets.toFixed(2)}</strong></td></tr>`;
   html += '</table>';
   
   html += '<div style="margin-top:16px;">';
-  html += '<div class="bar-row"><span class="bar-lbl">男方份额</span><div class="bar-bg"><div class="bar-fill" style="width:'+maleRatio+'%;">'+maleRatio+'%</div></div><span style="width:80px;font-weight:600;color:var(--primary);">'+maleAmount.toFixed(2)+'万</span></div>';
-  html += '<div class="bar-row"><span class="bar-lbl">女方份额</span><div class="bar-bg"><div class="bar-fill" style="width:'+femaleRatio+'%;background:linear-gradient(90deg,#f093fb,#f5576c);">'+femaleRatio+'%</div></div><span style="width:80px;font-weight:600;color:#f5576c;">'+femaleAmount.toFixed(2)+'万</span></div>';
+  html += '<div class="bar-row"><span class="bar-lbl">' + mpL('男方份额','Husband share') + '</span><div class="bar-bg"><div class="bar-fill" style="width:'+maleRatio+'%;">'+maleRatio+'%</div></div><span style="width:80px;font-weight:600;color:var(--primary);">'+maleAmount.toFixed(2)+mpL('万',' x10k CNY')+'</span></div>';
+  html += '<div class="bar-row"><span class="bar-lbl">' + mpL('女方份额','Wife share') + '</span><div class="bar-bg"><div class="bar-fill" style="width:'+femaleRatio+'%;background:linear-gradient(90deg,#f093fb,#f5576c);">'+femaleRatio+'%</div></div><span style="width:80px;font-weight:600;color:#f5576c;">'+femaleAmount.toFixed(2)+mpL('万',' x10k CNY')+'</span></div>';
   html += '</div>';
   
   if(separateProperty){
-    html += '<p style="margin-top:12px;font-size:13px;color:var(--success);">✓ 已约定婚前个人财产归各自所有，不参与上述分割</p>';
+    html += '<p style="margin-top:12px;font-size:13px;color:var(--success);">✓ ' + mpL('已约定婚前个人财产归各自所有，不参与上述分割','Pre-marital separate property agreed to remain with each spouse and is excluded from this division') + '</p>';
   }
   
   if(Math.abs(maleRatio + femaleRatio - 100) > 0.1){
-    html += '<p style="margin-top:8px;font-size:13px;color:var(--danger);">⚠️ 分配比例合计应为100%，当前为'+(maleRatio+femaleRatio)+'%</p>';
+    html += '<p style="margin-top:8px;font-size:13px;color:var(--danger);">⚠️ ' + mpL('分配比例合计应为100%，当前为','The split ratios must add up to 100%; currently ') + (maleRatio+femaleRatio) + '%' + '</p>';
   }
   
-  html += '<p style="margin-top:12px;font-size:12px;color:var(--text-muted);">注：本计算器仅供参考，实际财产约定建议咨询专业律师并办理公证</p>';
+  html += '<p style="margin-top:12px;font-size:12px;color:var(--text-muted);">' + mpL('注：本计算器仅供参考，实际财产约定建议咨询专业律师并办理公证','Note: for reference only; consult a lawyer and notarise the agreement') + '</p>';
   
+  __mpD = {houseValue: houseValue, carValue: carValue, savings: savings, investments: investments, otherAssets: otherAssets, jointDebt: jointDebt, maleRatio: maleRatio, femaleRatio: femaleRatio, separateProperty: separateProperty, totalAssets: totalAssets, netAssets: netAssets, maleAmount: maleAmount, femaleAmount: femaleAmount};
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __mpExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__mpD; if(!D) return;
+    TBKit.chart.bar('#mpChart', {labels: [mpL('房产','House'), mpL('车辆','Car'), mpL('存款理财','Savings'), mpL('股票基金','Investments'), mpL('其他财产','Other'), mpL('可分配净资产','Net assets')], series: [{name: mpL('金额(万元)','Amount (10k)'), data: [D.houseValue, D.carValue, D.savings, D.investments, D.otherAssets, D.netAssets]}], height: 240, title: mpL('财产构成与分割','Asset composition and split')});
+    TBKit.matrix.table('#mpTable', {head: [mpL('项目','Item'), mpL('金额(万元)','Amount (10k)')], rows: [[mpL('财产总额','Total assets'), D.totalAssets.toFixed(2)], [mpL('共同债务','Joint debt'), D.jointDebt.toFixed(2)], [mpL('可分配净资产','Net assets'), D.netAssets.toFixed(2)], [mpL('男方比例','Male share %'), D.maleRatio + '%'], [mpL('男方应得','Male amount'), D.maleAmount.toFixed(2)], [mpL('女方比例','Female share %'), D.femaleRatio + '%'], [mpL('女方应得','Female amount'), D.femaleAmount.toFixed(2)]]});
+    TBKit.history.record({[mpL('房产','House')]: D.houseValue, [mpL('车辆','Car')]: D.carValue, [mpL('存款','Savings')]: D.savings, [mpL('股票','Investments')]: D.investments, [mpL('其他','Other')]: D.otherAssets, [mpL('债务','Debt')]: D.jointDebt, [mpL('男比例','Male %')]: D.maleRatio, [mpL('女比例','Female %')]: D.femaleRatio});
+  }catch(e){}
+}
+function __mpExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#mpTable','marriage-property-agreement.csv'); }catch(e){} }
+function __mpPresets(){
+  try{
+    TBKit.preset.bar('#mpPresets', [
+      {label:'均等分割', labelEn:'Even 50:50', values:{houseValue:'3000000', carValue:'250000', savings:'500000', investments:'150000', otherAssets:'80000', jointDebt:'600000', maleRatio:'50', femaleRatio:'50'}},
+      {label:'男方60%', labelEn:'Male 60%', values:{houseValue:'5000000', carValue:'400000', savings:'1000000', investments:'300000', otherAssets:'200000', jointDebt:'1000000', maleRatio:'60', femaleRatio:'40'}},
+      {label:'女方70%', labelEn:'Female 70%', values:{houseValue:'2000000', carValue:'0', savings:'300000', investments:'0', otherAssets:'50000', jointDebt:'200000', maleRatio:'30', femaleRatio:'70'}},
+      {label:'无共同债务', labelEn:'No joint debt', values:{houseValue:'1500000', carValue:'180000', savings:'220000', investments:'80000', otherAssets:'30000', jointDebt:'0', maleRatio:'50', femaleRatio:'50'}}
+    ], function(){ calculate(); });
+  }catch(e){}
+}
+function __mpMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#mpHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('houseValue').value=g(mpL('房产','House'),0);
+      document.getElementById('carValue').value=g(mpL('车辆','Car'),0);
+      document.getElementById('savings').value=g(mpL('存款','Savings'),0);
+      document.getElementById('investments').value=g(mpL('股票','Investments'),0);
+      document.getElementById('otherAssets').value=g(mpL('其他','Other'),0);
+      document.getElementById('jointDebt').value=g(mpL('债务','Debt'),0);
+      document.getElementById('maleRatio').value=g(mpL('男比例','Male %'),50);
+      document.getElementById('femaleRatio').value=g(mpL('女比例','Female %'),50);
+      calculate();
+    }, 8);
+  }catch(e){}
+}
+function __mpBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __mpExtras(); __mpPresets(); __mpMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __mpExtras(); __mpPresets(); __mpMountHist(); }
+}
+var __tb_mp0=calculate; calculate=function(){ __tb_mp0(); try{ __mpExtras(); }catch(e){} };
+__mpBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

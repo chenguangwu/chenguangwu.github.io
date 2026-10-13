@@ -196,6 +196,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📊 官费构成</h3>
+    <div id="pfChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="pfTable"></div>
+    <button type="button" class="btn" id="pfExport" onclick="__pfExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="pfHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="pfPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 专利官费速查表</h3>
@@ -264,6 +281,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function pfL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __pfD=null;
 function calculate(){
   const type = document.getElementById('patentType').value;
   const stage = document.getElementById('feeStage').value;
@@ -280,81 +299,122 @@ function calculate(){
   
   const fees = {
     invention: {
-      application: { name: '申请费', fee: 900, print: 50 },
-      examination: { name: '实质审查费', fee: 2500 },
-      grant: { name: '登记印刷印花费', fee: 255 },
+      application: { name: pfL('申请费','Filing fee'), fee: 900, print: 50 },
+      examination: { name: pfL('实质审查费','Substantive exam fee'), fee: 2500 },
+      grant: { name: pfL('登记印刷印花费','Registration and printing fee'), fee: 255 },
       annuity: {
         '1-3': 900, '4-6': 1200, '7-9': 2000, '10-12': 4000, '13-15': 6000, '16-20': 8000
       }
     },
     utility: {
-      application: { name: '申请费', fee: 500 },
-      grant: { name: '登记印刷印花费', fee: 205 },
+      application: { name: pfL('申请费','Filing fee'), fee: 500 },
+      grant: { name: pfL('登记印刷印花费','Registration and printing fee'), fee: 205 },
       annuity: {
         '1-3': 600, '4-6': 900, '7-9': 1200, '10-12': 2000
       }
     },
     design: {
-      application: { name: '申请费', fee: 500 },
-      grant: { name: '登记印刷印花费', fee: 205 },
+      application: { name: pfL('申请费','Filing fee'), fee: 500 },
+      grant: { name: pfL('登记印刷印花费','Registration and printing fee'), fee: 205 },
       annuity: {
         '1-3': 600, '4-6': 900, '7-9': 1200, '10-12': 2000
       }
     }
   };
   
-  const typeNames = { invention: '发明专利', utility: '实用新型', design: '外观设计' };
-  const stageNames = { application: '申请阶段', examination: '实质审查', grant: '授权登记', annuity: '年费' };
+  const typeNames = { invention: pfL('发明专利','Invention'), utility: pfL('实用新型','Utility model'), design: pfL('外观设计','Design') };
+  const stageNames = { application: pfL('申请阶段','Application'), examination: pfL('实质审查','Substantive exam'), grant: pfL('授权登记','Grant registration'), annuity: pfL('年费','Annuity') };
   
   detail = `${typeNames[type]} - ${stageNames[stage]}`;
   
   if(stage === 'application'){
     const appFee = fees[type].application;
     const appFeeAfterReduction = Math.round(appFee.fee * reductionRate);
-    items.push(`${appFee.name}：${appFeeAfterReduction}元${hasFeeReduction ? '（费减后）' : ''}`);
+    items.push(`${appFee.name}${pfL('：',': ')}${appFeeAfterReduction}${pfL('元',' CNY')}${hasFeeReduction ? pfL('（费减后）',' (after reduction)') : ''}`);
     total += appFeeAfterReduction;
     if(appFee.print){
-      items.push(`印刷费：${appFee.print}元（不予减缴）`);
+      items.push(`${pfL('印刷费','Printing fee')}${pfL('：',': ')}${appFee.print}${pfL('元（不予减缴）',' CNY, not reducible')}`);
       total += appFee.print;
     }
   }else if(stage === 'examination' && type === 'invention'){
     const examFee = fees.invention.examination;
     const examFeeAfterReduction = Math.round(examFee.fee * reductionRate);
-    items.push(`${examFee.name}：${examFeeAfterReduction}元${hasFeeReduction ? '（费减后）' : ''}`);
+    items.push(`${examFee.name}${pfL('：',': ')}${examFeeAfterReduction}${pfL('元',' CNY')}${hasFeeReduction ? pfL('（费减后）',' (after reduction)') : ''}`);
     total += examFeeAfterReduction;
   }else if(stage === 'examination'){
-    items.push('实用新型和外观设计无需实质审查');
+    items.push(pfL('实用新型和外观设计无需实质审查','Utility models and designs need no substantive examination'));
     total = 0;
   }else if(stage === 'grant'){
     const grantFee = fees[type].grant;
-    items.push(`${grantFee.name}：${grantFee.fee}元（不予减缴）`);
+    items.push(`${grantFee.name}${pfL('：',': ')}${grantFee.fee}${pfL('元（不予减缴）',' CNY, not reducible')}`);
     total += grantFee.fee;
   }else if(stage === 'annuity'){
     const annuityFee = fees[type].annuity[annuityYear];
     if(annuityFee){
       const annuityFeeAfterReduction = Math.round(annuityFee * reductionRate);
-      items.push(`第${annuityYear}年年费：${annuityFeeAfterReduction}元${hasFeeReduction ? '（费减后）' : ''}`);
+      items.push(`${pfL('第','Year ')}${annuityYear}${pfL('年年费：',' annuity: ')}${annuityFeeAfterReduction}${pfL('元',' CNY')}${hasFeeReduction ? pfL('（费减后）',' (after reduction)') : ''}`);
       total += annuityFeeAfterReduction;
     }else{
-      items.push('该专利类型此年度无年费');
+      items.push(pfL('该专利类型此年度无年费','No annuity for this patent type in that year'));
       total = 0;
     }
   }
   
-  let html = `<p>费用类型：<strong>${detail}</strong></p>`;
+  let html = `<p>${pfL('费用类型：','Fee type: ')}<strong>${detail}</strong></p>`;
   if(hasFeeReduction){
-    html += `<p style="color:var(--success);">✓ 已申请费用减缴（个人85%/单位70%）</p>`;
+    html += `<p style="color:var(--success);">✓ ${pfL('已申请费用减缴（个人85%/单位70%）','Fee reduction applied, 85% off for individuals and 70% for entities')}</p>`;
   }
   items.forEach(item => {
     html += `<p>• ${item}</p>`;
   });
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
-  html += `<p>应缴官费合计：<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> 元</p>`;
-  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：以上为官方费用，不含代理服务费；代理费一般发明3000-8000元，实用新型/外观1500-3000元</p>`;
+  html += `<p>${pfL('应缴官费合计：','Total official fee due: ')}<strong style="color:var(--primary);font-size:18px;">${ToolBox.formatNumber(total)}</strong> ${pfL('元','CNY')}</p>`;
+  html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${pfL('注：以上为官方费用，不含代理服务费；代理费一般发明3000-8000元，实用新型/外观1500-3000元','Note: official fees only, excluding agency fees, which typically run CNY 3,000-8,000 for inventions and CNY 1,500-3,000 for utility models or designs')}</p>`;
   
+  __pfD = {type: type, stage: stage, hasFeeReduction: hasFeeReduction, annuityYear: annuityYear, total: total, detail: detail};
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 calculate();
+
+function __pfExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__pfD; if(!D) return;
+    TBKit.chart.bar('#pfChart', {labels: [pfL('应缴官费合计','Total official fee')], series: [{name: pfL('金额(元)','Amount (CNY)'), data: [D.total]}], height: 220, title: pfL('官费合计','Official fee total')});
+    TBKit.matrix.table('#pfTable', {head: [pfL('项目','Item'), pfL('内容','Value')], rows: [[pfL('专利类型','Patent type'), pfL({'invention':'发明专利','utility':'实用新型','design':'外观设计'}[D.type]||D.type, {'invention':'Invention','utility':'Utility model','design':'Design'}[D.type]||D.type)], [pfL('费用阶段','Fee stage'), pfL({'application':'申请阶段','examination':'实质审查','grant':'授权登记','annuity':'年费'}[D.stage]||D.stage, {'application':'Application','examination':'Substantive exam','grant':'Grant registration','annuity':'Annuity'}[D.stage]||D.stage)], [pfL('费用减缴','Fee reduction'), D.hasFeeReduction ? pfL('已申请（85%）','Applied, 85% off') : pfL('未申请','Not applied')], [pfL('应缴官费合计(元)','Total official fee (CNY)'), String(D.total)]]});
+    TBKit.history.record({[pfL('类型','Type')]: D.type, [pfL('阶段','Stage')]: D.stage, [pfL('费减','Reduction')]: D.hasFeeReduction ? 'Y' : 'N', [pfL('合计','Total')]: D.total});
+  }catch(e){}
+}
+function __pfExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#pfTable','patent-fee-calculator.csv'); }catch(e){} }
+function __pfPresets(){
+  try{
+    TBKit.preset.bar('#pfPresets', [
+      {label:'发明·申请', labelEn:'Invention · filing', values:{patentType:'invention', feeStage:'application', annuityYear:'1-3'}},
+      {label:'发明·实审(费减)', labelEn:'Invention · exam, reduced', values:{patentType:'invention', feeStage:'examination', annuityYear:'1-3', feeReduction:true}},
+      {label:'实用新型·授权', labelEn:'Utility model · grant', values:{patentType:'utility', feeStage:'grant', annuityYear:'1-3'}},
+      {label:'外观·年费7-9', labelEn:'Design · annuity 7-9', values:{patentType:'design', feeStage:'annuity', annuityYear:'7-9', feeReduction:true}}
+    ], function(){ calculate(); });
+  }catch(e){}
+}
+function __pfMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#pfHist', function(d){
+      if(!d) return;
+      var k = {}; for(var kk in d){ k[kk]=d[kk]; }
+      document.getElementById('patentType').value=k[pfL('类型','Type')]||'invention';
+      document.getElementById('feeStage').value=k[pfL('阶段','Stage')]||'application';
+      document.getElementById('feeReduction').checked=(k[pfL('费减','Reduction')]==='Y');
+      calculate();
+    }, 8);
+  }catch(e){}
+}
+function __pfBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __pfExtras(); __pfPresets(); __pfMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __pfExtras(); __pfPresets(); __pfMountHist(); }
+}
+var __tb_pf0=calculate; calculate=function(){ __tb_pf0(); try{ __pfExtras(); }catch(e){} };
+__pfBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
