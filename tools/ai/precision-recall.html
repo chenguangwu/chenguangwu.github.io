@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>TP</label><input type="number" id="tp" value="80" step="any" oninput="calc()"></div>
     <div class="input-row"><label>FP</label><input type="number" id="fp" value="20" step="any" oninput="calc()"></div>
     <div class="input-row"><label>FN</label><input type="number" id="fn" value="10" step="any" oninput="calc()"></div>
+    <div id="prPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__prExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="prChart" role="img" aria-label="结果可视化"></div>
+    <div id="prTable"></div>
+    <div id="prDiff"></div>
+    <div id="prHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -223,6 +230,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __prN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __prList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __prL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __prExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#prTable','precision-recall.csv');}catch(e){} }
+function __prExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var tp=__prN('tp'), fp=__prN('fp'), fn=__prN('fn');
+        if(!(tp>=0&&fp>=0&&fn>=0&&(tp+fp)>0&&(tp+fn)>0))return;
+        var P=tp/(tp+fp)*100, R=tp/(tp+fn)*100, F=2*P*R/(P+R);
+        TBKit.chart.bar('#prChart',{labels:[__prL('Precision','精确率'),__prL('Recall','召回率'),'F1'],series:[{name:'%',data:[P,R,F]}],height:210,title:__prL('PR metrics','精确率 / 召回率 / F1')});
+        var rows=__prL(
+            [['TP',tp.toFixed(0)],['FP',fp.toFixed(0)],['FN',fn.toFixed(0)],['Precision',P.toFixed(2)+'%'],['Recall',R.toFixed(2)+'%'],['F1',F.toFixed(2)+'%']],
+            [['真正例 TP',tp.toFixed(0)],['假正例 FP',fp.toFixed(0)],['假负例 FN',fn.toFixed(0)],['精确率',P.toFixed(2)+'%'],['召回率',R.toFixed(2)+'%'],['F1',F.toFixed(2)+'%']]);
+        TBKit.matrix.table('#prTable',{head:__prL(['Item','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({tp:tp,fp:fp,fn:fn,f1:Number(F.toFixed(2))});
+        TBKit.util.diffBox('#prDiff',['f1']);
+        TBKit.history.mount('#prHist',function(v){ if(v.f1!=null){document.getElementById('tp').value=v.tp;document.getElementById('fp').value=v.fp;document.getElementById('fn').value=v.fn;} calc(); });
+    }catch(e){}
+}
+function __prPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#prPresets',[
+            {label:'TP80/FP20/FN10',labelEn:'TP80/FP20/FN10',values:{tp:80,fp:20,fn:10}},
+            {label:'TP95/FP5/FN5',labelEn:'TP95/FP5/FN5',values:{tp:95,fp:5,fn:5}},
+            {label:'TP50/FP50/FN50',labelEn:'TP50/FP50/FN50',values:{tp:50,fp:50,fn:50}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_pr0 = calc;
+calc = function(){ __tb_pr0(); try{ __prExtras(); }catch(e){} };
+function __prBoot(){ try{ __prPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __prBoot);
+else __prBoot();
 </script>
 
 <script type="application/ld+json">

@@ -122,11 +122,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>负例平均得分</label><input type="number" id="neg_mean" value="0.3" step="any" oninput="calc()"></div>
     <div class="input-row"><label>正例标准差</label><input type="number" id="pos_std" value="0.1" step="any" oninput="calc()"></div>
     <div class="input-row"><label>负例标准差</label><input type="number" id="neg_std" value="0.1" step="any" oninput="calc()"></div>
+    <div id="raPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__raExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="0">
+    <div id="raChart" role="img" aria-label="结果可视化"></div>
+    <div id="raTable"></div>
+    <div id="raDiff"></div>
+    <div id="raHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -227,6 +234,53 @@ function copyResult() {
   });
 }
 calc();
+
+function __raN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __raList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __raL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __erf(x){var s=x<0?-1:1;x=Math.abs(x);var t=1/(1+0.3275911*x);var y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;}
+function __gauss(x,mu,sig){var d=(x-mu)/sig;return Math.exp(-0.5*d*d)/(sig*Math.sqrt(2*Math.PI));}
+function __raExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#raTable','roc-auc.csv');}catch(e){} }
+function __raExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var pm=__raN('pos_mean'), nm=__raN('neg_mean'), ps=__raN('pos_std'), ns=__raN('neg_std');
+        if(!(isFinite(pm)&&isFinite(nm)&&isFinite(ps)&&ps>0&&isFinite(ns)&&ns>0))return;
+        var d=(pm-nm)/Math.sqrt(2*(ps*ps+ns*ns));
+        var auc=0.5+0.5*__erf(d);
+        var sep=(pm-nm)/Math.sqrt((ps*ps+ns*ns)/2);
+        var disc=(pm-nm)/(ps+ns);
+        var lo=Math.min(pm,nm)-3*Math.max(ps,ns), hi=Math.max(pm,nm)+3*Math.max(ps,ns);
+        var labels=[],pos=[],neg=[];
+        for(var i=0;i<=60;i++){var x=lo+(hi-lo)*i/60;labels.push(x.toFixed(2));pos.push(__gauss(x,pm,ps));neg.push(__gauss(x,nm,ns));}
+        TBKit.chart.line('#raChart',{labels:labels,series:[{name:__raL('Positive','正例'),data:pos},{name:__raL('Negative','负例'),data:neg}],height:240,title:__raL('Score distributions','得分分布（正负类）')});
+        var rows=__raL(
+            [['AUC',auc.toFixed(4)],['separation d′',sep.toFixed(4)],['discriminability',disc.toFixed(4)]],
+            [['AUC 近似',auc.toFixed(4)],['分离度 d′',sep.toFixed(4)],['可区分性',disc.toFixed(4)]]);
+        TBKit.matrix.table('#raTable',{head:__raL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({auc:Number(auc.toFixed(4))});
+        TBKit.util.diffBox('#raDiff',['auc']);
+        TBKit.history.mount('#raHist',function(v){ if(v.auc!=null){document.getElementById('pos_mean').value=v.pos_mean;document.getElementById('neg_mean').value=v.neg_mean;document.getElementById('pos_std').value=v.pos_std;document.getElementById('neg_std').value=v.neg_std;} calc(); });
+    }catch(e){}
+}
+function __raPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#raPresets',[
+            {label:'μ+0.8/μ-0.3 σ=0.1',labelEn:'μ+0.8/μ-0.3 σ=0.1',values:{pos_mean:0.8,neg_mean:0.3,pos_std:0.1,neg_std:0.1}},
+            {label:'μ+0.6/μ-0.4 σ=0.15',labelEn:'μ+0.6/μ-0.4 σ=0.15',values:{pos_mean:0.6,neg_mean:0.4,pos_std:0.15,neg_std:0.15}},
+            {label:'μ+0.9/μ-0.1 σ=0.05',labelEn:'μ+0.9/μ-0.1 σ=0.05',values:{pos_mean:0.9,neg_mean:0.1,pos_std:0.05,neg_std:0.05}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ra0 = calc;
+calc = function(){ __tb_ra0(); try{ __raExtras(); }catch(e){} };
+function __raBoot(){ try{ __raPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __raBoot);
+else __raBoot();
 </script>
 <section class="opt-guide"><h2>如何使用ROC AUC 近似</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>正例平均得分</li><li>负例平均得分</li><li>正例标准差</li><li>负例标准差</li></ul><h2>适用场景</h2><p>AUC 为 ROC 曲线下面积，等价于随机正样本得分高于随机负样本的概率。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>AUC 高但线上效果差？</dt><dd>AUC 只反映排序能力，不保证某业务阈值下的准确率/召回；且训练/验证分布若与线上偏移，AUC 高也可能落地差。</dd><dt>样本极不平衡 AUC 还准吗？</dt><dd>AUC 本身对不平衡稳健(基于排序)，但正类极少时估计方差大、且业务更关心正类召回，应辅以 PR-AUC。</dd></dl></section>
 

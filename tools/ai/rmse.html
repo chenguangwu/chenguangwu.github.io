@@ -123,11 +123,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>真实值平方和</label><input type="number" id="sum_y2" value="135" step="any" oninput="calc()"></div>
     <div class="input-row"><label>预测值平方和</label><input type="number" id="sum_p2" value="142" step="any" oninput="calc()"></div>
     <div class="input-row"><label>真实×预测之和</label><input type="number" id="sum_yp" value="130" step="any" oninput="calc()"></div>
+    <div id="rmPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__rmExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="rmChart" role="img" aria-label="结果可视化"></div>
+    <div id="rmTable"></div>
+    <div id="rmDiff"></div>
+    <div id="rmHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -231,6 +238,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __rmN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rmList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __rmL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __rmExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#rmTable','rmse.csv');}catch(e){} }
+function __rmExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var n=__rmN('n'), sy=__rmN('sum_y'), sp=__rmN('sum_p'), sy2=__rmN('sum_y2'), sp2=__rmN('sum_p2'), syp=__rmN('sum_yp');
+        if(!(n>0))return;
+        var ssRes=sy2-2*syp+sp2;
+        var mse=ssRes/n, rmse=Math.sqrt(mse), mae=Math.abs(sy-sp)/n;
+        var meanY=sy/n, ssTot=sy2-n*meanY*meanY, r2=ssTot?1-ssRes/ssTot:0;
+        TBKit.chart.bar('#rmChart',{labels:['MSE','RMSE','MAE','R²'],series:[{name:__rmL('value','数值'),data:[mse,rmse,mae,r2]}],height:210,title:__rmL('Error metrics','误差指标')});
+        var rows=__rmL(
+            [['MSE',mse.toFixed(4)],['RMSE',rmse.toFixed(4)],['MAE',mae.toFixed(4)],['R²',r2.toFixed(4)]],
+            [['MSE',mse.toFixed(4)],['RMSE',rmse.toFixed(4)],['MAE',mae.toFixed(4)],['R²',r2.toFixed(4)]]);
+        TBKit.matrix.table('#rmTable',{head:__rmL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({rmse:Number(rmse.toFixed(4))});
+        TBKit.util.diffBox('#rmDiff',['rmse']);
+        TBKit.history.mount('#rmHist',function(v){ if(v.rmse!=null){document.getElementById('n').value=v.n;document.getElementById('sum_y').value=v.sum_y;document.getElementById('sum_p').value=v.sum_p;document.getElementById('sum_y2').value=v.sum_y2;document.getElementById('sum_p2').value=v.sum_p2;document.getElementById('sum_yp').value=v.sum_yp;} calc(); });
+    }catch(e){}
+}
+function __rmPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#rmPresets',[
+            {label:'n=5 yΣ25 pΣ26',labelEn:'n=5 yΣ25 pΣ26',values:{n:5,sum_y:25,sum_p:26,sum_y2:135,sum_p2:142,sum_yp:130}},
+            {label:'n=10 yΣ100 pΣ98',labelEn:'n=10 yΣ100 pΣ98',values:{n:10,sum_y:100,sum_p:98,sum_y2:1100,sum_p2:1060,sum_yp:1080}},
+            {label:'n=3 yΣ9 pΣ12',labelEn:'n=3 yΣ9 pΣ12',values:{n:3,sum_y:9,sum_p:12,sum_y2:35,sum_p2:50,sum_yp:38}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_rm0 = calc;
+calc = function(){ __tb_rm0(); try{ __rmExtras(); }catch(e){} };
+function __rmBoot(){ try{ __rmPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __rmBoot);
+else __rmBoot();
 </script>
 
 <script type="application/ld+json">

@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>Logit 2</label><input type="number" id="z2" value="1.0" step="any" oninput="calc()"></div>
     <div class="input-row"><label>Logit 3</label><input type="number" id="z3" value="0.5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>Logit 4</label><input type="number" id="z4" value="0.2" step="any" oninput="calc()"></div>
+    <div id="smPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__smExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="smChart" role="img" aria-label="结果可视化"></div>
+    <div id="smTable"></div>
+    <div id="smDiff"></div>
+    <div id="smHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -224,6 +231,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __smN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __smList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __smL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __smExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#smTable','softmax.csv');}catch(e){} }
+function __smExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var z=[__smN('z1'),__smN('z2'),__smN('z3'),__smN('z4')];
+        if(z.some(function(x){return !isFinite(x);}))return;
+        var m=Math.max.apply(null,z), ex=z.map(function(v){return Math.exp(v-m);}), sum=ex.reduce(function(a,b){return a+b;},0);
+        var pp=ex.map(function(v){return v/sum*100;});
+        TBKit.chart.pie('#smChart',{items:[{label:'P1',value:pp[0]},{label:'P2',value:pp[1]},{label:'P3',value:pp[2]},{label:'P4',value:pp[3]}],height:230,title:__smL('Class probabilities','各类别概率')});
+        var rows=__smL(
+            [['P1',pp[0].toFixed(2)+'%',z[0].toFixed(3)],['P2',pp[1].toFixed(2)+'%',z[1].toFixed(3)],['P3',pp[2].toFixed(2)+'%',z[2].toFixed(3)],['P4',pp[3].toFixed(2)+'%',z[3].toFixed(3)],['sum',(pp[0]+pp[1]+pp[2]+pp[3]).toFixed(2)+'%','']],
+            [['P1',pp[0].toFixed(2)+'%',z[0].toFixed(3)],['P2',pp[1].toFixed(2)+'%',z[1].toFixed(3)],['P3',pp[2].toFixed(2)+'%',z[2].toFixed(3)],['P4',pp[3].toFixed(2)+'%',z[3].toFixed(3)],['合计',(pp[0]+pp[1]+pp[2]+pp[3]).toFixed(2)+'%','']]);
+        TBKit.matrix.table('#smTable',{head:__smL(['Class','Prob','logit'],['类别','概率','logit']),rows:rows});
+        TBKit.history.record({p1:Number(pp[0].toFixed(2))});
+        TBKit.util.diffBox('#smDiff',['p1']);
+        TBKit.history.mount('#smHist',function(v){ if(v.p1!=null){document.getElementById('z1').value=v.z1;document.getElementById('z2').value=v.z2;document.getElementById('z3').value=v.z3;document.getElementById('z4').value=v.z4;} calc(); });
+    }catch(e){}
+}
+function __smPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#smPresets',[
+            {label:'[2,1,0.5,0.2]',labelEn:'[2,1,0.5,0.2]',values:{z1:2,z2:1,z3:0.5,z4:0.2}},
+            {label:'[1,1,1,1]',labelEn:'[1,1,1,1]',values:{z1:1,z2:1,z3:1,z4:1}},
+            {label:'[5,1,1,1]',labelEn:'[5,1,1,1]',values:{z1:5,z2:1,z3:1,z4:1}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_sm0 = calc;
+calc = function(){ __tb_sm0(); try{ __smExtras(); }catch(e){} };
+function __smBoot(){ try{ __smPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __smBoot);
+else __smBoot();
 </script>
 
 <script type="application/ld+json">

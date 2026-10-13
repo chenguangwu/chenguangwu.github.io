@@ -119,11 +119,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><label>输入 x</label><input type="number" id="x" value="-2" step="any" oninput="calc()"></div>
     <div class="input-row"><label>LeakyReLU 斜率 α</label><input type="number" id="alpha" value="0.1" step="any" oninput="calc()"></div>
+    <div id="rlPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__rlExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="5" data-viz-min="-5"></div>
+    <div class="result-box" id="result" data-viz="gauge" data-viz-max="5" data-viz-min="-5">
+    <div id="rlChart" role="img" aria-label="结果可视化"></div>
+    <div id="rlTable"></div>
+    <div id="rlDiff"></div>
+    <div id="rlHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -218,6 +225,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __rlN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rlList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __rlL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __rlExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#rlTable','activations.csv');}catch(e){} }
+function __rlExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var x=__rlN('x'), alpha=__rlN('alpha');
+        if(!(isFinite(x)&&isFinite(alpha)))return;
+        var relu=Math.max(0,x), leaky=(x>=0?x:alpha*x), elu=(x>=0?x:alpha*(Math.exp(x)-1));
+        var labels=[],r=[],l=[],e=[];
+        for(var i=-5;i<=5;i+=0.5){labels.push(i.toFixed(1));relu=Math.max(0,i);leaky=(i>=0?i:alpha*i);elu=(i>=0?i:alpha*(Math.exp(i)-1));r.push(relu);l.push(leaky);e.push(elu);}
+        TBKit.chart.line('#rlChart',{labels:labels,series:[{name:'ReLU',data:r},{name:'LeakyReLU',data:l},{name:'ELU',data:e}],height:240,title:__rlL('Activation functions','激活函数曲线')});
+        var rows=__rlL(
+            [['x',x.toFixed(4)],['α',alpha.toFixed(3)],['ReLU',Math.max(0,x).toFixed(4)],['LeakyReLU',(x>=0?x:alpha*x).toFixed(4)],['ELU',(x>=0?x:alpha*(Math.exp(x)-1)).toFixed(4)]],
+            [['输入 x',x.toFixed(4)],['斜率 α',alpha.toFixed(3)],['ReLU',Math.max(0,x).toFixed(4)],['LeakyReLU',(x>=0?x:alpha*x).toFixed(4)],['ELU',(x>=0?x:alpha*(Math.exp(x)-1)).toFixed(4)]]);
+        TBKit.matrix.table('#rlTable',{head:__rlL(['Item','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({x:x,alpha:alpha,relu:Number(Math.max(0,x).toFixed(4))});
+        TBKit.util.diffBox('#rlDiff',['relu']);
+        TBKit.history.mount('#rlHist',function(v){ if(v.relu!=null){document.getElementById('x').value=v.x;document.getElementById('alpha').value=v.alpha;} calc(); });
+    }catch(e){}
+}
+function __rlPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#rlPresets',[
+            {label:'x=-2 α=0.1',labelEn:'x=-2 α=0.1',values:{x:-2,alpha:0.1}},
+            {label:'x=0 α=0.1',labelEn:'x=0 α=0.1',values:{x:0,alpha:0.1}},
+            {label:'x=3 α=0.01',labelEn:'x=3 α=0.01',values:{x:3,alpha:0.01}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_rl0 = calc;
+calc = function(){ __tb_rl0(); try{ __rlExtras(); }catch(e){} };
+function __rlBoot(){ try{ __rlPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __rlBoot);
+else __rlBoot();
 </script>
 
 <script type="application/ld+json">

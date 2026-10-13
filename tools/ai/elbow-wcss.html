@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>k 时 WCSS</label><input type="number" id="w1" value="200" step="any" oninput="calc()"></div>
     <div class="input-row"><label>k+1 时 WCSS</label><input type="number" id="w2" value="150" step="any" oninput="calc()"></div>
     <div class="input-row"><label>当前 k</label><input type="number" id="k" value="3" step="any" oninput="calc()"></div>
+    <div id="ewPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__ewExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="ewChart" role="img" aria-label="结果可视化"></div>
+    <div id="ewTable"></div>
+    <div id="ewDiff"></div>
+    <div id="ewHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -221,6 +228,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __ewN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ewList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __ewL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __ewExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#ewTable','elbow.csv');}catch(e){} }
+function __ewExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var w1=__ewN('w1'), w2=__ewN('w2'), k=__ewN('k');
+        if(!(w1>0&&w2>0&&k>0))return;
+        var drop=(w1-w2)/w1*100, ratio=w2/w1;
+        TBKit.chart.bar('#ewChart',{labels:[__ewL('k=1','k=1'),__ewL('k=2','k=2')],series:[{name:__ewL('WCSS','WCSS'),data:[w1,w2]}],height:210,title:__ewL('WCSS by k','各 k 的簇内平方和')});
+        var rows=__ewL(
+            [['WCSS(k=1)',w1.toFixed(2)],['WCSS(k=2)',w2.toFixed(2)],['reduction',drop.toFixed(1)+'%'],['ratio',ratio.toFixed(3)],['k',k.toFixed(0)]],
+            [['WCSS(k=1)',w1.toFixed(2)],['WCSS(k=2)',w2.toFixed(2)],['降幅',drop.toFixed(1)+'%'],['比率',ratio.toFixed(3)],['聚类数 k',k.toFixed(0)]]);
+        TBKit.matrix.table('#ewTable',{head:__ewL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({drop:Number(drop.toFixed(1))});
+        TBKit.util.diffBox('#ewDiff',['drop']);
+        TBKit.history.mount('#ewHist',function(v){ if(v.drop!=null){document.getElementById('w1').value=v.w1;document.getElementById('w2').value=v.w2;document.getElementById('k').value=v.k;} calc(); });
+    }catch(e){}
+}
+function __ewPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#ewPresets',[
+            {label:'w1=200 w2=150 k=3',labelEn:'w1=200 w2=150 k=3',values:{w1:200,w2:150,k:3}},
+            {label:'w1=500 w2=300 k=4',labelEn:'w1=500 w2=300 k=4',values:{w1:500,w2:300,k:4}},
+            {label:'w1=1000 w2=400 k=5',labelEn:'w1=1000 w2=400 k=5',values:{w1:1000,w2:400,k:5}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ew0 = calc;
+calc = function(){ __tb_ew0(); try{ __ewExtras(); }catch(e){} };
+function __ewBoot(){ try{ __ewPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __ewBoot);
+else __ewBoot();
 </script>
 
 <script type="application/ld+json">
