@@ -95,6 +95,12 @@
 - ⚠️ **待老板决策（不擅自执行）**：已诊断出分类内功能重复 —— `p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean。**清理需下线 URL（走 `sitemap-deadlinks.xml`），影响 SEO，须老板批准后才动**；此前 B5/B6 已照常做体验改造，不删页。
 - 📌 **分类收口结论**：52 页全部达 7–8/9（仅余 11 个 7/9 页缺图表+tabs，已属高质量，可选补图表）。`statistics` 试点达成「个性化 + 驻留/跨工具」目标，SOP 与组件库 `js/tool-kit.js` 已固化。
 
+**当前分类切换：`ai`（65 页 / 起点均分 2.31 / 薄弱 47）** —— 紧接 statistics 后开工（最弱优先）。ML 超参/训练类数值计算器，语义适合「图表分析（衰减/预热/损失曲线）+ 明细表 + 预设 + 历史对比」。
+
+- [x] **AI-1 已完成 7 页**（lr-decay/lr-warmup/dropout/l1-l2-regularization/cross-entropy/epoch-time/min-max）：单页 2–3/9 → **8/9**；接入图表/明细表/预设/历史/对比/CSV 导出；boot 推迟到 DOMContentLoaded 避开 tool-kit.js(defer) 时序。
+- ⚠️ **顺带修复系统性首屏回归**：统计 B1–B6 共 48 页此前用「解析期直接 calc()/__xxPresets()」，因 tool-kit.js 为 defer，首屏 TBKit 未定义导致图表/预设/历史全部跳过（仅手动重算才出现，线上不可见但无报错）。统一改为 DOMContentLoaded 后渲染，已用真实加载顺序冒烟验证 55 页全部首屏可见、零抛错。
+- [ ] AI-2+：剩余 58 页（大量 4–5/9），继续按薄弱度推进。
+
 ### 1.8 分类队列（未开工；干完一个删一行）
 
 <!-- 格式：`分类` 页数/均分/薄弱数 -->
@@ -110,7 +116,6 @@
 - `life` 71/3.14/26
 - `biz` 70/2.96/21
 - `agriculture` 66/3.0/26
-- `ai` 65/2.31/47
 - `fun` 63/2.94/16
 - `automotive` 60/2.98/11
 - `general` 57/3.4/4
