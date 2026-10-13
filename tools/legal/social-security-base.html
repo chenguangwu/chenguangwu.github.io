@@ -171,6 +171,23 @@ s.parentNode.insertBefore(el, s);
 
     <div class="result-box" id="singleResult"></div>
   </div>
+  <div class="card">
+    <h3>📊 五险缴费对比</h3>
+    <div id="ssChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="ssTable"></div>
+    <button type="button" class="btn" id="ssExport" onclick="__ssExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="ssHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="ssPresets" class="preset-bar"></div>
+  </div>
 
   <div class="card">
     <h3>📊 缴费基数参考</h3>
@@ -375,17 +392,27 @@ function fmtMoney(n) {
 function updateInfo() {
   var city = document.getElementById('city').value;
   var cfg = getCityConfig();
-  var html = '<table><thead><tr><th>险种</th><th>基数下限</th><th>基数上限</th><th>单位比例</th><th>个人比例</th></tr></thead><tbody>';
+  var html = '<table><thead><tr><th>'+ssL('险种','Insurance')+'</th><th>'+ssL('基数下限','Base floor')+'</th><th>'+ssL('基数上限','Base ceiling')+'</th><th>'+ssL('单位比例','Employer rate')+'</th><th>'+ssL('个人比例','Employee rate')+'</th></tr></thead><tbody>';
   var types = ['养老','医疗','失业','工伤','生育'];
   for (var i = 0; i < types.length; i++) {
     var t = types[i];
     var d = cfg[t];
-    html += '<tr><td>' + typeNames[t] + '</td><td>' + ToolBox.formatNumber(d.lower) + '元</td><td>' + ToolBox.formatNumber(d.upper) + '元</td><td>' + (d.unitRate * 100).toFixed(1) + '%</td><td>' + (d.personRate * 100).toFixed(1) + '%</td></tr>';
+    html += '<tr><td>' + ssType(t) + '</td><td>' + ToolBox.formatNumber(d.lower) + ssL('元',' CNY') + '</td><td>' + ToolBox.formatNumber(d.upper) + ssL('元',' CNY') + '</td><td>' + (d.unitRate * 100).toFixed(1) + '%</td><td>' + (d.personRate * 100).toFixed(1) + '%</td></tr>';
   }
   html += '</tbody></table>';
   const __g1=html;document.getElementById('baseTable').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
+function ssL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __ssD=null;
+var SS_TY_EN={'养老':'Pension','医疗':'Medical','失业':'Unemployment','工伤':'Work injury','生育':'Maternity'};
+var SS_CITY_EN={'北京':'Beijing','上海':'Shanghai','广州':'Guangzhou','深圳':'Shenzhen','杭州':'Hangzhou','成都':'Chengdu',
+  '武汉':'Wuhan','南京':'Nanjing','重庆':'Chongqing','西安':"Xi'an",'苏州':'Suzhou','天津':'Tianjin',
+  '长沙':'Changsha','郑州':'Zhengzhou','青岛':'Qingdao'};
+function ssCity(c){ return ssL(c, SS_CITY_EN[c]||c); }
+function ssType(t){ return ssL(typeNames[t]||t, SS_TY_EN[t]||t); }
+function ssDeCity(v){ for(var k in SS_CITY_EN){ if(SS_CITY_EN[k]===v) return k; } return v; }
+function ssDeType(v){ for(var k in SS_TY_EN){ if(SS_TY_EN[k]===v) return k; } return v; }
 function calc() {
   var salary = parseFloat(document.getElementById('salary').value) || 0;
   var city = document.getElementById('city').value;
@@ -396,15 +423,16 @@ function calc() {
   var personPay = base * cfg.personRate;
   var totalPay = unitPay + personPay;
 
-  var html = '<p><strong>' + city + ' · ' + typeNames[insType] + '</strong></p>';
-  html += '<p>缴费基数：<strong>' + ToolBox.formatNumber(base) + '</strong> 元';
-  if (salary < cfg.lower) html += ' <span style="color:var(--warning);font-size:12px;">（工资低于下限，按下限缴纳）</span>';
-  if (salary > cfg.upper) html += ' <span style="color:var(--warning);font-size:12px;">（工资高于上限，按上限缴纳）</span>';
+  __ssD = {city: city, insType: insType, salary: salary, base: base, unitPay: unitPay, personPay: personPay, totalPay: totalPay, lower: cfg.lower, upper: cfg.upper};
+  var html = '<p><strong>' + ssCity(city) + ' · ' + ssType(insType) + '</strong></p>';
+  html += '<p>'+ssL('缴费基数：','Contribution base: ')+'<strong>' + ToolBox.formatNumber(base) + '</strong>'+ssL(' 元',' CNY');
+  if (salary < cfg.lower) html += ' <span style="color:var(--warning);font-size:12px;">'+ssL('（工资低于下限，按下限缴纳）','(salary below the floor; contributing at the floor)')+'</span>';
+  if (salary > cfg.upper) html += ' <span style="color:var(--warning);font-size:12px;">'+ssL('（工资高于上限，按上限缴纳）','(salary above the ceiling; contributing at the ceiling)')+'</span>';
   html += '</p>';
-  html += '<table><thead><tr><th>项目</th><th>比例</th><th>金额（元/月）</th></tr></thead><tbody>';
-  html += '<tr><td>单位缴纳</td><td>' + (cfg.unitRate * 100).toFixed(1) + '%</td><td><strong>' + fmtMoney(unitPay) + '</strong></td></tr>';
-  html += '<tr><td>个人缴纳</td><td>' + (cfg.personRate * 100).toFixed(1) + '%</td><td><strong>' + fmtMoney(personPay) + '</strong></td></tr>';
-  html += '<tr style="background:var(--bg-hover);"><td>合计</td><td>' + ((cfg.unitRate + cfg.personRate) * 100).toFixed(1) + '%</td><td><strong style="color:var(--primary);">' + fmtMoney(totalPay) + '</strong></td></tr>';
+  html += '<table><thead><tr><th>'+ssL('项目','Item')+'</th><th>'+ssL('比例','Rate')+'</th><th>'+ssL('金额（元/月）','Amount (CNY/month)')+'</th></tr></thead><tbody>';
+  html += '<tr><td>'+ssL('单位缴纳','Employer')+'</td><td>' + (cfg.unitRate * 100).toFixed(1) + '%</td><td><strong>' + fmtMoney(unitPay) + '</strong></td></tr>';
+  html += '<tr><td>'+ssL('个人缴纳','Employee')+'</td><td>' + (cfg.personRate * 100).toFixed(1) + '%</td><td><strong>' + fmtMoney(personPay) + '</strong></td></tr>';
+  html += '<tr style="background:var(--bg-hover);"><td>'+ssL('合计','Total')+'</td><td>' + ((cfg.unitRate + cfg.personRate) * 100).toFixed(1) + '%</td><td><strong style="color:var(--primary);">' + fmtMoney(totalPay) + '</strong></td></tr>';
   html += '</tbody></table>';
   const __g2=html;document.getElementById('singleResult').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -416,7 +444,7 @@ function calcAll() {
   var types = ['养老','医疗','失业','工伤','生育'];
   var totalUnit = 0, totalPerson = 0;
 
-  var html = '<table><thead><tr><th>险种</th><th>缴费基数</th><th>单位比例</th><th>单位金额</th><th>个人比例</th><th>个人金额</th></tr></thead><tbody>';
+  var html = '<table><thead><tr><th>'+ssL('险种','Insurance')+'</th><th>'+ssL('缴费基数','Base')+'</th><th>'+ssL('单位比例','Employer rate')+'</th><th>'+ssL('单位金额','Employer amount')+'</th><th>'+ssL('个人比例','Employee rate')+'</th><th>'+ssL('个人金额','Employee amount')+'</th></tr></thead><tbody>';
   for (var i = 0; i < types.length; i++) {
     var t = types[i];
     var d = cfg[t];
@@ -425,15 +453,15 @@ function calcAll() {
     var personPay = base * d.personRate;
     totalUnit += unitPay;
     totalPerson += personPay;
-    html += '<tr><td>' + typeNames[t] + '</td><td>' + ToolBox.formatNumber(base) + '</td><td>' + (d.unitRate * 100).toFixed(1) + '%</td><td>' + fmtMoney(unitPay) + '</td><td>' + (d.personRate * 100).toFixed(1) + '%</td><td>' + fmtMoney(personPay) + '</td></tr>';
+    html += '<tr><td>' + ssType(t) + '</td><td>' + ToolBox.formatNumber(base) + '</td><td>' + (d.unitRate * 100).toFixed(1) + '%</td><td>' + fmtMoney(unitPay) + '</td><td>' + (d.personRate * 100).toFixed(1) + '%</td><td>' + fmtMoney(personPay) + '</td></tr>';
   }
-  html += '<tr style="background:var(--bg-hover);font-weight:600;"><td>合计</td><td>-</td><td>-</td><td><strong style="color:var(--primary);">' + fmtMoney(totalUnit) + '</strong></td><td>-</td><td><strong style="color:var(--primary);">' + fmtMoney(totalPerson) + '</strong></td></tr>';
+  html += '<tr style="background:var(--bg-hover);font-weight:600;"><td>'+ssL('合计','Total')+'</td><td>-</td><td>-</td><td><strong style="color:var(--primary);">' + fmtMoney(totalUnit) + '</strong></td><td>-</td><td><strong style="color:var(--primary);">' + fmtMoney(totalPerson) + '</strong></td></tr>';
   html += '</tbody></table>';
   html += '<div class="stat-grid" style="margin-top:12px;">';
-  html += '<div class="stat-card"><div class="val">' + fmtMoney(totalUnit) + '</div><div class="lbl">单位月缴（元）</div></div>';
-  html += '<div class="stat-card"><div class="val">' + fmtMoney(totalPerson) + '</div><div class="lbl">个人月缴（元）</div></div>';
-  html += '<div class="stat-card"><div class="val">' + fmtMoney(totalUnit + totalPerson) + '</div><div class="lbl">合计月缴（元）</div></div>';
-  html += '<div class="stat-card"><div class="val">' + ToolBox.formatNumber(salary) + '</div><div class="lbl">税前工资（元）</div></div>';
+  html += '<div class="stat-card"><div class="val">' + fmtMoney(totalUnit) + '</div><div class="lbl">'+ssL('单位月缴（元）','Employer monthly (CNY)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">' + fmtMoney(totalPerson) + '</div><div class="lbl">'+ssL('个人月缴（元）','Employee monthly (CNY)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">' + fmtMoney(totalUnit + totalPerson) + '</div><div class="lbl">'+ssL('合计月缴（元）','Total monthly (CNY)')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">' + ToolBox.formatNumber(salary) + '</div><div class="lbl">'+ssL('税前工资（元）','Gross salary (CNY)')+'</div></div>';
   html += '</div>';
   const __g3=html;document.getElementById('allResult').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
@@ -449,6 +477,59 @@ function resetForm() {
 
 updateInfo();
 calc();
+
+function __ssExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__ssD;
+    if(!D){ var a=document.getElementById('ssChart'), b=document.getElementById('ssTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    var tEn={'养老':'Pension','医疗':'Medical','失业':'Unemployment','工伤':'Work injury','生育':'Maternity'};
+    var types=['养老','医疗','失业','工伤','生育'];
+    var cfgA=getCityConfig();
+    var un=[], pe=[], labs=[];
+    for(var i=0;i<types.length;i++){
+      var t=types[i]; var d=cfgA[t];
+      var b=getBase(__ssD.salary, d.lower, d.upper);
+      un.push(Math.round(b*d.unitRate*100)/100);
+      pe.push(Math.round(b*d.personRate*100)/100);
+      labs.push(ssL(typeNames[t]||t, tEn[t]));
+    }
+
+    TBKit.chart.bar('#ssChart', {height: 230, labels: labs, series: [{name: ssL('单位缴纳','Employer'), data: un, color:'#6366F1'}, {name: ssL('个人缴纳','Employee'), data: pe, color:'#10B981'}], title: ssL('各险种月缴金额（元）','Monthly contribution by insurance (CNY)')});
+    TBKit.matrix.table('#ssTable', {head: [ssL('项目','Item'), ssL('内容','Value')], rows: [[ssL('参保城市','City'), ssCity(__ssD.city)], [ssL('当前险种','Insurance'), ssL(typeNames[__ssD.insType], tEn[__ssD.insType])], [ssL('税前工资','Gross salary'), String(__ssD.salary)], [ssL('缴费基数','Contribution base'), String(__ssD.base)], [ssL('基数下限','Base floor'), String(__ssD.lower)], [ssL('基数上限','Base ceiling'), String(__ssD.upper)], [ssL('单位月缴','Employer monthly'), __ssD.unitPay.toFixed(2)], [ssL('个人月缴','Employee monthly'), __ssD.personPay.toFixed(2)], [ssL('合计月缴','Total monthly'), __ssD.totalPay.toFixed(2)]]});
+    TBKit.history.record({[ssL('参保城市','City')]: ssL(__ssD.city, SS_CITY_EN[__ssD.city]||__ssD.city), [ssL('当前险种','Insurance')]: ssL(__ssD.insType, SS_TY_EN[__ssD.insType]||__ssD.insType), [ssL('税前工资','Salary')]: __ssD.salary, [ssL('合计月缴','Total monthly')]: __ssD.totalPay.toFixed(2)});
+  }catch(e){}
+}
+function __ssExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#ssTable','social-security-base.csv'); }catch(e){} }
+function __ssPresets(){
+  try{
+    TBKit.preset.bar('#ssPresets', [
+      {label:'上海·8千', labelEn:'Shanghai, 8k', values:{salary:'8000', city:'上海', insType:'养老'}},
+      {label:'深圳·2万', labelEn:'Shenzhen, 20k', values:{salary:'20000', city:'深圳', insType:'医疗'}},
+      {label:'北京·3.5万', labelEn:'Beijing, 35k', values:{salary:'35000', city:'北京', insType:'养老'}},
+      {label:'成都·5千', labelEn:'Chengdu, 5k', values:{salary:'5000', city:'成都', insType:'失业'}}
+    ], function(){ calc(); });
+  }catch(e){}
+}
+function __ssMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#ssHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('salary').value=g(ssL('税前工资','Gross salary'),'10000');
+      var cv=g(ssL('参保城市','City'),''); if(cv) document.getElementById('city').value=ssDeCity(cv);
+      var tv=g(ssL('当前险种','Insurance'),''); if(tv) document.getElementById('insType').value=ssDeType(tv);
+      calc();
+    }, 8);
+  }catch(e){}
+}
+function __ssBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __ssExtras(); __ssPresets(); __ssMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __ssExtras(); __ssPresets(); __ssMountHist(); }
+}
+var __tb_ss0=calc; calc=function(){ __ssD=null; __tb_ss0(); try{ __ssExtras(); __ssMountHist(); }catch(e){} };
+__ssBoot();
 </script>
 
 <!-- SEO 介绍区块 -->

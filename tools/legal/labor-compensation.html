@@ -219,6 +219,23 @@ s.parentNode.insertBefore(el, s);
       <div id="compBreakdown"></div>
     </div>
   </div>
+  <div class="card">
+    <h3>📈 补偿金额随年限变化</h3>
+    <div id="lcChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="lcTable"></div>
+    <button type="button" class="btn" id="lcExport" onclick="__lcExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="lcHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="lcPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>💰 个税计算</h3>
@@ -335,6 +352,25 @@ function calcFromDates(){
   calculate();
 }
 
+function lcL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __lcD=null;
+var LC_FAQ_EN={
+  '月工资包括哪些？':'What does monthly salary include?',
+  '月工资是指劳动者在劳动合同解除或者终止前十二个月的平均工资，包括计时工资、计件工资、奖金、津贴和补贴等货币性收入。':'Monthly salary is the average wage over the twelve months before termination, including hourly wages, piece-rate wages, bonuses, allowances and subsidies.',
+  '工作年限如何计算？':'How is length of service counted?',
+  '按劳动者在本单位工作的年限计算。六个月以上不满一年的，按一年计算；不满六个月的，支付半个月工资的经济补偿。':'Counted by years worked for the employer: six months or more but under a year counts as one year; under six months earns half a month of severance.',
+  '什么情况下可以获得N+1？':'When is N+1 available?',
+  '《劳动合同法》第40条规定的三种情形：1.医疗期满不能从事原工作也不能从事另行安排的工作；2.不能胜任工作经培训或调岗仍不能胜任；3.客观情况发生重大变化致使合同无法履行，协商不成。':'Article 40 of the Labour Contract Law covers three cases: (1) after medical leave you cannot do the original or reassigned work; (2) you remain incompetent after training or reassignment; (3) a major change of circumstances makes performance impossible and no agreement is reached.',
+  '什么是2N赔偿？':'What is 2N compensation?',
+  '2N是指用人单位违法解除或终止劳动合同，劳动者不要求继续履行或合同已不能继续履行的，用人单位应按经济补偿标准的二倍支付赔偿金。':'2N applies where the employer unlawfully terminates the contract and the employee does not seek reinstatement or reinstatement is impossible: the employer pays twice the severance standard.',
+  '经济补偿金需要交个税吗？':'Is severance taxable?',
+  '个人与用人单位解除劳动关系取得一次性补偿收入，在当地上年职工平均工资3倍数额以内的部分，免征个人所得税；超过3倍数额的部分，不并入当年综合所得，单独适用综合所得税率表计算纳税。':'Lump-sum compensation on termination is tax-free up to 3x the local average wage of the previous year; the excess is taxed separately under the comprehensive income rate table.',
+  '代通知金按什么标准？':'How is payment in lieu of notice calculated?',
+  '代通知金（+1）按照该劳动者上一个月的工资标准确定，而非月平均工资，且不受社平工资3倍封顶限制。':'It is based on the previous month wage rather than the average, and is not subject to the 3x average-wage cap.',
+  '试用期被辞退有补偿吗？':'Is there compensation if dismissed during probation?',
+  '试用期内如被证明不符合录用条件被辞退，无需支付经济补偿。如违法辞退，需支付赔偿金（2N的一半，即1个月工资）。':'No severance if proven unfit during probation. For unlawful dismissal, damages equal half of 2N, i.e. one month wage.',
+  '主动辞职有经济补偿吗？':'Is there severance for voluntary resignation?',
+  '一般情况下主动辞职没有经济补偿。但如果是因用人单位存在违法行为（如拖欠工资、未缴社保等）被迫辞职的，可以要求经济补偿。':'Generally no. But if you are forced to resign due to the employer illegal conduct (wage arrears, unpaid social insurance), you may claim severance.'};
 function calculate(){
   const years = parseFloat(document.getElementById('workYears').value) || 0;
   const salary = parseFloat(document.getElementById('monthlySalary').value) || 0;
@@ -372,22 +408,23 @@ function calculate(){
     total = baseComp * 2;
   }
   
+  __lcD = {type: currentType, years: years, salary: salary, cap: cap, noticeGiven: noticeGiven, n: n, baseComp: baseComp, noticePay: noticePay, total: total, isCapped: isCapped, effSalary: effectiveSalary};
   document.getElementById('totalComp').textContent = ToolBox.formatNumber(Math.round(total));
   
   let html = `
-    <p>补偿类型：<strong>${currentType}</strong></p>
-    <p>工作年限：<strong>${years}</strong> 年 → 补偿 <strong>${n}</strong> 个月</p>
-    <p>月工资基数：<strong>¥${ToolBox.formatNumber(effectiveSalary)}</strong> ${isCapped ? '<span style="color:var(--text-muted);font-size:12px;">（已按社平3倍封顶）</span>' : ''}</p>
+    <p>${lcL('补偿类型：','Type: ')}<strong>${currentType}</strong></p>
+    <p>${lcL('工作年限：','Service: ')}<strong>${years}</strong>${lcL(' 年 → 补偿 ',' years -> ')}<strong>${n}</strong>${lcL(' 个月',' months')}</p>
+    <p>${lcL('月工资基数：','Monthly wage base: ')}<strong>¥${ToolBox.formatNumber(effectiveSalary)}</strong> ${isCapped ? '<span style="color:var(--text-muted);font-size:12px;">'+lcL('（已按社平3倍封顶）','(capped at 3x the average wage)')+'</span>' : ''}</p>
   `;
   
   if(currentType === 'N+1'){
-    html += `<p>代通知金（+1）：<strong>¥${ToolBox.formatNumber(noticePay)}</strong> ${noticeGiven === 1 ? '<span style="color:var(--text-muted);font-size:12px;">（已提前通知）</span>' : ''}</p>`;
+    html += `<p>${lcL('代通知金（+1）：','Payment in lieu of notice (+1): ')}<strong>¥${ToolBox.formatNumber(noticePay)}</strong> ${noticeGiven === 1 ? '<span style="color:var(--text-muted);font-size:12px;">'+lcL('（已提前通知）','(notice already given)')+'</span>' : ''}</p>`;
   }
   
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
-    <p>经济补偿：<strong>¥${ToolBox.formatNumber(Math.round(baseComp))}</strong></p>
-    ${currentType === '2N' ? `<p>赔偿金（2倍）：<strong>¥${ToolBox.formatNumber(Math.round(total))}</strong></p>` : ''}
-    <p>应支付总额：<strong style="color:var(--primary);">¥${ToolBox.formatNumber(Math.round(total))}</strong></p>
+    <p>${lcL('经济补偿：','Severance: ')}<strong>¥${ToolBox.formatNumber(Math.round(baseComp))}</strong></p>
+    ${currentType === '2N' ? `<p>${lcL('赔偿金（2倍）：','Damages (2x): ')}<strong>¥${ToolBox.formatNumber(Math.round(total))}</strong></p>` : ''}
+    <p>${lcL('应支付总额：','Total payable: ')}<strong style="color:var(--primary);">¥${ToolBox.formatNumber(Math.round(total))}</strong></p>
   `;
   
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('compBreakdown').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('compBreakdown').innerHTML=__h0;
@@ -401,20 +438,20 @@ function calcTax(compensation, cap){
   
   if(compensation <= tripleCap){
     const __h1=`
-      <p><strong>免征额：</strong>¥${ToolBox.formatNumber(tripleCap)}（社平工资3倍）</p>
-      <p><strong>应纳税所得额：</strong>¥0（未超过3倍，免征）</p>
-      <p style="color:var(--success);margin-top:8px;"><strong>✓ 经济补偿金免征个人所得税</strong></p>
+      <p><strong>${lcL('免征额：','Tax-free amount:')}</strong>¥${ToolBox.formatNumber(tripleCap)}${lcL('（社平工资3倍）','(3x the average wage)')}</p>
+      <p><strong>${lcL('应纳税所得额：','Taxable amount:')}</strong>${lcL('¥0（未超过3倍，免征）','¥0 (within 3x, exempt)')}</p>
+      <p style="color:var(--success);margin-top:8px;"><strong>✓ ${lcL('经济补偿金免征个人所得税','Severance pay is exempt from personal income tax')}</strong></p>
     `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h1;
   }else{
     const taxable = compensation - tripleCap;
     const tax = calcComprehensiveTax(taxable);
     const __h2=`
-      <p><strong>补偿总额：</strong>¥${ToolBox.formatNumber(Math.round(compensation))}</p>
-      <p><strong>免征额：</strong>¥${ToolBox.formatNumber(tripleCap)}</p>
-      <p><strong>应纳税所得额：</strong>¥${ToolBox.formatNumber(Math.round(taxable))}</p>
-      <p><strong>应缴个税：</strong><span style="color:var(--danger);">¥${ToolBox.formatNumber(Math.round(tax))}</span></p>
-      <p><strong>税后实际所得：</strong><strong style="color:var(--primary);">¥${ToolBox.formatNumber(Math.round(compensation - tax))}</strong></p>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：超过3倍数额的部分，不并入当年综合所得，单独适用综合所得税率表</p>
+      <p><strong>${lcL('补偿总额：','Total compensation:')}</strong>¥${ToolBox.formatNumber(Math.round(compensation))}</p>
+      <p><strong>${lcL('免征额：','Tax-free amount:')}</strong>¥${ToolBox.formatNumber(tripleCap)}</p>
+      <p><strong>${lcL('应纳税所得额：','Taxable amount:')}</strong>¥${ToolBox.formatNumber(Math.round(taxable))}</p>
+      <p><strong>${lcL('应缴个税：','Tax payable:')}</strong><span style="color:var(--danger);">¥${ToolBox.formatNumber(Math.round(tax))}</span></p>
+      <p><strong>${lcL('税后实际所得：','Net after tax:')}</strong><strong style="color:var(--primary);">¥${ToolBox.formatNumber(Math.round(compensation - tax))}</strong></p>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${lcL('注：超过3倍数额的部分，不并入当年综合所得，单独适用综合所得税率表','Note: the portion above 3x is not pooled into annual comprehensive income; it is taxed separately under the comprehensive rate table')}</p>
     `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h2;
   }
 }
@@ -440,8 +477,8 @@ function calcComprehensiveTax(taxable){
 function renderFAQ(){
   const __h3=FAQ.map((f,i) => `
     <div class="faq-item" onclick="toggleFAQ(${i})">
-      <div class="faq-q">${f.q}</div>
-      <div class="faq-a">${f.a}</div>
+      <div class="faq-q">${lcL(f.q, LC_FAQ_EN[f.q]||f.q)}</div>
+      <div class="faq-a">${lcL(f.a, LC_FAQ_EN[f.a]||f.a)}</div>
     </div>
   `).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('faqList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('faqList').innerHTML=__h3;
 }
@@ -474,12 +511,12 @@ function renderHistory(){
   try{ history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }catch(e){}
   const div = document.getElementById('compHistory');
   if(history.length === 0){
-    const __h4='<p style="color:var(--text-muted);font-size:13px;">暂无历史记录</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h4;
+    const __h4='<p style="color:var(--text-muted);font-size:13px;">'+lcL('暂无历史记录','No history yet')+'</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h4;
     return;
   }
   const __h5=history.map(h => `
     <div class="stat-row">
-      <span class="label">${new Date(h.time).toLocaleString()} · ${h.type} · ${h.years}年 · ¥${ToolBox.formatNumber(h.salary)}</span>
+      <span class="label">${new Date(h.time).toLocaleString()} · ${h.type} · ${h.years}${lcL('年','y')} · ¥${ToolBox.formatNumber(h.salary)}</span>
       <span class="value">¥${ToolBox.formatNumber(h.total)}</span>
     </div>
   `).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h5;
@@ -494,6 +531,60 @@ function clearHistory(){
 
 renderFAQ();
 calculate();
+
+function __lcExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__lcD;
+    if(!D){ var a=document.getElementById('lcChart'), b=document.getElementById('lcTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    function lcTotal(yrs, sal, capv, type, ng){
+      var isC=(capv>0 && sal>capv); var eff=isC?capv:sal;
+      var nn=0;
+      if(yrs>=1){ nn=Math.floor(yrs); if(yrs-nn>=0.5) nn+=1; } else if(yrs>0){ nn=0.5; }
+      if(isC && nn>12) nn=12;
+      var base=nn*eff;
+      if(type==='N') return base;
+      if(type==='N+1') return base + (ng===0?sal:0);
+      return base*2;
+    }
+    var xs=[0.5,1,2,3,4,5,6,8,10,12,14,16,18,20], ys=[], labs=[];
+    for(var i=0;i<xs.length;i++){ ys.push(Math.round(lcTotal(xs[i], __lcD.salary, __lcD.cap, __lcD.type, __lcD.noticeGiven))); labs.push(String(xs[i])+lcL('年','y')); }
+
+    TBKit.chart.line('#lcChart', {height: 230, labels: labs, series: [{name: lcL('应支付总额','Total payable'), data: ys, color:'#6366F1'}], title: lcL('补偿金额随工作年限变化（元）','Compensation by years of service (CNY)')});
+    TBKit.matrix.table('#lcTable', {head: [lcL('补偿类型','Type'), lcL('金额（元）','Amount (CNY)')], rows: [['N '+lcL('经济补偿','Severance'), String(Math.round(lcTotal(__lcD.years, __lcD.salary, __lcD.cap, 'N', 1)))], ['N+1 '+lcL('含代通知金','+ notice pay'), String(Math.round(lcTotal(__lcD.years, __lcD.salary, __lcD.cap, 'N+1', 0)))], ['2N '+lcL('违法解除赔偿','Unlawful dismissal'), String(Math.round(lcTotal(__lcD.years, __lcD.salary, __lcD.cap, '2N', 1)))], [lcL('当前选择','Current'), __lcD.type+' = '+String(Math.round(__lcD.total))], [lcL('计算月数 N','Months (N)'), String(__lcD.n)], [lcL('封顶状态','Cap status'), __lcD.isCapped ? lcL('已封顶','Capped') : lcL('未封顶','Not capped')]]});
+    TBKit.history.record({[lcL('补偿类型','Type')]: __lcD.type, [lcL('工作年限','Years')]: __lcD.years, [lcL('月工资','Monthly salary')]: __lcD.salary, [lcL('应支付总额','Total payable')]: Math.round(__lcD.total)});
+  }catch(e){}
+}
+function __lcExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#lcTable','labor-compensation.csv'); }catch(e){} }
+function __lcPresets(){
+  try{
+    TBKit.preset.bar('#lcPresets', [
+      {label:'5年·2万', labelEn:'5 years, 20k', values:{workYears:'5', monthlySalary:'20000', salaryCap:'30000', noticeGiven:'0'}},
+      {label:'10年·2.5万', labelEn:'10 years, 25k', values:{workYears:'10', monthlySalary:'25000', salaryCap:'30000', noticeGiven:'1'}},
+      {label:'1年·1.2万', labelEn:'1 year, 12k', values:{workYears:'1', monthlySalary:'12000', salaryCap:'30000', noticeGiven:'0'}},
+      {label:'20年·4万', labelEn:'20 years, 40k', values:{workYears:'20', monthlySalary:'40000', salaryCap:'30000', noticeGiven:'1'}}
+    ], function(){ calculate(); });
+  }catch(e){}
+}
+function __lcMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#lcHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('workYears').value=g(lcL('工作年限','Years'),'3');
+      document.getElementById('monthlySalary').value=g(lcL('月工资','Monthly salary'),'15000');
+      document.getElementById('salaryCap').value=g(lcL('封顶工资','Salary cap'),'30000');
+      calculate();
+    }, 8);
+  }catch(e){}
+}
+function __lcBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __lcExtras(); __lcPresets(); __lcMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __lcExtras(); __lcPresets(); __lcMountHist(); }
+}
+var __tb_lc0=calculate; calculate=function(){ __lcD=null; __tb_lc0(); try{ __lcExtras(); __lcMountHist(); }catch(e){} };
+__lcBoot();
 renderHistory();
 ToolBox.initToolTheme();
 </script><script>

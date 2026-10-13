@@ -163,6 +163,23 @@ s.parentNode.insertBefore(el, s);
     
     <div class="result-box" id="result"></div>
   </div>
+  <div class="card">
+    <h3>📅 法定年龄里程碑时间轴</h3>
+    <div id="laChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="laTable"></div>
+    <button type="button" class="btn" id="laExport" onclick="__laExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="laHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="laPresets" class="preset-bar"></div>
+  </div>
   
   <div class="card">
     <h3>📋 中国法定年龄里程碑</h3>
@@ -229,10 +246,23 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function laL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __laD=null;
+var LA_MS_EN={'限制民事行为能力':'Limited civil capacity','@限制民事行为能力':'May conclude pure-profit or age-appropriate acts',
+  '相对刑事责任':'Relative criminal liability','@相对刑事责任':'Criminal liability for 8 serious offences',
+  '完全刑事责任/可就业':'Full criminal liability / employable','@完全刑事责任/可就业':'Full criminal liability; may be employed',
+  '成年/完全民事行为能力':'Adult / full civil capacity','@成年/完全民事行为能力':'Right to vote; full civil liability',
+  '女性法定婚龄':'Legal marriage age (female)','@女性法定婚龄':'',
+  '男性法定婚龄':'Legal marriage age (male)','@男性法定婚龄':'',
+  '国家主席任职年龄':'Minimum age for head of state','@国家主席任职年龄':'',
+  '女职工退休年龄（工人）':'Retirement age, female worker','@女职工退休年龄（工人）':'',
+  '女干部/女性灵活就业退休年龄':'Retirement age, female cadre','@女干部/女性灵活就业退休年龄':'',
+  '男性退休年龄':'Retirement age, male','@男性退休年龄':'',
+  '老年人犯罪从宽':'Lenience for elderly offenders','@老年人犯罪从宽':'Intentional offences may be mitigated; negligent ones shall be'};
 function calculate(){
   const birthDate = document.getElementById('birthDate').value;
   if(!birthDate){
-    const __h0='<p style="color:var(--text-muted);">请选择出生日期</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    const __h0='<p style="color:var(--text-muted);">'+laL('请选择出生日期','Please select your date of birth')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
     return;
   }
   
@@ -269,12 +299,15 @@ function calculate(){
     {age:75, name:'老年人犯罪从宽', desc:'故意犯罪可从轻减轻，过失应从轻减轻'}
   ];
   
-  let html = `<h3 style="margin-bottom:8px;">当前年龄信息</h3>`;
-  html += `<p>出生日期：<strong>${birthDate}</strong></p>`;
-  html += `<p>当前年龄：<strong style="color:var(--primary);font-size:18px;">${years}</strong>岁 <strong>${months}</strong>个月 <strong>${days}</strong>天</p>`;
-  html += `<p>总天数：${totalDays.toLocaleString()}天</p>`;
+  __laD = {birth: birthDate, years: years, months: months, days: days, totalDays: totalDays, ms: milestones,
+    reached: milestones.filter(function(m){ return years >= m.age; }).map(function(m){ return m.age; }),
+    next: (function(){ var n=null; for(var i=0;i<milestones.length;i++){ if(years < milestones[i].age){ n=milestones[i]; break; } } return n; })()};
+  let html = `<h3 style="margin-bottom:8px;">${laL('当前年龄信息','Current age')}</h3>`;
+  html += `<p>${laL('出生日期：','Date of birth: ')}<strong>${birthDate}</strong></p>`;
+  html += `<p>${laL('当前年龄：','Current age: ')}<strong style="color:var(--primary);font-size:18px;">${years}</strong>${laL('岁',' y ')}<strong>${months}</strong>${laL('个月',' m ')}<strong>${days}</strong>${laL('天',' d')}</p>`;
+  html += `<p>${laL('总天数：','Total days: ')}${totalDays.toLocaleString()}${laL('天','')}</p>`;
   
-  html += `<h3 style="margin:16px 0 8px;">📌 已达到/即将达到</h3>`;
+  html += `<h3 style="margin:16px 0 8px;">📌 ${laL('已达到/即将达到','Reached / upcoming')}</h3>`;
   milestones.forEach(m => {
     const reached = years >= m.age;
     const ageAtDate = new Date(birth);
@@ -283,17 +316,69 @@ function calculate(){
     
     let status = '';
     if(reached){
-      status = `<span style="color:var(--success);">✓ 已达到</span>`;
+      status = `<span style="color:var(--success);">✓ ${laL('已达到','Reached')}</span>`;
     }else{
-      status = `<span style="color:var(--text-muted);">还有 ${daysTo} 天</span>`;
+      status = `<span style="color:var(--text-muted);">${laL('还有','In')} ${daysTo} ${laL('天','days')}</span>`;
     }
-    html += `<div class="step-line"><strong>${m.age}岁 - ${m.name}</strong> ${status}${m.desc ? '（' + m.desc + '）' : ''}</div>`;
+    html += `<div class="step-line"><strong>${m.age}${laL('岁','y')} - ${laL(m.name, LA_MS_EN[m.name]||m.name)}</strong> ${status}${m.desc ? laL('（',' (') + laL(m.desc, LA_MS_EN['@'+m.name]||m.desc) + laL('）',')') : ''}</div>`;
   });
   
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 }
 document.getElementById('birthDate').value = '2000-01-01';
 calculate();
+
+function __laExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__laD;
+    if(!D){ var a=document.getElementById('laChart'), b=document.getElementById('laTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    var msEn=LA_MS_EN;
+    var items=[];
+    items.push({date: D.birth, label: laL('出生','Born'), color:'#6366F1', strong:true});
+    var bd=new Date(D.birth+'T00:00:00');
+    items.push({date: new Date().toISOString().split('T')[0], label: laL('今天','Today')+' '+D.years+laL('岁','y'), color:'#10B981', strong:true});
+    var pend=D.ms.filter(function(m){ return D.years < m.age; }).slice(0,5);
+    for(var i=0;i<pend.length;i++){
+      var dd=new Date(bd); dd.setFullYear(dd.getFullYear()+pend[i].age);
+      items.push({date: dd.toISOString().split('T')[0], label: pend[i].age+laL('岁','y')+' '+laL(pend[i].name, msEn[pend[i].name]||pend[i].name), color:'#F59E0B'});
+    }
+
+    TBKit.chart.timeline('#laChart', {items: items, height: 150, title: laL('法定年龄关键节点','Key legal age dates')});
+    var nextLab=D.next ? (D.next.age+laL('岁','y')+' '+laL(D.next.name, msEn[D.next.name]||D.next.name)) : laL('全部已达成','All reached');
+    var nextDays=D.next ? (function(){ var dd=new Date(bd); dd.setFullYear(dd.getFullYear()+D.next.age); return Math.ceil((dd-new Date())/86400000); })() : 0;
+    TBKit.matrix.table('#laTable', {head: [laL('项目','Item'), laL('内容','Value')], rows: [[laL('出生日期','Date of birth'), D.birth], [laL('当前年龄','Current age'), D.years+laL('岁',' y ')+D.months+laL('个月',' m ')+D.days+laL('天',' d')], [laL('总天数','Total days'), D.totalDays.toLocaleString()], [laL('已达成里程碑','Milestones reached'), String(D.reached.length)+' / '+D.ms.length], [laL('下一个里程碑','Next milestone'), nextLab], [laL('距离天数','Days to next'), D.next ? String(nextDays) : laL('不适用','N/A')]]});
+    TBKit.history.record({[laL('出生日期','Date of birth')]: D.birth, [laL('当前年龄','Age')]: D.years, [laL('总天数','Total days')]: D.totalDays});
+  }catch(e){}
+}
+function __laExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#laTable','legal-age.csv'); }catch(e){} }
+function __laPresets(){
+  try{
+    TBKit.preset.bar('#laPresets', [
+      {label:'85后', labelEn:'Born in 1985', values:{birthDate:'1985-03-12'}},
+      {label:'95后', labelEn:'Born in 1995', values:{birthDate:'1995-08-08'}},
+      {label:'05后', labelEn:'Born in 2005', values:{birthDate:'2005-11-20'}},
+      {label:'12后', labelEn:'Born in 2012', values:{birthDate:'2012-06-01'}}
+    ], function(){ calculate(); });
+  }catch(e){}
+}
+function __laMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#laHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('birthDate').value=g(laL('出生日期','Date of birth'),'2000-01-01');
+      calculate();
+    }, 8);
+  }catch(e){}
+}
+function __laBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __laExtras(); __laPresets(); __laMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __laExtras(); __laPresets(); __laMountHist(); }
+}
+var __tb_la0=calculate; calculate=function(){ __laD=null; __tb_la0(); try{ __laExtras(); __laMountHist(); }catch(e){} };
+__laBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

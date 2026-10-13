@@ -186,6 +186,23 @@ s.parentNode.insertBefore(el, s);
     <div class="tip-box tip-info" id="lawTip"></div>
   </div>
 </div>
+  <div class="card">
+    <h3>⚖️ 解除情形补偿对比</h3>
+    <div id="esChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="esTable"></div>
+    <button type="button" class="btn" id="esExport" onclick="__esExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="esHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="esPresets" class="preset-bar"></div>
+  </div>
 
 
 <!-- 相关工具 -->
@@ -251,6 +268,16 @@ function calcN(years){
   return intPart;
 }
 
+function esL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __esD=null;
+var ES_LB_EN={negotiate:'Mutual agreement (employer-initiated)',no_fault:'No-fault dismissal',layoff:'Economic redundancy',illegal:'Unlawful dismissal',resign:'Voluntary resignation / fault-based dismissal'};
+var ES_LAW_EN={
+ negotiate:'Articles 36 and 46 of the Labour Contract Law: where the employer proposes termination and the parties agree, severance pay is due.',
+ no_fault:'Article 40 of the Labour Contract Law: in the three statutory situations (unfit after medical leave / incompetent after training or reassignment / major change of circumstances), the employer may terminate with 30 days written notice or one extra month of wage, and must pay severance.',
+ layoff:'Article 41 of the Labour Contract Law: redundancies under restructuring or similar circumstances also require severance pay.',
+ illegal:'Articles 48 and 87 of the Labour Contract Law: unlawful termination entitles the employee to reinstatement; if reinstatement is not sought or is impossible, the employer pays damages of twice the severance standard (2N).',
+ resign:'Articles 37 and 39 of the Labour Contract Law: an employee may resign with 30 days notice (3 days during probation), and no severance is due where the employee is dismissed for serious misconduct.'};
+function esLbl(t){ return esL(DISMISS[t].label, ES_LB_EN[t]||DISMISS[t].label); }
 function calc(){
   var salary = parseFloat(document.getElementById('salary').value) || 0;
   var years = parseFloat(document.getElementById('years').value) || 0;
@@ -270,43 +297,44 @@ function calc(){
   var doublePay = info.double ? effWage * effN * 2 : 0; // 赔偿金 2N
   var total = compPay + noticePay + doublePay;
 
-  const __g0='📖 ' + info.law;document.getElementById('lawTip').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
+  __esD = {dismiss: currentDismiss, salary: salary, years: years, capWage: capWage, n: effN, capped: capped, total: total, label: info.label};
+  const __g0='📖 ' + esL(info.law, ES_LAW_EN[currentDismiss]||info.law);document.getElementById('lawTip').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 
-  function row(name, formula, val, highlight){
-    return '<div class="comp-row"><div class="name">' + name + (highlight ? ' ⭐' : '') + '<small>' + formula + '</small></div><div class="val">' + money(val) + '</div></div>';
+  function row(name, nameEn, formula, formulaEn, val, highlight){
+    return '<div class="comp-row"><div class="name">' + esL(name, nameEn) + (highlight ? ' ⭐' : '') + '<small>' + esL(formula, formulaEn) + '</small></div><div class="val">' + money(val) + '</div></div>';
   }
 
   var rows = [];
   if(info.comp){
-    rows.push(row('经济补偿金', effWage + ' × ' + effN + '个月（N=' + effN + (capped ? '，已封顶' : '') + '）', compPay));
+    rows.push(row('经济补偿金','Severance pay', effWage + ' × ' + effN + '个月（N=' + effN + (capped ? '，已封顶' : '') + '）', effWage + ' x ' + effN + ' months (N=' + effN + (capped ? ', capped' : '') + ')', compPay));
   }
   if(info.notice){
-    rows.push(row('代通知金', effWage + ' × 1个月', noticePay));
+    rows.push(row('代通知金','Payment in lieu of notice', effWage + ' × 1个月', effWage + ' x 1 month', noticePay));
   }
   if(info.double){
-    rows.push(row('违法解除赔偿金', effWage + ' × ' + effN + ' × 2（2N=' + (effN*2) + '）', doublePay, true));
+    rows.push(row('违法解除赔偿金','Damages for unlawful dismissal', effWage + ' × ' + effN + ' × 2（2N=' + (effN*2) + '）', effWage + ' x ' + effN + ' x 2 (2N=' + (effN*2) + ')', doublePay, true));
   }
   if(!info.comp && !info.notice && !info.double){
-    rows.push(row('经济补偿', '该情形无需支付', 0));
+    rows.push(row('经济补偿','Severance pay', '该情形无需支付','Not payable in this scenario', 0));
   }
 
   var capNote = capped
-    ? '<div class="tip-box tip-warn" style="margin-top:12px;">⚠️ 月工资超过当地社平工资3倍（' + money(capWage) + '），按3倍封顶计算，且补偿年限最长不超过12年。实际工资 ' + money(salary) + ' → 计算工资 ' + money(effWage) + '。</div>'
+    ? '<div class="tip-box tip-warn" style="margin-top:12px;">⚠️ ' + esL('月工资超过当地社平工资3倍（','Monthly salary exceeds 3x the local average wage (') + money(capWage) + esL('），按3倍封顶计算，且补偿年限最长不超过12年。实际工资 ','): capped at 3x, and the compensable period is limited to 12 years. Actual salary ') + money(salary) + esL(' → 计算工资 ',' -> calculated at ') + money(effWage) + esL('。','.') + '</div>'
     : '';
 
   var nExplain = info.comp || info.double
-    ? '<div class="tip-box tip-info" style="margin-top:12px;">📌 N 计算规则：工作年限 ' + years + ' 年 → 每满1年计1个月，满6个月不满1年按1年，不满6个月按半个月 → <strong>N = ' + effN + '</strong>。</div>'
+    ? '<div class="tip-box tip-info" style="margin-top:12px;">📌 ' + esL('N 计算规则：工作年限 ','How N is calculated: service of ') + years + esL(' 年 → 每满1年计1个月，满6个月不满1年按1年，不满6个月按半个月 → ',' years -> one month per full year, a full year for 6-12 months, half a month for under 6 months -> ') + '<strong>' + esL('N = ','N = ') + effN + '</strong>' + esL('。','.') + '</div>'
     : '';
 
   const __h1='<div class="total-box">' +
-      '<div style="font-size:13px;color:var(--text-muted);">' + info.label + ' 应付总额</div>' +
+      '<div style="font-size:13px;color:var(--text-muted);">' + esLbl(currentDismiss) + esL(' 应付总额',' total payable') + '</div>' +
       '<div class="total-big">' + money(total) + '</div>' +
     '</div>' +
     '<div style="background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:6px 14px;margin-top:12px;">' +
       rows.join('') +
     '</div>' +
     capNote + nExplain;const __g1='<div class="total-box">' +
-      '<div style="font-size:13px;color:var(--text-muted);">' + info.label + ' 应付总额</div>' +
+      '<div style="font-size:13px;color:var(--text-muted);">' + esLbl(currentDismiss) + esL(' 应付总额',' total payable') + '</div>' +
       '<div class="total-big">' + money(total) + '</div>' +
     '</div>' +
     '<div style="background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:6px 14px;margin-top:12px;">' +
@@ -348,6 +376,60 @@ function saveState(){
 });
 
 calc();
+
+function __esExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__esD;
+    if(!D){ var a=document.getElementById('esChart'), b=document.getElementById('esTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    var ks=['negotiate','no_fault','layoff','illegal','resign'];
+    var lbEn={negotiate:'Mutual agreement',no_fault:'No-fault dismissal',layoff:'Redundancy',illegal:'Unlawful dismissal',resign:'Resignation'},
+        lbZh={negotiate:'协商解除',no_fault:'无过失性辞退',layoff:'经济性裁员',illegal:'违法解除',resign:'主动辞职'};
+    var labs=[], vals=[];
+    for(var i=0;i<ks.length;i++){
+      var inf=DISMISS[ks[i]];
+      var cp=__esD.salary > __esD.capWage && __esD.capWage > 0;
+      var ew=cp?__esD.capWage:__esD.salary;
+      var nn=calcN(__esD.years); if(cp) nn=Math.min(nn,12);
+      var v=(inf.comp?ew*nn:0)+(inf.notice?ew:0)+(inf.double?ew*nn*2:0);
+      vals.push(Math.round(v)); labs.push(esL(lbZh[ks[i]], lbEn[ks[i]]));
+    }
+
+    TBKit.chart.bar('#esChart', {height: 230, labels: labs, series: [{name: esL('应付总额','Total payable'), data: vals, color:'#6366F1'}], title: esL('不同解除情形下的应付金额（元）','Payable by termination type (CNY)')});
+    TBKit.matrix.table('#esTable', {head: [esL('项目','Item'), esL('内容','Value')], rows: [[esL('解除情形','Termination type'), esL(__esD.label, lbEn[__esD.dismiss]||__esD.dismiss)], [esL('月工资','Monthly salary'), String(__esD.salary)], [esL('工作年限','Years of service'), String(__esD.years)], [esL('补偿月数 N','Months (N)'), String(__esD.n)], [esL('社平3倍封顶','Capped at 3x average'), __esD.capped ? esL('是（封顶'+String(__esD.capWage)+'）','Yes ('+String(__esD.capWage)+')') : esL('否','No')], [esL('当前应付总额','Total payable'), money(__esD.total)], [esL('最高情形','Highest scenario'), labs[vals.indexOf(Math.max.apply(null,vals))]+' '+money(Math.max.apply(null,vals))]]});
+    TBKit.history.record({[esL('解除情形','Termination type')]: __esD.dismiss, [esL('月工资','Monthly salary')]: __esD.salary, [esL('工作年限','Years')]: __esD.years, [esL('应付总额','Total payable')]: Math.round(__esD.total)});
+  }catch(e){}
+}
+function __esExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#esTable','estimate-salary.csv'); }catch(e){} }
+function __esPresets(){
+  try{
+    TBKit.preset.bar('#esPresets', [
+      {label:'1.5万·8年', labelEn:'15k, 8 years', values:{salary:'15000', years:'8', capWage:'35000'}},
+      {label:'3万·3年', labelEn:'30k, 3 years', values:{salary:'30000', years:'3', capWage:'35000'}},
+      {label:'8千·1年', labelEn:'8k, 1 year', values:{salary:'8000', years:'1', capWage:'35000'}},
+      {label:'4.5万·15年', labelEn:'45k, 15 years', values:{salary:'45000', years:'15', capWage:'35000'}}
+    ], function(){ calc(); });
+  }catch(e){}
+}
+function __esMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#esHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('salary').value=g(esL('月工资','Monthly salary'),'10000');
+      document.getElementById('years').value=g(esL('工作年限','Years of service'),'3');
+      document.getElementById('capWage').value=g(esL('社平3倍封顶','Cap'),'35000');
+      calc();
+    }, 8);
+  }catch(e){}
+}
+function __esBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __esExtras(); __esPresets(); __esMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __esExtras(); __esPresets(); __esMountHist(); }
+}
+var __tb_es0=calc; calc=function(){ __esD=null; __tb_es0(); try{ __esExtras(); __esMountHist(); }catch(e){} };
+__esBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

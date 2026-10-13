@@ -183,11 +183,11 @@ s.parentNode.insertBefore(el, s);
       <div class="input-row">
         <div>
           <label>家庭共同生活成员月人均收入（元）</label>
-          <input type="number" id="monthlyIncome" placeholder="请输入" oninput="checkEligibility()">
+          <input type="number" id="monthlyIncome" placeholder="请输入" oninput="checkEligibility()" value="5000">
         </div>
         <div>
           <label>当地低保标准（元/月）</label>
-          <input type="number" id="localLowIncome" placeholder="参考：一般600-1500元" oninput="checkEligibility()">
+          <input type="number" id="localLowIncome" placeholder="参考：一般600-1500元" oninput="checkEligibility()" value="3000">
         </div>
       </div>
     </div>
@@ -197,6 +197,23 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div class="result-box" id="result"></div>
+  </div>
+  <div class="card">
+    <h3>💰 经济困难标准比对</h3>
+    <div id="aeChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="aeTable"></div>
+    <button type="button" class="btn" id="aeExport" onclick="__aeExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="aeHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="aePresets" class="preset-bar"></div>
   </div>
   
   <div class="card">
@@ -261,6 +278,8 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事项区块 -->
 </div>
 <script>
+function aeL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __aeD=null;
 function checkEligibility(){
   const matterTypes = Array.from(document.querySelectorAll('.matter-type:checked')).map(c => c.value);
   const applicantType = document.getElementById('applicantType').value;
@@ -278,61 +297,116 @@ function checkEligibility(){
   
   if(applicantType === 'lowincome'){
     economicEligible = true;
-    economicReason = '低保户/特困人员，免予经济困难核查';
+    economicReason = aeL('低保户/特困人员，免予经济困难核查','Low-income / extreme poverty: exempt from means test');
   }else if(applicantType === 'disabled'){
     economicEligible = true;
-    economicReason = '重度残疾人，免予经济困难核查';
+    economicReason = aeL('重度残疾人，免予经济困难核查','Severely disabled: exempt from means test');
   }else if(applicantType === 'minor'){
     economicEligible = true;
-    economicReason = '未成年人（无监护人），免予经济困难核查';
+    economicReason = aeL('未成年人（无监护人），免予经济困难核查','Minor without guardian: exempt from means test');
   }else if(applicantType === 'elderly'){
     economicEligible = true;
-    economicReason = '70岁以上老年人，免予经济困难核查';
+    economicReason = aeL('70岁以上老年人，免予经济困难核查','Aged 70 or above: exempt from means test');
   }else if(applicantType === 'migrant'){
     economicEligible = true;
-    economicReason = '农民工讨薪/工伤，免予经济困难核查';
+    economicReason = aeL('农民工讨薪/工伤，免予经济困难核查','Migrant worker wage / injury claim: exempt from means test');
   }else if(applicantType === 'hero'){
     economicEligible = true;
-    economicReason = '见义勇为人员，免予经济困难核查';
+    economicReason = aeL('见义勇为人员，免予经济困难核查','Good Samaritan: exempt from means test');
   }else{
     if(monthlyIncome > 0 && localLowIncome > 0){
       const threshold = localLowIncome * 2;
       economicEligible = monthlyIncome <= threshold;
       economicReason = economicEligible 
-        ? `家庭月人均收入${monthlyIncome}元 ≤ 低保标准2倍(${threshold}元)，符合经济困难标准`
-        : `家庭月人均收入${monthlyIncome}元 > 低保标准2倍(${threshold}元)，可能不符合经济困难标准（各地标准有差异，建议咨询当地法援机构）`;
+        ? aeL('家庭月人均收入','Monthly income per capita')+monthlyIncome+aeL('元 ≤ 低保标准2倍('," CNY, at or below 2x the subsistence line (")+threshold+aeL('元)，符合经济困难标准',' CNY): meets the financial hardship test')
+        : aeL('家庭月人均收入','Monthly income per capita')+monthlyIncome+aeL('元 > 低保标准2倍('," CNY, above 2x the subsistence line (")+threshold+aeL('元)，可能不符合经济困难标准（各地标准有差异，建议咨询当地法援机构）',' CNY): may not meet the financial hardship test (criteria vary by region; consult your local legal aid office)');
     }else{
-      economicReason = '请填写收入信息以判断经济状况';
+      economicReason = aeL('请填写收入信息以判断经济状况','Please enter income details to assess financial eligibility');
     }
   }
   
+  __aeD = {applicantType: applicantType, income: monthlyIncome, low: localLowIncome, threshold: localLowIncome * 2, matters: matterTypes.length, matterEligible: matterEligible, economicEligible: economicEligible, reason: economicReason};
   let resultHtml = '';
   
   if(!matterEligible){
-    resultHtml = `<p style="color:var(--danger);">⚠️ 请选择申请事项类型</p>`;
+    resultHtml = `<p style="color:var(--danger);">⚠️ ${aeL('请选择申请事项类型','Please select at least one matter type')}</p>`;
   }else if(economicEligible){
-    resultHtml += `<p style="color:var(--success);font-size:16px;font-weight:600;">✓ 初步判断符合法律援助申请条件</p>`;
-    resultHtml += `<p style="margin-top:8px;">申请事项：${matterTypes.length}项</p>`;
-    resultHtml += `<p>经济状况：${economicReason}</p>`;
+    resultHtml += `<p style="color:var(--success);font-size:16px;font-weight:600;">✓ ${aeL('初步判断符合法律援助申请条件','Preliminary assessment: eligible for legal aid')}</p>`;
+    resultHtml += `<p style="margin-top:8px;">${aeL('申请事项：','Matters: ')}${matterTypes.length}${aeL('项','')}</p>`;
+    resultHtml += `<p>${aeL('经济状况：','Financial status: ')}${economicReason}</p>`;
     resultHtml += `<div style="margin-top:12px;padding:12px;background:rgba(76,175,80,0.1);border-radius:8px;">`;
-    resultHtml += `<p><strong>下一步：</strong></p>`;
-    resultHtml += `<p>1. 携带身份证、经济困难证明（免核查人员无需提供）、案件相关材料</p>`;
-    resultHtml += `<p>2. 向当地法律援助中心或拨打12348申请</p>`;
-    resultHtml += `<p>3. 也可通过"12348中国法网"线上申请</p>`;
+    resultHtml += `<p><strong>${aeL('下一步：','Next steps:')}</strong></p>`;
+    resultHtml += `<p>1. ${aeL('携带身份证、经济困难证明（免核查人员无需提供）、案件相关材料','Bring your ID, proof of financial hardship (not needed if exempt) and case documents')}</p>`;
+    resultHtml += `<p>2. ${aeL('向当地法律援助中心或拨打12348申请','Apply at your local legal aid centre or call 12348')}</p>`;
+    resultHtml += `<p>3. ${aeL('也可通过"12348中国法网"线上申请','You can also apply online via the 12348 China legal aid network')}</p>`;
     resultHtml += `</div>`;
   }else{
-    resultHtml += `<p style="color:var(--danger);font-size:16px;font-weight:600;">⚠️ 可能不符合法律援助条件</p>`;
+    resultHtml += `<p style="color:var(--danger);font-size:16px;font-weight:600;">⚠️ ${aeL('可能不符合法律援助条件','May not meet the legal aid conditions')}</p>`;
     resultHtml += `<p style="margin-top:8px;">经济状况：${economicReason}</p>`;
-    resultHtml += `<p style="margin-top:8px;font-size:13px;color:var(--text-muted);">注：经济困难标准各地可能有调整，部分地区对特定事项放宽标准，建议拨打12348详细咨询</p>`;
+    resultHtml += `<p style="margin-top:8px;font-size:13px;color:var(--text-muted);">${aeL('注：经济困难标准各地可能有调整，部分地区对特定事项放宽标准，建议拨打12348详细咨询','Note: financial hardship thresholds vary by region and may be relaxed for certain matters; call 12348 for details')}</p>`;
   }
   
   if(matterTypes.includes('criminal')){
-    resultHtml += `<p style="margin-top:8px;color:var(--primary);">📌 刑事案件中，未成年、盲聋哑、精神障碍患者、可能判处无期徒刑/死刑的，没有委托辩护人的，应当通知法律援助机构指派律师，无需经济困难审查</p>`;
+    resultHtml += `<p style="margin-top:8px;color:var(--primary);">📌 ${aeL('刑事案件中，未成年、盲聋哑、精神障碍患者、可能判处无期徒刑/死刑的，没有委托辩护人的，应当通知法律援助机构指派律师，无需经济困难审查','In criminal cases, minors, deaf-mute or blind persons, the mentally impaired, and those facing life imprisonment or the death penalty who have no defence counsel must have a legal aid lawyer appointed, with no means test')}</p>`;
   }
   
   const __h0=resultHtml;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 checkEligibility();
+
+function __aeExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__aeD;
+    if(!D){ var a=document.getElementById('aeChart'), b=document.getElementById('aeTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    var atEn={normal:'Ordinary applicant',lowincome:'Low-income / extreme poverty',disabled:'Severely disabled',
+      minor:'Minor without guardian',elderly:'Aged 70+',migrant:'Migrant worker wage claim',hero:'Good Samaritan'};
+    var atZh={normal:'普通申请人',lowincome:'低保户/特困人员',disabled:'重度残疾人',minor:'未成年人（无监护人）',
+      elderly:'70岁以上老年人',migrant:'农民工讨薪/工伤',hero:'见义勇为人员'};
+    var noCheck={lowincome:1,disabled:1,minor:1,elderly:1,migrant:1,hero:1};
+    var isFree=noCheck[__aeD.applicantType]?true:false;
+    var maxv=Math.max(1, __aeD.threshold);
+    var val=isFree?maxv:Math.min(__aeD.income, maxv*1.6);
+    var col=isFree?'#10B981':(__aeD.income<=__aeD.threshold?'#10B981':'#EF4444');
+
+    TBKit.chart.gauge('#aeChart', {value: val, min: 0, max: maxv, height: 170, color: col,
+      text: isFree ? aeL('免核查','Exempt') : String(Math.round(__aeD.income)),
+      label: aeL('月收入 / 低保2倍线','Monthly income / 2x subsistence line'),
+      title: aeL('经济困难标准比对','Income vs eligibility threshold')});
+    TBKit.matrix.table('#aeTable', {head: [aeL('项目','Item'), aeL('内容','Value')], rows: [[aeL('申请人类型','Applicant type'), aeL(atZh[__aeD.applicantType]||__aeD.applicantType, atEn[__aeD.applicantType]||__aeD.applicantType)], [aeL('家庭月人均收入','Monthly income per capita'), String(__aeD.income)], [aeL('当地低保标准','Local subsistence line'), String(__aeD.low)], [aeL('经济困难线（2倍）','Threshold (2x)'), String(__aeD.threshold)], [aeL('已选事项','Matters selected'), String(__aeD.matters)], [aeL('经济核查','Means test'), isFree ? aeL('免予核查','Exempt from means test') : (__aeD.economicEligible ? aeL('符合','Eligible') : aeL('可能不符合','Possibly ineligible'))]]});
+    TBKit.history.record({[aeL('申请人类型','Applicant type')]: __aeD.applicantType, [aeL('家庭月人均收入','Monthly income')]: __aeD.income, [aeL('经济困难线','Threshold')]: __aeD.threshold, [aeL('已选事项','Matters')]: __aeD.matters});
+  }catch(e){}
+}
+function __aeExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#aeTable','legal-aid-eligibility.csv'); }catch(e){} }
+function __aePresets(){
+  try{
+    TBKit.preset.bar('#aePresets', [
+      {label:'低收入·符合', labelEn:'Low income, eligible', values:{applicantType:'normal', monthlyIncome:'3000', localLowIncome:'2500'}},
+      {label:'收入超标', labelEn:'Income too high', values:{applicantType:'normal', monthlyIncome:'9000', localLowIncome:'3000'}},
+      {label:'农民工讨薪', labelEn:'Migrant wage claim', values:{applicantType:'migrant', monthlyIncome:'4000', localLowIncome:'3000'}},
+      {label:'重度残疾', labelEn:'Severely disabled', values:{applicantType:'disabled', monthlyIncome:'4000', localLowIncome:'3000'}}
+    ], function(){ checkEligibility(); });
+  }catch(e){}
+}
+function __aeMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#aeHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('applicantType').value=g(aeL('申请人类型','Applicant type'),'normal');
+      document.getElementById('monthlyIncome').value=g(aeL('家庭月人均收入','Monthly income per capita'),'5000');
+      document.getElementById('localLowIncome').value=g(aeL('当地低保标准','Local subsistence line'),'3000');
+      checkEligibility();
+    }, 8);
+  }catch(e){}
+}
+function __aeBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __aeExtras(); __aePresets(); __aeMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __aeExtras(); __aePresets(); __aeMountHist(); }
+}
+var __tb_ae0=checkEligibility; checkEligibility=function(){ __aeD=null; __tb_ae0(); try{ __aeExtras(); __aeMountHist(); }catch(e){} };
+__aeBoot();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

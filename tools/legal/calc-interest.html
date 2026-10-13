@@ -177,6 +177,23 @@ s.parentNode.insertBefore(el, s);
     <div class="tip-box tip-info">📖 《最高人民法院关于审理民间借贷案件适用法律若干问题的规定》：借贷行为发生在2019年8月20日之后的，以合同成立时一年期LPR的4倍为利率司法保护上限。超过部分不受法律保护。</div>
   </div>
 </div>
+  <div class="card">
+    <h3>📈 利息累积与司法保护上限</h3>
+    <div id="ciChart"></div>
+  </div>
+  <div class="card">
+    <h3>📋 计算结果速查</h3>
+    <div id="ciTable"></div>
+    <button type="button" class="btn" id="ciExport" onclick="__ciExport()">导出CSV</button>
+  </div>
+  <div class="card">
+    <h3>🕑 历史记录</h3>
+    <div id="ciHist"></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 预设场景</h3>
+    <div id="ciPresets" class="preset-bar"></div>
+  </div>
 
 
 <!-- 相关工具 -->
@@ -212,6 +229,11 @@ s.parentNode.insertBefore(el, s);
 <script>
 function money(n){ return '¥' + ToolBox.formatNumber(Math.round(n)); }
 
+function ciL(zh, en){ try{ if(/[?&]lang=en-US/.test(location.search)) return en; if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return en; }catch(e){} return zh; }
+var __ciD=null;
+var CI_M_EN={lump:'Bullet repayment',equal_payment:'Equal instalment',equal_principal:'Equal principal'};
+var CI_M_ZH={lump:'到期还本付息',equal_payment:'等额本息',equal_principal:'等额本金'};
+function ciDeMethod(v){ for(var k in CI_M_EN){ if(CI_M_EN[k]===v||CI_M_ZH[k]===v) return k; } return v; }
 function calc(){
   var P = parseFloat(document.getElementById('principal').value) || 0;
   var annualRate = parseFloat(document.getElementById('rate').value) || 0;
@@ -220,7 +242,7 @@ function calc(){
   var lpr = parseFloat(document.getElementById('lpr').value) || 0;
   var res = document.getElementById('res');
 
-  if(P <= 0 || months <= 0){ res.innerHTML='<p style="color:var(--text-muted);">请输入有效的本金和期限</p>'; return; }
+  if(P <= 0 || months <= 0){ res.innerHTML='<p style="color:var(--text-muted);">'+ciL('请输入有效的本金和期限','Please enter a valid principal and term')+'</p>'; return; }
 
   var capRate = lpr * 4;
   var overCap = annualRate > capRate;
@@ -291,9 +313,10 @@ function calc(){
     protectedInterest = totI;
   }
 
+  __ciD = {P: P, rate: annualRate, months: months, method: method, lpr: lpr, capRate: capRate, overCap: overCap, totalInterest: totalInterest, totalRepay: totalRepay, monthlyPay: monthlyPay, protectedInterest: protectedInterest};
   var capWarning = overCap
-    ? '<div class="tip-box tip-error">⚠️ <strong>利率超出法定上限！</strong>约定年利率 ' + annualRate + '% 超过 LPR四倍 (' + capRate.toFixed(2) + '%)。超过部分利息不受法律保护，借款人已支付的超过部分可主张抵扣本金或返还。</div>'
-    : '<div class="tip-box tip-success">✅ 利率未超过法定上限（LPR四倍 ' + capRate.toFixed(2) + '%），受法律保护。</div>';
+    ? '<div class="tip-box tip-error">⚠️ <strong>' + ciL('利率超出法定上限！','Rate exceeds the statutory cap!') + '</strong>' + ciL('约定年利率 ','Agreed annual rate ') + annualRate + ciL('% 超过 LPR四倍 (','% exceeds 4x LPR (') + capRate.toFixed(2) + ciL('%)。超过部分利息不受法律保护，借款人已支付的超过部分可主张抵扣本金或返还。','%). Interest above the cap is unprotected; amounts already paid may be offset against principal or reclaimed.') + '</div>'
+    : '<div class="tip-box tip-success">✅ ' + ciL('利率未超过法定上限（LPR四倍 ','Rate is within the statutory cap (4x LPR = ') + capRate.toFixed(2) + ciL('%），受法律保护。','%), and is legally protected.') + '</div>';
 
   // schedule table (only first 12 + summary for long)
   var schedHtml = '';
@@ -307,21 +330,21 @@ function calc(){
       var last = schedule[schedule.length - 1];
       rows.push([last.m, money(last.pay), money(last.principal), money(last.interest), money(last.balance)]);
     }
-    schedHtml = '<h3 style="margin-top:14px;">还款明细</h3>' + ToolBox.createTable(['期次','本期还款','本金','利息','剩余本金'], rows);
+    schedHtml = '<h3 style="margin-top:14px;">'+ciL('还款明细','Repayment schedule')+'</h3>' + ToolBox.createTable([ciL('期次','Period'),ciL('本期还款','Payment'),ciL('本金','Principal'),ciL('利息','Interest'),ciL('剩余本金','Balance')], rows);
   }
 
   const __g2='<div class="data-grid">' +
-      '<div class="sum-stat"><div class="sub">借款本金</div><div class="big">' + money(P) + '</div></div>' +
-      '<div class="sum-stat"><div class="sub">总利息</div><div class="big">' + money(totalInterest) + '</div></div>' +
-      '<div class="sum-stat"><div class="sub">还款总额</div><div class="big">' + money(totalRepay) + '</div></div>' +
-      (monthlyPay > 0 ? '<div class="sum-stat"><div class="sub">首期/月供</div><div class="big">' + money(monthlyPay) + '</div></div>' : '') +
+      '<div class="sum-stat"><div class="sub">'+ciL('借款本金','Principal')+'</div><div class="big">' + money(P) + '</div></div>' +
+      '<div class="sum-stat"><div class="sub">'+ciL('总利息','Total interest')+'</div><div class="big">' + money(totalInterest) + '</div></div>' +
+      '<div class="sum-stat"><div class="sub">'+ciL('还款总额','Total repayment')+'</div><div class="big">' + money(totalRepay) + '</div></div>' +
+      (monthlyPay > 0 ? '<div class="sum-stat"><div class="sub">'+ciL('首期/月供','First / monthly payment')+'</div><div class="big">' + money(monthlyPay) + '</div></div>' : '') +
     '</div>' +
     '<div style="margin-top:14px;">' +
-      '<div style="font-size:13px;color:var(--text-secondary);">法定利率上限校验（LPR ' + lpr + '% × 4 = <strong>' + capRate.toFixed(2) + '%</strong>）</div>' +
+      '<div style="font-size:13px;color:var(--text-secondary);">'+ciL('法定利率上限校验（LPR ','Statutory rate cap check (LPR ')+lpr+ciL('% × 4 = ','% x 4 = ')+'<strong>' + capRate.toFixed(2) + '%</strong>'+ciL('）',')')+'</div>' +
       '<div class="cap-bar"><div class="cap-fill' + (overCap ? ' over' : '') + '" style="width:' + capPct + '%;"></div></div>' +
-      '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">约定利率 ' + annualRate + '% ' + (overCap ? '（超出 ' + (annualRate - capRate).toFixed(2) + '%）' : '（在保护范围内）') + '</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+ciL('约定利率 ','Agreed rate ')+annualRate+'% ' + (overCap ? ciL('（超出 ','(exceeds by ') + (annualRate - capRate).toFixed(2) + ciL('%）','%)') : ciL('（在保护范围内）','(within the protected range)')) + '</div>' +
     '</div>' +
-    (overCap ? '<div class="tip-box tip-warn" style="margin-top:12px;">受保护利息上限约：<strong>' + money(protectedInterest) + '</strong>（按 ' + capRate.toFixed(2) + '% 计算）；超出部分利息 <strong>' + money(totalInterest - protectedInterest) + '</strong> 不受法律保护。</div>' : '') +
+    (overCap ? '<div class="tip-box tip-warn" style="margin-top:12px;">'+ciL('受保护利息上限约：','Protected interest cap approx:')+'<strong>' + money(protectedInterest) + '</strong>'+ciL('（按 ','(at ')+capRate.toFixed(2)+ciL('% 计算）；超出部分利息 ','%); interest above the cap ')+'<strong>' + money(totalInterest - protectedInterest) + '</strong>'+ciL(' 不受法律保护。',' is not legally protected.')+'</div>' : '') +
     capWarning +
     schedHtml;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -362,6 +385,62 @@ var KEY = 'tb_loan_interest';
 });
 
 calc();
+
+function __ciExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var D=__ciD;
+    if(!D){ var a=document.getElementById('ciChart'), b=document.getElementById('ciTable'); if(a) a.innerHTML=''; if(b) b.innerHTML=''; return; }
+    var mEn=CI_M_EN;
+    var mZh=CI_M_ZH;
+    var step=Math.max(1, Math.ceil(__ciD.months/24));
+    var labs=[], acc=[], capL=[];
+    var accI=0, totI=__ciD.totalInterest, mcount=__ciD.months;
+    for(var i=1;i<=mcount;i++){
+      if(i%step===0 || i===mcount){
+        labs.push(String(i));
+        acc.push(Math.round(__ciD.P*((__ciD.rate/100)/12)*i*100)/100);
+        capL.push(Math.round(__ciD.P*((__ciD.capRate/100)/12)*i*100)/100);
+      }
+    }
+
+    TBKit.chart.line('#ciChart', {height: 230, labels: labs, series: [{name: ciL('约定利息累计','Accrued interest at agreed rate'), data: acc, color:'#6366F1'}, {name: ciL('司法保护上限','Judicial protection cap'), data: capL, color:'#EF4444'}], title: ciL('利息累积与司法保护上限（元）','Interest accrual vs legal cap (CNY)')});
+    TBKit.matrix.table('#ciTable', {head: [ciL('项目','Item'), ciL('内容','Value')], rows: [[ciL('借款本金','Principal'), money(__ciD.P)], [ciL('约定年利率','Agreed annual rate'), __ciD.rate+'%'], [ciL('借款期限','Term (months)'), String(__ciD.months)], [ciL('还款方式','Repayment method'), ciL(mZh[__ciD.method]||__ciD.method, mEn[__ciD.method]||__ciD.method)], [ciL('LPR 一年期','1-year LPR'), __ciD.lpr+'%'], [ciL('司法保护上限','Protection cap'), __ciD.capRate.toFixed(2)+'%'], [ciL('总利息','Total interest'), money(__ciD.totalInterest)], [ciL('受保护利息','Protected interest'), money(__ciD.protectedInterest)], [ciL('还款总额','Total repayment'), money(__ciD.totalRepay)], [ciL('是否超限','Over cap'), __ciD.overCap ? ciL('是','Yes') : ciL('否','No')]]});
+    TBKit.history.record({[ciL('借款本金','Principal')]: __ciD.P, [ciL('约定年利率','Rate')]: __ciD.rate, [ciL('期限(月)','Months')]: __ciD.months, [ciL('还款方式','Repayment method')]: ciL(CI_M_ZH[__ciD.method]||__ciD.method, CI_M_EN[__ciD.method]||__ciD.method), [ciL('总利息','Total interest')]: Math.round(__ciD.totalInterest)});
+  }catch(e){}
+}
+function __ciExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#ciTable','calc-interest.csv'); }catch(e){} }
+function __ciPresets(){
+  try{
+    TBKit.preset.bar('#ciPresets', [
+      {label:'20万·15%·24期', labelEn:'200k, 15%, 24m', values:{principal:'200000', rate:'15', months:'24', method:'equal_payment', lpr:'3.45'}},
+      {label:'5万·6%·6期', labelEn:'50k, 6%, 6m', values:{principal:'50000', rate:'6', months:'6', method:'lump', lpr:'3.45'}},
+      {label:'50万·4.5%·360期', labelEn:'500k, 4.5%, 360m', values:{principal:'500000', rate:'4.5', months:'360', method:'equal_principal', lpr:'3.45'}},
+      {label:'10万·24%·超限', labelEn:'100k, 24%, over cap', values:{principal:'100000', rate:'24', months:'12', method:'lump', lpr:'3.45'}}
+    ], function(){ calc(); });
+  }catch(e){}
+}
+function __ciMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#ciHist', function(d){
+      if(!d) return;
+      var g=function(k,dv){ return (d[k]!==undefined && d[k]!==null)?d[k]:dv; };
+      document.getElementById('principal').value=g(ciL('借款本金','Principal'),'100000');
+      document.getElementById('rate').value=g(ciL('约定年利率','Agreed annual rate'),'12');
+      document.getElementById('months').value=g(ciL('借款期限','Term (months)'),'12');
+      document.getElementById('lpr').value=g(ciL('LPR 一年期','1-year LPR'),'3.1');
+      var mv=g(ciL('还款方式','Repayment method'),''); if(mv) document.getElementById('method').value=ciDeMethod(mv);
+      calc();
+    }, 8);
+  }catch(e){}
+}
+function __ciBoot(){
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ __ciExtras(); __ciPresets(); __ciMountHist(); }); }
+  else if(typeof TBKit!=='undefined') { __ciExtras(); __ciPresets(); __ciMountHist(); }
+}
+var __tb_ci0=calc; calc=function(){ __ciD=null; __tb_ci0(); try{ __ciExtras(); __ciMountHist(); }catch(e){} };
+__ciBoot();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
