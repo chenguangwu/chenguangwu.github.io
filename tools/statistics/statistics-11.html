@@ -123,11 +123,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>权重 B</label><input type="number" id="w2" value="0.3" step="any" oninput="calc()"></div>
     <div class="input-row"><label>数值 C</label><input type="number" id="v3" value="70" step="any" oninput="calc()"></div>
     <div class="input-row"><label>权重 C</label><input type="number" id="w3" value="0.2" step="any" oninput="calc()"></div>
+    <div id="wmPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__wmExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result">
+    <div id="wmChart" role="img" aria-label="结果可视化"></div>
+    <div id="wmTable"></div>
+    <div id="wmDiff"></div>
+    <div id="wmHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -245,6 +252,51 @@ function copyResult() {
   });
 }
 calc();
+
+function __wmN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wmList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __wmL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __wmExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#wmTable','weighted-mean.csv');}catch(e){} }
+function __wmExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var v=[__wmN('v1'),__wmN('v2'),__wmN('v3')], w=[__wmN('w1'),__wmN('w2'),__wmN('w3')];
+        if(v.some(function(x){return !isFinite(x);})||w.some(function(x){return !isFinite(x);})||w.reduce(function(a,b){return a+b;},0)===0)return;
+        var ws=w.reduce(function(a,b){return a+b;},0);
+        var wm=v.reduce(function(acc,x,i){return acc+x*w[i];},0)/ws;
+        TBKit.chart.bar('#wmChart',{labels:['A','B','C'],series:[{name:__wmL('weight','权重'),data:w.slice()}],height:220,title:__wmL('Weights per item','各项权重')});
+        var rows=__wmL(
+            [['A','value '+v[0].toFixed(2),'weight '+w[0].toFixed(2),'contribution '+(v[0]*w[0]).toFixed(3)],
+             ['B','value '+v[1].toFixed(2),'weight '+w[1].toFixed(2),'contribution '+(v[1]*w[1]).toFixed(3)],
+             ['C','value '+v[2].toFixed(2),'weight '+w[2].toFixed(2),'contribution '+(v[2]*w[2]).toFixed(3)],
+             ['weighted mean',wm.toFixed(4),'Σ weight',ws.toFixed(2),'']],
+            [['A','数值 '+v[0].toFixed(2),'权重 '+w[0].toFixed(2),'贡献 '+(v[0]*w[0]).toFixed(3)],
+             ['B','数值 '+v[1].toFixed(2),'权重 '+w[1].toFixed(2),'贡献 '+(v[1]*w[1]).toFixed(3)],
+             ['C','数值 '+v[2].toFixed(2),'权重 '+w[2].toFixed(2),'贡献 '+(v[2]*w[2]).toFixed(3)],
+             ['加权平均',wm.toFixed(4),'权重和',ws.toFixed(2),'']]);
+        TBKit.matrix.table('#wmTable',{head:__wmL(['Item','Value','Weight','Contribution'],['项','数值','权重','贡献']),rows:rows});
+        TBKit.history.record({wm:Number(wm.toFixed(4)),ws:Number(ws.toFixed(2)),v1:v[0],v2:v[1],v3:v[2],w1:w[0],w2:w[1],w3:w[2]});
+        TBKit.util.diffBox('#wmDiff',['wm']);
+        TBKit.history.mount('#wmHist',function(v){ if(v.v1!=null){document.getElementById('v1').value=v.v1;document.getElementById('v2').value=v.v2;document.getElementById('v3').value=v.v3;document.getElementById('w1').value=v.w1;document.getElementById('w2').value=v.w2;document.getElementById('w3').value=v.w3;} calc(); });
+    }catch(e){}
+}
+function __wmPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#wmPresets',[
+            {label:'成绩 [80,90,70] 权重 [2,3,1]',labelEn:'Grades [80,90,70] w [2,3,1]',values:{v1:80,v2:90,v3:70,w1:2,w2:3,w3:1}},
+            {label:'价格 [3,5,8] 权重 [1,2,1]',labelEn:'Price [3,5,8] w [1,2,1]',values:{v1:3,v2:5,v3:8,w1:1,w2:2,w3:1}},
+            {label:'等权 [10,20,30]',labelEn:'Equal [10,20,30]',values:{v1:10,v2:20,v3:30,w1:1,w2:1,w3:1}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_wm0 = calc;
+calc = function(){ __tb_wm0(); try{ __wmExtras(); }catch(e){} };
+calc();
+__wmPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

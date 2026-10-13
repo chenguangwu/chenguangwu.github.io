@@ -131,12 +131,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="svPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__svExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="svChart" role="img" aria-label="结果可视化"></div>
+    <div id="svTable"></div>
+    <div id="svDiff"></div>
+    <div id="svHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -249,6 +256,47 @@ const arr = document.getElementById('data').value.split(',').map(s => parseFloat
 function resetForm(){document.getElementById('data').value = '2,4,4,4,5,5,7,9';
       calcTool();}
 calcTool();
+
+function __svN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __svList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __svL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __svExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#svTable','sample-variance.csv');}catch(e){} }
+function __svExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var arr=__svList(document.getElementById('data').value); if(arr.length<2)return;
+        var n=arr.length, mean=arr.reduce(function(a,b){return a+b;},0)/n;
+        var ss=arr.reduce(function(a,b){return a+(b-mean)*(b-mean);},0);
+        var v=ss/(n-1), sd=Math.sqrt(v);
+        var labels=arr.map(function(_,i){return String(i+1);});
+        TBKit.chart.bar('#svChart',{labels:labels,series:[{name:__svL('value','数值'),data:arr.slice()}],height:230,title:__svL('Data values (spread around mean)','数据数值（围绕均值的离散）')});
+        var rows=__svL(
+            [['n',String(n)],['mean x̄',mean.toFixed(4)],['sum',arr.reduce(function(a,b){return a+b;},0).toFixed(4)],['sum of squares',ss.toFixed(4)],['sample variance s²',v.toFixed(4)],['sample sd s',sd.toFixed(4)]],
+            [['样本量 n',String(n)],['均值 x̄',mean.toFixed(4)],['总和',arr.reduce(function(a,b){return a+b;},0).toFixed(4)],['平方和',ss.toFixed(4)],['样本方差 s²',v.toFixed(4)],['样本标准差 s',sd.toFixed(4)]]);
+        TBKit.matrix.table('#svTable',{head:__svL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({n:n,mean:Number(mean.toFixed(4)),var:Number(v.toFixed(4)),sd:Number(sd.toFixed(4)),data:document.getElementById('data').value});
+        TBKit.util.diffBox('#svDiff',['sd']);
+        TBKit.history.mount('#svHist',function(v){ if(v.data!=null)document.getElementById('data').value=v.data; calcTool(); });
+    }catch(e){}
+}
+function __svPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#svPresets',[
+            {label:'经典例 [2,4,4,4,5,5,7,9]',labelEn:'Classic [2,4,4,4,5,5,7,9]',values:{data:'2,4,4,4,5,5,7,9'}},
+            {label:'等差 [1..9]',labelEn:'Arithmetic [1..9]',values:{data:'1,2,3,4,5,6,7,8,9'}},
+            {label:'两簇 [10,10,10,50,50,50]',labelEn:'Two clusters [10,10,10,50,50,50]',values:{data:'10,10,10,50,50,50'}},
+            {label:'恒定 [5,5,5,5]',labelEn:'Constant [5,5,5,5]',values:{data:'5,5,5,5'}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_sv0 = calcTool;
+calcTool = function(){ __tb_sv0(); try{ __svExtras(); }catch(e){} };
+calcTool();
+__svPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

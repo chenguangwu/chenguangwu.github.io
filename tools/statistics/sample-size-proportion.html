@@ -139,12 +139,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="spPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__spExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="spChart" role="img" aria-label="结果可视化"></div>
+    <div id="spTable"></div>
+    <div id="spDiff"></div>
+    <div id="spHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -259,6 +266,47 @@ function resetForm(){document.getElementById('p').value = '0.5';
       document.getElementById('z').value = '1.96';
       calcTool();}
 calcTool();
+
+function __spN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __spL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __spExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#spTable','sample-size-proportion.csv');}catch(e){} }
+function __spExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var p=__spN('p'), e=__spN('e'), z=__spN('z');
+        if(!(p>0&&p<1&&e>0&&z>0))return;
+        var n=z*z*p*(1-p)/(e*e), ceil=Math.ceil(n), cons=z*z*0.25/(e*e), se=Math.sqrt(p*(1-p)/n)*100;
+        var zs=[1.645,1.96,2.576,3.291], lbl=__spL(['90%','95%','99%','99.9%'],['90%','95%','99%','99.9%']);
+        var vals=zs.map(function(zz){return Math.ceil(zz*zz*p*(1-p)/(e*e));});
+        TBKit.chart.bar('#spChart',{labels:lbl,series:[{name:__spL('n','所需 n'),data:vals}],height:230,title:__spL('Required n at different confidence levels','不同置信水平所需样本量 n')});
+        var rows=__spL(
+            [['n (ceil)',ceil.toFixed(0)],['exact n',n.toFixed(1)],['conservative (p=0.5)',cons.toFixed(1)],['sampling SE (%)',se.toFixed(4)]],
+            [['n（向上取整）',ceil.toFixed(0)],['精确 n',n.toFixed(1)],['最保守 (p=0.5)',cons.toFixed(1)],['抽样标准误 (%)',se.toFixed(4)]]);
+        TBKit.matrix.table('#spTable',{head:__spL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({p:p,e:e,z:z,n:ceil});
+        TBKit.util.diffBox('#spDiff',['n']);
+        TBKit.history.mount('#spHist',function(v){ if(v.p!=null)document.getElementById('p').value=v.p; if(v.e!=null)document.getElementById('e').value=v.e; if(v.z!=null)document.getElementById('z').value=v.z; calcTool(); });
+    }catch(e){}
+}
+function __spPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#spPresets',[
+            {label:'民意调查 p=0.5 e=0.05',labelEn:'Poll p=0.5 e=0.05',values:{p:0.5,e:0.05,z:1.96}},
+            {label:'已知 p=0.3 e=0.03',labelEn:'Known p=0.3 e=0.03',values:{p:0.3,e:0.03,z:1.96}},
+            {label:'高精度 e=0.02 z=2.576',labelEn:'High precision e=0.02 z=2.576',values:{p:0.5,e:0.02,z:2.576}},
+            {label:'医疗试验 e=0.01',labelEn:'Medical trial e=0.01',values:{p:0.2,e:0.01,z:1.96}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_sp0 = calcTool;
+calcTool = function(){ __tb_sp0(); try{ __spExtras(); }catch(e){} };
+calcTool();
+__spPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

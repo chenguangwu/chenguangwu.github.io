@@ -128,11 +128,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>Y4</label><input type="number" id="y4" value="7.8" step="any" oninput="calc()"></div>
     <div class="input-row"><label>Y5</label><input type="number" id="y5" value="10.5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>预测 X</label><input type="number" id="xp" value="6" step="any" oninput="calc()"></div>
+    <div id="lrPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__lrExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result">
+    <div id="lrChart" role="img" aria-label="结果可视化"></div>
+    <div id="lrTable"></div>
+    <div id="lrDiff"></div>
+    <div id="lrHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -203,6 +210,53 @@ function copyResult() {
   });
 }
 calc();
+
+function __lrN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lrList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __lrL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __lrExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#lrTable','linear-regression.csv');}catch(e){} }
+function __lrExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var xs=[1,2,3,4,5].map(function(i){return __lrN('x'+i);});
+        var ys=[1,2,3,4,5].map(function(i){return __lrN('y'+i);});
+        var xp=__lrN('xp');
+        if(xs.some(function(x){return !isFinite(x);})||ys.some(function(x){return !isFinite(x);})||!isFinite(xp))return;
+        var n=5,sx=xs.reduce(function(a,b){return a+b;},0),sy=ys.reduce(function(a,b){return a+b;},0),sxx=xs.reduce(function(a,b){return a+b*b;},0),sxy=0;
+        for(var i=0;i<n;i++)sxy+=xs[i]*ys[i];
+        var den=n*sxx-sx*sx; if(Math.abs(den)<1e-12)return;
+        var a=(n*sxy-sx*sy)/den, b=(sy-a*sx)/n, yp=a*xp+b;
+        var sst=0,mY=sy/n; ys.forEach(function(y){sst+=Math.pow(y-mY,2);});
+        var ssr=0; for(var k=0;k<n;k++){var pr=a*xs[k]+b; ssr+=Math.pow(ys[k]-pr,2);}
+        var r2 = sst>0 ? 1-ssr/sst : 0;
+        var pts=xs.map(function(x,i){return [x,ys[i]];});
+        TBKit.chart.scatter('#lrChart',{points:pts,fit:{slope:a,intercept:b},height:260,xLabel:'X',title:__lrL('Scatter & fitted line','散点与拟合直线')});
+        var rows=[];
+        for(var j=0;j<n;j++){var pr=a*xs[j]+b; rows.push([xs[j].toFixed(2),ys[j].toFixed(2),pr.toFixed(3),(ys[j]-pr).toFixed(3)]);}
+        rows.push([__lrL('predict at x='+xp,'预测 x='+xp),'—',yp.toFixed(3),'']);
+        TBKit.matrix.table('#lrTable',{head:__lrL(['x','y','ŷ (predicted)','residual'],['x','y','ŷ（预测）','残差']),rows:rows});
+        TBKit.history.record({a:Number(a.toFixed(4)),b:Number(b.toFixed(4)),r2:Number(r2.toFixed(4)),x1:xs[0],x2:xs[1],x3:xs[2],x4:xs[3],x5:xs[4],y1:ys[0],y2:ys[1],y3:ys[2],y4:ys[3],y5:ys[4],xp:xp});
+        TBKit.util.diffBox('#lrDiff',['a']);
+        TBKit.history.mount('#lrHist',function(v){ if(v.a!=null){[1,2,3,4,5].forEach(function(i){document.getElementById('x'+i).value=v['x'+i];document.getElementById('y'+i).value=v['y'+i];});document.getElementById('xp').value=v.xp;} calc(); });
+    }catch(e){}
+}
+function __lrPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#lrPresets',[
+            {label:'正线性相关',labelEn:'Positive linear',values:{x1:1,x2:2,x3:3,x4:4,x5:5,y1:2,y2:4,y3:5,y4:4,y5:5,xp:6}},
+            {label:'强相关 [10..50]',labelEn:'Strong [10..50]',values:{x1:10,x2:20,x3:30,x4:40,x5:50,y1:15,y2:25,y3:35,y4:45,y5:55,xp:35}},
+            {label:'噪声弱相关',labelEn:'Noisy weak',values:{x1:1,x2:2,x3:3,x4:4,x5:5,y1:3,y2:1,y3:4,y4:2,y5:5,xp:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_lr0 = calc;
+calc = function(){ __tb_lr0(); try{ __lrExtras(); }catch(e){} };
+calc();
+__lrPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

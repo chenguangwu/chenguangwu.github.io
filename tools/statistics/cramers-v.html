@@ -146,12 +146,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="crPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__crExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="crChart" role="img" aria-label="结果可视化"></div>
+    <div id="crTable"></div>
+    <div id="crDiff"></div>
+    <div id="crHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -268,6 +275,48 @@ function resetForm(){document.getElementById('a').value = '40';
       document.getElementById('d').value = '80';
       calcTool();}
 calcTool();
+
+function __crN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __crList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __crL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __crExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#crTable','cramers-v.csv');}catch(e){} }
+function __crExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var a=__crN('a'),b=__crN('b'),c=__crN('c'),d=__crN('d');
+        if(!(isFinite(a)&&isFinite(b)&&isFinite(c)&&isFinite(d)))return;
+        var n=a+b+c+d;
+        var e11=(a+b)*(a+c)/n,e12=(a+b)*(b+d)/n,e21=(c+d)*(a+c)/n,e22=(c+d)*(b+d)/n;
+        var chi=(a-e11)*(a-e11)/e11+(b-e12)*(b-e12)/e12+(c-e21)*(c-e21)/e21+(d-e22)*(d-e22)/e22;
+        var V=Math.sqrt(chi/(n*1));
+        TBKit.chart.bar('#crChart',{labels:['a','b','c','d'],series:[{name:__crL('Observed','观测'),data:[a,b,c,d]},{name:__crL('Expected','期望'),data:[e11,e12,e21,e22]}],height:240,title:__crL('Observed vs Expected','观测值 vs 期望值')});
+        var rows=__crL(
+            [['a (obs)',a.toFixed(0),'e11',e11.toFixed(2)],['b (obs)',b.toFixed(0),'e12',e12.toFixed(2)],['c (obs)',c.toFixed(0),'e21',e21.toFixed(2)],['d (obs)',d.toFixed(0),'e22',e22.toFixed(2)],['χ²',chi.toFixed(4),'Cramér’s V',V.toFixed(4)]],
+            [['a（观测）',a.toFixed(0),'e11',e11.toFixed(2)],['b（观测）',b.toFixed(0),'e12',e12.toFixed(2)],['c（观测）',c.toFixed(0),'e21',e21.toFixed(2)],['d（观测）',d.toFixed(0),'e22',e22.toFixed(2)],['χ²',chi.toFixed(4),'Cramér’s V',V.toFixed(4)]]);
+        TBKit.matrix.table('#crTable',{head:__crL(['Cell','Observed','Expected cell','Exp value'],['单元格','观测','期望单元格','期望值']),rows:rows});
+        TBKit.history.record({chi:Number(chi.toFixed(4)),V:Number(V.toFixed(4)),a:a,b:b,c:c,d:d});
+        TBKit.util.diffBox('#crDiff',['V']);
+        TBKit.history.mount('#crHist',function(v){ if(v.a!=null){document.getElementById('a').value=v.a;document.getElementById('b').value=v.b;document.getElementById('c').value=v.c;document.getElementById('d').value=v.d;} calcTool(); });
+    }catch(e){}
+}
+function __crPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#crPresets',[
+            {label:'中等关联 [40,60,20,80]',labelEn:'Moderate [40,60,20,80]',values:{a:40,b:60,c:20,d:80}},
+            {label:'弱关联 [30,70,30,70]',labelEn:'Weak [30,70,30,70]',values:{a:30,b:70,c:30,d:70}},
+            {label:'强关联 [10,90,90,10]',labelEn:'Strong [10,90,90,10]',values:{a:10,b:90,c:90,d:10}},
+            {label:'无关联 [25,25,25,25]',labelEn:'None [25,25,25,25]',values:{a:25,b:25,c:25,d:25}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_cr0 = calcTool;
+calcTool = function(){ __tb_cr0(); try{ __crExtras(); }catch(e){} };
+calcTool();
+__crPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

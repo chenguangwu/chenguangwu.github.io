@@ -128,12 +128,19 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="skPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__skExport()">导出 CSV</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result">
+    <div id="skChart" role="img" aria-label="结果可视化"></div>
+    <div id="skTable"></div>
+    <div id="skDiff"></div>
+    <div id="skHist"></div>
+</div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -194,6 +201,49 @@ function calcTool(){
 function resetForm(){document.getElementById('xs').value = '2, 4, 4, 4, 5, 5, 7, 9';
       calcTool();}
 calcTool();
+
+function __skN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __skList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __skL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __skExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#skTable','skewness.csv');}catch(e){} }
+function __skExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var raw=__skList(document.getElementById('xs').value); if(raw.length<3)return;
+        var n=raw.length, mean=raw.reduce(function(a,b){return a+b;},0)/n;
+        var ss=0; raw.forEach(function(x){ss+=Math.pow(x-mean,2);}); var s=Math.sqrt(ss/(n-1));
+        var cu=0; raw.forEach(function(x){cu+=Math.pow((x-mean)/s,3);});
+        var g1=n/((n-1)*(n-2))*cu;
+        var labels=raw.map(function(_,i){return String(i+1);});
+        TBKit.chart.bar('#skChart',{labels:labels,series:[{name:__skL('value','数值'),data:raw.slice()}],height:230,title:__skL('Values (long right tail ⇒ right skew)','数值（右尾长 ⇒ 右偏）')});
+        var lvl = g1>0.5?__skL('right-skewed','右偏（正偏）'):g1<-0.5?__skL('left-skewed','左偏（负偏）'):__skL('roughly symmetric','基本对称');
+        var rows=__skL(
+            [['n',String(n)],['mean',mean.toFixed(4)],['sd',s.toFixed(4)],['sample skewness g₁',g1.toFixed(4)],['shape',lvl]],
+            [['样本量 n',String(n)],['均值',mean.toFixed(4)],['标准差',s.toFixed(4)],['样本偏度 g₁',g1.toFixed(4)],['形态',lvl]]);
+        TBKit.matrix.table('#skTable',{head:__skL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({n:n,mean:Number(mean.toFixed(4)),g1:Number(g1.toFixed(4)),xs:document.getElementById('xs').value});
+        TBKit.util.diffBox('#skDiff',['g1']);
+        TBKit.history.mount('#skHist',function(v){ if(v.xs!=null)document.getElementById('xs').value=v.xs; calcTool(); });
+    }catch(e){}
+}
+function __skPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#skPresets',[
+            {label:'对称 [2,4,4,4,5,5,7,9]',labelEn:'Symmetric [2,4,4,4,5,5,7,9]',values:{xs:'2, 4, 4, 4, 5, 5, 7, 9'}},
+            {label:'右偏 [1,2,2,3,10]',labelEn:'Right skew [1,2,2,3,10]',values:{xs:'1,2,2,3,10'}},
+            {label:'左偏 [10,9,9,8,1]',labelEn:'Left skew [10,9,9,8,1]',values:{xs:'10,9,9,8,1'}},
+            {label:'极端右偏 [1,1,1,1,100]',labelEn:'Extreme right [1,1,1,1,100]',values:{xs:'1,1,1,1,100'}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_sk0 = calcTool;
+calcTool = function(){ __tb_sk0(); try{ __skExtras(); }catch(e){} };
+calcTool();
+__skPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

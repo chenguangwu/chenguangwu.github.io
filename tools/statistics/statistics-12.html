@@ -124,11 +124,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>数据5</label><input type="number" id="n5" value="21" step="any" oninput="calc()"></div>
     <div class="input-row"><label>数据6</label><input type="number" id="n6" value="24" step="any" oninput="calc()"></div>
     <div class="input-row"><label>数据7</label><input type="number" id="n7" value="30" step="any" oninput="calc()"></div>
+    <div id="mmPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__mmExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result">
+    <div id="mmChart" role="img" aria-label="结果可视化"></div>
+    <div id="mmTable"></div>
+    <div id="mmDiff"></div>
+    <div id="mmHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -197,6 +204,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __mmN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mmList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __mmL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __mmExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#mmTable','mean-median-mode.csv');}catch(e){} }
+function __mmExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var arr=[1,2,3,4,5,6,7].map(function(i){return __mmN('n'+i);});
+        if(arr.some(function(x){return !isFinite(x);}))return;
+        var n=7, mean=arr.reduce(function(a,b){return a+b;},0)/n;
+        var s=arr.slice().sort(function(a,b){return a-b;});
+        var med=s[3], rg=s[6]-s[0], sum=arr.reduce(function(a,b){return a+b;},0);
+        TBKit.chart.bar('#mmChart',{labels:['1','2','3','4','5','6','7'],series:[{name:__mmL('value','数值'),data:arr.slice()}],height:230,title:__mmL('Seven values','七个数值')});
+        var rows=__mmL(
+            [['Mean',mean.toFixed(4)],['Median',med.toFixed(4)],['Range',rg.toFixed(4)],['Sum',sum.toFixed(4)]],
+            [['均值',mean.toFixed(4)],['中位数',med.toFixed(4)],['极差',rg.toFixed(4)],['总和',sum.toFixed(4)]]);
+        TBKit.matrix.table('#mmTable',{head:__mmL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({mean:Number(mean.toFixed(4)),median:Number(med.toFixed(4)),range:Number(rg.toFixed(4)),n1:arr[0],n2:arr[1],n3:arr[2],n4:arr[3],n5:arr[4],n6:arr[5],n7:arr[6]});
+        TBKit.util.diffBox('#mmDiff',['mean']);
+        TBKit.history.mount('#mmHist',function(v){ if(v.mean!=null){[1,2,3,4,5,6,7].forEach(function(i){var id='n'+i;if(v['n'+i]!=null)document.getElementById(id).value=v['n'+i];});} calc(); });
+    }catch(e){}
+}
+function __mmPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#mmPresets',[
+            {label:'[3,7,7,2,9,10,5]',labelEn:'[3,7,7,2,9,10,5]',values:{n1:3,n2:7,n3:7,n4:2,n5:9,n6:10,n7:5}},
+            {label:'等差 [1..7]',labelEn:'Seq [1..7]',values:{n1:1,n2:2,n3:3,n4:4,n5:5,n6:6,n7:7}},
+            {label:'恒定 [5,5,5,5,5,5,5]',labelEn:'Constant 5',values:{n1:5,n2:5,n3:5,n4:5,n5:5,n6:5,n7:5}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_mm0 = calc;
+calc = function(){ __tb_mm0(); try{ __mmExtras(); }catch(e){} };
+calc();
+__mmPresets();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
