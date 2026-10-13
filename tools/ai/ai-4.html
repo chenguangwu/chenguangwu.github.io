@@ -124,11 +124,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>B1</label><input type="number" id="b1" value="4" step="any" oninput="calc()"></div>
     <div class="input-row"><label>B2</label><input type="number" id="b2" value="5" step="any" oninput="calc()"></div>
     <div class="input-row"><label>B3</label><input type="number" id="b3" value="6" step="any" oninput="calc()"></div>
+    <div id="a4Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__a4Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="10" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="10" data-viz-min="0">
+    <div id="a4Chart" role="img" aria-label="结果可视化"></div>
+    <div id="a4Table"></div>
+    <div id="a4Diff"></div>
+    <div id="a4Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -227,6 +234,49 @@ function copyResult() {
   });
 }
 calc();
+
+function __a4N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __a4List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __a4L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __a4Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#a4Table','vector-distance.csv');}catch(e){} }
+function __a4Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var a1=__a4N('a1'),a2=__a4N('a2'),a3=__a4N('a3'),b1=__a4N('b1'),b2=__a4N('b2'),b3=__a4N('b3');
+        if(![a1,a2,a3,b1,b2,b3].every(function(x){return isFinite(x);}))return;
+        var na=Math.sqrt(a1*a1+a2*a2+a3*a3), nb=Math.sqrt(b1*b1+b2*b2+b3*b3);
+        if(!(na>0&&nb>0))return;
+        var euc=Math.sqrt(Math.pow(a1-b1,2)+Math.pow(a2-b2,2)+Math.pow(a3-b3,2));
+        var man=Math.abs(a1-b1)+Math.abs(a2-b2)+Math.abs(a3-b3);
+        var cos=(a1*b1+a2*b2+a3*b3)/(na*nb);
+        TBKit.chart.bar('#a4Chart',{labels:['欧氏距离','曼哈顿距离','余弦相似度'],series:[{name:__a4L('metric','度量值'),data:[euc,man,cos]}],height:220,title:__a4L('Distance metrics for vectors a,b','向量 a、b 的三种距离度量')});
+        var rows=__a4L(
+            [['vector a','('+a1+', '+a2+', '+a3+')'],['vector b','('+b1+', '+b2+', '+b3+')'],['|a|',na.toFixed(4)],['|b|',nb.toFixed(4)],['euclidean',euc.toFixed(4)],['manhattan',man.toFixed(4)],['cosine similarity',cos.toFixed(4)],['angle (°)',(Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI).toFixed(2)]],
+            [['向量 a','('+a1+', '+a2+', '+a3+')'],['向量 b','('+b1+', '+b2+', '+b3+')'],['|a| 模长',na.toFixed(4)],['|b| 模长',nb.toFixed(4)],['欧氏距离',euc.toFixed(4)],['曼哈顿距离',man.toFixed(4)],['余弦相似度',cos.toFixed(4)],['夹角 (°)',(Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI).toFixed(2)]]);
+        TBKit.matrix.table('#a4Table',{head:__a4L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({cos:Number(cos.toFixed(4))});
+        TBKit.util.diffBox('#a4Diff',['cos']);
+        TBKit.history.mount('#a4Hist',function(v){ if(v.cos!=null){document.getElementById('a1').value=v.a1;document.getElementById('a2').value=v.a2;document.getElementById('a3').value=v.a3;document.getElementById('b1').value=v.b1;document.getElementById('b2').value=v.b2;document.getElementById('b3').value=v.b3;} calc(); });
+    }catch(e){}
+}
+function __a4Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#a4Presets',[
+            {label:'同向 (1,2,3)/(2,4,6)',labelEn:'Same dir (1,2,3)/(2,4,6)',values:{a1:1,a2:2,a3:3,b1:2,b2:4,b3:6}},
+            {label:'正交 (1,0,0)/(0,1,0)',labelEn:'Orthogonal (1,0,0)/(0,1,0)',values:{a1:1,a2:0,a3:0,b1:0,b2:1,b3:0}},
+            {label:'反向 (1,2,3)/(-2,-4,-6)',labelEn:'Opposite (1,2,3)/(-2,-4,-6)',values:{a1:1,a2:2,a3:3,b1:-2,b2:-4,b3:-6}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_a40 = calc;
+calc = function(){ __tb_a40(); try{ __a4Extras(); }catch(e){} };
+function __a4Boot(){ try{ __a4Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __a4Boot);
+else __a4Boot();
 </script>
 <section class="opt-guide"><h2>如何使用欧氏距离</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>A1</li><li>A2</li><li>A3</li><li>B1</li><li>B2</li><li>B3</li></ul><h2>适用场景</h2><p>欧氏距离 d(x,y)=√(Σ(xᵢ−yᵢ)²)，衡量向量在空间中的绝对距离。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>欧氏距离与余弦相似度怎么选？</dt><dd>关心量级/绝对差用欧氏；关心方向/语义用余弦。文本与图像嵌入几乎都用余弦，因为向量模长常受词频或亮度影响、不代表语义强度。</dd><dt>维度很高时距离失效怎么办？</dt><dd>先对特征做标准化(z-score)消除量纲，或降维(PCA/t-SNE)后再比对；语义场景直接用余弦距离更稳定。</dd></dl></section>
 

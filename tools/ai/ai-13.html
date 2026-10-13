@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>每 epoch 秒</label><input type="number" id="epoch_time" value="60" step="any" oninput="calc()"></div>
     <div class="input-row"><label>耐心 epoch 数</label><input type="number" id="patience" value="10" step="1" oninput="calc()"></div>
     <div class="input-row"><label>最小 epoch</label><input type="number" id="min_epochs" value="50" step="1" oninput="calc()"></div>
+    <div id="acPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__acExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="200" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="200" data-viz-min="0">
+    <div id="acChart" role="img" aria-label="结果可视化"></div>
+    <div id="acTable"></div>
+    <div id="acDiff"></div>
+    <div id="acHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -220,6 +227,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __acN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __acList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __acL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __acExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#acTable','early-stopping-budget.csv');}catch(e){} }
+function __acExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var et=__acN('epoch_time'), pa=__acN('patience'), me=__acN('min_epochs');
+        if(!(et>0&&pa>0&&me>0))return;
+        var wait=pa*et/60, minT=me*et/60, maxEp=me+pa*3, maxT=maxEp*et/60;
+        TBKit.chart.pie('#acChart',{items:[
+            {label:__acL('min training','最小训练'),value:minT},
+            {label:__acL('patience wait','早停等待'),value:wait}
+        ],height:230,title:__acL('Time budget: train vs wait','时间预算：训练 vs 等待')});
+        var rows=__acL(
+            [['epoch time (s)',et.toFixed(1)],['patience',pa.toFixed(0)],['min epochs',me.toFixed(0)],['patience wait (min)',wait.toFixed(1)],['min training (min)',minT.toFixed(1)],['max suggested epochs',maxEp.toFixed(0)],['max training (min)',maxT.toFixed(1)],['wait share',(wait/(wait+minT)*100).toFixed(1)+'%']],
+            [['单轮耗时 (s)',et.toFixed(1)],['早停耐心',pa.toFixed(0)],['最小轮数',me.toFixed(0)],['早停等待 (分钟)',wait.toFixed(1)],['最小训练 (分钟)',minT.toFixed(1)],['最大建议轮数',maxEp.toFixed(0)],['最大训练 (分钟)',maxT.toFixed(1)],['等待占比',(wait/(wait+minT)*100).toFixed(1)+'%']]);
+        TBKit.matrix.table('#acTable',{head:__acL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({maxEp:Number(maxEp.toFixed(0))});
+        TBKit.util.diffBox('#acDiff',['maxEp']);
+        TBKit.history.mount('#acHist',function(v){ if(v.maxEp!=null){document.getElementById('epoch_time').value=v.epoch_time;document.getElementById('patience').value=v.patience;document.getElementById('min_epochs').value=v.min_epochs;} calc(); });
+    }catch(e){}
+}
+function __acPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#acPresets',[
+            {label:'快速实验 30s/5/20',labelEn:'Fast run 30s/5/20',values:{epoch_time:30,patience:5,min_epochs:20}},
+            {label:'标准 60s/10/50',labelEn:'Standard 60s/10/50',values:{epoch_time:60,patience:10,min_epochs:50}},
+            {label:'长训练 300s/20/200',labelEn:'Long run 300s/20/200',values:{epoch_time:300,patience:20,min_epochs:200}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ac0 = calc;
+calc = function(){ __tb_ac0(); try{ __acExtras(); }catch(e){} };
+function __acBoot(){ try{ __acPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __acBoot);
+else __acBoot();
 </script>
 
 <script type="application/ld+json">

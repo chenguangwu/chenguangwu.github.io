@@ -122,11 +122,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>输出维度</label><input type="number" id="out_" value="128" step="1" oninput="calc()"></div>
     <div class="input-row"><label>是否含偏置 1=是</label><input type="number" id="bias" value="1" step="1" oninput="calc()"></div>
     <div class="input-row"><label>是否卷积 1=是</label><input type="number" id="conv" value="0" step="1" oninput="calc()"></div>
+    <div id="a6Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__a6Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="1000000" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="1000000" data-viz-min="0">
+    <div id="a6Chart" role="img" aria-label="结果可视化"></div>
+    <div id="a6Table"></div>
+    <div id="a6Diff"></div>
+    <div id="a6Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -223,6 +230,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __a6N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __a6List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __a6L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __a6Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#a6Table','layer-params.csv');}catch(e){} }
+function __a6Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var in_=__a6N('in_'), out_=__a6N('out_'), bias=__a6N('bias'), conv=__a6N('conv');
+        if(!(in_>0&&out_>0))return;
+        var fc=in_*out_+out_*bias, cv=conv?(in_*out_*9+out_*bias):0, vram=fc*4/1024/1024;
+        TBKit.chart.pie('#a6Chart',{items:[
+            {label:__a6L('dense params','全连接参数'),value:fc},
+            {label:__a6L('conv kernel params','卷积核参数'),value:cv||0.000001}
+        ],height:230,title:__a6L('Parameter share','参数占比')});
+        var rows=__a6L(
+            [['input units',in_.toFixed(0)],['output units',out_.toFixed(0)],['bias units',bias.toFixed(0)],['conv mode',conv?'on (3×3)':'off'],['dense params',fc.toFixed(0)],['conv kernel params',cv.toFixed(0)],['total params',(fc+cv).toFixed(0)],['weight VRAM (MB)',vram.toFixed(4)]],
+            [['输入单元',in_.toFixed(0)],['输出单元',out_.toFixed(0)],['偏置单元',bias.toFixed(0)],['卷积模式',conv?'开 (3×3)':'关'],['全连接参数',fc.toFixed(0)],['卷积核参数',cv.toFixed(0)],['总参数',(fc+cv).toFixed(0)],['权重显存 (MB)',vram.toFixed(4)]]);
+        TBKit.matrix.table('#a6Table',{head:__a6L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({total:Number((fc+cv).toFixed(0))});
+        TBKit.util.diffBox('#a6Diff',['total']);
+        TBKit.history.mount('#a6Hist',function(v){ if(v.total!=null){document.getElementById('in_').value=v.in_;document.getElementById('out_').value=v.out_;document.getElementById('bias').value=v.bias;document.getElementById('conv').value=v.conv;} calc(); });
+    }catch(e){}
+}
+function __a6Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#a6Presets',[
+            {label:'MNIST 全连接 784→128',labelEn:'MNIST dense 784→128',values:{in_:784,out_:128,bias:1,conv:0}},
+            {label:'卷积层 64→128 3×3',labelEn:'Conv layer 64→128 3×3',values:{in_:64,out_:128,bias:1,conv:1}},
+            {label:'大输出 1024→4096',labelEn:'Large out 1024→4096',values:{in_:1024,out_:4096,bias:1,conv:0}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_a60 = calc;
+calc = function(){ __tb_a60(); try{ __a6Extras(); }catch(e){} };
+function __a6Boot(){ try{ __a6Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __a6Boot);
+else __a6Boot();
 </script>
 <section class="opt-guide"><h2>如何使用参数数量估算</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>输入维度</li><li>输出维度</li><li>是否含偏置 1=是</li><li>是否卷积 1=是</li></ul><h2>适用场景</h2><p>全连接层参数=(输入维度+1)×输出维度，+1 为偏置。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>为什么卷积层参数量远小于全连接？</dt><dd>卷积权值共享且局部连接，参数只与核大小、通道数有关，与特征图尺寸无关；全连接则随输入输出维度乘积增长。</dd><dt>偏置是否总要加？</dt><dd>并非必须。BN 后接的卷积常设 bias=False 以免冗余；最后一层或需学习截距时保留偏置。</dd></dl></section>
 

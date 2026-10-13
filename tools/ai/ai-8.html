@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>梯度</label><input type="number" id="grad" value="2" step="any" oninput="calc()"></div>
     <div class="input-row"><label>学习率</label><input type="number" id="lr" value="0.1" step="any" oninput="calc()"></div>
     <div class="input-row"><label>L2 正则化</label><input type="number" id="lambda" value="0.01" step="any" oninput="calc()"></div>
+    <div id="a8Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__a8Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="10" data-viz-min="-10"></div>
+    <div class="result-box" id="result" data-viz="gauge" data-viz-max="10" data-viz-min="-10">
+    <div id="a8Chart" role="img" aria-label="结果可视化"></div>
+    <div id="a8Table"></div>
+    <div id="a8Diff"></div>
+    <div id="a8Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -222,6 +229,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __a8N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __a8List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __a8L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __a8Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#a8Table','weight-update.csv');}catch(e){} }
+function __a8Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var w=__a8N('w'), grad=__a8N('grad'), lr=__a8N('lr'), lambda=__a8N('lambda');
+        if(!(lr>0))return;
+        var nw=w-lr*(grad+2*lambda*w), dw=-lr*(grad+2*lambda*w), pen=2*lambda*w;
+        TBKit.chart.bar('#a8Chart',{labels:['旧权重 w','新权重','|Δw|','L2 惩罚'],series:[{name:__a8L('value','数值'),data:[w,nw,Math.abs(dw),pen]}],height:220,title:__a8L('Weight update with L2 regularization','带 L2 正则的权重更新')});
+        var rows=__a8L(
+            [['weight w',w.toFixed(4)],['gradient',grad.toFixed(4)],['learning rate',lr.toFixed(4)],['L2 λ',lambda.toFixed(4)],['update step',(grad+2*lambda*w).toFixed(4)],['new weight',nw.toFixed(4)],['change Δw',dw.toFixed(4)],['relative change',(w!==0?(dw/w*100).toFixed(2)+'%':'—')]],
+            [['权重 w',w.toFixed(4)],['梯度',grad.toFixed(4)],['学习率',lr.toFixed(4)],['L2 系数 λ',lambda.toFixed(4)],['更新步长',(grad+2*lambda*w).toFixed(4)],['新权重',nw.toFixed(4)],['权重变化 Δw',dw.toFixed(4)],['相对变化',(w!==0?(dw/w*100).toFixed(2)+'%':'—')]]);
+        TBKit.matrix.table('#a8Table',{head:__a8L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({nw:Number(nw.toFixed(4))});
+        TBKit.util.diffBox('#a8Diff',['nw']);
+        TBKit.history.mount('#a8Hist',function(v){ if(v.nw!=null){document.getElementById('w').value=v.w;document.getElementById('grad').value=v.grad;document.getElementById('lr').value=v.lr;document.getElementById('lambda').value=v.lambda;} calc(); });
+    }catch(e){}
+}
+function __a8Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#a8Presets',[
+            {label:'标准 SGD w=5 g=2 lr=0.1',labelEn:'Standard SGD w=5 g=2 lr=0.1',values:{w:5,grad:2,lr:0.1,lambda:0.01}},
+            {label:'强正则 w=10 g=1 λ=0.1',labelEn:'Strong reg w=10 g=1 λ=0.1',values:{w:10,grad:1,lr:0.1,lambda:0.1}},
+            {label:'小步长 w=2 g=0.5 lr=0.01',labelEn:'Small step w=2 g=0.5 lr=0.01',values:{w:2,grad:0.5,lr:0.01,lambda:0.001}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_a80 = calc;
+calc = function(){ __tb_a80(); try{ __a8Extras(); }catch(e){} };
+function __a8Boot(){ try{ __a8Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __a8Boot);
+else __a8Boot();
 </script>
 
 <script type="application/ld+json">

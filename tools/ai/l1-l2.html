@@ -122,11 +122,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>权重3</label><input type="number" id="w3" value="0.2" step="any" oninput="calc()"></div>
     <div class="input-row"><label>L1 系数</label><input type="number" id="lambda_l1" value="0.01" step="any" oninput="calc()"></div>
     <div class="input-row"><label>L2 系数</label><input type="number" id="lambda_l2" value="0.01" step="any" oninput="calc()"></div>
+    <div id="l2Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__l2Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="1" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="1" data-viz-min="0">
+    <div id="l2Chart" role="img" aria-label="结果可视化"></div>
+    <div id="l2Table"></div>
+    <div id="l2Diff"></div>
+    <div id="l2Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -224,6 +231,49 @@ function copyResult() {
   });
 }
 calc();
+
+function __l2N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __l2List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __l2L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __l2Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#l2Table','l1-l2-penalty.csv');}catch(e){} }
+function __l2Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var w1=__l2N('w1'),w2=__l2N('w2'),w3=__l2N('w3'),l1=__l2N('lambda_l1'),l2=__l2N('lambda_l2');
+        if(![w1,w2,w3,l1,l2].every(function(x){return isFinite(x);}))return;
+        var absSum=Math.abs(w1)+Math.abs(w2)+Math.abs(w3), sqSum=w1*w1+w2*w2+w3*w3;
+        var p1=l1*absSum, p2=l2*sqSum, tot=p1+p2;
+        TBKit.chart.pie('#l2Chart',{items:[
+            {label:__l2L('L1 penalty','L1 惩罚'),value:p1},
+            {label:__l2L('L2 penalty','L2 惩罚'),value:p2||0.000001}
+        ],height:230,title:__l2L('Regularization penalty share','正则化惩罚占比')});
+        var rows=__l2L(
+            [['w1',w1.toFixed(3)],['w2',w2.toFixed(3)],['w3',w3.toFixed(3)],['λ L1',l1.toFixed(4)],['λ L2',l2.toFixed(4)],['Σ|w|',absSum.toFixed(4)],['Σw²',sqSum.toFixed(4)],['L1 penalty',p1.toFixed(5)],['L2 penalty',p2.toFixed(5)],['total penalty',tot.toFixed(5)]],
+            [['w1',w1.toFixed(3)],['w2',w2.toFixed(3)],['w3',w3.toFixed(3)],['λ L1',l1.toFixed(4)],['λ L2',l2.toFixed(4)],['Σ|w|',absSum.toFixed(4)],['Σw²',sqSum.toFixed(4)],['L1 惩罚',p1.toFixed(5)],['L2 惩罚',p2.toFixed(5)],['总惩罚',tot.toFixed(5)]]);
+        TBKit.matrix.table('#l2Table',{head:__l2L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({total:Number(tot.toFixed(5))});
+        TBKit.util.diffBox('#l2Diff',['total']);
+        TBKit.history.mount('#l2Hist',function(v){ if(v.total!=null){document.getElementById('w1').value=v.w1;document.getElementById('w2').value=v.w2;document.getElementById('w3').value=v.w3;document.getElementById('lambda_l1').value=v.lambda_l1;document.getElementById('lambda_l2').value=v.lambda_l2;} calc(); });
+    }catch(e){}
+}
+function __l2Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#l2Presets',[
+            {label:'轻正则 λ=0.01',labelEn:'Light λ=0.01',values:{w1:0.5,w2:-0.3,w3:0.2,lambda_l1:0.01,lambda_l2:0.01}},
+            {label:'重正则 λ=0.1',labelEn:'Heavy λ=0.1',values:{w1:0.5,w2:-0.3,w3:0.2,lambda_l1:0.1,lambda_l2:0.1}},
+            {label:'纯 L2 λ1=0 λ2=0.05',labelEn:'L2 only λ1=0 λ2=0.05',values:{w1:1,w2:-1,w3:0.5,lambda_l1:0,lambda_l2:0.05}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_l20 = calc;
+calc = function(){ __tb_l20(); try{ __l2Extras(); }catch(e){} };
+function __l2Boot(){ try{ __l2Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __l2Boot);
+else __l2Boot();
 </script>
 
 <script type="application/ld+json">

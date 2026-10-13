@@ -120,11 +120,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><label>先验 P(A)</label><input type="number" id="prior" value="0.01" step="any" oninput="calc()"></div>
     <div class="input-row"><label>似然 P(B|A)</label><input type="number" id="sens" value="0.95" step="any" oninput="calc()"></div>
     <div class="input-row"><label>特异度 P(¬B|¬A)</label><input type="number" id="spec" value="0.95" step="any" oninput="calc()"></div>
+    <div id="adPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__adExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="adChart" role="img" aria-label="结果可视化"></div>
+    <div id="adTable"></div>
+    <div id="adDiff"></div>
+    <div id="adHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -225,6 +232,51 @@ function copyResult() {
   });
 }
 calc();
+
+function __adN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __adList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __adL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __adExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#adTable','bayes-diagnosis.csv');}catch(e){} }
+function __adExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var prior=__adN('prior'), sens=__adN('sens'), spec=__adN('spec');
+        if(!(prior>0&&prior<1&&sens>0&&sens<1&&spec>0&&spec<1))return;
+        function ppv(p){ return sens*p/(sens*p+(1-spec)*(1-p))*100; }
+        function npv(p){ return (1-p)*spec/((1-p)*spec+p*(1-sens))*100; }
+        var ps=[0.01,0.02,0.05,0.1,0.2,0.3,0.5,0.7,0.9];
+        TBKit.chart.line('#adChart',{labels:ps.map(function(p){return (p*100).toFixed(0)+'%';}),series:[
+            {name:__adL('PPV','阳性预测值 PPV'),data:ps.map(ppv)},
+            {name:__adL('NPV','阴性预测值 NPV'),data:ps.map(npv)}
+        ],height:230,title:__adL('PPV / NPV vs prevalence','PPV / NPV 随患病率变化')});
+        var pB=prior*sens+(1-prior)*(1-spec);
+        var rows=__adL(
+            [['prevalence (prior)',(prior*100).toFixed(2)+'%'],['sensitivity',sens.toFixed(3)],['specificity',spec.toFixed(3)],['P(B|positive)',(pB*100).toFixed(3)+'%'],['PPV',ppv(prior).toFixed(2)+'%'],['NPV',npv(prior).toFixed(2)+'%'],['false-omission rate',(100-npv(prior)).toFixed(2)+'%'],['PPV at 50% prevalence',ppv(0.5).toFixed(2)+'%']],
+            [['先验（患病率）',(prior*100).toFixed(2)+'%'],['灵敏度',sens.toFixed(3)],['特异度',spec.toFixed(3)],['P(B|阳性)',(pB*100).toFixed(3)+'%'],['阳性预测值 PPV',ppv(prior).toFixed(2)+'%'],['阴性预测值 NPV',npv(prior).toFixed(2)+'%'],['漏诊率',(100-npv(prior)).toFixed(2)+'%'],['患病率 50% 时 PPV',ppv(0.5).toFixed(2)+'%']]);
+        TBKit.matrix.table('#adTable',{head:__adL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({ppv:Number(ppv(prior).toFixed(2))});
+        TBKit.util.diffBox('#adDiff',['ppv']);
+        TBKit.history.mount('#adHist',function(v){ if(v.ppv!=null){document.getElementById('prior').value=v.prior;document.getElementById('sens').value=v.sens;document.getElementById('spec').value=v.spec;} calc(); });
+    }catch(e){}
+}
+function __adPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#adPresets',[
+            {label:'罕见病 1% 灵敏/特异 0.95',labelEn:'Rare 1% sens/spec 0.95',values:{prior:0.01,sens:0.95,spec:0.95}},
+            {label:'筛查 10% 0.9/0.9',labelEn:'Screening 10% 0.9/0.9',values:{prior:0.1,sens:0.9,spec:0.9}},
+            {label:'高灵敏 20% 0.99/0.8',labelEn:'High sens 20% 0.99/0.8',values:{prior:0.2,sens:0.99,spec:0.8}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ad0 = calc;
+calc = function(){ __tb_ad0(); try{ __adExtras(); }catch(e){} };
+function __adBoot(){ try{ __adPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __adBoot);
+else __adBoot();
 </script>
 
 <script type="application/ld+json">

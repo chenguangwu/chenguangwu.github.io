@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>历史消息 token</label><input type="number" id="history" value="1500" step="1" oninput="calc()"></div>
     <div class="input-row"><label>当前输入 token</label><input type="number" id="current" value="300" step="1" oninput="calc()"></div>
     <div class="input-row"><label>模型上下文窗口</label><input type="number" id="window" value="4096" step="1" oninput="calc()"></div>
+    <div id="afPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__afExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="gauge" data-viz-max="100" data-viz-min="0">
+    <div id="afChart" role="img" aria-label="结果可视化"></div>
+    <div id="afTable"></div>
+    <div id="afDiff"></div>
+    <div id="afHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -227,6 +234,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __afN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __afList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __afL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __afExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#afTable','context-budget.csv');}catch(e){} }
+function __afExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var system=__afN('system'), history=__afN('history'), current=__afN('current'), win=__afN('window');
+        if(!(win>0))return;
+        var used=system+history+current, left=win-used, pct=used/win*100;
+        TBKit.chart.gauge('#afChart',{value:pct,max:100,text:pct.toFixed(1)+'%',label:__afL('context usage','上下文占用率'),height:170,title:__afL('Context window usage','上下文窗口占用')});
+        var rows=__afL(
+            [['system prompt',system.toFixed(0)],['history',history.toFixed(0)],['current turn',current.toFixed(0)],['used',used.toFixed(0)],['window',win.toFixed(0)],['remaining',left.toFixed(0)],['usage',pct.toFixed(1)+'%'],['over 90%?',pct>0.9?__afL('YES — trim history','是，建议裁剪历史'):'no']],
+            [['系统提示',system.toFixed(0)],['历史对话',history.toFixed(0)],['当前轮',current.toFixed(0)],['已用',used.toFixed(0)],['窗口大小',win.toFixed(0)],['剩余',left.toFixed(0)],['占用率',pct.toFixed(1)+'%'],['是否超 90%',pct>90?'是，建议裁剪历史':'否']]);
+        TBKit.matrix.table('#afTable',{head:__afL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({pct:Number(pct.toFixed(1))});
+        TBKit.util.diffBox('#afDiff',['pct']);
+        TBKit.history.mount('#afHist',function(v){ if(v.pct!=null){document.getElementById('system').value=v.system;document.getElementById('history').value=v.history;document.getElementById('current').value=v.current;document.getElementById('window').value=v.window;} calc(); });
+    }catch(e){}
+}
+function __afPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#afPresets',[
+            {label:'短对话 200/1500/300 @4096',labelEn:'Short chat 200/1500/300 @4096',values:{system:200,history:1500,current:300,window:4096}},
+            {label:'长历史 200/5000/500 @8192',labelEn:'Long history 200/5000/500 @8192',values:{system:200,history:5000,current:500,window:8192}},
+            {label:'逼近上限 500/3000/400 @4096',labelEn:'Near limit 500/3000/400 @4096',values:{system:500,history:3000,current:400,window:4096}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_af0 = calc;
+calc = function(){ __tb_af0(); try{ __afExtras(); }catch(e){} };
+function __afBoot(){ try{ __afPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __afBoot);
+else __afBoot();
 </script>
 
 <script type="application/ld+json">

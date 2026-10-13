@@ -102,7 +102,8 @@
 - ⚠️ **顺带修复系统性首屏回归**：统计 B1–B6 共 48 页此前用「解析期直接 calc()/__xxPresets()」，因 tool-kit.js 为 defer，首屏 TBKit 未定义导致图表/预设/历史全部跳过（仅手动重算才出现，线上不可见但无报错）。统一改为 DOMContentLoaded 后渲染，已用真实加载顺序冒烟验证 55 页全部首屏可见、零抛错。
 - [x] **AI-3 已完成 10 页**（cohens-kappa/transformer-params/training-flops/vram-estimate/context-window/temperature-scaling/k-means/model-accuracy/flops/attention-flops）：单页 3–5/9 → **8/9**；范式轮换（line×3 vram/flops/attention、bar×3 kappa/k-means/temperature、gauge×2 context/accuracy、pie transformer、scatter training，累计 line 40%/bar 36% 不超上限）；数值独立复算 28 项全对；真实加载顺序冒烟 73 页零抛错。
 - [x] **AI-4 已完成 12 页**（attention-head-dim/auc-rank/best-epoch/grad-accumulation/inference-throughput/quantization-ratio/softmax-2/specificity/steps-per-epoch/token/token-usage/multi-agent-overhead）：单页 3/9 → **8/9**；范式 bar×5/pie×4/gauge×2/scatter×1（累计 bar 37.8%/line 27% 合规）；数值独立复算 16 项全对；真实加载顺序冒烟 85 页零抛错。
-- [ ] AI-5+：剩余 28 页（3–4/9，含 ai-4~17 模板系/ocr/rag/sentiment 等），继续按薄弱度推进。
+- [x] **AI-5 已完成 12 页**（ai-4/ai-6/ai-7/ai-8/ai-9/ai-11/ai-13/ai-15/ai-16/ai-17/l1-l2/token-2）：单页 3/9 → **8/9**；范式 bar×4/pie×5/gauge×2/line×1（累计 bar 36.7%/line 22.4%/pie 22.4% 合规）；数值独立复算 60 项全对；真实加载顺序冒烟 97 页零抛错；ai-15 贝叶斯 PPV/NPV 双曲线、ai-7 MCC 仪表盘。
+- [ ] AI-6（末批）：剩余 7 个数值页（ai-5/ai-10/ai-12/ai-14/augmentation-multiplier/rag/ai）+ 8 个文本/文件上传类页（ocr/sentiment/speech-to-text/text-summarization/prompt-generator/text-summarizer/code-review/image-classification，无数值输入，拟按文本工具特性另议或维持）。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 

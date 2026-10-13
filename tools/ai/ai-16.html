@@ -123,11 +123,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>模型2权重</label><input type="number" id="w2" value="0.3" step="any" oninput="calc()"></div>
     <div class="input-row"><label>模型3概率</label><input type="number" id="p3" value="0.8" step="any" oninput="calc()"></div>
     <div class="input-row"><label>模型3权重</label><input type="number" id="w3" value="0.2" step="any" oninput="calc()"></div>
+    <div id="aePresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__aeExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="0">
+    <div id="aeChart" role="img" aria-label="结果可视化"></div>
+    <div id="aeTable"></div>
+    <div id="aeDiff"></div>
+    <div id="aeHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -229,6 +236,53 @@ function copyResult() {
   });
 }
 calc();
+
+function __aeN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __aeList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __aeL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __aeExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#aeTable','ensemble-vote.csv');}catch(e){} }
+function __aeExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var p1=__aeN('p1'),w1=__aeN('w1'),p2=__aeN('p2'),w2=__aeN('w2'),p3=__aeN('p3'),w3=__aeN('w3');
+        var wsum=w1+w2+w3;
+        if(!(wsum>0))return;
+        var wavg=(p1*w1+p2*w2+p3*w3)/wsum;
+        var votes=(p1>=0.5?1:0)+(p2>=0.5?1:0)+(p3>=0.5?1:0);
+        var hard=votes>=2?__aeL('positive','正类'):__aeL('negative','负类');
+        var conf=Math.abs(wavg-0.5)*2;
+        TBKit.chart.pie('#aeChart',{items:[
+            {label:__aeL('model 1','模型 1'),value:w1},
+            {label:__aeL('model 2','模型 2'),value:w2},
+            {label:__aeL('model 3','模型 3'),value:w3}
+        ],height:230,title:__aeL('Ensemble weights','集成权重构成')});
+        var rows=__aeL(
+            [['model 1 (p, w)',p1.toFixed(3)+' / '+w1.toFixed(2)],['model 2 (p, w)',p2.toFixed(3)+' / '+w2.toFixed(2)],['model 3 (p, w)',p3.toFixed(3)+' / '+w3.toFixed(2)],['weighted avg prob',wavg.toFixed(4)],['hard votes ≥0.5',votes.toFixed(0)],['hard vote result',hard],['confidence (|wavg-0.5|×2)',conf.toFixed(4)],['weight sum',wsum.toFixed(2)]],
+            [['模型 1 (概率, 权重)',p1.toFixed(3)+' / '+w1.toFixed(2)],['模型 2 (概率, 权重)',p2.toFixed(3)+' / '+w2.toFixed(2)],['模型 3 (概率, 权重)',p3.toFixed(3)+' / '+w3.toFixed(2)],['加权平均概率',wavg.toFixed(4)],['硬投票 ≥0.5 数',votes.toFixed(0)],['硬投票结果',hard],['置信度 (|wavg-0.5|×2)',conf.toFixed(4)],['权重合计',wsum.toFixed(2)]]);
+        TBKit.matrix.table('#aeTable',{head:__aeL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({wavg:Number(wavg.toFixed(4))});
+        TBKit.util.diffBox('#aeDiff',['wavg']);
+        TBKit.history.mount('#aeHist',function(v){ if(v.wavg!=null){document.getElementById('p1').value=v.p1;document.getElementById('w1').value=v.w1;document.getElementById('p2').value=v.p2;document.getElementById('w2').value=v.w2;document.getElementById('p3').value=v.p3;document.getElementById('w3').value=v.w3;} calc(); });
+    }catch(e){}
+}
+function __aePresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#aePresets',[
+            {label:'均衡权重 0.7/0.6/0.8',labelEn:'Equal-ish 0.7/0.6/0.8',values:{p1:0.7,w1:0.5,p2:0.6,w2:0.3,p3:0.8,w3:0.2}},
+            {label:'分歧大 0.9/0.2/0.6',labelEn:'Disagreement 0.9/0.2/0.6',values:{p1:0.9,w1:0.4,p2:0.2,w2:0.3,p3:0.6,w3:0.3}},
+            {label:'全否 0.2/0.3/0.1',labelEn:'All negative 0.2/0.3/0.1',values:{p1:0.2,w1:0.5,p2:0.3,w2:0.3,p3:0.1,w3:0.2}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ae0 = calc;
+calc = function(){ __tb_ae0(); try{ __aeExtras(); }catch(e){} };
+function __aeBoot(){ try{ __aePresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __aeBoot);
+else __aeBoot();
 </script>
 
 <script type="application/ld+json">

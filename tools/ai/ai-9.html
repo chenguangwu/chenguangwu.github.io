@@ -122,11 +122,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>左子树正例比例</label><input type="number" id="p_left" value="0.3" step="any" oninput="calc()"></div>
     <div class="input-row"><label>左子树权重</label><input type="number" id="w_left" value="0.4" step="any" oninput="calc()"></div>
     <div class="input-row"><label>右子树正例比例</label><input type="number" id="p_right" value="0.7" step="any" oninput="calc()"></div>
+    <div id="a9Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__a9Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="1" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="1" data-viz-min="0">
+    <div id="a9Chart" role="img" aria-label="结果可视化"></div>
+    <div id="a9Table"></div>
+    <div id="a9Diff"></div>
+    <div id="a9Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -292,6 +299,48 @@ function copyResult() {
   });
 }
 calc();
+
+function __a9N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __a9List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __a9L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __a9Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#a9Table','gini-split.csv');}catch(e){} }
+function __a9Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var pr=__a9N('p_root'), pl=__a9N('p_left'), wl=__a9N('w_left'), prr=__a9N('p_right');
+        if(!(pr>=0&&pr<=1&&pl>=0&&pl<=1&&prr>=0&&prr<=1))return;
+        if(!(wl>=0&&wl<=1))return;
+        var gRoot=2*pr*(1-pr), gLeft=2*pl*(1-pl), gRight=2*prr*(1-prr);
+        var gChild=wl*gLeft+(1-wl)*gRight, gain=gRoot-gChild;
+        var entRoot=-(pr*Math.log2(pr+1e-10)+(1-pr)*Math.log2(1-pr+1e-10));
+        TBKit.chart.bar('#a9Chart',{labels:['根节点基尼','左子节点','右子节点','加权子节点'],series:[{name:__a9L('gini','基尼系数'),data:[gRoot,gLeft,gRight,gChild]}],height:220,title:__a9L('Gini before/after split','分裂前后的基尼系数')});
+        var rows=__a9L(
+            [['root positive rate',pr.toFixed(3)],['left positive rate',pl.toFixed(3)],['right positive rate',prr.toFixed(3)],['left weight',wl.toFixed(3)],['root gini',gRoot.toFixed(4)],['left gini',gLeft.toFixed(4)],['right gini',gRight.toFixed(4)],['weighted child gini',gChild.toFixed(4)],['gini gain',gain.toFixed(4)],['root entropy (bit)',entRoot.toFixed(4)]],
+            [['根节点正类率',pr.toFixed(3)],['左子正类率',pl.toFixed(3)],['右子正类率',prr.toFixed(3)],['左子权重',wl.toFixed(3)],['根基尼',gRoot.toFixed(4)],['左子基尼',gLeft.toFixed(4)],['右子基尼',gRight.toFixed(4)],['加权子基尼',gChild.toFixed(4)],['基尼增益',gain.toFixed(4)],['根熵 (bit)',entRoot.toFixed(4)]]);
+        TBKit.matrix.table('#a9Table',{head:__a9L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({gain:Number(gain.toFixed(4))});
+        TBKit.util.diffBox('#a9Diff',['gain']);
+        TBKit.history.mount('#a9Hist',function(v){ if(v.gain!=null){document.getElementById('p_root').value=v.p_root;document.getElementById('p_left').value=v.p_left;document.getElementById('w_left').value=v.w_left;document.getElementById('p_right').value=v.p_right;} calc(); });
+    }catch(e){}
+}
+function __a9Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#a9Presets',[
+            {label:'均衡分裂 0.5/0.3/0.7',labelEn:'Balanced split 0.5/0.3/0.7',values:{p_root:0.5,p_left:0.3,w_left:0.4,p_right:0.7}},
+            {label:'纯化分裂 0.5/0.1/0.9',labelEn:'Pure split 0.5/0.1/0.9',values:{p_root:0.5,p_left:0.1,w_left:0.5,p_right:0.9}},
+            {label:'无效分裂 0.5/0.5/0.5',labelEn:'Useless split 0.5/0.5/0.5',values:{p_root:0.5,p_left:0.5,w_left:0.5,p_right:0.5}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_a90 = calc;
+calc = function(){ __tb_a90(); try{ __a9Extras(); }catch(e){} };
+function __a9Boot(){ try{ __a9Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __a9Boot);
+else __a9Boot();
 </script>
 <section class="opt-guide"><h2>如何使用信息增益近似</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>根节点正例比例</li><li>左子树正例比例</li><li>左子树权重</li><li>右子树正例比例</li></ul><h2>适用场景</h2><p>信息熵 H=−Σpᵢlog₂pᵢ；基尼不纯度 G=1−Σpᵢ²，均衡量节点混杂度。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>信息增益和基尼该用哪个？</dt><dd>两者结论常一致。基尼计算免对数更快，对多数类错误更敏感；熵对不纯度变化更敏感、偏向多值特征，需用增益率修正偏置。</dd><dt>为什么信息增益偏向取值多的特征？</dt><dd>取值越多越容易把样本分得更纯，增益天然偏大。C4.5 用增益率(增益/分支熵)惩罚多值特征以纠偏。</dd></dl></section>
 

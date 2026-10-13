@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>FP</label><input type="number" id="fp" value="10" step="1" oninput="calc()"></div>
     <div class="input-row"><label>FN</label><input type="number" id="fn" value="15" step="1" oninput="calc()"></div>
     <div class="input-row"><label>TN</label><input type="number" id="tn" value="95" step="1" oninput="calc()"></div>
+    <div id="a7Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__a7Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="-1"></div>
+    <div class="result-box" id="result" data-viz="gauge" data-viz-max="1" data-viz-min="-1">
+    <div id="a7Chart" role="img" aria-label="结果可视化"></div>
+    <div id="a7Table"></div>
+    <div id="a7Diff"></div>
+    <div id="a7Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -227,6 +234,46 @@ function copyResult() {
   });
 }
 calc();
+
+function __a7N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __a7List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __a7L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __a7Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#a7Table','mcc.csv');}catch(e){} }
+function __a7Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var tp=__a7N('tp'), fp=__a7N('fp'), fn=__a7N('fn'), tn=__a7N('tn');
+        var den=Math.sqrt((tp+fp)*(tp+fn)*(tn+fp)*(tn+fn));
+        if(!(den>0))return;
+        var mcc=(tp*tn-fp*fn)/den, fpr=fp/(fp+tn)*100, tnr=tn/(fp+tn)*100, fdr=fp/(tp+fp)*100;
+        TBKit.chart.gauge('#a7Chart',{value:mcc,min:-1,max:1,text:mcc.toFixed(4),label:__a7L('MCC (-1 … +1)','MCC（-1 … +1）'),height:170,title:__a7L('Matthews correlation','马修斯相关系数')});
+        var rows=__a7L(
+            [['TP',tp.toFixed(0)],['FP',fp.toFixed(0)],['FN',fn.toFixed(0)],['TN',tn.toFixed(0)],['MCC',mcc.toFixed(4)],['FPR (fall-out)',fpr.toFixed(2)+'%'],['TNR (specificity)',tnr.toFixed(2)+'%'],['FDR',fdr.toFixed(2)+'%']],
+            [['TP',tp.toFixed(0)],['FP',fp.toFixed(0)],['FN',fn.toFixed(0)],['TN',tn.toFixed(0)],['MCC',mcc.toFixed(4)],['假正率 FPR',fpr.toFixed(2)+'%'],['真负率 TNR（特异度）',tnr.toFixed(2)+'%'],['错误发现率 FDR',fdr.toFixed(2)+'%']]);
+        TBKit.matrix.table('#a7Table',{head:__a7L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({mcc:Number(mcc.toFixed(4))});
+        TBKit.util.diffBox('#a7Diff',['mcc']);
+        TBKit.history.mount('#a7Hist',function(v){ if(v.mcc!=null){document.getElementById('tp').value=v.tp;document.getElementById('fp').value=v.fp;document.getElementById('fn').value=v.fn;document.getElementById('tn').value=v.tn;} calc(); });
+    }catch(e){}
+}
+function __a7Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#a7Presets',[
+            {label:'强模型 80/10/15/95',labelEn:'Strong 80/10/15/95',values:{tp:80,fp:10,fn:15,tn:95}},
+            {label:'完美 50/0/0/50',labelEn:'Perfect 50/0/0/50',values:{tp:50,fp:0,fn:0,tn:50}},
+            {label:'随机 25/25/25/25',labelEn:'Chance 25/25/25/25',values:{tp:25,fp:25,fn:25,tn:25}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_a70 = calc;
+calc = function(){ __tb_a70(); try{ __a7Extras(); }catch(e){} };
+function __a7Boot(){ try{ __a7Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __a7Boot);
+else __a7Boot();
 </script>
 
 <script type="application/ld+json">

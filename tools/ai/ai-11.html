@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>验证损失</label><input type="number" id="val_loss" value="0.6" step="any" oninput="calc()"></div>
     <div class="input-row"><label>训练准确率 %</label><input type="number" id="train_acc" value="95" step="any" oninput="calc()"></div>
     <div class="input-row"><label>验证准确率 %</label><input type="number" id="val_acc" value="80" step="any" oninput="calc()"></div>
+    <div id="abPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__abExport()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="50" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="50" data-viz-min="0">
+    <div id="abChart" role="img" aria-label="结果可视化"></div>
+    <div id="abTable"></div>
+    <div id="abDiff"></div>
+    <div id="abHist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -224,6 +231,45 @@ function copyResult() {
   });
 }
 calc();
+
+function __abN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __abList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __abL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __abExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#abTable','overfit-gap.csv');}catch(e){} }
+function __abExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var tl=__abN('train_loss'), vl=__abN('val_loss'), ta=__abN('train_acc'), va=__abN('val_acc');
+        var lg=vl-tl, ag=ta-va;
+        var risk=lg>0.3||ag>10?__abL('high','高'):lg>0.1?__abL('medium','中'):__abL('low','低');
+        TBKit.chart.bar('#abChart',{labels:['损失差距','准确率差距'],series:[{name:__abL('gap','差距'),data:[lg,ag]}],height:220,title:__abL('Train vs validation gaps','训练/验证差距')});
+        var rows=__abL(
+            [['train loss',tl.toFixed(4)],['val loss',vl.toFixed(4)],['train acc',ta.toFixed(2)+'%'],['val acc',va.toFixed(2)+'%'],['loss gap',lg.toFixed(4)],['acc gap',ag.toFixed(2)],['overfit risk',risk],['advice',lg>0.3?'add regularization / augmentation':'keep training or early-stop']],
+            [['训练损失',tl.toFixed(4)],['验证损失',vl.toFixed(4)],['训练准确率',ta.toFixed(2)+'%'],['验证准确率',va.toFixed(2)+'%'],['损失差距',lg.toFixed(4)],['准确率差距',ag.toFixed(2)],['过拟合风险',risk],['建议',lg>0.3?'增加正则化/数据扩增':'继续训练或早停']]);
+        TBKit.matrix.table('#abTable',{head:__abL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({lg:Number(lg.toFixed(4))});
+        TBKit.util.diffBox('#abDiff',['lg']);
+        TBKit.history.mount('#abHist',function(v){ if(v.lg!=null){document.getElementById('train_loss').value=v.train_loss;document.getElementById('val_loss').value=v.val_loss;document.getElementById('train_acc').value=v.train_acc;document.getElementById('val_acc').value=v.val_acc;} calc(); });
+    }catch(e){}
+}
+function __abPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#abPresets',[
+            {label:'明显过拟合 0.2/0.6/95/80',labelEn:'Clear overfit 0.2/0.6/95/80',values:{train_loss:0.2,val_loss:0.6,train_acc:95,val_acc:80}},
+            {label:'轻度 0.3/0.38/92/89',labelEn:'Mild 0.3/0.38/92/89',values:{train_loss:0.3,val_loss:0.38,train_acc:92,val_acc:89}},
+            {label:'健康 0.35/0.36/90/90',labelEn:'Healthy 0.35/0.36/90/90',values:{train_loss:0.35,val_loss:0.36,train_acc:90,val_acc:90}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ab0 = calc;
+calc = function(){ __tb_ab0(); try{ __abExtras(); }catch(e){} };
+function __abBoot(){ try{ __abPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __abBoot);
+else __abBoot();
 </script>
 
 <script type="application/ld+json">

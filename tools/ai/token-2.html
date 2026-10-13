@@ -121,11 +121,18 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>输出 Token 数</label><input type="number" id="output_tokens" value="500" step="1" oninput="calc()"></div>
     <div class="input-row"><label>输入单价 $/1M</label><input type="number" id="input_price" value="2" step="any" oninput="calc()"></div>
     <div class="input-row"><label>输出单价 $/1M</label><input type="number" id="output_price" value="6" step="any" oninput="calc()"></div>
+    <div id="t2Presets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__t2Export()">导出 CSV</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="1" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="1" data-viz-min="0">
+    <div id="t2Chart" role="img" aria-label="结果可视化"></div>
+    <div id="t2Table"></div>
+    <div id="t2Diff"></div>
+    <div id="t2Hist"></div>
+</div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -224,6 +231,47 @@ function copyResult() {
   });
 }
 calc();
+
+function __t2N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __t2List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __t2L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __t2Export(){ if(typeof TBKit!='undefined')return; try{TBKit.util.exportTable('#t2Table','api-cost.csv');}catch(e){} }
+function __t2Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var it=__t2N('input_tokens'), ot=__t2N('output_tokens'), ip=__t2N('input_price'), op=__t2N('output_price');
+        var ci=it/1000000*ip, co=ot/1000000*op, tot=ci+co;
+        TBKit.chart.pie('#t2Chart',{items:[
+            {label:__t2L('input cost','输入成本'),value:ci},
+            {label:__t2L('output cost','输出成本'),value:co||0.000001}
+        ],height:230,title:__t2L('Cost share: input vs output','成本构成：输入 vs 输出')});
+        var rows=__t2L(
+            [['input tokens (M)',(it/1e6).toFixed(6)],['output tokens (M)',(ot/1e6).toFixed(6)],['input price (¥/M)',ip.toFixed(2)],['output price (¥/M)',op.toFixed(2)],['input cost (¥)',ci.toFixed(6)],['output cost (¥)',co.toFixed(6)],['total (¥)',tot.toFixed(6)],['monthly est. (×30, ¥)',(tot*30).toFixed(4)]],
+            [['输入 token (百万)',(it/1e6).toFixed(6)],['输出 token (百万)',(ot/1e6).toFixed(6)],['输入单价 (¥/百万)',ip.toFixed(2)],['输出单价 (¥/百万)',op.toFixed(2)],['输入成本 (¥)',ci.toFixed(6)],['输出成本 (¥)',co.toFixed(6)],['单次合计 (¥)',tot.toFixed(6)],['月度估算 (×30, ¥)',(tot*30).toFixed(4)]]);
+        TBKit.matrix.table('#t2Table',{head:__t2L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({total:Number(tot.toFixed(6))});
+        TBKit.util.diffBox('#t2Diff',['total']);
+        TBKit.history.mount('#t2Hist',function(v){ if(v.total!=null){document.getElementById('input_tokens').value=v.input_tokens;document.getElementById('output_tokens').value=v.output_tokens;document.getElementById('input_price').value=v.input_price;document.getElementById('output_price').value=v.output_price;} calc(); });
+    }catch(e){}
+}
+function __t2Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#t2Presets',[
+            {label:'轻量调用 1k/0.5k',labelEn:'Light 1k/0.5k',values:{input_tokens:1000,output_tokens:500,input_price:2,output_price:6}},
+            {label:'常规 10k/2k',labelEn:'Regular 10k/2k',values:{input_tokens:10000,output_tokens:2000,input_price:2,output_price:6}},
+            {label:'重度 100k/20k',labelEn:'Heavy 100k/20k',values:{input_tokens:100000,output_tokens:20000,input_price:1,output_price:4}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_t20 = calc;
+calc = function(){ __tb_t20(); try{ __t2Extras(); }catch(e){} };
+function __t2Boot(){ try{ __t2Presets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __t2Boot);
+else __t2Boot();
 </script>
 
 <script type="application/ld+json">
