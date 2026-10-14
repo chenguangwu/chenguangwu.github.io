@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="poisson_strainPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__poisson_strainExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="poisson_strainTable"></div>
+    <div id="poisson_strainDiff"></div>
+    <div id="poisson_strainHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,45 @@ function resetForm(){document.getElementById('ex').value = '0.001';
       document.getElementById('nu').value = '0.3';
       calcTool();}
 calcTool();
+
+function __poisson_strainNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __poisson_strainExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ex=num('ex'), nu=num('nu');
+    var ey=-nu*ex;
+    if (!isFinite(__poisson_strainNum('ex')) || !isFinite(__poisson_strainNum('nu'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#poisson_strainTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['轴向应变 ε_x', ex.toExponential(3)],
+            ['横向应变 ε_y', ey.toExponential(3)],
+            ['泊松比 ν', nu.toFixed(3)],
+            ['体积应变 ε_v = ε_x(1−2ν)', (ex*(1-2*nu)).toExponential(3)],
+            ['横向/轴向应变比', (ey/(ex||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({ex:__poisson_strainNum('ex'), nu:__poisson_strainNum('nu'), ey:ey});
+    TBKit.history.mount('#poisson_strainHist',function(rec){ if(rec.ex!=null)document.getElementById('ex').value=rec.ex; if(rec.nu!=null)document.getElementById('nu').value=rec.nu; calcTool(); });
+    TBKit.util.diffBox('#poisson_strainDiff',['ey']);
+}
+function __poisson_strainExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#poisson_strainTable','poisson-strain.csv'); } catch(e){}
+}
+function __poisson_strainPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#poisson_strainPresets',[
+        {label:'默认',labelEn:'Default',values:{ex:'0.001', nu:'0.3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ex:'0.002', nu:'0.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ex:'0.0005', nu:'0.15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __poisson_strainExtras(); }catch(e){} };
+function __poisson_strainBoot(){ try{ __poisson_strainPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __poisson_strainBoot();
+else document.addEventListener('DOMContentLoaded', __poisson_strainBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

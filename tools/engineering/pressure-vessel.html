@@ -141,12 +141,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pressure_vesselPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pressure_vesselExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pressure_vesselTable"></div>
+    <div id="pressure_vesselDiff"></div>
+    <div id="pressure_vesselHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -208,6 +214,42 @@ function resetForm(){document.getElementById('P').value = '1.6';
       document.getElementById('phi').value = '0.85';
       calcTool();}
 calcTool();
+
+function __pressure_vesselNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pressure_vesselExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P=num('P'), D=num('D'), sig=num('sigma'), phi=num('phi');
+    var t=P*D/(2*sig*phi); // mm (薄壁环向应力公式)
+    if (!isFinite(__pressure_vesselNum('P')) || !isFinite(__pressure_vesselNum('D')) || !isFinite(__pressure_vesselNum('sigma')) || !isFinite(__pressure_vesselNum('phi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pressure_vesselTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['所需壁厚 t (mm)', t.toFixed(2)],
+            ['计入腐蚀裕量后 (~+2mm)', (t+2).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({P:__pressure_vesselNum('P'), D:__pressure_vesselNum('D'), sigma:__pressure_vesselNum('sigma'), phi:__pressure_vesselNum('phi'), t:t});
+    TBKit.history.mount('#pressure_vesselHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.D!=null)document.getElementById('D').value=rec.D; if(rec.sigma!=null)document.getElementById('sigma').value=rec.sigma; if(rec.phi!=null)document.getElementById('phi').value=rec.phi; calcTool(); });
+    TBKit.util.diffBox('#pressure_vesselDiff',['t']);
+}
+function __pressure_vesselExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pressure_vesselTable','pressure-vessel.csv'); } catch(e){}
+}
+function __pressure_vesselPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pressure_vesselPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'1.6', D:'1000', sigma:'130', phi:'0.85'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'3.2', D:'2000', sigma:'260', phi:'1.7'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'0.8', D:'500', sigma:'65', phi:'0.425'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pressure_vesselExtras(); }catch(e){} };
+function __pressure_vesselBoot(){ try{ __pressure_vesselPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pressure_vesselBoot();
+else document.addEventListener('DOMContentLoaded', __pressure_vesselBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

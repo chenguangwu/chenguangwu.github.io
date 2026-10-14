@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bending_stressPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bending_stressExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bending_stressTable"></div>
+    <div id="bending_stressDiff"></div>
+    <div id="bending_stressHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,43 @@ function resetForm(){document.getElementById('M').value = '20';
       document.getElementById('h').value = '300';
       calcTool();}
 calcTool();
+
+function __bending_stressNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bending_stressExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var M=num('M')*1e6, b=num('b'), h=num('h');
+    var W=b*h*h/6; // mm³
+    var sigma=M/W; // MPa
+    if (!isFinite(__bending_stressNum('M')) || !isFinite(__bending_stressNum('b')) || !isFinite(__bending_stressNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bending_stressTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['截面模量 W (mm³)', W.toFixed(0)],
+            ['最大弯曲应力 σ (MPa)', sigma.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({M:__bending_stressNum('M'), b:__bending_stressNum('b'), h:__bending_stressNum('h'), W:W});
+    TBKit.history.mount('#bending_stressHist',function(rec){ if(rec.M!=null)document.getElementById('M').value=rec.M; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#bending_stressDiff',['W']);
+}
+function __bending_stressExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bending_stressTable','bending-stress.csv'); } catch(e){}
+}
+function __bending_stressPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bending_stressPresets',[
+        {label:'默认',labelEn:'Default',values:{M:'20', b:'150', h:'300'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{M:'40', b:'300', h:'600'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{M:'10', b:'75', h:'150'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bending_stressExtras(); }catch(e){} };
+function __bending_stressBoot(){ try{ __bending_stressPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bending_stressBoot();
+else document.addEventListener('DOMContentLoaded', __bending_stressBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

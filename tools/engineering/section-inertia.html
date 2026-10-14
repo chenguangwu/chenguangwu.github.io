@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="section_inertiaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__section_inertiaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="section_inertiaTable"></div>
+    <div id="section_inertiaDiff"></div>
+    <div id="section_inertiaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -204,6 +210,41 @@ function resetForm(){document.getElementById('shape').value = '1';
       document.getElementById('h').value = '400';
       calcTool();}
 calcTool();
+
+function __section_inertiaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __section_inertiaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var shape=num('shape'), b=num('b'), h=num('h');
+    var I, W, desc;
+    if (!isFinite(__section_inertiaNum('shape')) || !isFinite(__section_inertiaNum('b')) || !isFinite(__section_inertiaNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#section_inertiaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['惯性矩 I (mm⁴)', (I).toFixed(0)],
+            ['截面模量 W (mm³)', (W).toFixed(0)],
+        ]
+    });
+    TBKit.history.record({shape:__section_inertiaNum('shape'), b:__section_inertiaNum('b'), h:__section_inertiaNum('h')});
+    TBKit.history.mount('#section_inertiaHist',function(rec){ if(rec.shape!=null)document.getElementById('shape').value=rec.shape; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+}
+function __section_inertiaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#section_inertiaTable','section-inertia.csv'); } catch(e){}
+}
+function __section_inertiaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#section_inertiaPresets',[
+        {label:'默认',labelEn:'Default',values:{shape:'1', b:'200', h:'400'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{shape:'2', b:'400', h:'800'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{shape:'0.5', b:'100', h:'200'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __section_inertiaExtras(); }catch(e){} };
+function __section_inertiaBoot(){ try{ __section_inertiaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __section_inertiaBoot();
+else document.addEventListener('DOMContentLoaded', __section_inertiaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

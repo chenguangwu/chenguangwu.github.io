@@ -141,12 +141,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="axial_stressPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__axial_stressExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="axial_stressTable"></div>
+    <div id="axial_stressDiff"></div>
+    <div id="axial_stressHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -212,6 +218,45 @@ function resetForm(){document.getElementById('F').value = '50';
       document.getElementById('L').value = '2';
       calcTool();}
 calcTool();
+
+function __axial_stressNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __axial_stressExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F=num('F')*1000, A=num('A'), E=num('E')*1e9, L=num('L');
+    var sigma=F/A;            // N/mm² = MPa (F in N, A in mm²)
+    var eps=sigma*1e6/E;      // MPa -> Pa, 除以 E(Pa) 得应变
+    var dL=eps*L*1000;        // mm
+    if (!isFinite(__axial_stressNum('F')) || !isFinite(__axial_stressNum('A')) || !isFinite(__axial_stressNum('E')) || !isFinite(__axial_stressNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#axial_stressTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['正应力 σ (MPa)', sigma.toFixed(2)],
+            ['线应变 ε', eps.toExponential(3)],
+            ['轴向变形 ΔL (mm)', dL.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({F:__axial_stressNum('F'), A:__axial_stressNum('A'), E:__axial_stressNum('E'), L:__axial_stressNum('L'), sigma:sigma});
+    TBKit.history.mount('#axial_stressHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.E!=null)document.getElementById('E').value=rec.E; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#axial_stressDiff',['sigma']);
+}
+function __axial_stressExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#axial_stressTable','axial-stress.csv'); } catch(e){}
+}
+function __axial_stressPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#axial_stressPresets',[
+        {label:'默认',labelEn:'Default',values:{F:'50', A:'500', E:'200', L:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'100', A:'1000', E:'400', L:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'25', A:'250', E:'100', L:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __axial_stressExtras(); }catch(e){} };
+function __axial_stressBoot(){ try{ __axial_stressPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __axial_stressBoot();
+else document.addEventListener('DOMContentLoaded', __axial_stressBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
