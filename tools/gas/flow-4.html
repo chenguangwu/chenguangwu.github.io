@@ -117,11 +117,17 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>计量方式</label><select id="method" class="calc-input" onchange="calc()"><option value="orifice">孔板流量计</option><option value="turbine">涡轮流量计</option></select></div><div><label>管道内径（mm）</label><input type="number" id="diameter" class="calc-input" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="管道内径"></div><div><label>孔板孔径（mm）</label><input type="number" id="orifice" class="calc-input" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="孔板孔径"></div><div><label>压差（kPa）</label><input type="number" id="dp" class="calc-input" value="10" step="0.1" oninput="calc()" enterkeyhint="done" aria-label="压差"></div><div><label>仪表系数（1/L）</label><input type="number" id="kfactor" class="calc-input" value="1000" step="any" oninput="calc()" enterkeyhint="done" aria-label="仪表系数"></div><div><label>频率（Hz）</label><input type="number" id="freq" class="calc-input" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="频率"></div><div><label>燃气密度（kg/m³）</label><input type="number" id="density" class="calc-input" value="0.7" step="0.01" oninput="calc()" enterkeyhint="done" aria-label="燃气密度"></div></div>
     <div class="toolbar">
+      <div id="flow_4Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__flow_4Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="flow_4Table"></div>
+    <div id="flow_4Diff"></div>
+    <div id="flow_4Chart"></div>
+    <div id="flow_4Hist"></div>
     <div class="info-box">💡 孔板 Q=C·(π/4)·d²·√(2ΔP/ρ)；涡轮 Q=f/K；β 比（d/D）宜 0.2~0.7。</div>
     <div class="tool-notes" style="--tool-accent:#D97706;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>孔板流量系数 C 实际需按标准（GB/T 2624）修正</li><li>涡轮流量计需在量程比范围内使用</li></ul></div>
     <div style="margin-top:16px;">
@@ -247,6 +253,111 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __flow_4_last=0,__flow_4_skip=false;
+function __flow_4Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __flow_4ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __flow_4Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __flow_4Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__flow_4Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#flow_4Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#flow_4Diff');
+        TBKit.history.mount('#flow_4Hist',function(rec){
+            __flow_4_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __flow_4_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__flow_4Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#flow_4Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __flow_4Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__flow_4_skip) return;
+    var snap=__flow_4Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__flow_4ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__flow_4_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __flow_4_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __flow_4Render(keys,rk,en);
+}
+function __flow_4Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#flow_4Table','flow-4.csv'); } catch(e){}
+}
+function __flow_4Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#flow_4Presets',[{label:'默认参数',labelEn:'Default',values:{'method':'orifice', 'diameter':'100', 'orifice':'50', 'dp':'10', 'kfactor':'1000', 'freq':'50', 'density':'0.7'}}],function(){ calc(); });
+}
+var __flow_4_f0=(typeof calc==='function')?calc:null;
+if(__flow_4_f0){
+    calc=function(){ var __r=__flow_4_f0.apply(null,arguments); try{ __flow_4Extras(); }catch(e){} return __r; };
+}
+function __flow_4Boot(){ try{ __flow_4Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __flow_4Boot();
+else document.addEventListener('DOMContentLoaded', __flow_4Boot);
 </script>
 <!-- SEO 介绍区块 -->
 

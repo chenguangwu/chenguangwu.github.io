@@ -120,11 +120,17 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>穿越距离（m）</label><input type="number" id="distance" class="calc-input" value="200" step="any" oninput="calc()" enterkeyhint="done" aria-label="穿越距离"></div><div><label>管径（mm）</label><input type="number" id="diameter" class="calc-input" value="300" step="any" oninput="calc()" enterkeyhint="done" aria-label="管径"></div><div><label>入土角（°）</label><input type="number" id="entry" class="calc-input" value="10" step="0.1" oninput="calc()" enterkeyhint="done" aria-label="入土角"></div><div><label>出土角（°）</label><input type="number" id="exit" class="calc-input" value="8" step="0.1" oninput="calc()" enterkeyhint="done" aria-label="出土角"></div><div><label>埋深（m）</label><input type="number" id="depth" class="calc-input" value="5" step="any" oninput="calc()" enterkeyhint="done" aria-label="埋深"></div></div>
     <div class="toolbar">
+      <div id="length_pipelinePresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__length_pipelineExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="length_pipelineTable"></div>
+    <div id="length_pipelineDiff"></div>
+    <div id="length_pipelineChart"></div>
+    <div id="length_pipelineHist"></div>
     <div class="info-box">💡 入土角 8°~18°，出土角 6°~12°；扩孔直径为管径 1.2~1.5 倍。</div>
     <div class="tool-notes" style="--tool-accent:#D97706;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>穿越长度为几何估算，实际需考虑曲率半径与地质</li><li>大口径或长距离穿越应进行专项设计</li></ul></div>
     <div style="margin-top:16px;">
@@ -233,6 +239,111 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __length_pipeline_last=0,__length_pipeline_skip=false;
+function __length_pipelineSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __length_pipelineResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __length_pipelineTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __length_pipelineRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__length_pipelineTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#length_pipelineTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#length_pipelineDiff');
+        TBKit.history.mount('#length_pipelineHist',function(rec){
+            __length_pipeline_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __length_pipeline_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__length_pipelineTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#length_pipelineChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __length_pipelineExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__length_pipeline_skip) return;
+    var snap=__length_pipelineSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__length_pipelineResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__length_pipeline_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __length_pipeline_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __length_pipelineRender(keys,rk,en);
+}
+function __length_pipelineExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#length_pipelineTable','length-pipeline.csv'); } catch(e){}
+}
+function __length_pipelinePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#length_pipelinePresets',[{label:'默认参数',labelEn:'Default',values:{'distance':'200', 'diameter':'300', 'entry':'10', 'exit':'8', 'depth':'5'}}],function(){ calc(); });
+}
+var __length_pipeline_f0=(typeof calc==='function')?calc:null;
+if(__length_pipeline_f0){
+    calc=function(){ var __r=__length_pipeline_f0.apply(null,arguments); try{ __length_pipelineExtras(); }catch(e){} return __r; };
+}
+function __length_pipelineBoot(){ try{ __length_pipelinePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __length_pipelineBoot();
+else document.addEventListener('DOMContentLoaded', __length_pipelineBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

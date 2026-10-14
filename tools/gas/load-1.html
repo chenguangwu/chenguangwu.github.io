@@ -121,11 +121,17 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>灶具数量（台）</label><input type="number" id="stove" class="calc-input" value="2" step="any" oninput="calc()" enterkeyhint="done" aria-label="灶具数量"></div><div><label>单台灶具功率（kW）</label><input type="number" id="stovepower" class="calc-input" value="3.5" step="0.1" oninput="calc()" enterkeyhint="done" aria-label="单台灶具功率"></div><div><label>热水器数量（台）</label><input type="number" id="heater" class="calc-input" value="1" step="any" oninput="calc()" enterkeyhint="done" aria-label="热水器数量"></div><div><label>单台热水器功率（kW）</label><input type="number" id="heaterpower" class="calc-input" value="20" step="any" oninput="calc()" enterkeyhint="done" aria-label="单台热水器功率"></div><div><label>同时工作系数</label><input type="number" id="factor" class="calc-input" value="0.8" step="0.05" oninput="calc()" enterkeyhint="done" aria-label="同时工作系数"></div></div>
     <div class="toolbar">
+      <div id="load_1Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__load_1Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="load_1Table"></div>
+    <div id="load_1Diff"></div>
+    <div id="load_1Chart"></div>
+    <div id="load_1Hist"></div>
     <div class="info-box">💡 天然气热值约 10 kWh/m³；计算流量 = 热负荷 ÷ 热值；住宅同时工作系数 0.7~0.8。</div>
     <div class="tool-notes" style="--tool-accent:#D97706;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>管径推荐为估算，实际需按规范进行水力计算</li><li>燃气具应符合国家标准并安装熄火保护装置</li></ul></div>
     <div style="margin-top:16px;">
@@ -183,6 +189,111 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __load_1_last=0,__load_1_skip=false;
+function __load_1Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __load_1ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __load_1Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __load_1Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__load_1Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#load_1Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#load_1Diff');
+        TBKit.history.mount('#load_1Hist',function(rec){
+            __load_1_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __load_1_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__load_1Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#load_1Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __load_1Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__load_1_skip) return;
+    var snap=__load_1Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__load_1ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__load_1_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __load_1_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __load_1Render(keys,rk,en);
+}
+function __load_1Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#load_1Table','load-1.csv'); } catch(e){}
+}
+function __load_1Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#load_1Presets',[{label:'默认参数',labelEn:'Default',values:{'stove':'2', 'stovepower':'3.5', 'heater':'1', 'heaterpower':'20', 'factor':'0.8'}}],function(){ calc(); });
+}
+var __load_1_f0=(typeof calc==='function')?calc:null;
+if(__load_1_f0){
+    calc=function(){ var __r=__load_1_f0.apply(null,arguments); try{ __load_1Extras(); }catch(e){} return __r; };
+}
+function __load_1Boot(){ try{ __load_1Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __load_1Boot();
+else document.addEventListener('DOMContentLoaded', __load_1Boot);
 </script>
 <!-- SEO 介绍区块 -->
 

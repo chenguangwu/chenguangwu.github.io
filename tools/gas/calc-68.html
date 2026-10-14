@@ -117,11 +117,17 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>液化气类型</label><select id="type" class="calc-input" onchange="calc()"><option value="LPG">液化石油气 LPG</option><option value="LNG">液化天然气 LNG</option><option value="NH3">液氨</option><option value="Cl2">液氯</option></select></div><div><label>质量（kg）</label><input type="number" id="mass" class="calc-input" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="质量"></div><div><label>气化时间（min）</label><input type="number" id="time" class="calc-input" value="60" step="any" oninput="calc()" enterkeyhint="done" aria-label="气化时间"></div></div>
     <div class="toolbar">
+      <div id="calc_68Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🔥 计算</button>
+      <button class="btn" type="button" onclick="__calc_68Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="calc_68Table"></div>
+    <div id="calc_68Diff"></div>
+    <div id="calc_68Chart"></div>
+    <div id="calc_68Hist"></div>
     <div class="info-box">💡 气化热：LPG 约 400、LNG 约 510、液氨约 1370、液氯约 280 kJ/kg；气化器选型需 1.2~1.5 倍裕量。</div>
     <div class="tool-notes" style="--tool-accent:#D97706;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>气化热系数为常压沸点参考值，实际随温度压力变化</li><li>气化器选型应考虑环境温度与高峰用气量</li></ul></div>
     <div style="margin-top:16px;">
@@ -225,6 +231,111 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __calc_68_last=0,__calc_68_skip=false;
+function __calc_68Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_68ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_68Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_68Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_68Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_68Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_68Diff');
+        TBKit.history.mount('#calc_68Hist',function(rec){
+            __calc_68_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __calc_68_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_68Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_68Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_68Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_68_skip) return;
+    var snap=__calc_68Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_68ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_68_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_68_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_68Render(keys,rk,en);
+}
+function __calc_68Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_68Table','calc-68.csv'); } catch(e){}
+}
+function __calc_68Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_68Presets',[{label:'默认参数',labelEn:'Default',values:{'type':'LPG', 'mass':'100', 'time':'60'}}],function(){ calc(); });
+}
+var __calc_68_f0=(typeof calc==='function')?calc:null;
+if(__calc_68_f0){
+    calc=function(){ var __r=__calc_68_f0.apply(null,arguments); try{ __calc_68Extras(); }catch(e){} return __r; };
+}
+function __calc_68Boot(){ try{ __calc_68Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_68Boot();
+else document.addEventListener('DOMContentLoaded', __calc_68Boot);
 </script>
 <!-- SEO 介绍区块 -->
 
