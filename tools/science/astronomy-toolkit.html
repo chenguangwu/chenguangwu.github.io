@@ -161,7 +161,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="setToday();calcMoonPhase()">今天</button>
-        <button type="button" class="btn" onclick="calcMoonPhase()">查询月相</button>
+        <div id="astronomy_toolkitPresets"></div><button type="button" class="btn" onclick="calcMoonPhase()">查询月相</button><button class="btn" type="button" onclick="__astronomy_toolkitExport()">导出明细 CSV</button>
       </div>
       <div class="moon-canvas-wrap">
         <canvas id="moonCanvas" width="180" height="180"></canvas>
@@ -205,7 +205,7 @@ s.parentNode.insertBefore(el, s);
       <div class="result-box" id="magResult">
         <p>请输入两个星等数值，计算它们的亮度比。</p>
         <p style="font-size:12px;color:var(--text-muted);">公式：亮度比 = 2.512^(m2 - m1)，星等越小越亮。</p>
-      </div>
+      </div> <div id="astronomy_toolkitTable"></div> <div id="astronomy_toolkitDiff"></div> <div id="astronomy_toolkitChart"></div> <div id="astronomy_toolkitHist"></div>
 
       <h3 style="margin-top:20px;">常见天体视星等参考表</h3>
       <div style="overflow-x:auto;">
@@ -1166,6 +1166,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __astronomy_toolkit_last=0,__astronomy_toolkit_skip=false;
+function __astronomy_toolkitSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __astronomy_toolkitResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __astronomy_toolkitTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __astronomy_toolkitRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__astronomy_toolkitTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#astronomy_toolkitTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#astronomy_toolkitDiff');
+        TBKit.history.mount('#astronomy_toolkitHist',function(rec){
+            __astronomy_toolkit_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcMoonPhase();
+            }catch(e2){}
+            __astronomy_toolkit_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__astronomy_toolkitTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#astronomy_toolkitChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __astronomy_toolkitExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__astronomy_toolkit_skip) return;
+    var snap=__astronomy_toolkitSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__astronomy_toolkitResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__astronomy_toolkit_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __astronomy_toolkit_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __astronomy_toolkitRender(keys,rk,en);
+}
+function __astronomy_toolkitExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#astronomy_toolkitTable','astronomy-toolkit.csv'); } catch(e){}
+}
+function __astronomy_toolkitPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#astronomy_toolkitPresets',[{label:'默认参数',labelEn:'Default',values:{'mag1':'-1.46', 'mag2':'2.0', 'meteorDiameter':'50', 'meteorSpeed':'20', 'meteorDensity':'3000', 'meteorAngle':'45', 'groundDensity':'2500', 'latInput':'39.9042', 'lonInput':'116.4074', 'utmZone':'50', 'utmHemisphere':'N'}}],function(){ calcMoonPhase(); });
+}
+var __astronomy_toolkit_f0=(typeof calcMoonPhase==='function')?calcMoonPhase:null;
+if(__astronomy_toolkit_f0){
+    calcMoonPhase=function(){ var __r=__astronomy_toolkit_f0.apply(null,arguments); try{ __astronomy_toolkitExtras(); }catch(e){} return __r; };
+}
+function __astronomy_toolkitBoot(){ try{ __astronomy_toolkitPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __astronomy_toolkitBoot();
+else document.addEventListener('DOMContentLoaded', __astronomy_toolkitBoot);
 </script>
 
 </body>

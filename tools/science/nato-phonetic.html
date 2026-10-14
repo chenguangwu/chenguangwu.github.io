@@ -162,13 +162,13 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入任意文本，逐字母转换为 NATO 音标字母（Alpha、Bravo、Charlie……），避免电话、无线电和客服场景中 B 与 D、M 与 N 等发音混淆，附完整字母表对照。">Convert any text letter by letter into the NATO phonetic alphabet (Alpha, Bravo, Charlie…) to avoid mishearing on radio and calls.</p>
 
     <div class="mode-tabs">
-      <button class="active" onclick="setMode('nato')">NATO</button>
+      <div id="nato_phoneticPresets"></div><button class="active" onclick="setMode('nato')">NATO</button><button class="btn" type="button" onclick="__nato_phoneticExport()">导出明细 CSV</button>
       <button onclick="setMode('abc')">联航字母</button>
       <button onclick="setMode('ansi')">ANSI</button>
     </div>
     <label>输入文本</label>
     <input type="text" id="input" value="HELLO WORLD" oninput="convert()" placeholder="输入英文">
-    <div class="output-card" id="output"></div>
+    <div class="output-card" id="output"></div> <div id="nato_phoneticTable"></div> <div id="nato_phoneticDiff"></div> <div id="nato_phoneticChart"></div> <div id="nato_phoneticHist"></div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn success" onclick="copyOutput()">复制结果</button>
       <button type="button" class="btn" onclick="document.getElementById('input').value='';convert()">清空</button>
@@ -279,6 +279,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __nato_phonetic_last=0,__nato_phonetic_skip=false;
+function __nato_phoneticSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __nato_phoneticResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __nato_phoneticTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __nato_phoneticRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__nato_phoneticTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#nato_phoneticTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#nato_phoneticDiff');
+        TBKit.history.mount('#nato_phoneticHist',function(rec){
+            __nato_phonetic_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                setMode();
+            }catch(e2){}
+            __nato_phonetic_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__nato_phoneticTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#nato_phoneticChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __nato_phoneticExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__nato_phonetic_skip) return;
+    var snap=__nato_phoneticSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__nato_phoneticResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__nato_phonetic_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __nato_phonetic_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __nato_phoneticRender(keys,rk,en);
+}
+function __nato_phoneticExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#nato_phoneticTable','nato-phonetic.csv'); } catch(e){}
+}
+function __nato_phoneticPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#nato_phoneticPresets',[{label:'默认参数',labelEn:'Default',values:{'input':'HELLO WORLD'}}],function(){ setMode(); });
+}
+var __nato_phonetic_f0=(typeof setMode==='function')?setMode:null;
+if(__nato_phonetic_f0){
+    setMode=function(){ var __r=__nato_phonetic_f0.apply(null,arguments); try{ __nato_phoneticExtras(); }catch(e){} return __r; };
+}
+function __nato_phoneticBoot(){ try{ __nato_phoneticPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __nato_phoneticBoot();
+else document.addEventListener('DOMContentLoaded', __nato_phoneticBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

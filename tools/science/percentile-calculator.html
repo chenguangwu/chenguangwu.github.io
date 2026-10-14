@@ -160,11 +160,11 @@ s.parentNode.insertBefore(el, s);
     <label style="margin-top:12px;">要计算的百分位 P（0-100，可同时多个，逗号分隔）</label>
     <input type="text" id="percentiles" value="25, 50, 75, 90">
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calculate()">计算</button>
+      <div id="percentile_calculatorPresets"></div><button type="button" class="btn primary" onclick="calculate()">计算</button><button class="btn" type="button" onclick="__percentile_calculatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="document.getElementById('percentiles').value='10,20,30,40,50,60,70,80,90';calculate()">十分位</button>
       <button type="button" class="btn" onclick="document.getElementById('percentiles').value='25,50,75';calculate()">四分位</button>
     </div>
-    <div class="result-box" id="output"></div>
+    <div class="result-box" id="output"></div> <div id="percentile_calculatorTable"></div> <div id="percentile_calculatorDiff"></div> <div id="percentile_calculatorChart"></div> <div id="percentile_calculatorHist"></div>
   </div>
   <div class="card">
     <h2>📐 计算方法</h2>
@@ -304,6 +304,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __percentile_calculator_last=0,__percentile_calculator_skip=false;
+function __percentile_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __percentile_calculatorResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __percentile_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __percentile_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__percentile_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#percentile_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#percentile_calculatorDiff');
+        TBKit.history.mount('#percentile_calculatorHist',function(rec){
+            __percentile_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calculate();
+            }catch(e2){}
+            __percentile_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__percentile_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#percentile_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __percentile_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__percentile_calculator_skip) return;
+    var snap=__percentile_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__percentile_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__percentile_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __percentile_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __percentile_calculatorRender(keys,rk,en);
+}
+function __percentile_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#percentile_calculatorTable','percentile-calculator.csv'); } catch(e){}
+}
+function __percentile_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#percentile_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'percentiles':'25, 50, 75, 90'}}],function(){ calculate(); });
+}
+var __percentile_calculator_f0=(typeof calculate==='function')?calculate:null;
+if(__percentile_calculator_f0){
+    calculate=function(){ var __r=__percentile_calculator_f0.apply(null,arguments); try{ __percentile_calculatorExtras(); }catch(e){} return __r; };
+}
+function __percentile_calculatorBoot(){ try{ __percentile_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __percentile_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __percentile_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

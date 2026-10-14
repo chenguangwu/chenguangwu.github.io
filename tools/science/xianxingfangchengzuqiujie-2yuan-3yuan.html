@@ -183,11 +183,11 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 求解</button>
+      <div id="xianxingfangchengzuqiujie_2yuan_3yuanPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 求解</button><button class="btn" type="button" onclick="__xianxingfangchengzuqiujie_2yuan_3yuanExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="xianxingfangchengzuqiujie_2yuan_3yuanTable"></div> <div id="xianxingfangchengzuqiujie_2yuan_3yuanDiff"></div> <div id="xianxingfangchengzuqiujie_2yuan_3yuanChart"></div> <div id="xianxingfangchengzuqiujie_2yuan_3yuanHist"></div>
     <div class="info-box">💡 提示：系数行列式 det(A) ≈ 0 时方程组无解或有无穷多解；结果保留 6 位小数。</div>
 <div class="tool-notes" style="--tool-accent:#06B6D4;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -286,6 +286,114 @@ document.addEventListener('DOMContentLoaded',function(){
   ids.forEach(function(id){var e=document.getElementById(id);if(e)e.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();calc();}if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='c'){ev.preventDefault();copyRes();}});});
 });
 setMode(2);
+
+var __xianxingfangchengzuqiujie_2yuan_3yuan_last=0,__xianxingfangchengzuqiujie_2yuan_3yuan_skip=false;
+function __xianxingfangchengzuqiujie_2yuan_3yuanSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __xianxingfangchengzuqiujie_2yuan_3yuanResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __xianxingfangchengzuqiujie_2yuan_3yuanTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __xianxingfangchengzuqiujie_2yuan_3yuanRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__xianxingfangchengzuqiujie_2yuan_3yuanTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#xianxingfangchengzuqiujie_2yuan_3yuanTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#xianxingfangchengzuqiujie_2yuan_3yuanDiff');
+        TBKit.history.mount('#xianxingfangchengzuqiujie_2yuan_3yuanHist',function(rec){
+            __xianxingfangchengzuqiujie_2yuan_3yuan_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __xianxingfangchengzuqiujie_2yuan_3yuan_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__xianxingfangchengzuqiujie_2yuan_3yuanTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#xianxingfangchengzuqiujie_2yuan_3yuanChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __xianxingfangchengzuqiujie_2yuan_3yuanExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__xianxingfangchengzuqiujie_2yuan_3yuan_skip) return;
+    var snap=__xianxingfangchengzuqiujie_2yuan_3yuanSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__xianxingfangchengzuqiujie_2yuan_3yuanResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__xianxingfangchengzuqiujie_2yuan_3yuan_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __xianxingfangchengzuqiujie_2yuan_3yuan_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __xianxingfangchengzuqiujie_2yuan_3yuanRender(keys,rk,en);
+}
+function __xianxingfangchengzuqiujie_2yuan_3yuanExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#xianxingfangchengzuqiujie_2yuan_3yuanTable','xianxingfangchengzuqiujie-2yuan-3yuan.csv'); } catch(e){}
+}
+function __xianxingfangchengzuqiujie_2yuan_3yuanPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#xianxingfangchengzuqiujie_2yuan_3yuanPresets',[{label:'默认参数',labelEn:'Default',values:{'a1':'1', 'b1':'2', 'c1':'5', 'a2':'3', 'b2':'-1', 'c2':'1', 'a1_3':'1', 'b1_3':'1', 'c1_3':'1', 'd1_3':'6', 'a2_3':'0', 'b2_3':'2'}}],function(){ calc(); });
+}
+var __xianxingfangchengzuqiujie_2yuan_3yuan_f0=(typeof calc==='function')?calc:null;
+if(__xianxingfangchengzuqiujie_2yuan_3yuan_f0){
+    calc=function(){ var __r=__xianxingfangchengzuqiujie_2yuan_3yuan_f0.apply(null,arguments); try{ __xianxingfangchengzuqiujie_2yuan_3yuanExtras(); }catch(e){} return __r; };
+}
+function __xianxingfangchengzuqiujie_2yuan_3yuanBoot(){ try{ __xianxingfangchengzuqiujie_2yuan_3yuanPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __xianxingfangchengzuqiujie_2yuan_3yuanBoot();
+else document.addEventListener('DOMContentLoaded', __xianxingfangchengzuqiujie_2yuan_3yuanBoot);
 </script>
 
 
