@@ -178,7 +178,9 @@ end</textarea>
       <label><input type="checkbox" id="indentClose"> 闭合括号也缩进</label>
     </div>
     <div class="toolbar">
+      <div id="text_indentPresets"></div>
       <button type="button" class="btn primary" onclick="indent()">缩进</button>
+      <button class="btn" type="button" onclick="__text_indentExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
@@ -187,6 +189,10 @@ end</textarea>
   <div class="card">
     <h2>📋 结果</h2>
     <div class="result-box" id="result">请输入文本...</div>
+    <div id="text_indentTable"></div>
+    <div id="text_indentDiff"></div>
+    <div id="text_indentChart"></div>
+    <div id="text_indentHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -386,6 +392,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __text_indent_last=0,__text_indent_skip=false;
+function __text_indentSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __text_indentResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __text_indentTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __text_indentRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__text_indentTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#text_indentTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#text_indentDiff');
+        TBKit.history.mount('#text_indentHist',function(rec){
+            __text_indent_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                indent();
+            }catch(e2){}
+            __text_indent_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__text_indentTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#text_indentChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __text_indentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__text_indent_skip) return;
+    var snap=__text_indentSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__text_indentResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__text_indent_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __text_indent_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __text_indentRender(keys,rk,en);
+}
+function __text_indentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#text_indentTable','text-indent.csv'); } catch(e){}
+}
+function __text_indentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#text_indentPresets',[{label:'默认参数',labelEn:'Default',values:{indentChar:'2spaces', mode:'braces'}}],function(){ indent(); });
+}
+var __text_indent_f0=(typeof indent==='function')?indent:null;
+if(__text_indent_f0){
+    indent=function(){ var __r=__text_indent_f0.apply(null,arguments); try{ __text_indentExtras(); }catch(e){} return __r; };
+}
+function __text_indentBoot(){ try{ __text_indentPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __text_indentBoot();
+else document.addEventListener('DOMContentLoaded', __text_indentBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

@@ -186,7 +186,9 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="markdown_quotePresets"></div>
       <button type="button" class="btn primary" onclick="convert()">转换</button>
+      <button class="btn" type="button" onclick="__markdown_quoteExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
@@ -195,6 +197,10 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>📋 结果</h2>
     <div class="result-box" id="result">请输入文本...</div>
+    <div id="markdown_quoteTable"></div>
+    <div id="markdown_quoteDiff"></div>
+    <div id="markdown_quoteChart"></div>
+    <div id="markdown_quoteHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -345,6 +351,110 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __markdown_quote_last=0,__markdown_quote_skip=false;
+function __markdown_quoteSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __markdown_quoteResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __markdown_quoteTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __markdown_quoteRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__markdown_quoteTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#markdown_quoteTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#markdown_quoteDiff');
+        TBKit.history.mount('#markdown_quoteHist',function(rec){
+            __markdown_quote_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                convert();
+            }catch(e2){}
+            __markdown_quote_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__markdown_quoteTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#markdown_quoteChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __markdown_quoteExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__markdown_quote_skip) return;
+    var snap=__markdown_quoteSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__markdown_quoteResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__markdown_quote_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __markdown_quote_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __markdown_quoteRender(keys,rk,en);
+}
+function __markdown_quoteExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#markdown_quoteTable','markdown-quote.csv'); } catch(e){}
+}
+function __markdown_quotePresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __markdown_quote_f0=(typeof convert==='function')?convert:null;
+if(__markdown_quote_f0){
+    convert=function(){ var __r=__markdown_quote_f0.apply(null,arguments); try{ __markdown_quoteExtras(); }catch(e){} return __r; };
+}
+function __markdown_quoteBoot(){ try{ __markdown_quotePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __markdown_quoteBoot();
+else document.addEventListener('DOMContentLoaded', __markdown_quoteBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
