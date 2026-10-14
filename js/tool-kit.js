@@ -942,12 +942,20 @@
     try { localStorage.removeItem(hkey()); } catch (e) {}
   };
 
-  /** 记录一次计算：obj 里放要展示的摘要字段 */
-  history.record = function (obj) {
+  /**
+   * 记录一次计算：obj 里放要展示的摘要字段。
+   * coalesceMs > 0 时，若上一条记录在 coalesceMs 毫秒内，则覆盖它而不是新增一条
+   * ——多输入表单每改一个控件就重算一次，不合并会把一次评估拆成 N 条垃圾记录。
+   */
+  history.record = function (obj, coalesceMs) {
     if (!obj) return;
     try {
       var arr = history.list();
-      arr.unshift({ t: Date.now(), d: obj });
+      if (coalesceMs && arr.length && (Date.now() - (arr[0].t || 0)) < coalesceMs) {
+        arr[0] = { t: Date.now(), d: obj };
+      } else {
+        arr.unshift({ t: Date.now(), d: obj });
+      }
       arr = arr.slice(0, 20);
       localStorage.setItem(hkey(), JSON.stringify(arr));
     } catch (e) {}
