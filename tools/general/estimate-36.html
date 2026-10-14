@@ -135,7 +135,12 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__estimate_36Export()">导出明细 CSV</button></div>
     <div class="result-box" id="res"></div>
+    <div id="estimate_36Table"></div>
+    <div id="estimate_36Diff"></div>
+    <div id="estimate_36Chart"></div>
+    <div id="estimate_36Hist"></div>
     <div class="info-box">💡 瑞利判据：分辨率 R = k1 · λ ÷ NA；焦深 DOF = ± k2 · λ ÷ NA²。k1 反映工艺难度（极限约 0.25），NA 为投影透镜数值孔径，浸没式光刻 NA 可达 1.35。</div>
 <div class="tool-notes" style="--tool-accent:#7C3AED;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -248,6 +253,114 @@ function restoreHistory(idx){
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __estimate_36_last=0,__estimate_36_skip=false;
+function __estimate_36Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __estimate_36ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __estimate_36Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __estimate_36Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__estimate_36Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#estimate_36Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#estimate_36Diff');
+        TBKit.history.mount('#estimate_36Hist',function(rec){
+            __estimate_36_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __estimate_36_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__estimate_36Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#estimate_36Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __estimate_36Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__estimate_36_skip) return;
+    var snap=__estimate_36Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__estimate_36ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__estimate_36_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __estimate_36_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __estimate_36Render(keys,rk,en);
+}
+function __estimate_36Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#estimate_36Table','estimate-36.csv'); } catch(e){}
+}
+function __estimate_36Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#estimate_36Presets',[{label:'默认参数',labelEn:'Default',values:{'v0':'193', 'v1':'1.35', 'v2':'0.25', 'v3':'0.5'}}],function(){ calc(); });
+}
+var __estimate_36_f0=(typeof calc==='function')?calc:null;
+if(__estimate_36_f0){
+    calc=function(){ var __r=__estimate_36_f0.apply(null,arguments); try{ __estimate_36Extras(); }catch(e){} return __r; };
+}
+function __estimate_36Boot(){ try{ __estimate_36Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __estimate_36Boot();
+else document.addEventListener('DOMContentLoaded', __estimate_36Boot);
 </script>
 
 <!-- SEO 介绍区块 -->
