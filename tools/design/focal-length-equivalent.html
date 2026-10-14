@@ -195,7 +195,12 @@ s.parentNode.insertBefore(el, s);
         </select></div>
       </div>
 
-      <div class="result-box" id="result"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__focal_length_equivalentExport()">导出明细 CSV</button></div>
+    <div class="result-box" id="result"></div>
+    <div id="focal_length_equivalentTable"></div>
+    <div id="focal_length_equivalentDiff"></div>
+    <div id="focal_length_equivalentChart"></div>
+    <div id="focal_length_equivalentHist"></div>
 
       <div class="focal-visual">
         <div id="focalBar" class="focal-bar">50mm</div>
@@ -558,6 +563,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __focal_length_equivalent_last=0,__focal_length_equivalent_skip=false;
+function __focal_length_equivalentSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __focal_length_equivalentResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __focal_length_equivalentTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __focal_length_equivalentRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__focal_length_equivalentTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#focal_length_equivalentTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#focal_length_equivalentDiff');
+        TBKit.history.mount('#focal_length_equivalentHist',function(rec){
+            __focal_length_equivalent_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __focal_length_equivalent_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__focal_length_equivalentTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#focal_length_equivalentChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __focal_length_equivalentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__focal_length_equivalent_skip) return;
+    var snap=__focal_length_equivalentSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__focal_length_equivalentResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__focal_length_equivalent_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __focal_length_equivalent_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __focal_length_equivalentRender(keys,rk,en);
+}
+function __focal_length_equivalentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#focal_length_equivalentTable','focal-length-equivalent.csv'); } catch(e){}
+}
+function __focal_length_equivalentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#focal_length_equivalentPresets',[{label:'默认参数',labelEn:'Default',values:{focal:'50', fromSensor:'fullframe', toSensor:'fullframe', compareFocal:'50'}}],function(){ calc(); });
+}
+var __focal_length_equivalent_f0=(typeof calc==='function')?calc:null;
+if(__focal_length_equivalent_f0){
+    calc=function(){ var __r=__focal_length_equivalent_f0.apply(null,arguments); try{ __focal_length_equivalentExtras(); }catch(e){} return __r; };
+}
+function __focal_length_equivalentBoot(){ try{ __focal_length_equivalentPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __focal_length_equivalentBoot();
+else document.addEventListener('DOMContentLoaded', __focal_length_equivalentBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

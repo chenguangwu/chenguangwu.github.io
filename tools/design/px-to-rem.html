@@ -120,10 +120,16 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar">
+      <div id="px_to_remPresets"></div>
       <button class="btn primary" onclick="calcTool()">计算</button>
+      <button class="btn" type="button" onclick="__px_to_remExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div id="px_to_remTable"></div>
+    <div id="px_to_remDiff"></div>
+    <div id="px_to_remChart"></div>
+    <div id="px_to_remHist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#6366F1;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -197,6 +203,111 @@ function resetForm(){document.getElementById('px').value='16';
       document.getElementById('root').value='16';
       calcTool();}
 calcTool();
+
+var __px_to_rem_last=0,__px_to_rem_skip=false;
+function __px_to_remSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __px_to_remResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __px_to_remTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __px_to_remRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__px_to_remTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#px_to_remTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#px_to_remDiff');
+        TBKit.history.mount('#px_to_remHist',function(rec){
+            __px_to_rem_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calcTool();
+            }catch(e2){}
+            __px_to_rem_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__px_to_remTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#px_to_remChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __px_to_remExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__px_to_rem_skip) return;
+    var snap=__px_to_remSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__px_to_remResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__px_to_rem_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __px_to_rem_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __px_to_remRender(keys,rk,en);
+}
+function __px_to_remExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#px_to_remTable','px-to-rem.csv'); } catch(e){}
+}
+function __px_to_remPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#px_to_remPresets',[{label:'默认参数',labelEn:'Default',values:{px:'16', root:'16'}}],function(){ calcTool(); });
+}
+var __px_to_rem_f0=(typeof calcTool==='function')?calcTool:null;
+if(__px_to_rem_f0){
+    calcTool=function(){ var __r=__px_to_rem_f0.apply(null,arguments); try{ __px_to_remExtras(); }catch(e){} return __r; };
+}
+function __px_to_remBoot(){ try{ __px_to_remPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __px_to_remBoot();
+else document.addEventListener('DOMContentLoaded', __px_to_remBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

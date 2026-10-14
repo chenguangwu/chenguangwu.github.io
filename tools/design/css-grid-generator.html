@@ -137,11 +137,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="css_grid_generatorPresets"></div>
       <button class="btn primary" onclick="calcTool()">计算</button>
+      <button class="btn" type="button" onclick="__css_grid_generatorExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="css_grid_generatorTable"></div>
+    <div id="css_grid_generatorDiff"></div>
+    <div id="css_grid_generatorChart"></div>
+    <div id="css_grid_generatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -262,6 +268,111 @@ function resetForm(){document.getElementById('cols').value='3';
       document.getElementById('containerW').value='960';
       calcTool();}
 calcTool();
+
+var __css_grid_generator_last=0,__css_grid_generator_skip=false;
+function __css_grid_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __css_grid_generatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __css_grid_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __css_grid_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__css_grid_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#css_grid_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#css_grid_generatorDiff');
+        TBKit.history.mount('#css_grid_generatorHist',function(rec){
+            __css_grid_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calcTool();
+            }catch(e2){}
+            __css_grid_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__css_grid_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#css_grid_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __css_grid_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__css_grid_generator_skip) return;
+    var snap=__css_grid_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__css_grid_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__css_grid_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __css_grid_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __css_grid_generatorRender(keys,rk,en);
+}
+function __css_grid_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#css_grid_generatorTable','css-grid-generator.csv'); } catch(e){}
+}
+function __css_grid_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#css_grid_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{cols:'3', gap:'16', containerW:'960'}}],function(){ calcTool(); });
+}
+var __css_grid_generator_f0=(typeof calcTool==='function')?calcTool:null;
+if(__css_grid_generator_f0){
+    calcTool=function(){ var __r=__css_grid_generator_f0.apply(null,arguments); try{ __css_grid_generatorExtras(); }catch(e){} return __r; };
+}
+function __css_grid_generatorBoot(){ try{ __css_grid_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __css_grid_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __css_grid_generatorBoot);
 </script>
 </body>
 </html>
