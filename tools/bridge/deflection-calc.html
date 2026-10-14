@@ -192,7 +192,7 @@ s.parentNode.insertBefore(el, s);
   <div class="stat-card"><div class="val" id="resCheck">--</div><div class="lbl">挠度校核</div></div>
 </div>
 
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="deflection_calcTable"></div> <div id="deflection_calcDiff"></div> <div id="deflection_calcChart"></div> <div id="deflection_calcHist"></div>
 
 <div class="formula-box">
   <strong>📐 计算公式（简支梁）</strong>
@@ -206,7 +206,7 @@ s.parentNode.insertBefore(el, s);
 <div class="tip-box tip-info">💡 计算挠度时活载应不计冲击系数；长期挠度需乘以挠度长期增长系数（混凝土结构约 1.6~2.0）。</div>
 
 <div class="toolbar">
-  <button type="button" class="btn primary" onclick="calc()">🌉 计算</button>
+  <div id="deflection_calcPresets"></div><button type="button" class="btn primary" onclick="calc()">🌉 计算</button><button class="btn" type="button" onclick="__deflection_calcExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
 </div>
@@ -384,6 +384,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __deflection_calc_last=0,__deflection_calc_skip=false;
+function __deflection_calcSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __deflection_calcResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __deflection_calcTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __deflection_calcRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__deflection_calcTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#deflection_calcTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#deflection_calcDiff');
+        TBKit.history.mount('#deflection_calcHist',function(rec){
+            __deflection_calc_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __deflection_calc_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__deflection_calcTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#deflection_calcChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __deflection_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__deflection_calc_skip) return;
+    var snap=__deflection_calcSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__deflection_calcResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__deflection_calc_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __deflection_calc_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __deflection_calcRender(keys,rk,en);
+}
+function __deflection_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#deflection_calcTable','deflection-calc.csv'); } catch(e){}
+}
+function __deflection_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#deflection_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'inL':'20', 'inE':'32.5', 'inI':'0.15', 'inQ':'30', 'inP':'200', 'inLimit':'600'}}],function(){ calc(); });
+}
+var __deflection_calc_f0=(typeof calc==='function')?calc:null;
+if(__deflection_calc_f0){
+    calc=function(){ var __r=__deflection_calc_f0.apply(null,arguments); try{ __deflection_calcExtras(); }catch(e){} return __r; };
+}
+function __deflection_calcBoot(){ try{ __deflection_calcPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __deflection_calcBoot();
+else document.addEventListener('DOMContentLoaded', __deflection_calcBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用桥梁挠度计算</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>计算跨径 L (m)</li><li>弹性模量 E (GPa)</li><li>截面惯性矩 I (m⁴)</li><li>均布荷载 q (kN/m)</li><li>集中荷载 P (kN)</li><li>允许挠度限值 [f] = L / n</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>桥梁挠度计算是做什么的？</dt><dd>桥梁挠度计算器，求简支梁在均布或集中荷载下的挠度并校核允许挠度，输入弹性模量、惯性矩与跨径，保障刚度。</dd><dt>如何使用桥梁挠度计算？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>桥梁挠度计算适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

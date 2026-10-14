@@ -126,11 +126,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>鱼卵数量（万粒）</label><input type="number" id="eggs" value="10" min="0" step="any" enterkeyhint="done" aria-label="鱼卵数量"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="fuhua_shuiliu_rongyang_tiaojianPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__fuhua_shuiliu_rongyang_tiaojianExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="fuhua_shuiliu_rongyang_tiaojianTable"></div> <div id="fuhua_shuiliu_rongyang_tiaojianDiff"></div> <div id="fuhua_shuiliu_rongyang_tiaojianChart"></div> <div id="fuhua_shuiliu_rongyang_tiaojianHist"></div>
     <div class="info-box">💡 公式：交换率(次/h) = 进水流量 × 60 ÷ 容积；溶氧供给(g/h) = 进水流量 × (目标溶氧 − 进水溶氧) × 60 ÷ 1000；需氧量(g/h) = 鱼卵数量 × 0.001。</div>
     <div class="tool-notes" style="--tool-accent:#0288D1;">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -267,6 +267,114 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+
+var __fuhua_shuiliu_rongyang_tiaojian_last=0,__fuhua_shuiliu_rongyang_tiaojian_skip=false;
+function __fuhua_shuiliu_rongyang_tiaojianSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __fuhua_shuiliu_rongyang_tiaojianResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __fuhua_shuiliu_rongyang_tiaojianTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __fuhua_shuiliu_rongyang_tiaojianRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__fuhua_shuiliu_rongyang_tiaojianTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#fuhua_shuiliu_rongyang_tiaojianTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#fuhua_shuiliu_rongyang_tiaojianDiff');
+        TBKit.history.mount('#fuhua_shuiliu_rongyang_tiaojianHist',function(rec){
+            __fuhua_shuiliu_rongyang_tiaojian_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __fuhua_shuiliu_rongyang_tiaojian_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__fuhua_shuiliu_rongyang_tiaojianTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#fuhua_shuiliu_rongyang_tiaojianChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __fuhua_shuiliu_rongyang_tiaojianExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__fuhua_shuiliu_rongyang_tiaojian_skip) return;
+    var snap=__fuhua_shuiliu_rongyang_tiaojianSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__fuhua_shuiliu_rongyang_tiaojianResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__fuhua_shuiliu_rongyang_tiaojian_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __fuhua_shuiliu_rongyang_tiaojian_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __fuhua_shuiliu_rongyang_tiaojianRender(keys,rk,en);
+}
+function __fuhua_shuiliu_rongyang_tiaojianExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fuhua_shuiliu_rongyang_tiaojianTable','fuhua-shuiliu-rongyang-tiaojian.csv'); } catch(e){}
+}
+function __fuhua_shuiliu_rongyang_tiaojianPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fuhua_shuiliu_rongyang_tiaojianPresets',[{label:'默认参数',labelEn:'Default',values:{'vol':'200', 'flow':'6', 'target':'8', 'inflow':'6', 'eggs':'10'}}],function(){ calc(); });
+}
+var __fuhua_shuiliu_rongyang_tiaojian_f0=(typeof calc==='function')?calc:null;
+if(__fuhua_shuiliu_rongyang_tiaojian_f0){
+    calc=function(){ var __r=__fuhua_shuiliu_rongyang_tiaojian_f0.apply(null,arguments); try{ __fuhua_shuiliu_rongyang_tiaojianExtras(); }catch(e){} return __r; };
+}
+function __fuhua_shuiliu_rongyang_tiaojianBoot(){ try{ __fuhua_shuiliu_rongyang_tiaojianPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fuhua_shuiliu_rongyang_tiaojianBoot();
+else document.addEventListener('DOMContentLoaded', __fuhua_shuiliu_rongyang_tiaojianBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

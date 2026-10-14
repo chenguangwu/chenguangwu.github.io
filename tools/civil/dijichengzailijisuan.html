@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>安全系数 K</label><input type="number" id="K" value="2" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="安全系数"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__dijichengzailijisuanExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="dijichengzailijisuanTable"></div> <div id="dijichengzailijisuanDiff"></div> <div id="dijichengzailijisuanChart"></div> <div id="dijichengzailijisuanHist"></div>
 <div class="info-box">💡 太沙基条形基础：qu = c·Nc + γ·Df·Nq + 0.5·γ·B·Nγ；承载力特征值 fa = qu / K。承载力系数由 φ 推导。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>本公式适用于条形基础、整体剪切破坏模式</li><li>φ=0 时 Nγ=0，需改用软土修正公式</li><li>安全系数一般取 2~3，重要工程取高值</li><li>实际设计须依据《建筑地基基础设计规范》GB50007 综合确定</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -192,6 +192,114 @@ function restoreHistory(idx){try{var list=JSON.parse(localStorage.getItem(histor
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __dijichengzailijisuan_last=0,__dijichengzailijisuan_skip=false;
+function __dijichengzailijisuanSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __dijichengzailijisuanResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __dijichengzailijisuanTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __dijichengzailijisuanRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__dijichengzailijisuanTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#dijichengzailijisuanTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#dijichengzailijisuanDiff');
+        TBKit.history.mount('#dijichengzailijisuanHist',function(rec){
+            __dijichengzailijisuan_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __dijichengzailijisuan_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__dijichengzailijisuanTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#dijichengzailijisuanChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __dijichengzailijisuanExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__dijichengzailijisuan_skip) return;
+    var snap=__dijichengzailijisuanSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__dijichengzailijisuanResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__dijichengzailijisuan_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __dijichengzailijisuan_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __dijichengzailijisuanRender(keys,rk,en);
+}
+function __dijichengzailijisuanExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dijichengzailijisuanTable','dijichengzailijisuan.csv'); } catch(e){}
+}
+function __dijichengzailijisuanPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dijichengzailijisuanPresets',[{label:'默认参数',labelEn:'Default',values:{'c':'15', 'phi':'20', 'gamma':'18', 'B':'2', 'Df':'1.5', 'K':'2'}}],function(){ calc(); });
+}
+var __dijichengzailijisuan_f0=(typeof calc==='function')?calc:null;
+if(__dijichengzailijisuan_f0){
+    calc=function(){ var __r=__dijichengzailijisuan_f0.apply(null,arguments); try{ __dijichengzailijisuanExtras(); }catch(e){} return __r; };
+}
+function __dijichengzailijisuanBoot(){ try{ __dijichengzailijisuanPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dijichengzailijisuanBoot();
+else document.addEventListener('DOMContentLoaded', __dijichengzailijisuanBoot);
 </script>
 
 </div>

@@ -138,7 +138,7 @@ s.parentNode.insertBefore(el, s);
           <input type="text" id="tcInput" value="01:23:45:12" oninput="calcTc()" placeholder="HH:MM:SS:FF">
         </div>
       </div>
-      <div class="result-box" id="tcResult"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__editing_timecodeExport()">导出明细 CSV</button></div><div class="result-box" id="tcResult"></div> <div id="editing_timecodeTable"></div> <div id="editing_timecodeDiff"></div> <div id="editing_timecodeChart"></div> <div id="editing_timecodeHist"></div>
     </div>
 
     <div class="tab-content" id="tab-ft">
@@ -396,6 +396,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __editing_timecode_last=0,__editing_timecode_skip=false;
+function __editing_timecodeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __editing_timecodeResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __editing_timecodeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __editing_timecodeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__editing_timecodeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#editing_timecodeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#editing_timecodeDiff');
+        TBKit.history.mount('#editing_timecodeHist',function(rec){
+            __editing_timecode_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcTc();
+            }catch(e2){}
+            __editing_timecode_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__editing_timecodeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#editing_timecodeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __editing_timecodeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__editing_timecode_skip) return;
+    var snap=__editing_timecodeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__editing_timecodeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__editing_timecode_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __editing_timecode_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __editing_timecodeRender(keys,rk,en);
+}
+function __editing_timecodeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#editing_timecodeTable','editing-timecode.csv'); } catch(e){}
+}
+function __editing_timecodePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#editing_timecodePresets',[{label:'默认参数',labelEn:'Default',values:{'fps':'24', 'tcInput':'01:23:45:12', 'fps2':'24', 'totalFrames':'120834'}}],function(){ calcTc(); });
+}
+var __editing_timecode_f0=(typeof calcTc==='function')?calcTc:null;
+if(__editing_timecode_f0){
+    calcTc=function(){ var __r=__editing_timecode_f0.apply(null,arguments); try{ __editing_timecodeExtras(); }catch(e){} return __r; };
+}
+function __editing_timecodeBoot(){ try{ __editing_timecodePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __editing_timecodeBoot();
+else document.addEventListener('DOMContentLoaded', __editing_timecodeBoot);
 </script>
 
 </body>

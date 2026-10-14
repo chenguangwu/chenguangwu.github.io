@@ -135,12 +135,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算倒计时</button>
+      <div id="exam_countdownPresets"></div><button type="button" class="btn primary" onclick="calc()">计算倒计时</button><button class="btn" type="button" onclick="__exam_countdownExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="setQuick('gaokao')">2026高考</button>
       <button type="button" class="btn" onclick="setQuick('kaoyan')">2026考研</button>
     </div>
 
-    <div class="result-box" id="result" style="display:none;"></div>
+    <div class="result-box" id="result" style="display:none;"></div> <div id="exam_countdownTable"></div> <div id="exam_countdownDiff"></div> <div id="exam_countdownChart"></div> <div id="exam_countdownHist"></div>
   </div>
 
   <div class="card">
@@ -419,6 +419,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __exam_countdown_last=0,__exam_countdown_skip=false;
+function __exam_countdownSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __exam_countdownResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __exam_countdownTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __exam_countdownRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__exam_countdownTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#exam_countdownTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#exam_countdownDiff');
+        TBKit.history.mount('#exam_countdownHist',function(rec){
+            __exam_countdown_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __exam_countdown_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__exam_countdownTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#exam_countdownChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __exam_countdownExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__exam_countdown_skip) return;
+    var snap=__exam_countdownSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__exam_countdownResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__exam_countdown_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __exam_countdown_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __exam_countdownRender(keys,rk,en);
+}
+function __exam_countdownExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#exam_countdownTable','exam-countdown.csv'); } catch(e){}
+}
+function __exam_countdownPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#exam_countdownPresets',[{label:'默认参数',labelEn:'Default',values:{'examName':'高考'}}],function(){ calc(); });
+}
+var __exam_countdown_f0=(typeof calc==='function')?calc:null;
+if(__exam_countdown_f0){
+    calc=function(){ var __r=__exam_countdown_f0.apply(null,arguments); try{ __exam_countdownExtras(); }catch(e){} return __r; };
+}
+function __exam_countdownBoot(){ try{ __exam_countdownPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __exam_countdownBoot();
+else document.addEventListener('DOMContentLoaded', __exam_countdownBoot);
 </script>
 
 </body>

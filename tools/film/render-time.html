@@ -150,11 +150,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">估算</button>
+      <div id="render_timePresets"></div><button type="button" class="btn primary" onclick="calc()">估算</button><button class="btn" type="button" onclick="__render_timeExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="render_timeTable"></div> <div id="render_timeDiff"></div> <div id="render_timeChart"></div> <div id="render_timeHist"></div>
 
     <div class="info-box">
       <strong>估算说明：</strong>总渲染小时 = 帧数 × (1 + 重试率) × 单帧时间（分钟） / 60，节点并行将上述总时长按节点数分摊。重试率反映失败重拍导致的重跑成本，先按历史项目给出基准值。
@@ -344,6 +344,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __render_time_last=0,__render_time_skip=false;
+function __render_timeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __render_timeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __render_timeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __render_timeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__render_timeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#render_timeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#render_timeDiff');
+        TBKit.history.mount('#render_timeHist',function(rec){
+            __render_time_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __render_time_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__render_timeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#render_timeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __render_timeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__render_time_skip) return;
+    var snap=__render_timeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__render_timeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__render_time_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __render_time_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __render_timeRender(keys,rk,en);
+}
+function __render_timeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#render_timeTable','render-time.csv'); } catch(e){}
+}
+function __render_timePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#render_timePresets',[{label:'默认参数',labelEn:'Default',values:{'totalFrames':'4320', 'frameTime':'8', 'nodes':'4', 'fps':'24', 'hoursPerDay':'24', 'retryRate':'5'}}],function(){ calc(); });
+}
+var __render_time_f0=(typeof calc==='function')?calc:null;
+if(__render_time_f0){
+    calc=function(){ var __r=__render_time_f0.apply(null,arguments); try{ __render_timeExtras(); }catch(e){} return __r; };
+}
+function __render_timeBoot(){ try{ __render_timePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __render_timeBoot();
+else document.addEventListener('DOMContentLoaded', __render_timeBoot);
 </script>
 
 </body>

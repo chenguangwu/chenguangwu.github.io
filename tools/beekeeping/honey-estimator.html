@@ -175,7 +175,7 @@ s.parentNode.insertBefore(el, s);
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;" id="sourceGrid"></div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算产蜜量</button>
+      <div id="honey_estimatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算产蜜量</button><button class="btn" type="button" onclick="__honey_estimatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
@@ -195,7 +195,7 @@ s.parentNode.insertBefore(el, s);
       <p>• <strong>气候条件</strong>：晴朗温暖、微风天气利于采蜜，阴雨低温影响严重</p>
       <p>• <strong>蜂群强弱</strong>：强群产蜜量可达弱群的3-5倍，春繁管理至关重要</p>
       <p>• <strong>管理技术</strong>：适时取蜜、防治病虫害、合理分蜂可提升产量</p>
-    </div>
+    </div> <div id="honey_estimatorTable"></div> <div id="honey_estimatorDiff"></div> <div id="honey_estimatorChart"></div> <div id="honey_estimatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -372,6 +372,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __honey_estimator_last=0,__honey_estimator_skip=false;
+function __honey_estimatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __honey_estimatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __honey_estimatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __honey_estimatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__honey_estimatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#honey_estimatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#honey_estimatorDiff');
+        TBKit.history.mount('#honey_estimatorHist',function(rec){
+            __honey_estimator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __honey_estimator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__honey_estimatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#honey_estimatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __honey_estimatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__honey_estimator_skip) return;
+    var snap=__honey_estimatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__honey_estimatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__honey_estimator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __honey_estimator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __honey_estimatorRender(keys,rk,en);
+}
+function __honey_estimatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#honey_estimatorTable','honey-estimator.csv'); } catch(e){}
+}
+function __honey_estimatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#honey_estimatorPresets',[{label:'默认参数',labelEn:'Default',values:{'hives':'10', 'area':'50', 'climate':'1.0', 'experience':'0.7'}}],function(){ calc(); });
+}
+var __honey_estimator_f0=(typeof calc==='function')?calc:null;
+if(__honey_estimator_f0){
+    calc=function(){ var __r=__honey_estimator_f0.apply(null,arguments); try{ __honey_estimatorExtras(); }catch(e){} return __r; };
+}
+function __honey_estimatorBoot(){ try{ __honey_estimatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __honey_estimatorBoot();
+else document.addEventListener('DOMContentLoaded', __honey_estimatorBoot);
 </script>
 
 </body>

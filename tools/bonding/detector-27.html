@@ -118,8 +118,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>粘接材料</label><select id="material" style="font-size:16px;"><option value="metal">金属-金属</option><option value="composite">复合材料</option><option value="plastic">工程塑料</option><option value="glass">玻璃/陶瓷</option></select></div><div><label>胶粘剂类型</label><select id="adhesive" style="font-size:16px;"><option value="epoxy">环氧树脂</option><option value="acrylic">丙烯酸酯</option><option value="polyurethane">聚氨酯</option><option value="silicone">有机硅胶</option></select></div></div>
 <div class="input-row"><div><label>超声波回波幅度（dB）</label><input type="number" id="echo" value="-6" style="font-size:16px;"></div><div><label>底波衰减（dB）</label><input type="number" id="attenuation" value="3" step="0.1" style="font-size:16px;"></div></div>
 <div class="input-row"><div><label>检测面积（cm²）</label><input type="number" id="area" value="100" style="font-size:16px;"></div><div><label>可疑信号数量</label><input type="number" id="signals" value="2" style="font-size:16px;"></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估粘接质量</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="detector_27Presets"></div><button type="button" class="btn primary" onclick="calc()">评估粘接质量</button><button class="btn" type="button" onclick="__detector_27Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="detector_27Table"></div> <div id="detector_27Diff"></div> <div id="detector_27Chart"></div> <div id="detector_27Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -308,6 +308,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __detector_27_last=0,__detector_27_skip=false;
+function __detector_27Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __detector_27ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __detector_27Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __detector_27Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__detector_27Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#detector_27Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#detector_27Diff');
+        TBKit.history.mount('#detector_27Hist',function(rec){
+            __detector_27_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __detector_27_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__detector_27Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#detector_27Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __detector_27Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__detector_27_skip) return;
+    var snap=__detector_27Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__detector_27ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__detector_27_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __detector_27_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __detector_27Render(keys,rk,en);
+}
+function __detector_27Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#detector_27Table','detector-27.csv'); } catch(e){}
+}
+function __detector_27Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#detector_27Presets',[{label:'默认参数',labelEn:'Default',values:{'material':'metal', 'adhesive':'epoxy', 'echo':'-6', 'attenuation':'3', 'area':'100', 'signals':'2'}}],function(){ calc(); });
+}
+var __detector_27_f0=(typeof calc==='function')?calc:null;
+if(__detector_27_f0){
+    calc=function(){ var __r=__detector_27_f0.apply(null,arguments); try{ __detector_27Extras(); }catch(e){} return __r; };
+}
+function __detector_27Boot(){ try{ __detector_27Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __detector_27Boot();
+else document.addEventListener('DOMContentLoaded', __detector_27Boot);
 </script>
 
 </body>

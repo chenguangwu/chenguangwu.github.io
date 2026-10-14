@@ -176,7 +176,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <h3 style="font-size:14px;margin:16px 0 6px;">📊 折旧额柱状对比</h3>
-    <div id="barChart" class="result-box" style="padding:14px;"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__depreciation_compareExport()">导出明细 CSV</button></div><div id="barChart" class="result-box" style="padding:14px;"></div> <div id="depreciation_compareTable"></div> <div id="depreciation_compareDiff"></div> <div id="depreciation_compareChart"></div> <div id="depreciation_compareHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:14px;">
       <strong>直线法</strong>：(原值-残值)/年限，每年折旧额相同<br>
@@ -396,6 +396,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __depreciation_compare_last=0,__depreciation_compare_skip=false;
+function __depreciation_compareSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __depreciation_compareResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __depreciation_compareTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __depreciation_compareRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__depreciation_compareTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#depreciation_compareTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#depreciation_compareDiff');
+        TBKit.history.mount('#depreciation_compareHist',function(rec){
+            __depreciation_compare_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __depreciation_compare_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__depreciation_compareTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#depreciation_compareChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __depreciation_compareExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__depreciation_compare_skip) return;
+    var snap=__depreciation_compareSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__depreciation_compareResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__depreciation_compare_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __depreciation_compare_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __depreciation_compareRender(keys,rk,en);
+}
+function __depreciation_compareExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#depreciation_compareTable','depreciation-compare.csv'); } catch(e){}
+}
+function __depreciation_comparePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#depreciation_comparePresets',[{label:'默认参数',labelEn:'Default',values:{'cost':'100000', 'salvage':'5000', 'life':'5'}}],function(){ calc(); });
+}
+var __depreciation_compare_f0=(typeof calc==='function')?calc:null;
+if(__depreciation_compare_f0){
+    calc=function(){ var __r=__depreciation_compare_f0.apply(null,arguments); try{ __depreciation_compareExtras(); }catch(e){} return __r; };
+}
+function __depreciation_compareBoot(){ try{ __depreciation_comparePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __depreciation_compareBoot();
+else document.addEventListener('DOMContentLoaded', __depreciation_compareBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用折旧方法对比</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>资产原值（元）</li><li>预计残值（元）</li><li>使用年限</li></ul><h2>适用场景</h2><p>税务筹划与财务报表编制时，对比直线法、双倍余额递减法、年数总和法对各年折旧额与账面净值的影响。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>双倍余额递减法最后两年为什么要改直线法？</dt><dd>双倍余额递减法前期折旧快、后期慢，若始终按率计提，到期末无法刚好摊到残值。惯例在折旧年限到期前两年，将固定资产净值扣除预计净残值后的余额平均摊销，确保最终账面净值等于残值。</dd><dt>三种方法对所得税有什么不同影响？</dt><dd>直线法各年费用均衡；加速折旧法（双倍余额递减、年数总和）前期折旧额大、利润低、应纳税额相对后移，相当于获得资金的时间价值，但全周期折旧总额相同，只是分布前多后少。</dd></dl></section>
