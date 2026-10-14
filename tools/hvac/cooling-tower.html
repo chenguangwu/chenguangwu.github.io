@@ -168,13 +168,19 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="cooling_towerPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__cooling_towerExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="resetInputs()">重置</button>
       <button type="button" class="btn" onclick="loadExample()">示例</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cooling_towerTable"></div>
+    <div id="cooling_towerDiff"></div>
+    <div id="cooling_towerChart"></div>
+    <div id="cooling_towerHist"></div>
     <div id="warnBox"></div>
   </div>
 
@@ -504,6 +510,111 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 calc();
+
+var __cooling_tower_last=0,__cooling_tower_skip=false;
+function __cooling_towerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cooling_towerResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cooling_towerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cooling_towerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cooling_towerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cooling_towerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cooling_towerDiff');
+        TBKit.history.mount('#cooling_towerHist',function(rec){
+            __cooling_tower_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __cooling_tower_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cooling_towerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cooling_towerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cooling_towerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cooling_tower_skip) return;
+    var snap=__cooling_towerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cooling_towerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cooling_tower_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cooling_tower_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cooling_towerRender(keys,rk,en);
+}
+function __cooling_towerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cooling_towerTable','cooling-tower.csv'); } catch(e){}
+}
+function __cooling_towerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cooling_towerPresets',[{label:'默认参数',labelEn:'Default',values:{'flow':'600', 'twIn':'37', 'twOut':'32', 'twb':'27', 'cycles':'3', 'driftRate':'0.001'}}],function(){ calc(); });
+}
+var __cooling_tower_f0=(typeof calc==='function')?calc:null;
+if(__cooling_tower_f0){
+    calc=function(){ var __r=__cooling_tower_f0.apply(null,arguments); try{ __cooling_towerExtras(); }catch(e){} return __r; };
+}
+function __cooling_towerBoot(){ try{ __cooling_towerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cooling_towerBoot();
+else document.addEventListener('DOMContentLoaded', __cooling_towerBoot);
 </script>
 </body>
 </html>
