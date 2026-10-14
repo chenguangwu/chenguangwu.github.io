@@ -148,7 +148,12 @@ s.parentNode.insertBefore(el, s);
 <label style="margin-top:12px;">商机/报价数</label><input type="number" id="opportunities" value="800" oninput="calc()">
 <label style="margin-top:12px;">成交客户数</label><input type="number" id="customers" value="200" oninput="calc()">
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__marketing_sales_funnelExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result"></div>
+    <div id="marketing_sales_funnelTable"></div>
+    <div id="marketing_sales_funnelDiff"></div>
+    <div id="marketing_sales_funnelChart"></div>
+    <div id="marketing_sales_funnelHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -300,6 +305,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __marketing_sales_funnel_last=0,__marketing_sales_funnel_skip=false;
+function __marketing_sales_funnelSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __marketing_sales_funnelResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __marketing_sales_funnelTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __marketing_sales_funnelRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__marketing_sales_funnelTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#marketing_sales_funnelTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#marketing_sales_funnelDiff');
+        TBKit.history.mount('#marketing_sales_funnelHist',function(rec){
+            __marketing_sales_funnel_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __marketing_sales_funnel_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__marketing_sales_funnelTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#marketing_sales_funnelChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __marketing_sales_funnelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__marketing_sales_funnel_skip) return;
+    var snap=__marketing_sales_funnelSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__marketing_sales_funnelResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__marketing_sales_funnel_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __marketing_sales_funnel_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __marketing_sales_funnelRender(keys,rk,en);
+}
+function __marketing_sales_funnelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#marketing_sales_funnelTable','marketing-sales-funnel.csv'); } catch(e){}
+}
+function __marketing_sales_funnelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#marketing_sales_funnelPresets',[{label:'默认参数',labelEn:'Default',values:{visitors:'100000', leads:'5000', qualified:'2000', opportunities:'800', customers:'200'}}],function(){ calc(); });
+}
+var __marketing_sales_funnel_f0=(typeof calc==='function')?calc:null;
+if(__marketing_sales_funnel_f0){
+    calc=function(){ __marketing_sales_funnel_f0.apply(null,arguments); try{ __marketing_sales_funnelExtras(); }catch(e){} };
+}
+function __marketing_sales_funnelBoot(){ try{ __marketing_sales_funnelPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __marketing_sales_funnelBoot();
+else document.addEventListener('DOMContentLoaded', __marketing_sales_funnelBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

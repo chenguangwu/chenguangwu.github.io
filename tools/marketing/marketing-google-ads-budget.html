@@ -147,7 +147,12 @@ s.parentNode.insertBefore(el, s);
 <label style="margin-top:12px;">预期转化率（%）</label><input type="number" id="convRate" value="3" oninput="calc()">
 <label style="margin-top:12px;">平均客单价（元）</label><input type="number" id="avgOrderValue" value="300" oninput="calc()">
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__marketing_google_ads_budgetExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result"></div>
+    <div id="marketing_google_ads_budgetTable"></div>
+    <div id="marketing_google_ads_budgetDiff"></div>
+    <div id="marketing_google_ads_budgetChart"></div>
+    <div id="marketing_google_ads_budgetHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -239,6 +244,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __marketing_google_ads_budget_last=0,__marketing_google_ads_budget_skip=false;
+function __marketing_google_ads_budgetSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __marketing_google_ads_budgetResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __marketing_google_ads_budgetTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __marketing_google_ads_budgetRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__marketing_google_ads_budgetTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#marketing_google_ads_budgetTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#marketing_google_ads_budgetDiff');
+        TBKit.history.mount('#marketing_google_ads_budgetHist',function(rec){
+            __marketing_google_ads_budget_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __marketing_google_ads_budget_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__marketing_google_ads_budgetTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#marketing_google_ads_budgetChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __marketing_google_ads_budgetExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__marketing_google_ads_budget_skip) return;
+    var snap=__marketing_google_ads_budgetSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__marketing_google_ads_budgetResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__marketing_google_ads_budget_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __marketing_google_ads_budget_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __marketing_google_ads_budgetRender(keys,rk,en);
+}
+function __marketing_google_ads_budgetExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#marketing_google_ads_budgetTable','marketing-google-ads-budget.csv'); } catch(e){}
+}
+function __marketing_google_ads_budgetPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#marketing_google_ads_budgetPresets',[{label:'默认参数',labelEn:'Default',values:{avgCpc:'3', targetClicksDay:'50', convRate:'3', avgOrderValue:'300'}}],function(){ calc(); });
+}
+var __marketing_google_ads_budget_f0=(typeof calc==='function')?calc:null;
+if(__marketing_google_ads_budget_f0){
+    calc=function(){ __marketing_google_ads_budget_f0.apply(null,arguments); try{ __marketing_google_ads_budgetExtras(); }catch(e){} };
+}
+function __marketing_google_ads_budgetBoot(){ try{ __marketing_google_ads_budgetPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __marketing_google_ads_budgetBoot();
+else document.addEventListener('DOMContentLoaded', __marketing_google_ads_budgetBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

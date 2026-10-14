@@ -147,7 +147,12 @@ s.parentNode.insertBefore(el, s);
 <label style="margin-top:12px;">运费（元）</label><input type="number" id="shippingFee" value="10" oninput="calc()">
 <label style="margin-top:12px;">商品平均毛利率（%）</label><input type="number" id="avgMargin" value="45" oninput="calc()">
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__marketing_free_shipping_thresholdExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result"></div>
+    <div id="marketing_free_shipping_thresholdTable"></div>
+    <div id="marketing_free_shipping_thresholdDiff"></div>
+    <div id="marketing_free_shipping_thresholdChart"></div>
+    <div id="marketing_free_shipping_thresholdHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -241,6 +246,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __marketing_free_shipping_threshold_last=0,__marketing_free_shipping_threshold_skip=false;
+function __marketing_free_shipping_thresholdSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __marketing_free_shipping_thresholdResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __marketing_free_shipping_thresholdTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __marketing_free_shipping_thresholdRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__marketing_free_shipping_thresholdTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#marketing_free_shipping_thresholdTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#marketing_free_shipping_thresholdDiff');
+        TBKit.history.mount('#marketing_free_shipping_thresholdHist',function(rec){
+            __marketing_free_shipping_threshold_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __marketing_free_shipping_threshold_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__marketing_free_shipping_thresholdTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#marketing_free_shipping_thresholdChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __marketing_free_shipping_thresholdExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__marketing_free_shipping_threshold_skip) return;
+    var snap=__marketing_free_shipping_thresholdSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__marketing_free_shipping_thresholdResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__marketing_free_shipping_threshold_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __marketing_free_shipping_threshold_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __marketing_free_shipping_thresholdRender(keys,rk,en);
+}
+function __marketing_free_shipping_thresholdExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#marketing_free_shipping_thresholdTable','marketing-free-shipping-threshold.csv'); } catch(e){}
+}
+function __marketing_free_shipping_thresholdPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#marketing_free_shipping_thresholdPresets',[{label:'默认参数',labelEn:'Default',values:{currentCart:'78', freeShipThreshold:'99', shippingFee:'10', avgMargin:'45'}}],function(){ calc(); });
+}
+var __marketing_free_shipping_threshold_f0=(typeof calc==='function')?calc:null;
+if(__marketing_free_shipping_threshold_f0){
+    calc=function(){ __marketing_free_shipping_threshold_f0.apply(null,arguments); try{ __marketing_free_shipping_thresholdExtras(); }catch(e){} };
+}
+function __marketing_free_shipping_thresholdBoot(){ try{ __marketing_free_shipping_thresholdPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __marketing_free_shipping_thresholdBoot();
+else document.addEventListener('DOMContentLoaded', __marketing_free_shipping_thresholdBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
