@@ -239,7 +239,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:12px;">
-      <button type="button" class="btn primary" onclick="calc()">重新计算</button>
+      <div id="compound_interestPresets"></div><button type="button" class="btn primary" onclick="calc()">重新计算</button><button class="btn" type="button" onclick="__compound_interestExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="exportCSV()">导出 CSV</button>
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
@@ -292,7 +292,7 @@ s.parentNode.insertBefore(el, s);
         <p><strong>115 法则</strong>：115 / 年利率 ≈ 本金变三倍所需年数</p>
         <hr style="border:none;border-top:1px solid var(--border-color);margin:10px 0;">
         <p style="font-size:12px;color:var(--text-muted);">注：日计息按 365 天估算，实际银行业务可能不同。本计算器仅供参考，不构成投资建议。</p>
-      </div>
+      </div> <div id="compound_interestTable"></div> <div id="compound_interestDiff"></div> <div id="compound_interestChart"></div> <div id="compound_interestHist"></div>
     </div>
   </div>
 
@@ -599,6 +599,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __compound_interest_last=0,__compound_interest_skip=false;
+function __compound_interestSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __compound_interestResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __compound_interestTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __compound_interestRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__compound_interestTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#compound_interestTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#compound_interestDiff');
+        TBKit.history.mount('#compound_interestHist',function(rec){
+            __compound_interest_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __compound_interest_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__compound_interestTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#compound_interestChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __compound_interestExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__compound_interest_skip) return;
+    var snap=__compound_interestSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__compound_interestResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__compound_interest_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __compound_interest_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __compound_interestRender(keys,rk,en);
+}
+function __compound_interestExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#compound_interestTable','compound-interest.csv'); } catch(e){}
+}
+function __compound_interestPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#compound_interestPresets',[{label:'默认参数',labelEn:'Default',values:{'principal':'10000', 'rate':'5', 'years':'20', 'annual':'12000', 'freq':'1', 'investTime':'start'}}],function(){ calc(); });
+}
+var __compound_interest_f0=(typeof calc==='function')?calc:null;
+if(__compound_interest_f0){
+    calc=function(){ var __r=__compound_interest_f0.apply(null,arguments); try{ __compound_interestExtras(); }catch(e){} return __r; };
+}
+function __compound_interestBoot(){ try{ __compound_interestPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __compound_interestBoot();
+else document.addEventListener('DOMContentLoaded', __compound_interestBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

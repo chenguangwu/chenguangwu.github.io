@@ -155,11 +155,11 @@ s.parentNode.insertBefore(el, s);
     <input type="number" id="income" value="100000" oninput="calc()" step="any">
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="tax_bracketPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__tax_bracketExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
 
-    <div class="result-box" id="resultBox">请输入金额</div>
+    <div class="result-box" id="resultBox">请输入金额</div> <div id="tax_bracketTable"></div> <div id="tax_bracketDiff"></div> <div id="tax_bracketChart"></div> <div id="tax_bracketHist"></div>
   </div>
 
   <div class="card">
@@ -316,6 +316,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __tax_bracket_last=0,__tax_bracket_skip=false;
+function __tax_bracketSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tax_bracketResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tax_bracketTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tax_bracketRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tax_bracketTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tax_bracketTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#tax_bracketDiff');
+        TBKit.history.mount('#tax_bracketHist',function(rec){
+            __tax_bracket_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tax_bracket_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tax_bracketTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tax_bracketChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tax_bracketExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tax_bracket_skip) return;
+    var snap=__tax_bracketSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tax_bracketResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tax_bracket_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tax_bracket_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tax_bracketRender(keys,rk,en);
+}
+function __tax_bracketExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tax_bracketTable','tax-bracket.csv'); } catch(e){}
+}
+function __tax_bracketPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tax_bracketPresets',[{label:'默认参数',labelEn:'Default',values:{'income':'100000'}}],function(){ calc(); });
+}
+var __tax_bracket_f0=(typeof calc==='function')?calc:null;
+if(__tax_bracket_f0){
+    calc=function(){ var __r=__tax_bracket_f0.apply(null,arguments); try{ __tax_bracketExtras(); }catch(e){} return __r; };
+}
+function __tax_bracketBoot(){ try{ __tax_bracketPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tax_bracketBoot();
+else document.addEventListener('DOMContentLoaded', __tax_bracketBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

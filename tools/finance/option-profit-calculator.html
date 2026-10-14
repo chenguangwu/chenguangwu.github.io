@@ -196,7 +196,7 @@ s.parentNode.insertBefore(el, s);
       </div>
 
       <div class="stat-grid-4" id="statGrid"></div>
-      <div class="result-box" id="res"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__option_profit_calculatorExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="option_profit_calculatorTable"></div> <div id="option_profit_calculatorDiff"></div> <div id="option_profit_calculatorChart"></div> <div id="option_profit_calculatorHist"></div>
 
       <div class="toolbar" style="margin-top:12px;">
         <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
@@ -841,6 +841,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __option_profit_calculator_last=0,__option_profit_calculator_skip=false;
+function __option_profit_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __option_profit_calculatorResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __option_profit_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __option_profit_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__option_profit_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#option_profit_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#option_profit_calculatorDiff');
+        TBKit.history.mount('#option_profit_calculatorHist',function(rec){
+            __option_profit_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __option_profit_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__option_profit_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#option_profit_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __option_profit_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__option_profit_calculator_skip) return;
+    var snap=__option_profit_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__option_profit_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__option_profit_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __option_profit_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __option_profit_calculatorRender(keys,rk,en);
+}
+function __option_profit_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#option_profit_calculatorTable','option-profit-calculator.csv'); } catch(e){}
+}
+function __option_profit_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#option_profit_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'strike':'100', 'premium':'5', 's0':'110', 'contracts':'1', 'mult':'100', 'fee':'2'}}],function(){ calc(); });
+}
+var __option_profit_calculator_f0=(typeof calc==='function')?calc:null;
+if(__option_profit_calculator_f0){
+    calc=function(){ var __r=__option_profit_calculator_f0.apply(null,arguments); try{ __option_profit_calculatorExtras(); }catch(e){} return __r; };
+}
+function __option_profit_calculatorBoot(){ try{ __option_profit_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __option_profit_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __option_profit_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

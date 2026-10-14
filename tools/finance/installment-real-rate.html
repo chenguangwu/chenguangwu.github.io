@@ -134,11 +134,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" onclick="calcTool()">计算</button>
+      <div id="installment_real_ratePresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__installment_real_rateExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="installment_real_rateTable"></div> <div id="installment_real_rateDiff"></div> <div id="installment_real_rateChart"></div> <div id="installment_real_rateHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -272,6 +272,114 @@ function resetForm(){document.getElementById('P').value='12000';
       document.getElementById('r').value='0.6';
       calcTool();}
 calcTool();
+
+var __installment_real_rate_last=0,__installment_real_rate_skip=false;
+function __installment_real_rateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __installment_real_rateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __installment_real_rateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __installment_real_rateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__installment_real_rateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#installment_real_rateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#installment_real_rateDiff');
+        TBKit.history.mount('#installment_real_rateHist',function(rec){
+            __installment_real_rate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcTool();
+            }catch(e2){}
+            __installment_real_rate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__installment_real_rateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#installment_real_rateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __installment_real_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__installment_real_rate_skip) return;
+    var snap=__installment_real_rateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__installment_real_rateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__installment_real_rate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __installment_real_rate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __installment_real_rateRender(keys,rk,en);
+}
+function __installment_real_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#installment_real_rateTable','installment-real-rate.csv'); } catch(e){}
+}
+function __installment_real_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#installment_real_ratePresets',[{label:'默认参数',labelEn:'Default',values:{'P':'12000', 'n':'12', 'r':'0.6'}}],function(){ calcTool(); });
+}
+var __installment_real_rate_f0=(typeof calcTool==='function')?calcTool:null;
+if(__installment_real_rate_f0){
+    calcTool=function(){ var __r=__installment_real_rate_f0.apply(null,arguments); try{ __installment_real_rateExtras(); }catch(e){} return __r; };
+}
+function __installment_real_rateBoot(){ try{ __installment_real_ratePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __installment_real_rateBoot();
+else document.addEventListener('DOMContentLoaded', __installment_real_rateBoot);
 </script>
 <section class="opt-guide"><h2>如何使用Installment Real Rate</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>分期本金（元）</li><li>分期期数（月）</li><li>每期手续费率（%）</li></ul><h2>适用场景</h2><p>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>Installment Real Rate是做什么的？</dt><dd>分期手续费率 ≠ 实际利率。输入分期本金、期数与每期手续费率，用 IRR（内部收益率）法还原真实年化利率，并给出对比结论。</dd><dt>如何使用Installment Real Rate？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>Installment Real Rate适合哪些场景？</dt><dd>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 </body>

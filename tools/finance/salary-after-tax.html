@@ -141,11 +141,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" onclick="calcTool()">计算</button>
+      <div id="salary_after_taxPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__salary_after_taxExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="salary_after_taxTable"></div> <div id="salary_after_taxDiff"></div> <div id="salary_after_taxChart"></div> <div id="salary_after_taxHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -278,6 +278,114 @@ function resetForm(){document.getElementById('gross').value='15000';
       document.getElementById('months').value='1';
       calcTool();}
 calcTool();
+
+var __salary_after_tax_last=0,__salary_after_tax_skip=false;
+function __salary_after_taxSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __salary_after_taxResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __salary_after_taxTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __salary_after_taxRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__salary_after_taxTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#salary_after_taxTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#salary_after_taxDiff');
+        TBKit.history.mount('#salary_after_taxHist',function(rec){
+            __salary_after_tax_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcTool();
+            }catch(e2){}
+            __salary_after_tax_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__salary_after_taxTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#salary_after_taxChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __salary_after_taxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__salary_after_tax_skip) return;
+    var snap=__salary_after_taxSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__salary_after_taxResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__salary_after_tax_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __salary_after_tax_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __salary_after_taxRender(keys,rk,en);
+}
+function __salary_after_taxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#salary_after_taxTable','salary-after-tax.csv'); } catch(e){}
+}
+function __salary_after_taxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#salary_after_taxPresets',[{label:'默认参数',labelEn:'Default',values:{'gross':'15000', 'ins':'1650', 'ded':'2000', 'months':'1'}}],function(){ calcTool(); });
+}
+var __salary_after_tax_f0=(typeof calcTool==='function')?calcTool:null;
+if(__salary_after_tax_f0){
+    calcTool=function(){ var __r=__salary_after_tax_f0.apply(null,arguments); try{ __salary_after_taxExtras(); }catch(e){} return __r; };
+}
+function __salary_after_taxBoot(){ try{ __salary_after_taxPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __salary_after_taxBoot();
+else document.addEventListener('DOMContentLoaded', __salary_after_taxBoot);
 </script>
 </body>
 </html>

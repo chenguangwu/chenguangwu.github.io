@@ -263,7 +263,7 @@ s.parentNode.insertBefore(el, s);
       <div class="stat-grid-4" id="statGrid"></div>
       <div class="formula-box"><div class="formula-title">📐 计算公式 / 说明</div><div class="formula-eq">到期收益率(YTM) 使债券未来现金流现值等于价格的贴现率；当期收益率 = 年息 / 市价。</div>
       <div class="formula-desc">基于债券定价原理：YTM 为使未来现金流（票息 + 本金）现值等于买入价的贴现率；当期收益率 = 年票息/市价，持有期收益率还含资本利得，用于债券回报比较。</div></div>
-<div class="result-box" id="res" data-viz="gauge" data-min="0" data-max="20" data-unit="%"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__bond_yield_calculatorExport()">导出明细 CSV</button></div><div class="result-box" id="res" data-viz="gauge" data-min="0" data-max="20" data-unit="%"></div> <div id="bond_yield_calculatorTable"></div> <div id="bond_yield_calculatorDiff"></div> <div id="bond_yield_calculatorChart"></div> <div id="bond_yield_calculatorHist"></div>
 
       <div class="card" style="margin-top:12px;">
         <h3>📈 现金流示意图</h3>
@@ -1002,6 +1002,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __bond_yield_calculator_last=0,__bond_yield_calculator_skip=false;
+function __bond_yield_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bond_yield_calculatorResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bond_yield_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bond_yield_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bond_yield_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bond_yield_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bond_yield_calculatorDiff');
+        TBKit.history.mount('#bond_yield_calculatorHist',function(rec){
+            __bond_yield_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __bond_yield_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bond_yield_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bond_yield_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bond_yield_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bond_yield_calculator_skip) return;
+    var snap=__bond_yield_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bond_yield_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bond_yield_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bond_yield_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bond_yield_calculatorRender(keys,rk,en);
+}
+function __bond_yield_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bond_yield_calculatorTable','bond-yield-calculator.csv'); } catch(e){}
+}
+function __bond_yield_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bond_yield_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'y-face':'1000', 'y-coupon':'5', 'y-price':'950', 'y-years':'5', 'y-freq':'1', 'y-type':'coupon', 'c-face':'1000', 'c-coupon':'5', 'c-price':'950', 'h-buy':'950', 'h-sell':'980', 'h-face':'1000'}}],function(){ calc(); });
+}
+var __bond_yield_calculator_f0=(typeof calc==='function')?calc:null;
+if(__bond_yield_calculator_f0){
+    calc=function(){ var __r=__bond_yield_calculator_f0.apply(null,arguments); try{ __bond_yield_calculatorExtras(); }catch(e){} return __r; };
+}
+function __bond_yield_calculatorBoot(){ try{ __bond_yield_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bond_yield_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __bond_yield_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

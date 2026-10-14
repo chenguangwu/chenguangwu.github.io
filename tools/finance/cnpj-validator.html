@@ -155,7 +155,7 @@ s.parentNode.insertBefore(el, s);
 
     <label>输入（CNPJ 号码，14 位数字）</label>
     <input type="text" id="input" oninput="validate()" placeholder="如：11.222.333/0001-81">
-    <div class="result-box" id="output">等待输入...</div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__cnpj_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="cnpj_validatorTable"></div> <div id="cnpj_validatorDiff"></div> <div id="cnpj_validatorChart"></div> <div id="cnpj_validatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -279,6 +279,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __cnpj_validator_last=0,__cnpj_validator_skip=false;
+function __cnpj_validatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cnpj_validatorResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cnpj_validatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cnpj_validatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cnpj_validatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cnpj_validatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cnpj_validatorDiff');
+        TBKit.history.mount('#cnpj_validatorHist',function(rec){
+            __cnpj_validator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                validate();
+            }catch(e2){}
+            __cnpj_validator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cnpj_validatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cnpj_validatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cnpj_validatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cnpj_validator_skip) return;
+    var snap=__cnpj_validatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cnpj_validatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cnpj_validator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cnpj_validator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cnpj_validatorRender(keys,rk,en);
+}
+function __cnpj_validatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cnpj_validatorTable','cnpj-validator.csv'); } catch(e){}
+}
+function __cnpj_validatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __cnpj_validator_f0=(typeof validate==='function')?validate:null;
+if(__cnpj_validator_f0){
+    validate=function(){ var __r=__cnpj_validator_f0.apply(null,arguments); try{ __cnpj_validatorExtras(); }catch(e){} return __r; };
+}
+function __cnpj_validatorBoot(){ try{ __cnpj_validatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cnpj_validatorBoot();
+else document.addEventListener('DOMContentLoaded', __cnpj_validatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
