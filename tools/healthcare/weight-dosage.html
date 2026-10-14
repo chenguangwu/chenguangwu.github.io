@@ -119,10 +119,16 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>剂量 mg/kg</label><input type="number" id="mgkg" value="10" step="any" oninput="calc()"></div>
     <div class="input-row"><label>每日次数</label><input type="number" id="freq" value="2" step="any" oninput="calc()"></div>
     <div class="toolbar">
+      <div id="weight_dosagePresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__weight_dosageExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div id="weight_dosageTable"></div>
+    <div id="weight_dosageDiff"></div>
+    <div id="weight_dosageChart"></div>
+    <div id="weight_dosageHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -237,6 +243,111 @@ function copyResult() {
   });
 }
 calc();
+
+var __weight_dosage_last=0,__weight_dosage_skip=false;
+function __weight_dosageSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __weight_dosageResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __weight_dosageTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __weight_dosageRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__weight_dosageTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#weight_dosageTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#weight_dosageDiff');
+        TBKit.history.mount('#weight_dosageHist',function(rec){
+            __weight_dosage_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __weight_dosage_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__weight_dosageTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#weight_dosageChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __weight_dosageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__weight_dosage_skip) return;
+    var snap=__weight_dosageSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__weight_dosageResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__weight_dosage_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __weight_dosage_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __weight_dosageRender(keys,rk,en);
+}
+function __weight_dosageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#weight_dosageTable','weight-dosage.csv'); } catch(e){}
+}
+function __weight_dosagePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#weight_dosagePresets',[{label:'默认参数',labelEn:'Default',values:{weight:'20', mgkg:'10', freq:'2'}}],function(){ calc(); });
+}
+var __weight_dosage_f0=(typeof calc==='function')?calc:null;
+if(__weight_dosage_f0){
+    calc=function(){ __weight_dosage_f0.apply(null,arguments); try{ __weight_dosageExtras(); }catch(e){} };
+}
+function __weight_dosageBoot(){ try{ __weight_dosagePresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __weight_dosageBoot();
+else document.addEventListener('DOMContentLoaded', __weight_dosageBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

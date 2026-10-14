@@ -149,6 +149,81 @@ def extract(page):
             break
     return {"inputs": inputs, "compute": pre, "dg_rows": rows, "primary": primary}
 
+def find_tag_close(s, open_idx):
+    """open_idx 指向 '<tagname'；返回该元素闭合标签结束索引（自闭合返回开标签结束）。
+    属性值含 '>' 时可能失配，调用方须 try 包裹。"""
+    m = re.match(r'<(\w+)', s[open_idx:])
+    if not m:
+        return None
+    tag = m.group(1)
+    pat = re.compile(r'<(/?)%s\b[^>]*?(/?)>' % tag, re.I)
+    depth = 0
+    i = open_idx
+    while True:
+        mm = pat.search(s, i)
+        if not mm:
+            return None
+        if mm.group(1) == '/':
+            depth -= 1
+            if depth == 0:
+                return mm.end()
+        elif mm.group(2) == '/':
+            if depth == 0:
+                return mm.end()
+        else:
+            depth += 1
+        i = mm.end()
+
+
+def extract_custom(page):
+    """新架构手工页模式：顶层 function <fn> + id="result" + 输入控件（无 calcTool/dataGrid）。
+    返回 dict(fn, inputs, defaults) 或 None。fn 取按钮/输入事件回调中的顶层函数，
+    优先 calc/compute/solve/count/estimate/eval 系命名。"""
+    s = open(page, encoding='utf-8').read()
+    if 'TBKit.matrix.table' in s:
+        return None
+    if not re.search(r'id="result"', s):
+        return None
+    cands = []
+    for mm in re.finditer(r'on(?:click|input|change)="(\w+)\(', s):
+        c = mm.group(1)
+        if c not in cands:
+            cands.append(c)
+    fn = None
+    for c in cands:
+        if re.match(r'^(?:calc|compute|solve|count|estimate|eval|do)\w*$', c) and \
+                re.search(r'^function\s+%s\s*\(' % re.escape(c), s, re.M):
+            fn = c
+            break
+    if fn is None:
+        for c in cands:
+            if re.search(r'^function\s+%s\s*\(' % re.escape(c), s, re.M):
+                fn = c
+                break
+    if fn is None:
+        return None
+    # 输入控件 id（input/select/textarea），去重保序，上限 12 防表过宽
+    ids = []
+    for mm in re.finditer(r'<(?:input|select|textarea)\b[^>]*\bid="([\w-]+)"', s):
+        iid = mm.group(1)
+        if re.search(r'\b(?:search|token|csrf|nonce)\b', iid, re.I):
+            continue
+        if iid not in ids:
+            ids.append(iid)
+    inputs = ids[:12]
+    if not inputs:
+        return None
+    defaults = {}
+    for iid in inputs:
+        m = re.search(r'<(?:input|select|textarea)\b[^>]*\bid="%s"[^>]*\bvalue="([^"]*)"' % re.escape(iid), s)
+        if m:
+            defaults[iid] = m.group(1)
+        else:
+            m2 = re.search(r'<select\b[^>]*\bid="%s"[^>]*>\s*<option[^>]*value="([^"]*)"' % re.escape(iid), s)
+            defaults[iid] = m2.group(1) if m2 else ''
+    return {"fn": fn, "inputs": inputs, "defaults": defaults}
+
+
 def gen_script(name, info):
     p = name  # 前缀
     inputs = info["inputs"]
@@ -173,6 +248,10 @@ def apply_page(page, dry=False):
         return "skip:complex-nested-functions"
     info = extract(page)
     if info is None:
+        # 经典模式（calcTool+dataGrid）不适用 → 尝试新架构手工页模式（calc+#result）
+        r = apply_custom(page, dry=dry)
+        if r:
+            return r
         return "skip:no-calcTool/datagrid"
     # 已接线则跳过
     s0 = open(page, encoding='utf-8').read()
@@ -293,6 +372,184 @@ def apply_page(page, dry=False):
         except Exception as e:
             return "written-but-en-json-err:%s" % e
     return "applied"
+
+def apply_custom(page, dry=False):
+    """新架构手工页接线：包装顶层 calc 函数，calc 后快照输入+结果摘要，
+    经 TBKit 落 history/matrix/diffBox/chart/preset/export。全部 try 包裹，
+    TBKit 缺失时静默跳过，不触碰页面核心计算。"""
+    s0 = open(page, encoding='utf-8').read()
+    info = extract_custom(page)
+    if info is None:
+        return None
+    name = os.path.splitext(os.path.basename(page))[0]
+    p = name.replace('-', '_')
+    fn = info["fn"]
+    defaults = info["defaults"]
+
+    js = []
+    js.append("var __%s_last=0,__%s_skip=false;" % (p, p))
+    # 输入快照（checkbox/radio 取勾选态，排除按钮/隐藏域）
+    js.append("function __%sSnap(){" % p)
+    js.append("    var out={};")
+    js.append("    var els=document.querySelectorAll('input[id],select[id],textarea[id]');")
+    js.append("    for(var i=0;i<els.length;i++){")
+    js.append("        var e=els[i];")
+    js.append("        var t=(e.type||'').toLowerCase();")
+    js.append("        if(t==='button'||t==='submit'||t==='hidden') continue;")
+    js.append("        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;")
+    js.append("        if(v!==''&&v!=null) out[e.id]=v;")
+    js.append("    }")
+    js.append("    return out;")
+    js.append("}")
+    # 结果摘要文本（#result textContent；占位/报错态返回空 → 不记录）
+    js.append("function __%sResText(){" % p)
+    js.append("    var r=document.getElementById('result');")
+    js.append("    if(!r) return '';")
+    js.append("    var t=(r.textContent||'').replace(/\\s+/g,' ').trim();")
+    js.append("    if(!t||t==='--'||t==='—'||t==='-') return '';")
+    js.append("    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';")
+    js.append("    return t.slice(0,80);")
+    js.append("}")
+    js.append("function __%sTime(t){" % p)
+    js.append("    var d=new Date(t);")
+    js.append("    function q(x){return (x<10?'0':'')+x;}")
+    js.append("    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());")
+    js.append("}")
+    # 渲染：明细表 + 与上次相比 + 历史面板 + 趋势图
+    js.append("function __%sRender(keys,rk,en){" % p)
+    js.append("    try{")
+    js.append("        var arr=TBKit.history.list().slice(0,10);")
+    js.append("        var head=[en?'Time':'时间'].concat(keys).concat([rk]);")
+    js.append("        var rows=arr.map(function(it){")
+    js.append("            var row=[__%sTime(it.t)];" % p)
+    js.append("            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}")
+    js.append("            var r=it.d[rk];row.push(r==null?'':r);")
+    js.append("            return row;")
+    js.append("        });")
+    js.append("        TBKit.matrix.table('#%sTable',{head:head,rows:rows});" % p)
+    js.append("        TBKit.util.diffBox('#%sDiff');" % p)
+    js.append("        TBKit.history.mount('#%sHist',function(rec){" % p)
+    js.append("            __%s_skip=true;" % p)
+    js.append("            try{")
+    js.append("                for(var k in rec){")
+    js.append("                    if(k===rk) continue;")
+    js.append("                    var e=document.getElementById(k);")
+    js.append("                    if(e) e.value=rec[k];")
+    js.append("                }")
+    js.append("                %s();" % fn)
+    js.append("            }catch(e2){}")
+    js.append("            __%s_skip=false;" % p)
+    js.append("        });")
+    js.append("        var nums=[],labels=[];")
+    js.append("        for(var j=arr.length-1;j>=0;j--){")
+    js.append("            var v=parseFloat(arr[j].d[rk]);")
+    js.append("            if(isFinite(v)){nums.push(v);labels.push(__%sTime(arr[j].t));}" % p)
+    js.append("        }")
+    js.append("        if(nums.length>=2){")
+    js.append("            TBKit.chart.line('#%sChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});" % p)
+    js.append("        }")
+    js.append("    }catch(e3){}")
+    js.append("}")
+    # extras：快照 + 记录（1s 防抖 + 同参去重）+ 渲染
+    js.append("function __%sExtras(){" % p)
+    js.append("    if (typeof TBKit === 'undefined') return;")
+    js.append("    if (__%s_skip) return;" % p)
+    js.append("    var snap=__%sSnap();" % p)
+    js.append("    var keys=Object.keys(snap);")
+    js.append("    if(!keys.length) return;")
+    js.append("    if(keys.length>12) keys=keys.slice(0,12);")
+    js.append("    var res=__%sResText();" % p)
+    js.append("    if(!res) return;")
+    js.append("    var en=TBKit.util.isEn();")
+    js.append("    var rk=en?'Result':'结果';")
+    js.append("    var now=Date.now();")
+    js.append("    if(now-__%s_last<1000) return;" % p)
+    js.append("    var last=null;")
+    js.append("    try{ last=TBKit.history.last(); }catch(e){}")
+    js.append("    if(last){")
+    js.append("        var same=true;")
+    js.append("        for(var i=0;i<keys.length;i++){")
+    js.append("            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}")
+    js.append("        }")
+    js.append("        if(same&&String(last[rk])===String(res)) return;")
+    js.append("    }")
+    js.append("    __%s_last=now;" % p)
+    js.append("    var rec={};")
+    js.append("    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];")
+    js.append("    rec[rk]=res;")
+    js.append("    TBKit.history.record(rec);")
+    js.append("    __%sRender(keys,rk,en);" % p)
+    js.append("}")
+    # 导出
+    js.append("function __%sExport(){" % p)
+    js.append("    if (typeof TBKit === 'undefined') return;")
+    js.append("    try { TBKit.util.exportTable('#%sTable','%s.csv'); } catch(e){}" % (p, name))
+    js.append("}")
+    # 预设（默认参数回填）
+    pv = ", ".join("%s:'%s'" % (k, str(v).replace("'", "").replace("\\", "")[:40]) for k, v in defaults.items() if v != '')
+    js.append("function __%sPresets(){" % p)
+    js.append("    if (typeof TBKit === 'undefined') return;")
+    if pv:
+        js.append("    TBKit.preset.bar('#%sPresets',[{label:'默认参数',labelEn:'Default',values:{%s}}],function(){ %s(); });" % (p, pv, fn))
+    js.append("}")
+    # 包装 + boot（typeof 守卫：calc 注入点不可见时不包装，绝不让 ReferenceError 杀死脚本块）
+    js.append("var __%s_f0=(typeof %s==='function')?%s:null;" % (p, fn, fn))
+    js.append("if(__%s_f0){" % p)
+    js.append("    %s=function(){ __%s_f0.apply(null,arguments); try{ __%sExtras(); }catch(e){} };" % (fn, p, p))
+    js.append("}")
+    js.append("function __%sBoot(){ try{ __%sPresets(); }catch(e){} try{ %s(); }catch(e){} }" % (p, p, fn))
+    js.append("if (document.readyState && document.readyState !== 'loading') __%sBoot();" % p)
+    js.append("else document.addEventListener('DOMContentLoaded', __%sBoot);" % p)
+    js_code = "\n".join(js)
+
+    if dry:
+        return "DRY ok(custom): fn=%s defaults=%d" % (fn, sum(1 for v in defaults.values() if v))
+
+    s = s0
+    # 1) tool-kit.js 缺失则补（紧跟 tool-page-runtime.js）
+    if 'tool-kit.js' not in s:
+        s = s.replace('<script src="/js/tool-page-runtime.js" defer></script>',
+                      '<script src="/js/tool-page-runtime.js" defer></script>\n<script src="/js/tool-kit.js" defer></script>', 1)
+    # 2) 主按钮（onclick="fn(...)"）：前插预设容器、后插导出按钮
+    m = re.search(r'<button\b[^>]*onclick="%s\([^)]*\)"[^>]*>.*?</button>' % re.escape(fn), s, re.S)
+    if m:
+        s = s[:m.start()] + '<div id="%sPresets"></div>\n      ' % p + s[m.start():]
+        m2 = re.search(r'<button\b[^>]*onclick="%s\([^)]*\)"[^>]*>.*?</button>' % re.escape(fn), s, re.S)
+        s = s[:m2.end()] + '\n      <button class="btn" type="button" onclick="__%sExport()">导出明细 CSV</button>' % p + s[m2.end():]
+    else:
+        # 无主按钮（纯输入事件触发）：在 #result 前插独立导出行
+        rp = s.find('id="result"')
+        op = s.rfind('<', 0, rp)
+        s = s[:op] + '<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__%sExport()">导出明细 CSV</button></div>\n    ' % p + s[op:]
+    # 3) 结果容器：在 #result 元素闭合后
+    rp = s.find('id="result"')
+    op = s.rfind('<', 0, rp)
+    close_idx = find_tag_close(s, op)
+    if close_idx is None:
+        return "skip:custom-result-tag-unmatched"
+    containers = '<div id="%sTable"></div>\n    <div id="%sDiff"></div>\n    <div id="%sChart"></div>\n    <div id="%sHist"></div>' % (p, p, p, p)
+    s = s[:close_idx] + '\n    ' + containers + s[close_idx:]
+    # 4) 脚本注入：最后一个 </script> 前
+    pos = s.rfind('</script>')
+    if pos == -1:
+        return "skip:custom-no-script"
+    s = s[:pos] + "\n" + js_code + "\n" + s[pos:]
+
+    open(page, 'w', encoding='utf-8').write(s)
+    # EN 字典补 导出明细 CSV
+    en_path = page.replace('/tools/', '/i18n/tools/en/').replace('.html', '.json')
+    if os.path.isfile(en_path):
+        try:
+            d = json.load(open(en_path, encoding='utf-8'))
+            mp = d.get("map", {})
+            if "导出明细 CSV" not in mp:
+                mp["导出明细 CSV"] = "Export detail CSV"
+                d["map"] = mp
+                json.dump(d, open(en_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+        except Exception as e:
+            return "written-but-en-json-err:%s" % e
+    return "applied(custom)"
+
 
 def main():
     ap = argparse.ArgumentParser()

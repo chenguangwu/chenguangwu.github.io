@@ -116,10 +116,16 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>烧伤面积 %</label><input type="number" id="tbsa" value="30" step="any" oninput="calc()"></div>
     <div class="input-row"><label>已输注时间 h</label><input type="number" id="hours" value="0" step="any" oninput="calc()"></div>
     <div class="toolbar">
+      <div id="parklandPresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__parklandExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result" data-viz="bar" data-viz-max="10000" data-viz-min="0"></div>
+    <div id="parklandTable"></div>
+    <div id="parklandDiff"></div>
+    <div id="parklandChart"></div>
+    <div id="parklandHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -184,6 +190,111 @@ function copyResult() {
   });
 }
 calc();
+
+var __parkland_last=0,__parkland_skip=false;
+function __parklandSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __parklandResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __parklandTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __parklandRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__parklandTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#parklandTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#parklandDiff');
+        TBKit.history.mount('#parklandHist',function(rec){
+            __parkland_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __parkland_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__parklandTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#parklandChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __parklandExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__parkland_skip) return;
+    var snap=__parklandSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__parklandResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__parkland_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __parkland_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __parklandRender(keys,rk,en);
+}
+function __parklandExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#parklandTable','parkland.csv'); } catch(e){}
+}
+function __parklandPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#parklandPresets',[{label:'默认参数',labelEn:'Default',values:{weight:'70', tbsa:'30', hours:'0'}}],function(){ calc(); });
+}
+var __parkland_f0=(typeof calc==='function')?calc:null;
+if(__parkland_f0){
+    calc=function(){ __parkland_f0.apply(null,arguments); try{ __parklandExtras(); }catch(e){} };
+}
+function __parklandBoot(){ try{ __parklandPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __parklandBoot();
+else document.addEventListener('DOMContentLoaded', __parklandBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
