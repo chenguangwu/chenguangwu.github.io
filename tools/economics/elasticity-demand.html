@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="elasticity_demandPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__elasticity_demandExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="elasticity_demandTable"></div>
+    <div id="elasticity_demandDiff"></div>
+    <div id="elasticity_demandHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -277,6 +283,45 @@ function resetForm(){document.getElementById('q1').value = '100';
       document.getElementById('p2').value = '12';
       calcTool();}
 calcTool();
+
+function __elasticity_demandNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __elasticity_demandExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var q1 = num('q1'), q2 = num('q2'), p1 = num('p1'), p2 = num('p2');
+    var dQ = (q2 - q1) / ((q1 + q2) / 2);
+    var dP = (p2 - p1) / ((p1 + p2) / 2);
+    var e = dQ / dP;
+    var type = Math.abs(e) > 1 ? '富有弹性' : (Math.abs(e) < 1 ? '缺乏弹性' : '单位弹性');
+    if (!isFinite(__elasticity_demandNum('q1')) || !isFinite(__elasticity_demandNum('q2')) || !isFinite(__elasticity_demandNum('p1')) || !isFinite(__elasticity_demandNum('p2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#elasticity_demandTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['需求价格弹性 E_d', e.toFixed(3)],
+            ['弹性类型', type],
+        ]
+    });
+    TBKit.history.record({q1:__elasticity_demandNum('q1'), q2:__elasticity_demandNum('q2'), p1:__elasticity_demandNum('p1'), p2:__elasticity_demandNum('p2'), dQ:dQ});
+    TBKit.history.mount('#elasticity_demandHist',function(rec){ if(rec.q1!=null)document.getElementById('q1').value=rec.q1; if(rec.q2!=null)document.getElementById('q2').value=rec.q2; if(rec.p1!=null)document.getElementById('p1').value=rec.p1; if(rec.p2!=null)document.getElementById('p2').value=rec.p2; calcTool(); });
+    TBKit.util.diffBox('#elasticity_demandDiff',['dQ']);
+}
+function __elasticity_demandExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#elasticity_demandTable','elasticity-demand.csv'); } catch(e){}
+}
+function __elasticity_demandPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#elasticity_demandPresets',[
+        {label:'默认',labelEn:'Default',values:{q1:'100', q2:'80', p1:'10', p2:'12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q1:'200', q2:'160', p1:'20', p2:'24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q1:'50', q2:'40', p1:'5', p2:'6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __elasticity_demandExtras(); }catch(e){} };
+function __elasticity_demandBoot(){ try{ __elasticity_demandPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __elasticity_demandBoot();
+else document.addEventListener('DOMContentLoaded', __elasticity_demandBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

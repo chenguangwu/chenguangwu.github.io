@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mpc_from_multiplierPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mpc_from_multiplierExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mpc_from_multiplierTable"></div>
+    <div id="mpc_from_multiplierDiff"></div>
+    <div id="mpc_from_multiplierHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,45 @@ const k=num('k');
 function resetForm(){document.getElementById('k').value = '5';
       calcTool();}
 calcTool();
+
+function __mpc_from_multiplierNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mpc_from_multiplierExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k=num('k');
+    var mpc=1-1/k;
+    if (!isFinite(__mpc_from_multiplierNum('k'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mpc_from_multiplierTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['边际消费倾向 MPC', mpc.toFixed(3)],
+            ['乘数倒数（边际储蓄倾向）', (1/Math.max(k,1e-9)).toFixed(6)],
+            ['乘数减一', (k-1).toFixed(4)],
+            ['税收乘数绝对值', (mpc/Math.max(1-mpc,1e-9)).toFixed(4)],
+            ['MPC 倒数', (1/Math.max(mpc,1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({k:__mpc_from_multiplierNum('k'), mpc:mpc});
+    TBKit.history.mount('#mpc_from_multiplierHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; calcTool(); });
+    TBKit.util.diffBox('#mpc_from_multiplierDiff',['mpc']);
+}
+function __mpc_from_multiplierExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mpc_from_multiplierTable','mpc-from-multiplier.csv'); } catch(e){}
+}
+function __mpc_from_multiplierPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mpc_from_multiplierPresets',[
+        {label:'默认',labelEn:'Default',values:{k:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mpc_from_multiplierExtras(); }catch(e){} };
+function __mpc_from_multiplierBoot(){ try{ __mpc_from_multiplierPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mpc_from_multiplierBoot();
+else document.addEventListener('DOMContentLoaded', __mpc_from_multiplierBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

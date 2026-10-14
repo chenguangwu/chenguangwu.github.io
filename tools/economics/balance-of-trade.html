@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="balance_of_tradePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__balance_of_tradeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="balance_of_tradeTable"></div>
+    <div id="balance_of_tradeDiff"></div>
+    <div id="balance_of_tradeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('X').value = '200';
       document.getElementById('M').value = '180';
       calcTool();}
 calcTool();
+
+function __balance_of_tradeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __balance_of_tradeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var X=num('X'),M=num('M');
+    var bot=X-M;
+    if (!isFinite(__balance_of_tradeNum('X')) || !isFinite(__balance_of_tradeNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#balance_of_tradeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['贸易差额 BoT', bot.toFixed(0)],
+            ['差额占出口比 (%)', (bot/Math.max(X,1e-9)*100).toFixed(2)],
+            ['出口进口比', (X/Math.max(M,1e-9)).toFixed(3)],
+            ['进出口总额', (X+M).toFixed(0)],
+        ]
+    });
+    TBKit.history.record({X:__balance_of_tradeNum('X'), M:__balance_of_tradeNum('M'), bot:bot});
+    TBKit.history.mount('#balance_of_tradeHist',function(rec){ if(rec.X!=null)document.getElementById('X').value=rec.X; if(rec.M!=null)document.getElementById('M').value=rec.M; calcTool(); });
+    TBKit.util.diffBox('#balance_of_tradeDiff',['bot']);
+}
+function __balance_of_tradeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#balance_of_tradeTable','balance-of-trade.csv'); } catch(e){}
+}
+function __balance_of_tradePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#balance_of_tradePresets',[
+        {label:'默认',labelEn:'Default',values:{X:'200', M:'180'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{X:'400', M:'360'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{X:'100', M:'90'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __balance_of_tradeExtras(); }catch(e){} };
+function __balance_of_tradeBoot(){ try{ __balance_of_tradePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __balance_of_tradeBoot();
+else document.addEventListener('DOMContentLoaded', __balance_of_tradeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

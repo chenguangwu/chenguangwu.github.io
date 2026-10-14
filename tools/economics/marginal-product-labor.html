@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="marginal_product_laborPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__marginal_product_laborExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="marginal_product_laborTable"></div>
+    <div id="marginal_product_laborDiff"></div>
+    <div id="marginal_product_laborHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('dq').value = '50';
       document.getElementById('dl').value = '10';
       calcTool();}
 calcTool();
+
+function __marginal_product_laborNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __marginal_product_laborExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dq=num('dq'),dl=num('dl');
+    var mpl=dq/dl;
+    if (!isFinite(__marginal_product_laborNum('dq')) || !isFinite(__marginal_product_laborNum('dl'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#marginal_product_laborTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['劳动边际产量 MPL', mpl.toFixed(2)],
+            ['MPL 倒数', (1/Math.max(mpl,1e-9)).toFixed(4)],
+            ['MPL 百分数', (mpl*100).toFixed(2)],
+            ['由产出反推劳动投入增量', (dq/Math.max(mpl,1e-9)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({dq:__marginal_product_laborNum('dq'), dl:__marginal_product_laborNum('dl'), mpl:mpl});
+    TBKit.history.mount('#marginal_product_laborHist',function(rec){ if(rec.dq!=null)document.getElementById('dq').value=rec.dq; if(rec.dl!=null)document.getElementById('dl').value=rec.dl; calcTool(); });
+    TBKit.util.diffBox('#marginal_product_laborDiff',['mpl']);
+}
+function __marginal_product_laborExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#marginal_product_laborTable','marginal-product-labor.csv'); } catch(e){}
+}
+function __marginal_product_laborPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#marginal_product_laborPresets',[
+        {label:'默认',labelEn:'Default',values:{dq:'50', dl:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dq:'100', dl:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dq:'25', dl:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __marginal_product_laborExtras(); }catch(e){} };
+function __marginal_product_laborBoot(){ try{ __marginal_product_laborPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __marginal_product_laborBoot();
+else document.addEventListener('DOMContentLoaded', __marginal_product_laborBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

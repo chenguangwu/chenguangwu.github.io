@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gdp_expenditurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gdp_expenditureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gdp_expenditureTable"></div>
+    <div id="gdp_expenditureDiff"></div>
+    <div id="gdp_expenditureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,43 @@ function resetForm(){document.getElementById('C').value = '1000';
       document.getElementById('NX').value = '50';
       calcTool();}
 calcTool();
+
+function __gdp_expenditureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gdp_expenditureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var C=num('C'),I=num('I'),G=num('G'),NX=num('NX');
+    var Y=C+I+G+NX;
+    if (!isFinite(__gdp_expenditureNum('C')) || !isFinite(__gdp_expenditureNum('I')) || !isFinite(__gdp_expenditureNum('G')) || !isFinite(__gdp_expenditureNum('NX'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gdp_expenditureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['GDP Y', Y.toFixed(0)],
+            ['消费支出占比 (%)', (C/Y*100).toFixed(2)],
+            ['投资支出占比 (%)', (I/Y*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({C:__gdp_expenditureNum('C'), I:__gdp_expenditureNum('I'), G:__gdp_expenditureNum('G'), NX:__gdp_expenditureNum('NX'), Y:Y});
+    TBKit.history.mount('#gdp_expenditureHist',function(rec){ if(rec.C!=null)document.getElementById('C').value=rec.C; if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.G!=null)document.getElementById('G').value=rec.G; if(rec.NX!=null)document.getElementById('NX').value=rec.NX; calcTool(); });
+    TBKit.util.diffBox('#gdp_expenditureDiff',['Y']);
+}
+function __gdp_expenditureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gdp_expenditureTable','gdp-expenditure.csv'); } catch(e){}
+}
+function __gdp_expenditurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gdp_expenditurePresets',[
+        {label:'默认',labelEn:'Default',values:{C:'1000', I:'300', G:'200', NX:'50'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{C:'2000', I:'600', G:'400', NX:'100'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{C:'500', I:'150', G:'100', NX:'25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gdp_expenditureExtras(); }catch(e){} };
+function __gdp_expenditureBoot(){ try{ __gdp_expenditurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gdp_expenditureBoot();
+else document.addEventListener('DOMContentLoaded', __gdp_expenditureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

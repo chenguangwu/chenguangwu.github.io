@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fisher_equationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fisher_equationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fisher_equationTable"></div>
+    <div id="fisher_equationDiff"></div>
+    <div id="fisher_equationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('r').value = '2';
       document.getElementById('pi').value = '3';
       calcTool();}
 calcTool();
+
+function __fisher_equationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fisher_equationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r=num('r'),pi=num('pi');
+    var i=r+pi;
+    if (!isFinite(__fisher_equationNum('r')) || !isFinite(__fisher_equationNum('pi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fisher_equationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['名义利率 i (%)', i.toFixed(2)],
+            ['实际利率近似（名义减通胀）', (i-pi).toFixed(2)],
+            ['名义与实际利率比', (i/Math.max(r,1e-9)).toFixed(4)],
+            ['名义利率加一（累积因子近似）', (i+1).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__fisher_equationNum('r'), pi:__fisher_equationNum('pi'), i:i});
+    TBKit.history.mount('#fisher_equationHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.pi!=null)document.getElementById('pi').value=rec.pi; calcTool(); });
+    TBKit.util.diffBox('#fisher_equationDiff',['i']);
+}
+function __fisher_equationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fisher_equationTable','fisher-equation.csv'); } catch(e){}
+}
+function __fisher_equationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fisher_equationPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'2', pi:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'4', pi:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'1', pi:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fisher_equationExtras(); }catch(e){} };
+function __fisher_equationBoot(){ try{ __fisher_equationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fisher_equationBoot();
+else document.addEventListener('DOMContentLoaded', __fisher_equationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

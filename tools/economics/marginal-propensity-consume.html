@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="marginal_propensity_consumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__marginal_propensity_consumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="marginal_propensity_consumeTable"></div>
+    <div id="marginal_propensity_consumeDiff"></div>
+    <div id="marginal_propensity_consumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('dc').value = '80';
       document.getElementById('dy').value = '100';
       calcTool();}
 calcTool();
+
+function __marginal_propensity_consumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __marginal_propensity_consumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dc=num('dc'),dy=num('dy');
+    var mpc=dc/dy;
+    if (!isFinite(__marginal_propensity_consumeNum('dc')) || !isFinite(__marginal_propensity_consumeNum('dy'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#marginal_propensity_consumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['边际消费倾向 MPC', mpc.toFixed(3)],
+            ['边际储蓄倾向 MPS', (1-mpc).toFixed(3)],
+            ['支出乘数', (1/Math.max(1-mpc,1e-9)).toFixed(3)],
+            ['MPC 百分数', (mpc*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({dc:__marginal_propensity_consumeNum('dc'), dy:__marginal_propensity_consumeNum('dy'), mpc:mpc});
+    TBKit.history.mount('#marginal_propensity_consumeHist',function(rec){ if(rec.dc!=null)document.getElementById('dc').value=rec.dc; if(rec.dy!=null)document.getElementById('dy').value=rec.dy; calcTool(); });
+    TBKit.util.diffBox('#marginal_propensity_consumeDiff',['mpc']);
+}
+function __marginal_propensity_consumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#marginal_propensity_consumeTable','marginal-propensity-consume.csv'); } catch(e){}
+}
+function __marginal_propensity_consumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#marginal_propensity_consumePresets',[
+        {label:'默认',labelEn:'Default',values:{dc:'80', dy:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dc:'160', dy:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dc:'40', dy:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __marginal_propensity_consumeExtras(); }catch(e){} };
+function __marginal_propensity_consumeBoot(){ try{ __marginal_propensity_consumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __marginal_propensity_consumeBoot();
+else document.addEventListener('DOMContentLoaded', __marginal_propensity_consumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

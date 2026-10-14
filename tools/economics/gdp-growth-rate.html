@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gdp_growth_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gdp_growth_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gdp_growth_rateTable"></div>
+    <div id="gdp_growth_rateDiff"></div>
+    <div id="gdp_growth_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('gt').value = '1050';
       document.getElementById('gp').value = '1000';
       calcTool();}
 calcTool();
+
+function __gdp_growth_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gdp_growth_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var gt=num('gt'),gp=num('gp');
+    var g=(gt-gp)/gp*100;
+    if (!isFinite(__gdp_growth_rateNum('gt')) || !isFinite(__gdp_growth_rateNum('gp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gdp_growth_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['GDP 增长率 g (%)', g.toFixed(2)],
+            ['GDP 增量', (gt-gp).toFixed(3)],
+            ['本期与上期之比', (gt/Math.max(gp,1e-9)).toFixed(5)],
+            ['增长率小数形式', (g/100).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({gt:__gdp_growth_rateNum('gt'), gp:__gdp_growth_rateNum('gp'), g:g});
+    TBKit.history.mount('#gdp_growth_rateHist',function(rec){ if(rec.gt!=null)document.getElementById('gt').value=rec.gt; if(rec.gp!=null)document.getElementById('gp').value=rec.gp; calcTool(); });
+    TBKit.util.diffBox('#gdp_growth_rateDiff',['g']);
+}
+function __gdp_growth_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gdp_growth_rateTable','gdp-growth-rate.csv'); } catch(e){}
+}
+function __gdp_growth_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gdp_growth_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{gt:'1050', gp:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{gt:'2100', gp:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{gt:'525', gp:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gdp_growth_rateExtras(); }catch(e){} };
+function __gdp_growth_rateBoot(){ try{ __gdp_growth_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gdp_growth_rateBoot();
+else document.addEventListener('DOMContentLoaded', __gdp_growth_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="nominal_to_realPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__nominal_to_realExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="nominal_to_realTable"></div>
+    <div id="nominal_to_realDiff"></div>
+    <div id="nominal_to_realHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('nom').value = '110';
       document.getElementById('pi').value = '0.10';
       calcTool();}
 calcTool();
+
+function __nominal_to_realNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __nominal_to_realExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var nom=num('nom'),pi=num('pi');
+    var real=nom/(1+pi);
+    if (!isFinite(__nominal_to_realNum('nom')) || !isFinite(__nominal_to_realNum('pi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#nominal_to_realTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['实际值 Real', real.toFixed(2)],
+            ['通胀折减额', (nom-real).toFixed(3)],
+            ['名义值与实际值之比', (nom/Math.max(real,1e-9)).toFixed(5)],
+            ['实际值与名义值之比', (real/Math.max(nom,1e-9)).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({nom:__nominal_to_realNum('nom'), pi:__nominal_to_realNum('pi'), real:real});
+    TBKit.history.mount('#nominal_to_realHist',function(rec){ if(rec.nom!=null)document.getElementById('nom').value=rec.nom; if(rec.pi!=null)document.getElementById('pi').value=rec.pi; calcTool(); });
+    TBKit.util.diffBox('#nominal_to_realDiff',['real']);
+}
+function __nominal_to_realExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#nominal_to_realTable','nominal-to-real.csv'); } catch(e){}
+}
+function __nominal_to_realPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#nominal_to_realPresets',[
+        {label:'默认',labelEn:'Default',values:{nom:'110', pi:'0.10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{nom:'220', pi:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{nom:'55', pi:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __nominal_to_realExtras(); }catch(e){} };
+function __nominal_to_realBoot(){ try{ __nominal_to_realPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __nominal_to_realBoot();
+else document.addEventListener('DOMContentLoaded', __nominal_to_realBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

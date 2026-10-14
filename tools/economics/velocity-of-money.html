@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="velocity_of_moneyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__velocity_of_moneyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="velocity_of_moneyTable"></div>
+    <div id="velocity_of_moneyDiff"></div>
+    <div id="velocity_of_moneyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('P').value = '1';
       document.getElementById('M').value = '500';
       calcTool();}
 calcTool();
+
+function __velocity_of_moneyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __velocity_of_moneyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P=num('P'),Y=num('Y'),M=num('M');
+    var V=P*Y/M;
+    if (!isFinite(__velocity_of_moneyNum('P')) || !isFinite(__velocity_of_moneyNum('Y')) || !isFinite(__velocity_of_moneyNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#velocity_of_moneyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['流通速度 V', V.toFixed(2)],
+            ['名义 GDP = P*Y', (P*Y).toExponential(4)],
+            ['货币占 GDP 比', (M/((P*Y)||1)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({P:__velocity_of_moneyNum('P'), Y:__velocity_of_moneyNum('Y'), M:__velocity_of_moneyNum('M'), V:V});
+    TBKit.history.mount('#velocity_of_moneyHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.Y!=null)document.getElementById('Y').value=rec.Y; if(rec.M!=null)document.getElementById('M').value=rec.M; calcTool(); });
+    TBKit.util.diffBox('#velocity_of_moneyDiff',['V']);
+}
+function __velocity_of_moneyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#velocity_of_moneyTable','velocity-of-money.csv'); } catch(e){}
+}
+function __velocity_of_moneyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#velocity_of_moneyPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'1', Y:'2000', M:'500'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'2', Y:'4000', M:'1000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'0.5', Y:'1000', M:'250'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __velocity_of_moneyExtras(); }catch(e){} };
+function __velocity_of_moneyBoot(){ try{ __velocity_of_moneyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __velocity_of_moneyBoot();
+else document.addEventListener('DOMContentLoaded', __velocity_of_moneyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

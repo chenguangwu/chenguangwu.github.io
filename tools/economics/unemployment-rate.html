@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="unemployment_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__unemployment_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="unemployment_rateTable"></div>
+    <div id="unemployment_rateDiff"></div>
+    <div id="unemployment_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('unemp').value = '600';
       document.getElementById('lf').value = '10000';
       calcTool();}
 calcTool();
+
+function __unemployment_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __unemployment_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var u = num('unemp'), lf = num('lf');
+    var rate = u / lf * 100;
+    if (!isFinite(__unemployment_rateNum('unemp')) || !isFinite(__unemployment_rateNum('lf'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#unemployment_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['失业率 (%)', rate.toFixed(2)],
+            ['就业人数', (lf - u).toFixed(0)],
+            ['就业率 (%)', ((lf-u)/(lf||1)*100).toFixed(2)],
+            ['就业率（互补）(%)', (100-rate).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({unemp:__unemployment_rateNum('unemp'), lf:__unemployment_rateNum('lf'), u:u});
+    TBKit.history.mount('#unemployment_rateHist',function(rec){ if(rec.unemp!=null)document.getElementById('unemp').value=rec.unemp; if(rec.lf!=null)document.getElementById('lf').value=rec.lf; calcTool(); });
+    TBKit.util.diffBox('#unemployment_rateDiff',['u']);
+}
+function __unemployment_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#unemployment_rateTable','unemployment-rate.csv'); } catch(e){}
+}
+function __unemployment_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#unemployment_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{unemp:'600', lf:'10000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{unemp:'1200', lf:'20000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{unemp:'300', lf:'5000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __unemployment_rateExtras(); }catch(e){} };
+function __unemployment_rateBoot(){ try{ __unemployment_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __unemployment_rateBoot();
+else document.addEventListener('DOMContentLoaded', __unemployment_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

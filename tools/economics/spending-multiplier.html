@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="spending_multiplierPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__spending_multiplierExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="spending_multiplierTable"></div>
+    <div id="spending_multiplierDiff"></div>
+    <div id="spending_multiplierHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,45 @@ function calcTool(){
 function resetForm(){document.getElementById('mpc').value = '0.8';
       calcTool();}
 calcTool();
+
+function __spending_multiplierNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spending_multiplierExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var mpc = num('mpc');
+    var k = 1 / (1 - mpc);
+    var kt = -mpc / (1 - mpc);
+    if (!isFinite(__spending_multiplierNum('mpc'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#spending_multiplierTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['政府购买乘数 k', k.toFixed(2)],
+            ['税收乘数 k_t', kt.toFixed(2)],
+            ['边际储蓄倾向 MPS', (1-mpc).toFixed(4)],
+            ['转移支付乘数', (mpc/((1-mpc)||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({mpc:__spending_multiplierNum('mpc'), k:k});
+    TBKit.history.mount('#spending_multiplierHist',function(rec){ if(rec.mpc!=null)document.getElementById('mpc').value=rec.mpc; calcTool(); });
+    TBKit.util.diffBox('#spending_multiplierDiff',['k']);
+}
+function __spending_multiplierExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spending_multiplierTable','spending-multiplier.csv'); } catch(e){}
+}
+function __spending_multiplierPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#spending_multiplierPresets',[
+        {label:'默认',labelEn:'Default',values:{mpc:'0.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{mpc:'1.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mpc:'0.4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __spending_multiplierExtras(); }catch(e){} };
+function __spending_multiplierBoot(){ try{ __spending_multiplierPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __spending_multiplierBoot();
+else document.addEventListener('DOMContentLoaded', __spending_multiplierBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

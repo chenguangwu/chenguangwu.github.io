@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tax_multiplierPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tax_multiplierExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tax_multiplierTable"></div>
+    <div id="tax_multiplierDiff"></div>
+    <div id="tax_multiplierHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('mpc').value = '0.8';
       calcTool();}
 calcTool();
+
+function __tax_multiplierNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tax_multiplierExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var mpc=num('mpc');
+    var kt=-mpc/(1-mpc);
+    if (!isFinite(__tax_multiplierNum('mpc'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#tax_multiplierTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['税收乘数 k_t', kt.toFixed(2)],
+            ['支出乘数 k_g', (1/Math.max(1-mpc,1e-9)).toFixed(4)],
+            ['税收乘数绝对值', (-kt).toFixed(4)],
+            ['边际储蓄倾向 MPS', (1-mpc).toFixed(4)],
+            ['MPC 与 MPS 之比', (mpc/Math.max(1-mpc,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({mpc:__tax_multiplierNum('mpc'), kt:kt});
+    TBKit.history.mount('#tax_multiplierHist',function(rec){ if(rec.mpc!=null)document.getElementById('mpc').value=rec.mpc; calcTool(); });
+    TBKit.util.diffBox('#tax_multiplierDiff',['kt']);
+}
+function __tax_multiplierExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tax_multiplierTable','tax-multiplier.csv'); } catch(e){}
+}
+function __tax_multiplierPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tax_multiplierPresets',[
+        {label:'默认',labelEn:'Default',values:{mpc:'0.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{mpc:'1.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mpc:'0.4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __tax_multiplierExtras(); }catch(e){} };
+function __tax_multiplierBoot(){ try{ __tax_multiplierPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tax_multiplierBoot();
+else document.addEventListener('DOMContentLoaded', __tax_multiplierBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

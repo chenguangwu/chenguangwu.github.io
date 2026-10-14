@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="labor_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__labor_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="labor_forceTable"></div>
+    <div id="labor_forceDiff"></div>
+    <div id="labor_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('E').value = '140';
       document.getElementById('U').value = '10';
       calcTool();}
 calcTool();
+
+function __labor_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __labor_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var E=num('E'),U=num('U');
+    var LF=E+U;
+    if (!isFinite(__labor_forceNum('E')) || !isFinite(__labor_forceNum('U'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#labor_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['劳动力 LF', LF.toFixed(0)],
+            ['失业率 (%)', (U/Math.max(LF,1e-9)*100).toFixed(2)],
+            ['就业率 (%)', (E/Math.max(LF,1e-9)*100).toFixed(2)],
+            ['就业与失业人数比', (E/Math.max(U,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({E:__labor_forceNum('E'), U:__labor_forceNum('U'), LF:LF});
+    TBKit.history.mount('#labor_forceHist',function(rec){ if(rec.E!=null)document.getElementById('E').value=rec.E; if(rec.U!=null)document.getElementById('U').value=rec.U; calcTool(); });
+    TBKit.util.diffBox('#labor_forceDiff',['LF']);
+}
+function __labor_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#labor_forceTable','labor-force.csv'); } catch(e){}
+}
+function __labor_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#labor_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{E:'140', U:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{E:'280', U:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{E:'70', U:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __labor_forceExtras(); }catch(e){} };
+function __labor_forceBoot(){ try{ __labor_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __labor_forceBoot();
+else document.addEventListener('DOMContentLoaded', __labor_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

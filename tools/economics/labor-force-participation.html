@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="labor_force_participationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__labor_force_participationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="labor_force_participationTable"></div>
+    <div id="labor_force_participationDiff"></div>
+    <div id="labor_force_participationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('lf').value = '150';
       document.getElementById('pop').value = '250';
       calcTool();}
 calcTool();
+
+function __labor_force_participationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __labor_force_participationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var lf=num('lf'),pop=num('pop');
+    var lfp=lf/pop*100;
+    if (!isFinite(__labor_force_participationNum('lf')) || !isFinite(__labor_force_participationNum('pop'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#labor_force_participationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['劳动参与率 LFP (%)', lfp.toFixed(1)],
+            ['非劳动力人口', (pop-lf).toFixed(2)],
+            ['参与率小数', (lf/Math.max(pop,1e-9)).toFixed(4)],
+            ['非参与率 (%)', (100-lfp).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({lf:__labor_force_participationNum('lf'), pop:__labor_force_participationNum('pop'), lfp:lfp});
+    TBKit.history.mount('#labor_force_participationHist',function(rec){ if(rec.lf!=null)document.getElementById('lf').value=rec.lf; if(rec.pop!=null)document.getElementById('pop').value=rec.pop; calcTool(); });
+    TBKit.util.diffBox('#labor_force_participationDiff',['lfp']);
+}
+function __labor_force_participationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#labor_force_participationTable','labor-force-participation.csv'); } catch(e){}
+}
+function __labor_force_participationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#labor_force_participationPresets',[
+        {label:'默认',labelEn:'Default',values:{lf:'150', pop:'250'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{lf:'300', pop:'500'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{lf:'75', pop:'125'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __labor_force_participationExtras(); }catch(e){} };
+function __labor_force_participationBoot(){ try{ __labor_force_participationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __labor_force_participationBoot();
+else document.addEventListener('DOMContentLoaded', __labor_force_participationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

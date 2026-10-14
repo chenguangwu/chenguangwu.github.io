@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="real_gdpPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__real_gdpExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="real_gdpTable"></div>
+    <div id="real_gdpDiff"></div>
+    <div id="real_gdpHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('nominal').value = '1100';
       document.getElementById('defl').value = '10';
       calcTool();}
 calcTool();
+
+function __real_gdpNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __real_gdpExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var nom = num('nominal'), d = num('defl');
+    var real = nom / (1 + d / 100);
+    if (!isFinite(__real_gdpNum('nominal')) || !isFinite(__real_gdpNum('defl'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#real_gdpTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['实际 GDP', real.toFixed(2)],
+            ['价格扭曲部分', (nom - real).toFixed(2)],
+            ['实际占名义比重 (%)', ((real/(nom||1))*100).toFixed(2)],
+            ['价格扭曲占比 (%)', ((nom-real)/(nom||1)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({nominal:__real_gdpNum('nominal'), defl:__real_gdpNum('defl'), nom:nom});
+    TBKit.history.mount('#real_gdpHist',function(rec){ if(rec.nominal!=null)document.getElementById('nominal').value=rec.nominal; if(rec.defl!=null)document.getElementById('defl').value=rec.defl; calcTool(); });
+    TBKit.util.diffBox('#real_gdpDiff',['nom']);
+}
+function __real_gdpExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#real_gdpTable','real-gdp.csv'); } catch(e){}
+}
+function __real_gdpPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#real_gdpPresets',[
+        {label:'默认',labelEn:'Default',values:{nominal:'1100', defl:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{nominal:'2200', defl:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{nominal:'550', defl:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __real_gdpExtras(); }catch(e){} };
+function __real_gdpBoot(){ try{ __real_gdpPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __real_gdpBoot();
+else document.addEventListener('DOMContentLoaded', __real_gdpBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fv_annuityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fv_annuityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fv_annuityTable"></div>
+    <div id="fv_annuityDiff"></div>
+    <div id="fv_annuityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,42 @@ function resetForm(){document.getElementById('pmt').value = '1000';
       document.getElementById('n').value = '12';
       calcTool();}
 calcTool();
+
+function __fv_annuityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fv_annuityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var pmt = num('pmt'), i = num('i') / 100, n = num('n');
+    var fv = i === 0 ? pmt * n : pmt * (Math.pow(1 + i, n) - 1) / i;
+    if (!isFinite(__fv_annuityNum('pmt')) || !isFinite(__fv_annuityNum('i')) || !isFinite(__fv_annuityNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fv_annuityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年金终值 FV', fv.toFixed(2)],
+            ['利息总额', (fv - pmt * n).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({pmt:__fv_annuityNum('pmt'), i:__fv_annuityNum('i'), n:__fv_annuityNum('n'), fv:fv});
+    TBKit.history.mount('#fv_annuityHist',function(rec){ if(rec.pmt!=null)document.getElementById('pmt').value=rec.pmt; if(rec.i!=null)document.getElementById('i').value=rec.i; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#fv_annuityDiff',['fv']);
+}
+function __fv_annuityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fv_annuityTable','fv-annuity.csv'); } catch(e){}
+}
+function __fv_annuityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fv_annuityPresets',[
+        {label:'默认',labelEn:'Default',values:{pmt:'1000', i:'1', n:'12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{pmt:'2000', i:'2', n:'24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{pmt:'500', i:'0.5', n:'6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fv_annuityExtras(); }catch(e){} };
+function __fv_annuityBoot(){ try{ __fv_annuityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fv_annuityBoot();
+else document.addEventListener('DOMContentLoaded', __fv_annuityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

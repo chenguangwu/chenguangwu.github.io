@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="average_propensity_consumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__average_propensity_consumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="average_propensity_consumeTable"></div>
+    <div id="average_propensity_consumeDiff"></div>
+    <div id="average_propensity_consumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,46 @@ function resetForm(){document.getElementById('C').value = '800';
       document.getElementById('Y').value = '1000';
       calcTool();}
 calcTool();
+
+function __average_propensity_consumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __average_propensity_consumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var C=num('C'),Y=num('Y');
+    var apc=C/Y;
+    if (!isFinite(__average_propensity_consumeNum('C')) || !isFinite(__average_propensity_consumeNum('Y'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#average_propensity_consumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['平均消费倾向 APC', apc.toFixed(3)],
+            ['平均储蓄倾向 APS', (1-apc).toFixed(4)],
+            ['APC 百分数', (apc*100).toFixed(2)],
+            ['储蓄额', (Y-C).toFixed(2)],
+            ['APC 倒数', (1/Math.max(apc,1e-9)).toFixed(3)],
+            ['倾向与储蓄额乘积', (apc*(Y-C)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({C:__average_propensity_consumeNum('C'), Y:__average_propensity_consumeNum('Y'), apc:apc});
+    TBKit.history.mount('#average_propensity_consumeHist',function(rec){ if(rec.C!=null)document.getElementById('C').value=rec.C; if(rec.Y!=null)document.getElementById('Y').value=rec.Y; calcTool(); });
+    TBKit.util.diffBox('#average_propensity_consumeDiff',['apc']);
+}
+function __average_propensity_consumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#average_propensity_consumeTable','average-propensity-consume.csv'); } catch(e){}
+}
+function __average_propensity_consumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#average_propensity_consumePresets',[
+        {label:'默认',labelEn:'Default',values:{C:'800', Y:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{C:'1600', Y:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{C:'400', Y:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __average_propensity_consumeExtras(); }catch(e){} };
+function __average_propensity_consumeBoot(){ try{ __average_propensity_consumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __average_propensity_consumeBoot();
+else document.addEventListener('DOMContentLoaded', __average_propensity_consumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

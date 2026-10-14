@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="income_elasticityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__income_elasticityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="income_elasticityTable"></div>
+    <div id="income_elasticityDiff"></div>
+    <div id="income_elasticityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -277,6 +283,45 @@ function resetForm(){document.getElementById('q1').value = '100';
       document.getElementById('i2').value = '1100';
       calcTool();}
 calcTool();
+
+function __income_elasticityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __income_elasticityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var q1 = num('q1'), q2 = num('q2'), i1 = num('i1'), i2 = num('i2');
+    var dQ = (q2 - q1) / ((q1 + q2) / 2);
+    var dI = (i2 - i1) / ((i1 + i2) / 2);
+    var e = dQ / dI;
+    var type = e > 0 ? '正常品' : '劣等品';
+    if (!isFinite(__income_elasticityNum('q1')) || !isFinite(__income_elasticityNum('q2')) || !isFinite(__income_elasticityNum('i1')) || !isFinite(__income_elasticityNum('i2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#income_elasticityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['收入弹性 E_i', e.toFixed(3)],
+            ['商品类型', type],
+        ]
+    });
+    TBKit.history.record({q1:__income_elasticityNum('q1'), q2:__income_elasticityNum('q2'), i1:__income_elasticityNum('i1'), i2:__income_elasticityNum('i2'), dQ:dQ});
+    TBKit.history.mount('#income_elasticityHist',function(rec){ if(rec.q1!=null)document.getElementById('q1').value=rec.q1; if(rec.q2!=null)document.getElementById('q2').value=rec.q2; if(rec.i1!=null)document.getElementById('i1').value=rec.i1; if(rec.i2!=null)document.getElementById('i2').value=rec.i2; calcTool(); });
+    TBKit.util.diffBox('#income_elasticityDiff',['dQ']);
+}
+function __income_elasticityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#income_elasticityTable','income-elasticity.csv'); } catch(e){}
+}
+function __income_elasticityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#income_elasticityPresets',[
+        {label:'默认',labelEn:'Default',values:{q1:'100', q2:'115', i1:'1000', i2:'1100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q1:'200', q2:'230', i1:'2000', i2:'2200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q1:'50', q2:'57.5', i1:'500', i2:'550'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __income_elasticityExtras(); }catch(e){} };
+function __income_elasticityBoot(){ try{ __income_elasticityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __income_elasticityBoot();
+else document.addEventListener('DOMContentLoaded', __income_elasticityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

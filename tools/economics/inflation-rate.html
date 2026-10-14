@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="inflation_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__inflation_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="inflation_rateTable"></div>
+    <div id="inflation_rateDiff"></div>
+    <div id="inflation_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('cpi0').value = '100';
       document.getElementById('cpi1').value = '105';
       calcTool();}
 calcTool();
+
+function __inflation_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __inflation_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var c0 = num('cpi0'), c1 = num('cpi1');
+    var p = (c1 - c0) / c0 * 100;
+    if (!isFinite(__inflation_rateNum('cpi0')) || !isFinite(__inflation_rateNum('cpi1'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#inflation_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['通货膨胀率 (%)', p.toFixed(2)],
+            ['CPI 变化', ((c1 - c0)).toFixed(2)],
+            ['月均通胀率 (%)', (Math.pow(c1/c0,1/12)*100-100).toFixed(4)],
+            ['货币购买力比', (c0/c1).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({cpi0:__inflation_rateNum('cpi0'), cpi1:__inflation_rateNum('cpi1'), c0:c0});
+    TBKit.history.mount('#inflation_rateHist',function(rec){ if(rec.cpi0!=null)document.getElementById('cpi0').value=rec.cpi0; if(rec.cpi1!=null)document.getElementById('cpi1').value=rec.cpi1; calcTool(); });
+    TBKit.util.diffBox('#inflation_rateDiff',['c0']);
+}
+function __inflation_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#inflation_rateTable','inflation-rate.csv'); } catch(e){}
+}
+function __inflation_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#inflation_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{cpi0:'100', cpi1:'105'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{cpi0:'200', cpi1:'210'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{cpi0:'50', cpi1:'52.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __inflation_rateExtras(); }catch(e){} };
+function __inflation_rateBoot(){ try{ __inflation_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __inflation_rateBoot();
+else document.addEventListener('DOMContentLoaded', __inflation_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

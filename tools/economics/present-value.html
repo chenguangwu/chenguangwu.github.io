@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="present_valuePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__present_valueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="present_valueTable"></div>
+    <div id="present_valueDiff"></div>
+    <div id="present_valueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('fv').value = '20000';
       document.getElementById('t').value = '10';
       calcTool();}
 calcTool();
+
+function __present_valueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __present_valueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fv = num('fv'), r = num('r'), t = num('t');
+    var pv = fv / Math.pow(1 + r / 100, t);
+    if (!isFinite(__present_valueNum('fv')) || !isFinite(__present_valueNum('r')) || !isFinite(__present_valueNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#present_valueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['现值 PV', pv.toFixed(2)],
+            ['贴现额', (fv - pv).toFixed(2)],
+            ['贴现因子 (1+r)^t', (Math.pow(1+r/100,t)).toFixed(4)],
+            ['隐含年化收益率 (%)', ((Math.pow(fv/pv,1/t)-1)*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({fv:__present_valueNum('fv'), r:__present_valueNum('r'), t:__present_valueNum('t'), pv:pv});
+    TBKit.history.mount('#present_valueHist',function(rec){ if(rec.fv!=null)document.getElementById('fv').value=rec.fv; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#present_valueDiff',['pv']);
+}
+function __present_valueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#present_valueTable','present-value.csv'); } catch(e){}
+}
+function __present_valuePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#present_valuePresets',[
+        {label:'默认',labelEn:'Default',values:{fv:'20000', r:'5', t:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fv:'40000', r:'10', t:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fv:'10000', r:'2.5', t:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __present_valueExtras(); }catch(e){} };
+function __present_valueBoot(){ try{ __present_valuePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __present_valueBoot();
+else document.addEventListener('DOMContentLoaded', __present_valueBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

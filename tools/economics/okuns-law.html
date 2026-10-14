@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="okuns_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__okuns_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="okuns_lawTable"></div>
+    <div id="okuns_lawDiff"></div>
+    <div id="okuns_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('g').value = '4';
       document.getElementById('gp').value = '3';
       calcTool();}
 calcTool();
+
+function __okuns_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __okuns_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var g = num('g'), gp = num('gp');
+    var du = -0.5 * (g - gp);
+    if (!isFinite(__okuns_lawNum('g')) || !isFinite(__okuns_lawNum('gp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#okuns_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['失业率变化 Δu (百分点)', du.toFixed(2)],
+            ['增长缺口', (g - gp).toFixed(2)],
+            ['失业率变化幅值 (百分点)', Math.abs(du).toFixed(2)],
+            ['相对增长缺口 (%)', ((g-gp)/(Math.abs(gp)||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({g:__okuns_lawNum('g'), gp:__okuns_lawNum('gp'), du:du});
+    TBKit.history.mount('#okuns_lawHist',function(rec){ if(rec.g!=null)document.getElementById('g').value=rec.g; if(rec.gp!=null)document.getElementById('gp').value=rec.gp; calcTool(); });
+    TBKit.util.diffBox('#okuns_lawDiff',['du']);
+}
+function __okuns_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#okuns_lawTable','okuns-law.csv'); } catch(e){}
+}
+function __okuns_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#okuns_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{g:'4', gp:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{g:'8', gp:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{g:'2', gp:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __okuns_lawExtras(); }catch(e){} };
+function __okuns_lawBoot(){ try{ __okuns_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __okuns_lawBoot();
+else document.addEventListener('DOMContentLoaded', __okuns_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

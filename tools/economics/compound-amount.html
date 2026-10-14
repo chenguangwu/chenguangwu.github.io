@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="compound_amountPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__compound_amountExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="compound_amountTable"></div>
+    <div id="compound_amountDiff"></div>
+    <div id="compound_amountHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -207,6 +213,42 @@ function resetForm(){document.getElementById('p').value = '10000';
       document.getElementById('n').value = '1';
       calcTool();}
 calcTool();
+
+function __compound_amountNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __compound_amountExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('p'), r = num('r'), t = num('t'), n = num('n');
+    var f = P * Math.pow(1 + r / 100 / n, n * t);
+    if (!isFinite(__compound_amountNum('p')) || !isFinite(__compound_amountNum('r')) || !isFinite(__compound_amountNum('t')) || !isFinite(__compound_amountNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#compound_amountTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['复利终值 F', f.toFixed(2)],
+            ['利息总额', (f - P).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p:__compound_amountNum('p'), r:__compound_amountNum('r'), t:__compound_amountNum('t'), n:__compound_amountNum('n'), P:P});
+    TBKit.history.mount('#compound_amountHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.t!=null)document.getElementById('t').value=rec.t; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#compound_amountDiff',['P']);
+}
+function __compound_amountExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#compound_amountTable','compound-amount.csv'); } catch(e){}
+}
+function __compound_amountPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#compound_amountPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'10000', r:'5', t:'10', n:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'20000', r:'10', t:'20', n:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'5000', r:'2.5', t:'5', n:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __compound_amountExtras(); }catch(e){} };
+function __compound_amountBoot(){ try{ __compound_amountPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __compound_amountBoot();
+else document.addEventListener('DOMContentLoaded', __compound_amountBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
