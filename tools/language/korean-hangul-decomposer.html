@@ -135,10 +135,16 @@ s.parentNode.insertBefore(el, s);
       <input type="text" id="hangulInput" class="hangul-input" placeholder="输入韩文..." oninput="decompose()" maxlength="50">
     </div>
     <div class="toolbar">
+      <div id="korean_hangul_decomposerPresets"></div>
       <button type="button" class="btn primary" onclick="decompose()">拆解分析</button>
+      <button class="btn" type="button" onclick="__korean_hangul_decomposerExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="clearInput()">清空</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div id="korean_hangul_decomposerTable"></div>
+    <div id="korean_hangul_decomposerDiff"></div>
+    <div id="korean_hangul_decomposerChart"></div>
+    <div id="korean_hangul_decomposerHist"></div>
   </div>
 
   <div class="card">
@@ -440,6 +446,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __korean_hangul_decomposer_last=0,__korean_hangul_decomposer_skip=false;
+function __korean_hangul_decomposerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __korean_hangul_decomposerResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __korean_hangul_decomposerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __korean_hangul_decomposerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__korean_hangul_decomposerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#korean_hangul_decomposerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#korean_hangul_decomposerDiff');
+        TBKit.history.mount('#korean_hangul_decomposerHist',function(rec){
+            __korean_hangul_decomposer_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                decompose();
+            }catch(e2){}
+            __korean_hangul_decomposer_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__korean_hangul_decomposerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#korean_hangul_decomposerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __korean_hangul_decomposerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__korean_hangul_decomposer_skip) return;
+    var snap=__korean_hangul_decomposerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__korean_hangul_decomposerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__korean_hangul_decomposer_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __korean_hangul_decomposer_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __korean_hangul_decomposerRender(keys,rk,en);
+}
+function __korean_hangul_decomposerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#korean_hangul_decomposerTable','korean-hangul-decomposer.csv'); } catch(e){}
+}
+function __korean_hangul_decomposerPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __korean_hangul_decomposer_f0=(typeof decompose==='function')?decompose:null;
+if(__korean_hangul_decomposer_f0){
+    decompose=function(){ var __r=__korean_hangul_decomposer_f0.apply(null,arguments); try{ __korean_hangul_decomposerExtras(); }catch(e){} return __r; };
+}
+function __korean_hangul_decomposerBoot(){ try{ __korean_hangul_decomposerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __korean_hangul_decomposerBoot();
+else document.addEventListener('DOMContentLoaded', __korean_hangul_decomposerBoot);
 </script>
 
 </body>
