@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="diaper_usagePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__diaper_usageExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="diaper_usageTable"></div>
+    <div id="diaper_usageDiff"></div>
+    <div id="diaper_usageHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -261,6 +267,53 @@ function resetForm(){document.getElementById('month').value='6';
       document.getElementById('days').value='30';
       calcTool();}
 calcTool();
+
+function __diaper_usageNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __diaper_usageExtras(){
+    function __diaper_usageRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var month=Math.floor(num('month')), price=num('price'), days=Math.floor(num('days'))||30; // 参考：新生儿 10-12/天，1-3月 8-10，4-6月 6-8，7-12月 5-6，1岁+ 4-5
+    var perDay;
+    if(month<=1) perDay=11;
+    else if(month<=3) perDay=9;
+    else if(month<=6) perDay=7;
+    else if(month<=12) perDay=5.5;
+    else perDay=4.5;
+    var total=Math.ceil(perDay*days);
+    var cost=total*price;
+    var sizeName = month<=1?'NB':month<=3?'S':month<=6?'M':month<=12?'L':'XL';
+    if (!isFinite(__diaper_usageNum('month')) || !isFinite(__diaper_usageNum('price')) || !isFinite(__diaper_usageNum('days'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#diaper_usageTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['每日用量', perDay.toFixed(1)+' 片'],
+            ['费用估算', fmtMoney(cost)],
+            ['建议尺码', sizeName+' 码'],
+        ]
+    });
+    TBKit.history.record({month:__diaper_usageRaw('month'), price:__diaper_usageRaw('price'), days:__diaper_usageRaw('days'), total:total});
+    function __diaper_usageRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#diaper_usageHist',function(rec){ __diaper_usageRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#diaper_usageDiff',['total']);
+}
+function __diaper_usageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#diaper_usageTable','diaper-usage.csv'); } catch(e){}
+}
+function __diaper_usagePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#diaper_usagePresets',[
+        {label:'默认',labelEn:'Default',values:{month:'6', price:'1.2', days:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{month:'12', price:'2.4', days:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{month:'3', price:'0.6', days:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __diaper_usageExtras(); }catch(e){} };
+function __diaper_usageBoot(){ try{ __diaper_usagePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __diaper_usageBoot();
+else document.addEventListener('DOMContentLoaded', __diaper_usageBoot);
 </script>
 </body>
 </html>

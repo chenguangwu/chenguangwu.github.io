@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pumping_planPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pumping_planExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pumping_planTable"></div>
+    <div id="pumping_planDiff"></div>
+    <div id="pumping_planHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -253,6 +259,51 @@ function resetForm(){document.getElementById('hours').value='9';
       document.getElementById('single').value='120';
       calcTool();}
 calcTool();
+
+function __pumping_planNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pumping_planExtras(){
+    function __pumping_planRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var hours=num('hours'), month=Math.floor(num('month')), single=num('single');
+    var sessions=Math.max(1,Math.round(hours/3.5));
+    var interval=hours/sessions;
+    var dailyNeed = month<=2?600:month<=4?700:month<=6?750:month<=8?700:650;
+    var perSession=single>0?single:Math.round(dailyNeed/4);
+    var storage=perSession*sessions;
+    if (!isFinite(__pumping_planNum('hours')) || !isFinite(__pumping_planNum('month')) || !isFinite(__pumping_planNum('single'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pumping_planTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['上班期间吸奶次数', sessions+' 次'],
+            ['吸奶间隔', interval.toFixed(1)+' h'],
+            ['单次建议量', perSession+' ml'],
+            ['单日储备量', storage+' ml'],
+            ['宝宝日需奶量', dailyNeed+' ml'],
+        ]
+    });
+    TBKit.history.record({hours:__pumping_planRaw('hours'), month:__pumping_planRaw('month'), single:__pumping_planRaw('single'), sessions:sessions});
+    function __pumping_planRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#pumping_planHist',function(rec){ __pumping_planRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#pumping_planDiff',['sessions']);
+}
+function __pumping_planExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pumping_planTable','pumping-plan.csv'); } catch(e){}
+}
+function __pumping_planPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pumping_planPresets',[
+        {label:'默认',labelEn:'Default',values:{hours:'9', month:'6', single:'120'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{hours:'18', month:'12', single:'240'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{hours:'4.5', month:'3', single:'60'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pumping_planExtras(); }catch(e){} };
+function __pumping_planBoot(){ try{ __pumping_planPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pumping_planBoot();
+else document.addEventListener('DOMContentLoaded', __pumping_planBoot);
 </script>
 </body>
 </html>

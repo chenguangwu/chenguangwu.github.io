@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="feeding_amount_babyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__feeding_amount_babyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="feeding_amount_babyTable"></div>
+    <div id="feeding_amount_babyDiff"></div>
+    <div id="feeding_amount_babyHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -256,6 +262,50 @@ function resetForm(){document.getElementById('month').value='4';
       document.getElementById('feeds').value='6';
       calcTool();}
 calcTool();
+
+function __feeding_amount_babyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __feeding_amount_babyExtras(){
+    function __feeding_amount_babyRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var month=Math.floor(num('month')), weight=num('weight'), feeds=Math.floor(num('feeds'))||6;
+    var byWeight=weight*150;         // 150ml/kg
+    var refMap=[700,750,800,850,900,950,1000,1000,1000,1000,1000,1000,1000];
+    var ref=refMap[Math.min(month,12)];
+    var daily=Math.round((byWeight+ref)/2);
+    var perFeed=feeds>0?Math.round(daily/feeds):0;
+    if (!isFinite(__feeding_amount_babyNum('month')) || !isFinite(__feeding_amount_babyNum('weight')) || !isFinite(__feeding_amount_babyNum('feeds'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#feeding_amount_babyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['每日奶量建议', daily+' ml'],
+            ['每餐奶量', perFeed+' ml'],
+            ['按体重估算', Math.round(byWeight)+' ml'],
+            ['按月龄参考', ref+' ml'],
+        ]
+    });
+    TBKit.history.record({month:__feeding_amount_babyRaw('month'), weight:__feeding_amount_babyRaw('weight'), feeds:__feeding_amount_babyRaw('feeds'), byWeight:byWeight});
+    function __feeding_amount_babyRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#feeding_amount_babyHist',function(rec){ __feeding_amount_babyRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#feeding_amount_babyDiff',['byWeight']);
+}
+function __feeding_amount_babyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#feeding_amount_babyTable','feeding-amount-baby.csv'); } catch(e){}
+}
+function __feeding_amount_babyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#feeding_amount_babyPresets',[
+        {label:'默认',labelEn:'Default',values:{month:'4', weight:'6.8', feeds:'6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{month:'8', weight:'13.6', feeds:'12'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{month:'2', weight:'3.4', feeds:'3'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __feeding_amount_babyExtras(); }catch(e){} };
+function __feeding_amount_babyBoot(){ try{ __feeding_amount_babyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __feeding_amount_babyBoot();
+else document.addEventListener('DOMContentLoaded', __feeding_amount_babyBoot);
 </script>
 </body>
 </html>

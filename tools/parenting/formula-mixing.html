@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="formula_mixingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__formula_mixingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="formula_mixingTable"></div>
+    <div id="formula_mixingDiff"></div>
+    <div id="formula_mixingHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -251,6 +257,48 @@ function resetForm(){document.getElementById('target').value='180';
       document.getElementById('waterFirst').selectedIndex=0;
       calcTool();}
 calcTool();
+
+function __formula_mixingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __formula_mixingExtras(){
+    function __formula_mixingRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var target=num('target'), ratio=num('ratio')||30;
+    var scoops=Math.round(target/ratio);
+    var water=scoops*ratio;
+    var total=water+Math.round(scoops*4.3);  // 每勺约 4.3g 粉，体积略增
+    if (!isFinite(__formula_mixingNum('target')) || !isFinite(__formula_mixingNum('ratio'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#formula_mixingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['所需奶粉勺数', scoops+' 勺'],
+            ['所需水量（按比例）', water+' ml'],
+            ['冲调后约', total+' ml'],
+            ['冲调比例', ratio+' ml/勺'],
+        ]
+    });
+    TBKit.history.record({target:__formula_mixingRaw('target'), ratio:__formula_mixingRaw('ratio'), scoops:scoops});
+    function __formula_mixingRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#formula_mixingHist',function(rec){ __formula_mixingRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#formula_mixingDiff',['scoops']);
+}
+function __formula_mixingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#formula_mixingTable','formula-mixing.csv'); } catch(e){}
+}
+function __formula_mixingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#formula_mixingPresets',[
+        {label:'默认',labelEn:'Default',values:{target:'180', ratio:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{target:'360', ratio:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{target:'90', ratio:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __formula_mixingExtras(); }catch(e){} };
+function __formula_mixingBoot(){ try{ __formula_mixingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __formula_mixingBoot();
+else document.addEventListener('DOMContentLoaded', __formula_mixingBoot);
 </script>
 </body>
 </html>
