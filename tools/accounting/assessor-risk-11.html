@@ -127,8 +127,8 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><div><label>息税前利润/总资产</label><input type="number" id="x3" value="0.12" step="0.01" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>股东权益市值/总负债</label><input type="number" id="x4" value="1.5" step="0.1" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>销售收入/总资产</label><input type="number" id="x5" value="1.2" step="0.1" style="font-size:16px;" oninput="calc()"></div></div>
-    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估风险</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar"><div id="assessor_risk_11Presets"></div><button type="button" class="btn primary" onclick="calc()">评估风险</button><button class="btn" type="button" onclick="__assessor_risk_11Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
+    <div class="result-box" id="res"></div> <div id="assessor_risk_11Table"></div> <div id="assessor_risk_11Diff"></div> <div id="assessor_risk_11Chart"></div> <div id="assessor_risk_11Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -275,6 +275,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __assessor_risk_11_last=0,__assessor_risk_11_skip=false;
+function __assessor_risk_11Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_risk_11ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_risk_11Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_risk_11Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_risk_11Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_risk_11Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_risk_11Diff');
+        TBKit.history.mount('#assessor_risk_11Hist',function(rec){
+            __assessor_risk_11_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_risk_11_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_risk_11Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_risk_11Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_risk_11Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_risk_11_skip) return;
+    var snap=__assessor_risk_11Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_risk_11ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_risk_11_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_risk_11_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_risk_11Render(keys,rk,en);
+}
+function __assessor_risk_11Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_risk_11Table','assessor-risk-11.csv'); } catch(e){}
+}
+function __assessor_risk_11Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_risk_11Presets',[{label:'默认参数',labelEn:'Default',values:{'x1':'0.35', 'x2':'0.20', 'x3':'0.12', 'x4':'1.5', 'x5':'1.2'}}],function(){ calc(); });
+}
+var __assessor_risk_11_f0=(typeof calc==='function')?calc:null;
+if(__assessor_risk_11_f0){
+    calc=function(){ var __r=__assessor_risk_11_f0.apply(null,arguments); try{ __assessor_risk_11Extras(); }catch(e){} return __r; };
+}
+function __assessor_risk_11Boot(){ try{ __assessor_risk_11Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_risk_11Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_risk_11Boot);
 </script>
 
 <section class="opt-guide"><h2>如何使用风险（预警/评估/应对）模型</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>流动资产/总资产</li><li>留存收益/总资产</li><li>息税前利润/总资产</li><li>股东权益市值/总负债</li><li>销售收入/总资产</li></ul><h2>适用场景</h2><p>银行信贷评审时对借款企业做破产风险预警，Z 值低于临界时列入高风险名单。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>Z-Score 的临界值如何解读？</dt><dd>制造业经典阈值：Z≥2.99 安全区，1.81–2.99 灰色区，&lt;1.81 危险区；非制造业可参考修正模型，阈值是经验值而非法律标准。</dd><dt>Z-Score 有什么局限？</dt><dd>基于历史财报，对新兴、轻资产公司区分度下降；X₄（权益市值/负债）在市场剧烈波动时不稳定，需结合现金流与行业周期综合判断。</dd></dl></section>

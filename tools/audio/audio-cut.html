@@ -278,7 +278,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" id="btnResetSel" onclick="resetSelection()" disabled><span class="ico">↺</span> 重置选区</button>
     </div>
 
-    <div class="result-box" id="resultBox"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__audio_cutExport()">导出明细 CSV</button></div><div class="result-box" id="resultBox"></div> <div id="audio_cutTable"></div> <div id="audio_cutDiff"></div> <div id="audio_cutChart"></div> <div id="audio_cutHist"></div>
     <div class="info-box">🔒 所有音频处理均在浏览器本地完成，文件不会被上传到任何服务器。</div>
   </div>
 
@@ -1002,6 +1002,114 @@ function escHtml(s) {
   d.textContent = s == null ? '' : String(s);
   return d.innerHTML;
 }
+
+var __audio_cut_last=0,__audio_cut_skip=false;
+function __audio_cutSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __audio_cutResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __audio_cutTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __audio_cutRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__audio_cutTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#audio_cutTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#audio_cutDiff');
+        TBKit.history.mount('#audio_cutHist',function(rec){
+            __audio_cut_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                handleFileSelect();
+            }catch(e2){}
+            __audio_cut_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__audio_cutTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#audio_cutChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __audio_cutExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__audio_cut_skip) return;
+    var snap=__audio_cutSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__audio_cutResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__audio_cut_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __audio_cut_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __audio_cutRender(keys,rk,en);
+}
+function __audio_cutExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#audio_cutTable','audio-cut.csv'); } catch(e){}
+}
+function __audio_cutPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#audio_cutPresets',[{label:'默认参数',labelEn:'Default',values:{'startInput':'0', 'endInput':'0'}}],function(){ handleFileSelect(); });
+}
+var __audio_cut_f0=(typeof handleFileSelect==='function')?handleFileSelect:null;
+if(__audio_cut_f0){
+    handleFileSelect=function(){ var __r=__audio_cut_f0.apply(null,arguments); try{ __audio_cutExtras(); }catch(e){} return __r; };
+}
+function __audio_cutBoot(){ try{ __audio_cutPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __audio_cutBoot();
+else document.addEventListener('DOMContentLoaded', __audio_cutBoot);
 </script>
 
 <script type="application/ld+json">

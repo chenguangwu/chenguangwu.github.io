@@ -122,7 +122,7 @@ s.parentNode.insertBefore(el, s);
 应付账款,0,30000
 短期借款,0,40000
 实收资本,0,20000</textarea>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">试算平衡</button><button type="button" class="btn" onclick="copyRes()">复制</button></div><div class="result-box" id="res"></div>
+<div class="toolbar"><div id="report_2Presets"></div><button type="button" class="btn primary" onclick="calc()">试算平衡</button><button class="btn" type="button" onclick="__report_2Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div><div class="result-box" id="res"></div> <div id="report_2Table"></div> <div id="report_2Diff"></div> <div id="report_2Chart"></div> <div id="report_2Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -278,6 +278,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __report_2_last=0,__report_2_skip=false;
+function __report_2Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __report_2ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __report_2Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __report_2Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__report_2Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#report_2Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#report_2Diff');
+        TBKit.history.mount('#report_2Hist',function(rec){
+            __report_2_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __report_2_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__report_2Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#report_2Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __report_2Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__report_2_skip) return;
+    var snap=__report_2Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__report_2ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__report_2_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __report_2_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __report_2Render(keys,rk,en);
+}
+function __report_2Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#report_2Table','report-2.csv'); } catch(e){}
+}
+function __report_2Presets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __report_2_f0=(typeof calc==='function')?calc:null;
+if(__report_2_f0){
+    calc=function(){ var __r=__report_2_f0.apply(null,arguments); try{ __report_2Extras(); }catch(e){} return __r; };
+}
+function __report_2Boot(){ try{ __report_2Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __report_2Boot();
+else document.addEventListener('DOMContentLoaded', __report_2Boot);
 </script>
 
 <section class="opt-guide"><h2>如何使用账务（凭证/账簿/报表）编制</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>输入数据（逗号或换行分隔）</li></ul><h2>适用场景</h2><p>小微企业或个体工商户用模板完成记账凭证、登记账簿到出具报表的月末结账。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>凭证、账簿、报表之间的逻辑关系？</dt><dd>先审核原始凭证，编制记账凭证；再据凭证登记日记账与分类账；期末调账、结账后，依据账簿余额与发生额编制财务报表，环环相扣。</dd><dt>试算不平衡怎么办？</dt><dd>先检查借贷是否等额、科目是否串户、漏记或重记凭证；可借助余额方向与发生额交叉核对，定位差错后再更正。</dd></dl></section>

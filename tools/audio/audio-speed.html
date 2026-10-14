@@ -269,7 +269,7 @@ s.parentNode.insertBefore(el, s);
         <span class="file-icon">📄</span>
         <span class="file-name" id="fileName">未选择文件</span>
         <span class="file-size" id="fileSize"></span>
-        <button type="button" class="btn" onclick="clearFile()">更换</button>
+        <div id="audio_speedPresets"></div><button type="button" class="btn" onclick="clearFile()">更换</button><button class="btn" type="button" onclick="__audio_speedExport()">导出明细 CSV</button>
       </div>
 
       <!-- 进度条 -->
@@ -326,7 +326,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="audio_speedTable"></div> <div id="audio_speedDiff"></div> <div id="audio_speedChart"></div> <div id="audio_speedHist"></div>
     <div class="info-box">所有音频处理均在浏览器本地完成，文件不会上传到服务器，请放心使用。</div>
   </div>
 
@@ -769,6 +769,114 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+
+var __audio_speed_last=0,__audio_speed_skip=false;
+function __audio_speedSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __audio_speedResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __audio_speedTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __audio_speedRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__audio_speedTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#audio_speedTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#audio_speedDiff');
+        TBKit.history.mount('#audio_speedHist',function(rec){
+            __audio_speed_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                clearFile();
+            }catch(e2){}
+            __audio_speed_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__audio_speedTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#audio_speedChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __audio_speedExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__audio_speed_skip) return;
+    var snap=__audio_speedSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__audio_speedResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__audio_speed_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __audio_speed_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __audio_speedRender(keys,rk,en);
+}
+function __audio_speedExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#audio_speedTable','audio-speed.csv'); } catch(e){}
+}
+function __audio_speedPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#audio_speedPresets',[{label:'默认参数',labelEn:'Default',values:{'speedSlider':'1'}}],function(){ clearFile(); });
+}
+var __audio_speed_f0=(typeof clearFile==='function')?clearFile:null;
+if(__audio_speed_f0){
+    clearFile=function(){ var __r=__audio_speed_f0.apply(null,arguments); try{ __audio_speedExtras(); }catch(e){} return __r; };
+}
+function __audio_speedBoot(){ try{ __audio_speedPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __audio_speedBoot();
+else document.addEventListener('DOMContentLoaded', __audio_speedBoot);
 </script>
 <script type="application/ld+json">
 {

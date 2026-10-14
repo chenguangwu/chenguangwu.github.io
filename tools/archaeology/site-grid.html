@@ -140,11 +140,11 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar" style="margin-top:14px;">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="site_gridPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__site_gridExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyCoords()">复制坐标表</button>
     </div>
     <div class="result-grid" id="grid"></div>
-    <div class="result-box" id="summary"></div>
+    <div class="result-box" id="summary"></div> <div id="site_gridTable"></div> <div id="site_gridDiff"></div> <div id="site_gridChart"></div> <div id="site_gridHist"></div>
     <h3 style="margin-top:14px;">探方坐标表</h3>
     <div class="coord-wrap" id="coordWrap"></div>
     <div class="info-box">说明：每个探方主体发掘区为 S×S，相邻探方间预留宽 G 的隔梁；总占地按行列展开计算，发掘面积不计隔梁。隔梁待主体发掘完成后视情况发掘。</div>
@@ -310,6 +310,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __site_grid_last=0,__site_grid_skip=false;
+function __site_gridSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __site_gridResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __site_gridTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __site_gridRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__site_gridTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#site_gridTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#site_gridDiff');
+        TBKit.history.mount('#site_gridHist',function(rec){
+            __site_grid_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __site_grid_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__site_gridTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#site_gridChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __site_gridExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__site_grid_skip) return;
+    var snap=__site_gridSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__site_gridResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__site_grid_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __site_grid_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __site_gridRender(keys,rk,en);
+}
+function __site_gridExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#site_gridTable','site-grid.csv'); } catch(e){}
+}
+function __site_gridPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#site_gridPresets',[{label:'默认参数',labelEn:'Default',values:{'len':'60', 'wid':'40', 'side':'5', 'gap':'1', 'start':'1', 'dir':'row'}}],function(){ calc(); });
+}
+var __site_grid_f0=(typeof calc==='function')?calc:null;
+if(__site_grid_f0){
+    calc=function(){ var __r=__site_grid_f0.apply(null,arguments); try{ __site_gridExtras(); }catch(e){} return __r; };
+}
+function __site_gridBoot(){ try{ __site_gridPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __site_gridBoot();
+else document.addEventListener('DOMContentLoaded', __site_gridBoot);
 </script>
 
 <script type="application/ld+json">

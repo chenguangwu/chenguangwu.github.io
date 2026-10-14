@@ -181,11 +181,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" data-page-node-id="IRouCr14olrmx7U9yNVEjm">
-      <button type="button" class="btn primary" onclick="calc()" data-page-node-id="59BNLq6I67s8minGANeh0i">绘制曲线</button>
+      <div id="lift_coefficientPresets"></div><button type="button" class="btn primary" onclick="calc()" data-page-node-id="59BNLq6I67s8minGANeh0i">绘制曲线</button><button class="btn" type="button" onclick="__lift_coefficientExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()" data-page-node-id="H96yE2sf7b4dVdpN0S6ado">复制结果</button>
     </div>
 
-    <div class="result-box" id="result" data-page-node-id="nVv2SEy4aErx8hN0azM2LG"></div>
+    <div class="result-box" id="result" data-page-node-id="nVv2SEy4aErx8hN0azM2LG"></div> <div id="lift_coefficientTable"></div> <div id="lift_coefficientDiff"></div> <div id="lift_coefficientChart"></div> <div id="lift_coefficientHist"></div>
     <canvas id="clChart" width="800" height="400" style="width:100%;height:auto;margin-top:12px;border-radius:12px;border:1px solid var(--border);background:var(--card-bg);" data-page-node-id="1kfyulhT4g9AGKuhGfAg1M"></canvas>
   </div>
 
@@ -608,6 +608,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __lift_coefficient_last=0,__lift_coefficient_skip=false;
+function __lift_coefficientSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __lift_coefficientResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __lift_coefficientTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __lift_coefficientRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__lift_coefficientTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#lift_coefficientTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#lift_coefficientDiff');
+        TBKit.history.mount('#lift_coefficientHist',function(rec){
+            __lift_coefficient_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __lift_coefficient_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__lift_coefficientTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#lift_coefficientChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __lift_coefficientExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__lift_coefficient_skip) return;
+    var snap=__lift_coefficientSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__lift_coefficientResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__lift_coefficient_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __lift_coefficient_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __lift_coefficientRender(keys,rk,en);
+}
+function __lift_coefficientExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lift_coefficientTable','lift-coefficient.csv'); } catch(e){}
+}
+function __lift_coefficientPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lift_coefficientPresets',[{label:'默认参数',labelEn:'Default',values:{'MpnlolE7L7BZ7sfRjT8ZAb':'naca0012'}}],function(){ calc(); });
+}
+var __lift_coefficient_f0=(typeof calc==='function')?calc:null;
+if(__lift_coefficient_f0){
+    calc=function(){ var __r=__lift_coefficient_f0.apply(null,arguments); try{ __lift_coefficientExtras(); }catch(e){} return __r; };
+}
+function __lift_coefficientBoot(){ try{ __lift_coefficientPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lift_coefficientBoot();
+else document.addEventListener('DOMContentLoaded', __lift_coefficientBoot);
 </script>
 
 <section class="opt-guide" data-page-node-id="dDmMHejVThByF8Bc2WvjpH"><h2 data-page-node-id="fzJXafAHjsKuTeC5UJZ59N">如何使用升力系数图</h2><ol data-page-node-id="eF4ml9QjbtlgTODb8Yssiy"><li data-page-node-id="jH5hdLLFCRapA7a0sXCgTy">按页面提示逐项填写或选择所需参数。</li><li data-page-node-id="uALs2CBTLIXbRDdIRJsSzL">点击「计算」或「生成」按钮运行。</li><li data-page-node-id="NaXjvvJvfD5rAtyTXT7OCa">在结果区查看输出，可复制结果或导出使用。</li></ol><h2 data-page-node-id="5kkd6FE1DTbg6jSxuk20WB">参数说明</h2><ul class="param-list" data-page-node-id="GfLHD4vMfK3wf4RXD77NAN"><li data-page-node-id="3h635GhlzHmQuvHzsLVMnI">翼型类型</li><li data-page-node-id="Gom3gofaguu6ReJaGs8ykp">零升力攻角 α₀ (°)</li><li data-page-node-id="04q8OwOTkGFkF1BHii8oVY">升力线斜率 (1/rad)</li><li data-page-node-id="xELAXvRrY03gfkB0WmgmFr">失速攻角 (°)</li><li data-page-node-id="PdqbEQwvxDMOIfhH9FPddW">最大升力系数 Clmax</li><li data-page-node-id="yR1wi0yggtkdDHmodfLbMV">查看攻角 (°)</li><li data-page-node-id="tpSzmGIn3R4LFqy0oaXHV6">空气密度 ρ (kg/m³)</li><li data-page-node-id="Pq7uv3LjwByJkGoN9Gawrc">飞行速度 V (m/s)</li></ul><h2 data-page-node-id="MmcdEKWEEOWENWFjBR40Zi">适用场景</h2><p data-page-node-id="QG0j8hXj7YUXq4q6zbByKr">翼型气动评估，由零升力攻角 α₀、升力线斜率、失速攻角与 Clmax 画 Cl–α 曲线。</p></section><section class="opt-faq" data-page-node-id="PbvAmuv1TUCnjQhySaGZL8"><h2 data-page-node-id="lSoA9kx5O5s4CTCr3tJ5i5">常见问题</h2><dl class="faq-list" data-page-node-id="t0uywhuqhOBBywo9yM3b5J"><dt data-page-node-id="IiIWZc5Sl0bHfBFw28TKNJ">升力系数会一直随攻角增大吗？</dt><dd data-page-node-id="QWmSBd6Z5qmvzIONuKoQPI">不会。线性段过后（约 10–16° 依翼型而定）气流分离，Cl 在 Clmax 处达到峰值后急剧下降，即失速。飞行中攻角必须低于失速攻角。</dd><dt data-page-node-id="f29w3mLLoiahhQ8Rd2hEtn">失速攻角和 Clmax 是固定的吗？</dt><dd data-page-node-id="wZDSVKmaHcF95BOXyy0a2w">随雷诺数、翼面污染（冰/虫）、后缘襟翼偏转变化。结冰会大幅降低 Clmax 并提前失速，故结冰条件下严格限速。本工具按给定翼型参数计算。</dd></dl></section>

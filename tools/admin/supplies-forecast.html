@@ -169,7 +169,7 @@ s.parentNode.insertBefore(el, s);
       </table>
     </div>
 
-    <div class="result-box" id="forecastResult" style="margin-top:14px;"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__supplies_forecastExport()">导出明细 CSV</button></div><div class="result-box" id="forecastResult" style="margin-top:14px;"></div> <div id="supplies_forecastTable"></div> <div id="supplies_forecastDiff"></div> <div id="supplies_forecastChart"></div> <div id="supplies_forecastHist"></div>
     <div class="tip-box tip-info" style="margin-top:12px;">
       <strong>移动平均法</strong>：取最近 N 个月实际消耗的算术平均值作为下月预测值。窗口越大越平滑但滞后，越小越敏感但波动大。
     </div>
@@ -472,6 +472,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __supplies_forecast_last=0,__supplies_forecast_skip=false;
+function __supplies_forecastSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __supplies_forecastResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __supplies_forecastTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __supplies_forecastRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__supplies_forecastTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#supplies_forecastTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#supplies_forecastDiff');
+        TBKit.history.mount('#supplies_forecastHist',function(rec){
+            __supplies_forecast_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __supplies_forecast_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__supplies_forecastTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#supplies_forecastChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __supplies_forecastExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__supplies_forecast_skip) return;
+    var snap=__supplies_forecastSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__supplies_forecastResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__supplies_forecast_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __supplies_forecast_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __supplies_forecastRender(keys,rk,en);
+}
+function __supplies_forecastExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#supplies_forecastTable','supplies-forecast.csv'); } catch(e){}
+}
+function __supplies_forecastPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#supplies_forecastPresets',[{label:'默认参数',labelEn:'Default',values:{'itemName':'A4打印纸', 'window':'3', 'safetyFactor':'1.2'}}],function(){ calc(); });
+}
+var __supplies_forecast_f0=(typeof calc==='function')?calc:null;
+if(__supplies_forecast_f0){
+    calc=function(){ var __r=__supplies_forecast_f0.apply(null,arguments); try{ __supplies_forecastExtras(); }catch(e){} return __r; };
+}
+function __supplies_forecastBoot(){ try{ __supplies_forecastPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __supplies_forecastBoot();
+else document.addEventListener('DOMContentLoaded', __supplies_forecastBoot);
 </script>
 
 <script type="application/ld+json">

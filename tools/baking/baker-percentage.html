@@ -188,14 +188,14 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h3>📖 常用面包配方参考</h3>
-    <div class="result-box">
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__baker_percentageExport()">导出明细 CSV</button></div><div class="result-box">
       <p>• <strong>基础白面包</strong>：面粉100% / 水65% / 盐2% / 酵母1.5%</p>
       <p>• <strong>吐司面包</strong>：面粉100% / 水70% / 糖8% / 盐1.5% / 酵母1.2% / 黄油10%</p>
       <p>• <strong>法棍</strong>：面粉100% / 水70% / 盐2% / 酵母0.8%</p>
       <p>• <strong>恰巴塔</strong>：面粉100% / 水80% / 盐2% / 酵母0.5%</p>
       <p>• <strong>贝果</strong>：面粉100% / 水55% / 盐2% / 糖3% / 酵母1.5%</p>
       <p>• <strong>甜面包</strong>：面粉100% / 水60% / 糖15% / 盐1% / 酵母1.5% / 黄油12%</p>
-    </div>
+    </div> <div id="baker_percentageTable"></div> <div id="baker_percentageDiff"></div> <div id="baker_percentageChart"></div> <div id="baker_percentageHist"></div>
   </div>
   <div class="info-box">💡 烘焙百分比中面粉永远是100%，其他配料的百分比 = 配料重量 ÷ 面粉重量 × 100%。这种方式方便按比例缩放配方。</div>
 
@@ -421,6 +421,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __baker_percentage_last=0,__baker_percentage_skip=false;
+function __baker_percentageSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __baker_percentageResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __baker_percentageTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __baker_percentageRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__baker_percentageTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#baker_percentageTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#baker_percentageDiff');
+        TBKit.history.mount('#baker_percentageHist',function(rec){
+            __baker_percentage_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                recalc();
+            }catch(e2){}
+            __baker_percentage_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__baker_percentageTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#baker_percentageChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __baker_percentageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__baker_percentage_skip) return;
+    var snap=__baker_percentageSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__baker_percentageResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__baker_percentage_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __baker_percentage_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __baker_percentageRender(keys,rk,en);
+}
+function __baker_percentageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#baker_percentageTable','baker-percentage.csv'); } catch(e){}
+}
+function __baker_percentagePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#baker_percentagePresets',[{label:'默认参数',labelEn:'Default',values:{'flourWeight':'500', 'targetTotal':'800'}}],function(){ recalc(); });
+}
+var __baker_percentage_f0=(typeof recalc==='function')?recalc:null;
+if(__baker_percentage_f0){
+    recalc=function(){ var __r=__baker_percentage_f0.apply(null,arguments); try{ __baker_percentageExtras(); }catch(e){} return __r; };
+}
+function __baker_percentageBoot(){ try{ __baker_percentagePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __baker_percentageBoot();
+else document.addEventListener('DOMContentLoaded', __baker_percentageBoot);
 </script>
 
 
