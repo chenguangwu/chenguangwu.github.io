@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mean_lifePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mean_lifeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mean_lifeTable"></div>
+    <div id="mean_lifeDiff"></div>
+    <div id="mean_lifeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -246,6 +252,43 @@ const MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=
 function resetForm(){document.getElementById('th').value = '5730';
       calcTool();}
 calcTool();
+
+function __mean_lifeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mean_lifeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var th = num('th');
+    if (!isFinite(__mean_lifeNum('th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mean_lifeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['平均寿命 τ (年)', (th / LN2).toFixed(2)],
+            ['衰变常数 lambda (1/年)', (LN2/th).toFixed(6)],
+            ['衰变常数 (1/s)', (LN2/(th*365.25*24*3600)).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({th:__mean_lifeNum('th'), MP:MP});
+    TBKit.history.mount('#mean_lifeHist',function(rec){ if(rec.th!=null)document.getElementById('th').value=rec.th; calcTool(); });
+    TBKit.util.diffBox('#mean_lifeDiff',['MP']);
+}
+function __mean_lifeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mean_lifeTable','mean-life.csv'); } catch(e){}
+}
+function __mean_lifePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mean_lifePresets',[
+        {label:'默认',labelEn:'Default',values:{th:'5730'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{th:'11460'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{th:'2865'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mean_lifeExtras(); }catch(e){} };
+function __mean_lifeBoot(){ try{ __mean_lifePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mean_lifeBoot();
+else document.addEventListener('DOMContentLoaded', __mean_lifeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

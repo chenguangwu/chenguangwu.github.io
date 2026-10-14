@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="specific_activityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__specific_activityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="specific_activityTable"></div>
+    <div id="specific_activityDiff"></div>
+    <div id="specific_activityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,43 @@ function resetForm(){document.getElementById('th').value = '5730';
       document.getElementById('M').value = '14';
       calcTool();}
 calcTool();
+
+function __specific_activityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __specific_activityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var th = num('th'), M = num('M');
+    var lam = LN2 / (th * 365.25 * 24 * 3600); // 转 s⁻¹
+    var a = lam * NA / (M / 1000); // 每 kg
+    if (!isFinite(__specific_activityNum('th')) || !isFinite(__specific_activityNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#specific_activityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['比活度 (Bq/kg)', a.toExponential(3)],
+        ]
+    });
+    TBKit.history.record({th:__specific_activityNum('th'), M:__specific_activityNum('M'), MP:MP});
+    TBKit.history.mount('#specific_activityHist',function(rec){ if(rec.th!=null)document.getElementById('th').value=rec.th; if(rec.M!=null)document.getElementById('M').value=rec.M; calcTool(); });
+    TBKit.util.diffBox('#specific_activityDiff',['MP']);
+}
+function __specific_activityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#specific_activityTable','specific-activity.csv'); } catch(e){}
+}
+function __specific_activityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#specific_activityPresets',[
+        {label:'默认',labelEn:'Default',values:{th:'5730', M:'14'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{th:'11460', M:'28'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{th:'2865', M:'7'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __specific_activityExtras(); }catch(e){} };
+function __specific_activityBoot(){ try{ __specific_activityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __specific_activityBoot();
+else document.addEventListener('DOMContentLoaded', __specific_activityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

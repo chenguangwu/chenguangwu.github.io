@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="q_valuePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__q_valueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="q_valueTable"></div>
+    <div id="q_valueDiff"></div>
+    <div id="q_valueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,43 @@ function resetForm(){document.getElementById('mi').value = '4.0026';
       document.getElementById('mf').value = '4.0015';
       calcTool();}
 calcTool();
+
+function __q_valueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __q_valueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var mi = num('mi'), mf = num('mf');
+    var Q = (mi - mf) * U * C * C / EV / 1e6;
+    if (!isFinite(__q_valueNum('mi')) || !isFinite(__q_valueNum('mf'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#q_valueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['Q 值 (MeV)', Q.toFixed(4)],
+            ['类型', Q > 0 ? '放能反应' : '吸能反应'],
+        ]
+    });
+    TBKit.history.record({mi:__q_valueNum('mi'), mf:__q_valueNum('mf'), MP:MP});
+    TBKit.history.mount('#q_valueHist',function(rec){ if(rec.mi!=null)document.getElementById('mi').value=rec.mi; if(rec.mf!=null)document.getElementById('mf').value=rec.mf; calcTool(); });
+    TBKit.util.diffBox('#q_valueDiff',['MP']);
+}
+function __q_valueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#q_valueTable','q-value.csv'); } catch(e){}
+}
+function __q_valuePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#q_valuePresets',[
+        {label:'默认',labelEn:'Default',values:{mi:'4.0026', mf:'4.0015'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{mi:'8.0052', mf:'8.003'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mi:'2.0013', mf:'2.0008'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __q_valueExtras(); }catch(e){} };
+function __q_valueBoot(){ try{ __q_valuePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __q_valueBoot();
+else document.addEventListener('DOMContentLoaded', __q_valueBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

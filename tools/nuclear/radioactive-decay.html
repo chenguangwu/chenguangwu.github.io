@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="radioactive_decayPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__radioactive_decayExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="radioactive_decayTable"></div>
+    <div id="radioactive_decayDiff"></div>
+    <div id="radioactive_decayHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('n0').value = '1000';
       document.getElementById('t').value = '1000';
       calcTool();}
 calcTool();
+
+function __radioactive_decayNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __radioactive_decayExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var n0 = num('n0'), lam = num('lam'), t = num('t');
+    var n = n0 * Math.exp(-lam * t);
+    if (!isFinite(__radioactive_decayNum('n0')) || !isFinite(__radioactive_decayNum('lam')) || !isFinite(__radioactive_decayNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#radioactive_decayTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['剩余核数 N', n.toFixed(2)],
+            ['剩余比例 (%)', (n / n0 * 100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({n0:__radioactive_decayNum('n0'), lam:__radioactive_decayNum('lam'), t:__radioactive_decayNum('t'), MP:MP});
+    TBKit.history.mount('#radioactive_decayHist',function(rec){ if(rec.n0!=null)document.getElementById('n0').value=rec.n0; if(rec.lam!=null)document.getElementById('lam').value=rec.lam; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#radioactive_decayDiff',['MP']);
+}
+function __radioactive_decayExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#radioactive_decayTable','radioactive-decay.csv'); } catch(e){}
+}
+function __radioactive_decayPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#radioactive_decayPresets',[
+        {label:'默认',labelEn:'Default',values:{n0:'1000', lam:'0.001', t:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n0:'2000', lam:'0.002', t:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n0:'500', lam:'0.0005', t:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __radioactive_decayExtras(); }catch(e){} };
+function __radioactive_decayBoot(){ try{ __radioactive_decayPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __radioactive_decayBoot();
+else document.addEventListener('DOMContentLoaded', __radioactive_decayBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

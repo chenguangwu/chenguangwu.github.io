@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="dose_equivalentPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__dose_equivalentExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dose_equivalentTable"></div>
+    <div id="dose_equivalentDiff"></div>
+    <div id="dose_equivalentHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('D').value = '2';
       document.getElementById('Q').value = '20';
       calcTool();}
 calcTool();
+
+function __dose_equivalentNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dose_equivalentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var D=num('D'),Q=num('Q');
+    var H=D*Q;
+    if (!isFinite(__dose_equivalentNum('D')) || !isFinite(__dose_equivalentNum('Q'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#dose_equivalentTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['剂量当量 H (Sv)', H.toFixed(2)],
+            ['吸收剂量 (rad 拉德)', (D*100).toFixed(2)],
+            ['剂量当量 (mSv 毫希沃特)', (H*1000).toFixed(1)],
+            ['剂量当量 (rem 雷姆)', (H*100).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({D:__dose_equivalentNum('D'), Q:__dose_equivalentNum('Q'), H:H});
+    TBKit.history.mount('#dose_equivalentHist',function(rec){ if(rec.D!=null)document.getElementById('D').value=rec.D; if(rec.Q!=null)document.getElementById('Q').value=rec.Q; calcTool(); });
+    TBKit.util.diffBox('#dose_equivalentDiff',['H']);
+}
+function __dose_equivalentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dose_equivalentTable','dose-equivalent.csv'); } catch(e){}
+}
+function __dose_equivalentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dose_equivalentPresets',[
+        {label:'默认',labelEn:'Default',values:{D:'2', Q:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{D:'4', Q:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{D:'1', Q:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __dose_equivalentExtras(); }catch(e){} };
+function __dose_equivalentBoot(){ try{ __dose_equivalentPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dose_equivalentBoot();
+else document.addEventListener('DOMContentLoaded', __dose_equivalentBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

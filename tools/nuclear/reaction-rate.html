@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="reaction_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__reaction_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="reaction_rateTable"></div>
+    <div id="reaction_rateDiff"></div>
+    <div id="reaction_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('F').value = '1e13';
       document.getElementById('N').value = '1e20';
       calcTool();}
 calcTool();
+
+function __reaction_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __reaction_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F=num('F'),s=num('s'),N=num('N');
+    var R=F*s*N;
+    if (!isFinite(__reaction_rateNum('F')) || !isFinite(__reaction_rateNum('s')) || !isFinite(__reaction_rateNum('N'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#reaction_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['反应率 R (1/s)', R.toExponential(3)],
+            ['平均反应间隔 (s)', (1/(R||1)).toExponential(4)],
+            ['宏观截面 Sigma = F*s', (F*s).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({F:__reaction_rateNum('F'), s:__reaction_rateNum('s'), N:__reaction_rateNum('N'), R:R});
+    TBKit.history.mount('#reaction_rateHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.N!=null)document.getElementById('N').value=rec.N; calcTool(); });
+    TBKit.util.diffBox('#reaction_rateDiff',['R']);
+}
+function __reaction_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#reaction_rateTable','reaction-rate.csv'); } catch(e){}
+}
+function __reaction_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#reaction_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{F:'1e13', s:'1e-28', N:'1e20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'20000000000000', s:'0', N:'2e+2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'5000000000000', s:'0', N:'5e+19'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __reaction_rateExtras(); }catch(e){} };
+function __reaction_rateBoot(){ try{ __reaction_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __reaction_rateBoot();
+else document.addEventListener('DOMContentLoaded', __reaction_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

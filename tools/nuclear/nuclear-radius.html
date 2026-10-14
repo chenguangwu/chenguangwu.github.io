@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="nuclear_radiusPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__nuclear_radiusExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="nuclear_radiusTable"></div>
+    <div id="nuclear_radiusDiff"></div>
+    <div id="nuclear_radiusHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('A').value = '56';
       calcTool();}
 calcTool();
+
+function __nuclear_radiusNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __nuclear_radiusExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r0=1.2e-15;
+    var A=num('A');
+    var R=r0*Math.cbrt(A);
+    if (!isFinite(__nuclear_radiusNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#nuclear_radiusTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['核半径 R (fm)', (R*1e15).toFixed(3)],
+            ['核直径 (fm)', (R*1e15*2).toFixed(3)],
+            ['核体积近似 (fm³)', (4/3*Math.PI*Math.pow(R*1e15,3)).toFixed(3)],
+            ['核子数密度 (个/fm³)', (A/Math.max(4/3*Math.PI*Math.pow(R*1e15,3),1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({A:__nuclear_radiusNum('A'), r0:r0});
+    TBKit.history.mount('#nuclear_radiusHist',function(rec){ if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#nuclear_radiusDiff',['r0']);
+}
+function __nuclear_radiusExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#nuclear_radiusTable','nuclear-radius.csv'); } catch(e){}
+}
+function __nuclear_radiusPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#nuclear_radiusPresets',[
+        {label:'默认',labelEn:'Default',values:{A:'56'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{A:'112'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{A:'28'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __nuclear_radiusExtras(); }catch(e){} };
+function __nuclear_radiusBoot(){ try{ __nuclear_radiusPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __nuclear_radiusBoot();
+else document.addEventListener('DOMContentLoaded', __nuclear_radiusBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

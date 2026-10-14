@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="activity_from_halflifePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__activity_from_halflifeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="activity_from_halflifeTable"></div>
+    <div id="activity_from_halflifeDiff"></div>
+    <div id="activity_from_halflifeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,44 @@ function resetForm(){document.getElementById('th').value = '1.808e11';
       document.getElementById('N').value = '1e20';
       calcTool();}
 calcTool();
+
+function __activity_from_halflifeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __activity_from_halflifeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var th=num('th'),N=num('N');
+    var A=Math.LN2/th*N;
+    if (!isFinite(__activity_from_halflifeNum('th')) || !isFinite(__activity_from_halflifeNum('N'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#activity_from_halflifeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['活度 A (Bq)', A.toExponential(3)],
+            ['衰变常数 λ (1/s)', (Math.LN2/Math.max(th,1e-30)).toExponential(4)],
+            ['核素数目 N', (N).toExponential(4)],
+            ['活度 (Ci)', (A/3.7e10).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({th:__activity_from_halflifeNum('th'), N:__activity_from_halflifeNum('N'), A:A});
+    TBKit.history.mount('#activity_from_halflifeHist',function(rec){ if(rec.th!=null)document.getElementById('th').value=rec.th; if(rec.N!=null)document.getElementById('N').value=rec.N; calcTool(); });
+    TBKit.util.diffBox('#activity_from_halflifeDiff',['A']);
+}
+function __activity_from_halflifeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#activity_from_halflifeTable','activity-from-halflife.csv'); } catch(e){}
+}
+function __activity_from_halflifePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#activity_from_halflifePresets',[
+        {label:'默认',labelEn:'Default',values:{th:'1.808e11', N:'1e20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{th:'361600000000', N:'2e+2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{th:'90400000000', N:'5e+19'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __activity_from_halflifeExtras(); }catch(e){} };
+function __activity_from_halflifeBoot(){ try{ __activity_from_halflifePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __activity_from_halflifeBoot();
+else document.addEventListener('DOMContentLoaded', __activity_from_halflifeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

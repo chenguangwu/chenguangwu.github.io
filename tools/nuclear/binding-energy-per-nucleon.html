@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="binding_energy_per_nucleonPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__binding_energy_per_nucleonExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="binding_energy_per_nucleonTable"></div>
+    <div id="binding_energy_per_nucleonDiff"></div>
+    <div id="binding_energy_per_nucleonHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -249,6 +255,42 @@ function resetForm(){document.getElementById('dm').value = '0.528';
       document.getElementById('a').value = '56';
       calcTool();}
 calcTool();
+
+function __binding_energy_per_nucleonNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __binding_energy_per_nucleonExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var dm = num('dm'), a = num('a');
+    var be = dm * U * C * C / EV / 1e6;
+    if (!isFinite(__binding_energy_per_nucleonNum('dm')) || !isFinite(__binding_energy_per_nucleonNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#binding_energy_per_nucleonTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['比结合能 (MeV/核子)', (be / a).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({dm:__binding_energy_per_nucleonNum('dm'), a:__binding_energy_per_nucleonNum('a'), MP:MP});
+    TBKit.history.mount('#binding_energy_per_nucleonHist',function(rec){ if(rec.dm!=null)document.getElementById('dm').value=rec.dm; if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+    TBKit.util.diffBox('#binding_energy_per_nucleonDiff',['MP']);
+}
+function __binding_energy_per_nucleonExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#binding_energy_per_nucleonTable','binding-energy-per-nucleon.csv'); } catch(e){}
+}
+function __binding_energy_per_nucleonPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#binding_energy_per_nucleonPresets',[
+        {label:'默认',labelEn:'Default',values:{dm:'0.528', a:'56'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dm:'1.056', a:'112'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dm:'0.264', a:'28'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __binding_energy_per_nucleonExtras(); }catch(e){} };
+function __binding_energy_per_nucleonBoot(){ try{ __binding_energy_per_nucleonPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __binding_energy_per_nucleonBoot();
+else document.addEventListener('DOMContentLoaded', __binding_energy_per_nucleonBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

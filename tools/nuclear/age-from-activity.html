@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="age_from_activityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__age_from_activityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="age_from_activityTable"></div>
+    <div id="age_from_activityDiff"></div>
+    <div id="age_from_activityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('lam').value = '3.833e-12';
       document.getElementById('N').value = '5e19';
       calcTool();}
 calcTool();
+
+function __age_from_activityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __age_from_activityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var lam=num('lam'),N0=num('N0'),N=num('N');
+    var t=(1/lam)*Math.log(N0/N);
+    if (!isFinite(__age_from_activityNum('lam')) || !isFinite(__age_from_activityNum('N0')) || !isFinite(__age_from_activityNum('N'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#age_from_activityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年龄 t (年)', (t/3.156e7).toFixed(0)],
+            ['衰减对数 ln(N₀/N)', Math.log(N0/N).toFixed(4)],
+            ['剩余活度比例 (%)', (N/(N0||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({lam:__age_from_activityNum('lam'), N0:__age_from_activityNum('N0'), N:__age_from_activityNum('N'), t:t});
+    TBKit.history.mount('#age_from_activityHist',function(rec){ if(rec.lam!=null)document.getElementById('lam').value=rec.lam; if(rec.N0!=null)document.getElementById('N0').value=rec.N0; if(rec.N!=null)document.getElementById('N').value=rec.N; calcTool(); });
+    TBKit.util.diffBox('#age_from_activityDiff',['t']);
+}
+function __age_from_activityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#age_from_activityTable','age-from-activity.csv'); } catch(e){}
+}
+function __age_from_activityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#age_from_activityPresets',[
+        {label:'默认',labelEn:'Default',values:{lam:'3.833e-12', N0:'1e20', N:'5e19'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{lam:'0', N0:'2e+2', N:'1e+2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{lam:'0', N0:'5e+19', N:'2.5e+19'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __age_from_activityExtras(); }catch(e){} };
+function __age_from_activityBoot(){ try{ __age_from_activityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __age_from_activityBoot();
+else document.addEventListener('DOMContentLoaded', __age_from_activityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

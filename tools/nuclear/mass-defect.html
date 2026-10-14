@@ -139,12 +139,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mass_defectPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mass_defectExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mass_defectTable"></div>
+    <div id="mass_defectDiff"></div>
+    <div id="mass_defectHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -204,6 +210,43 @@ function resetForm(){document.getElementById('z').value = '26';
       document.getElementById('M').value = '55.9349';
       calcTool();}
 calcTool();
+
+function __mass_defectNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mass_defectExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var z = num('z'), nn = num('nn'), M = num('M');
+    var dm = (z * MP + nn * MN - M * U) / U;
+    if (!isFinite(__mass_defectNum('z')) || !isFinite(__mass_defectNum('nn')) || !isFinite(__mass_defectNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mass_defectTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['质量亏损 Δm (u)', dm.toFixed(5)],
+            ['对应能量 (MeV)', (dm * U * C * C / EV / 1e6).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({z:__mass_defectNum('z'), nn:__mass_defectNum('nn'), M:__mass_defectNum('M'), MP:MP});
+    TBKit.history.mount('#mass_defectHist',function(rec){ if(rec.z!=null)document.getElementById('z').value=rec.z; if(rec.nn!=null)document.getElementById('nn').value=rec.nn; if(rec.M!=null)document.getElementById('M').value=rec.M; calcTool(); });
+    TBKit.util.diffBox('#mass_defectDiff',['MP']);
+}
+function __mass_defectExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mass_defectTable','mass-defect.csv'); } catch(e){}
+}
+function __mass_defectPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mass_defectPresets',[
+        {label:'默认',labelEn:'Default',values:{z:'26', nn:'30', M:'55.9349'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{z:'52', nn:'60', M:'111.8698'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{z:'13', nn:'15', M:'27.9674'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mass_defectExtras(); }catch(e){} };
+function __mass_defectBoot(){ try{ __mass_defectPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mass_defectBoot();
+else document.addEventListener('DOMContentLoaded', __mass_defectBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

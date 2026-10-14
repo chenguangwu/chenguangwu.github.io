@@ -139,12 +139,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="activity_decayPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__activity_decayExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="activity_decayTable"></div>
+    <div id="activity_decayDiff"></div>
+    <div id="activity_decayHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -203,6 +209,42 @@ function resetForm(){document.getElementById('a0').value = '100';
       document.getElementById('t').value = '1000';
       calcTool();}
 calcTool();
+
+function __activity_decayNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __activity_decayExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var a0 = num('a0'), lam = num('lam'), t = num('t');
+    var A = a0 * Math.exp(-lam * t);
+    if (!isFinite(__activity_decayNum('a0')) || !isFinite(__activity_decayNum('lam')) || !isFinite(__activity_decayNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#activity_decayTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['活度 A (Bq)', A.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({a0:__activity_decayNum('a0'), lam:__activity_decayNum('lam'), t:__activity_decayNum('t'), MP:MP});
+    TBKit.history.mount('#activity_decayHist',function(rec){ if(rec.a0!=null)document.getElementById('a0').value=rec.a0; if(rec.lam!=null)document.getElementById('lam').value=rec.lam; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#activity_decayDiff',['MP']);
+}
+function __activity_decayExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#activity_decayTable','activity-decay.csv'); } catch(e){}
+}
+function __activity_decayPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#activity_decayPresets',[
+        {label:'默认',labelEn:'Default',values:{a0:'100', lam:'0.001', t:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a0:'200', lam:'0.002', t:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a0:'50', lam:'0.0005', t:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __activity_decayExtras(); }catch(e){} };
+function __activity_decayBoot(){ try{ __activity_decayPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __activity_decayBoot();
+else document.addEventListener('DOMContentLoaded', __activity_decayBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

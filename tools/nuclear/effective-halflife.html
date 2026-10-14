@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="effective_halflifePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__effective_halflifeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="effective_halflifeTable"></div>
+    <div id="effective_halflifeDiff"></div>
+    <div id="effective_halflifeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,44 @@ function resetForm(){document.getElementById('tp').value = '8';
       document.getElementById('tb').value = '30';
       calcTool();}
 calcTool();
+
+function __effective_halflifeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __effective_halflifeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var tp=num('tp'),tb=num('tb');
+    var te=1/(1/tp+1/tb);
+    if (!isFinite(__effective_halflifeNum('tp')) || !isFinite(__effective_halflifeNum('tb'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#effective_halflifeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['有效半衰期 t_eff (天)', te.toFixed(2)],
+            ['物理衰变常数 (1/天)', (1/Math.max(tp,1e-12)).toExponential(4)],
+            ['生物消除常数 (1/天)', (1/Math.max(tb,1e-12)).toExponential(4)],
+            ['有效半衰期 (周)', (te/7).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({tp:__effective_halflifeNum('tp'), tb:__effective_halflifeNum('tb'), te:te});
+    TBKit.history.mount('#effective_halflifeHist',function(rec){ if(rec.tp!=null)document.getElementById('tp').value=rec.tp; if(rec.tb!=null)document.getElementById('tb').value=rec.tb; calcTool(); });
+    TBKit.util.diffBox('#effective_halflifeDiff',['te']);
+}
+function __effective_halflifeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#effective_halflifeTable','effective-halflife.csv'); } catch(e){}
+}
+function __effective_halflifePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#effective_halflifePresets',[
+        {label:'默认',labelEn:'Default',values:{tp:'8', tb:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{tp:'16', tb:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{tp:'4', tb:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __effective_halflifeExtras(); }catch(e){} };
+function __effective_halflifeBoot(){ try{ __effective_halflifePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __effective_halflifeBoot();
+else document.addEventListener('DOMContentLoaded', __effective_halflifeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

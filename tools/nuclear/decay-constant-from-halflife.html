@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="decay_constant_from_halflifePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__decay_constant_from_halflifeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="decay_constant_from_halflifeTable"></div>
+    <div id="decay_constant_from_halflifeDiff"></div>
+    <div id="decay_constant_from_halflifeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -246,6 +252,44 @@ const th=num('th');
 function resetForm(){document.getElementById('th').value = '1.808e11';
       calcTool();}
 calcTool();
+
+function __decay_constant_from_halflifeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __decay_constant_from_halflifeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var th=num('th');
+    var lam=Math.LN2/th;
+    if (!isFinite(__decay_constant_from_halflifeNum('th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#decay_constant_from_halflifeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['衰变常数 λ (1/s)', lam.toExponential(3)],
+            ['平均寿命 τ (s)', (1/Math.max(lam,1e-30)).toExponential(3)],
+            ['衰变常数 (10⁻⁶/s)', (lam*1e6).toExponential(3)],
+            ['半衰期 (s)', (th*24*3600).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({th:__decay_constant_from_halflifeNum('th'), lam:lam});
+    TBKit.history.mount('#decay_constant_from_halflifeHist',function(rec){ if(rec.th!=null)document.getElementById('th').value=rec.th; calcTool(); });
+    TBKit.util.diffBox('#decay_constant_from_halflifeDiff',['lam']);
+}
+function __decay_constant_from_halflifeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#decay_constant_from_halflifeTable','decay-constant-from-halflife.csv'); } catch(e){}
+}
+function __decay_constant_from_halflifePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#decay_constant_from_halflifePresets',[
+        {label:'默认',labelEn:'Default',values:{th:'1.808e11'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{th:'361600000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{th:'90400000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __decay_constant_from_halflifeExtras(); }catch(e){} };
+function __decay_constant_from_halflifeBoot(){ try{ __decay_constant_from_halflifePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __decay_constant_from_halflifeBoot();
+else document.addEventListener('DOMContentLoaded', __decay_constant_from_halflifeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

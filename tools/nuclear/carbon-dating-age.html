@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="carbon_dating_agePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__carbon_dating_ageExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="carbon_dating_ageTable"></div>
+    <div id="carbon_dating_ageDiff"></div>
+    <div id="carbon_dating_ageHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,42 @@ function resetForm(){document.getElementById('th').value = '5730';
       document.getElementById('frac').value = '0.5';
       calcTool();}
 calcTool();
+
+function __carbon_dating_ageNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __carbon_dating_ageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var th = num('th'), frac = num('frac');
+    var t = (th / LN2) * Math.log(1 / frac);
+    if (!isFinite(__carbon_dating_ageNum('th')) || !isFinite(__carbon_dating_ageNum('frac'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#carbon_dating_ageTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年代 t (年)', t.toFixed(0)],
+        ]
+    });
+    TBKit.history.record({th:__carbon_dating_ageNum('th'), frac:__carbon_dating_ageNum('frac'), MP:MP});
+    TBKit.history.mount('#carbon_dating_ageHist',function(rec){ if(rec.th!=null)document.getElementById('th').value=rec.th; if(rec.frac!=null)document.getElementById('frac').value=rec.frac; calcTool(); });
+    TBKit.util.diffBox('#carbon_dating_ageDiff',['MP']);
+}
+function __carbon_dating_ageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#carbon_dating_ageTable','carbon-dating-age.csv'); } catch(e){}
+}
+function __carbon_dating_agePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#carbon_dating_agePresets',[
+        {label:'默认',labelEn:'Default',values:{th:'5730', frac:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{th:'11460', frac:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{th:'2865', frac:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __carbon_dating_ageExtras(); }catch(e){} };
+function __carbon_dating_ageBoot(){ try{ __carbon_dating_agePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __carbon_dating_ageBoot();
+else document.addEventListener('DOMContentLoaded', __carbon_dating_ageBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

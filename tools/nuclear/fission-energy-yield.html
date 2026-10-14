@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fission_energy_yieldPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fission_energy_yieldExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fission_energy_yieldTable"></div>
+    <div id="fission_energy_yieldDiff"></div>
+    <div id="fission_energy_yieldHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,43 @@ function resetForm(){document.getElementById('n').value = '1e20';
       document.getElementById('ef').value = '200';
       calcTool();}
 calcTool();
+
+function __fission_energy_yieldNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fission_energy_yieldExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MP=1.6726219e-27,MN=1.6749275e-27,ME=9.10938356e-31,U=1.66053906660e-27,C=299792458,NA=6.02214076e23,EV=1.602176634e-19,LN2=0.69314718056;
+    var n = num('n'), ef = num('ef');
+    var E = n * ef * 1e6 * EV;
+    if (!isFinite(__fission_energy_yieldNum('n')) || !isFinite(__fission_energy_yieldNum('ef'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fission_energy_yieldTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['总能量 E (J)', E.toExponential(3)],
+            ['E (kWh)', (E / 3.6e9).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({n:__fission_energy_yieldNum('n'), ef:__fission_energy_yieldNum('ef'), MP:MP});
+    TBKit.history.mount('#fission_energy_yieldHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.ef!=null)document.getElementById('ef').value=rec.ef; calcTool(); });
+    TBKit.util.diffBox('#fission_energy_yieldDiff',['MP']);
+}
+function __fission_energy_yieldExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fission_energy_yieldTable','fission-energy-yield.csv'); } catch(e){}
+}
+function __fission_energy_yieldPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fission_energy_yieldPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1e20', ef:'200'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2e+2', ef:'400'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'5e+19', ef:'100'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fission_energy_yieldExtras(); }catch(e){} };
+function __fission_energy_yieldBoot(){ try{ __fission_energy_yieldPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fission_energy_yieldBoot();
+else document.addEventListener('DOMContentLoaded', __fission_energy_yieldBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
