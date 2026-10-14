@@ -159,10 +159,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算硬度</button>
+      <div id="temp_hardnessPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算硬度</button><button class="btn" type="button" onclick="__temp_hardnessExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="temp_hardnessTable"></div> <div id="temp_hardnessDiff"></div> <div id="temp_hardnessChart"></div> <div id="temp_hardnessHist"></div>
 
     <div class="tip-box tip-info">💡 回火硬度 ≈ 淬火硬度 - k×(T回火-150)/100，再根据截面尺寸和淬透性折减。数据为经验估算值。</div>
   </div>
@@ -357,6 +357,114 @@ function copyRes(){
   ToolBox.copyText(text);
 }
 calc();
+
+var __temp_hardness_last=0,__temp_hardness_skip=false;
+function __temp_hardnessSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __temp_hardnessResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __temp_hardnessTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __temp_hardnessRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__temp_hardnessTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#temp_hardnessTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#temp_hardnessDiff');
+        TBKit.history.mount('#temp_hardnessHist',function(rec){
+            __temp_hardness_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __temp_hardness_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__temp_hardnessTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#temp_hardnessChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __temp_hardnessExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__temp_hardness_skip) return;
+    var snap=__temp_hardnessSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__temp_hardnessResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__temp_hardness_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __temp_hardness_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __temp_hardnessRender(keys,rk,en);
+}
+function __temp_hardnessExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#temp_hardnessTable','temp-hardness.csv'); } catch(e){}
+}
+function __temp_hardnessPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#temp_hardnessPresets',[{label:'默认参数',labelEn:'Default',values:{'steelGrade':'45', 'quenchMedium':'water', 'maxHrc':'55', 'temperK':'3', 'critDia':'15', 'temperTemp':'500', 'sectionSize':'20'}}],function(){ calc(); });
+}
+var __temp_hardness_f0=(typeof calc==='function')?calc:null;
+if(__temp_hardness_f0){
+    calc=function(){ var __r=__temp_hardness_f0.apply(null,arguments); try{ __temp_hardnessExtras(); }catch(e){} return __r; };
+}
+function __temp_hardnessBoot(){ try{ __temp_hardnessPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __temp_hardnessBoot();
+else document.addEventListener('DOMContentLoaded', __temp_hardnessBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

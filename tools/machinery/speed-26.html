@@ -127,7 +127,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__speed_26Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="speed_26Table"></div> <div id="speed_26Diff"></div> <div id="speed_26Chart"></div> <div id="speed_26Hist"></div>
     <div class="info-box">💡 链条速度 v = z₁ × p × n₁ / (60×1000)；大链轮齿数 z₂ = z₁ × i；根据功率与转速匹配链条型号</div>
     <div class="tool-notes" style="--tool-accent:#6B7280;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -282,6 +282,114 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+
+var __speed_26_last=0,__speed_26_skip=false;
+function __speed_26Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __speed_26ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __speed_26Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __speed_26Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__speed_26Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#speed_26Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#speed_26Diff');
+        TBKit.history.mount('#speed_26Hist',function(rec){
+            __speed_26_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __speed_26_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__speed_26Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#speed_26Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __speed_26Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__speed_26_skip) return;
+    var snap=__speed_26Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__speed_26ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__speed_26_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __speed_26_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __speed_26Render(keys,rk,en);
+}
+function __speed_26Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#speed_26Table','speed-26.csv'); } catch(e){}
+}
+function __speed_26Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#speed_26Presets',[{label:'默认参数',labelEn:'Default',values:{'v0':'5.5', 'v1':'960', 'v2':'3'}}],function(){ calc(); });
+}
+var __speed_26_f0=(typeof calc==='function')?calc:null;
+if(__speed_26_f0){
+    calc=function(){ var __r=__speed_26_f0.apply(null,arguments); try{ __speed_26Extras(); }catch(e){} return __r; };
+}
+function __speed_26Boot(){ try{ __speed_26Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __speed_26Boot();
+else document.addEventListener('DOMContentLoaded', __speed_26Boot);
 </script>
 
 </div>

@@ -130,7 +130,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__energy_2Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="energy_2Table"></div> <div id="energy_2Diff"></div> <div id="energy_2Chart"></div> <div id="energy_2Hist"></div>
     <div class="info-box">💡 公式：ω=2πn/60；ΔE=½J(ω₁²-ω₂²)；制动扭矩 T=J(ω₁-ω₂)/t；平均功率 P=ΔE/t</div>
     <div class="tool-notes" style="--tool-accent:#64748B;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -248,6 +248,114 @@ function restoreHistory(idx){
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __energy_2_last=0,__energy_2_skip=false;
+function __energy_2Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __energy_2ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __energy_2Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __energy_2Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__energy_2Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#energy_2Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#energy_2Diff');
+        TBKit.history.mount('#energy_2Hist',function(rec){
+            __energy_2_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __energy_2_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__energy_2Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#energy_2Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __energy_2Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__energy_2_skip) return;
+    var snap=__energy_2Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__energy_2ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__energy_2_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __energy_2_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __energy_2Render(keys,rk,en);
+}
+function __energy_2Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_2Table','energy-2.csv'); } catch(e){}
+}
+function __energy_2Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_2Presets',[{label:'默认参数',labelEn:'Default',values:{'v_J':'2.5', 'v_n1':'1500', 'v_n2':'0', 'v_t':'3'}}],function(){ calc(); });
+}
+var __energy_2_f0=(typeof calc==='function')?calc:null;
+if(__energy_2_f0){
+    calc=function(){ var __r=__energy_2_f0.apply(null,arguments); try{ __energy_2Extras(); }catch(e){} return __r; };
+}
+function __energy_2Boot(){ try{ __energy_2Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_2Boot();
+else document.addEventListener('DOMContentLoaded', __energy_2Boot);
 </script>
 
 

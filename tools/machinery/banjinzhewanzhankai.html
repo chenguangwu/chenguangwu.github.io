@@ -146,7 +146,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__banjinzhewanzhankaiExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="banjinzhewanzhankaiTable"></div> <div id="banjinzhewanzhankaiDiff"></div> <div id="banjinzhewanzhankaiChart"></div> <div id="banjinzhewanzhankaiHist"></div>
     <div class="info-box">💡 公式：外截退量 OSSB=(R+t)·tan(θ/2)；折弯允许量 BA=(R+K·t)·π·θ/180；折弯扣除 BD=2·OSSB-BA；展开长度 L=A+B-BD</div>
     <div class="tool-notes" style="--tool-accent:#64748B;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -282,6 +282,114 @@ function restoreHistory(idx){
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __banjinzhewanzhankai_last=0,__banjinzhewanzhankai_skip=false;
+function __banjinzhewanzhankaiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __banjinzhewanzhankaiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __banjinzhewanzhankaiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __banjinzhewanzhankaiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__banjinzhewanzhankaiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#banjinzhewanzhankaiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#banjinzhewanzhankaiDiff');
+        TBKit.history.mount('#banjinzhewanzhankaiHist',function(rec){
+            __banjinzhewanzhankai_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __banjinzhewanzhankai_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__banjinzhewanzhankaiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#banjinzhewanzhankaiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __banjinzhewanzhankaiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__banjinzhewanzhankai_skip) return;
+    var snap=__banjinzhewanzhankaiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__banjinzhewanzhankaiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__banjinzhewanzhankai_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __banjinzhewanzhankai_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __banjinzhewanzhankaiRender(keys,rk,en);
+}
+function __banjinzhewanzhankaiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#banjinzhewanzhankaiTable','banjinzhewanzhankai.csv'); } catch(e){}
+}
+function __banjinzhewanzhankaiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#banjinzhewanzhankaiPresets',[{label:'默认参数',labelEn:'Default',values:{'v_t':'2', 'v_ang':'90', 'v_r':'3', 'v_mat':'0.45', 'v_k':'0.45', 'v_a':'50', 'v_b':'40'}}],function(){ calc(); });
+}
+var __banjinzhewanzhankai_f0=(typeof calc==='function')?calc:null;
+if(__banjinzhewanzhankai_f0){
+    calc=function(){ var __r=__banjinzhewanzhankai_f0.apply(null,arguments); try{ __banjinzhewanzhankaiExtras(); }catch(e){} return __r; };
+}
+function __banjinzhewanzhankaiBoot(){ try{ __banjinzhewanzhankaiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __banjinzhewanzhankaiBoot();
+else document.addEventListener('DOMContentLoaded', __banjinzhewanzhankaiBoot);
 </script>
 
 
