@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ss_point_deflectionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ss_point_deflectionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ss_point_deflectionTable"></div>
+    <div id="ss_point_deflectionDiff"></div>
+    <div id="ss_point_deflectionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -261,6 +267,42 @@ function resetForm(){document.getElementById('P').value = '10';
       document.getElementById('I').value = '1e-6';
       calcTool();}
 calcTool();
+
+function __ss_point_deflectionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ss_point_deflectionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('P') * 1000, L = num('L'), E = num('E'), I = num('I');
+    var d = P * L * L * L / (48 * E * I);
+    if (!isFinite(__ss_point_deflectionNum('P')) || !isFinite(__ss_point_deflectionNum('L')) || !isFinite(__ss_point_deflectionNum('E')) || !isFinite(__ss_point_deflectionNum('I'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ss_point_deflectionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['挠度 δ (mm)', (d * 1000).toFixed(3)],
+            ['δ (m)', (d).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({P:__ss_point_deflectionNum('P'), L:__ss_point_deflectionNum('L'), E:__ss_point_deflectionNum('E'), I:__ss_point_deflectionNum('I'), d:d});
+    TBKit.history.mount('#ss_point_deflectionHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.E!=null)document.getElementById('E').value=rec.E; if(rec.I!=null)document.getElementById('I').value=rec.I; calcTool(); });
+    TBKit.util.diffBox('#ss_point_deflectionDiff',['d']);
+}
+function __ss_point_deflectionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ss_point_deflectionTable','ss-point-deflection.csv'); } catch(e){}
+}
+function __ss_point_deflectionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ss_point_deflectionPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'10', L:'2', E:'200e9', I:'1e-6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'20', L:'4', E:'400000000000', I:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'5', L:'1', E:'100000000000', I:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ss_point_deflectionExtras(); }catch(e){} };
+function __ss_point_deflectionBoot(){ try{ __ss_point_deflectionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ss_point_deflectionBoot();
+else document.addEventListener('DOMContentLoaded', __ss_point_deflectionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

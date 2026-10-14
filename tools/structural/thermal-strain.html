@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="thermal_strainPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__thermal_strainExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="thermal_strainTable"></div>
+    <div id="thermal_strainDiff"></div>
+    <div id="thermal_strainHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('a').value = '1.2e-5';
       document.getElementById('dT').value = '100';
       calcTool();}
 calcTool();
+
+function __thermal_strainNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __thermal_strainExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a'),dT=num('dT');
+    var eps=a*dT;
+    if (!isFinite(__thermal_strainNum('a')) || !isFinite(__thermal_strainNum('dT'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#thermal_strainTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热应变 ε', eps.toFixed(5)],
+            ['热应变 (με)', (eps*1e6).toFixed(2)],
+            ['热应变百分数', (eps*100).toFixed(5)],
+            ['热应变倒数', (1/Math.max(Math.abs(eps),1e-12)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({a:__thermal_strainNum('a'), dT:__thermal_strainNum('dT'), eps:eps});
+    TBKit.history.mount('#thermal_strainHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.dT!=null)document.getElementById('dT').value=rec.dT; calcTool(); });
+    TBKit.util.diffBox('#thermal_strainDiff',['eps']);
+}
+function __thermal_strainExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thermal_strainTable','thermal-strain.csv'); } catch(e){}
+}
+function __thermal_strainPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thermal_strainPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'1.2e-5', dT:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'0', dT:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'0', dT:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __thermal_strainExtras(); }catch(e){} };
+function __thermal_strainBoot(){ try{ __thermal_strainPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thermal_strainBoot();
+else document.addEventListener('DOMContentLoaded', __thermal_strainBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

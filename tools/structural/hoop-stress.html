@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hoop_stressPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hoop_stressExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hoop_stressTable"></div>
+    <div id="hoop_stressDiff"></div>
+    <div id="hoop_stressHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('p').value = '2e6';
       document.getElementById('t').value = '0.01';
       calcTool();}
 calcTool();
+
+function __hoop_stressNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hoop_stressExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),r=num('r'),t=num('t');
+    var sh=p*r/t;
+    if (!isFinite(__hoop_stressNum('p')) || !isFinite(__hoop_stressNum('r')) || !isFinite(__hoop_stressNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hoop_stressTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['环向应力 σ_h (MPa)', (sh/1e6).toFixed(2)],
+            ['纵向应力 (MPa)', (p*r/(2*t)/1e6).toFixed(3)],
+            ['环向/纵向 应力比', (sh/(p*r/(2*t)||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({p:__hoop_stressNum('p'), r:__hoop_stressNum('r'), t:__hoop_stressNum('t'), sh:sh});
+    TBKit.history.mount('#hoop_stressHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#hoop_stressDiff',['sh']);
+}
+function __hoop_stressExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hoop_stressTable','hoop-stress.csv'); } catch(e){}
+}
+function __hoop_stressPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hoop_stressPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'2e6', r:'0.5', t:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'4000000', r:'1', t:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'1000000', r:'0.25', t:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hoop_stressExtras(); }catch(e){} };
+function __hoop_stressBoot(){ try{ __hoop_stressPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hoop_stressBoot();
+else document.addEventListener('DOMContentLoaded', __hoop_stressBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

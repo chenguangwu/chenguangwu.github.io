@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="von_mises_2dPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__von_mises_2dExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="von_mises_2dTable"></div>
+    <div id="von_mises_2dDiff"></div>
+    <div id="von_mises_2dHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('sx').value = '100e6';
       document.getElementById('t').value = '30e6';
       calcTool();}
 calcTool();
+
+function __von_mises_2dNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __von_mises_2dExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var sx=num('sx'),sy=num('sy'),t=num('t');
+    var vm=Math.sqrt(sx*sx-sx*sy+sy*sy+3*t*t);
+    if (!isFinite(__von_mises_2dNum('sx')) || !isFinite(__von_mises_2dNum('sy')) || !isFinite(__von_mises_2dNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#von_mises_2dTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['等效应力 σ_vm (MPa)', (vm/1e6).toFixed(2)],
+            ['忽略剪应力时等效应力 (MPa)', (Math.sqrt(sx*sx-sx*sy+sy*sy)/1e6).toFixed(2)],
+            ['最大剪应力 τ_max (MPa)', (Math.sqrt(Math.pow((sx-sy)/2,2)+t*t)/1e6).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({sx:__von_mises_2dNum('sx'), sy:__von_mises_2dNum('sy'), t:__von_mises_2dNum('t'), vm:vm});
+    TBKit.history.mount('#von_mises_2dHist',function(rec){ if(rec.sx!=null)document.getElementById('sx').value=rec.sx; if(rec.sy!=null)document.getElementById('sy').value=rec.sy; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#von_mises_2dDiff',['vm']);
+}
+function __von_mises_2dExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#von_mises_2dTable','von-mises-2d.csv'); } catch(e){}
+}
+function __von_mises_2dPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#von_mises_2dPresets',[
+        {label:'默认',labelEn:'Default',values:{sx:'100e6', sy:'50e6', t:'30e6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{sx:'200000000', sy:'100000000', t:'60000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{sx:'50000000', sy:'25000000', t:'15000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __von_mises_2dExtras(); }catch(e){} };
+function __von_mises_2dBoot(){ try{ __von_mises_2dPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __von_mises_2dBoot();
+else document.addEventListener('DOMContentLoaded', __von_mises_2dBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

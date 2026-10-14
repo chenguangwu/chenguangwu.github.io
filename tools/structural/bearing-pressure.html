@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bearing_pressurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bearing_pressureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bearing_pressureTable"></div>
+    <div id="bearing_pressureDiff"></div>
+    <div id="bearing_pressureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('N').value = '100';
       document.getElementById('A').value = '10';
       calcTool();}
 calcTool();
+
+function __bearing_pressureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bearing_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var N = num('N'), A = num('A');
+    var p = N / A;
+    if (!isFinite(__bearing_pressureNum('N')) || !isFinite(__bearing_pressureNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bearing_pressureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['基底压力 p (kPa)', p.toFixed(3)],
+            ['p (Pa)', (p * 1000).toFixed(1)],
+            ['荷载复算 N (kN)', (p*(A||1)).toFixed(3)],
+            ['单位荷载所需面积 (m2/kN)', (A/(N||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({N:__bearing_pressureNum('N'), A:__bearing_pressureNum('A'), p:p});
+    TBKit.history.mount('#bearing_pressureHist',function(rec){ if(rec.N!=null)document.getElementById('N').value=rec.N; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#bearing_pressureDiff',['p']);
+}
+function __bearing_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bearing_pressureTable','bearing-pressure.csv'); } catch(e){}
+}
+function __bearing_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bearing_pressurePresets',[
+        {label:'默认',labelEn:'Default',values:{N:'100', A:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{N:'200', A:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{N:'50', A:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bearing_pressureExtras(); }catch(e){} };
+function __bearing_pressureBoot(){ try{ __bearing_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bearing_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __bearing_pressureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

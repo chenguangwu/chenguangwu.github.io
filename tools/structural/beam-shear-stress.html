@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="beam_shear_stressPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__beam_shear_stressExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="beam_shear_stressTable"></div>
+    <div id="beam_shear_stressDiff"></div>
+    <div id="beam_shear_stressHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('V').value = '5';
       document.getElementById('A').value = '0.1';
       calcTool();}
 calcTool();
+
+function __beam_shear_stressNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __beam_shear_stressExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var V = num('V') * 1000, A = num('A');
+    var t = 1.5 * V / A;
+    if (!isFinite(__beam_shear_stressNum('V')) || !isFinite(__beam_shear_stressNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#beam_shear_stressTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最大剪应力 τ (MPa)', (t / 1e6).toFixed(3)],
+            ['τ (kPa)', (t / 1e3).toFixed(2)],
+            ['平均剪应力 (MPa)', (V/A/1e6).toFixed(3)],
+            ['峰值/平均 剪应力比', (t/(V/A)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({V:__beam_shear_stressNum('V'), A:__beam_shear_stressNum('A'), t:t});
+    TBKit.history.mount('#beam_shear_stressHist',function(rec){ if(rec.V!=null)document.getElementById('V').value=rec.V; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#beam_shear_stressDiff',['t']);
+}
+function __beam_shear_stressExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#beam_shear_stressTable','beam-shear-stress.csv'); } catch(e){}
+}
+function __beam_shear_stressPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#beam_shear_stressPresets',[
+        {label:'默认',labelEn:'Default',values:{V:'5', A:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{V:'10', A:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{V:'2.5', A:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __beam_shear_stressExtras(); }catch(e){} };
+function __beam_shear_stressBoot(){ try{ __beam_shear_stressPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __beam_shear_stressBoot();
+else document.addEventListener('DOMContentLoaded', __beam_shear_stressBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

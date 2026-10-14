@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="deflection_cantilever_pointPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__deflection_cantilever_pointExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="deflection_cantilever_pointTable"></div>
+    <div id="deflection_cantilever_pointDiff"></div>
+    <div id="deflection_cantilever_pointHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -261,6 +267,42 @@ function resetForm(){document.getElementById('F').value = '100';
       document.getElementById('d').value = '0.1';
       calcTool();}
 calcTool();
+
+function __deflection_cantilever_pointNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __deflection_cantilever_pointExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F=num('F'),L=num('L'),E=num('E'),d=num('d');
+    var I=Math.PI*Math.pow(d,4)/64;
+    var delta=F*Math.pow(L,3)/(3*E*I);
+    if (!isFinite(__deflection_cantilever_pointNum('F')) || !isFinite(__deflection_cantilever_pointNum('L')) || !isFinite(__deflection_cantilever_pointNum('E')) || !isFinite(__deflection_cantilever_pointNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#deflection_cantilever_pointTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['挠度 δ (mm)', (delta*1000).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({F:__deflection_cantilever_pointNum('F'), L:__deflection_cantilever_pointNum('L'), E:__deflection_cantilever_pointNum('E'), d:__deflection_cantilever_pointNum('d'), I:I});
+    TBKit.history.mount('#deflection_cantilever_pointHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.E!=null)document.getElementById('E').value=rec.E; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#deflection_cantilever_pointDiff',['I']);
+}
+function __deflection_cantilever_pointExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#deflection_cantilever_pointTable','deflection-cantilever-point.csv'); } catch(e){}
+}
+function __deflection_cantilever_pointPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#deflection_cantilever_pointPresets',[
+        {label:'默认',labelEn:'Default',values:{F:'100', L:'2', E:'200e9', d:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'200', L:'4', E:'400000000000', d:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'50', L:'1', E:'100000000000', d:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __deflection_cantilever_pointExtras(); }catch(e){} };
+function __deflection_cantilever_pointBoot(){ try{ __deflection_cantilever_pointPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __deflection_cantilever_pointBoot();
+else document.addEventListener('DOMContentLoaded', __deflection_cantilever_pointBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

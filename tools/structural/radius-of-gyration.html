@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="radius_of_gyrationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__radius_of_gyrationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="radius_of_gyrationTable"></div>
+    <div id="radius_of_gyrationDiff"></div>
+    <div id="radius_of_gyrationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('I').value = '1e-6';
       document.getElementById('A').value = '1e-3';
       calcTool();}
 calcTool();
+
+function __radius_of_gyrationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __radius_of_gyrationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I = num('I'), A = num('A');
+    var r = Math.sqrt(I / A);
+    if (!isFinite(__radius_of_gyrationNum('I')) || !isFinite(__radius_of_gyrationNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#radius_of_gyrationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['回转半径 r (m)', r.toFixed(5)],
+            ['r (mm)', (r * 1000).toFixed(2)],
+            ['惯性矩复算 I (m4)', (r*r*A).toFixed(4)],
+            ['回转半径平方 (m2)', (r*r).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({I:__radius_of_gyrationNum('I'), A:__radius_of_gyrationNum('A'), r:r});
+    TBKit.history.mount('#radius_of_gyrationHist',function(rec){ if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#radius_of_gyrationDiff',['r']);
+}
+function __radius_of_gyrationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#radius_of_gyrationTable','radius-of-gyration.csv'); } catch(e){}
+}
+function __radius_of_gyrationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#radius_of_gyrationPresets',[
+        {label:'默认',labelEn:'Default',values:{I:'1e-6', A:'1e-3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I:'0', A:'0.002'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'0', A:'0.0005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __radius_of_gyrationExtras(); }catch(e){} };
+function __radius_of_gyrationBoot(){ try{ __radius_of_gyrationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __radius_of_gyrationBoot();
+else document.addEventListener('DOMContentLoaded', __radius_of_gyrationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

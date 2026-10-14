@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="allowable_stressPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__allowable_stressExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="allowable_stressTable"></div>
+    <div id="allowable_stressDiff"></div>
+    <div id="allowable_stressHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('sy').value = '250';
       document.getElementById('n').value = '1.5';
       calcTool();}
 calcTool();
+
+function __allowable_stressNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __allowable_stressExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var sy = num('sy'), n = num('n');
+    var sa = sy / n;
+    if (!isFinite(__allowable_stressNum('sy')) || !isFinite(__allowable_stressNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#allowable_stressTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['许用应力 σ_allow (MPa)', sa.toFixed(2)],
+            ['回算屈服 (MPa)', (sa * n).toFixed(2)],
+            ['强度储备 (MPa)', (sy-sa).toFixed(2)],
+            ['许用应力占屈服比 (%)', (sa/sy*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({sy:__allowable_stressNum('sy'), n:__allowable_stressNum('n'), sa:sa});
+    TBKit.history.mount('#allowable_stressHist',function(rec){ if(rec.sy!=null)document.getElementById('sy').value=rec.sy; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#allowable_stressDiff',['sa']);
+}
+function __allowable_stressExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#allowable_stressTable','allowable-stress.csv'); } catch(e){}
+}
+function __allowable_stressPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#allowable_stressPresets',[
+        {label:'默认',labelEn:'Default',values:{sy:'250', n:'1.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{sy:'500', n:'3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{sy:'125', n:'0.75'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __allowable_stressExtras(); }catch(e){} };
+function __allowable_stressBoot(){ try{ __allowable_stressPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __allowable_stressBoot();
+else document.addEventListener('DOMContentLoaded', __allowable_stressBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

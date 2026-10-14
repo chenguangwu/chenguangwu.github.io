@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="torsional_shear_shaftPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__torsional_shear_shaftExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="torsional_shear_shaftTable"></div>
+    <div id="torsional_shear_shaftDiff"></div>
+    <div id="torsional_shear_shaftHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('T').value = '500';
       document.getElementById('d').value = '0.05';
       calcTool();}
 calcTool();
+
+function __torsional_shear_shaftNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __torsional_shear_shaftExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'),d=num('d');
+    var J=Math.PI*Math.pow(d,4)/32;
+    var tau=T*(d/2)/J;
+    if (!isFinite(__torsional_shear_shaftNum('T')) || !isFinite(__torsional_shear_shaftNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#torsional_shear_shaftTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['剪应力 τ (MPa)', (tau/1e6).toFixed(2)],
+            ['抗扭截面系数 W_t (m3)', (Math.PI*Math.pow(d,3)/16).toExponential(4)],
+            ['抗扭截面系数复算 (m3)', (J*2/d).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({T:__torsional_shear_shaftNum('T'), d:__torsional_shear_shaftNum('d'), J:J});
+    TBKit.history.mount('#torsional_shear_shaftHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#torsional_shear_shaftDiff',['J']);
+}
+function __torsional_shear_shaftExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#torsional_shear_shaftTable','torsional-shear-shaft.csv'); } catch(e){}
+}
+function __torsional_shear_shaftPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#torsional_shear_shaftPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'500', d:'0.05'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'1000', d:'0.1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'250', d:'0.025'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __torsional_shear_shaftExtras(); }catch(e){} };
+function __torsional_shear_shaftBoot(){ try{ __torsional_shear_shaftPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __torsional_shear_shaftBoot();
+else document.addEventListener('DOMContentLoaded', __torsional_shear_shaftBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

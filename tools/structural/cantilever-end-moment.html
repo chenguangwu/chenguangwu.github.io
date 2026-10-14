@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cantilever_end_momentPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cantilever_end_momentExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cantilever_end_momentTable"></div>
+    <div id="cantilever_end_momentDiff"></div>
+    <div id="cantilever_end_momentHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('F').value = '5';
       document.getElementById('L').value = '2';
       calcTool();}
 calcTool();
+
+function __cantilever_end_momentNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cantilever_end_momentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F = num('F'), L = num('L');
+    var M = F * L;
+    if (!isFinite(__cantilever_end_momentNum('F')) || !isFinite(__cantilever_end_momentNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cantilever_end_momentTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['固定端弯矩 M (kN·m)', M.toFixed(3)],
+            ['等效均布 (kN/m)', (F / L).toFixed(3)],
+            ['固端剪力 (kN)', (F).toFixed(3)],
+            ['等效均布荷载 (kN/m)', (2*M/((L*L)||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({F:__cantilever_end_momentNum('F'), L:__cantilever_end_momentNum('L'), M:M});
+    TBKit.history.mount('#cantilever_end_momentHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#cantilever_end_momentDiff',['M']);
+}
+function __cantilever_end_momentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cantilever_end_momentTable','cantilever-end-moment.csv'); } catch(e){}
+}
+function __cantilever_end_momentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cantilever_end_momentPresets',[
+        {label:'默认',labelEn:'Default',values:{F:'5', L:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'10', L:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'2.5', L:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cantilever_end_momentExtras(); }catch(e){} };
+function __cantilever_end_momentBoot(){ try{ __cantilever_end_momentPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cantilever_end_momentBoot();
+else document.addEventListener('DOMContentLoaded', __cantilever_end_momentBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

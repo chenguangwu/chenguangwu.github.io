@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="slenderness_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__slenderness_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="slenderness_ratioTable"></div>
+    <div id="slenderness_ratioDiff"></div>
+    <div id="slenderness_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('L').value = '2';
       document.getElementById('r').value = '0.03162';
       calcTool();}
 calcTool();
+
+function __slenderness_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __slenderness_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L = num('L'), r = num('r');
+    var lam = L / r;
+    if (!isFinite(__slenderness_ratioNum('L')) || !isFinite(__slenderness_ratioNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#slenderness_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['长细比 λ', lam.toFixed(2)],
+            ['评估', (lam < 100 ? '稳定' : '易失稳')],
+            ['回转半径复算 r (m)', (L/(lam||1)).toFixed(5)],
+            ['距临界长细比 100 之差', (100-lam).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({L:__slenderness_ratioNum('L'), r:__slenderness_ratioNum('r'), lam:lam});
+    TBKit.history.mount('#slenderness_ratioHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#slenderness_ratioDiff',['lam']);
+}
+function __slenderness_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#slenderness_ratioTable','slenderness-ratio.csv'); } catch(e){}
+}
+function __slenderness_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#slenderness_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'2', r:'0.03162'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'4', r:'0.0632'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'1', r:'0.0158'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __slenderness_ratioExtras(); }catch(e){} };
+function __slenderness_ratioBoot(){ try{ __slenderness_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __slenderness_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __slenderness_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

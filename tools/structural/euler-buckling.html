@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="euler_bucklingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__euler_bucklingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="euler_bucklingTable"></div>
+    <div id="euler_bucklingDiff"></div>
+    <div id="euler_bucklingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,42 @@ function resetForm(){document.getElementById('E').value = '200e9';
       document.getElementById('L').value = '2';
       calcTool();}
 calcTool();
+
+function __euler_bucklingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __euler_bucklingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var E = num('E'), I = num('I'), L = num('L');
+    var Pcr = Math.PI * Math.PI * E * I / (L * L);
+    if (!isFinite(__euler_bucklingNum('E')) || !isFinite(__euler_bucklingNum('I')) || !isFinite(__euler_bucklingNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#euler_bucklingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['临界载荷 P_cr (N)', (Pcr).toFixed(1)],
+            ['P_cr (kN)', (Pcr / 1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({E:__euler_bucklingNum('E'), I:__euler_bucklingNum('I'), L:__euler_bucklingNum('L'), Pcr:Pcr});
+    TBKit.history.mount('#euler_bucklingHist',function(rec){ if(rec.E!=null)document.getElementById('E').value=rec.E; if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#euler_bucklingDiff',['Pcr']);
+}
+function __euler_bucklingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#euler_bucklingTable','euler-buckling.csv'); } catch(e){}
+}
+function __euler_bucklingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#euler_bucklingPresets',[
+        {label:'默认',labelEn:'Default',values:{E:'200e9', I:'1e-6', L:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{E:'400000000000', I:'0', L:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{E:'100000000000', I:'0', L:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __euler_bucklingExtras(); }catch(e){} };
+function __euler_bucklingBoot(){ try{ __euler_bucklingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __euler_bucklingBoot();
+else document.addEventListener('DOMContentLoaded', __euler_bucklingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

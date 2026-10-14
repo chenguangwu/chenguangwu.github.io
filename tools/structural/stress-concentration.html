@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stress_concentrationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stress_concentrationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stress_concentrationTable"></div>
+    <div id="stress_concentrationDiff"></div>
+    <div id="stress_concentrationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('Kt').value = '2';
       document.getElementById('snom').value = '100';
       calcTool();}
 calcTool();
+
+function __stress_concentrationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stress_concentrationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Kt = num('Kt'), snom = num('snom');
+    var smax = Kt * snom;
+    if (!isFinite(__stress_concentrationNum('Kt')) || !isFinite(__stress_concentrationNum('snom'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stress_concentrationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最大应力 σ_max (MPa)', smax.toFixed(2)],
+            ['放大倍数', ((smax / snom)).toFixed(2)],
+            ['回算名义应力 (MPa)', (snom/Kt).toFixed(4)],
+            ['应力增量 (MPa)', (smax-snom).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({Kt:__stress_concentrationNum('Kt'), snom:__stress_concentrationNum('snom'), smax:smax});
+    TBKit.history.mount('#stress_concentrationHist',function(rec){ if(rec.Kt!=null)document.getElementById('Kt').value=rec.Kt; if(rec.snom!=null)document.getElementById('snom').value=rec.snom; calcTool(); });
+    TBKit.util.diffBox('#stress_concentrationDiff',['smax']);
+}
+function __stress_concentrationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stress_concentrationTable','stress-concentration.csv'); } catch(e){}
+}
+function __stress_concentrationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stress_concentrationPresets',[
+        {label:'默认',labelEn:'Default',values:{Kt:'2', snom:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Kt:'4', snom:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Kt:'1', snom:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stress_concentrationExtras(); }catch(e){} };
+function __stress_concentrationBoot(){ try{ __stress_concentrationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stress_concentrationBoot();
+else document.addEventListener('DOMContentLoaded', __stress_concentrationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

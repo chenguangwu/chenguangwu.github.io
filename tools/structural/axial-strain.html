@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="axial_strainPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__axial_strainExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="axial_strainTable"></div>
+    <div id="axial_strainDiff"></div>
+    <div id="axial_strainHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('dL').value = '0.002';
       document.getElementById('L').value = '2';
       calcTool();}
 calcTool();
+
+function __axial_strainNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __axial_strainExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dL=num('dL'),L=num('L');
+    var eps=dL/L;
+    if (!isFinite(__axial_strainNum('dL')) || !isFinite(__axial_strainNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#axial_strainTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['轴向应变 ε', eps.toFixed(5)],
+            ['轴向应变 (με)', (eps*1e6).toFixed(2)],
+            ['轴向应变百分数', (eps*100).toFixed(5)],
+            ['轴向应变倒数', (1/Math.max(Math.abs(eps),1e-12)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({dL:__axial_strainNum('dL'), L:__axial_strainNum('L'), eps:eps});
+    TBKit.history.mount('#axial_strainHist',function(rec){ if(rec.dL!=null)document.getElementById('dL').value=rec.dL; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#axial_strainDiff',['eps']);
+}
+function __axial_strainExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#axial_strainTable','axial-strain.csv'); } catch(e){}
+}
+function __axial_strainPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#axial_strainPresets',[
+        {label:'默认',labelEn:'Default',values:{dL:'0.002', L:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dL:'0.004', L:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dL:'0.001', L:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __axial_strainExtras(); }catch(e){} };
+function __axial_strainBoot(){ try{ __axial_strainPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __axial_strainBoot();
+else document.addEventListener('DOMContentLoaded', __axial_strainBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

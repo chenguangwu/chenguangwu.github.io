@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="beam_shear_centerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__beam_shear_centerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="beam_shear_centerTable"></div>
+    <div id="beam_shear_centerDiff"></div>
+    <div id="beam_shear_centerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,45 @@ function calcTool(){
 function resetForm(){document.getElementById('P').value = '10';
       calcTool();}
 calcTool();
+
+function __beam_shear_centerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __beam_shear_centerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('P');
+    var V = P / 2;
+    if (!isFinite(__beam_shear_centerNum('P'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#beam_shear_centerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['支座剪力 V (kN)', V.toFixed(3)],
+            ['V (N)', (V * 1000).toFixed(1)],
+            ['支座剪力 (MN 兆牛)', (V/1000).toFixed(6)],
+            ['总荷载 (MN 兆牛)', (P/1000).toFixed(6)],
+            ['支座剪力 (lbf 磅力)', (V*1000*0.2248).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({P:__beam_shear_centerNum('P'), V:V});
+    TBKit.history.mount('#beam_shear_centerHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; calcTool(); });
+    TBKit.util.diffBox('#beam_shear_centerDiff',['V']);
+}
+function __beam_shear_centerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#beam_shear_centerTable','beam-shear-center.csv'); } catch(e){}
+}
+function __beam_shear_centerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#beam_shear_centerPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __beam_shear_centerExtras(); }catch(e){} };
+function __beam_shear_centerBoot(){ try{ __beam_shear_centerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __beam_shear_centerBoot();
+else document.addEventListener('DOMContentLoaded', __beam_shear_centerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

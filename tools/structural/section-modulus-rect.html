@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="section_modulus_rectPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__section_modulus_rectExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="section_modulus_rectTable"></div>
+    <div id="section_modulus_rectDiff"></div>
+    <div id="section_modulus_rectHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('b').value = '0.1';
       document.getElementById('h').value = '0.2';
       calcTool();}
 calcTool();
+
+function __section_modulus_rectNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __section_modulus_rectExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var b = num('b'), h = num('h');
+    var W = b * h * h / 6;
+    if (!isFinite(__section_modulus_rectNum('b')) || !isFinite(__section_modulus_rectNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#section_modulus_rectTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['截面模量 W (m³)', W.toExponential(3)],
+            ['惯性矩 I (m⁴)', (b * Math.pow(h, 3) / 12).toExponential(3)],
+            ['截面面积 A (m²)', (b*h).toFixed(4)],
+            ['回转半径 i (m)', Math.sqrt((b*Math.pow(h,3)/12)/(b*h)).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({b:__section_modulus_rectNum('b'), h:__section_modulus_rectNum('h'), W:W});
+    TBKit.history.mount('#section_modulus_rectHist',function(rec){ if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#section_modulus_rectDiff',['W']);
+}
+function __section_modulus_rectExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#section_modulus_rectTable','section-modulus-rect.csv'); } catch(e){}
+}
+function __section_modulus_rectPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#section_modulus_rectPresets',[
+        {label:'默认',labelEn:'Default',values:{b:'0.1', h:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{b:'0.2', h:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{b:'0.05', h:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __section_modulus_rectExtras(); }catch(e){} };
+function __section_modulus_rectBoot(){ try{ __section_modulus_rectPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __section_modulus_rectBoot();
+else document.addEventListener('DOMContentLoaded', __section_modulus_rectBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

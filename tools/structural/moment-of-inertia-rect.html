@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="moment_of_inertia_rectPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__moment_of_inertia_rectExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="moment_of_inertia_rectTable"></div>
+    <div id="moment_of_inertia_rectDiff"></div>
+    <div id="moment_of_inertia_rectHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('b').value = '0.1';
       document.getElementById('h').value = '0.2';
       calcTool();}
 calcTool();
+
+function __moment_of_inertia_rectNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __moment_of_inertia_rectExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var b = num('b'), h = num('h');
+    var I = b * Math.pow(h, 3) / 12;
+    if (!isFinite(__moment_of_inertia_rectNum('b')) || !isFinite(__moment_of_inertia_rectNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#moment_of_inertia_rectTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['惯性矩 I (m⁴)', I.toExponential(3)],
+            ['截面模量 W (m³)', (b * h * h / 6).toExponential(3)],
+            ['截面面积 A (m²)', (b*h).toFixed(4)],
+            ['回转半径 i (m)', Math.sqrt((b*Math.pow(h,3)/12)/(b*h)).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({b:__moment_of_inertia_rectNum('b'), h:__moment_of_inertia_rectNum('h'), I:I});
+    TBKit.history.mount('#moment_of_inertia_rectHist',function(rec){ if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#moment_of_inertia_rectDiff',['I']);
+}
+function __moment_of_inertia_rectExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#moment_of_inertia_rectTable','moment-of-inertia-rect.csv'); } catch(e){}
+}
+function __moment_of_inertia_rectPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#moment_of_inertia_rectPresets',[
+        {label:'默认',labelEn:'Default',values:{b:'0.1', h:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{b:'0.2', h:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{b:'0.05', h:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __moment_of_inertia_rectExtras(); }catch(e){} };
+function __moment_of_inertia_rectBoot(){ try{ __moment_of_inertia_rectPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __moment_of_inertia_rectBoot();
+else document.addEventListener('DOMContentLoaded', __moment_of_inertia_rectBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

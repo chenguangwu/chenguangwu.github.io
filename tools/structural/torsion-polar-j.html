@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="torsion_polar_jPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__torsion_polar_jExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="torsion_polar_jTable"></div>
+    <div id="torsion_polar_jDiff"></div>
+    <div id="torsion_polar_jHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -194,6 +200,44 @@ function calcTool(){
 function resetForm(){document.getElementById('d').value = '0.1';
       calcTool();}
 calcTool();
+
+function __torsion_polar_jNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __torsion_polar_jExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var d = num('d');
+    var J = Math.PI * Math.pow(d, 4) / 32;
+    if (!isFinite(__torsion_polar_jNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#torsion_polar_jTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['极惯性矩 J (m⁴)', J.toExponential(3)],
+            ['极截面模量 (m³)', (Math.PI * Math.pow(d, 4) / 64).toExponential(3)],
+            ['抗扭截面系数 W_t (m3)', (Math.PI*Math.pow(d,3)/16).toExponential(4)],
+            ['截面积 A (m2)', (Math.PI*Math.pow(d,2)/4).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({d:__torsion_polar_jNum('d'), J:J});
+    TBKit.history.mount('#torsion_polar_jHist',function(rec){ if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#torsion_polar_jDiff',['J']);
+}
+function __torsion_polar_jExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#torsion_polar_jTable','torsion-polar-j.csv'); } catch(e){}
+}
+function __torsion_polar_jPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#torsion_polar_jPresets',[
+        {label:'默认',labelEn:'Default',values:{d:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{d:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{d:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __torsion_polar_jExtras(); }catch(e){} };
+function __torsion_polar_jBoot(){ try{ __torsion_polar_jPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __torsion_polar_jBoot();
+else document.addEventListener('DOMContentLoaded', __torsion_polar_jBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
