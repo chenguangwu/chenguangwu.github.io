@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按科目自动归类错题，记录错误原因与掌握状态，到期自动提醒重练。数据保存在本地浏览器。">Wrong Book</p>
 
     <div class="toolbar" style="margin-top:12px;">
-      <button type="button" class="btn primary" onclick="openAdd()">+ 添加错题</button>
+      <div id="wrong_bookPresets"></div><button type="button" class="btn primary" onclick="openAdd()">+ 添加错题</button><button class="btn" type="button" onclick="__wrong_bookExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="exportData()">导出</button>
       <button type="button" class="btn" onclick="clearAllData()">清空全部</button>
     </div>
@@ -143,7 +143,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="statsBox"></div>
-    <div id="listBox"></div>
+    <div id="listBox"></div> <div id="wrong_bookTable"></div> <div id="wrong_bookDiff"></div> <div id="wrong_bookChart"></div> <div id="wrong_bookHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -552,6 +552,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __wrong_book_last=0,__wrong_book_skip=false;
+function __wrong_bookSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __wrong_bookResText(){
+    var r=document.getElementById('listBox');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __wrong_bookTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __wrong_bookRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__wrong_bookTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#wrong_bookTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#wrong_bookDiff');
+        TBKit.history.mount('#wrong_bookHist',function(rec){
+            __wrong_book_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                openAdd();
+            }catch(e2){}
+            __wrong_book_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__wrong_bookTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#wrong_bookChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __wrong_bookExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__wrong_book_skip) return;
+    var snap=__wrong_bookSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__wrong_bookResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__wrong_book_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __wrong_book_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __wrong_bookRender(keys,rk,en);
+}
+function __wrong_bookExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wrong_bookTable','wrong-book.csv'); } catch(e){}
+}
+function __wrong_bookPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wrong_bookPresets',[{label:'默认参数',labelEn:'Default',values:{'fReason':'概念不清', 'fStatus':'pending', 'fReviewDays':'3'}}],function(){ openAdd(); });
+}
+var __wrong_book_f0=(typeof openAdd==='function')?openAdd:null;
+if(__wrong_book_f0){
+    openAdd=function(){ var __r=__wrong_book_f0.apply(null,arguments); try{ __wrong_bookExtras(); }catch(e){} return __r; };
+}
+function __wrong_bookBoot(){ try{ __wrong_bookPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wrong_bookBoot();
+else document.addEventListener('DOMContentLoaded', __wrong_bookBoot);
 </script>
 
 </body>

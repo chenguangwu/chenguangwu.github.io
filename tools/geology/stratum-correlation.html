@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
         <option value="precambrian">前寒武系</option>
       </select>
     </div>
-    <div id="list"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__stratum_correlationExport()">导出明细 CSV</button></div><div id="list"></div> <div id="stratum_correlationTable"></div> <div id="stratum_correlationDiff"></div> <div id="stratum_correlationChart"></div> <div id="stratum_correlationHist"></div>
     <div class="info-box">年代地层单位从大到小：宇（宙）/界（代）/系（纪）/统（世）/阶（期）。地质年代数字单位为百万年（Ma）。</div>
   </div>
 
@@ -287,6 +287,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __stratum_correlation_last=0,__stratum_correlation_skip=false;
+function __stratum_correlationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __stratum_correlationResText(){
+    var r=document.getElementById('list');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __stratum_correlationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __stratum_correlationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__stratum_correlationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#stratum_correlationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#stratum_correlationDiff');
+        TBKit.history.mount('#stratum_correlationHist',function(rec){
+            __stratum_correlation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                render();
+            }catch(e2){}
+            __stratum_correlation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__stratum_correlationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#stratum_correlationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __stratum_correlationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__stratum_correlation_skip) return;
+    var snap=__stratum_correlationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__stratum_correlationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__stratum_correlation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __stratum_correlation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __stratum_correlationRender(keys,rk,en);
+}
+function __stratum_correlationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stratum_correlationTable','stratum-correlation.csv'); } catch(e){}
+}
+function __stratum_correlationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stratum_correlationPresets',[{label:'默认参数',labelEn:'Default',values:{'eonFilter':'all'}}],function(){ render(); });
+}
+var __stratum_correlation_f0=(typeof render==='function')?render:null;
+if(__stratum_correlation_f0){
+    render=function(){ var __r=__stratum_correlation_f0.apply(null,arguments); try{ __stratum_correlationExtras(); }catch(e){} return __r; };
+}
+function __stratum_correlationBoot(){ try{ __stratum_correlationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stratum_correlationBoot();
+else document.addEventListener('DOMContentLoaded', __stratum_correlationBoot);
 </script>
 
 </body>

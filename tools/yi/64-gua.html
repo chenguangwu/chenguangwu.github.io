@@ -171,7 +171,7 @@ s.parentNode.insertBefore(el, s);
       <input type="text" id="searchInput" placeholder="卦名/卦象/卦辞..." oninput="filterList()">
     </div>
 
-    <div class="gua-list" id="guaList"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__64_guaExport()">导出明细 CSV</button></div><div class="gua-list" id="guaList"></div> <div id="64_guaTable"></div> <div id="64_guaDiff"></div> <div id="64_guaChart"></div> <div id="64_guaHist"></div>
 
     <div id="guaDetail"></div>
   </div>
@@ -370,6 +370,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __64_gua_last=0,__64_gua_skip=false;
+function __64_guaSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __64_guaResText(){
+    var r=document.getElementById('guaList');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __64_guaTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __64_guaRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__64_guaTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#64_guaTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#64_guaDiff');
+        TBKit.history.mount('#64_guaHist',function(rec){
+            __64_gua_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                filterList();
+            }catch(e2){}
+            __64_gua_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__64_guaTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#64_guaChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __64_guaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__64_gua_skip) return;
+    var snap=__64_guaSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__64_guaResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__64_gua_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __64_gua_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __64_guaRender(keys,rk,en);
+}
+function __64_guaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#64_guaTable','64-gua.csv'); } catch(e){}
+}
+function __64_guaPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __64_gua_f0=(typeof filterList==='function')?filterList:null;
+if(__64_gua_f0){
+    filterList=function(){ var __r=__64_gua_f0.apply(null,arguments); try{ __64_guaExtras(); }catch(e){} return __r; };
+}
+function __64_guaBoot(){ try{ __64_guaPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __64_guaBoot();
+else document.addEventListener('DOMContentLoaded', __64_guaBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

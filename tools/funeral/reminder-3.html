@@ -144,7 +144,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按公历或农历添加祭扫纪念日，自动换算并显示距下次祭扫的倒计时，含24节气查询。">Reminder 3</p>
 
     <div class="tabs" id="addTabs">
-      <button class="tab-btn active" data-mode="solar" onclick="switchAdd('solar')">按公历添加</button>
+      <div id="reminder_3Presets"></div><button class="tab-btn active" data-mode="solar" onclick="switchAdd('solar')">按公历添加</button><button class="btn" type="button" onclick="__reminder_3Export()">导出明细 CSV</button>
       <button class="tab-btn" data-mode="lunar" onclick="switchAdd('lunar')">按农历添加</button>
     </div>
 
@@ -193,7 +193,7 @@ s.parentNode.insertBefore(el, s);
       <h3 style="margin:0;">全部祭扫提醒</h3>
       <button class="btn danger" style="padding:6px 12px;font-size:12px;" onclick="clearAll()">清空</button>
     </div>
-    <div id="list"></div>
+    <div id="list"></div> <div id="reminder_3Table"></div> <div id="reminder_3Diff"></div> <div id="reminder_3Chart"></div> <div id="reminder_3Hist"></div>
   </div>
 
   <div class="card">
@@ -605,6 +605,114 @@ document.addEventListener('DOMContentLoaded',function(){
   if(cb)cb.addEventListener('change',previewLunar);
   previewLunar();
 });
+
+var __reminder_3_last=0,__reminder_3_skip=false;
+function __reminder_3Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __reminder_3ResText(){
+    var r=document.getElementById('list');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __reminder_3Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __reminder_3Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__reminder_3Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#reminder_3Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#reminder_3Diff');
+        TBKit.history.mount('#reminder_3Hist',function(rec){
+            __reminder_3_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchAdd();
+            }catch(e2){}
+            __reminder_3_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__reminder_3Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#reminder_3Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __reminder_3Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__reminder_3_skip) return;
+    var snap=__reminder_3Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__reminder_3ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__reminder_3_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __reminder_3_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __reminder_3Render(keys,rk,en);
+}
+function __reminder_3Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#reminder_3Table','reminder-3.csv'); } catch(e){}
+}
+function __reminder_3Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#reminder_3Presets',[{label:'默认参数',labelEn:'Default',values:{'lMonth':'1'}}],function(){ switchAdd(); });
+}
+var __reminder_3_f0=(typeof switchAdd==='function')?switchAdd:null;
+if(__reminder_3_f0){
+    switchAdd=function(){ var __r=__reminder_3_f0.apply(null,arguments); try{ __reminder_3Extras(); }catch(e){} return __r; };
+}
+function __reminder_3Boot(){ try{ __reminder_3Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __reminder_3Boot();
+else document.addEventListener('DOMContentLoaded', __reminder_3Boot);
 </script>
 </body>
 </html>

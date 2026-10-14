@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
     <div id="body" style="margin-top:12px;overflow:auto">
       <table class="table" id="table">
         <thead><tr><th>食物</th><th>每100g（千卡）</th><th>200g参考值（千卡）</th><th>分类</th></tr></thead>
-        <tbody id="list"></tbody>
+        <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__food_calorie_lookupExport()">导出明细 CSV</button></div><tbody id="list"></tbody> <div id="food_calorie_lookupTable"></div> <div id="food_calorie_lookupDiff"></div> <div id="food_calorie_lookupChart"></div> <div id="food_calorie_lookupHist"></div>
       </table>
     </div>
   </div>
@@ -238,6 +238,113 @@ function filterFood() {
 }
 
 render(FOODS);
+
+var __food_calorie_lookup_last=0,__food_calorie_lookup_skip=false;
+function __food_calorie_lookupSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __food_calorie_lookupResText(){
+    var r=document.getElementById('list');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __food_calorie_lookupTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __food_calorie_lookupRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__food_calorie_lookupTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#food_calorie_lookupTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#food_calorie_lookupDiff');
+        TBKit.history.mount('#food_calorie_lookupHist',function(rec){
+            __food_calorie_lookup_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                filterFood();
+            }catch(e2){}
+            __food_calorie_lookup_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__food_calorie_lookupTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#food_calorie_lookupChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __food_calorie_lookupExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__food_calorie_lookup_skip) return;
+    var snap=__food_calorie_lookupSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__food_calorie_lookupResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__food_calorie_lookup_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __food_calorie_lookup_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __food_calorie_lookupRender(keys,rk,en);
+}
+function __food_calorie_lookupExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#food_calorie_lookupTable','food-calorie-lookup.csv'); } catch(e){}
+}
+function __food_calorie_lookupPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __food_calorie_lookup_f0=(typeof filterFood==='function')?filterFood:null;
+if(__food_calorie_lookup_f0){
+    filterFood=function(){ var __r=__food_calorie_lookup_f0.apply(null,arguments); try{ __food_calorie_lookupExtras(); }catch(e){} return __r; };
+}
+function __food_calorie_lookupBoot(){ try{ __food_calorie_lookupPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __food_calorie_lookupBoot();
+else document.addEventListener('DOMContentLoaded', __food_calorie_lookupBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

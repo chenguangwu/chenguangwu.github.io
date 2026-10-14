@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
         <option value="other">其他</option>
       </select>
     </div>
-    <div id="list"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__dating_methodExport()">导出明细 CSV</button></div><div id="list"></div> <div id="dating_methodTable"></div> <div id="dating_methodDiff"></div> <div id="dating_methodChart"></div> <div id="dating_methodHist"></div>
     <div class="info-box">提示：碳-14校正需用树轮校正曲线（如IntCal）；年轻样品（<300年）需注意"现代碳污染"，老样品（>3万年）受本底限制。</div>
   </div>
 
@@ -292,6 +292,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __dating_method_last=0,__dating_method_skip=false;
+function __dating_methodSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __dating_methodResText(){
+    var r=document.getElementById('list');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __dating_methodTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __dating_methodRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__dating_methodTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#dating_methodTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#dating_methodDiff');
+        TBKit.history.mount('#dating_methodHist',function(rec){
+            __dating_method_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                render();
+            }catch(e2){}
+            __dating_method_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__dating_methodTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#dating_methodChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __dating_methodExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__dating_method_skip) return;
+    var snap=__dating_methodSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__dating_methodResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__dating_method_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __dating_method_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __dating_methodRender(keys,rk,en);
+}
+function __dating_methodExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dating_methodTable','dating-method.csv'); } catch(e){}
+}
+function __dating_methodPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dating_methodPresets',[{label:'默认参数',labelEn:'Default',values:{'grpFilter':'all'}}],function(){ render(); });
+}
+var __dating_method_f0=(typeof render==='function')?render:null;
+if(__dating_method_f0){
+    render=function(){ var __r=__dating_method_f0.apply(null,arguments); try{ __dating_methodExtras(); }catch(e){} return __r; };
+}
+function __dating_methodBoot(){ try{ __dating_methodPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dating_methodBoot();
+else document.addEventListener('DOMContentLoaded', __dating_methodBoot);
 </script>
 
 <script type="application/ld+json">
