@@ -150,12 +150,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="dot_productPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__dot_productExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dot_productTable"></div>
+    <div id="dot_productDiff"></div>
+    <div id="dot_productHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -216,6 +222,41 @@ function resetForm(){document.getElementById('ax').value = '1';
       document.getElementById('bz').value = '6';
       calcTool();}
 calcTool();
+
+function __dot_productNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dot_productExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ax=num('ax'),ay=num('ay'),az=num('az'),bx=num('bx'),by=num('by'),bz=num('bz');
+    var dp=ax*bx+ay*by+az*bz;
+    if (!isFinite(__dot_productNum('ax')) || !isFinite(__dot_productNum('ay')) || !isFinite(__dot_productNum('az')) || !isFinite(__dot_productNum('bx')) || !isFinite(__dot_productNum('by')) || !isFinite(__dot_productNum('bz'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#dot_productTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['点积 A·B', dp.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({ax:__dot_productNum('ax'), ay:__dot_productNum('ay'), az:__dot_productNum('az'), bx:__dot_productNum('bx'), by:__dot_productNum('by'), bz:__dot_productNum('bz'), dp:dp});
+    TBKit.history.mount('#dot_productHist',function(rec){ if(rec.ax!=null)document.getElementById('ax').value=rec.ax; if(rec.ay!=null)document.getElementById('ay').value=rec.ay; if(rec.az!=null)document.getElementById('az').value=rec.az; if(rec.bx!=null)document.getElementById('bx').value=rec.bx; if(rec.by!=null)document.getElementById('by').value=rec.by; if(rec.bz!=null)document.getElementById('bz').value=rec.bz; calcTool(); });
+    TBKit.util.diffBox('#dot_productDiff',['dp']);
+}
+function __dot_productExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dot_productTable','dot-product.csv'); } catch(e){}
+}
+function __dot_productPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dot_productPresets',[
+        {label:'默认',labelEn:'Default',values:{ax:'1', ay:'2', az:'3', bx:'4', by:'5', bz:'6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ax:'2', ay:'4', az:'6', bx:'8', by:'10', bz:'12'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ax:'0.5', ay:'1', az:'1.5', bx:'2', by:'2.5', bz:'3'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __dot_productExtras(); }catch(e){} };
+function __dot_productBoot(){ try{ __dot_productPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dot_productBoot();
+else document.addEventListener('DOMContentLoaded', __dot_productBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

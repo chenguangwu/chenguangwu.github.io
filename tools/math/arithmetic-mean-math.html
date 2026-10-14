@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="arithmetic_mean_mathPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__arithmetic_mean_mathExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="arithmetic_mean_mathTable"></div>
+    <div id="arithmetic_mean_mathDiff"></div>
+    <div id="arithmetic_mean_mathHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -192,6 +198,42 @@ function calcTool(){
 function resetForm(){document.getElementById('xs').value = '1, 2, 3, 4, 5';
       calcTool();}
 calcTool();
+
+function __arithmetic_mean_mathNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __arithmetic_mean_mathExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var raw=document.getElementById('xs').value.split(/[ ,\n\t]+/).filter(Boolean).map(parseFloat).filter(v=>!isNaN(v));
+    var mean=raw.reduce((a,b)=>a+b,0)/raw.length;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#arithmetic_mean_mathTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['算术平均数 x̄', mean.toFixed(4)],
+            ['样本数 N', raw.length],
+            ['极差', (Math.max.apply(null,raw)-Math.min.apply(null,raw)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({raw:raw});
+    TBKit.history.mount('#arithmetic_mean_mathHist',function(rec){  calcTool(); });
+    TBKit.util.diffBox('#arithmetic_mean_mathDiff',['raw']);
+}
+function __arithmetic_mean_mathExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#arithmetic_mean_mathTable','arithmetic-mean-math.csv'); } catch(e){}
+}
+function __arithmetic_mean_mathPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#arithmetic_mean_mathPresets',[
+        {label:'默认',labelEn:'Default',values:{}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __arithmetic_mean_mathExtras(); }catch(e){} };
+function __arithmetic_mean_mathBoot(){ try{ __arithmetic_mean_mathPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __arithmetic_mean_mathBoot();
+else document.addEventListener('DOMContentLoaded', __arithmetic_mean_mathBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

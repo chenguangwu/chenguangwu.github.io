@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="quadratic_solverPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__quadratic_solverExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="quadratic_solverTable"></div>
+    <div id="quadratic_solverDiff"></div>
+    <div id="quadratic_solverHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -214,6 +220,41 @@ function resetForm(){document.getElementById('a').value = '1';
       document.getElementById('c').value = '2';
       calcTool();}
 calcTool();
+
+function __quadratic_solverNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __quadratic_solverExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a = num('a'), b = num('b'), c = num('c'); // a=0 退化为一次方程 bx+c=0，不能套求根公式（2a=0 会得 ±Infinity）
+    var __g0=b === 0
+    if (!isFinite(__quadratic_solverNum('a')) || !isFinite(__quadratic_solverNum('b')) || !isFinite(__quadratic_solverNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#quadratic_solverTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['a = 0 时不是二次方程', (c === 0 ? '恒等式（无穷多解）' : '无解')],
+        ]
+    });
+    TBKit.history.record({a:__quadratic_solverNum('a'), b:__quadratic_solverNum('b'), c:__quadratic_solverNum('c'), __g0:__g0});
+    TBKit.history.mount('#quadratic_solverHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+    TBKit.util.diffBox('#quadratic_solverDiff',['__g0']);
+}
+function __quadratic_solverExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#quadratic_solverTable','quadratic-solver.csv'); } catch(e){}
+}
+function __quadratic_solverPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#quadratic_solverPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'1', b:'-3', c:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'2', b:'-6', c:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'0.5', b:'-1.5', c:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __quadratic_solverExtras(); }catch(e){} };
+function __quadratic_solverBoot(){ try{ __quadratic_solverPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __quadratic_solverBoot();
+else document.addEventListener('DOMContentLoaded', __quadratic_solverBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

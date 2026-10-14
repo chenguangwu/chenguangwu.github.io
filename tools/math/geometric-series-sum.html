@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="geometric_series_sumPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__geometric_series_sumExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="geometric_series_sumTable"></div>
+    <div id="geometric_series_sumDiff"></div>
+    <div id="geometric_series_sumHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,43 @@ function resetForm(){document.getElementById('a').value = '1';
       document.getElementById('n').value = '4';
       calcTool();}
 calcTool();
+
+function __geometric_series_sumNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __geometric_series_sumExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a'),r=num('r'),n=num('n'); // r=1 时等比退化成常数数列，闭合式 (1−rⁿ)/(1−r) 会 0/0 ⇒ 必须走 S=a·n 分支
+    var Sn=Math.abs(1-r)<1e-12 ? a*n : a*(1-Math.pow(r,n))/(1-r);
+    if (!isFinite(__geometric_series_sumNum('a')) || !isFinite(__geometric_series_sumNum('r')) || !isFinite(__geometric_series_sumNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#geometric_series_sumTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['前 n 项和 S_n', Sn.toFixed(4)],
+            ['末项 a_n', (a*Math.pow(r,n-1)).toFixed(4)],
+            ['无穷级数和 (|r| 小于 1)', (Math.abs(r)<1?(a/(1-r)).toFixed(4):'不收敛')],
+        ]
+    });
+    TBKit.history.record({a:__geometric_series_sumNum('a'), r:__geometric_series_sumNum('r'), n:__geometric_series_sumNum('n'), Sn:Sn});
+    TBKit.history.mount('#geometric_series_sumHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#geometric_series_sumDiff',['Sn']);
+}
+function __geometric_series_sumExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#geometric_series_sumTable','geometric-series-sum.csv'); } catch(e){}
+}
+function __geometric_series_sumPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#geometric_series_sumPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'1', r:'0.5', n:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'2', r:'1', n:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'0.5', r:'0.25', n:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __geometric_series_sumExtras(); }catch(e){} };
+function __geometric_series_sumBoot(){ try{ __geometric_series_sumPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __geometric_series_sumBoot();
+else document.addEventListener('DOMContentLoaded', __geometric_series_sumBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

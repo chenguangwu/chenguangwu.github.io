@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="nth_term_geometricPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__nth_term_geometricExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="nth_term_geometricTable"></div>
+    <div id="nth_term_geometricDiff"></div>
+    <div id="nth_term_geometricHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('a1').value = '2';
       document.getElementById('n').value = '4';
       calcTool();}
 calcTool();
+
+function __nth_term_geometricNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __nth_term_geometricExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a1=num('a1'),r=num('r'),n=num('n');
+    var an=a1*Math.pow(r,n-1);
+    if (!isFinite(__nth_term_geometricNum('a1')) || !isFinite(__nth_term_geometricNum('r')) || !isFinite(__nth_term_geometricNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#nth_term_geometricTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['第 n 项 aₙ', an.toFixed(3)],
+            ['前 n 项和 S_n', (Math.abs(r-1)>1e-12?(a1*(1-Math.pow(r,n))/(1-r)):(a1*n)).toFixed(4)],
+            ['回算公比 r', (Math.pow(an/(a1||1),1/((n-1)||1))).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({a1:__nth_term_geometricNum('a1'), r:__nth_term_geometricNum('r'), n:__nth_term_geometricNum('n'), an:an});
+    TBKit.history.mount('#nth_term_geometricHist',function(rec){ if(rec.a1!=null)document.getElementById('a1').value=rec.a1; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#nth_term_geometricDiff',['an']);
+}
+function __nth_term_geometricExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#nth_term_geometricTable','nth-term-geometric.csv'); } catch(e){}
+}
+function __nth_term_geometricPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#nth_term_geometricPresets',[
+        {label:'默认',labelEn:'Default',values:{a1:'2', r:'3', n:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a1:'4', r:'6', n:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a1:'1', r:'1.5', n:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __nth_term_geometricExtras(); }catch(e){} };
+function __nth_term_geometricBoot(){ try{ __nth_term_geometricPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __nth_term_geometricBoot();
+else document.addEventListener('DOMContentLoaded', __nth_term_geometricBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

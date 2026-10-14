@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="law_of_sinesPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__law_of_sinesExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="law_of_sinesTable"></div>
+    <div id="law_of_sinesDiff"></div>
+    <div id="law_of_sinesHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('b').value = '10';
       document.getElementById('B').value = '45';
       calcTool();}
 calcTool();
+
+function __law_of_sinesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __law_of_sinesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var b=num('b'),A=num('A')*Math.PI/180,B=num('B')*Math.PI/180;
+    var a=b*Math.sin(A)/Math.sin(B);
+    if (!isFinite(__law_of_sinesNum('b')) || !isFinite(__law_of_sinesNum('A')) || !isFinite(__law_of_sinesNum('B'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#law_of_sinesTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['边长 a', a.toFixed(3)],
+            ['第三角 C (°)', (180-A*180/Math.PI-B*180/Math.PI).toFixed(2)],
+            ['边长 c', (b*Math.sin(Math.PI-A-B)/Math.sin(B)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({b:__law_of_sinesNum('b'), A:__law_of_sinesNum('A'), B:__law_of_sinesNum('B'), a:a});
+    TBKit.history.mount('#law_of_sinesHist',function(rec){ if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.B!=null)document.getElementById('B').value=rec.B; calcTool(); });
+    TBKit.util.diffBox('#law_of_sinesDiff',['a']);
+}
+function __law_of_sinesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#law_of_sinesTable','law-of-sines.csv'); } catch(e){}
+}
+function __law_of_sinesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#law_of_sinesPresets',[
+        {label:'默认',labelEn:'Default',values:{b:'10', A:'30', B:'45'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{b:'20', A:'60', B:'90'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{b:'5', A:'15', B:'22.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __law_of_sinesExtras(); }catch(e){} };
+function __law_of_sinesBoot(){ try{ __law_of_sinesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __law_of_sinesBoot();
+else document.addEventListener('DOMContentLoaded', __law_of_sinesBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

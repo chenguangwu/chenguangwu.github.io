@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="modulo_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__modulo_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="modulo_calcTable"></div>
+    <div id="modulo_calcDiff"></div>
+    <div id="modulo_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('a').value = '17';
       document.getElementById('b').value = '5';
       calcTool();}
 calcTool();
+
+function __modulo_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __modulo_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a = num('a'), b = num('b');
+    if (!isFinite(__modulo_calcNum('a')) || !isFinite(__modulo_calcNum('b'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#modulo_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['a mod b', (a % b).toFixed(4)],
+            ['商（向下取整）', (Math.floor(a/b)).toFixed(4)],
+            ['a 与 b 之商', (a/b).toFixed(6)],
+            ['可被 b 整除的部分', (a-(a%b)).toFixed(4)],
+            ['除数与被除数之比', (b/Math.max(a,1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({a:__modulo_calcNum('a'), b:__modulo_calcNum('b')});
+    TBKit.history.mount('#modulo_calcHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.b!=null)document.getElementById('b').value=rec.b; calcTool(); });
+}
+function __modulo_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#modulo_calcTable','modulo-calc.csv'); } catch(e){}
+}
+function __modulo_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#modulo_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'17', b:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'34', b:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'8.5', b:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __modulo_calcExtras(); }catch(e){} };
+function __modulo_calcBoot(){ try{ __modulo_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __modulo_calcBoot();
+else document.addEventListener('DOMContentLoaded', __modulo_calcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

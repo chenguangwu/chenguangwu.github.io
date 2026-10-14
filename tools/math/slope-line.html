@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="slope_linePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__slope_lineExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="slope_lineTable"></div>
+    <div id="slope_lineDiff"></div>
+    <div id="slope_lineHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -212,6 +218,41 @@ function resetForm(){document.getElementById('x1').value = '1';
       document.getElementById('y2').value = '8';
       calcTool();}
 calcTool();
+
+function __slope_lineNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __slope_lineExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x1 = num('x1'), y1 = num('y1'), x2 = num('x2'), y2 = num('y2');
+    var dx = x2 - x1;
+    if (!isFinite(__slope_lineNum('x1')) || !isFinite(__slope_lineNum('y1')) || !isFinite(__slope_lineNum('x2')) || !isFinite(__slope_lineNum('y2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#slope_lineTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['k', '斜率不存在（竖直线）'],
+        ]
+    });
+    TBKit.history.record({x1:__slope_lineNum('x1'), y1:__slope_lineNum('y1'), x2:__slope_lineNum('x2'), y2:__slope_lineNum('y2'), dx:dx});
+    TBKit.history.mount('#slope_lineHist',function(rec){ if(rec.x1!=null)document.getElementById('x1').value=rec.x1; if(rec.y1!=null)document.getElementById('y1').value=rec.y1; if(rec.x2!=null)document.getElementById('x2').value=rec.x2; if(rec.y2!=null)document.getElementById('y2').value=rec.y2; calcTool(); });
+    TBKit.util.diffBox('#slope_lineDiff',['dx']);
+}
+function __slope_lineExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#slope_lineTable','slope-line.csv'); } catch(e){}
+}
+function __slope_linePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#slope_linePresets',[
+        {label:'默认',labelEn:'Default',values:{x1:'1', y1:'2', x2:'4', y2:'8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x1:'2', y1:'4', x2:'8', y2:'16'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x1:'0.5', y1:'1', x2:'2', y2:'4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __slope_lineExtras(); }catch(e){} };
+function __slope_lineBoot(){ try{ __slope_linePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __slope_lineBoot();
+else document.addEventListener('DOMContentLoaded', __slope_lineBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

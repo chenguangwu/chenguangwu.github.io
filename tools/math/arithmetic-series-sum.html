@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="arithmetic_series_sumPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__arithmetic_series_sumExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="arithmetic_series_sumTable"></div>
+    <div id="arithmetic_series_sumDiff"></div>
+    <div id="arithmetic_series_sumHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('n').value = '10';
       document.getElementById('an').value = '10';
       calcTool();}
 calcTool();
+
+function __arithmetic_series_sumNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __arithmetic_series_sumExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n=num('n'),a1=num('a1'),an=num('an');
+    var Sn=n*(a1+an)/2;
+    if (!isFinite(__arithmetic_series_sumNum('n')) || !isFinite(__arithmetic_series_sumNum('a1')) || !isFinite(__arithmetic_series_sumNum('an'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#arithmetic_series_sumTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['前 n 项和 S_n', Sn.toFixed(2)],
+            ['公差 d', (n>=2?((an-a1)/(n-1)).toFixed(4):'—')],
+            ['各项平均值', (Sn/(n||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__arithmetic_series_sumNum('n'), a1:__arithmetic_series_sumNum('a1'), an:__arithmetic_series_sumNum('an'), Sn:Sn});
+    TBKit.history.mount('#arithmetic_series_sumHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.a1!=null)document.getElementById('a1').value=rec.a1; if(rec.an!=null)document.getElementById('an').value=rec.an; calcTool(); });
+    TBKit.util.diffBox('#arithmetic_series_sumDiff',['Sn']);
+}
+function __arithmetic_series_sumExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#arithmetic_series_sumTable','arithmetic-series-sum.csv'); } catch(e){}
+}
+function __arithmetic_series_sumPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#arithmetic_series_sumPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'10', a1:'1', an:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'20', a1:'2', an:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'5', a1:'0.5', an:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __arithmetic_series_sumExtras(); }catch(e){} };
+function __arithmetic_series_sumBoot(){ try{ __arithmetic_series_sumPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __arithmetic_series_sumBoot();
+else document.addEventListener('DOMContentLoaded', __arithmetic_series_sumBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

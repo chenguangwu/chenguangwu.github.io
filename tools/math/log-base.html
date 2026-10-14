@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="log_basePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__log_baseExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="log_baseTable"></div>
+    <div id="log_baseDiff"></div>
+    <div id="log_baseHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -203,6 +209,42 @@ function resetForm(){document.getElementById('x').value = '1000';
       document.getElementById('b').value = '10';
       calcTool();}
 calcTool();
+
+function __log_baseNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __log_baseExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x = num('x'), b = num('b'); // 换底公式要求真数 x>0、底数 b>0 且 b≠1，否则 ln 无定义或除零
+    var r = Math.log(x) / Math.log(b);
+    if (!isFinite(__log_baseNum('x')) || !isFinite(__log_baseNum('b'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#log_baseTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['自然对数 ln(x)', (Math.log(x)).toFixed(6)],
+            ['自然对数 ln(b)', (Math.log(b)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({x:__log_baseNum('x'), b:__log_baseNum('b'), r:r});
+    TBKit.history.mount('#log_baseHist',function(rec){ if(rec.x!=null)document.getElementById('x').value=rec.x; if(rec.b!=null)document.getElementById('b').value=rec.b; calcTool(); });
+    TBKit.util.diffBox('#log_baseDiff',['r']);
+}
+function __log_baseExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#log_baseTable','log-base.csv'); } catch(e){}
+}
+function __log_basePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#log_basePresets',[
+        {label:'默认',labelEn:'Default',values:{x:'1000', b:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x:'2000', b:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x:'500', b:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __log_baseExtras(); }catch(e){} };
+function __log_baseBoot(){ try{ __log_basePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __log_baseBoot();
+else document.addEventListener('DOMContentLoaded', __log_baseBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

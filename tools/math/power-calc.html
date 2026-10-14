@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="power_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__power_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="power_calcTable"></div>
+    <div id="power_calcDiff"></div>
+    <div id="power_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,42 @@ function resetForm(){document.getElementById('x').value = '2';
       document.getElementById('y').value = '10';
       calcTool();}
 calcTool();
+
+function __power_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __power_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x = num('x'), y = num('y');
+    var r = Math.pow(x, y);
+    if (!isFinite(__power_calcNum('x')) || !isFinite(__power_calcNum('y'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#power_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['常用对数值', (Math.log10(r)).toFixed(6)],
+            ['倒数结果', (Math.pow(x,-y)).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({x:__power_calcNum('x'), y:__power_calcNum('y'), r:r});
+    TBKit.history.mount('#power_calcHist',function(rec){ if(rec.x!=null)document.getElementById('x').value=rec.x; if(rec.y!=null)document.getElementById('y').value=rec.y; calcTool(); });
+    TBKit.util.diffBox('#power_calcDiff',['r']);
+}
+function __power_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#power_calcTable','power-calc.csv'); } catch(e){}
+}
+function __power_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#power_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{x:'2', y:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x:'4', y:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x:'1', y:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __power_calcExtras(); }catch(e){} };
+function __power_calcBoot(){ try{ __power_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __power_calcBoot();
+else document.addEventListener('DOMContentLoaded', __power_calcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

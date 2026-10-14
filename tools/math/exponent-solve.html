@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="exponent_solvePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__exponent_solveExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="exponent_solveTable"></div>
+    <div id="exponent_solveDiff"></div>
+    <div id="exponent_solveHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -207,6 +213,45 @@ function resetForm(){document.getElementById('a').value = '2';
       document.getElementById('b').value = '8';
       calcTool();}
 calcTool();
+
+function __exponent_solveNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __exponent_solveExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a'),b=num('b'); // x=ln(b)/ln(a) 要求 a>0 且 a≠1、b>0，否则得到 ∞ 或 NaN
+    var __g1='<p style="color:var(--danger);">底数 a 不能为 1：1 的任意次幂恒为 1，' + (Math.abs(b - 1) < 1e-12 ? '此时 x 可为任意实数（b=1 有无穷多解）。' : '无法得到 b=' + b + '（无解）。') + '</p>';ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+    var x=Math.log(b)/Math.log(a);
+    if (!isFinite(__exponent_solveNum('a')) || !isFinite(__exponent_solveNum('b'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#exponent_solveTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['指数 x', x.toFixed(4)],
+            ['a 的 x 次方校验', (Math.pow(a,x)).toExponential(4)],
+            ['由结果反推底数', (Math.pow(b,1/x)).toFixed(4)],
+            ['x 与 ln(a) 之比', (x/Math.max(Math.log(Math.max(a,1.000001)),1e-12)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({a:__exponent_solveNum('a'), b:__exponent_solveNum('b'), x:x});
+    TBKit.history.mount('#exponent_solveHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.b!=null)document.getElementById('b').value=rec.b; calcTool(); });
+    TBKit.util.diffBox('#exponent_solveDiff',['x']);
+}
+function __exponent_solveExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#exponent_solveTable','exponent-solve.csv'); } catch(e){}
+}
+function __exponent_solvePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#exponent_solvePresets',[
+        {label:'默认',labelEn:'Default',values:{a:'2', b:'8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'4', b:'16'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'1', b:'4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __exponent_solveExtras(); }catch(e){} };
+function __exponent_solveBoot(){ try{ __exponent_solvePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __exponent_solveBoot();
+else document.addEventListener('DOMContentLoaded', __exponent_solveBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

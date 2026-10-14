@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="root_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__root_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="root_calcTable"></div>
+    <div id="root_calcDiff"></div>
+    <div id="root_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -194,6 +200,45 @@ function calcTool(){
 function resetForm(){document.getElementById('x').value = '2';
       calcTool();}
 calcTool();
+
+function __root_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __root_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x = num('x'); // 偶次根在负数上应给出虚数形式而不是 NaN；ln 在 x≤0 无定义，不能用 max(x,1e-12) 凑出 −27.63 这种假值
+    var imag = (v) => (x < 0 ? Math.pow(-x, v).toFixed(6) + 'i' : Math.pow(x, v).toFixed(6));
+    if (!isFinite(__root_calcNum('x'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#root_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['平方根 √x', imag(0.5)],
+            ['立方根 ∛x', Math.cbrt(x).toFixed(6)],
+            ['四次方根', imag(0.25)],
+            ['平方根倒数 1/√x', (x <= 0 ? '—' : (1/Math.sqrt(x)).toFixed(6))],
+            ['自然对数 ln x', (x <= 0 ? '—' : Math.log(x).toFixed(6))],
+        ]
+    });
+    TBKit.history.record({x:__root_calcNum('x'), imag:imag});
+    TBKit.history.mount('#root_calcHist',function(rec){ if(rec.x!=null)document.getElementById('x').value=rec.x; calcTool(); });
+    TBKit.util.diffBox('#root_calcDiff',['imag']);
+}
+function __root_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#root_calcTable','root-calc.csv'); } catch(e){}
+}
+function __root_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#root_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{x:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __root_calcExtras(); }catch(e){} };
+function __root_calcBoot(){ try{ __root_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __root_calcBoot();
+else document.addEventListener('DOMContentLoaded', __root_calcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
