@@ -117,10 +117,16 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="ref-card" style="margin-bottom:16px;"><h4>使用说明</h4><p>输入5个递增运动强度下的心率值，系统将自动识别心率拐点(斜率突增点)作为无氧阈。建议使用跑步机或功率自行车进行递增负荷测试。</p></div><div class="input-row"><div><label>强度1(低)-心率(bpm)</label><input type="number" id="hr1" style="font-size:16px;" value="100" min="40" max="220" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>强度2-心率(bpm)</label><input type="number" id="hr2" style="font-size:16px;" value="120" min="40" max="220" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>强度3-心率(bpm)</label><input type="number" id="hr3" style="font-size:16px;" value="140" min="40" max="220" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>强度4-心率(bpm)</label><input type="number" id="hr4" style="font-size:16px;" value="160" min="40" max="220" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>强度5(高)-心率(bpm)</label><input type="number" id="hr5" style="font-size:16px;" value="180" min="40" max="220" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>年龄(岁)</label><input type="number" id="age" style="font-size:16px;" value="30" min="5" max="100" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>静息心率(bpm)</label><input type="number" id="rhr" style="font-size:16px;" value="60" min="30" max="120" step="1" oninput="calc()"></div></div>
     <div class="toolbar">
+      <div id="detector_14Presets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <button class="btn" type="button" onclick="__detector_14Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="detector_14Table"></div>
+    <div id="detector_14Diff"></div>
+    <div id="detector_14Chart"></div>
+    <div id="detector_14Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -245,6 +251,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>耐力训练强度设定</li><li>有氧/无氧区间划分</li><li>训练计划制定</li><li>体能评估参考</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __detector_14_last=0,__detector_14_skip=false;
+function __detector_14Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __detector_14ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __detector_14Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __detector_14Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__detector_14Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#detector_14Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#detector_14Diff');
+        TBKit.history.mount('#detector_14Hist',function(rec){
+            __detector_14_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __detector_14_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__detector_14Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#detector_14Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __detector_14Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__detector_14_skip) return;
+    var snap=__detector_14Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__detector_14ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__detector_14_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __detector_14_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __detector_14Render(keys,rk,en);
+}
+function __detector_14Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#detector_14Table','detector-14.csv'); } catch(e){}
+}
+function __detector_14Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#detector_14Presets',[{label:'默认参数',labelEn:'Default',values:{'hr1':'100', 'hr2':'120', 'hr3':'140', 'hr4':'160', 'hr5':'180', 'age':'30', 'rhr':'60'}}],function(){ calc(); });
+}
+var __detector_14_f0=(typeof calc==='function')?calc:null;
+if(__detector_14_f0){
+    calc=function(){ var __r=__detector_14_f0.apply(null,arguments); try{ __detector_14Extras(); }catch(e){} return __r; };
+}
+function __detector_14Boot(){ try{ __detector_14Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __detector_14Boot();
+else document.addEventListener('DOMContentLoaded', __detector_14Boot);
+</script>
 </body>
 </html>

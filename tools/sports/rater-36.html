@@ -111,10 +111,16 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>比赛类型</label><select id="type" style="font-size:16px;" onchange="calc()"><option value="0">盛装舞步赛</option><option value="1">场地障碍赛</option><option value="2">三项赛</option></select></div></div><div class="input-row"><div><label>1. 步态质量(步伐节奏/弹性/规律性)</label><select id="g1" style="font-size:16px;" onchange="calc()"><option value="10">10-完美</option><option value="8">8-优秀</option><option value="7">7-良好</option><option value="6">6-合格</option><option value="5">5-一般</option><option value="3">3-较差</option></select></div></div><div class="input-row"><div><label>2. 跳跃技术(起跳/腾空/着陆)</label><select id="g2" style="font-size:16px;" onchange="calc()"><option value="10">10-完美</option><option value="8">8-优秀</option><option value="7">7-良好</option><option value="6">6-合格</option><option value="5">5-一般</option><option value="3">3-较差</option></select></div></div><div class="input-row"><div><label>3. 骑手姿态(平衡/协调/辅助)</label><select id="g3" style="font-size:16px;" onchange="calc()"><option value="10">10-完美</option><option value="8">8-优秀</option><option value="7">7-良好</option><option value="6">6-合格</option><option value="5">5-一般</option><option value="3">3-较差</option></select></div></div><div class="input-row"><div><label>4. 路线准确性(弯道/直线/转换)</label><select id="g4" style="font-size:16px;" onchange="calc()"><option value="10">10-完美</option><option value="8">8-优秀</option><option value="7">7-良好</option><option value="6">6-合格</option><option value="5">5-一般</option><option value="3">3-较差</option></select></div></div><div class="input-row"><div><label>罚分(障碍碰落/时间超限)</label><input type="number" id="penalty" style="font-size:16px;" value="0" min="0" max="100" step="1" oninput="calc()"></div></div>
     <div class="toolbar">
+      <div id="rater_36Presets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <button class="btn" type="button" onclick="__rater_36Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="rater_36Table"></div>
+    <div id="rater_36Diff"></div>
+    <div id="rater_36Chart"></div>
+    <div id="rater_36Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -243,6 +249,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>马术比赛评分</li><li>训练效果评估</li><li>骑手技术分析</li><li>比赛复盘参考</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __rater_36_last=0,__rater_36_skip=false;
+function __rater_36Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __rater_36ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __rater_36Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __rater_36Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__rater_36Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#rater_36Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#rater_36Diff');
+        TBKit.history.mount('#rater_36Hist',function(rec){
+            __rater_36_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __rater_36_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__rater_36Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#rater_36Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __rater_36Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__rater_36_skip) return;
+    var snap=__rater_36Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__rater_36ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__rater_36_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __rater_36_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __rater_36Render(keys,rk,en);
+}
+function __rater_36Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rater_36Table','rater-36.csv'); } catch(e){}
+}
+function __rater_36Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rater_36Presets',[{label:'默认参数',labelEn:'Default',values:{'type':'0', 'g1':'10', 'g2':'10', 'g3':'10', 'g4':'10', 'penalty':'0'}}],function(){ calc(); });
+}
+var __rater_36_f0=(typeof calc==='function')?calc:null;
+if(__rater_36_f0){
+    calc=function(){ var __r=__rater_36_f0.apply(null,arguments); try{ __rater_36Extras(); }catch(e){} return __r; };
+}
+function __rater_36Boot(){ try{ __rater_36Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rater_36Boot();
+else document.addEventListener('DOMContentLoaded', __rater_36Boot);
+</script>
 </body>
 </html>

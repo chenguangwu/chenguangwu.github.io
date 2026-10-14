@@ -124,11 +124,17 @@ s.parentNode.insertBefore(el, s);
       <div><label>高原训练 (周)</label><input type="number" id="v1" value="4" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 B"></div>
     </div>
     <div class="toolbar">
+      <div id="hongxibao_xieyang_shiyingxingPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__hongxibao_xieyang_shiyingxingExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="hongxibao_xieyang_shiyingxingTable"></div>
+    <div id="hongxibao_xieyang_shiyingxingDiff"></div>
+    <div id="hongxibao_xieyang_shiyingxingChart"></div>
+    <div id="hongxibao_xieyang_shiyingxingHist"></div>
     <div class="info-box">💡 携氧指数 = 海拔(km) × 周数 × 1.5；预期Hb提升 ≈ 海拔(km) × 周数 × 0.8 (g/L)。</div>
 <div class="tool-notes" style="--tool-accent:#E11D48;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -537,6 +543,114 @@ function resetAll(){
   if(a)a.value='2500';if(b)b.value='4';calc();
 }
 try{calc();}catch(e){}
+
+var __hongxibao_xieyang_shiyingxing_last=0,__hongxibao_xieyang_shiyingxing_skip=false;
+function __hongxibao_xieyang_shiyingxingSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __hongxibao_xieyang_shiyingxingResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __hongxibao_xieyang_shiyingxingTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __hongxibao_xieyang_shiyingxingRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__hongxibao_xieyang_shiyingxingTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#hongxibao_xieyang_shiyingxingTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#hongxibao_xieyang_shiyingxingDiff');
+        TBKit.history.mount('#hongxibao_xieyang_shiyingxingHist',function(rec){
+            __hongxibao_xieyang_shiyingxing_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __hongxibao_xieyang_shiyingxing_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__hongxibao_xieyang_shiyingxingTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#hongxibao_xieyang_shiyingxingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __hongxibao_xieyang_shiyingxingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__hongxibao_xieyang_shiyingxing_skip) return;
+    var snap=__hongxibao_xieyang_shiyingxingSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__hongxibao_xieyang_shiyingxingResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__hongxibao_xieyang_shiyingxing_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __hongxibao_xieyang_shiyingxing_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __hongxibao_xieyang_shiyingxingRender(keys,rk,en);
+}
+function __hongxibao_xieyang_shiyingxingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hongxibao_xieyang_shiyingxingTable','hongxibao-xieyang-shiyingxing.csv'); } catch(e){}
+}
+function __hongxibao_xieyang_shiyingxingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hongxibao_xieyang_shiyingxingPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'2500', 'v1':'4'}}],function(){ calc(); });
+}
+var __hongxibao_xieyang_shiyingxing_f0=(typeof calc==='function')?calc:null;
+if(__hongxibao_xieyang_shiyingxing_f0){
+    calc=function(){ var __r=__hongxibao_xieyang_shiyingxing_f0.apply(null,arguments); try{ __hongxibao_xieyang_shiyingxingExtras(); }catch(e){} return __r; };
+}
+function __hongxibao_xieyang_shiyingxingBoot(){ try{ __hongxibao_xieyang_shiyingxingPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hongxibao_xieyang_shiyingxingBoot();
+else document.addEventListener('DOMContentLoaded', __hongxibao_xieyang_shiyingxingBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

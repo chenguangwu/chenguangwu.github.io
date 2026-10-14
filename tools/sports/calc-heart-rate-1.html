@@ -146,13 +146,19 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="calc_heart_rate_1Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__calc_heart_rate_1Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
     <div class="data-grid" id="summary"></div>
     <div class="result-box" id="zones"></div>
+    <div id="calc_heart_rate_1Table"></div>
+    <div id="calc_heart_rate_1Diff"></div>
+    <div id="calc_heart_rate_1Chart"></div>
+    <div id="calc_heart_rate_1Hist"></div>
 
     <div class="tip-box tip-info">💡 公式：HRR = HRmax − HRrest；目标心率 = (HRR × 强度%) + HRrest（Karvonen 法）。</div>
     <div class="tip-box tip-warn">⚠️ 心率区间仅供参考，高血压、心血管疾病人群请在医生指导下运动。如有不适请立即停止。</div>
@@ -267,6 +273,114 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+
+var __calc_heart_rate_1_last=0,__calc_heart_rate_1_skip=false;
+function __calc_heart_rate_1Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_heart_rate_1ResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_heart_rate_1Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_heart_rate_1Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_heart_rate_1Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_heart_rate_1Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_heart_rate_1Diff');
+        TBKit.history.mount('#calc_heart_rate_1Hist',function(rec){
+            __calc_heart_rate_1_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_heart_rate_1_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_heart_rate_1Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_heart_rate_1Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_heart_rate_1Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_heart_rate_1_skip) return;
+    var snap=__calc_heart_rate_1Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_heart_rate_1ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_heart_rate_1_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_heart_rate_1_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_heart_rate_1Render(keys,rk,en);
+}
+function __calc_heart_rate_1Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_heart_rate_1Table','calc-heart-rate-1.csv'); } catch(e){}
+}
+function __calc_heart_rate_1Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_heart_rate_1Presets',[{label:'默认参数',labelEn:'Default',values:{'age':'30', 'restHr':'60', 'formula':'fox', 'maxHr':'190'}}],function(){ calc(); });
+}
+var __calc_heart_rate_1_f0=(typeof calc==='function')?calc:null;
+if(__calc_heart_rate_1_f0){
+    calc=function(){ var __r=__calc_heart_rate_1_f0.apply(null,arguments); try{ __calc_heart_rate_1Extras(); }catch(e){} return __r; };
+}
+function __calc_heart_rate_1Boot(){ try{ __calc_heart_rate_1Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_heart_rate_1Boot();
+else document.addEventListener('DOMContentLoaded', __calc_heart_rate_1Boot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

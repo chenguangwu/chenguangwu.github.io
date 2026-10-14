@@ -117,10 +117,16 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>VO2max(ml/kg/min)</label><input type="number" id="vo2max" style="font-size:16px;" value="50" min="10" max="100" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>体重(kg)</label><input type="number" id="weight" style="font-size:16px;" value="70" min="20" max="300" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>全力运动持续时间(秒)</label><input type="number" id="duration" style="font-size:16px;" value="90" min="10" max="600" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>运动中平均摄氧量(ml/kg/min)</label><input type="number" id="avgVo2" style="font-size:16px;" value="45" min="10" max="100" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>静息摄氧量(ml/kg/min)</label><input type="number" id="restVo2" style="font-size:16px;" value="3.5" min="1" max="10" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>运动类型</label><select id="exercise" style="font-size:16px;" onchange="calc()"><option value="0">跑步</option><option value="1">自行车</option><option value="2">划船</option><option value="3">游泳</option></select></div></div>
     <div class="toolbar">
+      <div id="tester_8Presets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <button class="btn" type="button" onclick="__tester_8Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="tester_8Table"></div>
+    <div id="tester_8Diff"></div>
+    <div id="tester_8Chart"></div>
+    <div id="tester_8Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -263,6 +269,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>无氧能力评估</li><li>短跑/中距离训练参考</li><li>运动员选材</li><li>训练效果监测</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __tester_8_last=0,__tester_8_skip=false;
+function __tester_8Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tester_8ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tester_8Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tester_8Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tester_8Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tester_8Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#tester_8Diff');
+        TBKit.history.mount('#tester_8Hist',function(rec){
+            __tester_8_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tester_8_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tester_8Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tester_8Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tester_8Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tester_8_skip) return;
+    var snap=__tester_8Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tester_8ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tester_8_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tester_8_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tester_8Render(keys,rk,en);
+}
+function __tester_8Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tester_8Table','tester-8.csv'); } catch(e){}
+}
+function __tester_8Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tester_8Presets',[{label:'默认参数',labelEn:'Default',values:{'vo2max':'50', 'weight':'70', 'duration':'90', 'avgVo2':'45', 'restVo2':'3.5', 'exercise':'0'}}],function(){ calc(); });
+}
+var __tester_8_f0=(typeof calc==='function')?calc:null;
+if(__tester_8_f0){
+    calc=function(){ var __r=__tester_8_f0.apply(null,arguments); try{ __tester_8Extras(); }catch(e){} return __r; };
+}
+function __tester_8Boot(){ try{ __tester_8Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tester_8Boot();
+else document.addEventListener('DOMContentLoaded', __tester_8Boot);
+</script>
 </body>
 </html>

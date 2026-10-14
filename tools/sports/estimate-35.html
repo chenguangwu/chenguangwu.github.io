@@ -146,13 +146,19 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="estimate_35Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__estimate_35Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
     <div class="data-grid" id="summary"></div>
     <div class="result-box" id="detail"></div>
+    <div id="estimate_35Table"></div>
+    <div id="estimate_35Diff"></div>
+    <div id="estimate_35Chart"></div>
+    <div id="estimate_35Hist"></div>
 
     <div class="tip-box tip-info">💡 出汗量 = 运动前体重 − 运动后体重 + 补液量 − 排尿量（1ml 水 ≈ 1g，1L ≈ 1kg）。出汗率 = 出汗量 ÷ 用时(h)。</div>
     <div class="tip-box tip-warn">⚠️ 脱水达 2% 即影响运动表现，超过 5% 有热射病风险。称重请着相同衣物，排空膀胱后测量更准。</div>
@@ -262,6 +268,114 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+
+var __estimate_35_last=0,__estimate_35_skip=false;
+function __estimate_35Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __estimate_35ResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __estimate_35Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __estimate_35Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__estimate_35Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#estimate_35Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#estimate_35Diff');
+        TBKit.history.mount('#estimate_35Hist',function(rec){
+            __estimate_35_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __estimate_35_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__estimate_35Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#estimate_35Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __estimate_35Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__estimate_35_skip) return;
+    var snap=__estimate_35Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__estimate_35ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__estimate_35_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __estimate_35_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __estimate_35Render(keys,rk,en);
+}
+function __estimate_35Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#estimate_35Table','estimate-35.csv'); } catch(e){}
+}
+function __estimate_35Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#estimate_35Presets',[{label:'默认参数',labelEn:'Default',values:{'pre':'70', 'post':'69.2', 'dur':'60', 'intake':'500', 'urine':'0'}}],function(){ calc(); });
+}
+var __estimate_35_f0=(typeof calc==='function')?calc:null;
+if(__estimate_35_f0){
+    calc=function(){ var __r=__estimate_35_f0.apply(null,arguments); try{ __estimate_35Extras(); }catch(e){} return __r; };
+}
+function __estimate_35Boot(){ try{ __estimate_35Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __estimate_35Boot();
+else document.addEventListener('DOMContentLoaded', __estimate_35Boot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

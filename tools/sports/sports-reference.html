@@ -193,6 +193,10 @@ s.parentNode.insertBefore(el, s);
       </div>
 
       <div class="result-box" id="climbResult"><p style="color:var(--text-muted);">请选择攀岩等级进行对照查询</p></div>
+    <div id="sports_referenceTable"></div>
+    <div id="sports_referenceDiff"></div>
+    <div id="sports_referenceChart"></div>
+    <div id="sports_referenceHist"></div>
 
       <div id="climbTableWrap" style="display:none;margin-top:16px;">
         <h4 style="margin-bottom:8px;">完整对照表</h4>
@@ -347,7 +351,9 @@ s.parentNode.insertBefore(el, s);
       </div>
 
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcVo2()">计算 VO2max</button>
+        <div id="sports_referencePresets"></div>
+      <button type="button" class="btn primary" onclick="calcVo2()">计算 VO2max</button>
+      <button class="btn" type="button" onclick="__sports_referenceExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="ToolBox.copyText(document.getElementById('vo2Result').innerText, i18nText('msg112'))">复制结果</button>
       </div>
 
@@ -951,6 +957,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __sports_reference_last=0,__sports_reference_skip=false;
+function __sports_referenceSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __sports_referenceResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __sports_referenceTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __sports_referenceRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__sports_referenceTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#sports_referenceTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#sports_referenceDiff');
+        TBKit.history.mount('#sports_referenceHist',function(rec){
+            __sports_reference_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcVo2();
+            }catch(e2){}
+            __sports_reference_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__sports_referenceTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#sports_referenceChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __sports_referenceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__sports_reference_skip) return;
+    var snap=__sports_referenceSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__sports_referenceResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__sports_reference_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __sports_reference_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __sports_referenceRender(keys,rk,en);
+}
+function __sports_referenceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sports_referenceTable','sports-reference.csv'); } catch(e){}
+}
+function __sports_referencePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sports_referencePresets',[{label:'默认参数',labelEn:'Default',values:{'climbSystem':'v', 'sleepSeason':'summer', 'yogaDiff':'all', 'yogaCount':'5', 'vo2Method':'cooper'}}],function(){ calcVo2(); });
+}
+var __sports_reference_f0=(typeof calcVo2==='function')?calcVo2:null;
+if(__sports_reference_f0){
+    calcVo2=function(){ var __r=__sports_reference_f0.apply(null,arguments); try{ __sports_referenceExtras(); }catch(e){} return __r; };
+}
+function __sports_referenceBoot(){ try{ __sports_referencePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sports_referenceBoot();
+else document.addEventListener('DOMContentLoaded', __sports_referenceBoot);
 </script>
 
 </body>

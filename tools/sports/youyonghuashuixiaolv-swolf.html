@@ -146,13 +146,19 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="youyonghuashuixiaolv_swolfPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__youyonghuashuixiaolv_swolfExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
     <div class="data-grid" id="summary"></div>
     <div class="result-box" id="detail"></div>
+    <div id="youyonghuashuixiaolv_swolfTable"></div>
+    <div id="youyonghuashuixiaolv_swolfDiff"></div>
+    <div id="youyonghuashuixiaolv_swolfChart"></div>
+    <div id="youyonghuashuixiaolv_swolfHist"></div>
 
     <div class="tip-box tip-info">💡 SWOLF = 划水次数 + 单趟用时(秒)，数值越低效率越高。50m 池结果折算为 25m 等效以便对比。</div>
     <div class="tip-box tip-warn">⚠️ 基准针对自由泳 25m 池，其他泳姿仅供参考。SWOLF 受转身、滑行技术影响。</div>
@@ -274,6 +280,114 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+
+var __youyonghuashuixiaolv_swolf_last=0,__youyonghuashuixiaolv_swolf_skip=false;
+function __youyonghuashuixiaolv_swolfSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __youyonghuashuixiaolv_swolfResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __youyonghuashuixiaolv_swolfTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __youyonghuashuixiaolv_swolfRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__youyonghuashuixiaolv_swolfTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#youyonghuashuixiaolv_swolfTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#youyonghuashuixiaolv_swolfDiff');
+        TBKit.history.mount('#youyonghuashuixiaolv_swolfHist',function(rec){
+            __youyonghuashuixiaolv_swolf_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __youyonghuashuixiaolv_swolf_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__youyonghuashuixiaolv_swolfTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#youyonghuashuixiaolv_swolfChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __youyonghuashuixiaolv_swolfExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__youyonghuashuixiaolv_swolf_skip) return;
+    var snap=__youyonghuashuixiaolv_swolfSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__youyonghuashuixiaolv_swolfResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__youyonghuashuixiaolv_swolf_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __youyonghuashuixiaolv_swolf_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __youyonghuashuixiaolv_swolfRender(keys,rk,en);
+}
+function __youyonghuashuixiaolv_swolfExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#youyonghuashuixiaolv_swolfTable','youyonghuashuixiaolv-swolf.csv'); } catch(e){}
+}
+function __youyonghuashuixiaolv_swolfPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#youyonghuashuixiaolv_swolfPresets',[{label:'默认参数',labelEn:'Default',values:{'stroke':'free', 'pool':'25', 'strokes':'36', 'time':'45'}}],function(){ calc(); });
+}
+var __youyonghuashuixiaolv_swolf_f0=(typeof calc==='function')?calc:null;
+if(__youyonghuashuixiaolv_swolf_f0){
+    calc=function(){ var __r=__youyonghuashuixiaolv_swolf_f0.apply(null,arguments); try{ __youyonghuashuixiaolv_swolfExtras(); }catch(e){} return __r; };
+}
+function __youyonghuashuixiaolv_swolfBoot(){ try{ __youyonghuashuixiaolv_swolfPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __youyonghuashuixiaolv_swolfBoot();
+else document.addEventListener('DOMContentLoaded', __youyonghuashuixiaolv_swolfBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

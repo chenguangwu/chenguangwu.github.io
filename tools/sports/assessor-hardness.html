@@ -117,8 +117,14 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><div><label>疼痛耐受评分(1-10)</label><input type="number" id="painTolerance" value="7" min="1" max="10" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>训练年限</label><input type="number" id="years" value="3" step="1" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>恢复时间 (小时)</label><input type="number" id="recovery" value="2" step="0.5" style="font-size:16px;" oninput="calc()"></div></div>
-    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估硬度</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
+    <div class="toolbar"><div id="assessor_hardnessPresets"></div>
+      <button type="button" class="btn primary" onclick="calc()">评估硬度</button>
+      <button class="btn" type="button" onclick="__assessor_hardnessExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
     <div class="result-box" id="res"></div>
+    <div id="assessor_hardnessTable"></div>
+    <div id="assessor_hardnessDiff"></div>
+    <div id="assessor_hardnessChart"></div>
+    <div id="assessor_hardnessHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -250,6 +256,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __assessor_hardness_last=0,__assessor_hardness_skip=false;
+function __assessor_hardnessSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_hardnessResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_hardnessTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_hardnessRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_hardnessTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_hardnessTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_hardnessDiff');
+        TBKit.history.mount('#assessor_hardnessHist',function(rec){
+            __assessor_hardness_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_hardness_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_hardnessTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_hardnessChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_hardnessExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_hardness_skip) return;
+    var snap=__assessor_hardnessSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_hardnessResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_hardness_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_hardness_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_hardnessRender(keys,rk,en);
+}
+function __assessor_hardnessExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_hardnessTable','assessor-hardness.csv'); } catch(e){}
+}
+function __assessor_hardnessPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_hardnessPresets',[{label:'默认参数',labelEn:'Default',values:{'bodyPart':'abdomen', 'force':'800', 'painTolerance':'7', 'years':'3', 'recovery':'2'}}],function(){ calc(); });
+}
+var __assessor_hardness_f0=(typeof calc==='function')?calc:null;
+if(__assessor_hardness_f0){
+    calc=function(){ var __r=__assessor_hardness_f0.apply(null,arguments); try{ __assessor_hardnessExtras(); }catch(e){} return __r; };
+}
+function __assessor_hardnessBoot(){ try{ __assessor_hardnessPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_hardnessBoot();
+else document.addEventListener('DOMContentLoaded', __assessor_hardnessBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用抗击打部位硬度（指测）评估</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>测试部位</li><li>承受冲击力 (N)</li><li>疼痛耐受评分(1-10)</li><li>训练年限</li><li>恢复时间 (小时)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>抗击打部位硬度（指测）评估是做什么的？</dt><dd>输入身体各部位抗击打测试数据（如压痛等级），评估该部位的硬度与抗击打能力等级，用于武术训练效果监测与对比。</dd><dt>如何使用抗击打部位硬度（指测）评估？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>抗击打部位硬度（指测）评估适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

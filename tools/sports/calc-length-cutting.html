@@ -135,13 +135,19 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="calc_length_cuttingPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__calc_length_cuttingExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
     <div class="data-grid" id="summary"></div>
     <div class="result-box" id="guide"></div>
+    <div id="calc_length_cuttingTable"></div>
+    <div id="calc_length_cuttingDiff"></div>
+    <div id="calc_length_cuttingChart"></div>
+    <div id="calc_length_cuttingHist"></div>
 
     <div class="tip-box tip-info">💡 总长度 = 测量长度 + 2 × 锚点。锚点（未裁剪端）用于固定，约等于贴布宽度。圆角裁剪可防卷边。</div>
     <div class="tip-box tip-warn">⚠️ 贴布仅作辅助，急性损伤、皮肤破损、孕妇腹部慎用。建议由专业人员操作或先咨询医师。</div>
@@ -257,6 +263,114 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+
+var __calc_length_cutting_last=0,__calc_length_cutting_skip=false;
+function __calc_length_cuttingSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_length_cuttingResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_length_cuttingTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_length_cuttingRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_length_cuttingTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_length_cuttingTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_length_cuttingDiff');
+        TBKit.history.mount('#calc_length_cuttingHist',function(rec){
+            __calc_length_cutting_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_length_cutting_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_length_cuttingTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_length_cuttingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_length_cuttingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_length_cutting_skip) return;
+    var snap=__calc_length_cuttingSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_length_cuttingResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_length_cutting_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_length_cutting_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_length_cuttingRender(keys,rk,en);
+}
+function __calc_length_cuttingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_length_cuttingTable','calc-length-cutting.csv'); } catch(e){}
+}
+function __calc_length_cuttingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_length_cuttingPresets',[{label:'默认参数',labelEn:'Default',values:{'measured':'25', 'width':'3.75'}}],function(){ calc(); });
+}
+var __calc_length_cutting_f0=(typeof calc==='function')?calc:null;
+if(__calc_length_cutting_f0){
+    calc=function(){ var __r=__calc_length_cutting_f0.apply(null,arguments); try{ __calc_length_cuttingExtras(); }catch(e){} return __r; };
+}
+function __calc_length_cuttingBoot(){ try{ __calc_length_cuttingPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_length_cuttingBoot();
+else document.addEventListener('DOMContentLoaded', __calc_length_cuttingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

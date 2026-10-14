@@ -124,11 +124,17 @@ s.parentNode.insertBefore(el, s);
       <div><label>下劈得分</label><input type="number" id="v1" value="4" step="any" oninput="calc()" enterkeyhint="done" aria-label="下劈"></div>
     </div>
     <div class="toolbar">
+      <div id="taiquandao_hengti_xiapi_defenPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__taiquandao_hengti_xiapi_defenExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="taiquandao_hengti_xiapi_defenTable"></div>
+    <div id="taiquandao_hengti_xiapi_defenDiff"></div>
+    <div id="taiquandao_hengti_xiapi_defenChart"></div>
+    <div id="taiquandao_hengti_xiapi_defenHist"></div>
     <div class="info-box">💡 总分 = 横踢 + 下劈；平均分 = 总分 ÷ 2。</div>
 <div class="tool-notes" style="--tool-accent:#E11D48;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -536,6 +542,114 @@ function resetAll(){
   if(a)a.value='6';if(b)b.value='4';calc();
 }
 try{calc();}catch(e){}
+
+var __taiquandao_hengti_xiapi_defen_last=0,__taiquandao_hengti_xiapi_defen_skip=false;
+function __taiquandao_hengti_xiapi_defenSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __taiquandao_hengti_xiapi_defenResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __taiquandao_hengti_xiapi_defenTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __taiquandao_hengti_xiapi_defenRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__taiquandao_hengti_xiapi_defenTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#taiquandao_hengti_xiapi_defenTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#taiquandao_hengti_xiapi_defenDiff');
+        TBKit.history.mount('#taiquandao_hengti_xiapi_defenHist',function(rec){
+            __taiquandao_hengti_xiapi_defen_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __taiquandao_hengti_xiapi_defen_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__taiquandao_hengti_xiapi_defenTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#taiquandao_hengti_xiapi_defenChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __taiquandao_hengti_xiapi_defenExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__taiquandao_hengti_xiapi_defen_skip) return;
+    var snap=__taiquandao_hengti_xiapi_defenSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__taiquandao_hengti_xiapi_defenResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__taiquandao_hengti_xiapi_defen_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __taiquandao_hengti_xiapi_defen_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __taiquandao_hengti_xiapi_defenRender(keys,rk,en);
+}
+function __taiquandao_hengti_xiapi_defenExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#taiquandao_hengti_xiapi_defenTable','taiquandao-hengti-xiapi-defen.csv'); } catch(e){}
+}
+function __taiquandao_hengti_xiapi_defenPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#taiquandao_hengti_xiapi_defenPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'6', 'v1':'4'}}],function(){ calc(); });
+}
+var __taiquandao_hengti_xiapi_defen_f0=(typeof calc==='function')?calc:null;
+if(__taiquandao_hengti_xiapi_defen_f0){
+    calc=function(){ var __r=__taiquandao_hengti_xiapi_defen_f0.apply(null,arguments); try{ __taiquandao_hengti_xiapi_defenExtras(); }catch(e){} return __r; };
+}
+function __taiquandao_hengti_xiapi_defenBoot(){ try{ __taiquandao_hengti_xiapi_defenPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __taiquandao_hengti_xiapi_defenBoot();
+else document.addEventListener('DOMContentLoaded', __taiquandao_hengti_xiapi_defenBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

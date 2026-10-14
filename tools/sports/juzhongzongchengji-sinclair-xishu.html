@@ -145,13 +145,19 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="juzhongzongchengji_sinclair_xishuPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__juzhongzongchengji_sinclair_xishuExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
     <div class="data-grid" id="summary"></div>
     <div class="result-box" id="detail"></div>
+    <div id="juzhongzongchengji_sinclair_xishuTable"></div>
+    <div id="juzhongzongchengji_sinclair_xishuDiff"></div>
+    <div id="juzhongzongchengji_sinclair_xishuChart"></div>
+    <div id="juzhongzongchengji_sinclair_xishuHist"></div>
 
     <div class="tip-box tip-info">💡 Sinclair 系数 = 10^(A×(log10(b/W))²)，W≤b 时为 &gt;1 的系数，用于将不同体重选手成绩折算到可比标准。</div>
     <div class="tip-box tip-warn">⚠️ 系数为 2017–2020 周期参考值，IWF 会定期更新；老将年龄修正为经验估算，仅供参考。</div>
@@ -280,6 +286,114 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+
+var __juzhongzongchengji_sinclair_xishu_last=0,__juzhongzongchengji_sinclair_xishu_skip=false;
+function __juzhongzongchengji_sinclair_xishuSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __juzhongzongchengji_sinclair_xishuResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __juzhongzongchengji_sinclair_xishuTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __juzhongzongchengji_sinclair_xishuRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__juzhongzongchengji_sinclair_xishuTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#juzhongzongchengji_sinclair_xishuTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#juzhongzongchengji_sinclair_xishuDiff');
+        TBKit.history.mount('#juzhongzongchengji_sinclair_xishuHist',function(rec){
+            __juzhongzongchengji_sinclair_xishu_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __juzhongzongchengji_sinclair_xishu_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__juzhongzongchengji_sinclair_xishuTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#juzhongzongchengji_sinclair_xishuChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __juzhongzongchengji_sinclair_xishuExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__juzhongzongchengji_sinclair_xishu_skip) return;
+    var snap=__juzhongzongchengji_sinclair_xishuSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__juzhongzongchengji_sinclair_xishuResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__juzhongzongchengji_sinclair_xishu_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __juzhongzongchengji_sinclair_xishu_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __juzhongzongchengji_sinclair_xishuRender(keys,rk,en);
+}
+function __juzhongzongchengji_sinclair_xishuExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#juzhongzongchengji_sinclair_xishuTable','juzhongzongchengji-sinclair-xishu.csv'); } catch(e){}
+}
+function __juzhongzongchengji_sinclair_xishuPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#juzhongzongchengji_sinclair_xishuPresets',[{label:'默认参数',labelEn:'Default',values:{'gender':'m', 'bw':'73', 'age':'25', 'snatch':'140', 'cj':'170'}}],function(){ calc(); });
+}
+var __juzhongzongchengji_sinclair_xishu_f0=(typeof calc==='function')?calc:null;
+if(__juzhongzongchengji_sinclair_xishu_f0){
+    calc=function(){ var __r=__juzhongzongchengji_sinclair_xishu_f0.apply(null,arguments); try{ __juzhongzongchengji_sinclair_xishuExtras(); }catch(e){} return __r; };
+}
+function __juzhongzongchengji_sinclair_xishuBoot(){ try{ __juzhongzongchengji_sinclair_xishuPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __juzhongzongchengji_sinclair_xishuBoot();
+else document.addEventListener('DOMContentLoaded', __juzhongzongchengji_sinclair_xishuBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
