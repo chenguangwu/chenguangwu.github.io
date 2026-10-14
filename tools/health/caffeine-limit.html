@@ -188,6 +188,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__caffeine_limitExport()">导出明细 CSV</button></div>
     <div class="result-box" style="text-align:center;padding:20px;margin-top:16px;">
       <div class="caf-big" id="safeLimit" style="color:var(--success);">0 mg</div>
       <div style="font-size:14px;color:var(--text-muted);margin-top:4px;">每日安全上限</div>
@@ -206,6 +207,10 @@ s.parentNode.insertBefore(el, s);
         </div>
       </div>
     </div>
+    <div id="caffeine_limitTable"></div>
+    <div id="caffeine_limitDiff"></div>
+    <div id="caffeine_limitChart"></div>
+    <div id="caffeine_limitHist"></div>
   </div>
 
   <div class="card">
@@ -595,6 +600,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __caffeine_limit_last=0,__caffeine_limit_skip=false;
+function __caffeine_limitSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __caffeine_limitResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __caffeine_limitTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __caffeine_limitRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__caffeine_limitTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#caffeine_limitTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#caffeine_limitDiff');
+        TBKit.history.mount('#caffeine_limitHist',function(rec){
+            __caffeine_limit_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __caffeine_limit_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__caffeine_limitTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#caffeine_limitChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __caffeine_limitExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__caffeine_limit_skip) return;
+    var snap=__caffeine_limitSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__caffeine_limitResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__caffeine_limit_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __caffeine_limit_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __caffeine_limitRender(keys,rk,en);
+}
+function __caffeine_limitExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#caffeine_limitTable','caffeine-limit.csv'); } catch(e){}
+}
+function __caffeine_limitPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#caffeine_limitPresets',[{label:'默认参数',labelEn:'Default',values:{'weight':'65', 'group':'6', 'drinkAmount':'95', 'halfLife':'3'}}],function(){ calc(); });
+}
+var __caffeine_limit_f0=(typeof calc==='function')?calc:null;
+if(__caffeine_limit_f0){
+    calc=function(){ var __r=__caffeine_limit_f0.apply(null,arguments); try{ __caffeine_limitExtras(); }catch(e){} return __r; };
+}
+function __caffeine_limitBoot(){ try{ __caffeine_limitPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __caffeine_limitBoot();
+else document.addEventListener('DOMContentLoaded', __caffeine_limitBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

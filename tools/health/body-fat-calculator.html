@@ -538,11 +538,11 @@ function updateBodyComp(bf,w){
 
   html+='<div class="section-title">📊 身体成分详解</div>';
   html+='<div class="formula-box"><div class="formula-title">📐 计算公式 / 说明</div><div class="formula-eq">体脂率(BFP) = 身体脂肪质量 / 体重 × 100%；海军法：男性 BFP=495/(1.0324−0.19077·log₁₀(腰+颈)−0.15456·log₁₀(身高))−450，女性另加臀围项。</div></div>';
-  html+='<div class="result-box" data-viz="gauge" data-min="0" data-max="60" data-unit="%">';
+  html+='<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__body_fat_calculatorExport()">导出明细 CSV</button></div><div class="result-box" data-viz="gauge" data-min="0" data-max="60" data-unit="%">';
   html+='<div class="detail-row"><span class="label">总体重</span><span class="value">'+w+' kg</span></div>';
   html+='<div class="detail-row"><span class="label">脂肪重量</span><span class="value" style="color:#ef5350;">'+fatMass+' kg ('+bf+'%)</span></div>';
   html+='<div class="detail-row"><span class="label">瘦体重 (肌肉+骨骼+器官)</span><span class="value" style="color:#2196f3;">'+lbm+' kg ('+Math.round((1-bf/100)*100)+'%)</span></div>';
-  html+='</div>';
+  html+='</div><div id="body_fat_calculatorTable"></div><div id="body_fat_calculatorDiff"></div><div id="body_fat_calculatorChart"></div><div id="body_fat_calculatorHist"></div>';
 
   html+='<div class="section-title">💡 瘦体重说明</div>';
   html+='<div class="advice-box">';
@@ -839,6 +839,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __body_fat_calculator_last=0,__body_fat_calculator_skip=false;
+function __body_fat_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __body_fat_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __body_fat_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __body_fat_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__body_fat_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#body_fat_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#body_fat_calculatorDiff');
+        TBKit.history.mount('#body_fat_calculatorHist',function(rec){
+            __body_fat_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __body_fat_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__body_fat_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#body_fat_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __body_fat_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__body_fat_calculator_skip) return;
+    var snap=__body_fat_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__body_fat_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__body_fat_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __body_fat_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __body_fat_calculatorRender(keys,rk,en);
+}
+function __body_fat_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#body_fat_calculatorTable','body-fat-calculator.csv'); } catch(e){}
+}
+function __body_fat_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#body_fat_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'height':'170', 'weight':'65', 'waist':'80', 'neck':'38', 'hip':'95', 'height2':'170', 'weight2':'65', 'age2':'30'}}],function(){ calc(); });
+}
+var __body_fat_calculator_f0=(typeof calc==='function')?calc:null;
+if(__body_fat_calculator_f0){
+    calc=function(){ var __r=__body_fat_calculator_f0.apply(null,arguments); try{ __body_fat_calculatorExtras(); }catch(e){} return __r; };
+}
+function __body_fat_calculatorBoot(){ try{ __body_fat_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __body_fat_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __body_fat_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

@@ -658,9 +658,9 @@ def apply_custom(page, dry=False):
     # 2) 主按钮（onclick="fn(...)"）：前插预设容器、后插导出按钮
     m = re.search(r'<button\b[^>]*onclick="%s\([^)]*\)"[^>]*>.*?</button>' % re.escape(fn), s, re.S)
     if m:
-        s = s[:m.start()] + '<div id="%sPresets"></div>\n      ' % p + s[m.start():]
+        s = s[:m.start()] + '<div id="%sPresets"></div>' % p + s[m.start():]
         m2 = re.search(r'<button\b[^>]*onclick="%s\([^)]*\)"[^>]*>.*?</button>' % re.escape(fn), s, re.S)
-        s = s[:m2.end()] + '\n      <button class="btn" type="button" onclick="__%sExport()">导出明细 CSV</button>' % p + s[m2.end():]
+        s = s[:m2.end()] + '<button class="btn" type="button" onclick="__%sExport()">导出明细 CSV</button>' % p + s[m2.end():]
     else:
         # 无主按钮（纯输入事件触发）：在结果容器前插独立导出行
         if container[0] == "id":
@@ -671,7 +671,7 @@ def apply_custom(page, dry=False):
             if not cm:
                 return "skip:custom-result-class-not-found"
             op = cm.start()
-        s = s[:op] + '<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__%sExport()">导出明细 CSV</button></div>\n    ' % p + s[op:]
+        s = s[:op] + '<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__%sExport()">导出明细 CSV</button></div>' % p + s[op:]
     # 3) 结果容器：在结果元素闭合后
     if container[0] == "id":
         rp = s.find('id="%s"' % container[1])
@@ -684,8 +684,8 @@ def apply_custom(page, dry=False):
     close_idx = find_tag_close(s, op)
     if close_idx is None:
         return "skip:custom-result-tag-unmatched"
-    containers = '<div id="%sTable"></div>\n    <div id="%sDiff"></div>\n    <div id="%sChart"></div>\n    <div id="%sHist"></div>' % (p, p, p, p)
-    s = s[:close_idx] + '\n    ' + containers + s[close_idx:]
+    containers = '<div id="%sTable"></div> <div id="%sDiff"></div> <div id="%sChart"></div> <div id="%sHist"></div>' % (p, p, p, p)
+    s = s[:close_idx] + ' ' + containers + s[close_idx:]
     # 4) 脚本注入：在最后一个「真 JS 内联块」的 </script> 前
     #    必须跳过 application/ld+json 等非 JS 块（注进去浏览器不执行=死代码）
     pos = last_js_script_close(s)

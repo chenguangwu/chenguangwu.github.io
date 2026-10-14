@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="safe_period_calculatorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__safe_period_calculatorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="safe_period_calculatorTable"></div>
+    <div id="safe_period_calculatorDiff"></div>
+    <div id="safe_period_calculatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -275,6 +281,54 @@ function resetForm(){document.getElementById('lmp').value='2026-08-01';
       document.getElementById('period').value='5';
       calcTool();}
 calcTool();
+
+function __safe_period_calculatorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __safe_period_calculatorExtras(){
+    function __safe_period_calculatorRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var lmpRaw=document.getElementById('lmp').value;
+    var cycle=Math.floor(num('cycle')), period=Math.floor(num('period'));
+    var lmp=new Date(lmpRaw);
+    var ovu=new Date(lmp.getTime()); ovu.setDate(lmp.getDate()+cycle-14);          // 预计排卵日
+    var fertileStart=new Date(ovu.getTime()); fertileStart.setDate(ovu.getDate()-5);
+    var fertileEnd=new Date(ovu.getTime()); fertileEnd.setDate(ovu.getDate()+4);
+    var nextP=new Date(lmp.getTime()); nextP.setDate(lmp.getDate()+cycle);
+    var fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); // 月经期（次月经期）
+    var mStart=new Date(nextP.getTime()); mStart.setDate(nextP.getDate()-period+1);
+    var mEnd=new Date(nextP.getTime());
+    if (!isFinite(__safe_period_calculatorNum('cycle')) || !isFinite(__safe_period_calculatorNum('period')) || !__safe_period_calculatorRaw('lmp')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#safe_period_calculatorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['预计排卵日', fmt(ovu)],
+            ['易孕期（排卵日±5天）', fmt(fertileStart)+' ~ '+fmt(fertileEnd)],
+            ['下次月经期', fmt(mStart)+' ~ '+fmt(mEnd)],
+            ['预计下次月经', fmt(nextP)],
+        ]
+    });
+    TBKit.history.record({cycle:__safe_period_calculatorRaw('cycle'), period:__safe_period_calculatorRaw('period'), lmp:__safe_period_calculatorRaw('lmp'), lmpRaw:lmpRaw});
+    function __safe_period_calculatorRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#safe_period_calculatorHist',function(rec){ __safe_period_calculatorRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#safe_period_calculatorDiff',['lmpRaw']);
+}
+function __safe_period_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#safe_period_calculatorTable','safe-period-calculator.csv'); } catch(e){}
+}
+function __safe_period_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#safe_period_calculatorPresets',[
+        {label:'默认',labelEn:'Default',values:{cycle:'28', period:'5', lmp:'2026-08-01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{cycle:'56', period:'10', lmp:'2026-08-01'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{cycle:'14', period:'2.5', lmp:'2026-08-01'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __safe_period_calculatorExtras(); }catch(e){} };
+function __safe_period_calculatorBoot(){ try{ __safe_period_calculatorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __safe_period_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __safe_period_calculatorBoot);
 </script>
 </body>
 </html>

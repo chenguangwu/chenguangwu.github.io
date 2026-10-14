@@ -527,13 +527,13 @@ function updateBreakdown(bmr,tdee,targetCal,activity){
   html+='</div>';
 
   html+='<div class="section-title">🔥 每日热量消耗构成</div>';
-  html+='<div class="result-box">';
+  html+='<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calorie_needsExport()">导出明细 CSV</button></div><div class="result-box">';
   const tef=Math.round(tdee*0.1);
   const neat=tdee-bmr-tef;
   html+='<div class="detail-row"><span class="label">基础代谢 (BMR)</span><span class="value">'+bmr+' kcal ('+Math.round(bmr/tdee*100)+'%)</span></div>';
   html+='<div class="detail-row"><span class="label">非运动产热 (NEAT)</span><span class="value">'+neat+' kcal ('+Math.round(neat/tdee*100)+'%)</span></div>';
   html+='<div class="detail-row"><span class="label">食物热效应 (TEF)</span><span class="value">'+tef+' kcal ('+Math.round(tef/tdee*100)+'%)</span></div>';
-  html+='</div>';
+  html+='</div><div id="calorie_needsTable"></div><div id="calorie_needsDiff"></div><div id="calorie_needsChart"></div><div id="calorie_needsHist"></div>';
 
   html+='<div class="section-title">⚡ 活动水平说明</div>';
   html+='<div class="result-box">';
@@ -783,6 +783,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __calorie_needs_last=0,__calorie_needs_skip=false;
+function __calorie_needsSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calorie_needsResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calorie_needsTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calorie_needsRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calorie_needsTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calorie_needsTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calorie_needsDiff');
+        TBKit.history.mount('#calorie_needsHist',function(rec){
+            __calorie_needs_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calorie_needs_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calorie_needsTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calorie_needsChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calorie_needsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calorie_needs_skip) return;
+    var snap=__calorie_needsSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calorie_needsResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calorie_needs_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calorie_needs_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calorie_needsRender(keys,rk,en);
+}
+function __calorie_needsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calorie_needsTable','calorie-needs.csv'); } catch(e){}
+}
+function __calorie_needsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calorie_needsPresets',[{label:'默认参数',labelEn:'Default',values:{'age':'30', 'height':'170', 'weight':'65', 'activity':'1.2', 'speed':'5'}}],function(){ calc(); });
+}
+var __calorie_needs_f0=(typeof calc==='function')?calc:null;
+if(__calorie_needs_f0){
+    calc=function(){ var __r=__calorie_needs_f0.apply(null,arguments); try{ __calorie_needsExtras(); }catch(e){} return __r; };
+}
+function __calorie_needsBoot(){ try{ __calorie_needsPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calorie_needsBoot();
+else document.addEventListener('DOMContentLoaded', __calorie_needsBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

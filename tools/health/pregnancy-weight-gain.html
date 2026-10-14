@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pregnancy_weight_gainPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pregnancy_weight_gainExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pregnancy_weight_gainTable"></div>
+    <div id="pregnancy_weight_gainDiff"></div>
+    <div id="pregnancy_weight_gainHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -268,6 +274,51 @@ function resetForm(){document.getElementById('h').value='165';
       document.getElementById('week').value='20';
       calcTool();}
 calcTool();
+
+function __pregnancy_weight_gainNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pregnancy_weight_gainExtras(){
+    function __pregnancy_weight_gainRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var h=num('h')/100, w=num('w');
+    var bmi=w/(h*h);
+    var totalMin,totalMax,weekMin,weekMax,label;
+    if(bmi<18.5){totalMin=12.5;totalMax=18;weekMin=0.44;weekMax=0.58;label='偏瘦（BMI<18.5）';}
+    else if(bmi<25){totalMin=11.5;totalMax=16;weekMin=0.35;weekMax=0.50;label='正常（18.5≤BMI<25）';}
+    else if(bmi<30){totalMin=7;totalMax=11.5;weekMin=0.23;weekMax=0.33;label='超重（25≤BMI<30）';}
+    else{totalMin=5;totalMax=9;weekMin=0.17;weekMax=0.27;label='肥胖（BMI≥30）';}
+    if (!isFinite(__pregnancy_weight_gainNum('h')) || !isFinite(__pregnancy_weight_gainNum('w')) || !isFinite(__pregnancy_weight_gainNum('week'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pregnancy_weight_gainTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['孕前 BMI', bmi.toFixed(1)],
+            ['BMI 分类', label],
+            ['孕期总增重建议', totalMin+' ~ '+totalMax+' kg'],
+            ['孕中晚期周增重', weekMin+' ~ '+weekMax+' kg/周'],
+        ]
+    });
+    TBKit.history.record({h:__pregnancy_weight_gainRaw('h'), w:__pregnancy_weight_gainRaw('w'), week:__pregnancy_weight_gainRaw('week'), bmi:bmi});
+    function __pregnancy_weight_gainRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#pregnancy_weight_gainHist',function(rec){ __pregnancy_weight_gainRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#pregnancy_weight_gainDiff',['bmi']);
+}
+function __pregnancy_weight_gainExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pregnancy_weight_gainTable','pregnancy-weight-gain.csv'); } catch(e){}
+}
+function __pregnancy_weight_gainPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pregnancy_weight_gainPresets',[
+        {label:'默认',labelEn:'Default',values:{h:'165', w:'55', week:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{h:'330', w:'110', week:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{h:'82.5', w:'27.5', week:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pregnancy_weight_gainExtras(); }catch(e){} };
+function __pregnancy_weight_gainBoot(){ try{ __pregnancy_weight_gainPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pregnancy_weight_gainBoot();
+else document.addEventListener('DOMContentLoaded', __pregnancy_weight_gainBoot);
 </script>
 </body>
 </html>

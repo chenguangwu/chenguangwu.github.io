@@ -171,7 +171,12 @@ s.parentNode.insertBefore(el, s);
       <div><label>经期天数</label><input type="number" id="period" value="5" min="2" max="10" oninput="calc()"></div>
     </div>
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__ovulation_calculatorExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result"></div>
+    <div id="ovulation_calculatorTable"></div>
+    <div id="ovulation_calculatorDiff"></div>
+    <div id="ovulation_calculatorChart"></div>
+    <div id="ovulation_calculatorHist"></div>
   </div>
 
   <div class="card">
@@ -468,6 +473,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __ovulation_calculator_last=0,__ovulation_calculator_skip=false;
+function __ovulation_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ovulation_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ovulation_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ovulation_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ovulation_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ovulation_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ovulation_calculatorDiff');
+        TBKit.history.mount('#ovulation_calculatorHist',function(rec){
+            __ovulation_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __ovulation_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ovulation_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ovulation_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ovulation_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ovulation_calculator_skip) return;
+    var snap=__ovulation_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ovulation_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ovulation_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ovulation_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ovulation_calculatorRender(keys,rk,en);
+}
+function __ovulation_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ovulation_calculatorTable','ovulation-calculator.csv'); } catch(e){}
+}
+function __ovulation_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ovulation_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'cycle':'28', 'period':'5'}}],function(){ calc(); });
+}
+var __ovulation_calculator_f0=(typeof calc==='function')?calc:null;
+if(__ovulation_calculator_f0){
+    calc=function(){ var __r=__ovulation_calculator_f0.apply(null,arguments); try{ __ovulation_calculatorExtras(); }catch(e){} return __r; };
+}
+function __ovulation_calculatorBoot(){ try{ __ovulation_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ovulation_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __ovulation_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

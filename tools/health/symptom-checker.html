@@ -138,7 +138,9 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="symptom_checkerPresets"></div>
       <button type="button" class="btn primary" onclick="startCheck()">开始自查</button>
+      <button class="btn" type="button" onclick="__symptom_checkerExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="resetCheck()">重新开始</button>
     </div>
 
@@ -497,9 +499,7 @@ function renderNode() {
 
   // 显示历史
   if (qaHistory.length > 0) {
-    html = '<div style="margin-bottom:12px;">' +
-      qaHistory.map(function(h, i) {
-        return '<div class="step-line"><strong>Q' + (i+1) + '：</strong>' + h.q + '<br>→ <span style="color:var(--primary);">' + h.a + '</span></div>';
+    html = '<div style="margin-bottom:12px;">' +qaHistory.map(function(h, i) {return '<div class="step-line"><strong>Q' + (i+1) + '：</strong>' + h.q + '<br>→ <span style="color:var(--primary);">' + h.a + '</span></div>';
       }).join('') +
       '</div>' + html;
   }
@@ -549,7 +549,7 @@ function showResult(res) {
   resultHtml += '<button type="button" class="btn" onclick="ToolBox.copyText(\'' + res.disease.replace(/'/g, '') + ' - ' + res.dept + '\')">复制结果</button>';
   resultHtml += '<button type="button" class="btn primary" onclick="resetCheck()">重新自查</button>';
   resultHtml += '</div>';
-  resultHtml += '</div>';
+  resultHtml += '</div><div id="symptom_checkerTable"></div><div id="symptom_checkerDiff"></div><div id="symptom_checkerChart"></div><div id="symptom_checkerHist"></div>';
 
   const __h3=resultHtml;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('resultArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultArea').innerHTML=__h3;
   document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth' });
@@ -602,6 +602,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __symptom_checker_last=0,__symptom_checker_skip=false;
+function __symptom_checkerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __symptom_checkerResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __symptom_checkerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __symptom_checkerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__symptom_checkerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#symptom_checkerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#symptom_checkerDiff');
+        TBKit.history.mount('#symptom_checkerHist',function(rec){
+            __symptom_checker_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                startCheck();
+            }catch(e2){}
+            __symptom_checker_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__symptom_checkerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#symptom_checkerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __symptom_checkerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__symptom_checker_skip) return;
+    var snap=__symptom_checkerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__symptom_checkerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__symptom_checker_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __symptom_checker_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __symptom_checkerRender(keys,rk,en);
+}
+function __symptom_checkerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#symptom_checkerTable','symptom-checker.csv'); } catch(e){}
+}
+function __symptom_checkerPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __symptom_checker_f0=(typeof startCheck==='function')?startCheck:null;
+if(__symptom_checker_f0){
+    startCheck=function(){ var __r=__symptom_checker_f0.apply(null,arguments); try{ __symptom_checkerExtras(); }catch(e){} return __r; };
+}
+function __symptom_checkerBoot(){ try{ __symptom_checkerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __symptom_checkerBoot();
+else document.addEventListener('DOMContentLoaded', __symptom_checkerBoot);
 </script>
 
 </body>

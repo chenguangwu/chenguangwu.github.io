@@ -143,12 +143,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="milk_tea_caloriesPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__milk_tea_caloriesExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="milk_tea_caloriesTable"></div>
+    <div id="milk_tea_caloriesDiff"></div>
+    <div id="milk_tea_caloriesHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -283,6 +289,46 @@ function resetForm(){document.getElementById('cup').selectedIndex=0;
       document.getElementById('top_redbean').checked=false;
       calcTool();}
 calcTool();
+
+function __milk_tea_caloriesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __milk_tea_caloriesExtras(){
+    function __milk_tea_caloriesRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var cup=parseInt(document.getElementById('cup').value)||500;
+    var tea=num('tea'), milk=num('milk'), sugarPct=parseFloat(document.getElementById('sugar').value)||0;
+    var base=tea+milk;
+    var sugarKcal=Math.round(cup/100* (sugarPct/100) * 10); // 近似：每100ml全糖≈10kcal，按糖度比例
+    if (!isFinite(__milk_tea_caloriesNum('tea')) || !isFinite(__milk_tea_caloriesNum('milk')) || !__milk_tea_caloriesRaw('cup') || !__milk_tea_caloriesRaw('sugar')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#milk_tea_caloriesTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['一杯总热量', total+' kcal'],
+            ['茶底 + 奶类', base+' kcal'],
+        ]
+    });
+    TBKit.history.record({tea:__milk_tea_caloriesRaw('tea'), milk:__milk_tea_caloriesRaw('milk'), cup:__milk_tea_caloriesRaw('cup'), sugar:__milk_tea_caloriesRaw('sugar'), base:base});
+    function __milk_tea_caloriesRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#milk_tea_caloriesHist',function(rec){ __milk_tea_caloriesRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#milk_tea_caloriesDiff',['base']);
+}
+function __milk_tea_caloriesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#milk_tea_caloriesTable','milk-tea-calories.csv'); } catch(e){}
+}
+function __milk_tea_caloriesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#milk_tea_caloriesPresets',[
+        {label:'默认',labelEn:'Default',values:{tea:'', milk:'', cup:'', sugar:''}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{tea:'', milk:'', cup:'', sugar:''}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{tea:'', milk:'', cup:'', sugar:''}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __milk_tea_caloriesExtras(); }catch(e){} };
+function __milk_tea_caloriesBoot(){ try{ __milk_tea_caloriesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __milk_tea_caloriesBoot();
+else document.addEventListener('DOMContentLoaded', __milk_tea_caloriesBoot);
 </script>
 </body>
 </html>

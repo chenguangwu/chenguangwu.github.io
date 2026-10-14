@@ -160,13 +160,19 @@ s.parentNode.insertBefore(el, s);
       </div>
 
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcBloodType()">计算子女血型</button>
+        <div id="blood_type_calculatorPresets"></div>
+      <button type="button" class="btn primary" onclick="calcBloodType()">计算子女血型</button>
+      <button class="btn" type="button" onclick="__blood_type_calculatorExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="saveResult()">保存结果</button>
       </div>
 
       <div class="result-box" id="bloodResult">
         <p>请选择父母血型后点击计算</p>
       </div>
+    <div id="blood_type_calculatorTable"></div>
+    <div id="blood_type_calculatorDiff"></div>
+    <div id="blood_type_calculatorChart"></div>
+    <div id="blood_type_calculatorHist"></div>
     </div>
 
     <div id="tab-transfusion" class="tab-content">
@@ -455,6 +461,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __blood_type_calculator_last=0,__blood_type_calculator_skip=false;
+function __blood_type_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __blood_type_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __blood_type_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __blood_type_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__blood_type_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#blood_type_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#blood_type_calculatorDiff');
+        TBKit.history.mount('#blood_type_calculatorHist',function(rec){
+            __blood_type_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcBloodType();
+            }catch(e2){}
+            __blood_type_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__blood_type_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#blood_type_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __blood_type_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__blood_type_calculator_skip) return;
+    var snap=__blood_type_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__blood_type_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__blood_type_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __blood_type_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __blood_type_calculatorRender(keys,rk,en);
+}
+function __blood_type_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#blood_type_calculatorTable','blood-type-calculator.csv'); } catch(e){}
+}
+function __blood_type_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#blood_type_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'fatherType':'A', 'motherType':'A', 'pType':'A'}}],function(){ calcBloodType(); });
+}
+var __blood_type_calculator_f0=(typeof calcBloodType==='function')?calcBloodType:null;
+if(__blood_type_calculator_f0){
+    calcBloodType=function(){ var __r=__blood_type_calculator_f0.apply(null,arguments); try{ __blood_type_calculatorExtras(); }catch(e){} return __r; };
+}
+function __blood_type_calculatorBoot(){ try{ __blood_type_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __blood_type_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __blood_type_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

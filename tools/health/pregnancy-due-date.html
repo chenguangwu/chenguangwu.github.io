@@ -214,7 +214,12 @@ s.parentNode.insertBefore(el, s);
       <p style="font-size:12px;color:var(--text-muted);">试管婴儿(IVF)移植日期计算预产期</p>
     </div>
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__pregnancy_due_dateExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result" style="margin-top:16px;"></div>
+    <div id="pregnancy_due_dateTable"></div>
+    <div id="pregnancy_due_dateDiff"></div>
+    <div id="pregnancy_due_dateChart"></div>
+    <div id="pregnancy_due_dateHist"></div>
   </div>
 
   <div class="card">
@@ -555,6 +560,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __pregnancy_due_date_last=0,__pregnancy_due_date_skip=false;
+function __pregnancy_due_dateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pregnancy_due_dateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pregnancy_due_dateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pregnancy_due_dateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pregnancy_due_dateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pregnancy_due_dateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pregnancy_due_dateDiff');
+        TBKit.history.mount('#pregnancy_due_dateHist',function(rec){
+            __pregnancy_due_date_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcDueDate();
+            }catch(e2){}
+            __pregnancy_due_date_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pregnancy_due_dateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pregnancy_due_dateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pregnancy_due_dateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pregnancy_due_date_skip) return;
+    var snap=__pregnancy_due_dateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pregnancy_due_dateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pregnancy_due_date_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pregnancy_due_date_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pregnancy_due_dateRender(keys,rk,en);
+}
+function __pregnancy_due_dateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pregnancy_due_dateTable','pregnancy-due-date.csv'); } catch(e){}
+}
+function __pregnancy_due_datePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pregnancy_due_datePresets',[{label:'默认参数',labelEn:'Default',values:{'ultrasoundWeek':'8', 'ultrasoundDay':'0', 'ivfDay':'3', 'fetalWeek':'30'}}],function(){ calcDueDate(); });
+}
+var __pregnancy_due_date_f0=(typeof calcDueDate==='function')?calcDueDate:null;
+if(__pregnancy_due_date_f0){
+    calcDueDate=function(){ var __r=__pregnancy_due_date_f0.apply(null,arguments); try{ __pregnancy_due_dateExtras(); }catch(e){} return __r; };
+}
+function __pregnancy_due_dateBoot(){ try{ __pregnancy_due_datePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pregnancy_due_dateBoot();
+else document.addEventListener('DOMContentLoaded', __pregnancy_due_dateBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
