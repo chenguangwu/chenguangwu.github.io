@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="roi_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__roi_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="roi_calcTable"></div>
+    <div id="roi_calcDiff"></div>
+    <div id="roi_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('gain').value = '1300';
       document.getElementById('cost').value = '1000';
       calcTool();}
 calcTool();
+
+function __roi_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __roi_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var g=num('gain'),c=num('cost');
+    if (!isFinite(__roi_calcNum('gain')) || !isFinite(__roi_calcNum('cost'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#roi_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['ROI (%)', ((g-c)/c*100).toFixed(2)],
+            ['净收益', (g-c).toFixed(2)],
+            ['投资回报倍数', (g/c).toFixed(4)],
+            ['回本所需周期数', (c/Math.max(g-c,1e-9)).toFixed(4)],
+            ['回收总额', (g).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({gain:__roi_calcNum('gain'), cost:__roi_calcNum('cost'), g:g});
+    TBKit.history.mount('#roi_calcHist',function(rec){ if(rec.gain!=null)document.getElementById('gain').value=rec.gain; if(rec.cost!=null)document.getElementById('cost').value=rec.cost; calcTool(); });
+    TBKit.util.diffBox('#roi_calcDiff',['g']);
+}
+function __roi_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#roi_calcTable','roi-calc.csv'); } catch(e){}
+}
+function __roi_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#roi_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{gain:'1300', cost:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{gain:'2600', cost:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{gain:'650', cost:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __roi_calcExtras(); }catch(e){} };
+function __roi_calcBoot(){ try{ __roi_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __roi_calcBoot();
+else document.addEventListener('DOMContentLoaded', __roi_calcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

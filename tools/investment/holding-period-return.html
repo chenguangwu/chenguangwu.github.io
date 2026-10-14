@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="holding_period_returnPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__holding_period_returnExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="holding_period_returnTable"></div>
+    <div id="holding_period_returnDiff"></div>
+    <div id="holding_period_returnHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,42 @@ function resetForm(){document.getElementById('p0').value = '100';
       document.getElementById('d').value = '4';
       calcTool();}
 calcTool();
+
+function __holding_period_returnNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __holding_period_returnExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p0=num('p0'),p1=num('p1'),d=num('d');
+    if (!isFinite(__holding_period_returnNum('p0')) || !isFinite(__holding_period_returnNum('p1')) || !isFinite(__holding_period_returnNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#holding_period_returnTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['持有期收益率 (%)', ((p1-p0+d)/p0*100).toFixed(2)],
+            ['总收益', (p1-p0+d).toFixed(2)],
+            ['价格倍数 p₁/p₀', (p1/p0).toFixed(4)],
+            ['资本利得率 (%)', ((p1-p0)/p0*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p0:__holding_period_returnNum('p0'), p1:__holding_period_returnNum('p1'), d:__holding_period_returnNum('d')});
+    TBKit.history.mount('#holding_period_returnHist',function(rec){ if(rec.p0!=null)document.getElementById('p0').value=rec.p0; if(rec.p1!=null)document.getElementById('p1').value=rec.p1; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+}
+function __holding_period_returnExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#holding_period_returnTable','holding-period-return.csv'); } catch(e){}
+}
+function __holding_period_returnPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#holding_period_returnPresets',[
+        {label:'默认',labelEn:'Default',values:{p0:'100', p1:'120', d:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p0:'200', p1:'240', d:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p0:'50', p1:'60', d:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __holding_period_returnExtras(); }catch(e){} };
+function __holding_period_returnBoot(){ try{ __holding_period_returnPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __holding_period_returnBoot();
+else document.addEventListener('DOMContentLoaded', __holding_period_returnBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

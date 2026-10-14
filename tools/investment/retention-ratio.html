@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="retention_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__retention_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="retention_ratioTable"></div>
+    <div id="retention_ratioDiff"></div>
+    <div id="retention_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('DPR').value = '40';
       calcTool();}
 calcTool();
+
+function __retention_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __retention_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var DPR=num('DPR');
+    var b=100-DPR;
+    if (!isFinite(__retention_ratioNum('DPR'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#retention_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['留存收益率 b (%)', b.toFixed(1)],
+            ['股利支付率（小数）', (DPR/100).toFixed(6)],
+            ['留存收益率（小数）', (b/100).toFixed(6)],
+            ['支付率倒数', (100/Math.max(DPR,1e-9)).toFixed(4)],
+            ['留存与支付之比', (b/Math.max(DPR,1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({DPR:__retention_ratioNum('DPR'), b:b});
+    TBKit.history.mount('#retention_ratioHist',function(rec){ if(rec.DPR!=null)document.getElementById('DPR').value=rec.DPR; calcTool(); });
+    TBKit.util.diffBox('#retention_ratioDiff',['b']);
+}
+function __retention_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#retention_ratioTable','retention-ratio.csv'); } catch(e){}
+}
+function __retention_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#retention_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{DPR:'40'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{DPR:'80'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{DPR:'20'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __retention_ratioExtras(); }catch(e){} };
+function __retention_ratioBoot(){ try{ __retention_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __retention_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __retention_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

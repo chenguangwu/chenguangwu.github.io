@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="annuity_pv_invPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__annuity_pv_invExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="annuity_pv_invTable"></div>
+    <div id="annuity_pv_invDiff"></div>
+    <div id="annuity_pv_invHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('PMT').value = '1000';
       document.getElementById('n').value = '10';
       calcTool();}
 calcTool();
+
+function __annuity_pv_invNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __annuity_pv_invExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var PMT=num('PMT'),r=num('r'),n=num('n');
+    var PV=PMT*(1-Math.pow(1+r,-n))/r;
+    if (!isFinite(__annuity_pv_invNum('PMT')) || !isFinite(__annuity_pv_invNum('r')) || !isFinite(__annuity_pv_invNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#annuity_pv_invTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年金现值 PV (元)', PV.toFixed(2)],
+            ['利息总额 (元)', (PMT*n-PV).toFixed(2)],
+            ['名义付款合计 (元)', (PMT*n).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({PMT:__annuity_pv_invNum('PMT'), r:__annuity_pv_invNum('r'), n:__annuity_pv_invNum('n'), PV:PV});
+    TBKit.history.mount('#annuity_pv_invHist',function(rec){ if(rec.PMT!=null)document.getElementById('PMT').value=rec.PMT; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#annuity_pv_invDiff',['PV']);
+}
+function __annuity_pv_invExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#annuity_pv_invTable','annuity-pv-inv.csv'); } catch(e){}
+}
+function __annuity_pv_invPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#annuity_pv_invPresets',[
+        {label:'默认',labelEn:'Default',values:{PMT:'1000', r:'0.05', n:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{PMT:'2000', r:'0.1', n:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{PMT:'500', r:'0.025', n:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __annuity_pv_invExtras(); }catch(e){} };
+function __annuity_pv_invBoot(){ try{ __annuity_pv_invPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __annuity_pv_invBoot();
+else document.addEventListener('DOMContentLoaded', __annuity_pv_invBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

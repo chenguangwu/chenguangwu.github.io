@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="dividend_payout_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__dividend_payout_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dividend_payout_ratioTable"></div>
+    <div id="dividend_payout_ratioDiff"></div>
+    <div id="dividend_payout_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('DPS').value = '2';
       document.getElementById('EPS').value = '5';
       calcTool();}
 calcTool();
+
+function __dividend_payout_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dividend_payout_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var DPS=num('DPS'),EPS=num('EPS');
+    var DPR=DPS/EPS*100;
+    if (!isFinite(__dividend_payout_ratioNum('DPS')) || !isFinite(__dividend_payout_ratioNum('EPS'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#dividend_payout_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['股利支付率 DPR (%)', DPR.toFixed(1)],
+            ['支付率小数（DPS÷EPS）', (DPR/100).toFixed(5)],
+            ['每股留存收益 (元)', (EPS-DPS).toFixed(4)],
+            ['留存收益率 (%)', (100-DPR).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({DPS:__dividend_payout_ratioNum('DPS'), EPS:__dividend_payout_ratioNum('EPS'), DPR:DPR});
+    TBKit.history.mount('#dividend_payout_ratioHist',function(rec){ if(rec.DPS!=null)document.getElementById('DPS').value=rec.DPS; if(rec.EPS!=null)document.getElementById('EPS').value=rec.EPS; calcTool(); });
+    TBKit.util.diffBox('#dividend_payout_ratioDiff',['DPR']);
+}
+function __dividend_payout_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dividend_payout_ratioTable','dividend-payout-ratio.csv'); } catch(e){}
+}
+function __dividend_payout_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dividend_payout_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{DPS:'2', EPS:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{DPS:'4', EPS:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{DPS:'1', EPS:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __dividend_payout_ratioExtras(); }catch(e){} };
+function __dividend_payout_ratioBoot(){ try{ __dividend_payout_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dividend_payout_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __dividend_payout_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

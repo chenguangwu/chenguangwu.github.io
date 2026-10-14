@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sortino_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sortino_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="sortino_ratioTable"></div>
+    <div id="sortino_ratioDiff"></div>
+    <div id="sortino_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,41 @@ function resetForm(){document.getElementById('rp').value = '15';
       document.getElementById('dd').value = '6';
       calcTool();}
 calcTool();
+
+function __sortino_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sortino_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rp=num('rp'),rf=num('rf'),dd=num('dd');
+    if (!isFinite(__sortino_ratioNum('rp')) || !isFinite(__sortino_ratioNum('rf')) || !isFinite(__sortino_ratioNum('dd'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#sortino_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['索提诺比率', ((rp-rf)/dd).toFixed(3)],
+            ['超额收益 (rp-rf)', (rp-rf).toFixed(4)],
+            ['下行风险/超额收益 倍数', (dd/((rp-rf)||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({rp:__sortino_ratioNum('rp'), rf:__sortino_ratioNum('rf'), dd:__sortino_ratioNum('dd')});
+    TBKit.history.mount('#sortino_ratioHist',function(rec){ if(rec.rp!=null)document.getElementById('rp').value=rec.rp; if(rec.rf!=null)document.getElementById('rf').value=rec.rf; if(rec.dd!=null)document.getElementById('dd').value=rec.dd; calcTool(); });
+}
+function __sortino_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sortino_ratioTable','sortino-ratio.csv'); } catch(e){}
+}
+function __sortino_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sortino_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{rp:'15', rf:'3', dd:'6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rp:'30', rf:'6', dd:'12'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rp:'7.5', rf:'1.5', dd:'3'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __sortino_ratioExtras(); }catch(e){} };
+function __sortino_ratioBoot(){ try{ __sortino_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sortino_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __sortino_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

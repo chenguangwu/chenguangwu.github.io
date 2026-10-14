@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="present_value_invPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__present_value_invExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="present_value_invTable"></div>
+    <div id="present_value_invDiff"></div>
+    <div id="present_value_invHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('FV').value = '21589';
       document.getElementById('n').value = '10';
       calcTool();}
 calcTool();
+
+function __present_value_invNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __present_value_invExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var FV=num('FV'),r=num('r'),n=num('n');
+    var PV=FV/Math.pow(1+r,n);
+    if (!isFinite(__present_value_invNum('FV')) || !isFinite(__present_value_invNum('r')) || !isFinite(__present_value_invNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#present_value_invTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['现值 PV (元)', PV.toFixed(2)],
+            ['折现因子', (1/Math.pow(1+r,n)).toFixed(6)],
+            ['贴现总额 (元)', (FV-PV).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({FV:__present_value_invNum('FV'), r:__present_value_invNum('r'), n:__present_value_invNum('n'), PV:PV});
+    TBKit.history.mount('#present_value_invHist',function(rec){ if(rec.FV!=null)document.getElementById('FV').value=rec.FV; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#present_value_invDiff',['PV']);
+}
+function __present_value_invExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#present_value_invTable','present-value-inv.csv'); } catch(e){}
+}
+function __present_value_invPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#present_value_invPresets',[
+        {label:'默认',labelEn:'Default',values:{FV:'21589', r:'0.08', n:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{FV:'43178', r:'0.16', n:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{FV:'10794.5', r:'0.04', n:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __present_value_invExtras(); }catch(e){} };
+function __present_value_invBoot(){ try{ __present_value_invPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __present_value_invBoot();
+else document.addEventListener('DOMContentLoaded', __present_value_invBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

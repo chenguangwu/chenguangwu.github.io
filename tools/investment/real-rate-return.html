@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="real_rate_returnPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__real_rate_returnExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="real_rate_returnTable"></div>
+    <div id="real_rate_returnDiff"></div>
+    <div id="real_rate_returnHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('nom').value = '0.08';
       document.getElementById('inf').value = '0.03';
       calcTool();}
 calcTool();
+
+function __real_rate_returnNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __real_rate_returnExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var nom=num('nom'),inf=num('inf');
+    var rr=(1+nom)/(1+inf)-1;
+    if (!isFinite(__real_rate_returnNum('nom')) || !isFinite(__real_rate_returnNum('inf'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#real_rate_returnTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['实际收益率 (%)', (rr*100).toFixed(2)],
+            ['名义收益率减通胀', (nom-inf).toFixed(4)],
+            ['实际增长因子', ((1+nom)/(1+inf)).toFixed(6)],
+            ['通胀折现因子', (1/(1+inf)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({nom:__real_rate_returnNum('nom'), inf:__real_rate_returnNum('inf'), rr:rr});
+    TBKit.history.mount('#real_rate_returnHist',function(rec){ if(rec.nom!=null)document.getElementById('nom').value=rec.nom; if(rec.inf!=null)document.getElementById('inf').value=rec.inf; calcTool(); });
+    TBKit.util.diffBox('#real_rate_returnDiff',['rr']);
+}
+function __real_rate_returnExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#real_rate_returnTable','real-rate-return.csv'); } catch(e){}
+}
+function __real_rate_returnPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#real_rate_returnPresets',[
+        {label:'默认',labelEn:'Default',values:{nom:'0.08', inf:'0.03'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{nom:'0.16', inf:'0.06'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{nom:'0.04', inf:'0.015'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __real_rate_returnExtras(); }catch(e){} };
+function __real_rate_returnBoot(){ try{ __real_rate_returnPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __real_rate_returnBoot();
+else document.addEventListener('DOMContentLoaded', __real_rate_returnBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

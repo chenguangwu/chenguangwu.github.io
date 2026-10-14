@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="yield_spreadPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__yield_spreadExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="yield_spreadTable"></div>
+    <div id="yield_spreadDiff"></div>
+    <div id="yield_spreadHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('yb').value = '0.05';
       document.getElementById('ybm').value = '0.03';
       calcTool();}
 calcTool();
+
+function __yield_spreadNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __yield_spreadExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var yb=num('yb'),ybm=num('ybm');
+    var sp=(yb-ybm)*10000;
+    if (!isFinite(__yield_spreadNum('yb')) || !isFinite(__yield_spreadNum('ybm'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#yield_spreadTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['利差 Spread (bps)', sp.toFixed(0)],
+            ['利差 (%)', (yb-ybm).toFixed(4)],
+            ['基准收益率 (%)', (yb*100).toFixed(3)],
+            ['对比收益率 (%)', (ybm*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({yb:__yield_spreadNum('yb'), ybm:__yield_spreadNum('ybm'), sp:sp});
+    TBKit.history.mount('#yield_spreadHist',function(rec){ if(rec.yb!=null)document.getElementById('yb').value=rec.yb; if(rec.ybm!=null)document.getElementById('ybm').value=rec.ybm; calcTool(); });
+    TBKit.util.diffBox('#yield_spreadDiff',['sp']);
+}
+function __yield_spreadExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#yield_spreadTable','yield-spread.csv'); } catch(e){}
+}
+function __yield_spreadPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#yield_spreadPresets',[
+        {label:'默认',labelEn:'Default',values:{yb:'0.05', ybm:'0.03'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{yb:'0.1', ybm:'0.06'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{yb:'0.025', ybm:'0.015'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __yield_spreadExtras(); }catch(e){} };
+function __yield_spreadBoot(){ try{ __yield_spreadPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __yield_spreadBoot();
+else document.addEventListener('DOMContentLoaded', __yield_spreadBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

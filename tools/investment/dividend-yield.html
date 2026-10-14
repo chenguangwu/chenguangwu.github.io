@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="dividend_yieldPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__dividend_yieldExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dividend_yieldTable"></div>
+    <div id="dividend_yieldDiff"></div>
+    <div id="dividend_yieldHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,43 @@ function resetForm(){document.getElementById('dps').value = '3';
       document.getElementById('price').value = '60';
       calcTool();}
 calcTool();
+
+function __dividend_yieldNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dividend_yieldExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var d=num('dps'),p=num('price');
+    if (!isFinite(__dividend_yieldNum('dps')) || !isFinite(__dividend_yieldNum('price'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#dividend_yieldTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['股息率 (%)', (d/p*100).toFixed(2)],
+            ['股价与每股股利之比 (P/D)', (p/Math.max(d,1e-9)).toFixed(4)],
+            ['每股股利 (分)', (d*100).toFixed(2)],
+            ['股息率（万分比）', (d/Math.max(p,1e-9)*10000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({dps:__dividend_yieldNum('dps'), price:__dividend_yieldNum('price'), d:d});
+    TBKit.history.mount('#dividend_yieldHist',function(rec){ if(rec.dps!=null)document.getElementById('dps').value=rec.dps; if(rec.price!=null)document.getElementById('price').value=rec.price; calcTool(); });
+    TBKit.util.diffBox('#dividend_yieldDiff',['d']);
+}
+function __dividend_yieldExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dividend_yieldTable','dividend-yield.csv'); } catch(e){}
+}
+function __dividend_yieldPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dividend_yieldPresets',[
+        {label:'默认',labelEn:'Default',values:{dps:'3', price:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dps:'6', price:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dps:'1.5', price:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __dividend_yieldExtras(); }catch(e){} };
+function __dividend_yieldBoot(){ try{ __dividend_yieldPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dividend_yieldBoot();
+else document.addEventListener('DOMContentLoaded', __dividend_yieldBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

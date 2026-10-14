@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bond_ytm_approxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bond_ytm_approxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bond_ytm_approxTable"></div>
+    <div id="bond_ytm_approxDiff"></div>
+    <div id="bond_ytm_approxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -260,6 +266,41 @@ function resetForm(){document.getElementById('C').value = '50';
       document.getElementById('n').value = '10';
       calcTool();}
 calcTool();
+
+function __bond_ytm_approxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bond_ytm_approxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var C=num('C'),F=num('F'),P=num('P'),n=num('n');
+    var YTM=(C+(F-P)/n)/((F+P)/2);
+    if (!isFinite(__bond_ytm_approxNum('C')) || !isFinite(__bond_ytm_approxNum('F')) || !isFinite(__bond_ytm_approxNum('P')) || !isFinite(__bond_ytm_approxNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bond_ytm_approxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['近似到期收益率 YTM (%)', (YTM*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({C:__bond_ytm_approxNum('C'), F:__bond_ytm_approxNum('F'), P:__bond_ytm_approxNum('P'), n:__bond_ytm_approxNum('n'), YTM:YTM});
+    TBKit.history.mount('#bond_ytm_approxHist',function(rec){ if(rec.C!=null)document.getElementById('C').value=rec.C; if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#bond_ytm_approxDiff',['YTM']);
+}
+function __bond_ytm_approxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bond_ytm_approxTable','bond-ytm-approx.csv'); } catch(e){}
+}
+function __bond_ytm_approxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bond_ytm_approxPresets',[
+        {label:'默认',labelEn:'Default',values:{C:'50', F:'1000', P:'950', n:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{C:'100', F:'2000', P:'1900', n:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{C:'25', F:'500', P:'475', n:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bond_ytm_approxExtras(); }catch(e){} };
+function __bond_ytm_approxBoot(){ try{ __bond_ytm_approxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bond_ytm_approxBoot();
+else document.addEventListener('DOMContentLoaded', __bond_ytm_approxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sustainable_growthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sustainable_growthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="sustainable_growthTable"></div>
+    <div id="sustainable_growthDiff"></div>
+    <div id="sustainable_growthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('ROE').value = '15';
       document.getElementById('b').value = '60';
       calcTool();}
 calcTool();
+
+function __sustainable_growthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sustainable_growthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ROE=num('ROE')/100,b=num('b')/100;
+    var g=ROE*b*100;
+    if (!isFinite(__sustainable_growthNum('ROE')) || !isFinite(__sustainable_growthNum('b'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#sustainable_growthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['可持续增长率 g (%)', g.toFixed(2)],
+            ['g 与 (1-g) 之比', (g/100/Math.max(1-g/100,1e-9)).toFixed(4)],
+            ['股利支付率 (%)', (100-b*100).toFixed(3)],
+            ['可持续增长率小数', (g/100).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({ROE:__sustainable_growthNum('ROE'), b:__sustainable_growthNum('b'), g:g});
+    TBKit.history.mount('#sustainable_growthHist',function(rec){ if(rec.ROE!=null)document.getElementById('ROE').value=rec.ROE; if(rec.b!=null)document.getElementById('b').value=rec.b; calcTool(); });
+    TBKit.util.diffBox('#sustainable_growthDiff',['g']);
+}
+function __sustainable_growthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sustainable_growthTable','sustainable-growth.csv'); } catch(e){}
+}
+function __sustainable_growthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sustainable_growthPresets',[
+        {label:'默认',labelEn:'Default',values:{ROE:'15', b:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ROE:'30', b:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ROE:'7.5', b:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __sustainable_growthExtras(); }catch(e){} };
+function __sustainable_growthBoot(){ try{ __sustainable_growthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sustainable_growthBoot();
+else document.addEventListener('DOMContentLoaded', __sustainable_growthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

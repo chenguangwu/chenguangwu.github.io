@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pe_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pe_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pe_ratioTable"></div>
+    <div id="pe_ratioDiff"></div>
+    <div id="pe_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,43 @@ function resetForm(){document.getElementById('price').value = '60';
       document.getElementById('eps').value = '3';
       calcTool();}
 calcTool();
+
+function __pe_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pe_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('price'),e=num('eps');
+    if (!isFinite(__pe_ratioNum('price')) || !isFinite(__pe_ratioNum('eps'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pe_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['市盈率 P/E', (p/e).toFixed(2)],
+            ['盈利收益率 (%)', (e/Math.max(p,1e-9)*100).toFixed(4)],
+            ['盈利收益率（万分比）', (e/Math.max(p,1e-9)*10000).toFixed(2)],
+            ['P/E 倒数', (1/(p/Math.max(e,1e-9))).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({price:__pe_ratioNum('price'), eps:__pe_ratioNum('eps'), p:p});
+    TBKit.history.mount('#pe_ratioHist',function(rec){ if(rec.price!=null)document.getElementById('price').value=rec.price; if(rec.eps!=null)document.getElementById('eps').value=rec.eps; calcTool(); });
+    TBKit.util.diffBox('#pe_ratioDiff',['p']);
+}
+function __pe_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pe_ratioTable','pe-ratio.csv'); } catch(e){}
+}
+function __pe_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pe_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{price:'60', eps:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{price:'120', eps:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{price:'30', eps:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pe_ratioExtras(); }catch(e){} };
+function __pe_ratioBoot(){ try{ __pe_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pe_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __pe_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
