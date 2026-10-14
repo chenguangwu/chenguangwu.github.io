@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cascade_gain_dbPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cascade_gain_dbExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cascade_gain_dbTable"></div>
+    <div id="cascade_gain_dbDiff"></div>
+    <div id="cascade_gain_dbHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('g1').value = '10';
       document.getElementById('g3').value = '20';
       calcTool();}
 calcTool();
+
+function __cascade_gain_dbNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cascade_gain_dbExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var g1=num('g1'),g2=num('g2'),g3=num('g3');
+    var total=g1+g2+g3;
+    var lin=Math.pow(10,total/10);
+    if (!isFinite(__cascade_gain_dbNum('g1')) || !isFinite(__cascade_gain_dbNum('g2')) || !isFinite(__cascade_gain_dbNum('g3'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cascade_gain_dbTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['总增益 (dB)', total.toFixed(3)],
+            ['线性总增益', lin.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({g1:__cascade_gain_dbNum('g1'), g2:__cascade_gain_dbNum('g2'), g3:__cascade_gain_dbNum('g3'), total:total});
+    TBKit.history.mount('#cascade_gain_dbHist',function(rec){ if(rec.g1!=null)document.getElementById('g1').value=rec.g1; if(rec.g2!=null)document.getElementById('g2').value=rec.g2; if(rec.g3!=null)document.getElementById('g3').value=rec.g3; calcTool(); });
+    TBKit.util.diffBox('#cascade_gain_dbDiff',['total']);
+}
+function __cascade_gain_dbExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cascade_gain_dbTable','cascade-gain-db.csv'); } catch(e){}
+}
+function __cascade_gain_dbPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cascade_gain_dbPresets',[
+        {label:'默认',labelEn:'Default',values:{g1:'10', g2:'-3', g3:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{g1:'20', g2:'-6', g3:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{g1:'5', g2:'-1.5', g3:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cascade_gain_dbExtras(); }catch(e){} };
+function __cascade_gain_dbBoot(){ try{ __cascade_gain_dbPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cascade_gain_dbBoot();
+else document.addEventListener('DOMContentLoaded', __cascade_gain_dbBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

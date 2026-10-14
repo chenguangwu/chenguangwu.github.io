@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fft_resolutionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fft_resolutionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fft_resolutionTable"></div>
+    <div id="fft_resolutionDiff"></div>
+    <div id="fft_resolutionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('fs').value = '1000';
       document.getElementById('N').value = '1024';
       calcTool();}
 calcTool();
+
+function __fft_resolutionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fft_resolutionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fs = num('fs'), N = num('N');
+    var df = fs / N;
+    if (!isFinite(__fft_resolutionNum('fs')) || !isFinite(__fft_resolutionNum('N'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fft_resolutionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['频率分辨率 Δf (Hz)', df.toFixed(4)],
+            ['可分辨最大周期 (s)', (1 / df).toFixed(1)],
+            ['采样时长 T (s)', (N/fs).toFixed(4)],
+            ['奈奎斯特频率 (Hz)', (fs/2).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({fs:__fft_resolutionNum('fs'), N:__fft_resolutionNum('N'), df:df});
+    TBKit.history.mount('#fft_resolutionHist',function(rec){ if(rec.fs!=null)document.getElementById('fs').value=rec.fs; if(rec.N!=null)document.getElementById('N').value=rec.N; calcTool(); });
+    TBKit.util.diffBox('#fft_resolutionDiff',['df']);
+}
+function __fft_resolutionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fft_resolutionTable','fft-resolution.csv'); } catch(e){}
+}
+function __fft_resolutionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fft_resolutionPresets',[
+        {label:'默认',labelEn:'Default',values:{fs:'1000', N:'1024'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fs:'2000', N:'2048'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fs:'500', N:'512'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fft_resolutionExtras(); }catch(e){} };
+function __fft_resolutionBoot(){ try{ __fft_resolutionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fft_resolutionBoot();
+else document.addEventListener('DOMContentLoaded', __fft_resolutionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

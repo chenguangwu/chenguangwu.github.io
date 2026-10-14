@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="carrier_freqPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__carrier_freqExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="carrier_freqTable"></div>
+    <div id="carrier_freqDiff"></div>
+    <div id="carrier_freqHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('fu').value = '1010';
       document.getElementById('fl').value = '990';
       calcTool();}
 calcTool();
+
+function __carrier_freqNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __carrier_freqExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fu=num('fu'),fl=num('fl');
+    var fc=(fu+fl)/2;
+    if (!isFinite(__carrier_freqNum('fu')) || !isFinite(__carrier_freqNum('fl'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#carrier_freqTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['载波频率 f_c (kHz)', fc.toFixed(3)],
+            ['带宽 B (kHz)', (fu-fl).toFixed(3)],
+            ['上边频与载波比', (fu/Math.max(fc,1e-9)).toFixed(4)],
+            ['几何中心频率 (kHz)', (Math.sqrt(fu*fl)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({fu:__carrier_freqNum('fu'), fl:__carrier_freqNum('fl'), fc:fc});
+    TBKit.history.mount('#carrier_freqHist',function(rec){ if(rec.fu!=null)document.getElementById('fu').value=rec.fu; if(rec.fl!=null)document.getElementById('fl').value=rec.fl; calcTool(); });
+    TBKit.util.diffBox('#carrier_freqDiff',['fc']);
+}
+function __carrier_freqExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#carrier_freqTable','carrier-freq.csv'); } catch(e){}
+}
+function __carrier_freqPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#carrier_freqPresets',[
+        {label:'默认',labelEn:'Default',values:{fu:'1010', fl:'990'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fu:'2020', fl:'1980'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fu:'505', fl:'495'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __carrier_freqExtras(); }catch(e){} };
+function __carrier_freqBoot(){ try{ __carrier_freqPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __carrier_freqBoot();
+else document.addEventListener('DOMContentLoaded', __carrier_freqBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

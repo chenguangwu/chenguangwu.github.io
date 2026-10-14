@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pwm_averagePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pwm_averageExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pwm_averageTable"></div>
+    <div id="pwm_averageDiff"></div>
+    <div id="pwm_averageHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -269,6 +275,44 @@ function resetForm(){document.getElementById('D').value = '50';
       document.getElementById('Vcc').value = '5';
       calcTool();}
 calcTool();
+
+function __pwm_averageNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pwm_averageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var D = num('D'), Vcc = num('Vcc');
+    var Vavg = (D / 100) * Vcc;
+    if (!isFinite(__pwm_averageNum('D')) || !isFinite(__pwm_averageNum('Vcc'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pwm_averageTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['平均电压 V_avg (V)', Vavg.toFixed(3)],
+            ['等效占空比 (%)', (Vavg / Vcc * 100).toFixed(1)],
+            ['有效值 V_rms (V)', (Vcc*Math.sqrt(D/100)).toFixed(4)],
+            ['关断期电压差 (V)', (Vcc-Vavg).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({D:__pwm_averageNum('D'), Vcc:__pwm_averageNum('Vcc'), Vavg:Vavg});
+    TBKit.history.mount('#pwm_averageHist',function(rec){ if(rec.D!=null)document.getElementById('D').value=rec.D; if(rec.Vcc!=null)document.getElementById('Vcc').value=rec.Vcc; calcTool(); });
+    TBKit.util.diffBox('#pwm_averageDiff',['Vavg']);
+}
+function __pwm_averageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pwm_averageTable','pwm-average.csv'); } catch(e){}
+}
+function __pwm_averagePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pwm_averagePresets',[
+        {label:'默认',labelEn:'Default',values:{D:'50', Vcc:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{D:'100', Vcc:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{D:'25', Vcc:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pwm_averageExtras(); }catch(e){} };
+function __pwm_averageBoot(){ try{ __pwm_averagePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pwm_averageBoot();
+else document.addEventListener('DOMContentLoaded', __pwm_averageBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

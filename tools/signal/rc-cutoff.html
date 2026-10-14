@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rc_cutoffPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rc_cutoffExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rc_cutoffTable"></div>
+    <div id="rc_cutoffDiff"></div>
+    <div id="rc_cutoffHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('R').value = '1000';
       document.getElementById('C').value = '1e-6';
       calcTool();}
 calcTool();
+
+function __rc_cutoffNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rc_cutoffExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var R = num('R'), C = num('C');
+    var fc = 1 / (2 * Math.PI * R * C);
+    if (!isFinite(__rc_cutoffNum('R')) || !isFinite(__rc_cutoffNum('C'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rc_cutoffTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['截止频率 f_c (Hz)', fc.toFixed(2)],
+            ['f_c (kHz)', (fc / 1000).toFixed(4)],
+            ['时间常数 tau = RC (s)', (R*C).toExponential(4)],
+            ['上升时间 t_r = 2.2 tau (s)', (2.2*R*C).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({R:__rc_cutoffNum('R'), C:__rc_cutoffNum('C'), fc:fc});
+    TBKit.history.mount('#rc_cutoffHist',function(rec){ if(rec.R!=null)document.getElementById('R').value=rec.R; if(rec.C!=null)document.getElementById('C').value=rec.C; calcTool(); });
+    TBKit.util.diffBox('#rc_cutoffDiff',['fc']);
+}
+function __rc_cutoffExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rc_cutoffTable','rc-cutoff.csv'); } catch(e){}
+}
+function __rc_cutoffPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rc_cutoffPresets',[
+        {label:'默认',labelEn:'Default',values:{R:'1000', C:'1e-6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{R:'2000', C:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{R:'500', C:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rc_cutoffExtras(); }catch(e){} };
+function __rc_cutoffBoot(){ try{ __rc_cutoffPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rc_cutoffBoot();
+else document.addEventListener('DOMContentLoaded', __rc_cutoffBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

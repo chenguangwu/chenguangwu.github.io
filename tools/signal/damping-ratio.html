@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="damping_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__damping_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="damping_ratioTable"></div>
+    <div id="damping_ratioDiff"></div>
+    <div id="damping_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,42 @@ function resetForm(){document.getElementById('c').value = '2';
       document.getElementById('m').value = '1';
       calcTool();}
 calcTool();
+
+function __damping_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __damping_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var c = num('c'), k = num('k'), m = num('m');
+    var zeta = c / (2 * Math.sqrt(k * m));
+    if (!isFinite(__damping_ratioNum('c')) || !isFinite(__damping_ratioNum('k')) || !isFinite(__damping_ratioNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#damping_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['阻尼比 ζ', zeta.toFixed(4)],
+            ['状态', (zeta < 1 ? '欠阻尼' : zeta > 1 ? '过阻尼' : '临界阻尼')],
+        ]
+    });
+    TBKit.history.record({c:__damping_ratioNum('c'), k:__damping_ratioNum('k'), m:__damping_ratioNum('m'), zeta:zeta});
+    TBKit.history.mount('#damping_ratioHist',function(rec){ if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#damping_ratioDiff',['zeta']);
+}
+function __damping_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#damping_ratioTable','damping-ratio.csv'); } catch(e){}
+}
+function __damping_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#damping_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{c:'2', k:'100', m:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{c:'4', k:'200', m:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{c:'1', k:'50', m:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __damping_ratioExtras(); }catch(e){} };
+function __damping_ratioBoot(){ try{ __damping_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __damping_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __damping_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

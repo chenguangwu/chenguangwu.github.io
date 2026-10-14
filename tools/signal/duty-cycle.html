@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="duty_cyclePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__duty_cycleExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="duty_cycleTable"></div>
+    <div id="duty_cycleDiff"></div>
+    <div id="duty_cycleHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('ton').value = '2';
       document.getElementById('T').value = '10';
       calcTool();}
 calcTool();
+
+function __duty_cycleNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __duty_cycleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ton=num('ton'),T=num('T');
+    var D=ton/T*100;
+    if (!isFinite(__duty_cycleNum('ton')) || !isFinite(__duty_cycleNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#duty_cycleTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['占空比 D (%)', D.toFixed(2)],
+            ['关断时间', (T-ton).toFixed(4)],
+            ['占空比小数', (D/100).toFixed(5)],
+            ['占空比倒数百分数', (100/Math.max(D,1e-9)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({ton:__duty_cycleNum('ton'), T:__duty_cycleNum('T'), D:D});
+    TBKit.history.mount('#duty_cycleHist',function(rec){ if(rec.ton!=null)document.getElementById('ton').value=rec.ton; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#duty_cycleDiff',['D']);
+}
+function __duty_cycleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#duty_cycleTable','duty-cycle.csv'); } catch(e){}
+}
+function __duty_cyclePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#duty_cyclePresets',[
+        {label:'默认',labelEn:'Default',values:{ton:'2', T:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ton:'4', T:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ton:'1', T:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __duty_cycleExtras(); }catch(e){} };
+function __duty_cycleBoot(){ try{ __duty_cyclePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __duty_cycleBoot();
+else document.addEventListener('DOMContentLoaded', __duty_cycleBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

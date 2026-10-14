@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="energy_discretePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__energy_discreteExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="energy_discreteTable"></div>
+    <div id="energy_discreteDiff"></div>
+    <div id="energy_discreteHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -192,6 +198,43 @@ function calcTool(){
 function resetForm(){document.getElementById('s').value = '1 2 3 -1';
       calcTool();}
 calcTool();
+
+function __energy_discreteNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __energy_discreteExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s=document.getElementById('s').value.split(/[ ,]+/).filter(Boolean).map(Number);
+    var E=s.reduce(function(a,b){return a+b*b;},0);
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#energy_discreteTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['信号能量 E', E.toFixed(3)],
+            ['采样点数 N', s.length],
+            ['平均功率 (E/N)', (E/(s.length||1)).toFixed(4)],
+            ['均方根值 RMS', (Math.sqrt(E/(s.length||1))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({s:s});
+    TBKit.history.mount('#energy_discreteHist',function(rec){  calcTool(); });
+    TBKit.util.diffBox('#energy_discreteDiff',['s']);
+}
+function __energy_discreteExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_discreteTable','energy-discrete.csv'); } catch(e){}
+}
+function __energy_discretePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_discretePresets',[
+        {label:'默认',labelEn:'Default',values:{}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __energy_discreteExtras(); }catch(e){} };
+function __energy_discreteBoot(){ try{ __energy_discretePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_discreteBoot();
+else document.addEventListener('DOMContentLoaded', __energy_discreteBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

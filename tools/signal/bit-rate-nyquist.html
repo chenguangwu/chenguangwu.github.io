@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bit_rate_nyquistPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bit_rate_nyquistExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bit_rate_nyquistTable"></div>
+    <div id="bit_rate_nyquistDiff"></div>
+    <div id="bit_rate_nyquistHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('B').value = '3000';
       document.getElementById('M').value = '4';
       calcTool();}
 calcTool();
+
+function __bit_rate_nyquistNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bit_rate_nyquistExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var B=num('B'),M=num('M');
+    var R=2*B*Math.log2(M);
+    if (!isFinite(__bit_rate_nyquistNum('B')) || !isFinite(__bit_rate_nyquistNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bit_rate_nyquistTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最大码率 R_max (bps)', R.toFixed(0)],
+            ['每赫兹码率 (bps/Hz)', (2*Math.log2(M)).toFixed(2)],
+            ['每符号比特数', (Math.log2(M)).toFixed(4)],
+            ['带宽与码率比', (B/Math.max(R,1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({B:__bit_rate_nyquistNum('B'), M:__bit_rate_nyquistNum('M'), R:R});
+    TBKit.history.mount('#bit_rate_nyquistHist',function(rec){ if(rec.B!=null)document.getElementById('B').value=rec.B; if(rec.M!=null)document.getElementById('M').value=rec.M; calcTool(); });
+    TBKit.util.diffBox('#bit_rate_nyquistDiff',['R']);
+}
+function __bit_rate_nyquistExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bit_rate_nyquistTable','bit-rate-nyquist.csv'); } catch(e){}
+}
+function __bit_rate_nyquistPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bit_rate_nyquistPresets',[
+        {label:'默认',labelEn:'Default',values:{B:'3000', M:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{B:'6000', M:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{B:'1500', M:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bit_rate_nyquistExtras(); }catch(e){} };
+function __bit_rate_nyquistBoot(){ try{ __bit_rate_nyquistPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bit_rate_nyquistBoot();
+else document.addEventListener('DOMContentLoaded', __bit_rate_nyquistBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

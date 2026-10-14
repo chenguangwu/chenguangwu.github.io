@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="db_power_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__db_power_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="db_power_ratioTable"></div>
+    <div id="db_power_ratioDiff"></div>
+    <div id="db_power_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('p1').value = '100';
       document.getElementById('p2').value = '1';
       calcTool();}
 calcTool();
+
+function __db_power_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __db_power_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p1=num('p1'),p2=num('p2');
+    var L=10*Math.log10(p1/p2);
+    if (!isFinite(__db_power_ratioNum('p1')) || !isFinite(__db_power_ratioNum('p2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#db_power_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['分贝值 L (dB)', L.toFixed(3)],
+            ['功率比（线性）', (p1/Math.max(p2,1e-12)).toExponential(4)],
+            ['幅值比（线性）', (Math.sqrt(p1/Math.max(p2,1e-12))).toFixed(4)],
+            ['奈培值 (Np)', (0.5*Math.log(p1/Math.max(p2,1e-12))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({p1:__db_power_ratioNum('p1'), p2:__db_power_ratioNum('p2'), L:L});
+    TBKit.history.mount('#db_power_ratioHist',function(rec){ if(rec.p1!=null)document.getElementById('p1').value=rec.p1; if(rec.p2!=null)document.getElementById('p2').value=rec.p2; calcTool(); });
+    TBKit.util.diffBox('#db_power_ratioDiff',['L']);
+}
+function __db_power_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#db_power_ratioTable','db-power-ratio.csv'); } catch(e){}
+}
+function __db_power_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#db_power_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{p1:'100', p2:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p1:'200', p2:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p1:'50', p2:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __db_power_ratioExtras(); }catch(e){} };
+function __db_power_ratioBoot(){ try{ __db_power_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __db_power_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __db_power_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

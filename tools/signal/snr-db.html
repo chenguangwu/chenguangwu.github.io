@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="snr_dbPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__snr_dbExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="snr_dbTable"></div>
+    <div id="snr_dbDiff"></div>
+    <div id="snr_dbHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('ps').value = '10';
       document.getElementById('pn').value = '0.1';
       calcTool();}
 calcTool();
+
+function __snr_dbNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __snr_dbExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ps=num('ps'),pn=num('pn');
+    var snr=10*Math.log10(ps/pn);
+    if (!isFinite(__snr_dbNum('ps')) || !isFinite(__snr_dbNum('pn'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#snr_dbTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['信噪比 SNR (dB)', snr.toFixed(3)],
+            ['功率比（线性）', (ps/Math.max(pn,1e-12)).toExponential(3)],
+            ['幅值比（线性）', (Math.sqrt(ps/Math.max(pn,1e-12))).toFixed(4)],
+            ['SNR (Np)', (Math.log(ps/Math.max(pn,1e-12))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({ps:__snr_dbNum('ps'), pn:__snr_dbNum('pn'), snr:snr});
+    TBKit.history.mount('#snr_dbHist',function(rec){ if(rec.ps!=null)document.getElementById('ps').value=rec.ps; if(rec.pn!=null)document.getElementById('pn').value=rec.pn; calcTool(); });
+    TBKit.util.diffBox('#snr_dbDiff',['snr']);
+}
+function __snr_dbExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#snr_dbTable','snr-db.csv'); } catch(e){}
+}
+function __snr_dbPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#snr_dbPresets',[
+        {label:'默认',labelEn:'Default',values:{ps:'10', pn:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ps:'20', pn:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ps:'5', pn:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __snr_dbExtras(); }catch(e){} };
+function __snr_dbBoot(){ try{ __snr_dbPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __snr_dbBoot();
+else document.addEventListener('DOMContentLoaded', __snr_dbBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

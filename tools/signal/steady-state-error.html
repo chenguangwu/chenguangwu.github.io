@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="steady_state_errorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__steady_state_errorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="steady_state_errorTable"></div>
+    <div id="steady_state_errorDiff"></div>
+    <div id="steady_state_errorHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,45 @@ const Kp = num('Kp');
 function resetForm(){document.getElementById('Kp').value = '9';
       calcTool();}
 calcTool();
+
+function __steady_state_errorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __steady_state_errorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Kp = num('Kp');
+    var ess = 1 / (1 + Kp);
+    if (!isFinite(__steady_state_errorNum('Kp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#steady_state_errorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['稳态误差 e_ss', ess.toFixed(4)],
+            ['误差 (%)', (ess * 100).toFixed(2)],
+            ['稳态误差倒数', (1/Math.max(ess,1e-12)).toFixed(4)],
+            ['Kp 占比（1 减 ess）', (Kp/Math.max(1+Kp,1e-12)).toFixed(6)],
+            ['ess 与 Kp 乘积', (ess*Kp).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({Kp:__steady_state_errorNum('Kp'), ess:ess});
+    TBKit.history.mount('#steady_state_errorHist',function(rec){ if(rec.Kp!=null)document.getElementById('Kp').value=rec.Kp; calcTool(); });
+    TBKit.util.diffBox('#steady_state_errorDiff',['ess']);
+}
+function __steady_state_errorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#steady_state_errorTable','steady-state-error.csv'); } catch(e){}
+}
+function __steady_state_errorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#steady_state_errorPresets',[
+        {label:'默认',labelEn:'Default',values:{Kp:'9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Kp:'18'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Kp:'4.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __steady_state_errorExtras(); }catch(e){} };
+function __steady_state_errorBoot(){ try{ __steady_state_errorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __steady_state_errorBoot();
+else document.addEventListener('DOMContentLoaded', __steady_state_errorBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

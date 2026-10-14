@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="peak_time_2ndPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__peak_time_2ndExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="peak_time_2ndTable"></div>
+    <div id="peak_time_2ndDiff"></div>
+    <div id="peak_time_2ndHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,42 @@ function resetForm(){document.getElementById('wn').value = '10';
       document.getElementById('zeta').value = '0.1';
       calcTool();}
 calcTool();
+
+function __peak_time_2ndNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __peak_time_2ndExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var wn = num('wn'), zeta = num('zeta');
+    var tp = Math.PI / (wn * Math.sqrt(1 - zeta * zeta));
+    if (!isFinite(__peak_time_2ndNum('wn')) || !isFinite(__peak_time_2ndNum('zeta'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#peak_time_2ndTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['峰值时间 t_p (s)', tp.toFixed(4)],
+            ['超调量 (%)', (Math.exp(-zeta * Math.PI / Math.sqrt(1 - zeta * zeta)) * 100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({wn:__peak_time_2ndNum('wn'), zeta:__peak_time_2ndNum('zeta'), tp:tp});
+    TBKit.history.mount('#peak_time_2ndHist',function(rec){ if(rec.wn!=null)document.getElementById('wn').value=rec.wn; if(rec.zeta!=null)document.getElementById('zeta').value=rec.zeta; calcTool(); });
+    TBKit.util.diffBox('#peak_time_2ndDiff',['tp']);
+}
+function __peak_time_2ndExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#peak_time_2ndTable','peak-time-2nd.csv'); } catch(e){}
+}
+function __peak_time_2ndPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#peak_time_2ndPresets',[
+        {label:'默认',labelEn:'Default',values:{wn:'10', zeta:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{wn:'20', zeta:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{wn:'5', zeta:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __peak_time_2ndExtras(); }catch(e){} };
+function __peak_time_2ndBoot(){ try{ __peak_time_2ndPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __peak_time_2ndBoot();
+else document.addEventListener('DOMContentLoaded', __peak_time_2ndBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

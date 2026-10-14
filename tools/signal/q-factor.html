@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="q_factorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__q_factorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="q_factorTable"></div>
+    <div id="q_factorDiff"></div>
+    <div id="q_factorHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('f0').value = '1000';
       document.getElementById('bw').value = '100';
       calcTool();}
 calcTool();
+
+function __q_factorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __q_factorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f0=num('f0'),bw=num('bw');
+    var Q=f0/bw;
+    if (!isFinite(__q_factorNum('f0')) || !isFinite(__q_factorNum('bw'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#q_factorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['品质因数 Q', Q.toFixed(3)],
+            ['品质因数倒数（相对带宽）', (1/Math.max(Q,1e-9)).toFixed(5)],
+            ['相对带宽', (bw/Math.max(f0,1e-9)).toFixed(6)],
+            ['Q 除以 π', (Q/Math.PI).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({f0:__q_factorNum('f0'), bw:__q_factorNum('bw'), Q:Q});
+    TBKit.history.mount('#q_factorHist',function(rec){ if(rec.f0!=null)document.getElementById('f0').value=rec.f0; if(rec.bw!=null)document.getElementById('bw').value=rec.bw; calcTool(); });
+    TBKit.util.diffBox('#q_factorDiff',['Q']);
+}
+function __q_factorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#q_factorTable','q-factor.csv'); } catch(e){}
+}
+function __q_factorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#q_factorPresets',[
+        {label:'默认',labelEn:'Default',values:{f0:'1000', bw:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f0:'2000', bw:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f0:'500', bw:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __q_factorExtras(); }catch(e){} };
+function __q_factorBoot(){ try{ __q_factorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __q_factorBoot();
+else document.addEventListener('DOMContentLoaded', __q_factorBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

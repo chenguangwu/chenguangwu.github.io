@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="natural_frequency_2ndPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__natural_frequency_2ndExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="natural_frequency_2ndTable"></div>
+    <div id="natural_frequency_2ndDiff"></div>
+    <div id="natural_frequency_2ndHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,45 @@ function resetForm(){document.getElementById('k').value = '100';
       document.getElementById('m').value = '1';
       calcTool();}
 calcTool();
+
+function __natural_frequency_2ndNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __natural_frequency_2ndExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k = num('k'), m = num('m');
+    var wn = Math.sqrt(k / m);
+    var fn = wn / (2 * Math.PI);
+    if (!isFinite(__natural_frequency_2ndNum('k')) || !isFinite(__natural_frequency_2ndNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#natural_frequency_2ndTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['固有角频率 ω_n (rad/s)', wn.toFixed(4)],
+            ['固有频率 f_n (Hz)', fn.toFixed(4)],
+            ['固有周期 T_n (s)', (1/fn).toFixed(4)],
+            ['每分钟振动次数 (cpm)', (fn*60).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({k:__natural_frequency_2ndNum('k'), m:__natural_frequency_2ndNum('m'), wn:wn});
+    TBKit.history.mount('#natural_frequency_2ndHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#natural_frequency_2ndDiff',['wn']);
+}
+function __natural_frequency_2ndExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#natural_frequency_2ndTable','natural-frequency-2nd.csv'); } catch(e){}
+}
+function __natural_frequency_2ndPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#natural_frequency_2ndPresets',[
+        {label:'默认',labelEn:'Default',values:{k:'100', m:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'200', m:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'50', m:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __natural_frequency_2ndExtras(); }catch(e){} };
+function __natural_frequency_2ndBoot(){ try{ __natural_frequency_2ndPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __natural_frequency_2ndBoot();
+else document.addEventListener('DOMContentLoaded', __natural_frequency_2ndBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

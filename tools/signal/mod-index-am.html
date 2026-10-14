@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mod_index_amPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mod_index_amExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mod_index_amTable"></div>
+    <div id="mod_index_amDiff"></div>
+    <div id="mod_index_amHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('am').value = '2';
       document.getElementById('ac').value = '5';
       calcTool();}
 calcTool();
+
+function __mod_index_amNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mod_index_amExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var am=num('am'),ac=num('ac');
+    var m=am/ac;
+    if (!isFinite(__mod_index_amNum('am')) || !isFinite(__mod_index_amNum('ac'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mod_index_amTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['调制指数 m', m.toFixed(3)],
+            ['调制指数百分数', (m*100).toFixed(2)],
+            ['调制指数倒数', (1/Math.max(m,1e-9)).toFixed(4)],
+            ['边带功率系数 m 除以 (1+m)', (m/Math.max(1+m,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({am:__mod_index_amNum('am'), ac:__mod_index_amNum('ac'), m:m});
+    TBKit.history.mount('#mod_index_amHist',function(rec){ if(rec.am!=null)document.getElementById('am').value=rec.am; if(rec.ac!=null)document.getElementById('ac').value=rec.ac; calcTool(); });
+    TBKit.util.diffBox('#mod_index_amDiff',['m']);
+}
+function __mod_index_amExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mod_index_amTable','mod-index-am.csv'); } catch(e){}
+}
+function __mod_index_amPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mod_index_amPresets',[
+        {label:'默认',labelEn:'Default',values:{am:'2', ac:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{am:'4', ac:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{am:'1', ac:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mod_index_amExtras(); }catch(e){} };
+function __mod_index_amBoot(){ try{ __mod_index_amPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mod_index_amBoot();
+else document.addEventListener('DOMContentLoaded', __mod_index_amBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

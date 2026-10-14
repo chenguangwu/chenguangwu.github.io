@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="nyquist_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__nyquist_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="nyquist_rateTable"></div>
+    <div id="nyquist_rateDiff"></div>
+    <div id="nyquist_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,45 @@ const fmax = num('fmax');
 function resetForm(){document.getElementById('fmax').value = '20000';
       calcTool();}
 calcTool();
+
+function __nyquist_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __nyquist_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fmax = num('fmax');
+    var fs = 2 * fmax;
+    if (!isFinite(__nyquist_rateNum('fmax'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#nyquist_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最小采样率 f_s (Hz)', fs.toLocaleString()],
+            ['采样率 (kHz)', (fs / 1000).toFixed(1)],
+            ['最高频率 f_max (Hz)', (fmax).toFixed(3)],
+            ['采样间隔 (s)', (1/fs).toExponential(3)],
+            ['每分钟采样数', (fs*60).toFixed(0)],
+        ]
+    });
+    TBKit.history.record({fmax:__nyquist_rateNum('fmax'), fs:fs});
+    TBKit.history.mount('#nyquist_rateHist',function(rec){ if(rec.fmax!=null)document.getElementById('fmax').value=rec.fmax; calcTool(); });
+    TBKit.util.diffBox('#nyquist_rateDiff',['fs']);
+}
+function __nyquist_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#nyquist_rateTable','nyquist-rate.csv'); } catch(e){}
+}
+function __nyquist_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#nyquist_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{fmax:'20000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fmax:'40000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fmax:'10000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __nyquist_rateExtras(); }catch(e){} };
+function __nyquist_rateBoot(){ try{ __nyquist_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __nyquist_rateBoot();
+else document.addEventListener('DOMContentLoaded', __nyquist_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

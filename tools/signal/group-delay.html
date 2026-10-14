@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="group_delayPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__group_delayExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="group_delayTable"></div>
+    <div id="group_delayDiff"></div>
+    <div id="group_delayHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('dp').value = '90';
       document.getElementById('dw').value = '1000';
       calcTool();}
 calcTool();
+
+function __group_delayNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __group_delayExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dp=num('dp'),dw=num('dw');
+    var tg=-(dp*Math.PI/180)/dw;
+    if (!isFinite(__group_delayNum('dp')) || !isFinite(__group_delayNum('dw'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#group_delayTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['群时延 τ_g (s)', tg.toFixed(6)],
+            ['相位差 (°)', (dp).toFixed(4)],
+            ['相位差 (rad)', (dp*Math.PI/180).toFixed(6)],
+            ['角频率间隔 (rad/s)', (dw).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({dp:__group_delayNum('dp'), dw:__group_delayNum('dw'), tg:tg});
+    TBKit.history.mount('#group_delayHist',function(rec){ if(rec.dp!=null)document.getElementById('dp').value=rec.dp; if(rec.dw!=null)document.getElementById('dw').value=rec.dw; calcTool(); });
+    TBKit.util.diffBox('#group_delayDiff',['tg']);
+}
+function __group_delayExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#group_delayTable','group-delay.csv'); } catch(e){}
+}
+function __group_delayPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#group_delayPresets',[
+        {label:'默认',labelEn:'Default',values:{dp:'90', dw:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dp:'180', dw:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dp:'45', dw:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __group_delayExtras(); }catch(e){} };
+function __group_delayBoot(){ try{ __group_delayPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __group_delayBoot();
+else document.addEventListener('DOMContentLoaded', __group_delayBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

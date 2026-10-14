@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="signal_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__signal_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="signal_powerTable"></div>
+    <div id="signal_powerDiff"></div>
+    <div id="signal_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('v').value = '5';
       document.getElementById('R').value = '50';
       calcTool();}
 calcTool();
+
+function __signal_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __signal_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),R=num('R');
+    var P=v*v/R;
+    if (!isFinite(__signal_powerNum('v')) || !isFinite(__signal_powerNum('R'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#signal_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['功率 P (W)', P.toFixed(4)],
+            ['电流 I (A)', (v/Math.max(R,1e-9)).toFixed(4)],
+            ['电压平方 V² (V²)', (v*v).toFixed(4)],
+            ['功率 (mW 毫瓦)', (P*1000).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({v:__signal_powerNum('v'), R:__signal_powerNum('R'), P:P});
+    TBKit.history.mount('#signal_powerHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.R!=null)document.getElementById('R').value=rec.R; calcTool(); });
+    TBKit.util.diffBox('#signal_powerDiff',['P']);
+}
+function __signal_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#signal_powerTable','signal-power.csv'); } catch(e){}
+}
+function __signal_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#signal_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'5', R:'50'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'10', R:'100'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'2.5', R:'25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __signal_powerExtras(); }catch(e){} };
+function __signal_powerBoot(){ try{ __signal_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __signal_powerBoot();
+else document.addEventListener('DOMContentLoaded', __signal_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

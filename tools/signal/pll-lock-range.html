@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pll_lock_rangePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pll_lock_rangeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pll_lock_rangeTable"></div>
+    <div id="pll_lock_rangeDiff"></div>
+    <div id="pll_lock_rangeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('Kv').value = '1e6';
       document.getElementById('Vmax').value = '5';
       calcTool();}
 calcTool();
+
+function __pll_lock_rangeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pll_lock_rangeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Kv = num('Kv'), Vmax = num('Vmax');
+    var df = Kv * Vmax;
+    if (!isFinite(__pll_lock_rangeNum('Kv')) || !isFinite(__pll_lock_rangeNum('Vmax'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pll_lock_rangeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['锁定范围 Δf (Hz)', df.toLocaleString()],
+            ['Δf (MHz)', (df / 1e6).toFixed(3)],
+            ['锁定范围 (rad/s)', (2*Math.PI*df).toExponential(4)],
+            ['半锁定范围 (Hz)', (df/2).toLocaleString()],
+        ]
+    });
+    TBKit.history.record({Kv:__pll_lock_rangeNum('Kv'), Vmax:__pll_lock_rangeNum('Vmax'), df:df});
+    TBKit.history.mount('#pll_lock_rangeHist',function(rec){ if(rec.Kv!=null)document.getElementById('Kv').value=rec.Kv; if(rec.Vmax!=null)document.getElementById('Vmax').value=rec.Vmax; calcTool(); });
+    TBKit.util.diffBox('#pll_lock_rangeDiff',['df']);
+}
+function __pll_lock_rangeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pll_lock_rangeTable','pll-lock-range.csv'); } catch(e){}
+}
+function __pll_lock_rangePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pll_lock_rangePresets',[
+        {label:'默认',labelEn:'Default',values:{Kv:'1e6', Vmax:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Kv:'2000000', Vmax:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Kv:'500000', Vmax:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pll_lock_rangeExtras(); }catch(e){} };
+function __pll_lock_rangeBoot(){ try{ __pll_lock_rangePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pll_lock_rangeBoot();
+else document.addEventListener('DOMContentLoaded', __pll_lock_rangeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

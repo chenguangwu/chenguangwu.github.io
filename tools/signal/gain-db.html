@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gain_dbPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gain_dbExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gain_dbTable"></div>
+    <div id="gain_dbDiff"></div>
+    <div id="gain_dbHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('vout').value = '10';
       document.getElementById('vin').value = '1';
       calcTool();}
 calcTool();
+
+function __gain_dbNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gain_dbExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var vout = num('vout'), vin = num('vin');
+    var G = 20 * Math.log10(vout / vin);
+    if (!isFinite(__gain_dbNum('vout')) || !isFinite(__gain_dbNum('vin'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gain_dbTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['增益 G (dB)', G.toFixed(2)],
+            ['电压比 V_out/V_in', Math.pow(10, G / 20).toFixed(3)],
+            ['功率比 P_out/P_in', Math.pow(10,G/10).toFixed(4)],
+            ['原始电压比', (vout/vin).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({vout:__gain_dbNum('vout'), vin:__gain_dbNum('vin'), G:G});
+    TBKit.history.mount('#gain_dbHist',function(rec){ if(rec.vout!=null)document.getElementById('vout').value=rec.vout; if(rec.vin!=null)document.getElementById('vin').value=rec.vin; calcTool(); });
+    TBKit.util.diffBox('#gain_dbDiff',['G']);
+}
+function __gain_dbExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gain_dbTable','gain-db.csv'); } catch(e){}
+}
+function __gain_dbPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gain_dbPresets',[
+        {label:'默认',labelEn:'Default',values:{vout:'10', vin:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{vout:'20', vin:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{vout:'5', vin:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gain_dbExtras(); }catch(e){} };
+function __gain_dbBoot(){ try{ __gain_dbPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gain_dbBoot();
+else document.addEventListener('DOMContentLoaded', __gain_dbBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

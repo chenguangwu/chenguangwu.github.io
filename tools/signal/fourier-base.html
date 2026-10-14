@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fourier_basePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fourier_baseExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fourier_baseTable"></div>
+    <div id="fourier_baseDiff"></div>
+    <div id="fourier_baseHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -249,6 +255,45 @@ const T = num('T');
 function resetForm(){document.getElementById('T').value = '0.02';
       calcTool();}
 calcTool();
+
+function __fourier_baseNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fourier_baseExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T = num('T');
+    var f0 = 1 / T;
+    if (!isFinite(__fourier_baseNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fourier_baseTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['基频 f₀ (Hz)', f0.toFixed(2)],
+            ['周期 T (s)', (1 / f0).toFixed(4)],
+            ['角频率 ω (rad/s)', (2*Math.PI*f0).toFixed(3)],
+            ['时间常数 1/ω (s)', (1/Math.max(2*Math.PI*f0,1e-9)).toFixed(6)],
+            ['半周期 T/2 (s)', (T/2).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({T:__fourier_baseNum('T'), f0:f0});
+    TBKit.history.mount('#fourier_baseHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#fourier_baseDiff',['f0']);
+}
+function __fourier_baseExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fourier_baseTable','fourier-base.csv'); } catch(e){}
+}
+function __fourier_basePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fourier_basePresets',[
+        {label:'默认',labelEn:'Default',values:{T:'0.02'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'0.04'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'0.01'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fourier_baseExtras(); }catch(e){} };
+function __fourier_baseBoot(){ try{ __fourier_basePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fourier_baseBoot();
+else document.addEventListener('DOMContentLoaded', __fourier_baseBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

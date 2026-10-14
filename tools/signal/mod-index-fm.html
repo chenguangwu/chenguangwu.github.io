@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mod_index_fmPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mod_index_fmExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mod_index_fmTable"></div>
+    <div id="mod_index_fmDiff"></div>
+    <div id="mod_index_fmHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('df').value = '75';
       document.getElementById('fm').value = '15';
       calcTool();}
 calcTool();
+
+function __mod_index_fmNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mod_index_fmExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var df=num('df'),fm=num('fm');
+    var beta=df/fm;
+    if (!isFinite(__mod_index_fmNum('df')) || !isFinite(__mod_index_fmNum('fm'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mod_index_fmTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['调频指数 β', beta.toFixed(3)],
+            ['调频指数百分数', (beta*100).toFixed(2)],
+            ['调频指数倒数', (1/Math.max(beta,1e-9)).toFixed(4)],
+            ['卡森带宽系数 β 除以 (1+β)', (beta/Math.max(1+beta,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({df:__mod_index_fmNum('df'), fm:__mod_index_fmNum('fm'), beta:beta});
+    TBKit.history.mount('#mod_index_fmHist',function(rec){ if(rec.df!=null)document.getElementById('df').value=rec.df; if(rec.fm!=null)document.getElementById('fm').value=rec.fm; calcTool(); });
+    TBKit.util.diffBox('#mod_index_fmDiff',['beta']);
+}
+function __mod_index_fmExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mod_index_fmTable','mod-index-fm.csv'); } catch(e){}
+}
+function __mod_index_fmPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mod_index_fmPresets',[
+        {label:'默认',labelEn:'Default',values:{df:'75', fm:'15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{df:'150', fm:'30'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{df:'37.5', fm:'7.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mod_index_fmExtras(); }catch(e){} };
+function __mod_index_fmBoot(){ try{ __mod_index_fmPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mod_index_fmBoot();
+else document.addEventListener('DOMContentLoaded', __mod_index_fmBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

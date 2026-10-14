@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="first_order_risePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__first_order_riseExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="first_order_riseTable"></div>
+    <div id="first_order_riseDiff"></div>
+    <div id="first_order_riseHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,45 @@ function calcTool(){
 function resetForm(){document.getElementById('tau').value = '0.001';
       calcTool();}
 calcTool();
+
+function __first_order_riseNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __first_order_riseExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var tau = num('tau');
+    var tr = 2.2 * tau;
+    if (!isFinite(__first_order_riseNum('tau'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#first_order_riseTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['上升时间 t_r (s)', tr.toExponential(3)],
+            ['t_r (ms)', (tr * 1000).toExponential(3)],
+            ['时间常数 τ (s)', (tau).toExponential(3)],
+            ['3τ 达稳态 95% (s)', (tau*3).toExponential(3)],
+            ['5τ 达稳态 99.3% (s)', (tau*5).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({tau:__first_order_riseNum('tau'), tr:tr});
+    TBKit.history.mount('#first_order_riseHist',function(rec){ if(rec.tau!=null)document.getElementById('tau').value=rec.tau; calcTool(); });
+    TBKit.util.diffBox('#first_order_riseDiff',['tr']);
+}
+function __first_order_riseExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#first_order_riseTable','first-order-rise.csv'); } catch(e){}
+}
+function __first_order_risePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#first_order_risePresets',[
+        {label:'默认',labelEn:'Default',values:{tau:'0.001'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{tau:'0.002'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{tau:'0.0005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __first_order_riseExtras(); }catch(e){} };
+function __first_order_riseBoot(){ try{ __first_order_risePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __first_order_riseBoot();
+else document.addEventListener('DOMContentLoaded', __first_order_riseBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

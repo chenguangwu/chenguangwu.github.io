@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sine_rmsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sine_rmsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="sine_rmsTable"></div>
+    <div id="sine_rmsDiff"></div>
+    <div id="sine_rmsHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,44 @@ const Vpk = num('Vpk');
 function resetForm(){document.getElementById('Vpk').value = '10';
       calcTool();}
 calcTool();
+
+function __sine_rmsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sine_rmsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Vpk = num('Vpk');
+    var Vrms = Vpk / Math.SQRT2;
+    if (!isFinite(__sine_rmsNum('Vpk'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#sine_rmsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['有效值 V_rms (V)', Vrms.toFixed(4)],
+            ['V_rms²/V_pk²', (Vrms * Vrms / (Vpk * Vpk)).toFixed(4)],
+            ['峰峰值 V_pp (V)', (2*Vpk).toFixed(4)],
+            ['半周期平均值 (V)', (2*Vpk/Math.PI).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({Vpk:__sine_rmsNum('Vpk'), Vrms:Vrms});
+    TBKit.history.mount('#sine_rmsHist',function(rec){ if(rec.Vpk!=null)document.getElementById('Vpk').value=rec.Vpk; calcTool(); });
+    TBKit.util.diffBox('#sine_rmsDiff',['Vrms']);
+}
+function __sine_rmsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sine_rmsTable','sine-rms.csv'); } catch(e){}
+}
+function __sine_rmsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sine_rmsPresets',[
+        {label:'默认',labelEn:'Default',values:{Vpk:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Vpk:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Vpk:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __sine_rmsExtras(); }catch(e){} };
+function __sine_rmsBoot(){ try{ __sine_rmsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sine_rmsBoot();
+else document.addEventListener('DOMContentLoaded', __sine_rmsBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
