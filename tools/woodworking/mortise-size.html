@@ -171,14 +171,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🪵 计算</button>
+      <div id="mortise_sizePresets"></div><button type="button" class="btn primary" onclick="calc()">🪵 计算</button><button class="btn" type="button" onclick="__mortise_sizeExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
     <div class="mortise-vis" id="mortiseVis"></div>
 
     <div class="data-grid" id="dataGrid"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="mortise_sizeTable"></div> <div id="mortise_sizeDiff"></div> <div id="mortise_sizeChart"></div> <div id="mortise_sizeHist"></div>
   </div>
 
   <div class="card">
@@ -389,6 +389,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __mortise_size_last=0,__mortise_size_skip=false;
+function __mortise_sizeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __mortise_sizeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __mortise_sizeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __mortise_sizeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__mortise_sizeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#mortise_sizeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#mortise_sizeDiff');
+        TBKit.history.mount('#mortise_sizeHist',function(rec){
+            __mortise_size_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __mortise_size_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__mortise_sizeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#mortise_sizeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __mortise_sizeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__mortise_size_skip) return;
+    var snap=__mortise_sizeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__mortise_sizeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__mortise_size_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __mortise_size_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __mortise_sizeRender(keys,rk,en);
+}
+function __mortise_sizeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mortise_sizeTable','mortise-size.csv'); } catch(e){}
+}
+function __mortise_sizePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mortise_sizePresets',[{label:'默认参数',labelEn:'Default',values:{'jointType':'through', 'thickness':'20', 'width':'80', 'ratio':'0.3', 'hardness':'soft'}}],function(){ calc(); });
+}
+var __mortise_size_f0=(typeof calc==='function')?calc:null;
+if(__mortise_size_f0){
+    calc=function(){ var __r=__mortise_size_f0.apply(null,arguments); try{ __mortise_sizeExtras(); }catch(e){} return __r; };
+}
+function __mortise_sizeBoot(){ try{ __mortise_sizePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mortise_sizeBoot();
+else document.addEventListener('DOMContentLoaded', __mortise_sizeBoot);
 </script>
 
 </body>

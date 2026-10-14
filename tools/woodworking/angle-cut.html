@@ -151,7 +151,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div class="angle-vis" id="miterVis"></div>
       <div class="data-grid" id="miterGrid"></div>
-      <div class="result-box" id="miterResult"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__angle_cutExport()">导出明细 CSV</button></div><div class="result-box" id="miterResult"></div> <div id="angle_cutTable"></div> <div id="angle_cutDiff"></div> <div id="angle_cutChart"></div> <div id="angle_cutHist"></div>
     </div>
 
     <div id="mode-compound" style="display:none;">
@@ -421,6 +421,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __angle_cut_last=0,__angle_cut_skip=false;
+function __angle_cutSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __angle_cutResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __angle_cutTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __angle_cutRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__angle_cutTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#angle_cutTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#angle_cutDiff');
+        TBKit.history.mount('#angle_cutHist',function(rec){
+            __angle_cut_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcMiter();
+            }catch(e2){}
+            __angle_cut_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__angle_cutTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#angle_cutChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __angle_cutExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__angle_cut_skip) return;
+    var snap=__angle_cutSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__angle_cutResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__angle_cut_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __angle_cut_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __angle_cutRender(keys,rk,en);
+}
+function __angle_cutExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#angle_cutTable','angle-cut.csv'); } catch(e){}
+}
+function __angle_cutPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#angle_cutPresets',[{label:'默认参数',labelEn:'Default',values:{'jointAngle':'90', 'segments':'2', 'miterAngle':'45', 'bevelAngle':'0', 'startWidth':'50', 'endWidth':'20', 'taperLength':'200'}}],function(){ calcMiter(); });
+}
+var __angle_cut_f0=(typeof calcMiter==='function')?calcMiter:null;
+if(__angle_cut_f0){
+    calcMiter=function(){ var __r=__angle_cut_f0.apply(null,arguments); try{ __angle_cutExtras(); }catch(e){} return __r; };
+}
+function __angle_cutBoot(){ try{ __angle_cutPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __angle_cutBoot();
+else document.addEventListener('DOMContentLoaded', __angle_cutBoot);
 </script>
 
 </body>

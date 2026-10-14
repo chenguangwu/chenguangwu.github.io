@@ -173,7 +173,7 @@ s.parentNode.insertBefore(el, s);
   <div class="stat-card"><div class="val" id="resMonthly">--</div><div class="lbl">月进尺</div></div>
 </div>
 
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="advance_rateTable"></div> <div id="advance_rateDiff"></div> <div id="advance_rateChart"></div> <div id="advance_rateHist"></div>
 
 <div class="formula-box">
   <strong>📐 计算公式</strong>
@@ -187,7 +187,7 @@ s.parentNode.insertBefore(el, s);
 <div class="tip-box tip-info">💡 钻爆法掘进日进尺一般 3~9m；TBM 掘进日进尺可达 15~40m。实际进度受地质条件、设备配套与管理水平影响较大。</div>
 
 <div class="toolbar">
-  <button type="button" class="btn primary" onclick="calc()">🧮 计算</button>
+  <div id="advance_ratePresets"></div><button type="button" class="btn primary" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__advance_rateExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
 </div>
@@ -348,6 +348,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __advance_rate_last=0,__advance_rate_skip=false;
+function __advance_rateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __advance_rateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __advance_rateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __advance_rateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__advance_rateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#advance_rateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#advance_rateDiff');
+        TBKit.history.mount('#advance_rateHist',function(rec){
+            __advance_rate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __advance_rate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__advance_rateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#advance_rateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __advance_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__advance_rate_skip) return;
+    var snap=__advance_rateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__advance_rateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__advance_rate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __advance_rate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __advance_rateRender(keys,rk,en);
+}
+function __advance_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#advance_rateTable','advance-rate.csv'); } catch(e){}
+}
+function __advance_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#advance_ratePresets',[{label:'默认参数',labelEn:'Default',values:{'inL':'3', 'inEta':'0.9', 'inDrill':'3', 'inBlast':'1', 'inVent':'0.5', 'inMuck':'3', 'inSupport':'2', 'inCycles':'3'}}],function(){ calc(); });
+}
+var __advance_rate_f0=(typeof calc==='function')?calc:null;
+if(__advance_rate_f0){
+    calc=function(){ var __r=__advance_rate_f0.apply(null,arguments); try{ __advance_rateExtras(); }catch(e){} return __r; };
+}
+function __advance_rateBoot(){ try{ __advance_ratePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __advance_rateBoot();
+else document.addEventListener('DOMContentLoaded', __advance_rateBoot);
 </script>
 
 </body>

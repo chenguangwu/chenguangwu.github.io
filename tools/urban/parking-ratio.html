@@ -191,7 +191,7 @@ s.parentNode.insertBefore(el, s);
   <div class="stat-card"><div class="val" id="resArea">--</div><div class="lbl">停车面积</div></div>
 </div>
 
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="parking_ratioTable"></div> <div id="parking_ratioDiff"></div> <div id="parking_ratioChart"></div> <div id="parking_ratioHist"></div>
 
 <div class="formula-box">
   <strong>📐 计算公式</strong>
@@ -223,7 +223,7 @@ s.parentNode.insertBefore(el, s);
 <div class="tip-box tip-info">💡 配建标准因城市规模而异，特大城市要求最高。实际项目应以当地规划部门的具体规定为准。访客车位一般不少于总车位的15~20%。</div>
 
 <div class="toolbar">
-  <button type="button" class="btn primary" onclick="calc()">🧮 计算</button>
+  <div id="parking_ratioPresets"></div><button type="button" class="btn primary" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__parking_ratioExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
 </div>
@@ -435,6 +435,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __parking_ratio_last=0,__parking_ratio_skip=false;
+function __parking_ratioSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __parking_ratioResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __parking_ratioTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __parking_ratioRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__parking_ratioTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#parking_ratioTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#parking_ratioDiff');
+        TBKit.history.mount('#parking_ratioHist',function(rec){
+            __parking_ratio_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __parking_ratio_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__parking_ratioTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#parking_ratioChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __parking_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__parking_ratio_skip) return;
+    var snap=__parking_ratioSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__parking_ratioResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__parking_ratio_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __parking_ratio_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __parking_ratioRender(keys,rk,en);
+}
+function __parking_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#parking_ratioTable','parking-ratio.csv'); } catch(e){}
+}
+function __parking_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#parking_ratioPresets',[{label:'默认参数',labelEn:'Default',values:{'inType':'residential', 'inCity':'mega', 'inArea':'50000', 'inUnit':'100m2', 'inRatio':'1.0', 'inVisitor':'20', 'inSpaceArea':'35', 'inAccessible':'2'}}],function(){ calc(); });
+}
+var __parking_ratio_f0=(typeof calc==='function')?calc:null;
+if(__parking_ratio_f0){
+    calc=function(){ var __r=__parking_ratio_f0.apply(null,arguments); try{ __parking_ratioExtras(); }catch(e){} return __r; };
+}
+function __parking_ratioBoot(){ try{ __parking_ratioPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __parking_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __parking_ratioBoot);
 </script>
 
 </body>

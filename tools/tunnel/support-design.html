@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
   <div class="stat-card"><div class="val" id="resN">--</div><div class="lbl">每延米锚杆数</div></div>
 </div>
 
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="support_designTable"></div> <div id="support_designDiff"></div> <div id="support_designChart"></div> <div id="support_designHist"></div>
 
 <div class="formula-box">
   <strong>📐 经验估算公式</strong>
@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
 <div class="tip-box tip-info">💡 本工具仅给出经验参考值，具体支护参数应按《公路隧道设计规范》或《铁路隧道设计规范》并结合数值模拟确定。</div>
 
 <div class="toolbar">
-  <button type="button" class="btn primary" onclick="calc()">🧮 计算</button>
+  <div id="support_designPresets"></div><button type="button" class="btn primary" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__support_designExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
 </div>
 </div>
@@ -321,6 +321,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __support_design_last=0,__support_design_skip=false;
+function __support_designSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __support_designResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __support_designTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __support_designRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__support_designTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#support_designTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#support_designDiff');
+        TBKit.history.mount('#support_designHist',function(rec){
+            __support_design_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __support_design_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__support_designTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#support_designChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __support_designExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__support_design_skip) return;
+    var snap=__support_designSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__support_designResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__support_design_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __support_design_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __support_designRender(keys,rk,en);
+}
+function __support_designExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#support_designTable','support-design.csv'); } catch(e){}
+}
+function __support_designPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#support_designPresets',[{label:'默认参数',labelEn:'Default',values:{'inGrade':'2', 'inB':'12', 'inH':'8'}}],function(){ calc(); });
+}
+var __support_design_f0=(typeof calc==='function')?calc:null;
+if(__support_design_f0){
+    calc=function(){ var __r=__support_design_f0.apply(null,arguments); try{ __support_designExtras(); }catch(e){} return __r; };
+}
+function __support_designBoot(){ try{ __support_designPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __support_designBoot();
+else document.addEventListener('DOMContentLoaded', __support_designBoot);
 </script>
 
 </body>

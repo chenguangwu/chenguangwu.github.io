@@ -172,7 +172,7 @@ s.parentNode.insertBefore(el, s);
 
 <div id="bars"></div>
 
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="green_ratioTable"></div> <div id="green_ratioDiff"></div> <div id="green_ratioChart"></div> <div id="green_ratioHist"></div>
 
 <div class="formula-box">
   <strong>📐 计算公式</strong>
@@ -185,7 +185,7 @@ s.parentNode.insertBefore(el, s);
 <div class="tip-box tip-info">💡 GB50180-2018 居住区标准：新区绿地率≥30%，旧区≥25%；人均绿地新区≥1.5m²，旧区≥1.0m²。绿化覆盖率一般比绿地率高 5~10%。</div>
 
 <div class="toolbar">
-  <button type="button" class="btn primary" onclick="calc()">🏙️ 计算</button>
+  <div id="green_ratioPresets"></div><button type="button" class="btn primary" onclick="calc()">🏙️ 计算</button><button class="btn" type="button" onclick="__green_ratioExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
 </div>
@@ -378,6 +378,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __green_ratio_last=0,__green_ratio_skip=false;
+function __green_ratioSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __green_ratioResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __green_ratioTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __green_ratioRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__green_ratioTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#green_ratioTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#green_ratioDiff');
+        TBKit.history.mount('#green_ratioHist',function(rec){
+            __green_ratio_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __green_ratio_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__green_ratioTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#green_ratioChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __green_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__green_ratio_skip) return;
+    var snap=__green_ratioSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__green_ratioResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__green_ratio_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __green_ratio_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __green_ratioRender(keys,rk,en);
+}
+function __green_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#green_ratioTable','green-ratio.csv'); } catch(e){}
+}
+function __green_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#green_ratioPresets',[{label:'默认参数',labelEn:'Default',values:{'inTotal':'50000', 'inGreen':'17500', 'inCanopy':'22000', 'inType':'residential_new', 'inPop':'3000'}}],function(){ calc(); });
+}
+var __green_ratio_f0=(typeof calc==='function')?calc:null;
+if(__green_ratio_f0){
+    calc=function(){ var __r=__green_ratio_f0.apply(null,arguments); try{ __green_ratioExtras(); }catch(e){} return __r; };
+}
+function __green_ratioBoot(){ try{ __green_ratioPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __green_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __green_ratioBoot);
 </script>
 
 </body>
