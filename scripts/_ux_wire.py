@@ -296,9 +296,15 @@ RESULT_IDS = ("result", "res", "output")
 RESULT_IDS2 = ("resultList", "result-list", "countryList", "guaList", "plantList",
                "cardList", "itemList", "listBox", "list", "detail")
 RESULT_CLASSES = ("result-box", "result-display")
+# 末级兜底：按 id 名的**词边界**猜结果容器（resultBox / cssOutput / breakdown / …）。
+# 必须词边界而非子串——"res" 是 "presets" 的子串、"list" 会命中 "presetGrid"/"hiveList"
+# 等控件区，实测把表格插进预设面板。命不中就放弃该页（宁可不接也不接到错误容器）。
+RESULT_HINT_RE = re.compile(
+    r'(?:^|[\-_])(?:result|res|output|outcome|breakdown|answer|summary)(?:$|[\-_])'
+    r'|(?:Result|Output|Outcome|Breakdown|Answer|Summary)')
 
 def find_result_container(s):
-    """定位结果容器：优先 id（result/res/output），退化次级列表容器，再退化 class。
+    """定位结果容器：主 id（result/res/output）→ 次级列表 id → class → id 名子串兜底。
     返回 ('id', val) / ('class', val) / None。新架构页（leather/pet 等）用 id="res"，
     部分页只有 class="result-box" 无 id。"""
     for rid in RESULT_IDS:
@@ -310,6 +316,9 @@ def find_result_container(s):
     for rc in RESULT_CLASSES:
         if re.search(r'class="[^"]*\b%s\b' % re.escape(rc), s):
             return ("class", rc)
+    for mm in re.finditer(r'id="([\w-]+)"', s):
+        if RESULT_HINT_RE.search(mm.group(1)):
+            return ("id", mm.group(1))
     return None
 
 def extract_custom(page):
@@ -327,17 +336,16 @@ def extract_custom(page):
         c = mm.group(1)
         if c not in cands:
             cands.append(c)
+    # 计算型函数名：只包这些语义的函数。旧逻辑「任意顶层函数」会把 UI 动作
+    # （copyCode/switchTab/addHive/togglePlay/openAddVeh/useEyeDropper）当成计算入口，
+    # 包裹后表格/历史只在用户点那个具体控件时才渲染 → 接线形同虚设且位置错乱。
+    FN_OK = r'^(?:calc|calculate|compute|solve|count|estimate|eval|evaluate|convert|generate|analyze|analyse|render|filter|search|doSearch|lookup|update|apply)\w*$'
     fn = None
     for c in cands:
-        if re.match(r'^(?:calc|compute|solve|count|estimate|eval|do)\w*$', c) and \
-                re.search(r'^function\s+%s\s*\(' % re.escape(c), s, re.M):
+        if re.match(FN_OK, c, re.I) and \
+                re.search(r'^[ \t]*function\s+%s\s*\(' % re.escape(c), s, re.M):
             fn = c
             break
-    if fn is None:
-        for c in cands:
-            if re.search(r'^function\s+%s\s*\(' % re.escape(c), s, re.M):
-                fn = c
-                break
     if fn is None:
         return None
     # 输入控件 id（input/select/textarea），去重保序，上限 12 防表过宽
