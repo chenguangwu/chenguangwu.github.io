@@ -130,11 +130,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>当前电量（%）</label><input type="number" id="startPct" value="0" min="0" max="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="当前电量百分比"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="estimate_time_currentPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__estimate_time_currentExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="estimate_time_currentTable"></div> <div id="estimate_time_currentDiff"></div> <div id="estimate_time_currentChart"></div> <div id="estimate_time_currentHist"></div>
     <div class="info-box">💡 公式：充电时间 = 电池容量 × (1 - 当前电量%) ÷ (充电电流 × 充电效率)。锂电池充电效率约 80~90%，电压通常 3.7V。</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -277,6 +277,114 @@ function restoreHistory(idx){
 }
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();calc();});
+
+var __estimate_time_current_last=0,__estimate_time_current_skip=false;
+function __estimate_time_currentSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __estimate_time_currentResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __estimate_time_currentTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __estimate_time_currentRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__estimate_time_currentTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#estimate_time_currentTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#estimate_time_currentDiff');
+        TBKit.history.mount('#estimate_time_currentHist',function(rec){
+            __estimate_time_current_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __estimate_time_current_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__estimate_time_currentTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#estimate_time_currentChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __estimate_time_currentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__estimate_time_current_skip) return;
+    var snap=__estimate_time_currentSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__estimate_time_currentResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__estimate_time_current_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __estimate_time_current_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __estimate_time_currentRender(keys,rk,en);
+}
+function __estimate_time_currentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#estimate_time_currentTable','estimate-time-current.csv'); } catch(e){}
+}
+function __estimate_time_currentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#estimate_time_currentPresets',[{label:'默认参数',labelEn:'Default',values:{'capacity':'3000', 'current':'1000', 'voltage':'3.7', 'efficiency':'85', 'startPct':'0'}}],function(){ calc(); });
+}
+var __estimate_time_current_f0=(typeof calc==='function')?calc:null;
+if(__estimate_time_current_f0){
+    calc=function(){ var __r=__estimate_time_current_f0.apply(null,arguments); try{ __estimate_time_currentExtras(); }catch(e){} return __r; };
+}
+function __estimate_time_currentBoot(){ try{ __estimate_time_currentPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __estimate_time_currentBoot();
+else document.addEventListener('DOMContentLoaded', __estimate_time_currentBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -178,10 +178,10 @@ s.parentNode.insertBefore(el, s);
         用电：0.785 kg CO&#8322;/度 | 天然气：2.162 kg CO&#8322;/m&sup3; | 汽油：2.3 kg CO&#8322;/L
       </div>
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcCarbon()">计算碳排放</button>
+        <div id="energy_calculatorPresets"></div><button type="button" class="btn primary" onclick="calcCarbon()">计算碳排放</button><button class="btn" type="button" onclick="__energy_calculatorExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="copyCarbonResult()">复制结果</button>
       </div>
-      <div class="result-box" id="carbon-result"></div>
+      <div class="result-box" id="carbon-result"></div> <div id="energy_calculatorTable"></div> <div id="energy_calculatorDiff"></div> <div id="energy_calculatorChart"></div> <div id="energy_calculatorHist"></div>
     </div>
 
     <!-- ==================== 2. 电费阶梯计算器 ==================== -->
@@ -851,6 +851,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __energy_calculator_last=0,__energy_calculator_skip=false;
+function __energy_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __energy_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __energy_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __energy_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__energy_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#energy_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#energy_calculatorDiff');
+        TBKit.history.mount('#energy_calculatorHist',function(rec){
+            __energy_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcCarbon();
+            }catch(e2){}
+            __energy_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__energy_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#energy_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __energy_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__energy_calculator_skip) return;
+    var snap=__energy_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__energy_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__energy_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __energy_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __energy_calculatorRender(keys,rk,en);
+}
+function __energy_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_calculatorTable','energy-calculator.csv'); } catch(e){}
+}
+function __energy_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'cf_electric':'200', 'cf_gas':'15', 'cf_km':'800', 'cf_fuel':'8', 'elec_amount':'350', 'ch_capacity':'4000', 'ch_cap_unit':'mAh', 'ch_current':'2000', 'ch_cur_unit':'mA', 'ch_voltage':'3.7', 'ch_efficiency':'90', 'bat_voltage':'3.7'}}],function(){ calcCarbon(); });
+}
+var __energy_calculator_f0=(typeof calcCarbon==='function')?calcCarbon:null;
+if(__energy_calculator_f0){
+    calcCarbon=function(){ var __r=__energy_calculator_f0.apply(null,arguments); try{ __energy_calculatorExtras(); }catch(e){} return __r; };
+}
+function __energy_calculatorBoot(){ try{ __energy_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __energy_calculatorBoot);
 </script>
 
 </body>

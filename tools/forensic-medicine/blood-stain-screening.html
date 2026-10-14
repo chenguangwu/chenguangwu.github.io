@@ -229,11 +229,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="analyze()">综合分析</button>
+      <div id="blood_stain_screeningPresets"></div><button type="button" class="btn primary" onclick="analyze()">综合分析</button><button class="btn" type="button" onclick="__blood_stain_screeningExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="blood_stain_screeningTable"></div> <div id="blood_stain_screeningDiff"></div> <div id="blood_stain_screeningChart"></div> <div id="blood_stain_screeningHist"></div>
 
     <h3 style="margin-top:20px;">血痕检验流程参考</h3>
     <div class="test-step">
@@ -521,6 +521,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __blood_stain_screening_last=0,__blood_stain_screening_skip=false;
+function __blood_stain_screeningSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __blood_stain_screeningResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __blood_stain_screeningTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __blood_stain_screeningRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__blood_stain_screeningTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#blood_stain_screeningTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#blood_stain_screeningDiff');
+        TBKit.history.mount('#blood_stain_screeningHist',function(rec){
+            __blood_stain_screening_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                analyze();
+            }catch(e2){}
+            __blood_stain_screening_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__blood_stain_screeningTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#blood_stain_screeningChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __blood_stain_screeningExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__blood_stain_screening_skip) return;
+    var snap=__blood_stain_screeningSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__blood_stain_screeningResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__blood_stain_screening_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __blood_stain_screening_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __blood_stain_screeningRender(keys,rk,en);
+}
+function __blood_stain_screeningExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#blood_stain_screeningTable','blood-stain-screening.csv'); } catch(e){}
+}
+function __blood_stain_screeningPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#blood_stain_screeningPresets',[{label:'默认参数',labelEn:'Default',values:{'preTest':'benzidine', 'preResult':'positive', 'confirmTest':'hemochromogen', 'confirmResult':'positive', 'speciesTest':'ring', 'speciesResult':'human', 'aboMethod':'absorption', 'aboA':'pos', 'aboB':'pos'}}],function(){ analyze(); });
+}
+var __blood_stain_screening_f0=(typeof analyze==='function')?analyze:null;
+if(__blood_stain_screening_f0){
+    analyze=function(){ var __r=__blood_stain_screening_f0.apply(null,arguments); try{ __blood_stain_screeningExtras(); }catch(e){} return __r; };
+}
+function __blood_stain_screeningBoot(){ try{ __blood_stain_screeningPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __blood_stain_screeningBoot();
+else document.addEventListener('DOMContentLoaded', __blood_stain_screeningBoot);
 </script>
 
 </body>

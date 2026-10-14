@@ -143,11 +143,11 @@ s.parentNode.insertBefore(el, s);
       <div id="lociInput"></div>
 
       <div class="toolbar" style="margin-top:12px;">
-        <button type="button" class="btn primary" onclick="calcPaternity()">计算亲权指数</button>
+        <div id="dna_str_typingPresets"></div><button type="button" class="btn primary" onclick="calcPaternity()">计算亲权指数</button><button class="btn" type="button" onclick="__dna_str_typingExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="copyResult()">复制报告</button>
       </div>
 
-      <div class="result-box" id="paternityResult"></div>
+      <div class="result-box" id="paternityResult"></div> <div id="dna_str_typingTable"></div> <div id="dna_str_typingDiff"></div> <div id="dna_str_typingChart"></div> <div id="dna_str_typingHist"></div>
     </div>
 
     <div id="tab-mixed" class="tab-content">
@@ -585,6 +585,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __dna_str_typing_last=0,__dna_str_typing_skip=false;
+function __dna_str_typingSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __dna_str_typingResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __dna_str_typingTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __dna_str_typingRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__dna_str_typingTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#dna_str_typingTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#dna_str_typingDiff');
+        TBKit.history.mount('#dna_str_typingHist',function(rec){
+            __dna_str_typing_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcPaternity();
+            }catch(e2){}
+            __dna_str_typing_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__dna_str_typingTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#dna_str_typingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __dna_str_typingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__dna_str_typing_skip) return;
+    var snap=__dna_str_typingSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__dna_str_typingResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__dna_str_typing_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __dna_str_typing_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __dna_str_typingRender(keys,rk,en);
+}
+function __dna_str_typingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dna_str_typingTable','dna-str-typing.csv'); } catch(e){}
+}
+function __dna_str_typingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dna_str_typingPresets',[{label:'默认参数',labelEn:'Default',values:{'mixedLocus':'D8S1179', 'mixedAlleles':'10,11,12,13', 'known1':'10,12', 'known2':'11,13'}}],function(){ calcPaternity(); });
+}
+var __dna_str_typing_f0=(typeof calcPaternity==='function')?calcPaternity:null;
+if(__dna_str_typing_f0){
+    calcPaternity=function(){ var __r=__dna_str_typing_f0.apply(null,arguments); try{ __dna_str_typingExtras(); }catch(e){} return __r; };
+}
+function __dna_str_typingBoot(){ try{ __dna_str_typingPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dna_str_typingBoot();
+else document.addEventListener('DOMContentLoaded', __dna_str_typingBoot);
 </script>
 
 </body>

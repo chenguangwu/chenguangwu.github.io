@@ -117,11 +117,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>板厚（mm）</label><input type="number" id="thickness" class="calc-input" value="10" step="any" oninput="calc()" enterkeyhint="done" aria-label="板厚"></div><div><label>焊缝长度（mm）</label><input type="number" id="length" class="calc-input" value="300" step="any" oninput="calc()" enterkeyhint="done" aria-label="焊缝长度"></div><div><label>焊脚尺寸（mm）</label><input type="number" id="leg" class="calc-input" value="6" step="any" oninput="calc()" enterkeyhint="done" aria-label="焊脚尺寸"></div><div><label>材料屈服强度（MPa）</label><input type="number" id="yield" class="calc-input" value="235" step="any" oninput="calc()" enterkeyhint="done" aria-label="材料屈服强度"></div><div><label>约束条件</label><select id="restraint" class="calc-input" onchange="calc()"><option value="0.3">弱约束</option><option value="0.6">中等约束</option><option value="0.9">强约束</option></select></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="stressPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__stressExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="stressTable"></div> <div id="stressDiff"></div> <div id="stressChart"></div> <div id="stressHist"></div>
     <div class="info-box">💡 纵向收缩系数约 0.1~0.3 mm/m；角焊缝横向收缩约 0.1×焊脚；残余应力可达屈服强度。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>估算基于经验公式，实际变形受工艺与结构影响显著</li><li>减小变形可采用反变形、对称焊、跳焊等措施</li></ul></div>
     <div style="margin-top:16px;">
@@ -232,6 +232,114 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __stress_last=0,__stress_skip=false;
+function __stressSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __stressResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __stressTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __stressRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__stressTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#stressTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#stressDiff');
+        TBKit.history.mount('#stressHist',function(rec){
+            __stress_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __stress_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__stressTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#stressChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __stressExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__stress_skip) return;
+    var snap=__stressSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__stressResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__stress_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __stress_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __stressRender(keys,rk,en);
+}
+function __stressExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stressTable','stress.csv'); } catch(e){}
+}
+function __stressPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stressPresets',[{label:'默认参数',labelEn:'Default',values:{'thickness':'10', 'length':'300', 'leg':'6', 'yield':'235', 'restraint':'0.3'}}],function(){ calc(); });
+}
+var __stress_f0=(typeof calc==='function')?calc:null;
+if(__stress_f0){
+    calc=function(){ var __r=__stress_f0.apply(null,arguments); try{ __stressExtras(); }catch(e){} return __r; };
+}
+function __stressBoot(){ try{ __stressPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stressBoot();
+else document.addEventListener('DOMContentLoaded', __stressBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

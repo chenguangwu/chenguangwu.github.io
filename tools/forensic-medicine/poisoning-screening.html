@@ -157,11 +157,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="analyze()">筛查毒物</button>
+      <div id="poisoning_screeningPresets"></div><button type="button" class="btn primary" onclick="analyze()">筛查毒物</button><button class="btn" type="button" onclick="__poisoning_screeningExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="poisoning_screeningTable"></div> <div id="poisoning_screeningDiff"></div> <div id="poisoning_screeningChart"></div> <div id="poisoning_screeningHist"></div>
 
     <h3 style="margin-top:20px;">常见毒物分类</h3>
     <div class="ref-card">
@@ -505,6 +505,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __poisoning_screening_last=0,__poisoning_screening_skip=false;
+function __poisoning_screeningSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __poisoning_screeningResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __poisoning_screeningTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __poisoning_screeningRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__poisoning_screeningTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#poisoning_screeningTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#poisoning_screeningDiff');
+        TBKit.history.mount('#poisoning_screeningHist',function(rec){
+            __poisoning_screening_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                analyze();
+            }catch(e2){}
+            __poisoning_screening_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__poisoning_screeningTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#poisoning_screeningChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __poisoning_screeningExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__poisoning_screening_skip) return;
+    var snap=__poisoning_screeningSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__poisoning_screeningResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__poisoning_screening_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __poisoning_screening_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __poisoning_screeningRender(keys,rk,en);
+}
+function __poisoning_screeningExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#poisoning_screeningTable','poisoning-screening.csv'); } catch(e){}
+}
+function __poisoning_screeningPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#poisoning_screeningPresets',[{label:'默认参数',labelEn:'Default',values:{'route':'oral', 'onset':'acute'}}],function(){ analyze(); });
+}
+var __poisoning_screening_f0=(typeof analyze==='function')?analyze:null;
+if(__poisoning_screening_f0){
+    analyze=function(){ var __r=__poisoning_screening_f0.apply(null,arguments); try{ __poisoning_screeningExtras(); }catch(e){} return __r; };
+}
+function __poisoning_screeningBoot(){ try{ __poisoning_screeningPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __poisoning_screeningBoot();
+else document.addEventListener('DOMContentLoaded', __poisoning_screeningBoot);
 </script>
 
 </body>

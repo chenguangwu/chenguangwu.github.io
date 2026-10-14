@@ -117,11 +117,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>年产量（件/年）</label><input type="number" id="output" class="calc-input" value="10000" step="any" oninput="calc()" enterkeyhint="done" aria-label="年产量"></div><div><label>单件焊缝长度（m）</label><input type="number" id="seamlen" class="calc-input" value="0.5" step="0.1" oninput="calc()" enterkeyhint="done" aria-label="单件焊缝长度"></div><div><label>人工单件焊接时间（s）</label><input type="number" id="mansec" class="calc-input" value="120" step="any" oninput="calc()" enterkeyhint="done" aria-label="人工单件焊接时间"></div><div><label>人工时薪（元/h）</label><input type="number" id="labor" class="calc-input" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="人工时薪"></div><div><label>机器人投资（万元）</label><input type="number" id="robotcost" class="calc-input" value="30" step="any" oninput="calc()" enterkeyhint="done" aria-label="机器人投资"></div><div><label>年工作日（天）</label><input type="number" id="workdays" class="calc-input" value="250" step="any" oninput="calc()" enterkeyhint="done" aria-label="年工作日"></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="hanjiezidonghuapingguPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__hanjiezidonghuapingguExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="hanjiezidonghuapingguTable"></div> <div id="hanjiezidonghuapingguDiff"></div> <div id="hanjiezidonghuapingguChart"></div> <div id="hanjiezidonghuapingguHist"></div>
     <div class="info-box">💡 机器人焊接时间约为人工 40%；投资回收期 <3 年为推荐，<2 年为强烈推荐。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>机器人成本为估算，实际含设备、夹具、编程调试等费用</li><li>回收期超过 5 年建议谨慎评估或优化产量结构</li></ul></div>
     <div style="margin-top:16px;">
@@ -182,6 +182,114 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __hanjiezidonghuapinggu_last=0,__hanjiezidonghuapinggu_skip=false;
+function __hanjiezidonghuapingguSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __hanjiezidonghuapingguResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __hanjiezidonghuapingguTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __hanjiezidonghuapingguRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__hanjiezidonghuapingguTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#hanjiezidonghuapingguTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#hanjiezidonghuapingguDiff');
+        TBKit.history.mount('#hanjiezidonghuapingguHist',function(rec){
+            __hanjiezidonghuapinggu_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __hanjiezidonghuapinggu_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__hanjiezidonghuapingguTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#hanjiezidonghuapingguChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __hanjiezidonghuapingguExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__hanjiezidonghuapinggu_skip) return;
+    var snap=__hanjiezidonghuapingguSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__hanjiezidonghuapingguResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__hanjiezidonghuapinggu_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __hanjiezidonghuapinggu_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __hanjiezidonghuapingguRender(keys,rk,en);
+}
+function __hanjiezidonghuapingguExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hanjiezidonghuapingguTable','hanjiezidonghuapinggu.csv'); } catch(e){}
+}
+function __hanjiezidonghuapingguPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hanjiezidonghuapingguPresets',[{label:'默认参数',labelEn:'Default',values:{'output':'10000', 'seamlen':'0.5', 'mansec':'120', 'labor':'50', 'robotcost':'30', 'workdays':'250'}}],function(){ calc(); });
+}
+var __hanjiezidonghuapinggu_f0=(typeof calc==='function')?calc:null;
+if(__hanjiezidonghuapinggu_f0){
+    calc=function(){ var __r=__hanjiezidonghuapinggu_f0.apply(null,arguments); try{ __hanjiezidonghuapingguExtras(); }catch(e){} return __r; };
+}
+function __hanjiezidonghuapingguBoot(){ try{ __hanjiezidonghuapingguPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hanjiezidonghuapingguBoot();
+else document.addEventListener('DOMContentLoaded', __hanjiezidonghuapingguBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

@@ -117,11 +117,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>焊材消耗量（kg/h）</label><input type="number" id="consume" class="calc-input" value="2" step="0.1" oninput="calc()" enterkeyhint="done" aria-label="焊材消耗量"></div><div><label>车间体积（m³）</label><input type="number" id="volume" class="calc-input" value="500" step="any" oninput="calc()" enterkeyhint="done" aria-label="车间体积"></div><div><label>焊材类型</label><select id="type" class="calc-input" onchange="calc()"><option value="covered">药皮焊条</option><option value="solid">实心焊丝</option><option value="flux">药芯焊丝</option></select></div><div><label>每日焊接时长（h）</label><input type="number" id="hours" class="calc-input" value="8" step="any" oninput="calc()" enterkeyhint="done" aria-label="每日焊接时长"></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🔥 计算</button>
+      <div id="ventilation_protectionPresets"></div><button class="btn primary" type="button" onclick="calc()">🔥 计算</button><button class="btn" type="button" onclick="__ventilation_protectionExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="ventilation_protectionTable"></div> <div id="ventilation_protectionDiff"></div> <div id="ventilation_protectionChart"></div> <div id="ventilation_protectionHist"></div>
     <div class="info-box">💡 焊烟产生系数：药皮焊条 0.8%、实心焊丝 0.5%、药芯焊丝 1.0%；车间换气次数宜≥6 次/h。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>焊烟允许浓度参考 GBZ 2.1，本计算取安全裕度</li><li>密闭空间焊接应配备专用排烟与呼吸防护设备</li></ul></div>
     <div style="margin-top:16px;">
@@ -232,6 +232,114 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __ventilation_protection_last=0,__ventilation_protection_skip=false;
+function __ventilation_protectionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ventilation_protectionResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ventilation_protectionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ventilation_protectionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ventilation_protectionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ventilation_protectionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ventilation_protectionDiff');
+        TBKit.history.mount('#ventilation_protectionHist',function(rec){
+            __ventilation_protection_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __ventilation_protection_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ventilation_protectionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ventilation_protectionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ventilation_protectionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ventilation_protection_skip) return;
+    var snap=__ventilation_protectionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ventilation_protectionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ventilation_protection_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ventilation_protection_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ventilation_protectionRender(keys,rk,en);
+}
+function __ventilation_protectionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ventilation_protectionTable','ventilation-protection.csv'); } catch(e){}
+}
+function __ventilation_protectionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ventilation_protectionPresets',[{label:'默认参数',labelEn:'Default',values:{'consume':'2', 'volume':'500', 'type':'covered', 'hours':'8'}}],function(){ calc(); });
+}
+var __ventilation_protection_f0=(typeof calc==='function')?calc:null;
+if(__ventilation_protection_f0){
+    calc=function(){ var __r=__ventilation_protection_f0.apply(null,arguments); try{ __ventilation_protectionExtras(); }catch(e){} return __r; };
+}
+function __ventilation_protectionBoot(){ try{ __ventilation_protectionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ventilation_protectionBoot();
+else document.addEventListener('DOMContentLoaded', __ventilation_protectionBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

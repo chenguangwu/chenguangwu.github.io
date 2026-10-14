@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="weld_strengthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__weld_strengthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="weld_strengthTable"></div>
+    <div id="weld_strengthDiff"></div>
+    <div id="weld_strengthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,45 @@ function resetForm(){document.getElementById('F').value = '50';
       document.getElementById('lw').value = '200';
       calcTool();}
 calcTool();
+
+function __weld_strengthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __weld_strengthExtras(){
+    function __weld_strengthRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var F=num('F')*1000, hf=num('hf'), lw=num('lw');
+    var A=0.7*hf*lw; // mm² 有效截面
+    var tau=F/A; // MPa
+    if (!isFinite(__weld_strengthNum('F')) || !isFinite(__weld_strengthNum('hf')) || !isFinite(__weld_strengthNum('lw'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#weld_strengthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['焊缝有效截面 A_e (mm²)', A.toFixed(0)],
+            ['焊缝剪应力 τ (MPa)', tau.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({F:__weld_strengthRaw('F'), hf:__weld_strengthRaw('hf'), lw:__weld_strengthRaw('lw'), A:A});
+    function __weld_strengthRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#weld_strengthHist',function(rec){ __weld_strengthRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#weld_strengthDiff',['A']);
+}
+function __weld_strengthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#weld_strengthTable','weld-strength.csv'); } catch(e){}
+}
+function __weld_strengthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#weld_strengthPresets',[
+        {label:'默认',labelEn:'Default',values:{F:'50', hf:'6', lw:'200'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'100', hf:'12', lw:'400'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'25', hf:'3', lw:'100'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __weld_strengthExtras(); }catch(e){} };
+function __weld_strengthBoot(){ try{ __weld_strengthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __weld_strengthBoot();
+else document.addEventListener('DOMContentLoaded', __weld_strengthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

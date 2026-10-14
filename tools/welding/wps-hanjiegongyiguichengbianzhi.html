@@ -117,11 +117,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>焊接方法</label><select id="method" class="calc-input" onchange="calc()"><option value="SMAW">SMAW 手工电弧焊</option><option value="GMAW">GMAW 熔化极气保焊</option><option value="FCAW">FCAW 药芯焊丝</option><option value="GTAW">GTAW 钨极氩弧焊</option></select></div><div><label>母材牌号</label><select id="base" class="calc-input" onchange="calc()"><option value="Q235">Q235</option><option value="Q345">Q345</option><option value="304">304</option><option value="20">20钢</option></select></div><div><label>焊材型号</label><select id="filler" class="calc-input" onchange="calc()"><option value="ER50-6">ER50-6</option><option value="E5015">E5015</option><option value="ER308">ER308</option><option value="E4303">E4303</option></select></div><div><label>焊材直径（mm）</label><input type="number" id="diameter" class="calc-input" value="1.2" step="0.1" oninput="calc()" enterkeyhint="done" aria-label="焊材直径"></div><div><label>焊接电流（A）</label><input type="number" id="current" class="calc-input" value="200" step="any" oninput="calc()" enterkeyhint="done" aria-label="焊接电流"></div><div><label>电弧电压（V）</label><input type="number" id="voltage" class="calc-input" value="24" step="any" oninput="calc()" enterkeyhint="done" aria-label="电弧电压"></div><div><label>焊接速度（cm/min）</label><input type="number" id="speed" class="calc-input" value="30" step="any" oninput="calc()" enterkeyhint="done" aria-label="焊接速度"></div><div><label>预热温度（℃）</label><input type="number" id="preheat" class="calc-input" value="20" step="any" oninput="calc()" enterkeyhint="done" aria-label="预热温度"></div><div><label>焊接层数（道）</label><input type="number" id="pass" class="calc-input" value="2" step="any" oninput="calc()" enterkeyhint="done" aria-label="焊接层数"></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="wps_hanjiegongyiguichengbianzhiPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__wps_hanjiegongyiguichengbianzhiExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="wps_hanjiegongyiguichengbianzhiTable"></div> <div id="wps_hanjiegongyiguichengbianzhiDiff"></div> <div id="wps_hanjiegongyiguichengbianzhiChart"></div> <div id="wps_hanjiegongyiguichengbianzhiHist"></div>
     <div class="info-box">💡 热输入 HI = U×I/v ÷1000（kJ/mm）；熔敷速率与焊接方法及电流相关。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>WPS 摘要仅供参考，正式规程需经工艺评定（PQR）支持</li><li>热输入应根据材料性能要求严格控制</li></ul></div>
     <div style="margin-top:16px;">
@@ -238,6 +238,114 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __wps_hanjiegongyiguichengbianzhi_last=0,__wps_hanjiegongyiguichengbianzhi_skip=false;
+function __wps_hanjiegongyiguichengbianzhiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __wps_hanjiegongyiguichengbianzhiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __wps_hanjiegongyiguichengbianzhiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __wps_hanjiegongyiguichengbianzhiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__wps_hanjiegongyiguichengbianzhiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#wps_hanjiegongyiguichengbianzhiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#wps_hanjiegongyiguichengbianzhiDiff');
+        TBKit.history.mount('#wps_hanjiegongyiguichengbianzhiHist',function(rec){
+            __wps_hanjiegongyiguichengbianzhi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __wps_hanjiegongyiguichengbianzhi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__wps_hanjiegongyiguichengbianzhiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#wps_hanjiegongyiguichengbianzhiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __wps_hanjiegongyiguichengbianzhiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__wps_hanjiegongyiguichengbianzhi_skip) return;
+    var snap=__wps_hanjiegongyiguichengbianzhiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__wps_hanjiegongyiguichengbianzhiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__wps_hanjiegongyiguichengbianzhi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __wps_hanjiegongyiguichengbianzhi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __wps_hanjiegongyiguichengbianzhiRender(keys,rk,en);
+}
+function __wps_hanjiegongyiguichengbianzhiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wps_hanjiegongyiguichengbianzhiTable','wps-hanjiegongyiguichengbianzhi.csv'); } catch(e){}
+}
+function __wps_hanjiegongyiguichengbianzhiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wps_hanjiegongyiguichengbianzhiPresets',[{label:'默认参数',labelEn:'Default',values:{'method':'SMAW', 'base':'Q235', 'filler':'ER50-6', 'diameter':'1.2', 'current':'200', 'voltage':'24', 'speed':'30', 'preheat':'20', 'pass':'2'}}],function(){ calc(); });
+}
+var __wps_hanjiegongyiguichengbianzhi_f0=(typeof calc==='function')?calc:null;
+if(__wps_hanjiegongyiguichengbianzhi_f0){
+    calc=function(){ var __r=__wps_hanjiegongyiguichengbianzhi_f0.apply(null,arguments); try{ __wps_hanjiegongyiguichengbianzhiExtras(); }catch(e){} return __r; };
+}
+function __wps_hanjiegongyiguichengbianzhiBoot(){ try{ __wps_hanjiegongyiguichengbianzhiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wps_hanjiegongyiguichengbianzhiBoot();
+else document.addEventListener('DOMContentLoaded', __wps_hanjiegongyiguichengbianzhiBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

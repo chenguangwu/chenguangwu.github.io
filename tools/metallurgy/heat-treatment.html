@@ -150,10 +150,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>保温系数 (min/mm)</label><input type="number" id="holdCoef" value="1.5" min="0.2" max="5" step="0.1" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="heat_treatmentPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__heat_treatmentExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="heat_treatmentTable"></div> <div id="heat_treatmentDiff"></div> <div id="heat_treatmentChart"></div> <div id="heat_treatmentHist"></div>
   </div>
   <div class="card">
     <h2>📋 工艺参考</h2>
@@ -350,6 +350,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __heat_treatment_last=0,__heat_treatment_skip=false;
+function __heat_treatmentSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __heat_treatmentResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __heat_treatmentTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __heat_treatmentRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__heat_treatmentTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#heat_treatmentTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#heat_treatmentDiff');
+        TBKit.history.mount('#heat_treatmentHist',function(rec){
+            __heat_treatment_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __heat_treatment_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__heat_treatmentTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#heat_treatmentChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __heat_treatmentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__heat_treatment_skip) return;
+    var snap=__heat_treatmentSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__heat_treatmentResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__heat_treatment_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __heat_treatment_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __heat_treatmentRender(keys,rk,en);
+}
+function __heat_treatmentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#heat_treatmentTable','heat-treatment.csv'); } catch(e){}
+}
+function __heat_treatmentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#heat_treatmentPresets',[{label:'默认参数',labelEn:'Default',values:{'thickness':'50', 'material':'carbon', 'process':'quench', 'temp':'850', 'heatRate':'120', 'holdCoef':'1.5'}}],function(){ calc(); });
+}
+var __heat_treatment_f0=(typeof calc==='function')?calc:null;
+if(__heat_treatment_f0){
+    calc=function(){ var __r=__heat_treatment_f0.apply(null,arguments); try{ __heat_treatmentExtras(); }catch(e){} return __r; };
+}
+function __heat_treatmentBoot(){ try{ __heat_treatmentPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __heat_treatmentBoot();
+else document.addEventListener('DOMContentLoaded', __heat_treatmentBoot);
 </script>
 
 </body>

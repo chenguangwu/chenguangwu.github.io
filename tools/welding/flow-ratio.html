@@ -120,11 +120,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>焊接方法</label><select id="method" class="calc-input" onchange="calc()"><option value="MIG">MIG/MAG 熔化极</option><option value="TIG">TIG 钨极氩弧焊</option></select></div><div><label>喷嘴直径（mm）</label><input type="number" id="nozzle" class="calc-input" value="12" step="any" oninput="calc()" enterkeyhint="done" aria-label="喷嘴直径"></div><div><label>总流量（L/min）</label><input type="number" id="flow" class="calc-input" value="15" step="any" oninput="calc()" enterkeyhint="done" aria-label="总流量"></div><div><label>Ar 比例（%）</label><input type="number" id="ar" class="calc-input" value="80" step="any" oninput="calc()" enterkeyhint="done" aria-label="Ar 比例"></div><div><label>CO₂ 比例（%）</label><input type="number" id="co2" class="calc-input" value="20" step="any" oninput="calc()" enterkeyhint="done" aria-label="CO₂ 比例"></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="flow_ratioPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__flow_ratioExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="flow_ratioTable"></div> <div id="flow_ratioDiff"></div> <div id="flow_ratioChart"></div> <div id="flow_ratioHist"></div>
     <div class="info-box">💡 MIG/MAG 推荐流量 15~20 L/min，TIG 推荐 8~15 L/min；喷嘴出口流速宜在 8~15 m/s。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>比例之和无需严格 100%，工具自动归一化</li><li>室外或有风环境应适当增大流量</li></ul></div>
     <div style="margin-top:16px;">
@@ -233,6 +233,114 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __flow_ratio_last=0,__flow_ratio_skip=false;
+function __flow_ratioSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __flow_ratioResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __flow_ratioTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __flow_ratioRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__flow_ratioTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#flow_ratioTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#flow_ratioDiff');
+        TBKit.history.mount('#flow_ratioHist',function(rec){
+            __flow_ratio_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __flow_ratio_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__flow_ratioTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#flow_ratioChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __flow_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__flow_ratio_skip) return;
+    var snap=__flow_ratioSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__flow_ratioResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__flow_ratio_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __flow_ratio_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __flow_ratioRender(keys,rk,en);
+}
+function __flow_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#flow_ratioTable','flow-ratio.csv'); } catch(e){}
+}
+function __flow_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#flow_ratioPresets',[{label:'默认参数',labelEn:'Default',values:{'method':'MIG', 'nozzle':'12', 'flow':'15', 'ar':'80', 'co2':'20'}}],function(){ calc(); });
+}
+var __flow_ratio_f0=(typeof calc==='function')?calc:null;
+if(__flow_ratio_f0){
+    calc=function(){ var __r=__flow_ratio_f0.apply(null,arguments); try{ __flow_ratioExtras(); }catch(e){} return __r; };
+}
+function __flow_ratioBoot(){ try{ __flow_ratioPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __flow_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __flow_ratioBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

@@ -117,11 +117,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>板厚（mm）</label><input type="number" id="thickness" class="calc-input" value="20" step="any" oninput="calc()" enterkeyhint="done" aria-label="板厚"></div><div><label>碳当量 CEV</label><input type="number" id="ce" class="calc-input" value="0.45" step="0.01" oninput="calc()" enterkeyhint="done" aria-label="碳当量 CEV"></div><div><label>C</label><input type="number" id="c" class="calc-input" value="0.18" step="0.01" oninput="calc()" enterkeyhint="done" aria-label="C"></div><div><label>Mn</label><input type="number" id="mn" class="calc-input" value="1.4" step="0.01" oninput="calc()" enterkeyhint="done" aria-label="Mn"></div><div><label>Cr</label><input type="number" id="cr" class="calc-input" value="0.1" step="0.01" oninput="calc()" enterkeyhint="done" aria-label="Cr"></div><div><label>Mo</label><input type="number" id="mo" class="calc-input" value="0" step="0.01" oninput="calc()" enterkeyhint="done" aria-label="Mo"></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="temp_time_6Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__temp_time_6Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="temp_time_6Table"></div> <div id="temp_time_6Diff"></div> <div id="temp_time_6Chart"></div> <div id="temp_time_6Hist"></div>
     <div class="info-box">💡 CEV<0.4 焊接性优良一般无需预热；0.4~0.6 需预热；>0.6 焊接性差需较高预热温度。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>碳当量可手动输入或由元素含量按 IIW 公式估算</li><li>保温时间按 2~3 min/mm 估算，厚板取上限</li></ul></div>
     <div style="margin-top:16px;">
@@ -184,6 +184,114 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __temp_time_6_last=0,__temp_time_6_skip=false;
+function __temp_time_6Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __temp_time_6ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __temp_time_6Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __temp_time_6Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__temp_time_6Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#temp_time_6Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#temp_time_6Diff');
+        TBKit.history.mount('#temp_time_6Hist',function(rec){
+            __temp_time_6_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __temp_time_6_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__temp_time_6Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#temp_time_6Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __temp_time_6Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__temp_time_6_skip) return;
+    var snap=__temp_time_6Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__temp_time_6ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__temp_time_6_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __temp_time_6_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __temp_time_6Render(keys,rk,en);
+}
+function __temp_time_6Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#temp_time_6Table','temp-time-6.csv'); } catch(e){}
+}
+function __temp_time_6Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#temp_time_6Presets',[{label:'默认参数',labelEn:'Default',values:{'thickness':'20', 'ce':'0.45', 'c':'0.18', 'mn':'1.4', 'cr':'0.1', 'mo':'0'}}],function(){ calc(); });
+}
+var __temp_time_6_f0=(typeof calc==='function')?calc:null;
+if(__temp_time_6_f0){
+    calc=function(){ var __r=__temp_time_6_f0.apply(null,arguments); try{ __temp_time_6Extras(); }catch(e){} return __r; };
+}
+function __temp_time_6Boot(){ try{ __temp_time_6Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __temp_time_6Boot();
+else document.addEventListener('DOMContentLoaded', __temp_time_6Boot);
 </script>
 <!-- SEO 介绍区块 -->
 

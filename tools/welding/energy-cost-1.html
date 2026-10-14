@@ -117,11 +117,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row"><div><label>焊接电流（A）</label><input type="number" id="current" class="calc-input" value="200" step="any" oninput="calc()" enterkeyhint="done" aria-label="焊接电流"></div><div><label>电弧电压（V）</label><input type="number" id="voltage" class="calc-input" value="24" step="any" oninput="calc()" enterkeyhint="done" aria-label="电弧电压"></div><div><label>焊接时间（min）</label><input type="number" id="time" class="calc-input" value="30" step="any" oninput="calc()" enterkeyhint="done" aria-label="焊接时间"></div><div><label>电价（元/kWh）</label><input type="number" id="price" class="calc-input" value="1.0" step="0.01" oninput="calc()" enterkeyhint="done" aria-label="电价"></div><div><label>负载持续率（%）</label><input type="number" id="duty" class="calc-input" value="60" step="any" oninput="calc()" enterkeyhint="done" aria-label="负载持续率"></div><div><label>焊机效率（%）</label><input type="number" id="eff" class="calc-input" value="85" step="any" oninput="calc()" enterkeyhint="done" aria-label="焊机效率"></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="energy_cost_1Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__energy_cost_1Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="energy_cost_1Table"></div> <div id="energy_cost_1Diff"></div> <div id="energy_cost_1Chart"></div> <div id="energy_cost_1Hist"></div>
     <div class="info-box">💡 电弧功率 P = U × I ÷ 1000（kW）；考虑焊机效率与负载持续率后计算实际能耗与电费。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;"><div class="tool-notes-title">⚠️ 使用说明与注意事项</div><ul><li>按 Enter 快速计算，Ctrl/Cmd + Enter 复制结果</li><li>本工具纯前端运行，数据不会上传到服务器</li><li>负载持续率（暂载率）为燃弧时间占总时间比例，60% 为常见值</li><li>计算结果仅供参考，实际能耗受焊机型号与工况影响</li></ul></div>
     <div style="margin-top:16px;">
@@ -231,6 +231,114 @@ function bindKeys(){var n=document.querySelectorAll('.calc-input');for(var i=0;i
 document.addEventListener('DOMContentLoaded',function(){renderHistory();bindKeys();calc();});
 
 calc();
+
+var __energy_cost_1_last=0,__energy_cost_1_skip=false;
+function __energy_cost_1Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __energy_cost_1ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __energy_cost_1Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __energy_cost_1Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__energy_cost_1Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#energy_cost_1Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#energy_cost_1Diff');
+        TBKit.history.mount('#energy_cost_1Hist',function(rec){
+            __energy_cost_1_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __energy_cost_1_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__energy_cost_1Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#energy_cost_1Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __energy_cost_1Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__energy_cost_1_skip) return;
+    var snap=__energy_cost_1Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__energy_cost_1ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__energy_cost_1_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __energy_cost_1_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __energy_cost_1Render(keys,rk,en);
+}
+function __energy_cost_1Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_cost_1Table','energy-cost-1.csv'); } catch(e){}
+}
+function __energy_cost_1Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_cost_1Presets',[{label:'默认参数',labelEn:'Default',values:{'current':'200', 'voltage':'24', 'time':'30', 'price':'1.0', 'duty':'60', 'eff':'85'}}],function(){ calc(); });
+}
+var __energy_cost_1_f0=(typeof calc==='function')?calc:null;
+if(__energy_cost_1_f0){
+    calc=function(){ var __r=__energy_cost_1_f0.apply(null,arguments); try{ __energy_cost_1Extras(); }catch(e){} return __r; };
+}
+function __energy_cost_1Boot(){ try{ __energy_cost_1Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_cost_1Boot();
+else document.addEventListener('DOMContentLoaded', __energy_cost_1Boot);
 </script>
 <!-- SEO 介绍区块 -->
 
