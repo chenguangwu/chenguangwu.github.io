@@ -132,10 +132,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>变位系数 x2</label><input type="number" id="x2" value="0" min="-0.5" max="1" step="0.05" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="gear_parametersPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__gear_parametersExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="gear_parametersTable"></div> <div id="gear_parametersDiff"></div> <div id="gear_parametersChart"></div> <div id="gear_parametersHist"></div>
   </div>
   <div class="card">
     <h2>📋 齿轮参数公式</h2>
@@ -330,6 +330,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __gear_parameters_last=0,__gear_parameters_skip=false;
+function __gear_parametersSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __gear_parametersResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __gear_parametersTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __gear_parametersRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__gear_parametersTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#gear_parametersTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#gear_parametersDiff');
+        TBKit.history.mount('#gear_parametersHist',function(rec){
+            __gear_parameters_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __gear_parameters_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__gear_parametersTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#gear_parametersChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __gear_parametersExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__gear_parameters_skip) return;
+    var snap=__gear_parametersSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__gear_parametersResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__gear_parameters_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __gear_parameters_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __gear_parametersRender(keys,rk,en);
+}
+function __gear_parametersExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gear_parametersTable','gear-parameters.csv'); } catch(e){}
+}
+function __gear_parametersPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gear_parametersPresets',[{label:'默认参数',labelEn:'Default',values:{'module':'2', 'z1':'24', 'z2':'36', 'alpha':'20', 'haCoef':'1', 'cCoef':'0.25', 'x1':'0', 'x2':'0'}}],function(){ calc(); });
+}
+var __gear_parameters_f0=(typeof calc==='function')?calc:null;
+if(__gear_parameters_f0){
+    calc=function(){ var __r=__gear_parameters_f0.apply(null,arguments); try{ __gear_parametersExtras(); }catch(e){} return __r; };
+}
+function __gear_parametersBoot(){ try{ __gear_parametersPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gear_parametersBoot();
+else document.addEventListener('DOMContentLoaded', __gear_parametersBoot);
 </script>
 
 </body>

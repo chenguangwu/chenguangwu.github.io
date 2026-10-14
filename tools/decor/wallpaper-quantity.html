@@ -176,14 +176,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="wallpaper_quantityPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__wallpaper_quantityExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="big-result" id="bigResult"></div>
 
     <div class="split-row">
-      <div class="result-box" id="detail"></div>
+      <div class="result-box" id="detail"></div> <div id="wallpaper_quantityTable"></div> <div id="wallpaper_quantityDiff"></div> <div id="wallpaper_quantityChart"></div> <div id="wallpaper_quantityHist"></div>
       <div class="result-box" id="tips"></div>
     </div>
   </div>
@@ -397,6 +397,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __wallpaper_quantity_last=0,__wallpaper_quantity_skip=false;
+function __wallpaper_quantitySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __wallpaper_quantityResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __wallpaper_quantityTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __wallpaper_quantityRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__wallpaper_quantityTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#wallpaper_quantityTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#wallpaper_quantityDiff');
+        TBKit.history.mount('#wallpaper_quantityHist',function(rec){
+            __wallpaper_quantity_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __wallpaper_quantity_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__wallpaper_quantityTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#wallpaper_quantityChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __wallpaper_quantityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__wallpaper_quantity_skip) return;
+    var snap=__wallpaper_quantitySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__wallpaper_quantityResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__wallpaper_quantity_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __wallpaper_quantity_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __wallpaper_quantityRender(keys,rk,en);
+}
+function __wallpaper_quantityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wallpaper_quantityTable','wallpaper-quantity.csv'); } catch(e){}
+}
+function __wallpaper_quantityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wallpaper_quantityPresets',[{label:'默认参数',labelEn:'Default',values:{'perimeter':'12', 'height':'2.8', 'deduct':'6', 'rollWidth':'0.53', 'rollLen':'10', 'pattern':'0.32', 'waste':'5'}}],function(){ calc(); });
+}
+var __wallpaper_quantity_f0=(typeof calc==='function')?calc:null;
+if(__wallpaper_quantity_f0){
+    calc=function(){ var __r=__wallpaper_quantity_f0.apply(null,arguments); try{ __wallpaper_quantityExtras(); }catch(e){} return __r; };
+}
+function __wallpaper_quantityBoot(){ try{ __wallpaper_quantityPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wallpaper_quantityBoot();
+else document.addEventListener('DOMContentLoaded', __wallpaper_quantityBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用壁纸用量计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>墙面总长度（m）</li><li>墙面高度（m）</li><li>门窗扣减面积（㎡）</li><li>幅宽（m）</li><li>每卷长度（m）</li><li>对花花距（m，无花填0）</li><li>施工损耗率（%）</li></ul><h2>适用场景</h2><p>适合装修贴壁纸前按墙面尺寸与壁纸幅宽、幅长估算所需卷数与幅数，考虑对花损耗与同批备货，结果本地计算不上传。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>壁纸用量计算器是做什么的？</dt><dd>壁纸用量计算器，按墙面尺寸与壁纸幅宽、幅长、损耗率求所需卷数与幅数，辅助装修贴壁纸备料与预算。</dd><dt>如何使用壁纸用量计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>壁纸用量计算器适合哪些场景？</dt><dd>适合装修贴壁纸前按墙面尺寸与壁纸幅宽、幅长估算所需卷数与幅数，考虑对花损耗与同批备货，结果本地计算不上传。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

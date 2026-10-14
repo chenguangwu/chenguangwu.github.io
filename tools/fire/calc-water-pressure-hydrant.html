@@ -128,11 +128,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>管道损失（MPa）</label><input type="number" id="lossP" value="0.08" min="0" step="0.01" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算所需压力</button>
+      <div id="calc_water_pressure_hydrantPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算所需压力</button><button class="btn" type="button" onclick="__calc_water_pressure_hydrantExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="calc_water_pressure_hydrantTable"></div> <div id="calc_water_pressure_hydrantDiff"></div> <div id="calc_water_pressure_hydrantChart"></div> <div id="calc_water_pressure_hydrantHist"></div>
     <div class="info-box">💡 水的静压换算：每 10.2 m 高程约产生 0.1 MPa 压力差；请用项目实测或水力计算结果替换默认值。</div>
   </div>
 </div>
@@ -153,6 +153,114 @@ function calc(){
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 function resetAll(){document.getElementById('staticP').value='0.55';document.getElementById('elevation').value='12';document.getElementById('nozzleP').value='0.35';document.getElementById('lossP').value='0.08';calc();}
 calc();
+
+var __calc_water_pressure_hydrant_last=0,__calc_water_pressure_hydrant_skip=false;
+function __calc_water_pressure_hydrantSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_water_pressure_hydrantResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_water_pressure_hydrantTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_water_pressure_hydrantRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_water_pressure_hydrantTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_water_pressure_hydrantTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_water_pressure_hydrantDiff');
+        TBKit.history.mount('#calc_water_pressure_hydrantHist',function(rec){
+            __calc_water_pressure_hydrant_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_water_pressure_hydrant_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_water_pressure_hydrantTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_water_pressure_hydrantChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_water_pressure_hydrantExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_water_pressure_hydrant_skip) return;
+    var snap=__calc_water_pressure_hydrantSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_water_pressure_hydrantResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_water_pressure_hydrant_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_water_pressure_hydrant_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_water_pressure_hydrantRender(keys,rk,en);
+}
+function __calc_water_pressure_hydrantExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_water_pressure_hydrantTable','calc-water-pressure-hydrant.csv'); } catch(e){}
+}
+function __calc_water_pressure_hydrantPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_water_pressure_hydrantPresets',[{label:'默认参数',labelEn:'Default',values:{'staticP':'0.55', 'elevation':'12', 'nozzleP':'0.35', 'lossP':'0.08'}}],function(){ calc(); });
+}
+var __calc_water_pressure_hydrant_f0=(typeof calc==='function')?calc:null;
+if(__calc_water_pressure_hydrant_f0){
+    calc=function(){ var __r=__calc_water_pressure_hydrant_f0.apply(null,arguments); try{ __calc_water_pressure_hydrantExtras(); }catch(e){} return __r; };
+}
+function __calc_water_pressure_hydrantBoot(){ try{ __calc_water_pressure_hydrantPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_water_pressure_hydrantBoot();
+else document.addEventListener('DOMContentLoaded', __calc_water_pressure_hydrantBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
           <input type="number" id="thick" value="0.5" oninput="calcSize()" step="any" min="0">
         </div>
       </div>
-      <div class="result-box" id="resultSize"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__carton_designExport()">导出明细 CSV</button></div><div class="result-box" id="resultSize"></div> <div id="carton_designTable"></div> <div id="carton_designDiff"></div> <div id="carton_designChart"></div> <div id="carton_designHist"></div>
     </div>
 
     <div class="tab-content" id="mode-volume">
@@ -410,6 +410,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __carton_design_last=0,__carton_design_skip=false;
+function __carton_designSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __carton_designResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __carton_designTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __carton_designRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__carton_designTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#carton_designTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#carton_designDiff');
+        TBKit.history.mount('#carton_designHist',function(rec){
+            __carton_design_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcSize();
+            }catch(e2){}
+            __carton_design_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__carton_designTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#carton_designChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __carton_designExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__carton_design_skip) return;
+    var snap=__carton_designSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__carton_designResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__carton_design_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __carton_design_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __carton_designRender(keys,rk,en);
+}
+function __carton_designExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#carton_designTable','carton-design.csv'); } catch(e){}
+}
+function __carton_designPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#carton_designPresets',[{label:'默认参数',labelEn:'Default',values:{'len':'120', 'wid':'80', 'hei':'60', 'thick':'0.5', 'volume':'500', 'ratio':'1.5', 'hwRatio':'1.0', 'thick2':'0.5'}}],function(){ calcSize(); });
+}
+var __carton_design_f0=(typeof calcSize==='function')?calcSize:null;
+if(__carton_design_f0){
+    calcSize=function(){ var __r=__carton_design_f0.apply(null,arguments); try{ __carton_designExtras(); }catch(e){} return __r; };
+}
+function __carton_designBoot(){ try{ __carton_designPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __carton_designBoot();
+else document.addEventListener('DOMContentLoaded', __carton_designBoot);
 </script>
 
 </body>

@@ -168,12 +168,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">兑换</button>
+      <div id="currency_exchangePresets"></div><button type="button" class="btn primary" onclick="calc()">兑换</button><button class="btn" type="button" onclick="__currency_exchangeExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="swap()">⇅ 互换</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="currency_exchangeTable"></div> <div id="currency_exchangeDiff"></div> <div id="currency_exchangeChart"></div> <div id="currency_exchangeHist"></div>
 
     <h3 style="margin:16px 0 8px;">常用金额速查</h3>
     <div class="data-grid" id="cheat"></div>
@@ -383,6 +383,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __currency_exchange_last=0,__currency_exchange_skip=false;
+function __currency_exchangeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __currency_exchangeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __currency_exchangeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __currency_exchangeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__currency_exchangeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#currency_exchangeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#currency_exchangeDiff');
+        TBKit.history.mount('#currency_exchangeHist',function(rec){
+            __currency_exchange_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __currency_exchange_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__currency_exchangeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#currency_exchangeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __currency_exchangeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__currency_exchange_skip) return;
+    var snap=__currency_exchangeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__currency_exchangeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__currency_exchange_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __currency_exchange_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __currency_exchangeRender(keys,rk,en);
+}
+function __currency_exchangeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#currency_exchangeTable','currency-exchange.csv'); } catch(e){}
+}
+function __currency_exchangePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#currency_exchangePresets',[{label:'默认参数',labelEn:'Default',values:{'fromCode':'CNY', 'toCode':'USD', 'rate':'0.138', 'fee':'0', 'amount':'10000', 'direction':'forward'}}],function(){ calc(); });
+}
+var __currency_exchange_f0=(typeof calc==='function')?calc:null;
+if(__currency_exchange_f0){
+    calc=function(){ var __r=__currency_exchange_f0.apply(null,arguments); try{ __currency_exchangeExtras(); }catch(e){} return __r; };
+}
+function __currency_exchangeBoot(){ try{ __currency_exchangePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __currency_exchangeBoot();
+else document.addEventListener('DOMContentLoaded', __currency_exchangeBoot);
 </script>
 
 </body>

@@ -163,7 +163,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyCite()">复制引用</button>
     </div>
 
-    <div class="cite-out" id="output"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__citation_formatExport()">导出明细 CSV</button></div><div class="cite-out" id="output"></div> <div id="citation_formatTable"></div> <div id="citation_formatDiff"></div> <div id="citation_formatChart"></div> <div id="citation_formatHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -456,6 +456,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __citation_format_last=0,__citation_format_skip=false;
+function __citation_formatSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __citation_formatResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __citation_formatTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __citation_formatRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__citation_formatTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#citation_formatTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#citation_formatDiff');
+        TBKit.history.mount('#citation_formatHist',function(rec){
+            __citation_format_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                onTypeChange();
+            }catch(e2){}
+            __citation_format_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__citation_formatTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#citation_formatChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __citation_formatExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__citation_format_skip) return;
+    var snap=__citation_formatSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__citation_formatResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__citation_format_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __citation_format_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __citation_formatRender(keys,rk,en);
+}
+function __citation_formatExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#citation_formatTable','citation-format.csv'); } catch(e){}
+}
+function __citation_formatPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#citation_formatPresets',[{label:'默认参数',labelEn:'Default',values:{'docType':'book', 'title':'数字图书馆建设与发展研究', 'seq':'1', 'place':'北京', 'publisher':'科学出版社', 'year':'2023', 'journal':'中国图书馆学报', 'volissue':'2023,49(3)', 'degree':'博士', 'school':'北京大学'}}],function(){ onTypeChange(); });
+}
+var __citation_format_f0=(typeof onTypeChange==='function')?onTypeChange:null;
+if(__citation_format_f0){
+    onTypeChange=function(){ var __r=__citation_format_f0.apply(null,arguments); try{ __citation_formatExtras(); }catch(e){} return __r; };
+}
+function __citation_formatBoot(){ try{ __citation_formatPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __citation_formatBoot();
+else document.addEventListener('DOMContentLoaded', __citation_formatBoot);
 </script>
 
 </body>

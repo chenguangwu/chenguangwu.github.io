@@ -164,13 +164,13 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🖼️ 计算</button>
+      <div id="rotation_stabilityPresets"></div><button type="button" class="btn primary" onclick="calc()">🖼️ 计算</button><button class="btn" type="button" onclick="__rotation_stabilityExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
     <div class="data-grid" id="dataGrid"></div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="rotation_stabilityTable"></div> <div id="rotation_stabilityDiff"></div> <div id="rotation_stabilityChart"></div> <div id="rotation_stabilityHist"></div>
   </div>
 
   <div class="card">
@@ -348,6 +348,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __rotation_stability_last=0,__rotation_stability_skip=false;
+function __rotation_stabilitySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __rotation_stabilityResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __rotation_stabilityTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __rotation_stabilityRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__rotation_stabilityTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#rotation_stabilityTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#rotation_stabilityDiff');
+        TBKit.history.mount('#rotation_stabilityHist',function(rec){
+            __rotation_stability_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __rotation_stability_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__rotation_stabilityTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#rotation_stabilityChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __rotation_stabilityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__rotation_stability_skip) return;
+    var snap=__rotation_stabilitySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__rotation_stabilityResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__rotation_stability_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __rotation_stability_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __rotation_stabilityRender(keys,rk,en);
+}
+function __rotation_stabilityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rotation_stabilityTable','rotation-stability.csv'); } catch(e){}
+}
+function __rotation_stabilityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rotation_stabilityPresets',[{label:'默认参数',labelEn:'Default',values:{'rotations':'8', 'time':'4', 'height':'165', 'spinType':'spot', 'level':'0'}}],function(){ calc(); });
+}
+var __rotation_stability_f0=(typeof calc==='function')?calc:null;
+if(__rotation_stability_f0){
+    calc=function(){ var __r=__rotation_stability_f0.apply(null,arguments); try{ __rotation_stabilityExtras(); }catch(e){} return __r; };
+}
+function __rotation_stabilityBoot(){ try{ __rotation_stabilityPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rotation_stabilityBoot();
+else document.addEventListener('DOMContentLoaded', __rotation_stabilityBoot);
 </script>
 
 </body>

@@ -120,10 +120,10 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于风险矩阵(概率x影响)对活动风险进行量化评估，涵盖安全风险、财务风险、声誉风险、运营风险、法律合规风险5大类，自动计算风险等级并给出应对建议。">Assessor Risk</p>
 <div class="ref-card" style="margin-bottom:16px"><h4>风险矩阵标准</h4><p>概率：1=极低 2=低 3=中 4=高 5=极高</p><p>影响：1=极小 2=小 3=中 4=大 5=极大</p><p>风险值=概率x影响，1-4低风险 5-9中风险 10-15高风险 16-25极高风险</p></div><div class="input-row"><div><label>1. 安全风险-发生概率</label><select id="s1" style="font-size:16px" onchange="calc()"><option value="1">1-极低</option><option value="2">2-低</option><option value="3">3-中</option><option value="4">4-高</option><option value="5">5-极高</option></select></div></div><div class="input-row"><div><label>1. 安全风险-影响程度</label><select id="i1" style="font-size:16px" onchange="calc()"><option value="1">1-极小</option><option value="2">2-小</option><option value="3">3-中</option><option value="4">4-大</option><option value="5">5-极大</option></select></div></div><div class="input-row"><div><label>2. 财务风险-发生概率</label><select id="s2" style="font-size:16px" onchange="calc()"><option value="1">1-极低</option><option value="2">2-低</option><option value="3">3-中</option><option value="4">4-高</option><option value="5">5-极高</option></select></div></div><div class="input-row"><div><label>2. 财务风险-影响程度</label><select id="i2" style="font-size:16px" onchange="calc()"><option value="1">1-极小</option><option value="2">2-小</option><option value="3">3-中</option><option value="4">4-大</option><option value="5">5-极大</option></select></div></div><div class="input-row"><div><label>3. 声誉风险-发生概率</label><select id="s3" style="font-size:16px" onchange="calc()"><option value="1">1-极低</option><option value="2">2-低</option><option value="3">3-中</option><option value="4">4-高</option><option value="5">5-极高</option></select></div></div><div class="input-row"><div><label>3. 声誉风险-影响程度</label><select id="i3" style="font-size:16px" onchange="calc()"><option value="1">1-极小</option><option value="2">2-小</option><option value="3">3-中</option><option value="4">4-大</option><option value="5">5-极大</option></select></div></div><div class="input-row"><div><label>4. 运营风险-发生概率</label><select id="s4" style="font-size:16px" onchange="calc()"><option value="1">1-极低</option><option value="2">2-低</option><option value="3">3-中</option><option value="4">4-高</option><option value="5">5-极高</option></select></div></div><div class="input-row"><div><label>4. 运营风险-影响程度</label><select id="i4" style="font-size:16px" onchange="calc()"><option value="1">1-极小</option><option value="2">2-小</option><option value="3">3-中</option><option value="4">4-大</option><option value="5">5-极大</option></select></div></div><div class="input-row"><div><label>5. 法律合规风险-发生概率</label><select id="s5" style="font-size:16px" onchange="calc()"><option value="1">1-极低</option><option value="2">2-低</option><option value="3">3-中</option><option value="4">4-高</option><option value="5">5-极高</option></select></div></div><div class="input-row"><div><label>5. 法律合规风险-影响程度</label><select id="i5" style="font-size:16px" onchange="calc()"><option value="1">1-极小</option><option value="2">2-小</option><option value="3">3-中</option><option value="4">4-大</option><option value="5">5-极大</option></select></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算风险</button>
+      <div id="assessor_riskPresets"></div><button type="button" class="btn primary" onclick="calc()">计算风险</button><button class="btn" type="button" onclick="__assessor_riskExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_riskTable"></div> <div id="assessor_riskDiff"></div> <div id="assessor_riskChart"></div> <div id="assessor_riskHist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -232,6 +232,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>大型活动风险评估</li><li>活动方案审批</li><li>应急预案制定</li><li>保险投保参考</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __assessor_risk_last=0,__assessor_risk_skip=false;
+function __assessor_riskSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_riskResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_riskTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_riskRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_riskTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_riskTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_riskDiff');
+        TBKit.history.mount('#assessor_riskHist',function(rec){
+            __assessor_risk_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_risk_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_riskTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_riskChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_riskExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_risk_skip) return;
+    var snap=__assessor_riskSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_riskResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_risk_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_risk_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_riskRender(keys,rk,en);
+}
+function __assessor_riskExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_riskTable','assessor-risk.csv'); } catch(e){}
+}
+function __assessor_riskPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_riskPresets',[{label:'默认参数',labelEn:'Default',values:{'s1':'1', 'i1':'1', 's2':'1', 'i2':'1', 's3':'1', 'i3':'1', 's4':'1', 'i4':'1', 's5':'1', 'i5':'1'}}],function(){ calc(); });
+}
+var __assessor_risk_f0=(typeof calc==='function')?calc:null;
+if(__assessor_risk_f0){
+    calc=function(){ var __r=__assessor_risk_f0.apply(null,arguments); try{ __assessor_riskExtras(); }catch(e){} return __r; };
+}
+function __assessor_riskBoot(){ try{ __assessor_riskPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_riskBoot();
+else document.addEventListener('DOMContentLoaded', __assessor_riskBoot);
+</script>
 </body>
 </html>

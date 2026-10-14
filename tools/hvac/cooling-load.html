@@ -208,12 +208,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">❄️ 计算冷负荷</button>
+      <div id="cooling_loadPresets"></div><button class="btn primary" type="button" onclick="calc()">❄️ 计算冷负荷</button><button class="btn" type="button" onclick="__cooling_loadExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="cooling_loadTable"></div> <div id="cooling_loadDiff"></div> <div id="cooling_loadChart"></div> <div id="cooling_loadHist"></div>
     <div class="info-box">💡 计算依据：Q1=K·F·(tw-tn) 外墙传热；Q2=K_win·F_win·(tw-tn)+太阳辐射附加；Q3=人数×(显热+潜热)；Q4=设备功率×同时使用系数；Q5=照明功率×0.8；Q6=新风量×ρ×(hw-hn)；总负荷 Q=ΣQi×1.1（安全系数）。空气密度 ρ=1.2 kg/m³。</div>
 
     <div class="tool-notes" style="--tool-accent:#00C9A7;">
@@ -447,6 +447,114 @@ document.addEventListener('DOMContentLoaded', function(){
   calc();
 });
 calc();
+
+var __cooling_load_last=0,__cooling_load_skip=false;
+function __cooling_loadSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cooling_loadResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cooling_loadTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cooling_loadRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cooling_loadTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cooling_loadTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cooling_loadDiff');
+        TBKit.history.mount('#cooling_loadHist',function(rec){
+            __cooling_load_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cooling_load_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cooling_loadTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cooling_loadChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cooling_loadExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cooling_load_skip) return;
+    var snap=__cooling_loadSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cooling_loadResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cooling_load_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cooling_load_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cooling_loadRender(keys,rk,en);
+}
+function __cooling_loadExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cooling_loadTable','cooling-load.csv'); } catch(e){}
+}
+function __cooling_loadPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cooling_loadPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'30', 'height':'3.0', 'orientation':'南', 'wallArea':'15', 'kWall':'1.5', 'winArea':'6', 'winType':'single', 'kWin':'5.8', 'tn':'26', 'tw':'34', 'people':'5', 'activity':'rest'}}],function(){ calc(); });
+}
+var __cooling_load_f0=(typeof calc==='function')?calc:null;
+if(__cooling_load_f0){
+    calc=function(){ var __r=__cooling_load_f0.apply(null,arguments); try{ __cooling_loadExtras(); }catch(e){} return __r; };
+}
+function __cooling_loadBoot(){ try{ __cooling_loadPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cooling_loadBoot();
+else document.addEventListener('DOMContentLoaded', __cooling_loadBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

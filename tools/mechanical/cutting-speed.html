@@ -155,11 +155,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>铣刀齿数 Z</label><input type="number" id="teeth" value="4" min="1" step="1" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算切削速度</button>
+      <div id="cutting_speedPresets"></div><button type="button" class="btn primary" onclick="calc()">计算切削速度</button><button class="btn" type="button" onclick="__cutting_speedExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="calcRpm()">反算转速</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="cutting_speedTable"></div> <div id="cutting_speedDiff"></div> <div id="cutting_speedChart"></div> <div id="cutting_speedHist"></div>
   </div>
   <div class="card">
     <h2>📋 切削参数参考</h2>
@@ -388,6 +388,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __cutting_speed_last=0,__cutting_speed_skip=false;
+function __cutting_speedSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cutting_speedResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cutting_speedTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cutting_speedRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cutting_speedTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cutting_speedTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cutting_speedDiff');
+        TBKit.history.mount('#cutting_speedHist',function(rec){
+            __cutting_speed_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cutting_speed_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cutting_speedTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cutting_speedChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cutting_speedExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cutting_speed_skip) return;
+    var snap=__cutting_speedSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cutting_speedResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cutting_speed_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cutting_speed_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cutting_speedRender(keys,rk,en);
+}
+function __cutting_speedExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cutting_speedTable','cutting-speed.csv'); } catch(e){}
+}
+function __cutting_speedPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cutting_speedPresets',[{label:'默认参数',labelEn:'Default',values:{'process':'turn', 'workMat':'carbon', 'toolMat':'hss', 'diameter':'50', 'rpm':'800', 'millD':'20', 'millN':'3000', 'teeth':'4'}}],function(){ calc(); });
+}
+var __cutting_speed_f0=(typeof calc==='function')?calc:null;
+if(__cutting_speed_f0){
+    calc=function(){ var __r=__cutting_speed_f0.apply(null,arguments); try{ __cutting_speedExtras(); }catch(e){} return __r; };
+}
+function __cutting_speedBoot(){ try{ __cutting_speedPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cutting_speedBoot();
+else document.addEventListener('DOMContentLoaded', __cutting_speedBoot);
 </script>
 
 </body>

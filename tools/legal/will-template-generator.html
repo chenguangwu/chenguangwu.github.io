@@ -187,13 +187,13 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="generateWill()">生成遗嘱</button>
       <button type="button" class="btn" onclick="copyWill()">复制文本</button>
-      <button type="button" class="btn" onclick="downloadWill()">下载文本</button>
+      <div id="will_template_generatorPresets"></div><button type="button" class="btn" onclick="downloadWill()">下载文本</button><button class="btn" type="button" onclick="__will_template_generatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="resetForm()">重置</button>
     </div>
 
     <div class="result-box" id="result" style="margin-top:12px;">
       <p style="color:var(--text-muted);text-align:center;">填写信息后点击「生成遗嘱」</p>
-    </div>
+    </div> <div id="will_template_generatorTable"></div> <div id="will_template_generatorDiff"></div> <div id="will_template_generatorChart"></div> <div id="will_template_generatorHist"></div>
   </div>
 
   <div class="card">
@@ -573,6 +573,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __will_template_generator_last=0,__will_template_generator_skip=false;
+function __will_template_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __will_template_generatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __will_template_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __will_template_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__will_template_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#will_template_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#will_template_generatorDiff');
+        TBKit.history.mount('#will_template_generatorHist',function(rec){
+            __will_template_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadWill();
+            }catch(e2){}
+            __will_template_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__will_template_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#will_template_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __will_template_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__will_template_generator_skip) return;
+    var snap=__will_template_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__will_template_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__will_template_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __will_template_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __will_template_generatorRender(keys,rk,en);
+}
+function __will_template_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#will_template_generatorTable','will-template-generator.csv'); } catch(e){}
+}
+function __will_template_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __will_template_generator_f0=(typeof downloadWill==='function')?downloadWill:null;
+if(__will_template_generator_f0){
+    downloadWill=function(){ var __r=__will_template_generator_f0.apply(null,arguments); try{ __will_template_generatorExtras(); }catch(e){} return __r; };
+}
+function __will_template_generatorBoot(){ try{ __will_template_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __will_template_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __will_template_generatorBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用遗嘱模板生成</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>姓名</li><li>身份证号</li><li>住址</li><li>见证人1（姓名+身份证号）</li><li>见证人2（姓名+身份证号）</li><li>立遗嘱日期</li><li>立遗嘱地点</li></ul><h2>适用场景</h2><p>合同、费用与常见法律场景的初步测算与参考。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>遗嘱模板生成是做什么的？</dt><dd>填写立遗嘱人信息、财产明细与继承方案，自动生成标准格式遗嘱文本模板，便于起草参考。</dd><dt>如何使用遗嘱模板生成？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>遗嘱模板生成适合哪些场景？</dt><dd>合同、费用与常见法律场景的初步测算与参考。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

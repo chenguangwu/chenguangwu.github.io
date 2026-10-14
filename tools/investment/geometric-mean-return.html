@@ -129,11 +129,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" onclick="calcTool()">计算</button>
+      <div id="geometric_mean_returnPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__geometric_mean_returnExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="geometric_mean_returnTable"></div> <div id="geometric_mean_returnDiff"></div> <div id="geometric_mean_returnChart"></div> <div id="geometric_mean_returnHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +247,114 @@ const raw=document.getElementById('r').value.split(/[ ,]+/).filter(Boolean).map(
 function resetForm(){document.getElementById('r').value = '0.1, 0.2, -0.05';
       calcTool();}
 calcTool();
+
+var __geometric_mean_return_last=0,__geometric_mean_return_skip=false;
+function __geometric_mean_returnSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __geometric_mean_returnResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __geometric_mean_returnTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __geometric_mean_returnRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__geometric_mean_returnTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#geometric_mean_returnTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#geometric_mean_returnDiff');
+        TBKit.history.mount('#geometric_mean_returnHist',function(rec){
+            __geometric_mean_return_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcTool();
+            }catch(e2){}
+            __geometric_mean_return_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__geometric_mean_returnTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#geometric_mean_returnChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __geometric_mean_returnExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__geometric_mean_return_skip) return;
+    var snap=__geometric_mean_returnSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__geometric_mean_returnResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__geometric_mean_return_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __geometric_mean_return_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __geometric_mean_returnRender(keys,rk,en);
+}
+function __geometric_mean_returnExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#geometric_mean_returnTable','geometric-mean-return.csv'); } catch(e){}
+}
+function __geometric_mean_returnPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#geometric_mean_returnPresets',[{label:'默认参数',labelEn:'Default',values:{'r':'0.1, 0.2, -0.05'}}],function(){ calcTool(); });
+}
+var __geometric_mean_return_f0=(typeof calcTool==='function')?calcTool:null;
+if(__geometric_mean_return_f0){
+    calcTool=function(){ var __r=__geometric_mean_return_f0.apply(null,arguments); try{ __geometric_mean_returnExtras(); }catch(e){} return __r; };
+}
+function __geometric_mean_returnBoot(){ try{ __geometric_mean_returnPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __geometric_mean_returnBoot();
+else document.addEventListener('DOMContentLoaded', __geometric_mean_returnBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -118,8 +118,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>1. 火灾探测器联动</label><select id="f1" onchange="calc()" style="font-size:16px;"><option value="0">正常联动 (0分)</option><option value="2">部分延迟 (2分)</option><option value="3">联动失败 (3分)</option></select></div><div><label>2. 喷淋系统联动</label><select id="f2" onchange="calc()" style="font-size:16px;"><option value="0">正常启动 (0分)</option><option value="2">启动延迟 (2分)</option><option value="3">无法启动 (3分)</option></select></div></div>
 <div class="input-row"><div><label>3. 防排烟系统联动</label><select id="f3" onchange="calc()" style="font-size:16px;"><option value="0">正常联动 (0分)</option><option value="2">部分异常 (2分)</option><option value="3">联动失败 (3分)</option></select></div><div><label>4. 防火卷帘/门联动</label><select id="f4" onchange="calc()" style="font-size:16px;"><option value="0">正常降落 (0分)</option><option value="2">部分卡阻 (2分)</option><option value="3">无法降落 (3分)</option></select></div></div>
 <div class="input-row"><div><label>5. 应急广播/电话</label><select id="f5" onchange="calc()" style="font-size:16px;"><option value="0">正常播报 (0分)</option><option value="2">部分故障 (2分)</option><option value="3">完全故障 (3分)</option></select></div><div><label>6. 电梯迫降联动</label><select id="f6" onchange="calc()" style="font-size:16px;"><option value="0">正常迫降 (0分)</option><option value="2">延迟/部分 (2分)</option><option value="3">无法迫降 (3分)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">检测评估</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="detector_176Presets"></div><button type="button" class="btn primary" onclick="calc()">检测评估</button><button class="btn" type="button" onclick="__detector_176Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="detector_176Table"></div> <div id="detector_176Diff"></div> <div id="detector_176Chart"></div> <div id="detector_176Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -260,6 +260,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __detector_176_last=0,__detector_176_skip=false;
+function __detector_176Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __detector_176ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __detector_176Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __detector_176Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__detector_176Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#detector_176Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#detector_176Diff');
+        TBKit.history.mount('#detector_176Hist',function(rec){
+            __detector_176_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __detector_176_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__detector_176Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#detector_176Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __detector_176Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__detector_176_skip) return;
+    var snap=__detector_176Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__detector_176ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__detector_176_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __detector_176_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __detector_176Render(keys,rk,en);
+}
+function __detector_176Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#detector_176Table','detector-176.csv'); } catch(e){}
+}
+function __detector_176Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#detector_176Presets',[{label:'默认参数',labelEn:'Default',values:{'f1':'0', 'f2':'0', 'f3':'0', 'f4':'0', 'f5':'0', 'f6':'0'}}],function(){ calc(); });
+}
+var __detector_176_f0=(typeof calc==='function')?calc:null;
+if(__detector_176_f0){
+    calc=function(){ var __r=__detector_176_f0.apply(null,arguments); try{ __detector_176Extras(); }catch(e){} return __r; };
+}
+function __detector_176Boot(){ try{ __detector_176Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __detector_176Boot();
+else document.addEventListener('DOMContentLoaded', __detector_176Boot);
 </script>
 
 </body>

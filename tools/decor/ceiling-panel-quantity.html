@@ -141,12 +141,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ceiling_panel_quantityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ceiling_panel_quantityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ceiling_panel_quantityTable"></div>
+    <div id="ceiling_panel_quantityDiff"></div>
+    <div id="ceiling_panel_quantityHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -275,6 +281,54 @@ function resetForm(){document.getElementById('L').value='4.2';
       document.getElementById('loss').value='5';
       calcTool();}
 calcTool();
+
+function __ceiling_panel_quantityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ceiling_panel_quantityExtras(){
+    function __ceiling_panel_quantityRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var L=num('L'), W=num('W'), pl=num('pl')/1000, pw=num('pw')/1000, loss=num('loss')/100;
+    var area=L*W;
+    var one=pl*pw;
+    var base=Math.ceil(area/one);
+    var total=Math.ceil(base*(1+loss));
+    var extra=total-base;
+    var perim=2*(L+W);
+    var mainBeam=Math.ceil(perim/1.2)+Math.ceil(L/1.2)*Math.ceil(W/1.2);  // 主龙骨约 1.2m 间距
+    if (!isFinite(__ceiling_panel_quantityNum('L')) || !isFinite(__ceiling_panel_quantityNum('W')) || !isFinite(__ceiling_panel_quantityNum('pl')) || !isFinite(__ceiling_panel_quantityNum('pw')) || !isFinite(__ceiling_panel_quantityNum('loss'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ceiling_panel_quantityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['吊顶面积', area.toFixed(2)+' m²'],
+            ['单板面积', one.toFixed(4)+' m²'],
+            ['净用量（无损耗）', base+' 块'],
+            ['含损耗购买量', total+' 块'],
+            ['损耗余量', extra+' 块'],
+            ['主龙骨约需', mainBeam+' 根'],
+        ]
+    });
+    TBKit.history.record({L:__ceiling_panel_quantityRaw('L'), W:__ceiling_panel_quantityRaw('W'), pl:__ceiling_panel_quantityRaw('pl'), pw:__ceiling_panel_quantityRaw('pw'), loss:__ceiling_panel_quantityRaw('loss'), area:area});
+    function __ceiling_panel_quantityRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#ceiling_panel_quantityHist',function(rec){ __ceiling_panel_quantityRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#ceiling_panel_quantityDiff',['area']);
+}
+function __ceiling_panel_quantityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ceiling_panel_quantityTable','ceiling-panel-quantity.csv'); } catch(e){}
+}
+function __ceiling_panel_quantityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ceiling_panel_quantityPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'4.2', W:'3.6', pl:'600', pw:'600', loss:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'8.4', W:'7.2', pl:'1200', pw:'1200', loss:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'2.1', W:'1.8', pl:'300', pw:'300', loss:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ceiling_panel_quantityExtras(); }catch(e){} };
+function __ceiling_panel_quantityBoot(){ try{ __ceiling_panel_quantityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ceiling_panel_quantityBoot();
+else document.addEventListener('DOMContentLoaded', __ceiling_panel_quantityBoot);
 </script>
 </body>
 </html>
