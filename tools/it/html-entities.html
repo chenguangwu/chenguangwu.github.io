@@ -192,7 +192,7 @@ s.parentNode.insertBefore(el, s);
     <p style="color:var(--text-light);font-size:13px;margin-bottom:10px;">输入文本，自动转换为 HTML 实体编码（保留普通 ASCII 字符）。</p>
     <textarea id="encoderInput" placeholder="输入要转换的文本，例如：<div>Hello & Welcome</div>"></textarea>
     <div class="encoder-actions">
-      <button type="button" class="btn primary" onclick="encodeText()">编码 → HTML 实体</button>
+      <div id="html_entitiesPresets"></div><button type="button" class="btn primary" onclick="encodeText()">编码 → HTML 实体</button><button class="btn" type="button" onclick="__html_entitiesExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="encodeAll()">全字符编码（&#NNN;）</button>
       <button type="button" class="btn" onclick="decodeText()">← 解码</button>
       <button type="button" class="btn danger" onclick="clearEncoder()">清空</button>
@@ -201,7 +201,7 @@ s.parentNode.insertBefore(el, s);
       <strong>输出结果：</strong>
       <div class="encoder-output" id="encoderOutput"></div>
       <button type="button" class="btn success" style="margin-top:8px;" onclick="copyEncoded()">复制结果</button>
-    </div>
+    </div> <div id="html_entitiesTable"></div> <div id="html_entitiesDiff"></div> <div id="html_entitiesChart"></div> <div id="html_entitiesHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -582,6 +582,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __html_entities_last=0,__html_entities_skip=false;
+function __html_entitiesSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __html_entitiesResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __html_entitiesTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __html_entitiesRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__html_entitiesTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#html_entitiesTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#html_entitiesDiff');
+        TBKit.history.mount('#html_entitiesHist',function(rec){
+            __html_entities_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                encodeText();
+            }catch(e2){}
+            __html_entities_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__html_entitiesTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#html_entitiesChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __html_entitiesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__html_entities_skip) return;
+    var snap=__html_entitiesSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__html_entitiesResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__html_entities_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __html_entities_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __html_entitiesRender(keys,rk,en);
+}
+function __html_entitiesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#html_entitiesTable','html-entities.csv'); } catch(e){}
+}
+function __html_entitiesPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __html_entities_f0=(typeof encodeText==='function')?encodeText:null;
+if(__html_entities_f0){
+    encodeText=function(){ var __r=__html_entities_f0.apply(null,arguments); try{ __html_entitiesExtras(); }catch(e){} return __r; };
+}
+function __html_entitiesBoot(){ try{ __html_entitiesPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __html_entitiesBoot();
+else document.addEventListener('DOMContentLoaded', __html_entitiesBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

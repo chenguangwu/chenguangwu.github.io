@@ -163,7 +163,7 @@ s.parentNode.insertBefore(el, s);
 
     <p data-zh="XML 格式化与压缩，支持属性、CDATA、注释、命名空间。可自定义缩进。">Format XML with proper indentation so it is readable and easy to diff.</p>
     <div class="toolbar">
-  <button type="button" class="btn primary" id="beautifyBtn" onclick="doBeautify()">美化</button>
+  <div id="xml_formatterPresets"></div><button type="button" class="btn primary" id="beautifyBtn" onclick="doBeautify()">美化</button><button class="btn" type="button" onclick="__xml_formatterExport()">导出明细 CSV</button>
   <button type="button" class="btn primary" id="minifyBtn" onclick="doMinify()">压缩</button>
   <button type="button" class="btn" onclick="doValidate()">校验</button>
   <button type="button" class="btn" onclick="ToolBox.copyText(document.getElementById('output').textContent)">复制</button>
@@ -177,7 +177,7 @@ s.parentNode.insertBefore(el, s);
     <option value="tab">Tab</option>
   </select>
 </div>
-    <textarea id="input" placeholder="输入 XML..."></textarea><p class="err" id="err"></p><label style="margin-top:12px;">格式化结果</label><pre class="output-pre" id="output">等待输入...</pre>
+    <textarea id="input" placeholder="输入 XML..."></textarea><p class="err" id="err"></p><label style="margin-top:12px;">格式化结果</label><pre class="output-pre" id="output">等待输入...</pre> <div id="xml_formatterTable"></div> <div id="xml_formatterDiff"></div> <div id="xml_formatterChart"></div> <div id="xml_formatterHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -310,6 +310,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __xml_formatter_last=0,__xml_formatter_skip=false;
+function __xml_formatterSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __xml_formatterResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __xml_formatterTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __xml_formatterRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__xml_formatterTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#xml_formatterTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#xml_formatterDiff');
+        TBKit.history.mount('#xml_formatterHist',function(rec){
+            __xml_formatter_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                doBeautify();
+            }catch(e2){}
+            __xml_formatter_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__xml_formatterTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#xml_formatterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __xml_formatterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__xml_formatter_skip) return;
+    var snap=__xml_formatterSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__xml_formatterResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__xml_formatter_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __xml_formatter_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __xml_formatterRender(keys,rk,en);
+}
+function __xml_formatterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#xml_formatterTable','xml-formatter.csv'); } catch(e){}
+}
+function __xml_formatterPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#xml_formatterPresets',[{label:'默认参数',labelEn:'Default',values:{'indent':'2'}}],function(){ doBeautify(); });
+}
+var __xml_formatter_f0=(typeof doBeautify==='function')?doBeautify:null;
+if(__xml_formatter_f0){
+    doBeautify=function(){ var __r=__xml_formatter_f0.apply(null,arguments); try{ __xml_formatterExtras(); }catch(e){} return __r; };
+}
+function __xml_formatterBoot(){ try{ __xml_formatterPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __xml_formatterBoot();
+else document.addEventListener('DOMContentLoaded', __xml_formatterBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

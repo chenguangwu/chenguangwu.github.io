@@ -128,7 +128,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>透明度</label><input type="range" id="alpha" min="0" max="100" value="25" oninput="render()"></div>
       <label style="flex:0 0 auto;align-self:center;"><input type="checkbox" id="inset" onchange="render()"> 内阴影 (inset)</label>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__box_shadow_generatorExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="box_shadow_generatorTable"></div> <div id="box_shadow_generatorDiff"></div> <div id="box_shadow_generatorChart"></div> <div id="box_shadow_generatorHist"></div>
     <div style="background:var(--bg,#FFFAF7);border:1px solid var(--border,#E5E7EB);border-radius:16px;padding:40px;text-align:center;margin-bottom:14px;">
       <div id="target" style="width:140px;height:140px;background:var(--card,#fff);border-radius:16px;margin:0 auto;transition:box-shadow .1s;"></div>
     </div>
@@ -228,6 +228,114 @@ function render(){
   const __h0='<p>偏移 <strong>'+x+'px '+y+'px</strong> · 模糊 <strong>'+blur+'px</strong> · 扩散 <strong>'+spread+'px</strong> · '+(inset?'内阴影':'外阴影')+' · 透明度 '+alpha+'%</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
 }
 render();
+
+var __box_shadow_generator_last=0,__box_shadow_generator_skip=false;
+function __box_shadow_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __box_shadow_generatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __box_shadow_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __box_shadow_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__box_shadow_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#box_shadow_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#box_shadow_generatorDiff');
+        TBKit.history.mount('#box_shadow_generatorHist',function(rec){
+            __box_shadow_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                render();
+            }catch(e2){}
+            __box_shadow_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__box_shadow_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#box_shadow_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __box_shadow_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__box_shadow_generator_skip) return;
+    var snap=__box_shadow_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__box_shadow_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__box_shadow_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __box_shadow_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __box_shadow_generatorRender(keys,rk,en);
+}
+function __box_shadow_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#box_shadow_generatorTable','box-shadow-generator.csv'); } catch(e){}
+}
+function __box_shadow_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#box_shadow_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'x':'0', 'y':'4', 'blur':'12', 'spread':'0', 'color':'#1f2937', 'alpha':'25'}}],function(){ render(); });
+}
+var __box_shadow_generator_f0=(typeof render==='function')?render:null;
+if(__box_shadow_generator_f0){
+    render=function(){ var __r=__box_shadow_generator_f0.apply(null,arguments); try{ __box_shadow_generatorExtras(); }catch(e){} return __r; };
+}
+function __box_shadow_generatorBoot(){ try{ __box_shadow_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __box_shadow_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __box_shadow_generatorBoot);
 </script>
 </body>
 </html>

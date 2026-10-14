@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>用户名</label><input type="text" id="f_user" placeholder="admin" oninput="generate()"></div>
       <div><label>密码</label><input type="password" id="f_pass" placeholder="••••••" oninput="generate()"></div>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="basic_auth_generatorTable"></div> <div id="basic_auth_generatorDiff"></div> <div id="basic_auth_generatorChart"></div> <div id="basic_auth_generatorHist"></div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div>
         <div style="font-size:12px;color:var(--muted,#6B7280);margin-bottom:4px;">Authorization 请求头</div>
@@ -135,7 +135,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar" style="margin-top:12px;">
-      <button class="btn primary" onclick="generate()">生成</button>
+      <div id="basic_auth_generatorPresets"></div><button class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__basic_auth_generatorExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyField('headerOut')">复制请求头</button>
       <button class="btn" onclick="copyField('tokenOut')">复制令牌</button>
     </div>
@@ -217,6 +217,113 @@ function generate(){
   document.getElementById('tokenOut').value=token;
   const __h1='<p>✅ 已生成 Basic 认证信息（令牌 '+token.length+' 字符）</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
 }
+
+var __basic_auth_generator_last=0,__basic_auth_generator_skip=false;
+function __basic_auth_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __basic_auth_generatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __basic_auth_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __basic_auth_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__basic_auth_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#basic_auth_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#basic_auth_generatorDiff');
+        TBKit.history.mount('#basic_auth_generatorHist',function(rec){
+            __basic_auth_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generate();
+            }catch(e2){}
+            __basic_auth_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__basic_auth_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#basic_auth_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __basic_auth_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__basic_auth_generator_skip) return;
+    var snap=__basic_auth_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__basic_auth_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__basic_auth_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __basic_auth_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __basic_auth_generatorRender(keys,rk,en);
+}
+function __basic_auth_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#basic_auth_generatorTable','basic-auth-generator.csv'); } catch(e){}
+}
+function __basic_auth_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __basic_auth_generator_f0=(typeof generate==='function')?generate:null;
+if(__basic_auth_generator_f0){
+    generate=function(){ var __r=__basic_auth_generator_f0.apply(null,arguments); try{ __basic_auth_generatorExtras(); }catch(e){} return __r; };
+}
+function __basic_auth_generatorBoot(){ try{ __basic_auth_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __basic_auth_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __basic_auth_generatorBoot);
 </script>
 
 </body>

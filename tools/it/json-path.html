@@ -178,7 +178,7 @@ s.parentNode.insertBefore(el, s);
     
     <div class="toolbar">
       <input type="text" id="path" value="$.store.book[*].title" placeholder="JSONPath 表达式，如 $.user.name" style="flex:1;min-width:200px;font-family:monospace;" oninput="doQuery()">
-      <button type="button" class="btn primary" onclick="doQuery()">查询</button>
+      <div id="json_pathPresets"></div><button type="button" class="btn primary" onclick="doQuery()">查询</button><button class="btn" type="button" onclick="__json_pathExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
       <button type="button" class="btn" onclick="downloadResult()">下载</button>
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
@@ -211,7 +211,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h3 style="font-size:15px;margin-bottom:12px;">📋 查询结果</h3>
-    <div class="json-highlight" id="output">等待查询...</div>
+    <div class="json-highlight" id="output">等待查询...</div> <div id="json_pathTable"></div> <div id="json_pathDiff"></div> <div id="json_pathChart"></div> <div id="json_pathHist"></div>
   </div>
   
   <div class="card">
@@ -580,6 +580,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __json_path_last=0,__json_path_skip=false;
+function __json_pathSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __json_pathResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __json_pathTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __json_pathRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__json_pathTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#json_pathTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#json_pathDiff');
+        TBKit.history.mount('#json_pathHist',function(rec){
+            __json_path_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                doQuery();
+            }catch(e2){}
+            __json_path_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__json_pathTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#json_pathChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __json_pathExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__json_path_skip) return;
+    var snap=__json_pathSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__json_pathResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__json_path_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __json_path_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __json_pathRender(keys,rk,en);
+}
+function __json_pathExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#json_pathTable','json-path.csv'); } catch(e){}
+}
+function __json_pathPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#json_pathPresets',[{label:'默认参数',labelEn:'Default',values:{'path':'$.store.book[*].title'}}],function(){ doQuery(); });
+}
+var __json_path_f0=(typeof doQuery==='function')?doQuery:null;
+if(__json_path_f0){
+    doQuery=function(){ var __r=__json_path_f0.apply(null,arguments); try{ __json_pathExtras(); }catch(e){} return __r; };
+}
+function __json_pathBoot(){ try{ __json_pathPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __json_pathBoot();
+else document.addEventListener('DOMContentLoaded', __json_pathBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

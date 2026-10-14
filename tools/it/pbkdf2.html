@@ -192,7 +192,7 @@ s.parentNode.insertBefore(el, s);
         <label>盐值 (Salt)</label>
         <div style="display:flex;gap:6px;">
           <input type="text" id="salt" placeholder="留空自动生成随机盐" style="flex:1;">
-          <button type="button" class="btn" style="padding:8px 12px;white-space:nowrap;" onclick="generateSalt()">🎲 随机盐</button>
+          <div id="pbkdf2Presets"></div><button type="button" class="btn" style="padding:8px 12px;white-space:nowrap;" onclick="generateSalt()">🎲 随机盐</button><button class="btn" type="button" onclick="__pbkdf2Export()">导出明细 CSV</button>
         </div>
       </div>
     </div>
@@ -214,7 +214,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="clearAll()">🗑️ 清空</button>
     </div>
 
-    <div class="result-box" id="result">结果将显示在这里...</div>
+    <div class="result-box" id="result">结果将显示在这里...</div> <div id="pbkdf2Table"></div> <div id="pbkdf2Diff"></div> <div id="pbkdf2Chart"></div> <div id="pbkdf2Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -342,6 +342,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __pbkdf2_last=0,__pbkdf2_skip=false;
+function __pbkdf2Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pbkdf2ResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pbkdf2Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pbkdf2Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pbkdf2Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pbkdf2Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#pbkdf2Diff');
+        TBKit.history.mount('#pbkdf2Hist',function(rec){
+            __pbkdf2_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generateSalt();
+            }catch(e2){}
+            __pbkdf2_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pbkdf2Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pbkdf2Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pbkdf2Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pbkdf2_skip) return;
+    var snap=__pbkdf2Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pbkdf2ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pbkdf2_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pbkdf2_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pbkdf2Render(keys,rk,en);
+}
+function __pbkdf2Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pbkdf2Table','pbkdf2.csv'); } catch(e){}
+}
+function __pbkdf2Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pbkdf2Presets',[{label:'默认参数',labelEn:'Default',values:{'hashAlgo':'SHA-1', 'iterations':'100000', 'keyLength':'32', 'password':'mypassword', 'outputFormat':'hex'}}],function(){ generateSalt(); });
+}
+var __pbkdf2_f0=(typeof generateSalt==='function')?generateSalt:null;
+if(__pbkdf2_f0){
+    generateSalt=function(){ var __r=__pbkdf2_f0.apply(null,arguments); try{ __pbkdf2Extras(); }catch(e){} return __r; };
+}
+function __pbkdf2Boot(){ try{ __pbkdf2Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pbkdf2Boot();
+else document.addEventListener('DOMContentLoaded', __pbkdf2Boot);
 </script>
 <!-- SEO 介绍区块 -->
 

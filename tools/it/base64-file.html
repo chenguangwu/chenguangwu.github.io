@@ -121,11 +121,11 @@ s.parentNode.insertBefore(el, s);
       <input type="file" id="file" style="display:none" onchange="fileToBase64(this.files[0])">
       <label style="flex:0 0 auto;align-self:center;font-size:13px;"><input type="checkbox" id="opt_datauri" checked> 带 data URI 前缀</label>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="base64_fileTable"></div> <div id="base64_fileDiff"></div> <div id="base64_fileChart"></div> <div id="base64_fileHist"></div>
     <textarea id="b64Out" readonly style="min-height:120px" placeholder="文件的 Base64 字符串将显示在这里..."></textarea>
     <div class="toolbar">
       <button class="btn" onclick="copyB64()">复制 Base64</button>
-      <button class="btn" onclick="downloadB64()">⬇ 还原为文件</button>
+      <div id="base64_filePresets"></div><button class="btn" onclick="downloadB64()">⬇ 还原为文件</button><button class="btn" type="button" onclick="__base64_fileExport()">导出明细 CSV</button>
     </div>
     <hr style="border:none;border-top:1px solid var(--border,#E5E7EB);margin:18px 0;">
     <p style="font-size:13px;color:var(--muted,#6B7280);margin-bottom:8px;">或：粘贴 Base64 / data URI，还原为文件：</p>
@@ -273,6 +273,113 @@ function b64ToText(){
     const __h6='<p style="color:var(--success)">✅ 已解码为文本（'+fmtSize(bytes.length)+'）</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h6;
   }catch(e){const __h7='<p style="color:var(--danger)">解码失败（可能不是文本内容）：'+escH((e.message)||e)+'</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h7;}
 }
+
+var __base64_file_last=0,__base64_file_skip=false;
+function __base64_fileSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __base64_fileResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __base64_fileTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __base64_fileRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__base64_fileTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#base64_fileTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#base64_fileDiff');
+        TBKit.history.mount('#base64_fileHist',function(rec){
+            __base64_file_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadB64();
+            }catch(e2){}
+            __base64_file_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__base64_fileTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#base64_fileChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __base64_fileExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__base64_file_skip) return;
+    var snap=__base64_fileSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__base64_fileResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__base64_file_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __base64_file_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __base64_fileRender(keys,rk,en);
+}
+function __base64_fileExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#base64_fileTable','base64-file.csv'); } catch(e){}
+}
+function __base64_filePresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __base64_file_f0=(typeof downloadB64==='function')?downloadB64:null;
+if(__base64_file_f0){
+    downloadB64=function(){ var __r=__base64_file_f0.apply(null,arguments); try{ __base64_fileExtras(); }catch(e){} return __r; };
+}
+function __base64_fileBoot(){ try{ __base64_filePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __base64_fileBoot();
+else document.addEventListener('DOMContentLoaded', __base64_fileBoot);
 </script>
 </body>
 </html>

@@ -190,7 +190,7 @@ s.parentNode.insertBefore(el, s);
     <textarea id="input" placeholder="加密输入明文，解密输入密文..." rows="5">Hello, XXTEA encryption!</textarea>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="encrypt()">🔒 加密</button>
+      <div id="xxteaPresets"></div><button type="button" class="btn primary" onclick="encrypt()">🔒 加密</button><button class="btn" type="button" onclick="__xxteaExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="decrypt()">🔓 解密</button>
       <button type="button" class="btn" onclick="swapText()">↑↓ 交换</button>
       <button type="button" class="btn success" onclick="copyResult()">📋 复制结果</button>
@@ -199,7 +199,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="output-group">
       <label>输出结果</label>
-      <textarea id="output" readonly rows="5" placeholder="结果将显示在这里..."></textarea>
+      <textarea id="output" readonly rows="5" placeholder="结果将显示在这里..."></textarea> <div id="xxteaTable"></div> <div id="xxteaDiff"></div> <div id="xxteaChart"></div> <div id="xxteaHist"></div>
     </div>
   </div>
 
@@ -361,6 +361,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __xxtea_last=0,__xxtea_skip=false;
+function __xxteaSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __xxteaResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __xxteaTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __xxteaRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__xxteaTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#xxteaTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#xxteaDiff');
+        TBKit.history.mount('#xxteaHist',function(rec){
+            __xxtea_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                encrypt();
+            }catch(e2){}
+            __xxtea_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__xxteaTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#xxteaChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __xxteaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__xxtea_skip) return;
+    var snap=__xxteaSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__xxteaResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__xxtea_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __xxtea_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __xxteaRender(keys,rk,en);
+}
+function __xxteaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#xxteaTable','xxtea.csv'); } catch(e){}
+}
+function __xxteaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#xxteaPresets',[{label:'默认参数',labelEn:'Default',values:{'outputFormat':'base64', 'key':'myxxteakey'}}],function(){ encrypt(); });
+}
+var __xxtea_f0=(typeof encrypt==='function')?encrypt:null;
+if(__xxtea_f0){
+    encrypt=function(){ var __r=__xxtea_f0.apply(null,arguments); try{ __xxteaExtras(); }catch(e){} return __r; };
+}
+function __xxteaBoot(){ try{ __xxteaPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __xxteaBoot();
+else document.addEventListener('DOMContentLoaded', __xxteaBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

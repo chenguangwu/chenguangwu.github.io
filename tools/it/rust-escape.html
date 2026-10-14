@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
 
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="支持字符串 &quot;...&quot;、字符 '...'、字节字符串 b&quot;...&quot;、原始字符串 r&quot;...&quot;。">Escape and unescape Rust string and char literals in your browser, including \u{} and raw strings.</p>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="esc()">转义 ↑</button>
+      <div id="rust_escapePresets"></div><button type="button" class="btn primary" onclick="esc()">转义 ↑</button><button class="btn" type="button" onclick="__rust_escapeExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="unesc()">反转义 ↓</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
@@ -174,7 +174,7 @@ s.parentNode.insertBefore(el, s);
     <textarea id="input" placeholder="输入要转义/反转义的 Rust 字符串..."></textarea>
 
     <label style="margin-top:16px;">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="rust_escapeTable"></div> <div id="rust_escapeDiff"></div> <div id="rust_escapeChart"></div> <div id="rust_escapeHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -346,6 +346,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __rust_escape_last=0,__rust_escape_skip=false;
+function __rust_escapeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __rust_escapeResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __rust_escapeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __rust_escapeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__rust_escapeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#rust_escapeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#rust_escapeDiff');
+        TBKit.history.mount('#rust_escapeHist',function(rec){
+            __rust_escape_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                esc();
+            }catch(e2){}
+            __rust_escape_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__rust_escapeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#rust_escapeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __rust_escapeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__rust_escape_skip) return;
+    var snap=__rust_escapeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__rust_escapeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__rust_escape_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __rust_escape_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __rust_escapeRender(keys,rk,en);
+}
+function __rust_escapeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rust_escapeTable','rust-escape.csv'); } catch(e){}
+}
+function __rust_escapePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rust_escapePresets',[{label:'默认参数',labelEn:'Default',values:{'kind':'string'}}],function(){ esc(); });
+}
+var __rust_escape_f0=(typeof esc==='function')?esc:null;
+if(__rust_escape_f0){
+    esc=function(){ var __r=__rust_escape_f0.apply(null,arguments); try{ __rust_escapeExtras(); }catch(e){} return __r; };
+}
+function __rust_escapeBoot(){ try{ __rust_escapePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rust_escapeBoot();
+else document.addEventListener('DOMContentLoaded', __rust_escapeBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

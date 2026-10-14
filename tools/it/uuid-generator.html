@@ -231,12 +231,12 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="generateUuid()">生成 UUID</button>
         <button type="button" class="btn success" onclick="copyAll()">复制全部</button>
-        <button type="button" class="btn" onclick="downloadAll()">下载 TXT</button>
+        <div id="uuid_generatorPresets"></div><button type="button" class="btn" onclick="downloadAll()">下载 TXT</button><button class="btn" type="button" onclick="__uuid_generatorExport()">导出明细 CSV</button>
         <button type="button" class="btn danger" onclick="clearResult()">清空</button>
       </div>
 
       <label>生成结果</label>
-      <textarea id="output" placeholder="UUID 将显示在这里..." readonly></textarea>
+      <textarea id="output" placeholder="UUID 将显示在这里..." readonly></textarea> <div id="uuid_generatorTable"></div> <div id="uuid_generatorDiff"></div> <div id="uuid_generatorChart"></div> <div id="uuid_generatorHist"></div>
       <div class="result-list" id="resultList"></div>
     </div>
 
@@ -642,6 +642,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __uuid_generator_last=0,__uuid_generator_skip=false;
+function __uuid_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __uuid_generatorResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __uuid_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __uuid_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__uuid_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#uuid_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#uuid_generatorDiff');
+        TBKit.history.mount('#uuid_generatorHist',function(rec){
+            __uuid_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadAll();
+            }catch(e2){}
+            __uuid_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__uuid_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#uuid_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __uuid_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__uuid_generator_skip) return;
+    var snap=__uuid_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__uuid_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__uuid_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __uuid_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __uuid_generatorRender(keys,rk,en);
+}
+function __uuid_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#uuid_generatorTable','uuid-generator.csv'); } catch(e){}
+}
+function __uuid_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#uuid_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'version':'v1', 'count':'1', 'namespace':'6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'name':'example.com'}}],function(){ downloadAll(); });
+}
+var __uuid_generator_f0=(typeof downloadAll==='function')?downloadAll:null;
+if(__uuid_generator_f0){
+    downloadAll=function(){ var __r=__uuid_generator_f0.apply(null,arguments); try{ __uuid_generatorExtras(); }catch(e){} return __r; };
+}
+function __uuid_generatorBoot(){ try{ __uuid_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __uuid_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __uuid_generatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

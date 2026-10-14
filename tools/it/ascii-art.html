@@ -165,10 +165,10 @@ s.parentNode.insertBefore(el, s);
       <label><input type="checkbox" id="uppercase" checked> 强制大写</label>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="generate()">生成</button>
+      <div id="ascii_artPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__ascii_artExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
     </div>
-    <div class="output-box" id="output"></div>
+    <div class="output-box" id="output"></div> <div id="ascii_artTable"></div> <div id="ascii_artDiff"></div> <div id="ascii_artChart"></div> <div id="ascii_artHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -401,6 +401,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __ascii_art_last=0,__ascii_art_skip=false;
+function __ascii_artSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ascii_artResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ascii_artTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ascii_artRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ascii_artTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ascii_artTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ascii_artDiff');
+        TBKit.history.mount('#ascii_artHist',function(rec){
+            __ascii_art_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generate();
+            }catch(e2){}
+            __ascii_art_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ascii_artTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ascii_artChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ascii_artExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ascii_art_skip) return;
+    var snap=__ascii_artSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ascii_artResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ascii_art_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ascii_art_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ascii_artRender(keys,rk,en);
+}
+function __ascii_artExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ascii_artTable','ascii-art.csv'); } catch(e){}
+}
+function __ascii_artPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ascii_artPresets',[{label:'默认参数',labelEn:'Default',values:{'input':'HELLO'}}],function(){ generate(); });
+}
+var __ascii_art_f0=(typeof generate==='function')?generate:null;
+if(__ascii_art_f0){
+    generate=function(){ var __r=__ascii_art_f0.apply(null,arguments); try{ __ascii_artExtras(); }catch(e){} return __r; };
+}
+function __ascii_artBoot(){ try{ __ascii_artPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ascii_artBoot();
+else document.addEventListener('DOMContentLoaded', __ascii_artBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

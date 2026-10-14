@@ -123,10 +123,10 @@ s.parentNode.insertBefore(el, s);
         <option value="14">14（慢，约 2.4s）</option>
       </select>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="bcryptTable"></div> <div id="bcryptDiff"></div> <div id="bcryptChart"></div> <div id="bcryptHist"></div>
     <textarea id="hashOut" readonly style="min-height:80px" placeholder="生成的 Bcrypt 哈希（$2a$10$...）将显示在这里..."></textarea>
     <div class="toolbar">
-      <button class="btn primary" onclick="genHash()">生成哈希</button>
+      <div id="bcryptPresets"></div><button class="btn primary" onclick="genHash()">生成哈希</button><button class="btn" type="button" onclick="__bcryptExport()">导出明细 CSV</button>
       <button class="btn" onclick="verify()">校验哈希</button>
       <button class="btn" onclick="copyHash()">复制哈希</button>
     </div>
@@ -231,6 +231,114 @@ function copyHash(){
   if(!h){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}
   ToolBox.copyText(h);if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg206'));
 }
+
+var __bcrypt_last=0,__bcrypt_skip=false;
+function __bcryptSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bcryptResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bcryptTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bcryptRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bcryptTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bcryptTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bcryptDiff');
+        TBKit.history.mount('#bcryptHist',function(rec){
+            __bcrypt_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                genHash();
+            }catch(e2){}
+            __bcrypt_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bcryptTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bcryptChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bcryptExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bcrypt_skip) return;
+    var snap=__bcryptSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bcryptResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bcrypt_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bcrypt_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bcryptRender(keys,rk,en);
+}
+function __bcryptExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bcryptTable','bcrypt.csv'); } catch(e){}
+}
+function __bcryptPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bcryptPresets',[{label:'默认参数',labelEn:'Default',values:{'rounds':'8'}}],function(){ genHash(); });
+}
+var __bcrypt_f0=(typeof genHash==='function')?genHash:null;
+if(__bcrypt_f0){
+    genHash=function(){ var __r=__bcrypt_f0.apply(null,arguments); try{ __bcryptExtras(); }catch(e){} return __r; };
+}
+function __bcryptBoot(){ try{ __bcryptPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bcryptBoot();
+else document.addEventListener('DOMContentLoaded', __bcryptBoot);
 </script>
 </body>
 </html>

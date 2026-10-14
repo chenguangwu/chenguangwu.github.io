@@ -127,10 +127,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <textarea id="input" placeholder="每行一个项目，如：&#10;apple&#10;banana&#10;cherry" style="min-height:150px" oninput="convert()"></textarea>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="list_converterTable"></div> <div id="list_converterDiff"></div> <div id="list_converterChart"></div> <div id="list_converterHist"></div>
     <textarea id="output" readonly style="min-height:150px" placeholder="转换结果将显示在这里..."></textarea>
     <div class="toolbar">
-      <button class="btn primary" onclick="convert()">转换</button>
+      <div id="list_converterPresets"></div><button class="btn primary" onclick="convert()">转换</button><button class="btn" type="button" onclick="__list_converterExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyOut()">复制结果</button>
     </div>
   </div>
@@ -218,6 +218,114 @@ function convert(){
   document.getElementById('output').value=result;
   const __h1='<p>✅ 已转换 <strong>'+lines.length+'</strong> 个项目</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
 }
+
+var __list_converter_last=0,__list_converter_skip=false;
+function __list_converterSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __list_converterResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __list_converterTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __list_converterRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__list_converterTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#list_converterTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#list_converterDiff');
+        TBKit.history.mount('#list_converterHist',function(rec){
+            __list_converter_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                convert();
+            }catch(e2){}
+            __list_converter_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__list_converterTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#list_converterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __list_converterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__list_converter_skip) return;
+    var snap=__list_converterSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__list_converterResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__list_converter_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __list_converter_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __list_converterRender(keys,rk,en);
+}
+function __list_converterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#list_converterTable','list-converter.csv'); } catch(e){}
+}
+function __list_converterPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#list_converterPresets',[{label:'默认参数',labelEn:'Default',values:{'mode':'comma'}}],function(){ convert(); });
+}
+var __list_converter_f0=(typeof convert==='function')?convert:null;
+if(__list_converter_f0){
+    convert=function(){ var __r=__list_converter_f0.apply(null,arguments); try{ __list_converterExtras(); }catch(e){} return __r; };
+}
+function __list_converterBoot(){ try{ __list_converterPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __list_converterBoot();
+else document.addEventListener('DOMContentLoaded', __list_converterBoot);
 </script>
 
 </body>

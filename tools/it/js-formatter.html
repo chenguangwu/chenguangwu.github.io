@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
 
     <p style="color:var(--text-light);font-size:13px;margin-bottom:12px;" data-zh="JavaScript 代码格式化：基于词法分析规范化缩进、保留字符串与注释、支持箭头函数与解构。">Format and beautify JavaScript in your browser — consistent style and readable source.</p>
     <div class="toolbar">
-  <button type="button" class="btn primary" id="beautifyBtn" onclick="doBeautify()">美化</button>
+  <div id="js_formatterPresets"></div><button type="button" class="btn primary" id="beautifyBtn" onclick="doBeautify()">美化</button><button class="btn" type="button" onclick="__js_formatterExport()">导出明细 CSV</button>
   <button type="button" class="btn primary" id="minifyBtn" onclick="doMinify()">压缩</button>
   <button type="button" class="btn" onclick="doValidate()">校验</button>
   <button type="button" class="btn" onclick="ToolBox.copyText(document.getElementById('output').textContent)">复制</button>
@@ -182,7 +182,7 @@ s.parentNode.insertBefore(el, s);
     <textarea id="input" placeholder="在此输入或粘贴内容..."></textarea>
 <p class="err" id="err"></p>
 <label style="margin-top:12px;">输出结果</label>
-<pre class="output-pre" id="output">等待输入...</pre>
+<pre class="output-pre" id="output">等待输入...</pre> <div id="js_formatterTable"></div> <div id="js_formatterDiff"></div> <div id="js_formatterChart"></div> <div id="js_formatterHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -450,6 +450,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __js_formatter_last=0,__js_formatter_skip=false;
+function __js_formatterSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __js_formatterResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __js_formatterTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __js_formatterRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__js_formatterTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#js_formatterTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#js_formatterDiff');
+        TBKit.history.mount('#js_formatterHist',function(rec){
+            __js_formatter_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                doBeautify();
+            }catch(e2){}
+            __js_formatter_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__js_formatterTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#js_formatterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __js_formatterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__js_formatter_skip) return;
+    var snap=__js_formatterSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__js_formatterResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__js_formatter_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __js_formatter_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __js_formatterRender(keys,rk,en);
+}
+function __js_formatterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#js_formatterTable','js-formatter.csv'); } catch(e){}
+}
+function __js_formatterPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#js_formatterPresets',[{label:'默认参数',labelEn:'Default',values:{'indent':'2'}}],function(){ doBeautify(); });
+}
+var __js_formatter_f0=(typeof doBeautify==='function')?doBeautify:null;
+if(__js_formatter_f0){
+    doBeautify=function(){ var __r=__js_formatter_f0.apply(null,arguments); try{ __js_formatterExtras(); }catch(e){} return __r; };
+}
+function __js_formatterBoot(){ try{ __js_formatterPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __js_formatterBoot();
+else document.addEventListener('DOMContentLoaded', __js_formatterBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

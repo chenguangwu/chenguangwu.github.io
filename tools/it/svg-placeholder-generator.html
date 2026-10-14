@@ -128,10 +128,10 @@ s.parentNode.insertBefore(el, s);
       <div style="display:flex;gap:8px;align-items:flex-end;">
         <button class="btn primary" onclick="render()">生成</button>
         <button class="btn" onclick="copySvg()">复制 SVG</button>
-        <button class="btn" onclick="downloadSvg()">⬇ 下载</button>
+        <div id="svg_placeholder_generatorPresets"></div><button class="btn" onclick="downloadSvg()">⬇ 下载</button><button class="btn" type="button" onclick="__svg_placeholder_generatorExport()">导出明细 CSV</button>
       </div>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="svg_placeholder_generatorTable"></div> <div id="svg_placeholder_generatorDiff"></div> <div id="svg_placeholder_generatorChart"></div> <div id="svg_placeholder_generatorHist"></div>
     <div id="preview" style="background:#fff;border:1px dashed var(--border,#E5E7EB);border-radius:12px;padding:18px;margin-bottom:14px;text-align:center;"></div>
     <textarea id="svgCode" readonly style="min-height:120px;font-family:'SF Mono','Courier New',monospace;font-size:12px;" placeholder="SVG 代码将显示在这里..."></textarea>
   </div>
@@ -230,6 +230,114 @@ function downloadSvg(){
   if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg145'));
 }
 render();
+
+var __svg_placeholder_generator_last=0,__svg_placeholder_generator_skip=false;
+function __svg_placeholder_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __svg_placeholder_generatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __svg_placeholder_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __svg_placeholder_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__svg_placeholder_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#svg_placeholder_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#svg_placeholder_generatorDiff');
+        TBKit.history.mount('#svg_placeholder_generatorHist',function(rec){
+            __svg_placeholder_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadSvg();
+            }catch(e2){}
+            __svg_placeholder_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__svg_placeholder_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#svg_placeholder_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __svg_placeholder_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__svg_placeholder_generator_skip) return;
+    var snap=__svg_placeholder_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__svg_placeholder_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__svg_placeholder_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __svg_placeholder_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __svg_placeholder_generatorRender(keys,rk,en);
+}
+function __svg_placeholder_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#svg_placeholder_generatorTable','svg-placeholder-generator.csv'); } catch(e){}
+}
+function __svg_placeholder_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#svg_placeholder_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'w':'400', 'h':'200', 'txt':'400 × 200', 'bg':'#f3f4f6', 'fg':'#6b7280'}}],function(){ downloadSvg(); });
+}
+var __svg_placeholder_generator_f0=(typeof downloadSvg==='function')?downloadSvg:null;
+if(__svg_placeholder_generator_f0){
+    downloadSvg=function(){ var __r=__svg_placeholder_generator_f0.apply(null,arguments); try{ __svg_placeholder_generatorExtras(); }catch(e){} return __r; };
+}
+function __svg_placeholder_generatorBoot(){ try{ __svg_placeholder_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __svg_placeholder_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __svg_placeholder_generatorBoot);
 </script>
 </body>
 </html>

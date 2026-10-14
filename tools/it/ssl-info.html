@@ -308,13 +308,13 @@ s.parentNode.insertBefore(el, s);
         <input type="number" id="calcSpeed" value="1000000000000" min="1" step="any" oninput="estimate()">
         <span style="font-size:12px;color:var(--text-muted);">默认 10¹²（超级计算机）</span>
       </div>
-      <div class="result-box" style="margin-top:12px;">
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__ssl_infoExport()">导出明细 CSV</button></div><div class="result-box" style="margin-top:12px;">
         <p>密钥空间：<strong id="keyspace">-</strong></p>
         <p>平均破解次数：<strong id="avgTries">-</strong></p>
         <p>所需时间：<strong id="crackTime">-</strong></p>
         <div class="result-big" id="bigResult">-</div>
         <p style="font-size:12px;color:var(--text-muted);text-align:center;" id="safetyNote"></p>
-      </div>
+      </div> <div id="ssl_infoTable"></div> <div id="ssl_infoDiff"></div> <div id="ssl_infoChart"></div> <div id="ssl_infoHist"></div>
       <div class="info-box" style="margin-top:12px;">
         <strong>参考算力：</strong>普通 PC ~10⁸/s；GPU ~10¹⁰/s；ASIC 矿机 ~10¹³/s；全球算力合计 ~10¹⁷/s。
       </div>
@@ -443,6 +443,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __ssl_info_last=0,__ssl_info_skip=false;
+function __ssl_infoSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ssl_infoResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ssl_infoTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ssl_infoRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ssl_infoTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ssl_infoTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ssl_infoDiff');
+        TBKit.history.mount('#ssl_infoHist',function(rec){
+            __ssl_info_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                estimate();
+            }catch(e2){}
+            __ssl_info_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ssl_infoTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ssl_infoChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ssl_infoExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ssl_info_skip) return;
+    var snap=__ssl_infoSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ssl_infoResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ssl_info_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ssl_info_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ssl_infoRender(keys,rk,en);
+}
+function __ssl_infoExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ssl_infoTable','ssl-info.csv'); } catch(e){}
+}
+function __ssl_infoPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ssl_infoPresets',[{label:'默认参数',labelEn:'Default',values:{'calcAlgo':'aes128', 'calcSpeed':'1000000000000'}}],function(){ estimate(); });
+}
+var __ssl_info_f0=(typeof estimate==='function')?estimate:null;
+if(__ssl_info_f0){
+    estimate=function(){ var __r=__ssl_info_f0.apply(null,arguments); try{ __ssl_infoExtras(); }catch(e){} return __r; };
+}
+function __ssl_infoBoot(){ try{ __ssl_infoPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ssl_infoBoot();
+else document.addEventListener('DOMContentLoaded', __ssl_infoBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="encrypt()">加密 ↑</button>
       <button type="button" class="btn primary" onclick="decrypt()">解密 ↓</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <div id="aes_encryptorPresets"></div><button type="button" class="btn success" onclick="copyResult()">复制结果</button><button class="btn" type="button" onclick="__aes_encryptorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <button type="button" class="btn warning" onclick="document.getElementById('fileInput').click()">📁 文件</button>
@@ -242,7 +242,7 @@ s.parentNode.insertBefore(el, s);
     <textarea id="input" placeholder="加密输入明文，解密输入密文（Base64/Hex）...">Hello, AES!</textarea>
 
     <label style="margin-top:16px;">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="aes_encryptorTable"></div> <div id="aes_encryptorDiff"></div> <div id="aes_encryptorChart"></div> <div id="aes_encryptorHist"></div>
 
     <div id="fileInfo" style="display:none;margin-top:12px;">
       <div class="info-box" id="fileInfoText"></div>
@@ -1005,6 +1005,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __aes_encryptor_last=0,__aes_encryptor_skip=false;
+function __aes_encryptorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __aes_encryptorResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __aes_encryptorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __aes_encryptorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__aes_encryptorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#aes_encryptorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#aes_encryptorDiff');
+        TBKit.history.mount('#aes_encryptorHist',function(rec){
+            __aes_encryptor_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                copyResult();
+            }catch(e2){}
+            __aes_encryptor_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__aes_encryptorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#aes_encryptorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __aes_encryptorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__aes_encryptor_skip) return;
+    var snap=__aes_encryptorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__aes_encryptorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__aes_encryptor_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __aes_encryptor_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __aes_encryptorRender(keys,rk,en);
+}
+function __aes_encryptorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#aes_encryptorTable','aes-encryptor.csv'); } catch(e){}
+}
+function __aes_encryptorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#aes_encryptorPresets',[{label:'默认参数',labelEn:'Default',values:{'keySize':'128', 'mode':'ECB', 'outputFormat':'base64', 'password':'mypassword', 'keyType':'password'}}],function(){ copyResult(); });
+}
+var __aes_encryptor_f0=(typeof copyResult==='function')?copyResult:null;
+if(__aes_encryptor_f0){
+    copyResult=function(){ var __r=__aes_encryptor_f0.apply(null,arguments); try{ __aes_encryptorExtras(); }catch(e){} return __r; };
+}
+function __aes_encryptorBoot(){ try{ __aes_encryptorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __aes_encryptorBoot();
+else document.addEventListener('DOMContentLoaded', __aes_encryptorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

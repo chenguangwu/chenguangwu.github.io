@@ -116,7 +116,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <input type="file" id="file" accept=".pdf,application/pdf" onchange="check()" style="flex:2">
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__pdf_signature_checkerExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="pdf_signature_checkerTable"></div> <div id="pdf_signature_checkerDiff"></div> <div id="pdf_signature_checkerChart"></div> <div id="pdf_signature_checkerHist"></div>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       <tr style="background:rgba(0,0,0,.04);"><td style="padding:8px 10px;font-weight:600;">检查项</td><td style="padding:8px 10px;font-weight:600;">结果</td></tr>
       <tr><td style="padding:8px 10px;">文件大小</td><td id="d_size" style="padding:8px 10px;">—</td></tr>
@@ -219,6 +219,113 @@ function check(){
   };
   reader.readAsArrayBuffer(f);
 }
+
+var __pdf_signature_checker_last=0,__pdf_signature_checker_skip=false;
+function __pdf_signature_checkerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pdf_signature_checkerResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pdf_signature_checkerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pdf_signature_checkerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pdf_signature_checkerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pdf_signature_checkerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pdf_signature_checkerDiff');
+        TBKit.history.mount('#pdf_signature_checkerHist',function(rec){
+            __pdf_signature_checker_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                check();
+            }catch(e2){}
+            __pdf_signature_checker_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pdf_signature_checkerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pdf_signature_checkerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pdf_signature_checkerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pdf_signature_checker_skip) return;
+    var snap=__pdf_signature_checkerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pdf_signature_checkerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pdf_signature_checker_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pdf_signature_checker_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pdf_signature_checkerRender(keys,rk,en);
+}
+function __pdf_signature_checkerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pdf_signature_checkerTable','pdf-signature-checker.csv'); } catch(e){}
+}
+function __pdf_signature_checkerPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __pdf_signature_checker_f0=(typeof check==='function')?check:null;
+if(__pdf_signature_checker_f0){
+    check=function(){ var __r=__pdf_signature_checker_f0.apply(null,arguments); try{ __pdf_signature_checkerExtras(); }catch(e){} return __r; };
+}
+function __pdf_signature_checkerBoot(){ try{ __pdf_signature_checkerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pdf_signature_checkerBoot();
+else document.addEventListener('DOMContentLoaded', __pdf_signature_checkerBoot);
 </script>
 <style>.opt-result-interpret{max-width:960px;margin:16px auto;padding:0 16px;}
 .opt-result-interpret .ir-card{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm,0 1px 3px rgba(0,0,0,.06));}

@@ -171,9 +171,9 @@ s.parentNode.insertBefore(el, s);
       <option value="population">总体标准差 σ（除以 n）</option>
     </select>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calculate()">计算</button>
+      <div id="standard_deviationPresets"></div><button type="button" class="btn primary" onclick="calculate()">计算</button><button class="btn" type="button" onclick="__standard_deviationExport()">导出明细 CSV</button>
     </div>
-    <div class="result-box" id="output"></div>
+    <div class="result-box" id="output"></div> <div id="standard_deviationTable"></div> <div id="standard_deviationDiff"></div> <div id="standard_deviationChart"></div> <div id="standard_deviationHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -274,6 +274,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __standard_deviation_last=0,__standard_deviation_skip=false;
+function __standard_deviationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __standard_deviationResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __standard_deviationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __standard_deviationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__standard_deviationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#standard_deviationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#standard_deviationDiff');
+        TBKit.history.mount('#standard_deviationHist',function(rec){
+            __standard_deviation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calculate();
+            }catch(e2){}
+            __standard_deviation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__standard_deviationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#standard_deviationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __standard_deviationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__standard_deviation_skip) return;
+    var snap=__standard_deviationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__standard_deviationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__standard_deviation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __standard_deviation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __standard_deviationRender(keys,rk,en);
+}
+function __standard_deviationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#standard_deviationTable','standard-deviation.csv'); } catch(e){}
+}
+function __standard_deviationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#standard_deviationPresets',[{label:'默认参数',labelEn:'Default',values:{'dtype':'sample'}}],function(){ calculate(); });
+}
+var __standard_deviation_f0=(typeof calculate==='function')?calculate:null;
+if(__standard_deviation_f0){
+    calculate=function(){ var __r=__standard_deviation_f0.apply(null,arguments); try{ __standard_deviationExtras(); }catch(e){} return __r; };
+}
+function __standard_deviationBoot(){ try{ __standard_deviationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __standard_deviationBoot();
+else document.addEventListener('DOMContentLoaded', __standard_deviationBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

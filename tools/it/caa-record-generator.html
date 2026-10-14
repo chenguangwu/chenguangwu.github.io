@@ -136,10 +136,10 @@ s.parentNode.insertBefore(el, s);
       <label style="flex:0 0 auto;"><input type="checkbox" id="opt_iodef" onchange="gen()"> 添加 iodef（违规报告邮箱）</label>
       <input type="email" id="iodefEmail" placeholder="security@example.com" style="flex:1;display:none;" oninput="gen()">
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="caa_record_generatorTable"></div> <div id="caa_record_generatorDiff"></div> <div id="caa_record_generatorChart"></div> <div id="caa_record_generatorHist"></div>
     <textarea id="output" readonly style="min-height:140px;font-family:'SF Mono','Courier New',monospace;font-size:13px;" placeholder="生成的 CAA 记录将显示在这里..."></textarea>
     <div class="toolbar">
-      <button class="btn primary" onclick="gen()">生成</button>
+      <div id="caa_record_generatorPresets"></div><button class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__caa_record_generatorExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyOut()">复制记录</button>
     </div>
     <p style="font-size:12px;color:var(--muted,#9CA3AF);margin-top:10px;">💡 CAA（Certification Authority Authorization）限制哪些 CA 可为你的域名签发证书。添加后证书签发机构会检查该记录。</p>
@@ -230,6 +230,114 @@ function gen(){
   document.getElementById('output').value=lines.join('\n');
   const __h2='<p>✅ 已生成 <strong>'+recs.length+'</strong> 条 CAA 记录（粘贴到 DNS 服务商）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
 }
+
+var __caa_record_generator_last=0,__caa_record_generator_skip=false;
+function __caa_record_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __caa_record_generatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __caa_record_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __caa_record_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__caa_record_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#caa_record_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#caa_record_generatorDiff');
+        TBKit.history.mount('#caa_record_generatorHist',function(rec){
+            __caa_record_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                gen();
+            }catch(e2){}
+            __caa_record_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__caa_record_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#caa_record_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __caa_record_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__caa_record_generator_skip) return;
+    var snap=__caa_record_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__caa_record_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__caa_record_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __caa_record_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __caa_record_generatorRender(keys,rk,en);
+}
+function __caa_record_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#caa_record_generatorTable','caa-record-generator.csv'); } catch(e){}
+}
+function __caa_record_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#caa_record_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'flag':'0'}}],function(){ gen(); });
+}
+var __caa_record_generator_f0=(typeof gen==='function')?gen:null;
+if(__caa_record_generator_f0){
+    gen=function(){ var __r=__caa_record_generator_f0.apply(null,arguments); try{ __caa_record_generatorExtras(); }catch(e){} return __r; };
+}
+function __caa_record_generatorBoot(){ try{ __caa_record_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __caa_record_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __caa_record_generatorBoot);
 </script>
 </body>
 </html>

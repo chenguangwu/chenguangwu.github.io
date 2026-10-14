@@ -115,10 +115,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <textarea id="html" placeholder='粘贴 HTML，如：<div><p>文本</div>' style="min-height:200px;font-family:'SF Mono','Courier New',monospace;font-size:13px;" oninput="check()"></textarea>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="html_nesting_checkerTable"></div> <div id="html_nesting_checkerDiff"></div> <div id="html_nesting_checkerChart"></div> <div id="html_nesting_checkerHist"></div>
     <div id="report" style="font-size:13px;line-height:1.9;"></div>
     <div class="toolbar">
-      <button class="btn primary" onclick="check()">检查</button>
+      <div id="html_nesting_checkerPresets"></div><button class="btn primary" onclick="check()">检查</button><button class="btn" type="button" onclick="__html_nesting_checkerExport()">导出明细 CSV</button>
     </div>
   </div>
 </div>
@@ -255,6 +255,113 @@ function check(){
     const __h5='<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 14px;">'+errors.map(function(e){return '<div>⚠️ '+escH(e)+'</div>';}).join('')+'</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){rep.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}rep.innerHTML=__h5;
   }
 }
+
+var __html_nesting_checker_last=0,__html_nesting_checker_skip=false;
+function __html_nesting_checkerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __html_nesting_checkerResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __html_nesting_checkerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __html_nesting_checkerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__html_nesting_checkerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#html_nesting_checkerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#html_nesting_checkerDiff');
+        TBKit.history.mount('#html_nesting_checkerHist',function(rec){
+            __html_nesting_checker_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                check();
+            }catch(e2){}
+            __html_nesting_checker_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__html_nesting_checkerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#html_nesting_checkerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __html_nesting_checkerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__html_nesting_checker_skip) return;
+    var snap=__html_nesting_checkerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__html_nesting_checkerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__html_nesting_checker_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __html_nesting_checker_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __html_nesting_checkerRender(keys,rk,en);
+}
+function __html_nesting_checkerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#html_nesting_checkerTable','html-nesting-checker.csv'); } catch(e){}
+}
+function __html_nesting_checkerPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __html_nesting_checker_f0=(typeof check==='function')?check:null;
+if(__html_nesting_checker_f0){
+    check=function(){ var __r=__html_nesting_checker_f0.apply(null,arguments); try{ __html_nesting_checkerExtras(); }catch(e){} return __r; };
+}
+function __html_nesting_checkerBoot(){ try{ __html_nesting_checkerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __html_nesting_checkerBoot();
+else document.addEventListener('DOMContentLoaded', __html_nesting_checkerBoot);
 </script>
 <style>.opt-result-interpret{max-width:960px;margin:16px auto;padding:0 16px;}
 .opt-result-interpret .ir-card{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm,0 1px 3px rgba(0,0,0,.06));}

@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="input-row">
       <input type="text" id="expr" placeholder="如：2^10 + sqrt(144) * sin(pi/6) + 15%" style="flex:3" onkeydown="if(event.key==='Enter')calc()">
-      <button class="btn primary" onclick="calc()">计算</button>
+      <div id="math_evaluatorPresets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__math_evaluatorExport()">导出明细 CSV</button>
       <button class="btn" onclick="document.getElementById('expr').value='';calc()">清空</button>
     </div>
     <div class="toolbar">
@@ -129,7 +129,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" onclick="insertFn('ln(')">ln</button>
       <button class="btn" onclick="insertFn('pi')">π</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="math_evaluatorTable"></div> <div id="math_evaluatorDiff"></div> <div id="math_evaluatorChart"></div> <div id="math_evaluatorHist"></div>
     <h3 style="margin-top:16px;font-size:15px;">🕐 最近计算历史</h3>
     <div id="hist" style="font-size:13px;line-height:2;"></div>
     <button class="btn" onclick="clearHist()" style="margin-top:8px;">清空历史</button>
@@ -237,6 +237,113 @@ function calc(){
   }catch(e){const __g6='<p style="color:var(--danger)">表达式无效：'+escH((e&&e.message)||e)+'</p>';out.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));}
 }
 renderHist();
+
+var __math_evaluator_last=0,__math_evaluator_skip=false;
+function __math_evaluatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __math_evaluatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __math_evaluatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __math_evaluatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__math_evaluatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#math_evaluatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#math_evaluatorDiff');
+        TBKit.history.mount('#math_evaluatorHist',function(rec){
+            __math_evaluator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __math_evaluator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__math_evaluatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#math_evaluatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __math_evaluatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__math_evaluator_skip) return;
+    var snap=__math_evaluatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__math_evaluatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__math_evaluator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __math_evaluator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __math_evaluatorRender(keys,rk,en);
+}
+function __math_evaluatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#math_evaluatorTable','math-evaluator.csv'); } catch(e){}
+}
+function __math_evaluatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __math_evaluator_f0=(typeof calc==='function')?calc:null;
+if(__math_evaluator_f0){
+    calc=function(){ var __r=__math_evaluator_f0.apply(null,arguments); try{ __math_evaluatorExtras(); }catch(e){} return __r; };
+}
+function __math_evaluatorBoot(){ try{ __math_evaluatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __math_evaluatorBoot();
+else document.addEventListener('DOMContentLoaded', __math_evaluatorBoot);
 </script>
 
 </body>

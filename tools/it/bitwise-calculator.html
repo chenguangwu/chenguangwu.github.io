@@ -126,13 +126,13 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div><label>数值 B</label><input type="text" id="b" placeholder="如 240" oninput="calc()"></div>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="bitwise_calculatorTable"></div> <div id="bitwise_calculatorDiff"></div> <div id="bitwise_calculatorChart"></div> <div id="bitwise_calculatorHist"></div>
     <div style="background:var(--bg,#FFFAF7);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:14px;margin-bottom:12px;">
       <div style="font-size:12px;color:var(--muted,#6B7280);margin-bottom:6px;">结果（32 位可视化）</div>
       <div id="bitsOut" style="font-family:monospace;font-size:15px;line-height:2;word-break:break-all;"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" onclick="calc()">计算</button>
+      <div id="bitwise_calculatorPresets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__bitwise_calculatorExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyRes()">复制结果</button>
     </div>
   </div>
@@ -234,6 +234,114 @@ function calc(){
   const __h5='<p>结果：<strong id="resVal" style="font-size:22px;color:var(--primary);font-family:monospace;">'+resDec+'</strong> '+
     '<span style="font-size:13px;color:var(--muted,#6B7280);">= 0x'+unsigned.toString(16).toUpperCase()+' = 0b'+unsigned.toString(2)+'</span></p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h5;
 }
+
+var __bitwise_calculator_last=0,__bitwise_calculator_skip=false;
+function __bitwise_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bitwise_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bitwise_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bitwise_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bitwise_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bitwise_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bitwise_calculatorDiff');
+        TBKit.history.mount('#bitwise_calculatorHist',function(rec){
+            __bitwise_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __bitwise_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bitwise_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bitwise_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bitwise_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bitwise_calculator_skip) return;
+    var snap=__bitwise_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bitwise_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bitwise_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bitwise_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bitwise_calculatorRender(keys,rk,en);
+}
+function __bitwise_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bitwise_calculatorTable','bitwise-calculator.csv'); } catch(e){}
+}
+function __bitwise_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bitwise_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'op':'AND'}}],function(){ calc(); });
+}
+var __bitwise_calculator_f0=(typeof calc==='function')?calc:null;
+if(__bitwise_calculator_f0){
+    calc=function(){ var __r=__bitwise_calculator_f0.apply(null,arguments); try{ __bitwise_calculatorExtras(); }catch(e){} return __r; };
+}
+function __bitwise_calculatorBoot(){ try{ __bitwise_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bitwise_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __bitwise_calculatorBoot);
 </script>
 
 </body>

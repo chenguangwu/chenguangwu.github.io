@@ -126,10 +126,10 @@ s.parentNode.insertBefore(el, s);
       <label style="flex:0 0 auto;"><input type="checkbox" id="al_crc32"> CRC32</label>
       <label style="flex:0 0 auto;"><input type="checkbox" id="opt_upper"> 大写</label>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="hash_multiTable"></div> <div id="hash_multiDiff"></div> <div id="hash_multiChart"></div> <div id="hash_multiHist"></div>
     <div id="outBox" style="display:flex;flex-direction:column;gap:10px;"></div>
     <div class="toolbar" style="margin-top:12px;">
-      <button class="btn primary" onclick="calc()">计算</button>
+      <div id="hash_multiPresets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__hash_multiExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyAll()">复制全部</button>
     </div>
   </div>
@@ -297,6 +297,113 @@ function calc(){
 function copyItem(btn){var v=btn.parentNode.childNodes[0].nodeValue;ToolBox.copyText(btn.parentNode.textContent.replace('复制','').trim());if(ToolBox.showToast)ToolBox.showToast(i18nText());}
 function copyAll(){var box=document.getElementById('outBox');if(!box.innerHTML){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}var lines=[];box.querySelectorAll('div > div').forEach(function(d){var label=d.childNodes[0].textContent;var val=d.querySelector('div');if(val)lines.push(label+': '+val.textContent.replace('复制','').trim());});ToolBox.copyText(lines.join('\n'));if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg201'));}
 calc();
+
+var __hash_multi_last=0,__hash_multi_skip=false;
+function __hash_multiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __hash_multiResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __hash_multiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __hash_multiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__hash_multiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#hash_multiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#hash_multiDiff');
+        TBKit.history.mount('#hash_multiHist',function(rec){
+            __hash_multi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __hash_multi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__hash_multiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#hash_multiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __hash_multiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__hash_multi_skip) return;
+    var snap=__hash_multiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__hash_multiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__hash_multi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __hash_multi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __hash_multiRender(keys,rk,en);
+}
+function __hash_multiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hash_multiTable','hash-multi.csv'); } catch(e){}
+}
+function __hash_multiPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __hash_multi_f0=(typeof calc==='function')?calc:null;
+if(__hash_multi_f0){
+    calc=function(){ var __r=__hash_multi_f0.apply(null,arguments); try{ __hash_multiExtras(); }catch(e){} return __r; };
+}
+function __hash_multiBoot(){ try{ __hash_multiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hash_multiBoot();
+else document.addEventListener('DOMContentLoaded', __hash_multiBoot);
 </script>
 
 </body>

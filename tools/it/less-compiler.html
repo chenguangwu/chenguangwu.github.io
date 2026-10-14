@@ -203,7 +203,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="compile(true)">⚡ 编译</button>
       <button type="button" class="btn" onclick="loadSample()">📋 加载示例</button>
       <button type="button" class="btn" onclick="copyOutput()">复制 CSS</button>
-      <button type="button" class="btn success" onclick="downloadOutput()">下载 CSS</button>
+      <div id="less_compilerPresets"></div><button type="button" class="btn success" onclick="downloadOutput()">下载 CSS</button><button class="btn" type="button" onclick="__less_compilerExport()">导出明细 CSV</button>
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
     </div>
 
@@ -214,7 +214,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div class="editor-panel">
         <label>CSS 输出 <span class="status-dot idle" id="statusDot"></span><span id="statusText" style="font-size:12px;color:var(--text-muted);">等待编译</span></label>
-        <div id="output" class="empty-state">编译结果将显示在此处...</div>
+        <div id="output" class="empty-state">编译结果将显示在此处...</div> <div id="less_compilerTable"></div> <div id="less_compilerDiff"></div> <div id="less_compilerChart"></div> <div id="less_compilerHist"></div>
       </div>
     </div>
 
@@ -633,6 +633,113 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+var __less_compiler_last=0,__less_compiler_skip=false;
+function __less_compilerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __less_compilerResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __less_compilerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __less_compilerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__less_compilerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#less_compilerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#less_compilerDiff');
+        TBKit.history.mount('#less_compilerHist',function(rec){
+            __less_compiler_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadOutput();
+            }catch(e2){}
+            __less_compiler_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__less_compilerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#less_compilerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __less_compilerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__less_compiler_skip) return;
+    var snap=__less_compilerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__less_compilerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__less_compiler_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __less_compiler_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __less_compilerRender(keys,rk,en);
+}
+function __less_compilerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#less_compilerTable','less-compiler.csv'); } catch(e){}
+}
+function __less_compilerPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __less_compiler_f0=(typeof downloadOutput==='function')?downloadOutput:null;
+if(__less_compiler_f0){
+    downloadOutput=function(){ var __r=__less_compiler_f0.apply(null,arguments); try{ __less_compilerExtras(); }catch(e){} return __r; };
+}
+function __less_compilerBoot(){ try{ __less_compilerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __less_compilerBoot();
+else document.addEventListener('DOMContentLoaded', __less_compilerBoot);
 </script>
 </body>
 </html>

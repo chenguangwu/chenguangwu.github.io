@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="input-row" style="align-items:center;">
       <span style="white-space:nowrap;font-size:13px;">常用预设：</span>
-      <button class="btn" onclick="preset('* * * * *')">每分钟</button>
+      <div id="crontab_generatorPresets"></div><button class="btn" onclick="preset('* * * * *')">每分钟</button><button class="btn" type="button" onclick="__crontab_generatorExport()">导出明细 CSV</button>
       <button class="btn" onclick="preset('*/5 * * * *')">每 5 分钟</button>
       <button class="btn" onclick="preset('0 * * * *')">每小时</button>
       <button class="btn" onclick="preset('0 9 * * *')">每天 9:00</button>
@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>月份 (1-12)</label><input type="text" id="f_mon" value="*" oninput="build()"></div>
       <div><label>星期 (0-6)</label><input type="text" id="f_dow" value="*" oninput="build()"></div>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="crontab_generatorTable"></div> <div id="crontab_generatorDiff"></div> <div id="crontab_generatorChart"></div> <div id="crontab_generatorHist"></div>
     <input type="text" id="cronOut" readonly style="font-family:'SF Mono','Courier New',monospace;font-size:15px;padding:12px;border-radius:10px;border:1px solid var(--border,#E5E7EB);width:100%;box-sizing:border-box;">
     <div class="toolbar" style="margin-top:12px;">
       <button class="btn primary" onclick="copyCron()">复制表达式</button>
@@ -255,6 +255,114 @@ function copyCron(){
   ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg196'));
 }
 build();
+
+var __crontab_generator_last=0,__crontab_generator_skip=false;
+function __crontab_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __crontab_generatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __crontab_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __crontab_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__crontab_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#crontab_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#crontab_generatorDiff');
+        TBKit.history.mount('#crontab_generatorHist',function(rec){
+            __crontab_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                preset();
+            }catch(e2){}
+            __crontab_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__crontab_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#crontab_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __crontab_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__crontab_generator_skip) return;
+    var snap=__crontab_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__crontab_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__crontab_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __crontab_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __crontab_generatorRender(keys,rk,en);
+}
+function __crontab_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#crontab_generatorTable','crontab-generator.csv'); } catch(e){}
+}
+function __crontab_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#crontab_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'f_min':'0', 'f_hour':'9', 'f_dom':'*', 'f_mon':'*', 'f_dow':'*'}}],function(){ preset(); });
+}
+var __crontab_generator_f0=(typeof preset==='function')?preset:null;
+if(__crontab_generator_f0){
+    preset=function(){ var __r=__crontab_generator_f0.apply(null,arguments); try{ __crontab_generatorExtras(); }catch(e){} return __r; };
+}
+function __crontab_generatorBoot(){ try{ __crontab_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __crontab_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __crontab_generatorBoot);
 </script>
 
 </body>

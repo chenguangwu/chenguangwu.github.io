@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
 
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="国际化域名 IDN 的编码方案 (RFC 3492)，含 ACE 前缀 xn--。">Encode and decode Punycode (RFC 3492) for internationalized domain names (IDN) directly in your browser.</p>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="enc()">编码 ↑</button>
+      <div id="punycodePresets"></div><button type="button" class="btn primary" onclick="enc()">编码 ↑</button><button class="btn" type="button" onclick="__punycodeExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="dec()">解码 ↓</button>
       <button type="button" class="btn success" onclick="copyResult(this)">复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
     <textarea id="input" placeholder="输入要编码的域名或要解码的 Punycode 字符串..."></textarea>
 
     <label style="margin-top:16px;">输出结果</label>
-    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+    <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea> <div id="punycodeTable"></div> <div id="punycodeDiff"></div> <div id="punycodeChart"></div> <div id="punycodeHist"></div>
   </div>
 
   <div class="card">
@@ -385,6 +385,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __punycode_last=0,__punycode_skip=false;
+function __punycodeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __punycodeResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __punycodeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __punycodeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__punycodeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#punycodeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#punycodeDiff');
+        TBKit.history.mount('#punycodeHist',function(rec){
+            __punycode_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                enc();
+            }catch(e2){}
+            __punycode_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__punycodeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#punycodeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __punycodeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__punycode_skip) return;
+    var snap=__punycodeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__punycodeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__punycode_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __punycode_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __punycodeRender(keys,rk,en);
+}
+function __punycodeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#punycodeTable','punycode.csv'); } catch(e){}
+}
+function __punycodePresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __punycode_f0=(typeof enc==='function')?enc:null;
+if(__punycode_f0){
+    enc=function(){ var __r=__punycode_f0.apply(null,arguments); try{ __punycodeExtras(); }catch(e){} return __r; };
+}
+function __punycodeBoot(){ try{ __punycodePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __punycodeBoot();
+else document.addEventListener('DOMContentLoaded', __punycodeBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

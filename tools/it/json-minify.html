@@ -123,10 +123,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <textarea id="input" placeholder='粘贴 JSON 到此处，如：{"name":"ToolBox","tools":6246}' style="min-height:180px" oninput="process()"></textarea>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="json_minifyTable"></div> <div id="json_minifyDiff"></div> <div id="json_minifyChart"></div> <div id="json_minifyHist"></div>
     <textarea id="output" readonly style="min-height:180px" placeholder="输出结果将显示在这里..."></textarea>
     <div class="toolbar">
-      <button class="btn primary" onclick="process()">转换</button>
+      <div id="json_minifyPresets"></div><button class="btn primary" onclick="process()">转换</button><button class="btn" type="button" onclick="__json_minifyExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyOut()">复制结果</button>
       <button class="btn" onclick="document.getElementById('input').value='';process()">清空</button>
     </div>
@@ -237,6 +237,113 @@ function process(){
     document.getElementById('output').value='';
   }
 }
+
+var __json_minify_last=0,__json_minify_skip=false;
+function __json_minifySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __json_minifyResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __json_minifyTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __json_minifyRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__json_minifyTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#json_minifyTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#json_minifyDiff');
+        TBKit.history.mount('#json_minifyHist',function(rec){
+            __json_minify_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                process();
+            }catch(e2){}
+            __json_minify_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__json_minifyTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#json_minifyChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __json_minifyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__json_minify_skip) return;
+    var snap=__json_minifySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__json_minifyResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__json_minify_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __json_minify_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __json_minifyRender(keys,rk,en);
+}
+function __json_minifyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#json_minifyTable','json-minify.csv'); } catch(e){}
+}
+function __json_minifyPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __json_minify_f0=(typeof process==='function')?process:null;
+if(__json_minify_f0){
+    process=function(){ var __r=__json_minify_f0.apply(null,arguments); try{ __json_minifyExtras(); }catch(e){} return __r; };
+}
+function __json_minifyBoot(){ try{ __json_minifyPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __json_minifyBoot();
+else document.addEventListener('DOMContentLoaded', __json_minifyBoot);
 </script>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "压缩会改变数据含义吗？", "acceptedAnswer": {"@type": "Answer", "text": "不会。Minify 只删除空白与换行，键、值、结构保持不变，是纯文本层面的瘦身。"}}, {"@type": "Question", "name": "压缩和 gzip 有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "压缩（minify）是去掉源码层空白，传输层 gzip / brotli 再对字节流整体压缩，两者互补：先 minify 减小明文体积，再 gzip 进一步压缩网络包。"}}]}

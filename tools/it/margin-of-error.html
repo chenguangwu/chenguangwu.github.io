@@ -177,9 +177,9 @@ s.parentNode.insertBefore(el, s);
       <div><label>总体大小 N（可选）</label><input type="number" id="N" value="" placeholder="留空 = 无限总体"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calculate()">计算</button>
+      <div id="margin_of_errorPresets"></div><button type="button" class="btn primary" onclick="calculate()">计算</button><button class="btn" type="button" onclick="__margin_of_errorExport()">导出明细 CSV</button>
     </div>
-    <div class="result-box" id="output"></div>
+    <div class="result-box" id="output"></div> <div id="margin_of_errorTable"></div> <div id="margin_of_errorDiff"></div> <div id="margin_of_errorChart"></div> <div id="margin_of_errorHist"></div>
   </div>
   <div class="card">
     <h2>📋 误差范围公式</h2>
@@ -312,6 +312,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __margin_of_error_last=0,__margin_of_error_skip=false;
+function __margin_of_errorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __margin_of_errorResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __margin_of_errorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __margin_of_errorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__margin_of_errorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#margin_of_errorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#margin_of_errorDiff');
+        TBKit.history.mount('#margin_of_errorHist',function(rec){
+            __margin_of_error_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calculate();
+            }catch(e2){}
+            __margin_of_error_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__margin_of_errorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#margin_of_errorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __margin_of_errorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__margin_of_error_skip) return;
+    var snap=__margin_of_errorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__margin_of_errorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__margin_of_error_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __margin_of_error_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __margin_of_errorRender(keys,rk,en);
+}
+function __margin_of_errorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#margin_of_errorTable','margin-of-error.csv'); } catch(e){}
+}
+function __margin_of_errorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#margin_of_errorPresets',[{label:'默认参数',labelEn:'Default',values:{'n':'1000', 'p':'0.5', 'conf':'0.90'}}],function(){ calculate(); });
+}
+var __margin_of_error_f0=(typeof calculate==='function')?calculate:null;
+if(__margin_of_error_f0){
+    calculate=function(){ var __r=__margin_of_error_f0.apply(null,arguments); try{ __margin_of_errorExtras(); }catch(e){} return __r; };
+}
+function __margin_of_errorBoot(){ try{ __margin_of_errorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __margin_of_errorBoot();
+else document.addEventListener('DOMContentLoaded', __margin_of_errorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

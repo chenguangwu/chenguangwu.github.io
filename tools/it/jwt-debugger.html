@@ -175,7 +175,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-i18n="it.jwt-debugger.intro" data-i18n-fb="解析、校验与调试 JWT，支持查看 Header / Payload / 签名并检查过期时间。">Validate and inspect JWTs locally with instant decoding and claim debugging.</p>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('decode')">解析验证</button>
+      <div id="jwt_debuggerPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('decode')">解析验证</button><button class="btn" type="button" onclick="__jwt_debuggerExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('generate')">生成JWT</button>
     </div>
 
@@ -362,7 +362,7 @@ function decodeJwt() {
   
   const parts = token.split('.');
   if (parts.length !== 3) {
-    const __h1='<div class="result-box" style="border-color:var(--danger);background:#ffebee;"><p class="invalid">❌ JWT格式错误：应该包含3个用点分隔的部分</p></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){valDiv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}valDiv.innerHTML=__h1;
+    const __h1='<div class="result-box" style="border-color:var(--danger);background:#ffebee;"><p class="invalid">❌ JWT格式错误：应该包含3个用点分隔的部分</p></div> <div id="jwt_debuggerTable"></div> <div id="jwt_debuggerDiff"></div> <div id="jwt_debuggerChart"></div> <div id="jwt_debuggerHist"></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){valDiv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}valDiv.innerHTML=__h1;
     partsDiv.style.display = 'none';
     visDiv.style.display = 'none';
     claimsDiv.style.display = 'none';
@@ -533,6 +533,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __jwt_debugger_last=0,__jwt_debugger_skip=false;
+function __jwt_debuggerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __jwt_debuggerResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __jwt_debuggerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __jwt_debuggerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__jwt_debuggerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#jwt_debuggerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#jwt_debuggerDiff');
+        TBKit.history.mount('#jwt_debuggerHist',function(rec){
+            __jwt_debugger_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __jwt_debugger_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__jwt_debuggerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#jwt_debuggerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __jwt_debuggerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__jwt_debugger_skip) return;
+    var snap=__jwt_debuggerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__jwt_debuggerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__jwt_debugger_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __jwt_debugger_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __jwt_debuggerRender(keys,rk,en);
+}
+function __jwt_debuggerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#jwt_debuggerTable','jwt-debugger.csv'); } catch(e){}
+}
+function __jwt_debuggerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#jwt_debuggerPresets',[{label:'默认参数',labelEn:'Default',values:{'alg':'HS256', 'secret':'your-secret-key'}}],function(){ switchTab(); });
+}
+var __jwt_debugger_f0=(typeof switchTab==='function')?switchTab:null;
+if(__jwt_debugger_f0){
+    switchTab=function(){ var __r=__jwt_debugger_f0.apply(null,arguments); try{ __jwt_debuggerExtras(); }catch(e){} return __r; };
+}
+function __jwt_debuggerBoot(){ try{ __jwt_debuggerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __jwt_debuggerBoot();
+else document.addEventListener('DOMContentLoaded', __jwt_debuggerBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="解析URL各个组成部分、查询参数可视化编辑、URL构建">Parse any URL into scheme, host, path, query and fragment in your browser, and inspect or edit each component.</p>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('parse',this)">🔍 解析</button>
+      <div id="url_parserPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('parse',this)">🔍 解析</button><button class="btn" type="button" onclick="__url_parserExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('build',this)">🔨 构建</button>
       <button type="button" class="tab-btn" onclick="switchTab('ref',this)">📋 参考</button>
       <button type="button" class="tab-btn" onclick="switchTab('history',this)">📜 历史</button>
@@ -184,7 +184,7 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn" onclick="loadExample()">📝 示例</button>
       </div>
 
-      <div class="result-box" id="result"></div>
+      <div class="result-box" id="result"></div> <div id="url_parserTable"></div> <div id="url_parserDiff"></div> <div id="url_parserChart"></div> <div id="url_parserHist"></div>
     </div>
 
     <div id="tab-build" class="tab-content">
@@ -464,6 +464,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __url_parser_last=0,__url_parser_skip=false;
+function __url_parserSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __url_parserResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __url_parserTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __url_parserRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__url_parserTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#url_parserTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#url_parserDiff');
+        TBKit.history.mount('#url_parserHist',function(rec){
+            __url_parser_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __url_parser_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__url_parserTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#url_parserChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __url_parserExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__url_parser_skip) return;
+    var snap=__url_parserSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__url_parserResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__url_parser_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __url_parser_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __url_parserRender(keys,rk,en);
+}
+function __url_parserExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#url_parserTable','url-parser.csv'); } catch(e){}
+}
+function __url_parserPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#url_parserPresets',[{label:'默认参数',labelEn:'Default',values:{'b-protocol':'https:', 'b-pathname':'/'}}],function(){ switchTab(); });
+}
+var __url_parser_f0=(typeof switchTab==='function')?switchTab:null;
+if(__url_parser_f0){
+    switchTab=function(){ var __r=__url_parser_f0.apply(null,arguments); try{ __url_parserExtras(); }catch(e){} return __r; };
+}
+function __url_parserBoot(){ try{ __url_parserPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __url_parserBoot();
+else document.addEventListener('DOMContentLoaded', __url_parserBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
