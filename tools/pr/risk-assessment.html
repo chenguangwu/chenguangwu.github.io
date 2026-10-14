@@ -146,7 +146,9 @@ s.parentNode.insertBefore(el, s);
         <label>影响程度(1-5)</label>
         <input type="number" id="riskImpact" value="3" min="1" max="5" step="1">
       </div>
+      <div id="risk_assessmentPresets"></div>
       <button type="button" class="btn primary" onclick="addRisk()" style="flex:0 0 auto;">添加</button>
+      <button class="btn" type="button" onclick="__risk_assessmentExport()">导出明细 CSV</button>
     </div>
 
     <div class="toolbar">
@@ -156,6 +158,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="risk_assessmentTable"></div>
+    <div id="risk_assessmentDiff"></div>
+    <div id="risk_assessmentChart"></div>
+    <div id="risk_assessmentHist"></div>
 
     <h3 style="margin-top:16px;">风险矩阵</h3>
     <div id="matrixArea"></div>
@@ -405,6 +411,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __risk_assessment_last=0,__risk_assessment_skip=false;
+function __risk_assessmentSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __risk_assessmentResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __risk_assessmentTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __risk_assessmentRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__risk_assessmentTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#risk_assessmentTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#risk_assessmentDiff');
+        TBKit.history.mount('#risk_assessmentHist',function(rec){
+            __risk_assessment_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                addRisk();
+            }catch(e2){}
+            __risk_assessment_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__risk_assessmentTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#risk_assessmentChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __risk_assessmentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__risk_assessment_skip) return;
+    var snap=__risk_assessmentSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__risk_assessmentResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__risk_assessment_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __risk_assessment_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __risk_assessmentRender(keys,rk,en);
+}
+function __risk_assessmentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#risk_assessmentTable','risk-assessment.csv'); } catch(e){}
+}
+function __risk_assessmentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#risk_assessmentPresets',[{label:'默认参数',labelEn:'Default',values:{'riskProb':'3', 'riskImpact':'3'}}],function(){ addRisk(); });
+}
+var __risk_assessment_f0=(typeof addRisk==='function')?addRisk:null;
+if(__risk_assessment_f0){
+    addRisk=function(){ var __r=__risk_assessment_f0.apply(null,arguments); try{ __risk_assessmentExtras(); }catch(e){} return __r; };
+}
+function __risk_assessmentBoot(){ try{ __risk_assessmentPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __risk_assessmentBoot();
+else document.addEventListener('DOMContentLoaded', __risk_assessmentBoot);
 </script>
 
 </body>
