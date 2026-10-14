@@ -133,11 +133,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" onclick="calcTool()">计算</button>
+      <div id="percent_changePresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__percent_changeExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="percent_changeTable"></div> <div id="percent_changeDiff"></div> <div id="percent_changeChart"></div> <div id="percent_changeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +202,114 @@ function resetForm(){document.getElementById('old').value = '80';
       document.getElementById('new').value = '100';
       calcTool();}
 calcTool();
+
+var __percent_change_last=0,__percent_change_skip=false;
+function __percent_changeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __percent_changeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __percent_changeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __percent_changeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__percent_changeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#percent_changeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#percent_changeDiff');
+        TBKit.history.mount('#percent_changeHist',function(rec){
+            __percent_change_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcTool();
+            }catch(e2){}
+            __percent_change_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__percent_changeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#percent_changeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __percent_changeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__percent_change_skip) return;
+    var snap=__percent_changeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__percent_changeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__percent_change_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __percent_change_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __percent_changeRender(keys,rk,en);
+}
+function __percent_changeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#percent_changeTable','percent-change.csv'); } catch(e){}
+}
+function __percent_changePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#percent_changePresets',[{label:'默认参数',labelEn:'Default',values:{'old':'80', 'new':'100'}}],function(){ calcTool(); });
+}
+var __percent_change_f0=(typeof calcTool==='function')?calcTool:null;
+if(__percent_change_f0){
+    calcTool=function(){ var __r=__percent_change_f0.apply(null,arguments); try{ __percent_changeExtras(); }catch(e){} return __r; };
+}
+function __percent_changeBoot(){ try{ __percent_changePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __percent_changeBoot();
+else document.addEventListener('DOMContentLoaded', __percent_changeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

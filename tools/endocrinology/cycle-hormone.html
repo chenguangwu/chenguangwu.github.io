@@ -453,7 +453,7 @@ function analyze(){
   // LH/FSH ratio
   if(vals.LH !== null && vals.FSH !== null && vals.FSH > 0){
     var ratio = vals.LH / vals.FSH;
-    html += '<div class="result-box" style="margin-top:12px;">';
+    html += '<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__cycle_hormoneExport()">导出明细 CSV</button></div><div class="result-box" style="margin-top:12px;">';
     html += '<p><strong>LH/FSH 比值：'+ratio.toFixed(2)+'</strong></p>';
     if(phase.key === 'early_follicular'){
       if(ratio >= 2){
@@ -466,7 +466,7 @@ function analyze(){
     } else {
       html += '<p style="color:var(--text-light);">注：LH/FSH比值评估主要用于基础值（月经第2-5天），非基础期参考价值有限。</p>';
     }
-    html += '</div>';
+    html += '</div> <div id="cycle_hormoneTable"></div> <div id="cycle_hormoneDiff"></div> <div id="cycle_hormoneChart"></div> <div id="cycle_hormoneHist"></div>';
   }
 
   // Pattern recognition
@@ -703,6 +703,114 @@ document.addEventListener('DOMContentLoaded', function(){
     h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
   });
 });
+
+var __cycle_hormone_last=0,__cycle_hormone_skip=false;
+function __cycle_hormoneSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cycle_hormoneResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cycle_hormoneTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cycle_hormoneRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cycle_hormoneTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cycle_hormoneTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cycle_hormoneDiff');
+        TBKit.history.mount('#cycle_hormoneHist',function(rec){
+            __cycle_hormone_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                updatePhaseHint();
+            }catch(e2){}
+            __cycle_hormone_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cycle_hormoneTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cycle_hormoneChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cycle_hormoneExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cycle_hormone_skip) return;
+    var snap=__cycle_hormoneSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cycle_hormoneResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cycle_hormone_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cycle_hormone_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cycle_hormoneRender(keys,rk,en);
+}
+function __cycle_hormoneExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cycle_hormoneTable','cycle-hormone.csv'); } catch(e){}
+}
+function __cycle_hormonePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cycle_hormonePresets',[{label:'默认参数',labelEn:'Default',values:{'cycleDay':'3', 'ageGroup':'reproductive'}}],function(){ updatePhaseHint(); });
+}
+var __cycle_hormone_f0=(typeof updatePhaseHint==='function')?updatePhaseHint:null;
+if(__cycle_hormone_f0){
+    updatePhaseHint=function(){ var __r=__cycle_hormone_f0.apply(null,arguments); try{ __cycle_hormoneExtras(); }catch(e){} return __r; };
+}
+function __cycle_hormoneBoot(){ try{ __cycle_hormonePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cycle_hormoneBoot();
+else document.addEventListener('DOMContentLoaded', __cycle_hormoneBoot);
 </script>
 </body>
 </html>

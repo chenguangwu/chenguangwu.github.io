@@ -148,13 +148,13 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估节律</button>
+      <div id="cortisol_rhythmPresets"></div><button type="button" class="btn primary" onclick="calc()">评估节律</button><button class="btn" type="button" onclick="__cortisol_rhythmExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="loadNormal()">正常示例</button>
       <button type="button" class="btn" onclick="loadCushing()">库欣示例</button>
       <button type="button" class="btn" onclick="loadAdrenal()">肾上腺皮质功能减退</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="cortisol_rhythmTable"></div> <div id="cortisol_rhythmDiff"></div> <div id="cortisol_rhythmChart"></div> <div id="cortisol_rhythmHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">血清皮质醇昼夜节律参考值</h3>
     <table class="ref-table">
@@ -479,6 +479,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __cortisol_rhythm_last=0,__cortisol_rhythm_skip=false;
+function __cortisol_rhythmSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cortisol_rhythmResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cortisol_rhythmTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cortisol_rhythmRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cortisol_rhythmTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cortisol_rhythmTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cortisol_rhythmDiff');
+        TBKit.history.mount('#cortisol_rhythmHist',function(rec){
+            __cortisol_rhythm_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cortisol_rhythm_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cortisol_rhythmTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cortisol_rhythmChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cortisol_rhythmExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cortisol_rhythm_skip) return;
+    var snap=__cortisol_rhythmSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cortisol_rhythmResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cortisol_rhythm_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cortisol_rhythm_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cortisol_rhythmRender(keys,rk,en);
+}
+function __cortisol_rhythmExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cortisol_rhythmTable','cortisol-rhythm.csv'); } catch(e){}
+}
+function __cortisol_rhythmPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cortisol_rhythmPresets',[{label:'默认参数',labelEn:'Default',values:{'m8':'420', 'm16':'280', 'm0':'220', 'condition':'awake'}}],function(){ calc(); });
+}
+var __cortisol_rhythm_f0=(typeof calc==='function')?calc:null;
+if(__cortisol_rhythm_f0){
+    calc=function(){ var __r=__cortisol_rhythm_f0.apply(null,arguments); try{ __cortisol_rhythmExtras(); }catch(e){} return __r; };
+}
+function __cortisol_rhythmBoot(){ try{ __cortisol_rhythmPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cortisol_rhythmBoot();
+else document.addEventListener('DOMContentLoaded', __cortisol_rhythmBoot);
 </script>
 
 </body>

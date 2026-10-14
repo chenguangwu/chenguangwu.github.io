@@ -137,11 +137,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估</button>
+      <div id="urine_osmolalityPresets"></div><button type="button" class="btn primary" onclick="calc()">评估</button><button class="btn" type="button" onclick="__urine_osmolalityExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="urine_osmolalityTable"></div> <div id="urine_osmolalityDiff"></div> <div id="urine_osmolalityChart"></div> <div id="urine_osmolalityHist"></div>
   </div>
 
   <div class="card">
@@ -374,6 +374,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __urine_osmolality_last=0,__urine_osmolality_skip=false;
+function __urine_osmolalitySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __urine_osmolalityResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __urine_osmolalityTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __urine_osmolalityRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__urine_osmolalityTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#urine_osmolalityTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#urine_osmolalityDiff');
+        TBKit.history.mount('#urine_osmolalityHist',function(rec){
+            __urine_osmolality_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __urine_osmolality_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__urine_osmolalityTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#urine_osmolalityChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __urine_osmolalityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__urine_osmolality_skip) return;
+    var snap=__urine_osmolalitySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__urine_osmolalityResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__urine_osmolality_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __urine_osmolality_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __urine_osmolalityRender(keys,rk,en);
+}
+function __urine_osmolalityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#urine_osmolalityTable','urine-osmolality.csv'); } catch(e){}
+}
+function __urine_osmolalityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#urine_osmolalityPresets',[{label:'默认参数',labelEn:'Default',values:{'uOsm':'350', 'sOsm':'295', 'uVol':'60', 'scenario':'random'}}],function(){ calc(); });
+}
+var __urine_osmolality_f0=(typeof calc==='function')?calc:null;
+if(__urine_osmolality_f0){
+    calc=function(){ var __r=__urine_osmolality_f0.apply(null,arguments); try{ __urine_osmolalityExtras(); }catch(e){} return __r; };
+}
+function __urine_osmolalityBoot(){ try{ __urine_osmolalityPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __urine_osmolalityBoot();
+else document.addEventListener('DOMContentLoaded', __urine_osmolalityBoot);
 </script>
 
 </body>

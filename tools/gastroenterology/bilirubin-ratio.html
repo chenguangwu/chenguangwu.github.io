@@ -131,11 +131,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算分析</button>
+      <div id="bilirubin_ratioPresets"></div><button type="button" class="btn primary" onclick="calc()">计算分析</button><button class="btn" type="button" onclick="__bilirubin_ratioExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="bilirubin_ratioTable"></div> <div id="bilirubin_ratioDiff"></div> <div id="bilirubin_ratioChart"></div> <div id="bilirubin_ratioHist"></div>
   </div>
 
   <div class="card">
@@ -379,6 +379,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __bilirubin_ratio_last=0,__bilirubin_ratio_skip=false;
+function __bilirubin_ratioSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bilirubin_ratioResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bilirubin_ratioTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bilirubin_ratioRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bilirubin_ratioTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bilirubin_ratioTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bilirubin_ratioDiff');
+        TBKit.history.mount('#bilirubin_ratioHist',function(rec){
+            __bilirubin_ratio_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __bilirubin_ratio_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bilirubin_ratioTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bilirubin_ratioChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bilirubin_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bilirubin_ratio_skip) return;
+    var snap=__bilirubin_ratioSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bilirubin_ratioResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bilirubin_ratio_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bilirubin_ratio_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bilirubin_ratioRender(keys,rk,en);
+}
+function __bilirubin_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bilirubin_ratioTable','bilirubin-ratio.csv'); } catch(e){}
+}
+function __bilirubin_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bilirubin_ratioPresets',[{label:'默认参数',labelEn:'Default',values:{'tbil':'85', 'dbil':'55', 'ref':'21'}}],function(){ calc(); });
+}
+var __bilirubin_ratio_f0=(typeof calc==='function')?calc:null;
+if(__bilirubin_ratio_f0){
+    calc=function(){ var __r=__bilirubin_ratio_f0.apply(null,arguments); try{ __bilirubin_ratioExtras(); }catch(e){} return __r; };
+}
+function __bilirubin_ratioBoot(){ try{ __bilirubin_ratioPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bilirubin_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __bilirubin_ratioBoot);
 </script>
 
 </body>

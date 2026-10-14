@@ -166,12 +166,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">验证三联征</button>
+      <div id="whipple_triadPresets"></div><button type="button" class="btn primary" onclick="calc()">验证三联征</button><button class="btn" type="button" onclick="__whipple_triadExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="loadInsulinoma()">胰岛素瘤示例</button>
       <button type="button" class="btn" onclick="loadReactive()">反应性低血糖</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="whipple_triadTable"></div> <div id="whipple_triadDiff"></div> <div id="whipple_triadChart"></div> <div id="whipple_triadHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">低血糖症鉴别诊断</h3>
     <table class="ref-table">
@@ -405,6 +405,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __whipple_triad_last=0,__whipple_triad_skip=false;
+function __whipple_triadSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __whipple_triadResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __whipple_triadTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __whipple_triadRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__whipple_triadTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#whipple_triadTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#whipple_triadDiff');
+        TBKit.history.mount('#whipple_triadHist',function(rec){
+            __whipple_triad_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __whipple_triad_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__whipple_triadTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#whipple_triadChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __whipple_triadExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__whipple_triad_skip) return;
+    var snap=__whipple_triadSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__whipple_triadResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__whipple_triad_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __whipple_triad_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __whipple_triadRender(keys,rk,en);
+}
+function __whipple_triadExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#whipple_triadTable','whipple-triad.csv'); } catch(e){}
+}
+function __whipple_triadPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#whipple_triadPresets',[{label:'默认参数',labelEn:'Default',values:{'bg':'2.2', 'fasting':'1'}}],function(){ calc(); });
+}
+var __whipple_triad_f0=(typeof calc==='function')?calc:null;
+if(__whipple_triad_f0){
+    calc=function(){ var __r=__whipple_triad_f0.apply(null,arguments); try{ __whipple_triadExtras(); }catch(e){} return __r; };
+}
+function __whipple_triadBoot(){ try{ __whipple_triadPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __whipple_triadBoot();
+else document.addEventListener('DOMContentLoaded', __whipple_triadBoot);
 </script>
 
 </body>

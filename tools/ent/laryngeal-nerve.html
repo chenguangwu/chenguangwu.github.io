@@ -172,11 +172,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">分析评估</button>
+      <div id="laryngeal_nervePresets"></div><button type="button" class="btn primary" onclick="calc()">分析评估</button><button class="btn" type="button" onclick="__laryngeal_nerveExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="laryngeal_nerveTable"></div> <div id="laryngeal_nerveDiff"></div> <div id="laryngeal_nerveChart"></div> <div id="laryngeal_nerveHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">声学参数正常参考值</h3>
     <table>
@@ -382,6 +382,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __laryngeal_nerve_last=0,__laryngeal_nerve_skip=false;
+function __laryngeal_nerveSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __laryngeal_nerveResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __laryngeal_nerveTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __laryngeal_nerveRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__laryngeal_nerveTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#laryngeal_nerveTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#laryngeal_nerveDiff');
+        TBKit.history.mount('#laryngeal_nerveHist',function(rec){
+            __laryngeal_nerve_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __laryngeal_nerve_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__laryngeal_nerveTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#laryngeal_nerveChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __laryngeal_nerveExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__laryngeal_nerve_skip) return;
+    var snap=__laryngeal_nerveSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__laryngeal_nerveResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__laryngeal_nerve_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __laryngeal_nerve_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __laryngeal_nerveRender(keys,rk,en);
+}
+function __laryngeal_nerveExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#laryngeal_nerveTable','laryngeal-nerve.csv'); } catch(e){}
+}
+function __laryngeal_nervePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#laryngeal_nervePresets',[{label:'默认参数',labelEn:'Default',values:{'f0':'120', 'jitter':'2.5', 'shimmer':'5.0', 'nhr':'0.20', 'hnr':'15', 'mpt':'8'}}],function(){ calc(); });
+}
+var __laryngeal_nerve_f0=(typeof calc==='function')?calc:null;
+if(__laryngeal_nerve_f0){
+    calc=function(){ var __r=__laryngeal_nerve_f0.apply(null,arguments); try{ __laryngeal_nerveExtras(); }catch(e){} return __r; };
+}
+function __laryngeal_nerveBoot(){ try{ __laryngeal_nervePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __laryngeal_nerveBoot();
+else document.addEventListener('DOMContentLoaded', __laryngeal_nerveBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用喉返神经(麻痹)声学分析器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>基频 F0 (Hz)</li><li>基频微扰 Jitter (%)</li><li>振幅微扰 Shimmer (%)</li><li>噪谐比 NHR</li><li>谐噪比 HNR (dB)</li><li>最长发声时间 MPT (秒)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>喉返神经(麻痹)声学分析器是做什么的？</dt><dd>输入嗓音声学分析参数，评估声带振动稳定性，辅助喉返神经麻痹的客观诊断与疗效随访</dd><dt>如何使用喉返神经(麻痹)声学分析器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>喉返神经(麻痹)声学分析器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

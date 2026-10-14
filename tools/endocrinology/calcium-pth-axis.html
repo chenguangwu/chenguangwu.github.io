@@ -156,13 +156,13 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">判读</button>
+      <div id="calcium_pth_axisPresets"></div><button type="button" class="btn primary" onclick="calc()">判读</button><button class="btn" type="button" onclick="__calcium_pth_axisExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="loadPHPT()">原发甲旁亢示例</button>
       <button type="button" class="btn" onclick="loadSHPT()">继发甲旁亢示例</button>
       <button type="button" class="btn" onclick="loadHypo()">低血钙示例</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="calcium_pth_axisTable"></div> <div id="calcium_pth_axisDiff"></div> <div id="calcium_pth_axisChart"></div> <div id="calcium_pth_axisHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">血钙-PTH反馈轴四象限判读</h3>
     <div class="quadrant">
@@ -426,6 +426,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __calcium_pth_axis_last=0,__calcium_pth_axis_skip=false;
+function __calcium_pth_axisSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calcium_pth_axisResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calcium_pth_axisTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calcium_pth_axisRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calcium_pth_axisTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calcium_pth_axisTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calcium_pth_axisDiff');
+        TBKit.history.mount('#calcium_pth_axisHist',function(rec){
+            __calcium_pth_axis_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calcium_pth_axis_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calcium_pth_axisTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calcium_pth_axisChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calcium_pth_axisExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calcium_pth_axis_skip) return;
+    var snap=__calcium_pth_axisSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calcium_pth_axisResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calcium_pth_axis_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calcium_pth_axis_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calcium_pth_axisRender(keys,rk,en);
+}
+function __calcium_pth_axisExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calcium_pth_axisTable','calcium-pth-axis.csv'); } catch(e){}
+}
+function __calcium_pth_axisPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calcium_pth_axisPresets',[{label:'默认参数',labelEn:'Default',values:{'ca':'2.85', 'alb':'40', 'pth':'85', 'phos':'0.78', 'vitd':'18', 'refPop':'adult'}}],function(){ calc(); });
+}
+var __calcium_pth_axis_f0=(typeof calc==='function')?calc:null;
+if(__calcium_pth_axis_f0){
+    calc=function(){ var __r=__calcium_pth_axis_f0.apply(null,arguments); try{ __calcium_pth_axisExtras(); }catch(e){} return __r; };
+}
+function __calcium_pth_axisBoot(){ try{ __calcium_pth_axisPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calcium_pth_axisBoot();
+else document.addEventListener('DOMContentLoaded', __calcium_pth_axisBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用血钙/PTH(甲状旁腺)反馈轴评估器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>血清总钙 (mmol/L)</li><li>白蛋白 (g/L)</li><li>PTH (pg/mL)</li><li>血磷 (mmol/L)</li><li>25(OH)D (ng/mL)</li><li>参考人群</li></ul><h2>适用场景</h2><p>鉴别高钙血症病因（原发性甲旁亢 vs 恶性/肉芽肿病）与慢性肾病继发性甲旁亢等钙磷代谢紊乱。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>血钙/PTH(甲状旁腺)反馈轴评估器是做什么的？</dt><dd>输入血钙和PTH水平，结合血磷和维生素D，判读甲状旁腺反馈轴状态与病因</dd><dt>如何使用血钙/PTH(甲状旁腺)反馈轴评估器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>血钙/PTH(甲状旁腺)反馈轴评估器适合哪些场景？</dt><dd>鉴别高钙血症病因（原发性甲旁亢 vs 恶性/肉芽肿病）与慢性肾病继发性甲旁亢等钙磷代谢紊乱。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

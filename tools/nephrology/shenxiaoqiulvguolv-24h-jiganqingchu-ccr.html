@@ -175,12 +175,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算清除率</button>
+      <div id="shenxiaoqiulvguolv_24h_jiganqingchu_ccrPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算清除率</button><button class="btn" type="button" onclick="__shenxiaoqiulvguolv_24h_jiganqingchu_ccrExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="shenxiaoqiulvguolv_24h_jiganqingchu_ccrTable"></div> <div id="shenxiaoqiulvguolv_24h_jiganqingchu_ccrDiff"></div> <div id="shenxiaoqiulvguolv_24h_jiganqingchu_ccrChart"></div> <div id="shenxiaoqiulvguolv_24h_jiganqingchu_ccrHist"></div>
 
     <div class="ref-card">
       <h4>公式说明</h4>
@@ -335,6 +335,114 @@ var scr=parseFloat(document.getElementById('scr').value);
 function copyRes(){var t=document.getElementById('res').innerText;if(!t||!t.trim()){ToolBox.showToast(i18nText(), 'warning');return;}ToolBox.copyText(t);}
 function resetAll(){document.getElementById('scr').value=80;document.getElementById('scrUnit').value='umol';document.getElementById('ucr').value=8.8;document.getElementById('ucrUnit').value='mmol';document.getElementById('vol').value=1500;document.getElementById('height').value=170;document.getElementById('weight').value=65;document.getElementById('sex').value='m';document.getElementById('age').value=40;calc();ToolBox.showToast(i18nText(), 'info');}
 document.addEventListener('DOMContentLoaded',function(){calc();});
+
+var __shenxiaoqiulvguolv_24h_jiganqingchu_ccr_last=0,__shenxiaoqiulvguolv_24h_jiganqingchu_ccr_skip=false;
+function __shenxiaoqiulvguolv_24h_jiganqingchu_ccrSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __shenxiaoqiulvguolv_24h_jiganqingchu_ccrResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __shenxiaoqiulvguolv_24h_jiganqingchu_ccrTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __shenxiaoqiulvguolv_24h_jiganqingchu_ccrRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__shenxiaoqiulvguolv_24h_jiganqingchu_ccrTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#shenxiaoqiulvguolv_24h_jiganqingchu_ccrTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#shenxiaoqiulvguolv_24h_jiganqingchu_ccrDiff');
+        TBKit.history.mount('#shenxiaoqiulvguolv_24h_jiganqingchu_ccrHist',function(rec){
+            __shenxiaoqiulvguolv_24h_jiganqingchu_ccr_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __shenxiaoqiulvguolv_24h_jiganqingchu_ccr_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__shenxiaoqiulvguolv_24h_jiganqingchu_ccrTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#shenxiaoqiulvguolv_24h_jiganqingchu_ccrChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __shenxiaoqiulvguolv_24h_jiganqingchu_ccrExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__shenxiaoqiulvguolv_24h_jiganqingchu_ccr_skip) return;
+    var snap=__shenxiaoqiulvguolv_24h_jiganqingchu_ccrSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__shenxiaoqiulvguolv_24h_jiganqingchu_ccrResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__shenxiaoqiulvguolv_24h_jiganqingchu_ccr_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __shenxiaoqiulvguolv_24h_jiganqingchu_ccr_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __shenxiaoqiulvguolv_24h_jiganqingchu_ccrRender(keys,rk,en);
+}
+function __shenxiaoqiulvguolv_24h_jiganqingchu_ccrExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#shenxiaoqiulvguolv_24h_jiganqingchu_ccrTable','shenxiaoqiulvguolv-24h-jiganqingchu-ccr.csv'); } catch(e){}
+}
+function __shenxiaoqiulvguolv_24h_jiganqingchu_ccrPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#shenxiaoqiulvguolv_24h_jiganqingchu_ccrPresets',[{label:'默认参数',labelEn:'Default',values:{'scr':'80', 'scrUnit':'umol', 'ucr':'8.8', 'ucrUnit':'mmol', 'vol':'1500', 'height':'170', 'weight':'65', 'sex':'m', 'age':'40'}}],function(){ calc(); });
+}
+var __shenxiaoqiulvguolv_24h_jiganqingchu_ccr_f0=(typeof calc==='function')?calc:null;
+if(__shenxiaoqiulvguolv_24h_jiganqingchu_ccr_f0){
+    calc=function(){ var __r=__shenxiaoqiulvguolv_24h_jiganqingchu_ccr_f0.apply(null,arguments); try{ __shenxiaoqiulvguolv_24h_jiganqingchu_ccrExtras(); }catch(e){} return __r; };
+}
+function __shenxiaoqiulvguolv_24h_jiganqingchu_ccrBoot(){ try{ __shenxiaoqiulvguolv_24h_jiganqingchu_ccrPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __shenxiaoqiulvguolv_24h_jiganqingchu_ccrBoot();
+else document.addEventListener('DOMContentLoaded', __shenxiaoqiulvguolv_24h_jiganqingchu_ccrBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

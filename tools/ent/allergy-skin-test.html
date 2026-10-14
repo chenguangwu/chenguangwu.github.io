@@ -148,11 +148,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">判读结果</button>
+      <div id="allergy_skin_testPresets"></div><button type="button" class="btn primary" onclick="calc()">判读结果</button><button class="btn" type="button" onclick="__allergy_skin_testExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="allergy_skin_testTable"></div> <div id="allergy_skin_testDiff"></div> <div id="allergy_skin_testChart"></div> <div id="allergy_skin_testHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">皮肤点刺试验分级标准</h3>
     <table>
@@ -353,6 +353,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __allergy_skin_test_last=0,__allergy_skin_test_skip=false;
+function __allergy_skin_testSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __allergy_skin_testResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __allergy_skin_testTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __allergy_skin_testRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__allergy_skin_testTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#allergy_skin_testTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#allergy_skin_testDiff');
+        TBKit.history.mount('#allergy_skin_testHist',function(rec){
+            __allergy_skin_test_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __allergy_skin_test_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__allergy_skin_testTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#allergy_skin_testChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __allergy_skin_testExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__allergy_skin_test_skip) return;
+    var snap=__allergy_skin_testSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__allergy_skin_testResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__allergy_skin_test_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __allergy_skin_test_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __allergy_skin_testRender(keys,rk,en);
+}
+function __allergy_skin_testExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#allergy_skin_testTable','allergy-skin-test.csv'); } catch(e){}
+}
+function __allergy_skin_testPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#allergy_skin_testPresets',[{label:'默认参数',labelEn:'Default',values:{'histWheal':'8', 'histFlare':'20', 'allerWheal':'5', 'allerFlare':'15'}}],function(){ calc(); });
+}
+var __allergy_skin_test_f0=(typeof calc==='function')?calc:null;
+if(__allergy_skin_test_f0){
+    calc=function(){ var __r=__allergy_skin_test_f0.apply(null,arguments); try{ __allergy_skin_testExtras(); }catch(e){} return __r; };
+}
+function __allergy_skin_testBoot(){ try{ __allergy_skin_testPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __allergy_skin_testBoot();
+else document.addEventListener('DOMContentLoaded', __allergy_skin_testBoot);
 </script>
 
 </body>

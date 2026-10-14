@@ -159,11 +159,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估</button>
+      <div id="graves_trabPresets"></div><button type="button" class="btn primary" onclick="calc()">评估</button><button class="btn" type="button" onclick="__graves_trabExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="loadSample()">载入示例</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="graves_trabTable"></div> <div id="graves_trabDiff"></div> <div id="graves_trabChart"></div> <div id="graves_trabHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">TRAb 滴度临床意义分级</h3>
     <table class="ref-table">
@@ -381,6 +381,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __graves_trab_last=0,__graves_trab_skip=false;
+function __graves_trabSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __graves_trabResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __graves_trabTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __graves_trabRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__graves_trabTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#graves_trabTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#graves_trabDiff');
+        TBKit.history.mount('#graves_trabHist',function(rec){
+            __graves_trab_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __graves_trab_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__graves_trabTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#graves_trabChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __graves_trabExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__graves_trab_skip) return;
+    var snap=__graves_trabSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__graves_trabResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__graves_trab_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __graves_trab_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __graves_trabRender(keys,rk,en);
+}
+function __graves_trabExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#graves_trabTable','graves-trab.csv'); } catch(e){}
+}
+function __graves_trabPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#graves_trabPresets',[{label:'默认参数',labelEn:'Default',values:{'trab':'8.5', 'refRange':'1.75', 'ft4':'28.5', 'stage':'initial'}}],function(){ calc(); });
+}
+var __graves_trab_f0=(typeof calc==='function')?calc:null;
+if(__graves_trab_f0){
+    calc=function(){ var __r=__graves_trab_f0.apply(null,arguments); try{ __graves_trabExtras(); }catch(e){} return __r; };
+}
+function __graves_trabBoot(){ try{ __graves_trabPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __graves_trabBoot();
+else document.addEventListener('DOMContentLoaded', __graves_trabBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用Graves病(TRAb滴度)意义评估器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>TRAb 检测值 (IU/L)</li><li>检测方法参考上限</li><li>当前 FT4 (pmol/L)</li><li>治疗阶段</li></ul><h2>适用场景</h2><p>鉴别甲亢病因（Graves 病 vs 其他）、预测抗甲状腺药物停药后复发，以及监测妊娠期胎儿/新生儿甲亢风险。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>Graves病(TRAb滴度)意义评估器是做什么的？</dt><dd>输入TRAb(促甲状腺素受体抗体)检测值，评估Graves病诊断、活动度与停药复发风险</dd><dt>如何使用Graves病(TRAb滴度)意义评估器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>Graves病(TRAb滴度)意义评估器适合哪些场景？</dt><dd>鉴别甲亢病因（Graves 病 vs 其他）、预测抗甲状腺药物停药后复发，以及监测妊娠期胎儿/新生儿甲亢风险。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
