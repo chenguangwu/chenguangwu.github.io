@@ -135,10 +135,16 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="car_purchase_costPresets"></div>
       <button class="btn primary" onclick="calc()">计算落地价</button>
+      <button class="btn" type="button" onclick="__car_purchase_costExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div id="car_purchase_costTable"></div>
+    <div id="car_purchase_costDiff"></div>
+    <div id="car_purchase_costChart"></div>
+    <div id="car_purchase_costHist"></div>
   </div>
 </div>
 
@@ -199,6 +205,111 @@ function copyResult() {
 }
 
 calc();
+
+var __car_purchase_cost_last=0,__car_purchase_cost_skip=false;
+function __car_purchase_costSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __car_purchase_costResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __car_purchase_costTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __car_purchase_costRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__car_purchase_costTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#car_purchase_costTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#car_purchase_costDiff');
+        TBKit.history.mount('#car_purchase_costHist',function(rec){
+            __car_purchase_cost_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __car_purchase_cost_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__car_purchase_costTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#car_purchase_costChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __car_purchase_costExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__car_purchase_cost_skip) return;
+    var snap=__car_purchase_costSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__car_purchase_costResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__car_purchase_cost_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __car_purchase_cost_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __car_purchase_costRender(keys,rk,en);
+}
+function __car_purchase_costExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#car_purchase_costTable','car-purchase-cost.csv'); } catch(e){}
+}
+function __car_purchase_costPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#car_purchase_costPresets',[{label:'默认参数',labelEn:'Default',values:{price:'150000', taxRate:'10', insurance:'8000', plate:'800'}}],function(){ calc(); });
+}
+var __car_purchase_cost_f0=(typeof calc==='function')?calc:null;
+if(__car_purchase_cost_f0){
+    calc=function(){ __car_purchase_cost_f0.apply(null,arguments); try{ __car_purchase_costExtras(); }catch(e){} };
+}
+function __car_purchase_costBoot(){ try{ __car_purchase_costPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __car_purchase_costBoot();
+else document.addEventListener('DOMContentLoaded', __car_purchase_costBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
