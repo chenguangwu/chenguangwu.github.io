@@ -156,11 +156,16 @@ s.parentNode.insertBefore(el, s);
       <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
     </div>
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__image_converterExport()">导出明细 CSV</button></div>
     <div id="result" style="display:none;">
       <div class="result-box" id="info"></div>
       <h3>转换结果（点击下载）</h3>
       <div class="preview-grid" id="preview-grid"></div>
     </div>
+    <div id="image_converterTable"></div>
+    <div id="image_converterDiff"></div>
+    <div id="image_converterChart"></div>
+    <div id="image_converterHist"></div>
 
     <h3 style="margin-top:24px;">格式说明</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -306,6 +311,110 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __image_converter_last=0,__image_converter_skip=false;
+function __image_converterSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __image_converterResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __image_converterTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __image_converterRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__image_converterTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#image_converterTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#image_converterDiff');
+        TBKit.history.mount('#image_converterHist',function(rec){
+            __image_converter_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                handleFile();
+            }catch(e2){}
+            __image_converter_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__image_converterTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#image_converterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __image_converterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__image_converter_skip) return;
+    var snap=__image_converterSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__image_converterResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__image_converter_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __image_converter_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __image_converterRender(keys,rk,en);
+}
+function __image_converterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#image_converterTable','image-converter.csv'); } catch(e){}
+}
+function __image_converterPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __image_converter_f0=(typeof handleFile==='function')?handleFile:null;
+if(__image_converter_f0){
+    handleFile=function(){ var __r=__image_converter_f0.apply(null,arguments); try{ __image_converterExtras(); }catch(e){} return __r; };
+}
+function __image_converterBoot(){ try{ __image_converterPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __image_converterBoot();
+else document.addEventListener('DOMContentLoaded', __image_converterBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
