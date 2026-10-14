@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="current_dividerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__current_dividerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="current_dividerTable"></div>
+    <div id="current_dividerDiff"></div>
+    <div id="current_dividerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('It').value = '100';
       document.getElementById('R2').value = '2000';
       calcTool();}
 calcTool();
+
+function __current_dividerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __current_dividerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var It=num('It'), R1=num('R1'), R2=num('R2');
+    var I1=It*R2/(R1+R2); // 流经 R1
+    var I2=It*R1/(R1+R2); // 流经 R2
+    if (!isFinite(__current_dividerNum('It')) || !isFinite(__current_dividerNum('R1')) || !isFinite(__current_dividerNum('R2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#current_dividerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['支路 R₁ 电流 I₁ (mA)', I1.toFixed(2)],
+            ['支路 R₂ 电流 I₂ (mA)', I2.toFixed(2)],
+            ['电流合计 (mA)', (I1+I2).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({It:__current_dividerNum('It'), R1:__current_dividerNum('R1'), R2:__current_dividerNum('R2'), I1:I1});
+    TBKit.history.mount('#current_dividerHist',function(rec){ if(rec.It!=null)document.getElementById('It').value=rec.It; if(rec.R1!=null)document.getElementById('R1').value=rec.R1; if(rec.R2!=null)document.getElementById('R2').value=rec.R2; calcTool(); });
+    TBKit.util.diffBox('#current_dividerDiff',['I1']);
+}
+function __current_dividerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#current_dividerTable','current-divider.csv'); } catch(e){}
+}
+function __current_dividerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#current_dividerPresets',[
+        {label:'默认',labelEn:'Default',values:{It:'100', R1:'1000', R2:'2000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{It:'200', R1:'2000', R2:'4000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{It:'50', R1:'500', R2:'1000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __current_dividerExtras(); }catch(e){} };
+function __current_dividerBoot(){ try{ __current_dividerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __current_dividerBoot();
+else document.addEventListener('DOMContentLoaded', __current_dividerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

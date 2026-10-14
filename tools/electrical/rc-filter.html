@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rc_filterPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rc_filterExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rc_filterTable"></div>
+    <div id="rc_filterDiff"></div>
+    <div id="rc_filterHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,42 @@ function resetForm(){document.getElementById('R').value = '10';
       document.getElementById('C').value = '0.1';
       calcTool();}
 calcTool();
+
+function __rc_filterNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rc_filterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var R=num('R')*1000, C=num('C')*1e-6; // Ω, F
+    var fc=1/(2*Math.PI*R*C);
+    if (!isFinite(__rc_filterNum('R')) || !isFinite(__rc_filterNum('C'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rc_filterTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['截止频率 f_c (Hz)', fc.toFixed(1)],
+            ['截止频率 f_c (kHz)', (fc/1000).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({R:__rc_filterNum('R'), C:__rc_filterNum('C'), fc:fc});
+    TBKit.history.mount('#rc_filterHist',function(rec){ if(rec.R!=null)document.getElementById('R').value=rec.R; if(rec.C!=null)document.getElementById('C').value=rec.C; calcTool(); });
+    TBKit.util.diffBox('#rc_filterDiff',['fc']);
+}
+function __rc_filterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rc_filterTable','rc-filter.csv'); } catch(e){}
+}
+function __rc_filterPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rc_filterPresets',[
+        {label:'默认',labelEn:'Default',values:{R:'10', C:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{R:'20', C:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{R:'5', C:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rc_filterExtras(); }catch(e){} };
+function __rc_filterBoot(){ try{ __rc_filterPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rc_filterBoot();
+else document.addEventListener('DOMContentLoaded', __rc_filterBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

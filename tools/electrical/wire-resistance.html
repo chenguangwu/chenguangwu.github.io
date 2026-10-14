@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wire_resistancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wire_resistanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wire_resistanceTable"></div>
+    <div id="wire_resistanceDiff"></div>
+    <div id="wire_resistanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,42 @@ function resetForm(){document.getElementById('rho').value = '0.0172';
       document.getElementById('A').value = '2.5';
       calcTool();}
 calcTool();
+
+function __wire_resistanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wire_resistanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho=num('rho'), L=num('L'), A=num('A');
+    var R=rho*L/A;
+    if (!isFinite(__wire_resistanceNum('rho')) || !isFinite(__wire_resistanceNum('L')) || !isFinite(__wire_resistanceNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wire_resistanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['导线电阻 R (Ω)', R.toFixed(3)],
+            ['每千米电阻 (Ω/km)', (R*1000/L).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rho:__wire_resistanceNum('rho'), L:__wire_resistanceNum('L'), A:__wire_resistanceNum('A'), R:R});
+    TBKit.history.mount('#wire_resistanceHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#wire_resistanceDiff',['R']);
+}
+function __wire_resistanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wire_resistanceTable','wire-resistance.csv'); } catch(e){}
+}
+function __wire_resistancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wire_resistancePresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'0.0172', L:'100', A:'2.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'0.0344', L:'200', A:'5'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'0.0086', L:'50', A:'1.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wire_resistanceExtras(); }catch(e){} };
+function __wire_resistanceBoot(){ try{ __wire_resistancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wire_resistanceBoot();
+else document.addEventListener('DOMContentLoaded', __wire_resistanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

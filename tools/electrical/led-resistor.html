@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="led_resistorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__led_resistorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="led_resistorTable"></div>
+    <div id="led_resistorDiff"></div>
+    <div id="led_resistorHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,44 @@ function resetForm(){document.getElementById('Vs').value = '5';
       document.getElementById('If').value = '20';
       calcTool();}
 calcTool();
+
+function __led_resistorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __led_resistorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Vs=num('Vs'), Vf=num('Vf'), If=num('If')/1000; // A
+    var R=(Vs-Vf)/If;          // Ω
+    var P=Math.pow(If,2)*R;     // W
+    if (!isFinite(__led_resistorNum('Vs')) || !isFinite(__led_resistorNum('Vf')) || !isFinite(__led_resistorNum('If'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#led_resistorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['限流电阻 R (Ω)', R.toFixed(0)],
+            ['建议标称值 (~1.5×) (Ω)', (R*1.5).toFixed(0)],
+            ['电阻功耗 P (mW)', (P*1000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({Vs:__led_resistorNum('Vs'), Vf:__led_resistorNum('Vf'), If:__led_resistorNum('If'), R:R});
+    TBKit.history.mount('#led_resistorHist',function(rec){ if(rec.Vs!=null)document.getElementById('Vs').value=rec.Vs; if(rec.Vf!=null)document.getElementById('Vf').value=rec.Vf; if(rec.If!=null)document.getElementById('If').value=rec.If; calcTool(); });
+    TBKit.util.diffBox('#led_resistorDiff',['R']);
+}
+function __led_resistorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#led_resistorTable','led-resistor.csv'); } catch(e){}
+}
+function __led_resistorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#led_resistorPresets',[
+        {label:'默认',labelEn:'Default',values:{Vs:'5', Vf:'2.0', If:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Vs:'10', Vf:'4', If:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Vs:'2.5', Vf:'1', If:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __led_resistorExtras(); }catch(e){} };
+function __led_resistorBoot(){ try{ __led_resistorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __led_resistorBoot();
+else document.addEventListener('DOMContentLoaded', __led_resistorBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
