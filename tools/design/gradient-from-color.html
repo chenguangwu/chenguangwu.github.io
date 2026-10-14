@@ -166,11 +166,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>变化步数</label><input type="number" id="steps" value="5" min="2" max="10" onchange="generate()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="generate()">生成</button>
+      <div id="gradient_from_colorPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__gradient_from_colorExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制 CSS</button>
     </div>
     <label>主预览</label>
-    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div>
+    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div> <div id="gradient_from_colorTable"></div> <div id="gradient_from_colorDiff"></div> <div id="gradient_from_colorChart"></div> <div id="gradient_from_colorHist"></div>
     <textarea id="cssOutput" readonly style="margin-top:12px;min-height:80px;font-family:monospace;font-size:12px;"></textarea>
     <label style="margin-top:16px;">变化方案 (点击卡片复制)</label>
     <div class="gradient-row" id="gradientRow"></div>
@@ -338,6 +338,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __gradient_from_color_last=0,__gradient_from_color_skip=false;
+function __gradient_from_colorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __gradient_from_colorResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __gradient_from_colorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __gradient_from_colorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__gradient_from_colorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#gradient_from_colorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#gradient_from_colorDiff');
+        TBKit.history.mount('#gradient_from_colorHist',function(rec){
+            __gradient_from_color_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generate();
+            }catch(e2){}
+            __gradient_from_color_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__gradient_from_colorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#gradient_from_colorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __gradient_from_colorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__gradient_from_color_skip) return;
+    var snap=__gradient_from_colorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__gradient_from_colorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__gradient_from_color_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __gradient_from_color_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __gradient_from_colorRender(keys,rk,en);
+}
+function __gradient_from_colorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gradient_from_colorTable','gradient-from-color.csv'); } catch(e){}
+}
+function __gradient_from_colorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gradient_from_colorPresets',[{label:'默认参数',labelEn:'Default',values:{'baseColor':'#667eea', 'direction':'0', 'steps':'5'}}],function(){ generate(); });
+}
+var __gradient_from_color_f0=(typeof generate==='function')?generate:null;
+if(__gradient_from_color_f0){
+    generate=function(){ var __r=__gradient_from_color_f0.apply(null,arguments); try{ __gradient_from_colorExtras(); }catch(e){} return __r; };
+}
+function __gradient_from_colorBoot(){ try{ __gradient_from_colorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gradient_from_colorBoot();
+else document.addEventListener('DOMContentLoaded', __gradient_from_colorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

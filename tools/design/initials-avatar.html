@@ -172,10 +172,10 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="generate()">生成</button>
       <button type="button" class="btn success" onclick="copyResult()">复制 Base64</button>
-      <button type="button" class="btn" onclick="downloadImg()">下载</button>
+      <div id="initials_avatarPresets"></div><button type="button" class="btn" onclick="downloadImg()">下载</button><button class="btn" type="button" onclick="__initials_avatarExport()">导出明细 CSV</button>
     </div>
     <label>预览</label>
-    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div>
+    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div> <div id="initials_avatarTable"></div> <div id="initials_avatarDiff"></div> <div id="initials_avatarChart"></div> <div id="initials_avatarHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -328,6 +328,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __initials_avatar_last=0,__initials_avatar_skip=false;
+function __initials_avatarSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __initials_avatarResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __initials_avatarTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __initials_avatarRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__initials_avatarTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#initials_avatarTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#initials_avatarDiff');
+        TBKit.history.mount('#initials_avatarHist',function(rec){
+            __initials_avatar_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadImg();
+            }catch(e2){}
+            __initials_avatar_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__initials_avatarTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#initials_avatarChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __initials_avatarExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__initials_avatar_skip) return;
+    var snap=__initials_avatarSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__initials_avatarResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__initials_avatar_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __initials_avatar_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __initials_avatarRender(keys,rk,en);
+}
+function __initials_avatarExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#initials_avatarTable','initials-avatar.csv'); } catch(e){}
+}
+function __initials_avatarPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#initials_avatarPresets',[{label:'默认参数',labelEn:'Default',values:{'name':'Tool Box', 'size':'100', 'radius':'50', 'fontSize':'40', 'textColor':'#ffffff', 'bgStyle':'hash', 'bg1':'#667eea', 'bg2':'#764ba2', 'letterCount':'1'}}],function(){ downloadImg(); });
+}
+var __initials_avatar_f0=(typeof downloadImg==='function')?downloadImg:null;
+if(__initials_avatar_f0){
+    downloadImg=function(){ var __r=__initials_avatar_f0.apply(null,arguments); try{ __initials_avatarExtras(); }catch(e){} return __r; };
+}
+function __initials_avatarBoot(){ try{ __initials_avatarPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __initials_avatarBoot();
+else document.addEventListener('DOMContentLoaded', __initials_avatarBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

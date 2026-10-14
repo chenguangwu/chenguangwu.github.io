@@ -158,11 +158,11 @@ s.parentNode.insertBefore(el, s);
       <label><input type="checkbox" id="optMeta" checked> 移除元数据</label>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="generate()">压缩</button>
+      <div id="svg_minifierPresets"></div><button type="button" class="btn primary" onclick="generate()">压缩</button><button class="btn" type="button" onclick="__svg_minifierExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
     </div>
     <label>压缩结果</label>
-    <textarea id="output" readonly></textarea>
+    <textarea id="output" readonly></textarea> <div id="svg_minifierTable"></div> <div id="svg_minifierDiff"></div> <div id="svg_minifierChart"></div> <div id="svg_minifierHist"></div>
     <div class="stat" id="stat"></div>
   </div>
 
@@ -277,6 +277,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __svg_minifier_last=0,__svg_minifier_skip=false;
+function __svg_minifierSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __svg_minifierResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __svg_minifierTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __svg_minifierRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__svg_minifierTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#svg_minifierTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#svg_minifierDiff');
+        TBKit.history.mount('#svg_minifierHist',function(rec){
+            __svg_minifier_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generate();
+            }catch(e2){}
+            __svg_minifier_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__svg_minifierTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#svg_minifierChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __svg_minifierExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__svg_minifier_skip) return;
+    var snap=__svg_minifierSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__svg_minifierResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__svg_minifier_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __svg_minifier_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __svg_minifierRender(keys,rk,en);
+}
+function __svg_minifierExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#svg_minifierTable','svg-minifier.csv'); } catch(e){}
+}
+function __svg_minifierPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __svg_minifier_f0=(typeof generate==='function')?generate:null;
+if(__svg_minifier_f0){
+    generate=function(){ var __r=__svg_minifier_f0.apply(null,arguments); try{ __svg_minifierExtras(); }catch(e){} return __r; };
+}
+function __svg_minifierBoot(){ try{ __svg_minifierPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __svg_minifierBoot();
+else document.addEventListener('DOMContentLoaded', __svg_minifierBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

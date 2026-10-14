@@ -156,11 +156,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>次间距 (px)</label><input type="number" id="minorSize" value="20" min="5" max="100" onchange="generate()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="generate()">生成</button>
+      <div id="blueprint_gridPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__blueprint_gridExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制 CSS</button>
     </div>
     <label>预览</label>
-    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div>
+    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div> <div id="blueprint_gridTable"></div> <div id="blueprint_gridDiff"></div> <div id="blueprint_gridChart"></div> <div id="blueprint_gridHist"></div>
     <textarea id="cssOutput" readonly style="margin-top:12px;min-height:100px;font-family:monospace;font-size:12px;"></textarea>
   </div>
 
@@ -258,6 +258,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __blueprint_grid_last=0,__blueprint_grid_skip=false;
+function __blueprint_gridSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __blueprint_gridResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __blueprint_gridTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __blueprint_gridRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__blueprint_gridTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#blueprint_gridTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#blueprint_gridDiff');
+        TBKit.history.mount('#blueprint_gridHist',function(rec){
+            __blueprint_grid_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generate();
+            }catch(e2){}
+            __blueprint_grid_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__blueprint_gridTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#blueprint_gridChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __blueprint_gridExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__blueprint_grid_skip) return;
+    var snap=__blueprint_gridSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__blueprint_gridResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__blueprint_grid_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __blueprint_grid_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __blueprint_gridRender(keys,rk,en);
+}
+function __blueprint_gridExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#blueprint_gridTable','blueprint-grid.csv'); } catch(e){}
+}
+function __blueprint_gridPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#blueprint_gridPresets',[{label:'默认参数',labelEn:'Default',values:{'bgColor':'#1e3a8a', 'majorColor':'#3b82f6', 'minorColor':'#2563eb', 'majorSize':'100', 'minorSize':'20'}}],function(){ generate(); });
+}
+var __blueprint_grid_f0=(typeof generate==='function')?generate:null;
+if(__blueprint_grid_f0){
+    generate=function(){ var __r=__blueprint_grid_f0.apply(null,arguments); try{ __blueprint_gridExtras(); }catch(e){} return __r; };
+}
+function __blueprint_gridBoot(){ try{ __blueprint_gridPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __blueprint_gridBoot();
+else document.addEventListener('DOMContentLoaded', __blueprint_gridBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

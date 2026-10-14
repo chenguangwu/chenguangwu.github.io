@@ -154,13 +154,13 @@ s.parentNode.insertBefore(el, s);
     <label>颜色 (2-5 个)</label>
     <div class="color-row" id="colorRow"></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="generate()">生成</button>
+      <div id="mesh_gradientPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__mesh_gradientExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制 CSS</button>
       <button type="button" class="btn" onclick="addColor()">+ 添加颜色</button>
       <button type="button" class="btn" onclick="randomize()">随机</button>
     </div>
     <label>预览</label>
-    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div>
+    <div class="result-box" id="output"><div class="preview-area" id="preview"></div></div> <div id="mesh_gradientTable"></div> <div id="mesh_gradientDiff"></div> <div id="mesh_gradientChart"></div> <div id="mesh_gradientHist"></div>
     <textarea id="cssOutput" readonly class="css-output" style="margin-top:12px;min-height:80px;"></textarea>
   </div>
 
@@ -286,6 +286,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __mesh_gradient_last=0,__mesh_gradient_skip=false;
+function __mesh_gradientSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __mesh_gradientResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __mesh_gradientTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __mesh_gradientRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__mesh_gradientTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#mesh_gradientTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#mesh_gradientDiff');
+        TBKit.history.mount('#mesh_gradientHist',function(rec){
+            __mesh_gradient_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generate();
+            }catch(e2){}
+            __mesh_gradient_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__mesh_gradientTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#mesh_gradientChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __mesh_gradientExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__mesh_gradient_skip) return;
+    var snap=__mesh_gradientSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__mesh_gradientResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__mesh_gradient_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __mesh_gradient_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __mesh_gradientRender(keys,rk,en);
+}
+function __mesh_gradientExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mesh_gradientTable','mesh-gradient.csv'); } catch(e){}
+}
+function __mesh_gradientPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __mesh_gradient_f0=(typeof generate==='function')?generate:null;
+if(__mesh_gradient_f0){
+    generate=function(){ var __r=__mesh_gradient_f0.apply(null,arguments); try{ __mesh_gradientExtras(); }catch(e){} return __r; };
+}
+function __mesh_gradientBoot(){ try{ __mesh_gradientPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mesh_gradientBoot();
+else document.addEventListener('DOMContentLoaded', __mesh_gradientBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

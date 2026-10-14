@@ -162,7 +162,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="不同相机在不同ISO下的噪点表现参考，帮助选择合适的感光度">Compare noise levels across ISO settings for common cameras to choose a suitable sensitivity for a shoot.</p>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('reference',this)">📊 ISO参考表</button>
+      <div id="iso_noise_referencePresets"></div><button type="button" class="tab-btn active" onclick="switchTab('reference',this)">📊 ISO参考表</button><button class="btn" type="button" onclick="__iso_noise_referenceExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('cameras',this)">📚 相机对比</button>
       <button type="button" class="tab-btn" onclick="switchTab('guide',this)">💡 降噪指南</button>
       <button type="button" class="tab-btn" onclick="switchTab('history',this)">📜 历史记录</button>
@@ -190,7 +190,7 @@ s.parentNode.insertBefore(el, s);
         </select></div>
       </div>
 
-      <div class="result-box" id="isoResult"></div>
+      <div class="result-box" id="isoResult"></div> <div id="iso_noise_referenceTable"></div> <div id="iso_noise_referenceDiff"></div> <div id="iso_noise_referenceChart"></div> <div id="iso_noise_referenceHist"></div>
 
       <div style="margin-top:16px;">
         <h3 style="font-size:15px;margin-bottom:10px;">ISO 噪点等级参考</h3>
@@ -636,6 +636,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __iso_noise_reference_last=0,__iso_noise_reference_skip=false;
+function __iso_noise_referenceSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __iso_noise_referenceResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __iso_noise_referenceTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __iso_noise_referenceRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__iso_noise_referenceTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#iso_noise_referenceTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#iso_noise_referenceDiff');
+        TBKit.history.mount('#iso_noise_referenceHist',function(rec){
+            __iso_noise_reference_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __iso_noise_reference_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__iso_noise_referenceTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#iso_noise_referenceChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __iso_noise_referenceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__iso_noise_reference_skip) return;
+    var snap=__iso_noise_referenceSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__iso_noise_referenceResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__iso_noise_reference_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __iso_noise_reference_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __iso_noise_referenceRender(keys,rk,en);
+}
+function __iso_noise_referenceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#iso_noise_referenceTable','iso-noise-reference.csv'); } catch(e){}
+}
+function __iso_noise_referencePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#iso_noise_referencePresets',[{label:'默认参数',labelEn:'Default',values:{'sensor':'phone', 'isoRange':'6', 'light':'bright', 'camera':'sony_a7iv'}}],function(){ switchTab(); });
+}
+var __iso_noise_reference_f0=(typeof switchTab==='function')?switchTab:null;
+if(__iso_noise_reference_f0){
+    switchTab=function(){ var __r=__iso_noise_reference_f0.apply(null,arguments); try{ __iso_noise_referenceExtras(); }catch(e){} return __r; };
+}
+function __iso_noise_referenceBoot(){ try{ __iso_noise_referencePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __iso_noise_referenceBoot();
+else document.addEventListener('DOMContentLoaded', __iso_noise_referenceBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

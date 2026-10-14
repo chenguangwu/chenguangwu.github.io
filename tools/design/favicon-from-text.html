@@ -157,10 +157,10 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="generate()">生成</button>
       <button type="button" class="btn success" onclick="copyResult()">复制 Data URL</button>
-      <button type="button" class="btn" onclick="downloadImg()">下载 ICO/PNG</button>
+      <div id="favicon_from_textPresets"></div><button type="button" class="btn" onclick="downloadImg()">下载 ICO/PNG</button><button class="btn" type="button" onclick="__favicon_from_textExport()">导出明细 CSV</button>
     </div>
     <label>预览</label>
-    <div class="result-box" id="output"><div class="preview-area" id="preview">点击生成按钮</div></div>
+    <div class="result-box" id="output"><div class="preview-area" id="preview">点击生成按钮</div></div> <div id="favicon_from_textTable"></div> <div id="favicon_from_textDiff"></div> <div id="favicon_from_textChart"></div> <div id="favicon_from_textHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -290,6 +290,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __favicon_from_text_last=0,__favicon_from_text_skip=false;
+function __favicon_from_textSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __favicon_from_textResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __favicon_from_textTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __favicon_from_textRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__favicon_from_textTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#favicon_from_textTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#favicon_from_textDiff');
+        TBKit.history.mount('#favicon_from_textHist',function(rec){
+            __favicon_from_text_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadImg();
+            }catch(e2){}
+            __favicon_from_text_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__favicon_from_textTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#favicon_from_textChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __favicon_from_textExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__favicon_from_text_skip) return;
+    var snap=__favicon_from_textSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__favicon_from_textResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__favicon_from_text_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __favicon_from_text_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __favicon_from_textRender(keys,rk,en);
+}
+function __favicon_from_textExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#favicon_from_textTable','favicon-from-text.csv'); } catch(e){}
+}
+function __favicon_from_textPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#favicon_from_textPresets',[{label:'默认参数',labelEn:'Default',values:{'text':'T', 'bgColor':'#667eea', 'textColor':'#ffffff', 'size':'64', 'radius':'12'}}],function(){ downloadImg(); });
+}
+var __favicon_from_text_f0=(typeof downloadImg==='function')?downloadImg:null;
+if(__favicon_from_text_f0){
+    downloadImg=function(){ var __r=__favicon_from_text_f0.apply(null,arguments); try{ __favicon_from_textExtras(); }catch(e){} return __r; };
+}
+function __favicon_from_textBoot(){ try{ __favicon_from_textPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __favicon_from_textBoot();
+else document.addEventListener('DOMContentLoaded', __favicon_from_textBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
