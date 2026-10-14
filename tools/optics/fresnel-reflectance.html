@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fresnel_reflectancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fresnel_reflectanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fresnel_reflectanceTable"></div>
+    <div id="fresnel_reflectanceDiff"></div>
+    <div id="fresnel_reflectanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('n1').value = '1.0';
       document.getElementById('n2').value = '1.5';
       calcTool();}
 calcTool();
+
+function __fresnel_reflectanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fresnel_reflectanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n1 = num('n1'), n2 = num('n2');
+    var R = Math.pow((n1 - n2) / (n1 + n2), 2);
+    if (!isFinite(__fresnel_reflectanceNum('n1')) || !isFinite(__fresnel_reflectanceNum('n2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fresnel_reflectanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['反射率 R (%)', (R * 100).toFixed(2)],
+            ['透射率 (%)', ((1 - R) * 100).toFixed(2)],
+            ['振幅反射系数 |r|', (Math.abs(n1-n2)/(n1+n2)).toFixed(5)],
+            ['折射率比 n₂/n₁', (n2/n1).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n1:__fresnel_reflectanceNum('n1'), n2:__fresnel_reflectanceNum('n2'), R:R});
+    TBKit.history.mount('#fresnel_reflectanceHist',function(rec){ if(rec.n1!=null)document.getElementById('n1').value=rec.n1; if(rec.n2!=null)document.getElementById('n2').value=rec.n2; calcTool(); });
+    TBKit.util.diffBox('#fresnel_reflectanceDiff',['R']);
+}
+function __fresnel_reflectanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fresnel_reflectanceTable','fresnel-reflectance.csv'); } catch(e){}
+}
+function __fresnel_reflectancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fresnel_reflectancePresets',[
+        {label:'默认',labelEn:'Default',values:{n1:'1.0', n2:'1.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n1:'2', n2:'3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n1:'0.5', n2:'0.75'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fresnel_reflectanceExtras(); }catch(e){} };
+function __fresnel_reflectanceBoot(){ try{ __fresnel_reflectancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fresnel_reflectanceBoot();
+else document.addEventListener('DOMContentLoaded', __fresnel_reflectanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

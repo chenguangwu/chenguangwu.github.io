@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="optical_power_diopterPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__optical_power_diopterExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="optical_power_diopterTable"></div>
+    <div id="optical_power_diopterDiff"></div>
+    <div id="optical_power_diopterHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,45 @@ const f=num('f');
 function resetForm(){document.getElementById('f').value = '0.5';
       calcTool();}
 calcTool();
+
+function __optical_power_diopterNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __optical_power_diopterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f');
+    var P=1/f;
+    if (!isFinite(__optical_power_diopterNum('f'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#optical_power_diopterTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['光焦度 P (D)', P.toFixed(2)],
+            ['屈光度（百分度）', (P*100).toFixed(4)],
+            ['焦距 (厘米)', (f*100).toFixed(4)],
+            ['焦距倒数换算 (mm)', (1/Math.max(Math.abs(P),1e-9)*1000).toFixed(4)],
+            ['屈光度（千分度）', (P/1000).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({f:__optical_power_diopterNum('f'), P:P});
+    TBKit.history.mount('#optical_power_diopterHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; calcTool(); });
+    TBKit.util.diffBox('#optical_power_diopterDiff',['P']);
+}
+function __optical_power_diopterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#optical_power_diopterTable','optical-power-diopter.csv'); } catch(e){}
+}
+function __optical_power_diopterPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#optical_power_diopterPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __optical_power_diopterExtras(); }catch(e){} };
+function __optical_power_diopterBoot(){ try{ __optical_power_diopterPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __optical_power_diopterBoot();
+else document.addEventListener('DOMContentLoaded', __optical_power_diopterBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

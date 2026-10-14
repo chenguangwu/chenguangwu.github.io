@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="prism_deviationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__prism_deviationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="prism_deviationTable"></div>
+    <div id="prism_deviationDiff"></div>
+    <div id="prism_deviationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('n').value = '1.5';
       document.getElementById('A').value = '10';
       calcTool();}
 calcTool();
+
+function __prism_deviationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __prism_deviationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n=num('n'),A=num('A');
+    var delta=(n-1)*A;
+    if (!isFinite(__prism_deviationNum('n')) || !isFinite(__prism_deviationNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#prism_deviationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['偏向角 δ (°)', delta.toFixed(2)],
+            ['偏向角与顶角比', (delta/Math.max(A,1e-9)).toFixed(4)],
+            ['折射率减一', (n-1).toFixed(4)],
+            ['顶角一半', (A/2).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({n:__prism_deviationNum('n'), A:__prism_deviationNum('A'), delta:delta});
+    TBKit.history.mount('#prism_deviationHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#prism_deviationDiff',['delta']);
+}
+function __prism_deviationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#prism_deviationTable','prism-deviation.csv'); } catch(e){}
+}
+function __prism_deviationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#prism_deviationPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1.5', A:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'3', A:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.75', A:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __prism_deviationExtras(); }catch(e){} };
+function __prism_deviationBoot(){ try{ __prism_deviationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __prism_deviationBoot();
+else document.addEventListener('DOMContentLoaded', __prism_deviationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

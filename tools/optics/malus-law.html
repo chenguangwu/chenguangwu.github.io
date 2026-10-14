@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="malus_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__malus_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="malus_lawTable"></div>
+    <div id="malus_lawDiff"></div>
+    <div id="malus_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('I0').value = '100';
       document.getElementById('th').value = '60';
       calcTool();}
 calcTool();
+
+function __malus_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __malus_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I0=num('I0'),th=num('th')*Math.PI/180;
+    var I=I0*Math.pow(Math.cos(th),2);
+    if (!isFinite(__malus_lawNum('I0')) || !isFinite(__malus_lawNum('th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#malus_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['透射光强 I', I.toFixed(2)],
+            ['被吸收光强', (I0-I).toFixed(3)],
+            ['吸收光强占比 (%)', ((I0-I)/Math.max(I0,1e-9)*100).toFixed(2)],
+            ['振幅透射率 (%)', (Math.abs(Math.cos(th))*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({I0:__malus_lawNum('I0'), th:__malus_lawNum('th'), I:I});
+    TBKit.history.mount('#malus_lawHist',function(rec){ if(rec.I0!=null)document.getElementById('I0').value=rec.I0; if(rec.th!=null)document.getElementById('th').value=rec.th; calcTool(); });
+    TBKit.util.diffBox('#malus_lawDiff',['I']);
+}
+function __malus_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#malus_lawTable','malus-law.csv'); } catch(e){}
+}
+function __malus_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#malus_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{I0:'100', th:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I0:'200', th:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I0:'50', th:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __malus_lawExtras(); }catch(e){} };
+function __malus_lawBoot(){ try{ __malus_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __malus_lawBoot();
+else document.addEventListener('DOMContentLoaded', __malus_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

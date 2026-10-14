@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="young_fringePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__young_fringeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="young_fringeTable"></div>
+    <div id="young_fringeDiff"></div>
+    <div id="young_fringeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('lam').value = '550';
       document.getElementById('d').value = '0.5';
       calcTool();}
 calcTool();
+
+function __young_fringeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __young_fringeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var lam=num('lam')*1e-9, L=num('L'), d=num('d')*1e-3;
+    var dy=lam*L/d*1000;
+    if (!isFinite(__young_fringeNum('lam')) || !isFinite(__young_fringeNum('L')) || !isFinite(__young_fringeNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#young_fringeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['条纹间距 Δy (mm)', dy.toFixed(3)],
+            ['角条纹间距 (rad)', (lam/d).toExponential(4)],
+            ['视场条纹数', (L*1000/dy).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({lam:__young_fringeNum('lam'), L:__young_fringeNum('L'), d:__young_fringeNum('d'), dy:dy});
+    TBKit.history.mount('#young_fringeHist',function(rec){ if(rec.lam!=null)document.getElementById('lam').value=rec.lam; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#young_fringeDiff',['dy']);
+}
+function __young_fringeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#young_fringeTable','young-fringe.csv'); } catch(e){}
+}
+function __young_fringePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#young_fringePresets',[
+        {label:'默认',labelEn:'Default',values:{lam:'550', L:'1', d:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{lam:'1100', L:'2', d:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{lam:'275', L:'0.5', d:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __young_fringeExtras(); }catch(e){} };
+function __young_fringeBoot(){ try{ __young_fringePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __young_fringeBoot();
+else document.addEventListener('DOMContentLoaded', __young_fringeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

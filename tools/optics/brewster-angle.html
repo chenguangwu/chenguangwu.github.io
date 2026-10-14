@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="brewster_anglePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__brewster_angleExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="brewster_angleTable"></div>
+    <div id="brewster_angleDiff"></div>
+    <div id="brewster_angleHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,43 @@ function resetForm(){document.getElementById('n1').value = '1.0';
       document.getElementById('n2').value = '1.5';
       calcTool();}
 calcTool();
+
+function __brewster_angleNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __brewster_angleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n1 = num('n1'), n2 = num('n2');
+    var tb = Math.atan(n2 / n1) * 180 / Math.PI;
+    if (!isFinite(__brewster_angleNum('n1')) || !isFinite(__brewster_angleNum('n2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#brewster_angleTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['布儒斯特角 θ_B (°)', tb.toFixed(3)],
+            ['折射率比 n2/n1', (n2/(n1||1)).toFixed(4)],
+            ['与法线互补角 (度)', (90-tb).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({n1:__brewster_angleNum('n1'), n2:__brewster_angleNum('n2'), tb:tb});
+    TBKit.history.mount('#brewster_angleHist',function(rec){ if(rec.n1!=null)document.getElementById('n1').value=rec.n1; if(rec.n2!=null)document.getElementById('n2').value=rec.n2; calcTool(); });
+    TBKit.util.diffBox('#brewster_angleDiff',['tb']);
+}
+function __brewster_angleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#brewster_angleTable','brewster-angle.csv'); } catch(e){}
+}
+function __brewster_anglePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#brewster_anglePresets',[
+        {label:'默认',labelEn:'Default',values:{n1:'1.0', n2:'1.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n1:'2', n2:'3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n1:'0.5', n2:'0.75'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __brewster_angleExtras(); }catch(e){} };
+function __brewster_angleBoot(){ try{ __brewster_anglePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __brewster_angleBoot();
+else document.addEventListener('DOMContentLoaded', __brewster_angleBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

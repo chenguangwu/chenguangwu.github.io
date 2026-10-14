@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mirror_equationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mirror_equationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mirror_equationTable"></div>
+    <div id="mirror_equationDiff"></div>
+    <div id="mirror_equationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,44 @@ function resetForm(){document.getElementById('f').value = '0.2';
       document.getElementById('do').value = '0.5';
       calcTool();}
 calcTool();
+
+function __mirror_equationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mirror_equationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f = num('f'), do_ = num('do');
+    var di = 1 / (1 / f - 1 / do_);
+    if (!isFinite(__mirror_equationNum('f')) || !isFinite(__mirror_equationNum('do'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mirror_equationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['像距 d_i (m)', di.toFixed(4)],
+            ['放大率绝对值 |m|', (Math.abs(di/do_)).toFixed(4)],
+            ['物距减焦距 (m)', (do_-f).toFixed(4)],
+            ['镜面曲率半径 R = 2f (m)', (f*2).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({f:__mirror_equationNum('f'), do:__mirror_equationNum('do'), di:di});
+    TBKit.history.mount('#mirror_equationHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.do!=null)document.getElementById('do').value=rec.do; calcTool(); });
+    TBKit.util.diffBox('#mirror_equationDiff',['di']);
+}
+function __mirror_equationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mirror_equationTable','mirror-equation.csv'); } catch(e){}
+}
+function __mirror_equationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mirror_equationPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'0.2', do:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'0.4', do:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'0.1', do:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mirror_equationExtras(); }catch(e){} };
+function __mirror_equationBoot(){ try{ __mirror_equationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mirror_equationBoot();
+else document.addEventListener('DOMContentLoaded', __mirror_equationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

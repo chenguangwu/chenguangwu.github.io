@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="focal_length_mirrorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__focal_length_mirrorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="focal_length_mirrorTable"></div>
+    <div id="focal_length_mirrorDiff"></div>
+    <div id="focal_length_mirrorHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('R').value = '20';
       calcTool();}
 calcTool();
+
+function __focal_length_mirrorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __focal_length_mirrorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var R=num('R');
+    var f=R/2;
+    if (!isFinite(__focal_length_mirrorNum('R'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#focal_length_mirrorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['焦距 f (厘米)', f.toFixed(2)],
+            ['曲率半径 (毫米)', (R*10).toFixed(4)],
+            ['光焦度 (D)', (100/Math.max(f,1e-9)).toFixed(4)],
+            ['焦距倒数 (1/cm)', (1/Math.max(f,1e-9)).toFixed(6)],
+            ['曲率半径倒数 (1/mm)', (100/Math.max(R,1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({R:__focal_length_mirrorNum('R'), f:f});
+    TBKit.history.mount('#focal_length_mirrorHist',function(rec){ if(rec.R!=null)document.getElementById('R').value=rec.R; calcTool(); });
+    TBKit.util.diffBox('#focal_length_mirrorDiff',['f']);
+}
+function __focal_length_mirrorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#focal_length_mirrorTable','focal-length-mirror.csv'); } catch(e){}
+}
+function __focal_length_mirrorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#focal_length_mirrorPresets',[
+        {label:'默认',labelEn:'Default',values:{R:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{R:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{R:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __focal_length_mirrorExtras(); }catch(e){} };
+function __focal_length_mirrorBoot(){ try{ __focal_length_mirrorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __focal_length_mirrorBoot();
+else document.addEventListener('DOMContentLoaded', __focal_length_mirrorBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

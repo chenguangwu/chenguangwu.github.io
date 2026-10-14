@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="thin_film_maxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__thin_film_maxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="thin_film_maxTable"></div>
+    <div id="thin_film_maxDiff"></div>
+    <div id="thin_film_maxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('n').value = '1.33';
       document.getElementById('m').value = '1';
       calcTool();}
 calcTool();
+
+function __thin_film_maxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __thin_film_maxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n=num('n'),t=num('t'),m=num('m');
+    var lam=2*n*t/m;
+    if (!isFinite(__thin_film_maxNum('n')) || !isFinite(__thin_film_maxNum('t')) || !isFinite(__thin_film_maxNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#thin_film_maxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['相长波长 λ (nm)', lam.toFixed(1)],
+            ['光程差 2nt (nm)', (2*n*t).toFixed(1)],
+            ['下一级相长波长 (nm)', (2*n*t/((m+1)||1)).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({n:__thin_film_maxNum('n'), t:__thin_film_maxNum('t'), m:__thin_film_maxNum('m'), lam:lam});
+    TBKit.history.mount('#thin_film_maxHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.t!=null)document.getElementById('t').value=rec.t; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#thin_film_maxDiff',['lam']);
+}
+function __thin_film_maxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thin_film_maxTable','thin-film-max.csv'); } catch(e){}
+}
+function __thin_film_maxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thin_film_maxPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1.33', t:'500', m:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2.66', t:'1000', m:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.665', t:'250', m:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __thin_film_maxExtras(); }catch(e){} };
+function __thin_film_maxBoot(){ try{ __thin_film_maxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thin_film_maxBoot();
+else document.addEventListener('DOMContentLoaded', __thin_film_maxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

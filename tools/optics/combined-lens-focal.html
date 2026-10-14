@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="combined_lens_focalPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__combined_lens_focalExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="combined_lens_focalTable"></div>
+    <div id="combined_lens_focalDiff"></div>
+    <div id="combined_lens_focalHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('f1').value = '0.1';
       document.getElementById('f2').value = '0.2';
       calcTool();}
 calcTool();
+
+function __combined_lens_focalNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __combined_lens_focalExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f1 = num('f1'), f2 = num('f2');
+    var F = 1 / (1 / f1 + 1 / f2);
+    if (!isFinite(__combined_lens_focalNum('f1')) || !isFinite(__combined_lens_focalNum('f2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#combined_lens_focalTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['等效焦距 F (m)', F.toFixed(4)],
+            ['光焦度之和 (1/m)', (1/f1+1/f2).toFixed(4)],
+            ['等效光焦度 (屈光度)', (1/F).toFixed(4)],
+            ['等效焦距 (mm)', (F*1000).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({f1:__combined_lens_focalNum('f1'), f2:__combined_lens_focalNum('f2'), F:F});
+    TBKit.history.mount('#combined_lens_focalHist',function(rec){ if(rec.f1!=null)document.getElementById('f1').value=rec.f1; if(rec.f2!=null)document.getElementById('f2').value=rec.f2; calcTool(); });
+    TBKit.util.diffBox('#combined_lens_focalDiff',['F']);
+}
+function __combined_lens_focalExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#combined_lens_focalTable','combined-lens-focal.csv'); } catch(e){}
+}
+function __combined_lens_focalPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#combined_lens_focalPresets',[
+        {label:'默认',labelEn:'Default',values:{f1:'0.1', f2:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f1:'0.2', f2:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f1:'0.05', f2:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __combined_lens_focalExtras(); }catch(e){} };
+function __combined_lens_focalBoot(){ try{ __combined_lens_focalPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __combined_lens_focalBoot();
+else document.addEventListener('DOMContentLoaded', __combined_lens_focalBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

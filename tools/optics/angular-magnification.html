@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="angular_magnificationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__angular_magnificationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="angular_magnificationTable"></div>
+    <div id="angular_magnificationDiff"></div>
+    <div id="angular_magnificationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,44 @@ function resetForm(){document.getElementById('N').value = '250';
       document.getElementById('f').value = '25';
       calcTool();}
 calcTool();
+
+function __angular_magnificationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __angular_magnificationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var N=num('N'),f=num('f');
+    var M=N/f;
+    if (!isFinite(__angular_magnificationNum('N')) || !isFinite(__angular_magnificationNum('f'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#angular_magnificationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角放大率 M', M.toFixed(2)],
+            ['焦距与明视距离之比', (f/Math.max(N,1e-9)).toFixed(6)],
+            ['明视距离与两倍焦距之比', (N/(2*Math.max(f,1e-9))).toFixed(4)],
+            ['放大率平方', (M*M).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({N:__angular_magnificationNum('N'), f:__angular_magnificationNum('f'), M:M});
+    TBKit.history.mount('#angular_magnificationHist',function(rec){ if(rec.N!=null)document.getElementById('N').value=rec.N; if(rec.f!=null)document.getElementById('f').value=rec.f; calcTool(); });
+    TBKit.util.diffBox('#angular_magnificationDiff',['M']);
+}
+function __angular_magnificationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#angular_magnificationTable','angular-magnification.csv'); } catch(e){}
+}
+function __angular_magnificationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#angular_magnificationPresets',[
+        {label:'默认',labelEn:'Default',values:{N:'250', f:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{N:'500', f:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{N:'125', f:'12.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __angular_magnificationExtras(); }catch(e){} };
+function __angular_magnificationBoot(){ try{ __angular_magnificationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __angular_magnificationBoot();
+else document.addEventListener('DOMContentLoaded', __angular_magnificationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="resolving_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__resolving_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="resolving_powerTable"></div>
+    <div id="resolving_powerDiff"></div>
+    <div id="resolving_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,44 @@ function resetForm(){document.getElementById('D').value = '0.1';
       document.getElementById('lam').value = '550';
       calcTool();}
 calcTool();
+
+function __resolving_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __resolving_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var D=num('D'),lam=num('lam')*1e-9;
+    var R=D/(1.22*lam);
+    if (!isFinite(__resolving_powerNum('D')) || !isFinite(__resolving_powerNum('lam'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#resolving_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['分辨本领 R (1/m)', R.toFixed(0)],
+            ['最小分辨角 (rad)', (1.22*lam/Math.max(D,1e-12)).toExponential(3)],
+            ['最小分辨角 (角秒)', (1.22*lam/Math.max(D,1e-12)*206265).toFixed(4)],
+            ['分辨本领 (1/mm)', (R/1e3).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({D:__resolving_powerNum('D'), lam:__resolving_powerNum('lam'), R:R});
+    TBKit.history.mount('#resolving_powerHist',function(rec){ if(rec.D!=null)document.getElementById('D').value=rec.D; if(rec.lam!=null)document.getElementById('lam').value=rec.lam; calcTool(); });
+    TBKit.util.diffBox('#resolving_powerDiff',['R']);
+}
+function __resolving_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#resolving_powerTable','resolving-power.csv'); } catch(e){}
+}
+function __resolving_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#resolving_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{D:'0.1', lam:'550'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{D:'0.2', lam:'1100'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{D:'0.05', lam:'275'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __resolving_powerExtras(); }catch(e){} };
+function __resolving_powerBoot(){ try{ __resolving_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __resolving_powerBoot();
+else document.addEventListener('DOMContentLoaded', __resolving_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

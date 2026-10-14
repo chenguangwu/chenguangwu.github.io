@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="single_slit_diffractionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__single_slit_diffractionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="single_slit_diffractionTable"></div>
+    <div id="single_slit_diffractionDiff"></div>
+    <div id="single_slit_diffractionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('a').value = '1e-4';
       document.getElementById('m').value = '1';
       calcTool();}
 calcTool();
+
+function __single_slit_diffractionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __single_slit_diffractionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a = num('a'), lam = num('lam'), m = Math.round(num('m'));
+    var s = m * lam / a;
+    var th = Math.asin(s) * 180 / Math.PI;
+    if (!isFinite(__single_slit_diffractionNum('a')) || !isFinite(__single_slit_diffractionNum('lam')) || !isFinite(__single_slit_diffractionNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#single_slit_diffractionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['暗纹角 θ (°)', th.toFixed(4)],
+            ['sinθ 值', ((m*lam/a)).toFixed(5)],
+            ['第一暗纹角 θ₁ (°)', Math.asin(lam/a)*180/Math.PI],
+        ]
+    });
+    TBKit.history.record({a:__single_slit_diffractionNum('a'), lam:__single_slit_diffractionNum('lam'), m:__single_slit_diffractionNum('m'), s:s});
+    TBKit.history.mount('#single_slit_diffractionHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.lam!=null)document.getElementById('lam').value=rec.lam; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#single_slit_diffractionDiff',['s']);
+}
+function __single_slit_diffractionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#single_slit_diffractionTable','single-slit-diffraction.csv'); } catch(e){}
+}
+function __single_slit_diffractionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#single_slit_diffractionPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'1e-4', lam:'500e-9', m:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'0.0002', lam:'0', m:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'0.0001', lam:'0', m:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __single_slit_diffractionExtras(); }catch(e){} };
+function __single_slit_diffractionBoot(){ try{ __single_slit_diffractionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __single_slit_diffractionBoot();
+else document.addEventListener('DOMContentLoaded', __single_slit_diffractionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

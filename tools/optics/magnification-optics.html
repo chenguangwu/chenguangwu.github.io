@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="magnification_opticsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__magnification_opticsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="magnification_opticsTable"></div>
+    <div id="magnification_opticsDiff"></div>
+    <div id="magnification_opticsHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('do').value = '0.3';
       document.getElementById('di').value = '0.15';
       calcTool();}
 calcTool();
+
+function __magnification_opticsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __magnification_opticsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var do_ = num('do'), di = num('di');
+    var M = -di / do_;
+    if (!isFinite(__magnification_opticsNum('do')) || !isFinite(__magnification_opticsNum('di'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#magnification_opticsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['放大率 M', M.toFixed(3)],
+            ['取向', (M < 0 ? '倒立' : '正立')],
+            ['等效焦距 f (m)', (do_*di/((do_+di)||1)).toFixed(4)],
+            ['放大率绝对值', (Math.abs(M)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({do:__magnification_opticsNum('do'), di:__magnification_opticsNum('di'), do_:do_});
+    TBKit.history.mount('#magnification_opticsHist',function(rec){ if(rec.do!=null)document.getElementById('do').value=rec.do; if(rec.di!=null)document.getElementById('di').value=rec.di; calcTool(); });
+    TBKit.util.diffBox('#magnification_opticsDiff',['do_']);
+}
+function __magnification_opticsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#magnification_opticsTable','magnification-optics.csv'); } catch(e){}
+}
+function __magnification_opticsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#magnification_opticsPresets',[
+        {label:'默认',labelEn:'Default',values:{do:'0.3', di:'0.15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{do:'0.6', di:'0.3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{do:'0.15', di:'0.075'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __magnification_opticsExtras(); }catch(e){} };
+function __magnification_opticsBoot(){ try{ __magnification_opticsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __magnification_opticsBoot();
+else document.addEventListener('DOMContentLoaded', __magnification_opticsBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

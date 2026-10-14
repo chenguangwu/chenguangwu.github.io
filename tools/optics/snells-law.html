@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="snells_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__snells_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="snells_lawTable"></div>
+    <div id="snells_lawDiff"></div>
+    <div id="snells_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -258,6 +264,41 @@ function resetForm(){document.getElementById('n1').value = '1.0';
       document.getElementById('t1').value = '30';
       calcTool();}
 calcTool();
+
+function __snells_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __snells_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n1 = num('n1'), n2 = num('n2'), t1 = num('t1') * Math.PI / 180;
+    var s = n1 * Math.sin(t1) / n2;
+    if (!isFinite(__snells_lawNum('n1')) || !isFinite(__snells_lawNum('n2')) || !isFinite(__snells_lawNum('t1'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#snells_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['', '发生全反射（无折射）'],
+        ]
+    });
+    TBKit.history.record({n1:__snells_lawNum('n1'), n2:__snells_lawNum('n2'), t1:__snells_lawNum('t1'), s:s});
+    TBKit.history.mount('#snells_lawHist',function(rec){ if(rec.n1!=null)document.getElementById('n1').value=rec.n1; if(rec.n2!=null)document.getElementById('n2').value=rec.n2; if(rec.t1!=null)document.getElementById('t1').value=rec.t1; calcTool(); });
+    TBKit.util.diffBox('#snells_lawDiff',['s']);
+}
+function __snells_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#snells_lawTable','snells-law.csv'); } catch(e){}
+}
+function __snells_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#snells_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{n1:'1.0', n2:'1.5', t1:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n1:'2', n2:'3', t1:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n1:'0.5', n2:'0.75', t1:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __snells_lawExtras(); }catch(e){} };
+function __snells_lawBoot(){ try{ __snells_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __snells_lawBoot();
+else document.addEventListener('DOMContentLoaded', __snells_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

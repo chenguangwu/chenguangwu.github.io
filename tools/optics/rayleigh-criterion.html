@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rayleigh_criterionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rayleigh_criterionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rayleigh_criterionTable"></div>
+    <div id="rayleigh_criterionDiff"></div>
+    <div id="rayleigh_criterionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('lam').value = '550e-9';
       document.getElementById('D').value = '0.1';
       calcTool();}
 calcTool();
+
+function __rayleigh_criterionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rayleigh_criterionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var lam = num('lam'), D = num('D');
+    var th = 1.22 * lam / D;
+    if (!isFinite(__rayleigh_criterionNum('lam')) || !isFinite(__rayleigh_criterionNum('D'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rayleigh_criterionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最小分辨角 (µrad)', (th * 1e6).toFixed(4)],
+            ['θ (角秒)', (th * 180 / Math.PI * 3600).toExponential(3)],
+            ['最小分辨角 θ (rad)', (th).toExponential(3)],
+            ['θ (°)', (th*180/Math.PI).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({lam:__rayleigh_criterionNum('lam'), D:__rayleigh_criterionNum('D'), th:th});
+    TBKit.history.mount('#rayleigh_criterionHist',function(rec){ if(rec.lam!=null)document.getElementById('lam').value=rec.lam; if(rec.D!=null)document.getElementById('D').value=rec.D; calcTool(); });
+    TBKit.util.diffBox('#rayleigh_criterionDiff',['th']);
+}
+function __rayleigh_criterionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rayleigh_criterionTable','rayleigh-criterion.csv'); } catch(e){}
+}
+function __rayleigh_criterionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rayleigh_criterionPresets',[
+        {label:'默认',labelEn:'Default',values:{lam:'550e-9', D:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{lam:'0', D:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{lam:'0', D:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rayleigh_criterionExtras(); }catch(e){} };
+function __rayleigh_criterionBoot(){ try{ __rayleigh_criterionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rayleigh_criterionBoot();
+else document.addEventListener('DOMContentLoaded', __rayleigh_criterionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
