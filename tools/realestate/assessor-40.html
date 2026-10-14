@@ -121,10 +121,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>重置成本(万元)</label><input type="number" id="rebuild" style="font-size:16px;" value="200" min="0" max="999999" step="0.01" oninput="calc()"></div></div><div class="input-row"><div><label>已使用年限(年)</label><input type="number" id="used" style="font-size:16px;" value="10" min="0" max="100" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>耐用年限(年)</label><input type="number" id="durable" style="font-size:16px;" value="50" min="10" max="100" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>损失比例(%)</label><input type="number" id="loss" style="font-size:16px;" value="30" min="0" max="100" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>赔偿方式</label><select id="method" style="font-size:16px;" onchange="calc()"><option value="0">比例赔偿方式(不足额投保)</option><option value="1">第一危险赔偿方式</option></select></div></div><div class="input-row"><div><label>投保金额(万元)</label><input type="number" id="insured" style="font-size:16px;" value="150" min="0" max="999999" step="0.01" oninput="calc()"></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <div id="assessor_40Presets"></div><button type="button" class="btn primary" onclick="calc()">计算评估</button><button class="btn" type="button" onclick="__assessor_40Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_40Table"></div> <div id="assessor_40Diff"></div> <div id="assessor_40Chart"></div> <div id="assessor_40Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -311,6 +311,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>房产投保决策</li><li>保险理赔参考</li><li>重置成本评估</li><li>损失金额测算</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __assessor_40_last=0,__assessor_40_skip=false;
+function __assessor_40Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_40ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_40Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_40Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_40Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_40Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_40Diff');
+        TBKit.history.mount('#assessor_40Hist',function(rec){
+            __assessor_40_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_40_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_40Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_40Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_40Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_40_skip) return;
+    var snap=__assessor_40Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_40ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_40_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_40_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_40Render(keys,rk,en);
+}
+function __assessor_40Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_40Table','assessor-40.csv'); } catch(e){}
+}
+function __assessor_40Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_40Presets',[{label:'默认参数',labelEn:'Default',values:{'rebuild':'200', 'used':'10', 'durable':'50', 'loss':'30', 'method':'0', 'insured':'150'}}],function(){ calc(); });
+}
+var __assessor_40_f0=(typeof calc==='function')?calc:null;
+if(__assessor_40_f0){
+    calc=function(){ var __r=__assessor_40_f0.apply(null,arguments); try{ __assessor_40Extras(); }catch(e){} return __r; };
+}
+function __assessor_40Boot(){ try{ __assessor_40Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_40Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_40Boot);
+</script>
 </body>
 </html>

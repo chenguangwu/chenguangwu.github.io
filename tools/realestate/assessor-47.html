@@ -116,10 +116,10 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>1. 交通便利度(地铁/公交/快速路)</label><select id="a1" style="font-size:16px;" onchange="calc()"><option value="5">5-多轨交交汇</option><option value="4">4-近地铁/公交多</option><option value="3">3-公交可达</option><option value="2">2-出行不便</option><option value="1">1-交通不便</option></select></div></div><div class="input-row"><div><label>2. 教育配套(幼儿园到中学)</label><select id="a2" style="font-size:16px;" onchange="calc()"><option value="5">5-名校云集</option><option value="4">4-优质学区</option><option value="3">3-学校齐全</option><option value="2">2-学校一般</option><option value="1">1-缺乏学校</option></select></div></div><div class="input-row"><div><label>3. 医疗配套(医院/诊所)</label><select id="a3" style="font-size:16px;" onchange="calc()"><option value="5">5-三甲医院近</option><option value="4">4-综合医院近</option><option value="3">3-社区医疗</option><option value="2">2-就医不便</option><option value="1">1-无医疗配套</option></select></div></div><div class="input-row"><div><label>4. 商业配套(商场/超市/餐饮)</label><select id="a4" style="font-size:16px;" onchange="calc()"><option value="5">5-大型商业体</option><option value="4">4-商业齐全</option><option value="3">3-基本商业</option><option value="2">2-商业不足</option><option value="1">1-无商业</option></select></div></div><div class="input-row"><div><label>5. 环境质量(绿化/空气/噪音)</label><select id="a5" style="font-size:16px;" onchange="calc()"><option value="5">5-环境优美</option><option value="4">4-环境良好</option><option value="3">3-环境一般</option><option value="2">2-环境较差</option><option value="1">1-环境差</option></select></div></div><div class="input-row"><div><label>6. 规划前景(区域发展潜力)</label><select id="a6" style="font-size:16px;" onchange="calc()"><option value="5">5-重点规划区</option><option value="4">4-发展潜力大</option><option value="3">3-平稳发展</option><option value="2">2-发展缓慢</option><option value="1">1-无规划</option></select></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <div id="assessor_47Presets"></div><button type="button" class="btn primary" onclick="calc()">计算评估</button><button class="btn" type="button" onclick="__assessor_47Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_47Table"></div> <div id="assessor_47Diff"></div> <div id="assessor_47Chart"></div> <div id="assessor_47Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -238,6 +238,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>购房区位选择</li><li>房产价值评估</li><li>区域发展分析</li><li>投资决策参考</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __assessor_47_last=0,__assessor_47_skip=false;
+function __assessor_47Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_47ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_47Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_47Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_47Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_47Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_47Diff');
+        TBKit.history.mount('#assessor_47Hist',function(rec){
+            __assessor_47_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_47_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_47Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_47Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_47Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_47_skip) return;
+    var snap=__assessor_47Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_47ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_47_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_47_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_47Render(keys,rk,en);
+}
+function __assessor_47Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_47Table','assessor-47.csv'); } catch(e){}
+}
+function __assessor_47Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_47Presets',[{label:'默认参数',labelEn:'Default',values:{'a1':'5', 'a2':'5', 'a3':'5', 'a4':'5', 'a5':'5', 'a6':'5'}}],function(){ calc(); });
+}
+var __assessor_47_f0=(typeof calc==='function')?calc:null;
+if(__assessor_47_f0){
+    calc=function(){ var __r=__assessor_47_f0.apply(null,arguments); try{ __assessor_47Extras(); }catch(e){} return __r; };
+}
+function __assessor_47Boot(){ try{ __assessor_47Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_47Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_47Boot);
+</script>
 </body>
 </html>

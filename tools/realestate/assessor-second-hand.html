@@ -121,10 +121,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>案例1成交价(万元/平米)</label><input type="number" id="p1" style="font-size:16px;" value="3.5" min="0" max="999" step="0.01" oninput="calc()"></div></div><div class="input-row"><div><label>案例2成交价(万元/平米)</label><input type="number" id="p2" style="font-size:16px;" value="3.8" min="0" max="999" step="0.01" oninput="calc()"></div></div><div class="input-row"><div><label>案例3成交价(万元/平米)</label><input type="number" id="p3" style="font-size:16px;" value="3.2" min="0" max="999" step="0.01" oninput="calc()"></div></div><div class="input-row"><div><label>待估房产区位调整</label><select id="loc" style="font-size:16px;" onchange="calc()"><option value="0">0-同区域</option><option value="1">+1%区位更优</option><option value="-1">-1%区位稍差</option><option value="2">+2%区位优越</option><option value="-2">-2%区位较差</option></select></div></div><div class="input-row"><div><label>楼层调整</label><select id="floor" style="font-size:16px;" onchange="calc()"><option value="0">0-中间楼层</option><option value="1">+1%好楼层</option><option value="-1">-1%差楼层</option><option value="2">+2%最佳楼层</option><option value="-3">-3%顶/底层</option></select></div></div><div class="input-row"><div><label>装修调整</label><select id="decor" style="font-size:16px;" onchange="calc()"><option value="0">0-同档次</option><option value="1">+2%装修更好</option><option value="-1">-2%装修较差</option><option value="2">+5%精装修</option><option value="-3">-5%毛坯</option></select></div></div><div class="input-row"><div><label>朝向调整</label><select id="orient" style="font-size:16px;" onchange="calc()"><option value="0">0-南向</option><option value="-1">-1%东南/西南</option><option value="-2">-2%东/西向</option><option value="-3">-3%北向</option></select></div></div><div class="input-row"><div><label>房龄调整</label><select id="age" style="font-size:16px;" onchange="calc()"><option value="0">0-同年限</option><option value="-1">-1%房龄较新</option><option value="-2">-2%房龄较老</option><option value="-3">-3%房龄很老</option></select></div></div><div class="input-row"><div><label>待估房产面积(平米)</label><input type="number" id="area" style="font-size:16px;" value="90" min="0" max="9999" step="0.01" oninput="calc()"></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <div id="assessor_second_handPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评估</button><button class="btn" type="button" onclick="__assessor_second_handExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_second_handTable"></div> <div id="assessor_second_handDiff"></div> <div id="assessor_second_handChart"></div> <div id="assessor_second_handHist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -261,6 +261,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>二手房定价参考</li><li>购房出价参考</li><li>房产价值评估</li><li>市场行情分析</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __assessor_second_hand_last=0,__assessor_second_hand_skip=false;
+function __assessor_second_handSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_second_handResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_second_handTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_second_handRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_second_handTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_second_handTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_second_handDiff');
+        TBKit.history.mount('#assessor_second_handHist',function(rec){
+            __assessor_second_hand_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_second_hand_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_second_handTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_second_handChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_second_handExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_second_hand_skip) return;
+    var snap=__assessor_second_handSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_second_handResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_second_hand_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_second_hand_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_second_handRender(keys,rk,en);
+}
+function __assessor_second_handExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_second_handTable','assessor-second-hand.csv'); } catch(e){}
+}
+function __assessor_second_handPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_second_handPresets',[{label:'默认参数',labelEn:'Default',values:{'p1':'3.5', 'p2':'3.8', 'p3':'3.2', 'loc':'0', 'floor':'0', 'decor':'0', 'orient':'0', 'age':'0', 'area':'90'}}],function(){ calc(); });
+}
+var __assessor_second_hand_f0=(typeof calc==='function')?calc:null;
+if(__assessor_second_hand_f0){
+    calc=function(){ var __r=__assessor_second_hand_f0.apply(null,arguments); try{ __assessor_second_handExtras(); }catch(e){} return __r; };
+}
+function __assessor_second_handBoot(){ try{ __assessor_second_handPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_second_handBoot();
+else document.addEventListener('DOMContentLoaded', __assessor_second_handBoot);
+</script>
 </body>
 </html>

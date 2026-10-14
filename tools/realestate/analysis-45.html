@@ -138,8 +138,8 @@ s.parentNode.insertBefore(el, s);
   <label>出租率（%）</label>
   <input type="number" id="occ" value="92" step="1" min="0" max="100" oninput="calc()">
 </div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">测算</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="analysis_45Presets"></div><button type="button" class="btn primary" onclick="calc()">测算</button><button class="btn" type="button" onclick="__analysis_45Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="analysis_45Table"></div> <div id="analysis_45Diff"></div> <div id="analysis_45Chart"></div> <div id="analysis_45Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -296,6 +296,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __analysis_45_last=0,__analysis_45_skip=false;
+function __analysis_45Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __analysis_45ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __analysis_45Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __analysis_45Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__analysis_45Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#analysis_45Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#analysis_45Diff');
+        TBKit.history.mount('#analysis_45Hist',function(rec){
+            __analysis_45_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __analysis_45_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__analysis_45Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#analysis_45Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __analysis_45Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__analysis_45_skip) return;
+    var snap=__analysis_45Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__analysis_45ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__analysis_45_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __analysis_45_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __analysis_45Render(keys,rk,en);
+}
+function __analysis_45Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#analysis_45Table','analysis-45.csv'); } catch(e){}
+}
+function __analysis_45Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#analysis_45Presets',[{label:'默认参数',labelEn:'Default',values:{'gla':'45000', 'flow':'32000', 'bag':'18', 'ticket':'120', 'rentm':'60', 'occ':'92'}}],function(){ calc(); });
+}
+var __analysis_45_f0=(typeof calc==='function')?calc:null;
+if(__analysis_45_f0){
+    calc=function(){ var __r=__analysis_45_f0.apply(null,arguments); try{ __analysis_45Extras(); }catch(e){} return __r; };
+}
+function __analysis_45Boot(){ try{ __analysis_45Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __analysis_45Boot();
+else document.addEventListener('DOMContentLoaded', __analysis_45Boot);
 </script>
 
 </body>

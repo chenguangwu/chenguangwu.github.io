@@ -121,10 +121,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>被拆迁房屋面积(平米)</label><input type="number" id="area" style="font-size:16px;" value="80" min="0" max="9999" step="0.01" oninput="calc()"></div></div><div class="input-row"><div><label>评估单价(元/平米)</label><input type="number" id="price" style="font-size:16px;" value="30000" min="0" max="999999" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>房屋性质</label><select id="type" style="font-size:16px;" onchange="calc()"><option value="0">住宅</option><option value="1">商铺</option><option value="2">办公</option><option value="3">厂房</option></select></div></div><div class="input-row"><div><label>补偿方式</label><select id="method" style="font-size:16px;" onchange="calc()"><option value="0">货币补偿</option><option value="1">产权调换(等面积)</option><option value="2">货币补偿+产权调换</option></select></div></div><div class="input-row"><div><label>临时安置月数</label><input type="number" id="temp" style="font-size:16px;" value="12" min="0" max="60" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>临时安置标准(元/月/平米)</label><input type="number" id="tempRate" style="font-size:16px;" value="30" min="0" max="999" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>搬迁费(元)</label><input type="number" id="move" style="font-size:16px;" value="2000" min="0" max="99999" step="1" oninput="calc()"></div></div><div class="input-row"><div><label>奖励政策</label><select id="bonus" style="font-size:16px;" onchange="calc()"><option value="0">无奖励</option><option value="1">按期签约奖励5%</option><option value="2">按期搬迁奖励3%</option><option value="3">签约+搬迁奖励8%</option></select></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <div id="calc_assessorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评估</button><button class="btn" type="button" onclick="__calc_assessorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="calc_assessorTable"></div> <div id="calc_assessorDiff"></div> <div id="calc_assessorChart"></div> <div id="calc_assessorHist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -265,6 +265,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>拆迁补偿预算</li><li>补偿方案对比</li><li>签约决策参考</li><li>拆迁维权参考</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __calc_assessor_last=0,__calc_assessor_skip=false;
+function __calc_assessorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_assessorResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_assessorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_assessorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_assessorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_assessorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_assessorDiff');
+        TBKit.history.mount('#calc_assessorHist',function(rec){
+            __calc_assessor_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_assessor_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_assessorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_assessorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_assessorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_assessor_skip) return;
+    var snap=__calc_assessorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_assessorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_assessor_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_assessor_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_assessorRender(keys,rk,en);
+}
+function __calc_assessorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_assessorTable','calc-assessor.csv'); } catch(e){}
+}
+function __calc_assessorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_assessorPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'80', 'price':'30000', 'type':'0', 'method':'0', 'temp':'12', 'tempRate':'30', 'move':'2000', 'bonus':'0'}}],function(){ calc(); });
+}
+var __calc_assessor_f0=(typeof calc==='function')?calc:null;
+if(__calc_assessor_f0){
+    calc=function(){ var __r=__calc_assessor_f0.apply(null,arguments); try{ __calc_assessorExtras(); }catch(e){} return __r; };
+}
+function __calc_assessorBoot(){ try{ __calc_assessorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_assessorBoot();
+else document.addEventListener('DOMContentLoaded', __calc_assessorBoot);
+</script>
 </body>
 </html>

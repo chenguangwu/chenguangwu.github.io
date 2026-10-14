@@ -116,10 +116,10 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>1. 独立性：评估是否受委托方不当影响</label><select id="a1" style="font-size:16px;" onchange="calc()"><option value="3">3-完全独立</option><option value="2">2-基本独立</option><option value="1">1-受一定影响</option><option value="0">0-独立性受损</option></select></div></div><div class="input-row"><div><label>2. 客观公正：评估依据是否充分客观</label><select id="a2" style="font-size:16px;" onchange="calc()"><option value="3">3-充分客观</option><option value="2">2-基本客观</option><option value="1">1-主观成分多</option><option value="0">0-缺乏客观性</option></select></div></div><div class="input-row"><div><label>3. 专业胜任：是否具备相应资质和能力</label><select id="a3" style="font-size:16px;" onchange="calc()"><option value="3">3-持证且经验丰富</option><option value="2">2-持证经验一般</option><option value="1">1-资质不足</option><option value="0">0-无资质</option></select></div></div><div class="input-row"><div><label>4. 保密义务：是否妥善保护客户信息</label><select id="a4" style="font-size:16px;" onchange="calc()"><option value="3">3-严格保密</option><option value="2">2-基本保密</option><option value="1">1-存在泄露风险</option><option value="0">0-信息泄露</option></select></div></div><div class="input-row"><div><label>5. 持续教育：是否完成年度继续教育</label><select id="a5" style="font-size:16px;" onchange="calc()"><option value="3">3-超额完成</option><option value="2">2-已完成要求学时</option><option value="1">1-学时不足</option><option value="0">0-未参加</option></select></div></div><div class="input-row"><div><label>6. 利益冲突回避：是否回避利害关系</label><select id="a6" style="font-size:16px;" onchange="calc()"><option value="3">3-已回避</option><option value="2">2-无利害关系</option><option value="1">1-未回避</option><option value="0">0-存在未回避冲突</option></select></div></div><div class="input-row"><div><label>7. 报告规范：评估报告是否符合规范</label><select id="a7" style="font-size:16px;" onchange="calc()"><option value="3">3-完全规范</option><option value="2">2-基本规范</option><option value="1">1-有缺漏</option><option value="0">0-不规范</option></select></div></div><div class="input-row"><div><label>8. 收费合规：收费是否符合标准</label><select id="a8" style="font-size:16px;" onchange="calc()"><option value="3">3-合规收费</option><option value="2">2-基本合规</option><option value="1">1-收费偏高</option><option value="0">0-违规收费</option></select></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <div id="assessor_46Presets"></div><button type="button" class="btn primary" onclick="calc()">计算评估</button><button class="btn" type="button" onclick="__assessor_46Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_46Table"></div> <div id="assessor_46Diff"></div> <div id="assessor_46Chart"></div> <div id="assessor_46Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -237,6 +237,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>评估师职业道德自检</li><li>执业合规审查</li><li>持续教育管理</li><li>行业自律参考</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __assessor_46_last=0,__assessor_46_skip=false;
+function __assessor_46Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_46ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_46Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_46Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_46Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_46Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_46Diff');
+        TBKit.history.mount('#assessor_46Hist',function(rec){
+            __assessor_46_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_46_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_46Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_46Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_46Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_46_skip) return;
+    var snap=__assessor_46Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_46ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_46_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_46_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_46Render(keys,rk,en);
+}
+function __assessor_46Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_46Table','assessor-46.csv'); } catch(e){}
+}
+function __assessor_46Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_46Presets',[{label:'默认参数',labelEn:'Default',values:{'a1':'3', 'a2':'3', 'a3':'3', 'a4':'3', 'a5':'3', 'a6':'3', 'a7':'3', 'a8':'3'}}],function(){ calc(); });
+}
+var __assessor_46_f0=(typeof calc==='function')?calc:null;
+if(__assessor_46_f0){
+    calc=function(){ var __r=__assessor_46_f0.apply(null,arguments); try{ __assessor_46Extras(); }catch(e){} return __r; };
+}
+function __assessor_46Boot(){ try{ __assessor_46Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_46Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_46Boot);
+</script>
 </body>
 </html>

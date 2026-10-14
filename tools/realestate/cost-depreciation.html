@@ -125,11 +125,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>使用年限（年）</label><input type="number" id="v1" value="30" step="any" oninput="calc()" enterkeyhint="done" aria-label="折旧"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="cost_depreciationPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__cost_depreciationExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="cost_depreciationTable"></div> <div id="cost_depreciationDiff"></div> <div id="cost_depreciationChart"></div> <div id="cost_depreciationHist"></div>
     <div class="info-box">💡 年折旧 = 重建成本 ×（1 − 残值率 5%）÷ 使用年限；月折旧 = 年折旧 ÷ 12；10 年累计折旧 = 年折旧 × 10。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -647,6 +647,114 @@ function resetAll(){
   if(a)a.value='900000';if(b)b.value='30';calc();
 }
 try{calc();}catch(e){}
+
+var __cost_depreciation_last=0,__cost_depreciation_skip=false;
+function __cost_depreciationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cost_depreciationResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cost_depreciationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cost_depreciationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cost_depreciationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cost_depreciationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cost_depreciationDiff');
+        TBKit.history.mount('#cost_depreciationHist',function(rec){
+            __cost_depreciation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cost_depreciation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cost_depreciationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cost_depreciationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cost_depreciationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cost_depreciation_skip) return;
+    var snap=__cost_depreciationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cost_depreciationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cost_depreciation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cost_depreciation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cost_depreciationRender(keys,rk,en);
+}
+function __cost_depreciationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cost_depreciationTable','cost-depreciation.csv'); } catch(e){}
+}
+function __cost_depreciationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cost_depreciationPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'900000', 'v1':'30'}}],function(){ calc(); });
+}
+var __cost_depreciation_f0=(typeof calc==='function')?calc:null;
+if(__cost_depreciation_f0){
+    calc=function(){ var __r=__cost_depreciation_f0.apply(null,arguments); try{ __cost_depreciationExtras(); }catch(e){} return __r; };
+}
+function __cost_depreciationBoot(){ try{ __cost_depreciationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cost_depreciationBoot();
+else document.addEventListener('DOMContentLoaded', __cost_depreciationBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -116,10 +116,10 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>1. 评估机构是否具备司法鉴定资质</label><select id="a1" style="font-size:16px;" onchange="calc()"><option value="2">2-具备资质且在有效期内</option><option value="1">1-资质即将到期</option><option value="0">0-无资质或已过期</option></select></div></div><div class="input-row"><div><label>2. 评估师是否持证且与案件无利害关系</label><select id="a2" style="font-size:16px;" onchange="calc()"><option value="2">2-持证且无回避情形</option><option value="1">1-持证但需回避</option><option value="0">0-无证或应回避</option></select></div></div><div class="input-row"><div><label>3. 评估委托程序是否合法</label><select id="a3" style="font-size:16px;" onchange="calc()"><option value="2">2-法院委托程序合法</option><option value="1">1-程序有瑕疵</option><option value="0">0-程序违法</option></select></div></div><div class="input-row"><div><label>4. 现场勘验是否规范完整</label><select id="a4" style="font-size:16px;" onchange="calc()"><option value="2">2-完整勘验并记录</option><option value="1">1-勘验不完整</option><option value="0">0-未勘验</option></select></div></div><div class="input-row"><div><label>5. 评估方法选择是否适当</label><select id="a5" style="font-size:16px;" onchange="calc()"><option value="2">2-方法选择恰当</option><option value="1">1-方法选择欠妥</option><option value="0">0-方法选择错误</option></select></div></div><div class="input-row"><div><label>6. 评估报告是否规范完整</label><select id="a6" style="font-size:16px;" onchange="calc()"><option value="2">2-报告规范完整</option><option value="1">1-报告有缺漏</option><option value="0">0-报告不规范</option></select></div></div><div class="input-row"><div><label>7. 评估时点是否确定</label><select id="a7" style="font-size:16px;" onchange="calc()"><option value="2">2-时点明确合理</option><option value="1">1-时点不明确</option><option value="0">0-未确定时点</option></select></div></div><div class="input-row"><div><label>8. 拍卖保留价是否合理</label><select id="a8" style="font-size:16px;" onchange="calc()"><option value="2">2-保留价合理</option><option value="1">1-保留价偏低/偏高</option><option value="0">0-保留价不合理</option></select></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <div id="assessor_41Presets"></div><button type="button" class="btn primary" onclick="calc()">计算评估</button><button class="btn" type="button" onclick="__assessor_41Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_41Table"></div> <div id="assessor_41Diff"></div> <div id="assessor_41Chart"></div> <div id="assessor_41Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -231,6 +231,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>司法评估合规审查</li><li>拍卖保留价确定</li><li>评估报告质量检查</li><li>司法鉴定程序审查</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __assessor_41_last=0,__assessor_41_skip=false;
+function __assessor_41Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_41ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_41Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_41Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_41Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_41Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_41Diff');
+        TBKit.history.mount('#assessor_41Hist',function(rec){
+            __assessor_41_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_41_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_41Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_41Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_41Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_41_skip) return;
+    var snap=__assessor_41Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_41ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_41_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_41_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_41Render(keys,rk,en);
+}
+function __assessor_41Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_41Table','assessor-41.csv'); } catch(e){}
+}
+function __assessor_41Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_41Presets',[{label:'默认参数',labelEn:'Default',values:{'a1':'2', 'a2':'2', 'a3':'2', 'a4':'2', 'a5':'2', 'a6':'2', 'a7':'2', 'a8':'2'}}],function(){ calc(); });
+}
+var __assessor_41_f0=(typeof calc==='function')?calc:null;
+if(__assessor_41_f0){
+    calc=function(){ var __r=__assessor_41_f0.apply(null,arguments); try{ __assessor_41Extras(); }catch(e){} return __r; };
+}
+function __assessor_41Boot(){ try{ __assessor_41Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_41Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_41Boot);
+</script>
 </body>
 </html>

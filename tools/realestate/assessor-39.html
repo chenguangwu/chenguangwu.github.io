@@ -121,10 +121,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>房产评估价值(万元)</label><input type="number" id="val" style="font-size:16px;" value="200" min="0" max="999999" step="0.01" oninput="calc()"></div></div><div class="input-row"><div><label>房产类型</label><select id="type" style="font-size:16px;" onchange="calc()"><option value="0">普通住宅</option><option value="1">非普通住宅</option><option value="2">商业用房</option><option value="3">办公用房</option></select></div></div><div class="input-row"><div><label>建筑面积(平米)</label><input type="number" id="area" style="font-size:16px;" value="90" min="0" max="99999" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>持有年限</label><select id="years" style="font-size:16px;" onchange="calc()"><option value="0">不满2年</option><option value="1">满2年不满5年</option><option value="2">满5年及以上</option></select></div></div><div class="input-row"><div><label>计算税种</label><select id="tax" style="font-size:16px;" onchange="calc()"><option value="0">契税</option><option value="1">增值税及附加</option><option value="2">房产税</option><option value="3">个人所得税</option><option value="4">全部税费汇总</option></select></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <div id="assessor_39Presets"></div><button type="button" class="btn primary" onclick="calc()">计算评估</button><button class="btn" type="button" onclick="__assessor_39Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_39Table"></div> <div id="assessor_39Diff"></div> <div id="assessor_39Chart"></div> <div id="assessor_39Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -262,6 +262,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>购房税费预算</li><li>二手房交易税费计算</li><li>涉税评估参考</li><li>计税争议分析</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __assessor_39_last=0,__assessor_39_skip=false;
+function __assessor_39Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_39ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_39Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_39Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_39Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_39Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_39Diff');
+        TBKit.history.mount('#assessor_39Hist',function(rec){
+            __assessor_39_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_39_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_39Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_39Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_39Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_39_skip) return;
+    var snap=__assessor_39Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_39ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_39_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_39_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_39Render(keys,rk,en);
+}
+function __assessor_39Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_39Table','assessor-39.csv'); } catch(e){}
+}
+function __assessor_39Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_39Presets',[{label:'默认参数',labelEn:'Default',values:{'val':'200', 'type':'0', 'area':'90', 'years':'0', 'tax':'0'}}],function(){ calc(); });
+}
+var __assessor_39_f0=(typeof calc==='function')?calc:null;
+if(__assessor_39_f0){
+    calc=function(){ var __r=__assessor_39_f0.apply(null,arguments); try{ __assessor_39Extras(); }catch(e){} return __r; };
+}
+function __assessor_39Boot(){ try{ __assessor_39Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_39Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_39Boot);
+</script>
 </body>
 </html>

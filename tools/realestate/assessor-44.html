@@ -121,10 +121,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>无形资产类型</label><select id="type" style="font-size:16px;" onchange="calc()"><option value="0">商标权</option><option value="1">专利权</option><option value="2">著作权</option><option value="3">特许经营权</option><option value="4">商誉</option></select></div></div><div class="input-row"><div><label>年营业收入(万元)</label><input type="number" id="revenue" style="font-size:16px;" value="1000" min="0" max="999999" step="0.01" oninput="calc()"></div></div><div class="input-row"><div><label>超额利润率(%)</label><input type="number" id="margin" style="font-size:16px;" value="5" min="0" max="50" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>收益期限</label><select id="years" style="font-size:16px;" onchange="calc()"><option value="5">5年</option><option value="10">10年</option><option value="15">15年</option><option value="20">20年-长期</option><option value="999">无限期</option></select></div></div><div class="input-row"><div><label>折现率/资本化率(%)</label><input type="number" id="rate" style="font-size:16px;" value="10" min="1" max="50" step="0.1" oninput="calc()"></div></div><div class="input-row"><div><label>所得税率(%)</label><input type="number" id="tax" style="font-size:16px;" value="25" min="0" max="50" step="0.1" oninput="calc()"></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算评估</button>
+      <div id="assessor_44Presets"></div><button type="button" class="btn primary" onclick="calc()">计算评估</button><button class="btn" type="button" onclick="__assessor_44Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_44Table"></div> <div id="assessor_44Diff"></div> <div id="assessor_44Chart"></div> <div id="assessor_44Hist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">&#9888;&#65039; 使用说明与注意事项</div>
@@ -252,6 +252,114 @@ function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.da
 <h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>商标专利价值评估</li><li>无形资产入账</li><li>股权转让定价</li><li>知识产权交易</li></ul>
   </div>
 </div>
-<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});</script>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(e){e.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+var __assessor_44_last=0,__assessor_44_skip=false;
+function __assessor_44Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_44ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_44Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_44Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_44Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_44Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_44Diff');
+        TBKit.history.mount('#assessor_44Hist',function(rec){
+            __assessor_44_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_44_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_44Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_44Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_44Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_44_skip) return;
+    var snap=__assessor_44Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_44ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_44_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_44_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_44Render(keys,rk,en);
+}
+function __assessor_44Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_44Table','assessor-44.csv'); } catch(e){}
+}
+function __assessor_44Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_44Presets',[{label:'默认参数',labelEn:'Default',values:{'type':'0', 'revenue':'1000', 'margin':'5', 'years':'5', 'rate':'10', 'tax':'25'}}],function(){ calc(); });
+}
+var __assessor_44_f0=(typeof calc==='function')?calc:null;
+if(__assessor_44_f0){
+    calc=function(){ var __r=__assessor_44_f0.apply(null,arguments); try{ __assessor_44Extras(); }catch(e){} return __r; };
+}
+function __assessor_44Boot(){ try{ __assessor_44Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_44Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_44Boot);
+</script>
 </body>
 </html>
