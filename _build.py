@@ -4294,6 +4294,41 @@ def _is_weak_desc(desc, title):
 
 
 def generate_category_indexes(tools):
+    # 兄弟行业热门工具映射（供极小分类页补「相关工具」）：ind -> [{name,desc,icon,url}]
+    _grp_siblings = {}
+    try:
+        _gdata = json.load(open(os.path.join(ROOT, 'json', 'industry-groups.json'), encoding='utf-8'))
+        for _g in _gdata:
+            _children = _g.get('children') or []
+            for _c in _children:
+                _k = _c.get('key')
+                if not _k or _k in _grp_siblings:
+                    continue
+                _sib = []
+                for _o in _children:
+                    if _o.get('key') == _k:
+                        continue
+                    for _t in (_o.get('top') or [])[:2]:
+                        _u = (_t.get('url') or '').lstrip('/')
+                        if _u.startswith('tools/') and _u.endswith('.html'):
+                            _sib.append({'name': _t.get('name', ''), 'desc': _t.get('desc', ''),
+                                         'icon': _t.get('icon', '🛠️'), 'url': _u})
+                    if len(_sib) >= 4:
+                        break
+                if _sib:
+                    _grp_siblings[_k] = _sib[:4]
+    except Exception:
+        pass
+    # 兜底：分类不在任何 2 级分组（如 network）→ 用全站热门工具，保证极小分类页也有 ≥2 内链
+    _hot_fallback = []
+    try:
+        for _h in json.load(open(os.path.join(ROOT, 'json', 'hot-tools.json'), encoding='utf-8'))[:8]:
+            _u = (_h.get('u') or '').lstrip('/')
+            if _u.startswith('tools/') and _u.endswith('.html'):
+                _hot_fallback.append({'name': _h.get('n', ''), 'desc': _h.get('d', ''),
+                                      'icon': _h.get('ic', '🛠️'), 'url': _u})
+    except Exception:
+        pass
     """Generate index.html for each industry directory."""
     _en_path = os.path.join(ROOT, 'i18n', 'industry-en.json')
     _IND_EN = json.load(open(_en_path, encoding='utf-8')) if os.path.exists(_en_path) else {}
@@ -4409,6 +4444,16 @@ def generate_category_indexes(tools):
             tool_href = os.path.relpath(t['url'], index_ref_dir).replace(os.sep, '/')
             parts.append('      <a href="%s" class="cat-tool"><span class="t-zh">%s</span><span class="t-zh-desc">%s</span></a>\n' % (tool_href, esc_html_py(_zh_name), esc_html_py(_zh_desc)))
         parts.append('    </div>\n  </div>\n')
+        # 极小分类（工具数 <3）：分类页自身站内互链 <2，crosslink 不达标且页面单薄。
+        # 补一组「相关工具」卡片（同 2 级分组下兄弟行业的热门工具）——是真实导航，不是凑数链接。
+        _sib_tools = (_grp_siblings.get(ind) or [h for h in _hot_fallback if not h['url'].startswith('tools/%s/' % ind)][:4])
+        if count < 3 and _sib_tools:
+            parts.append('<!-- 相关工具 -->\n<div class="related-tools" data-related-tools="1">\n  <h3 class="related-tools-title">🔗 相关工具</h3>\n  <div class="related-tools-grid">\n')
+            for _s in _sib_tools:
+                _href = os.path.relpath(_s['url'], index_ref_dir).replace(os.sep, '/')
+                parts.append('    <a href="%s" class="related-tool-card">\n      <span class="rt-icon">%s</span>\n      <span class="rt-info"><span class="rt-name">%s</span><span class="rt-desc">%s</span></span>\n    </a>\n'
+                             % (_href, _s.get('icon', '🛠️'), esc_html_py(_s.get('name', '')), esc_html_py(_s.get('desc', ''))[:50]))
+            parts.append('  </div>\n</div>\n')
         # SEO intro
         parts.append('  <div class="tool-intro open">\n    <div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span><span class="t-zh">关于「%s工具」</span><span class="t-en">About %s Tools</span></span><span class="arrow">▼</span></div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         parts.append('    <div class="tool-intro-body">\n')
