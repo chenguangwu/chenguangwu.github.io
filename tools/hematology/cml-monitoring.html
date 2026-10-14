@@ -134,12 +134,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估反应</button>
+      <div id="cml_monitoringPresets"></div><button type="button" class="btn primary" onclick="calc()">评估反应</button><button class="btn" type="button" onclick="__cml_monitoringExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="addRecord()">+ 添加追踪记录</button>
       <button type="button" class="btn" onclick="showHistory()">查看趋势</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="cml_monitoringTable"></div> <div id="cml_monitoringDiff"></div> <div id="cml_monitoringChart"></div> <div id="cml_monitoringHist"></div>
   </div>
 
   <div class="card" id="historyCard" style="display:none;">
@@ -409,6 +409,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __cml_monitoring_last=0,__cml_monitoring_skip=false;
+function __cml_monitoringSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cml_monitoringResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cml_monitoringTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cml_monitoringRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cml_monitoringTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cml_monitoringTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cml_monitoringDiff');
+        TBKit.history.mount('#cml_monitoringHist',function(rec){
+            __cml_monitoring_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cml_monitoring_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cml_monitoringTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cml_monitoringChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cml_monitoringExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cml_monitoring_skip) return;
+    var snap=__cml_monitoringSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cml_monitoringResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cml_monitoring_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cml_monitoring_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cml_monitoringRender(keys,rk,en);
+}
+function __cml_monitoringExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cml_monitoringTable','cml-monitoring.csv'); } catch(e){}
+}
+function __cml_monitoringPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cml_monitoringPresets',[{label:'默认参数',labelEn:'Default',values:{'months':'12', 'bcrabl':'0.5', 'transcript':'p210'}}],function(){ calc(); });
+}
+var __cml_monitoring_f0=(typeof calc==='function')?calc:null;
+if(__cml_monitoring_f0){
+    calc=function(){ var __r=__cml_monitoring_f0.apply(null,arguments); try{ __cml_monitoringExtras(); }catch(e){} return __r; };
+}
+function __cml_monitoringBoot(){ try{ __cml_monitoringPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cml_monitoringBoot();
+else document.addEventListener('DOMContentLoaded', __cml_monitoringBoot);
 </script>
 
 </body>

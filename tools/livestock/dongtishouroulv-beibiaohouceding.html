@@ -141,12 +141,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="dongtishouroulv_beibiaohoucedingPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__dongtishouroulv_beibiaohoucedingExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="dongtishouroulv_beibiaohoucedingTable"></div> <div id="dongtishouroulv_beibiaohoucedingDiff"></div> <div id="dongtishouroulv_beibiaohoucedingChart"></div> <div id="dongtishouroulv_beibiaohoucedingHist"></div>
 
     <div class="info-box">💡 估算式：瘦肉率 = 基础值 − 背膘系数×背膘厚 − 体重系数×(活重−标准重) + 性别校正；胴体重 = 活重 × 屠宰率。</div>
 
@@ -284,6 +284,114 @@ function restoreHistory(i){
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();calc();});
 calc();
+
+var __dongtishouroulv_beibiaohouceding_last=0,__dongtishouroulv_beibiaohouceding_skip=false;
+function __dongtishouroulv_beibiaohoucedingSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __dongtishouroulv_beibiaohoucedingResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __dongtishouroulv_beibiaohoucedingTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __dongtishouroulv_beibiaohoucedingRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__dongtishouroulv_beibiaohoucedingTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#dongtishouroulv_beibiaohoucedingTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#dongtishouroulv_beibiaohoucedingDiff');
+        TBKit.history.mount('#dongtishouroulv_beibiaohoucedingHist',function(rec){
+            __dongtishouroulv_beibiaohouceding_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __dongtishouroulv_beibiaohouceding_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__dongtishouroulv_beibiaohoucedingTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#dongtishouroulv_beibiaohoucedingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __dongtishouroulv_beibiaohoucedingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__dongtishouroulv_beibiaohouceding_skip) return;
+    var snap=__dongtishouroulv_beibiaohoucedingSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__dongtishouroulv_beibiaohoucedingResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__dongtishouroulv_beibiaohouceding_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __dongtishouroulv_beibiaohouceding_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __dongtishouroulv_beibiaohoucedingRender(keys,rk,en);
+}
+function __dongtishouroulv_beibiaohoucedingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dongtishouroulv_beibiaohoucedingTable','dongtishouroulv-beibiaohouceding.csv'); } catch(e){}
+}
+function __dongtishouroulv_beibiaohoucedingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dongtishouroulv_beibiaohoucedingPresets',[{label:'默认参数',labelEn:'Default',values:{'species':'pig', 'bf':'18', 'lw':'100', 'sex':'male'}}],function(){ calc(); });
+}
+var __dongtishouroulv_beibiaohouceding_f0=(typeof calc==='function')?calc:null;
+if(__dongtishouroulv_beibiaohouceding_f0){
+    calc=function(){ var __r=__dongtishouroulv_beibiaohouceding_f0.apply(null,arguments); try{ __dongtishouroulv_beibiaohoucedingExtras(); }catch(e){} return __r; };
+}
+function __dongtishouroulv_beibiaohoucedingBoot(){ try{ __dongtishouroulv_beibiaohoucedingPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dongtishouroulv_beibiaohoucedingBoot();
+else document.addEventListener('DOMContentLoaded', __dongtishouroulv_beibiaohoucedingBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

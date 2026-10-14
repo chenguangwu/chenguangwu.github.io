@@ -212,12 +212,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估风险</button>
+      <div id="caries_riskPresets"></div><button type="button" class="btn primary" onclick="calc()">评估风险</button><button class="btn" type="button" onclick="__caries_riskExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="caries_riskTable"></div> <div id="caries_riskDiff"></div> <div id="caries_riskChart"></div> <div id="caries_riskHist"></div>
 
     <div class="info-box" style="margin-top:16px;">
       ⚠️ 本工具参考 Cariogram 模型简化算法，结果供风险评估参考，不能替代临床综合诊断。
@@ -402,6 +402,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __caries_risk_last=0,__caries_risk_skip=false;
+function __caries_riskSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __caries_riskResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __caries_riskTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __caries_riskRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__caries_riskTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#caries_riskTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#caries_riskDiff');
+        TBKit.history.mount('#caries_riskHist',function(rec){
+            __caries_risk_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __caries_risk_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__caries_riskTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#caries_riskChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __caries_riskExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__caries_risk_skip) return;
+    var snap=__caries_riskSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__caries_riskResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__caries_risk_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __caries_risk_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __caries_riskRender(keys,rk,en);
+}
+function __caries_riskExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#caries_riskTable','caries-risk.csv'); } catch(e){}
+}
+function __caries_riskPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#caries_riskPresets',[{label:'默认参数',labelEn:'Default',values:{'f1':'0', 'f2':'0', 'f3':'0', 'f4':'0', 'f5':'0', 'f6':'0', 'f7':'0', 'f8':'0', 'f9':'0'}}],function(){ calc(); });
+}
+var __caries_risk_f0=(typeof calc==='function')?calc:null;
+if(__caries_risk_f0){
+    calc=function(){ var __r=__caries_risk_f0.apply(null,arguments); try{ __caries_riskExtras(); }catch(e){} return __r; };
+}
+function __caries_riskBoot(){ try{ __caries_riskPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __caries_riskBoot();
+else document.addEventListener('DOMContentLoaded', __caries_riskBoot);
 </script>
 
 </body>

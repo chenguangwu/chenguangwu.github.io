@@ -161,11 +161,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="irradiation_dosePresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__irradiation_doseExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="irradiation_doseTable"></div> <div id="irradiation_doseDiff"></div> <div id="irradiation_doseChart"></div> <div id="irradiation_doseHist"></div>
 
     <div class="ref-card" style="margin-top:16px;">
       <h4>📋 计算公式</h4>
@@ -419,6 +419,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __irradiation_dose_last=0,__irradiation_dose_skip=false;
+function __irradiation_doseSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __irradiation_doseResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __irradiation_doseTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __irradiation_doseRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__irradiation_doseTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#irradiation_doseTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#irradiation_doseDiff');
+        TBKit.history.mount('#irradiation_doseHist',function(rec){
+            __irradiation_dose_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __irradiation_dose_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__irradiation_doseTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#irradiation_doseChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __irradiation_doseExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__irradiation_dose_skip) return;
+    var snap=__irradiation_doseSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__irradiation_doseResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__irradiation_dose_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __irradiation_dose_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __irradiation_doseRender(keys,rk,en);
+}
+function __irradiation_doseExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#irradiation_doseTable','irradiation-dose.csv'); } catch(e){}
+}
+function __irradiation_dosePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#irradiation_dosePresets',[{label:'默认参数',labelEn:'Default',values:{'organism':'salmonella', 'd10':'0.5', 'n0':'100000', 'n':'1', 'mode':'dose', 'dose':'3.0'}}],function(){ calc(); });
+}
+var __irradiation_dose_f0=(typeof calc==='function')?calc:null;
+if(__irradiation_dose_f0){
+    calc=function(){ var __r=__irradiation_dose_f0.apply(null,arguments); try{ __irradiation_doseExtras(); }catch(e){} return __r; };
+}
+function __irradiation_doseBoot(){ try{ __irradiation_dosePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __irradiation_doseBoot();
+else document.addEventListener('DOMContentLoaded', __irradiation_doseBoot);
 </script>
 
 </body>

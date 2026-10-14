@@ -143,10 +143,10 @@ s.parentNode.insertBefore(el, s);
         </div>
       </div>
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcSimple()">估算</button>
+        <div id="inbreeding_coefficientPresets"></div><button type="button" class="btn primary" onclick="calcSimple()">估算</button><button class="btn" type="button" onclick="__inbreeding_coefficientExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="copySimple()">复制结果</button>
       </div>
-      <div class="result-box" id="resultSimple"></div>
+      <div class="result-box" id="resultSimple"></div> <div id="inbreeding_coefficientTable"></div> <div id="inbreeding_coefficientDiff"></div> <div id="inbreeding_coefficientChart"></div> <div id="inbreeding_coefficientHist"></div>
     </div>
 
     <div id="tab-path" class="tab-content">
@@ -443,6 +443,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __inbreeding_coefficient_last=0,__inbreeding_coefficient_skip=false;
+function __inbreeding_coefficientSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __inbreeding_coefficientResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __inbreeding_coefficientTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __inbreeding_coefficientRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__inbreeding_coefficientTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#inbreeding_coefficientTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#inbreeding_coefficientDiff');
+        TBKit.history.mount('#inbreeding_coefficientHist',function(rec){
+            __inbreeding_coefficient_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcSimple();
+            }catch(e2){}
+            __inbreeding_coefficient_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__inbreeding_coefficientTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#inbreeding_coefficientChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __inbreeding_coefficientExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__inbreeding_coefficient_skip) return;
+    var snap=__inbreeding_coefficientSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__inbreeding_coefficientResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__inbreeding_coefficient_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __inbreeding_coefficient_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __inbreeding_coefficientRender(keys,rk,en);
+}
+function __inbreeding_coefficientExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#inbreeding_coefficientTable','inbreeding-coefficient.csv'); } catch(e){}
+}
+function __inbreeding_coefficientPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#inbreeding_coefficientPresets',[{label:'默认参数',labelEn:'Default',values:{'ne':'50', 'generations':'5', 'fa':'0', 'n1':'2', 'n2':'2', 'numAncestors':'1'}}],function(){ calcSimple(); });
+}
+var __inbreeding_coefficient_f0=(typeof calcSimple==='function')?calcSimple:null;
+if(__inbreeding_coefficient_f0){
+    calcSimple=function(){ var __r=__inbreeding_coefficient_f0.apply(null,arguments); try{ __inbreeding_coefficientExtras(); }catch(e){} return __r; };
+}
+function __inbreeding_coefficientBoot(){ try{ __inbreeding_coefficientPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __inbreeding_coefficientBoot();
+else document.addEventListener('DOMContentLoaded', __inbreeding_coefficientBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用种群近交系数估算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>有效种群规模 (Ne)</li><li>世代数</li><li>共同祖先的近交系数 (Fa)</li><li>父亲到共同祖先世代数 (n1)</li><li>母亲到共同祖先世代数 (n2)</li><li>共同祖先数量</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>种群近交系数估算器是做什么的？</dt><dd>输入个体父亲与母亲的共同祖先及各自到共同祖先的世代数，估算该后代的近交系数，评估种群遗传多样性与近交退化风险。</dd><dt>如何使用种群近交系数估算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>种群近交系数估算器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

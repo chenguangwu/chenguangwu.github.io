@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('aml',this)">AML (M0-M7)</button>
+      <div id="leukemia_classificationPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('aml',this)">AML (M0-M7)</button><button class="btn" type="button" onclick="__leukemia_classificationExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('all',this)">ALL (L1-L3)</button>
       <button type="button" class="tab-btn" onclick="switchTab('micm',this)">MICM 分型</button>
     </div>
@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
           </select>
         </div>
       </div>
-      <div class="result-box" id="amlResult"></div>
+      <div class="result-box" id="amlResult"></div> <div id="leukemia_classificationTable"></div> <div id="leukemia_classificationDiff"></div> <div id="leukemia_classificationChart"></div> <div id="leukemia_classificationHist"></div>
     </div>
 
     <div id="tabAll" class="tab-content">
@@ -395,6 +395,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __leukemia_classification_last=0,__leukemia_classification_skip=false;
+function __leukemia_classificationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __leukemia_classificationResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __leukemia_classificationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __leukemia_classificationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__leukemia_classificationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#leukemia_classificationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#leukemia_classificationDiff');
+        TBKit.history.mount('#leukemia_classificationHist',function(rec){
+            __leukemia_classification_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __leukemia_classification_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__leukemia_classificationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#leukemia_classificationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __leukemia_classificationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__leukemia_classification_skip) return;
+    var snap=__leukemia_classificationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__leukemia_classificationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__leukemia_classification_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __leukemia_classification_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __leukemia_classificationRender(keys,rk,en);
+}
+function __leukemia_classificationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#leukemia_classificationTable','leukemia-classification.csv'); } catch(e){}
+}
+function __leukemia_classificationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#leukemia_classificationPresets',[{label:'默认参数',labelEn:'Default',values:{'amlSub':'M0', 'allSub':'L1'}}],function(){ switchTab(); });
+}
+var __leukemia_classification_f0=(typeof switchTab==='function')?switchTab:null;
+if(__leukemia_classification_f0){
+    switchTab=function(){ var __r=__leukemia_classification_f0.apply(null,arguments); try{ __leukemia_classificationExtras(); }catch(e){} return __r; };
+}
+function __leukemia_classificationBoot(){ try{ __leukemia_classificationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __leukemia_classificationBoot();
+else document.addEventListener('DOMContentLoaded', __leukemia_classificationBoot);
 </script>
 
 </body>

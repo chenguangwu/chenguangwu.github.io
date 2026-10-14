@@ -154,11 +154,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估</button>
+      <div id="calving_intervalPresets"></div><button type="button" class="btn primary" onclick="calc()">评估</button><button class="btn" type="button" onclick="__calving_intervalExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="calving_intervalTable"></div> <div id="calving_intervalDiff"></div> <div id="calving_intervalChart"></div> <div id="calving_intervalHist"></div>
   </div>
 
   <div class="card">
@@ -425,6 +425,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __calving_interval_last=0,__calving_interval_skip=false;
+function __calving_intervalSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calving_intervalResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calving_intervalTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calving_intervalRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calving_intervalTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calving_intervalTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calving_intervalDiff');
+        TBKit.history.mount('#calving_intervalHist',function(rec){
+            __calving_interval_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calving_interval_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calving_intervalTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calving_intervalChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calving_intervalExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calving_interval_skip) return;
+    var snap=__calving_intervalSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calving_intervalResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calving_interval_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calving_interval_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calving_intervalRender(keys,rk,en);
+}
+function __calving_intervalExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calving_intervalTable','calving-interval.csv'); } catch(e){}
+}
+function __calving_intervalPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calving_intervalPresets',[{label:'默认参数',labelEn:'Default',values:{'daysToFirstBreed':'75', 'breedTimes':'2', 'gestation':'283'}}],function(){ calc(); });
+}
+var __calving_interval_f0=(typeof calc==='function')?calc:null;
+if(__calving_interval_f0){
+    calc=function(){ var __r=__calving_interval_f0.apply(null,arguments); try{ __calving_intervalExtras(); }catch(e){} return __r; };
+}
+function __calving_intervalBoot(){ try{ __calving_intervalPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calving_intervalBoot();
+else document.addEventListener('DOMContentLoaded', __calving_intervalBoot);
 </script>
 
 </body>

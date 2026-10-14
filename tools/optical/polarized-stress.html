@@ -144,9 +144,9 @@ s.parentNode.insertBefore(el, s);
       <option value="12">高级粉白/白色</option>
     </select>
 
-    <div class="result-box" id="result" style="margin-top:12px;">
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__polarized_stressExport()">导出明细 CSV</button></div><div class="result-box" id="result" style="margin-top:12px;">
       <p style="color:var(--text-muted);">请选择观察到的干涉色序</p>
-    </div>
+    </div> <div id="polarized_stressTable"></div> <div id="polarized_stressDiff"></div> <div id="polarized_stressChart"></div> <div id="polarized_stressHist"></div>
   </div>
 
   <div class="card">
@@ -379,6 +379,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __polarized_stress_last=0,__polarized_stress_skip=false;
+function __polarized_stressSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __polarized_stressResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __polarized_stressTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __polarized_stressRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__polarized_stressTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#polarized_stressTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#polarized_stressDiff');
+        TBKit.history.mount('#polarized_stressHist',function(rec){
+            __polarized_stress_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                lookup();
+            }catch(e2){}
+            __polarized_stress_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__polarized_stressTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#polarized_stressChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __polarized_stressExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__polarized_stress_skip) return;
+    var snap=__polarized_stressSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__polarized_stressResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__polarized_stress_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __polarized_stress_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __polarized_stressRender(keys,rk,en);
+}
+function __polarized_stressExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#polarized_stressTable','polarized-stress.csv'); } catch(e){}
+}
+function __polarized_stressPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __polarized_stress_f0=(typeof lookup==='function')?lookup:null;
+if(__polarized_stress_f0){
+    lookup=function(){ var __r=__polarized_stress_f0.apply(null,arguments); try{ __polarized_stressExtras(); }catch(e){} return __r; };
+}
+function __polarized_stressBoot(){ try{ __polarized_stressPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __polarized_stressBoot();
+else document.addEventListener('DOMContentLoaded', __polarized_stressBoot);
 </script>
 
 </body>

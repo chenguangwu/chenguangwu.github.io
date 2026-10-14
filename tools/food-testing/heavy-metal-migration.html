@@ -155,11 +155,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算迁移量</button>
+      <div id="heavy_metal_migrationPresets"></div><button type="button" class="btn primary" onclick="calc()">计算迁移量</button><button class="btn" type="button" onclick="__heavy_metal_migrationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="heavy_metal_migrationTable"></div> <div id="heavy_metal_migrationDiff"></div> <div id="heavy_metal_migrationChart"></div> <div id="heavy_metal_migrationHist"></div>
 
     <div class="ref-card" style="margin-top:16px;">
       <h4>📋 计算公式</h4>
@@ -377,6 +377,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __heavy_metal_migration_last=0,__heavy_metal_migration_skip=false;
+function __heavy_metal_migrationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __heavy_metal_migrationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __heavy_metal_migrationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __heavy_metal_migrationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__heavy_metal_migrationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#heavy_metal_migrationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#heavy_metal_migrationDiff');
+        TBKit.history.mount('#heavy_metal_migrationHist',function(rec){
+            __heavy_metal_migration_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __heavy_metal_migration_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__heavy_metal_migrationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#heavy_metal_migrationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __heavy_metal_migrationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__heavy_metal_migration_skip) return;
+    var snap=__heavy_metal_migrationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__heavy_metal_migrationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__heavy_metal_migration_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __heavy_metal_migration_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __heavy_metal_migrationRender(keys,rk,en);
+}
+function __heavy_metal_migrationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#heavy_metal_migrationTable','heavy-metal-migration.csv'); } catch(e){}
+}
+function __heavy_metal_migrationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#heavy_metal_migrationPresets',[{label:'默认参数',labelEn:'Default',values:{'metal':'Pb', 'conc':'0.05', 'volume':'100', 'area':'2', 'foodVol':'1000', 'sml':'0.01'}}],function(){ calc(); });
+}
+var __heavy_metal_migration_f0=(typeof calc==='function')?calc:null;
+if(__heavy_metal_migration_f0){
+    calc=function(){ var __r=__heavy_metal_migration_f0.apply(null,arguments); try{ __heavy_metal_migrationExtras(); }catch(e){} return __r; };
+}
+function __heavy_metal_migrationBoot(){ try{ __heavy_metal_migrationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __heavy_metal_migrationBoot();
+else document.addEventListener('DOMContentLoaded', __heavy_metal_migrationBoot);
 </script>
 
 </body>
