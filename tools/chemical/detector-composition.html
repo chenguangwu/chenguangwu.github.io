@@ -123,11 +123,11 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>纯度 (%)</label><input type="number" id="v2" value="99.2" step="any" style="font-size:16px;" oninput="calc()"><span style="font-size:12px;color:var(--text-muted);display:block;margin-top:2px;">纯度≥99.0%</span></div></div>
 <div class="input-row"><div><label>环保达标率 (%)</label><input type="number" id="v3" value="92" step="any" style="font-size:16px;" oninput="calc()"><span style="font-size:12px;color:var(--text-muted);display:block;margin-top:2px;">环保达标率≥90%</span></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">检测判定</button>
+      <div id="detector_compositionPresets"></div><button type="button" class="btn primary" onclick="calc()">检测判定</button><button class="btn" type="button" onclick="__detector_compositionExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyReport()">复制报告</button>
       <button type="button" class="btn" onclick="resetForm()">重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="detector_compositionTable"></div> <div id="detector_compositionDiff"></div> <div id="detector_compositionChart"></div> <div id="detector_compositionHist"></div>
   </div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -264,6 +264,114 @@ calc();
 <!-- /SEO 介绍区块 -->
 <script>
 document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(x){x.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+
+var __detector_composition_last=0,__detector_composition_skip=false;
+function __detector_compositionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __detector_compositionResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __detector_compositionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __detector_compositionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__detector_compositionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#detector_compositionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#detector_compositionDiff');
+        TBKit.history.mount('#detector_compositionHist',function(rec){
+            __detector_composition_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __detector_composition_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__detector_compositionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#detector_compositionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __detector_compositionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__detector_composition_skip) return;
+    var snap=__detector_compositionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__detector_compositionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__detector_composition_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __detector_composition_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __detector_compositionRender(keys,rk,en);
+}
+function __detector_compositionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#detector_compositionTable','detector-composition.csv'); } catch(e){}
+}
+function __detector_compositionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#detector_compositionPresets',[{label:'默认参数',labelEn:'Default',values:{'v1':'96', 'v2':'99.2', 'v3':'92'}}],function(){ calc(); });
+}
+var __detector_composition_f0=(typeof calc==='function')?calc:null;
+if(__detector_composition_f0){
+    calc=function(){ var __r=__detector_composition_f0.apply(null,arguments); try{ __detector_compositionExtras(); }catch(e){} return __r; };
+}
+function __detector_compositionBoot(){ try{ __detector_compositionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __detector_compositionBoot();
+else document.addEventListener('DOMContentLoaded', __detector_compositionBoot);
 </script>
 </body>
 </html>
