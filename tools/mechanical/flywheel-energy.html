@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="flywheel_energyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__flywheel_energyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="flywheel_energyTable"></div>
+    <div id="flywheel_energyDiff"></div>
+    <div id="flywheel_energyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,45 @@ function resetForm(){document.getElementById('m').value = '50';
       document.getElementById('rpm').value = '1000';
       calcTool();}
 calcTool();
+
+function __flywheel_energyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __flywheel_energyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'), r=num('r'), rpm=num('rpm');
+    var I=0.5*m*r*r; // kg·m² (实心圆盘)
+    var w=2*Math.PI*rpm/60;
+    var E=0.5*I*w*w; // J
+    if (!isFinite(__flywheel_energyNum('m')) || !isFinite(__flywheel_energyNum('r')) || !isFinite(__flywheel_energyNum('rpm'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#flywheel_energyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['转动惯量 I (kg·m²)', I.toFixed(3)],
+            ['转动动能 E (J)', E.toFixed(1)],
+            ['转动动能 E (kJ)', (E/1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({m:__flywheel_energyNum('m'), r:__flywheel_energyNum('r'), rpm:__flywheel_energyNum('rpm'), I:I});
+    TBKit.history.mount('#flywheel_energyHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.rpm!=null)document.getElementById('rpm').value=rec.rpm; calcTool(); });
+    TBKit.util.diffBox('#flywheel_energyDiff',['I']);
+}
+function __flywheel_energyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#flywheel_energyTable','flywheel-energy.csv'); } catch(e){}
+}
+function __flywheel_energyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#flywheel_energyPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'50', r:'0.3', rpm:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'100', r:'0.6', rpm:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'25', r:'0.15', rpm:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __flywheel_energyExtras(); }catch(e){} };
+function __flywheel_energyBoot(){ try{ __flywheel_energyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __flywheel_energyBoot();
+else document.addEventListener('DOMContentLoaded', __flywheel_energyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

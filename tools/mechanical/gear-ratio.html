@@ -143,12 +143,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gear_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gear_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gear_ratioTable"></div>
+    <div id="gear_ratioDiff"></div>
+    <div id="gear_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -214,6 +220,45 @@ function resetForm(){document.getElementById('z1').value = '20';
       document.getElementById('eta').value = '0.97';
       calcTool();}
 calcTool();
+
+function __gear_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gear_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var z1=num('z1'), z2=num('z2'), n1=num('n1'), T1=num('T1'), eta=num('eta');
+    var i=z2/z1;
+    var n2=n1/i;
+    var T2=T1*i*eta;
+    if (!isFinite(__gear_ratioNum('z1')) || !isFinite(__gear_ratioNum('z2')) || !isFinite(__gear_ratioNum('n1')) || !isFinite(__gear_ratioNum('T1')) || !isFinite(__gear_ratioNum('eta'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gear_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['传动比 i (=z₂/z₁)', i.toFixed(3)],
+            ['输出转速 n₂ (rpm)', n2.toFixed(1)],
+            ['输出转矩 T₂ (N·m)', T2.toFixed(1)],
+        ]
+    });
+    TBKit.history.record({z1:__gear_ratioNum('z1'), z2:__gear_ratioNum('z2'), n1:__gear_ratioNum('n1'), T1:__gear_ratioNum('T1'), eta:__gear_ratioNum('eta'), i:i});
+    TBKit.history.mount('#gear_ratioHist',function(rec){ if(rec.z1!=null)document.getElementById('z1').value=rec.z1; if(rec.z2!=null)document.getElementById('z2').value=rec.z2; if(rec.n1!=null)document.getElementById('n1').value=rec.n1; if(rec.T1!=null)document.getElementById('T1').value=rec.T1; if(rec.eta!=null)document.getElementById('eta').value=rec.eta; calcTool(); });
+    TBKit.util.diffBox('#gear_ratioDiff',['i']);
+}
+function __gear_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gear_ratioTable','gear-ratio.csv'); } catch(e){}
+}
+function __gear_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gear_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{z1:'20', z2:'40', n1:'1500', T1:'100', eta:'0.97'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{z1:'40', z2:'80', n1:'3000', T1:'200', eta:'1.94'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{z1:'10', z2:'20', n1:'750', T1:'50', eta:'0.485'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gear_ratioExtras(); }catch(e){} };
+function __gear_ratioBoot(){ try{ __gear_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gear_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __gear_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -127,12 +127,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="lever_advantagePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__lever_advantageExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="lever_advantageTable"></div>
+    <div id="lever_advantageDiff"></div>
+    <div id="lever_advantageHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -192,6 +198,42 @@ function resetForm(){document.getElementById('Lin').value = '1.0';
       document.getElementById('Lout').value = '0.2';
       calcTool();}
 calcTool();
+
+function __lever_advantageNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lever_advantageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Lin=num('Lin'), Lout=num('Lout');
+    var MA=Lin/Lout;
+    if (!isFinite(__lever_advantageNum('Lin')) || !isFinite(__lever_advantageNum('Lout'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#lever_advantageTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['机械增益 MA (=L₁/L₂)', MA.toFixed(2)],
+            ['所需动力 / 阻力', (1/MA).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({Lin:__lever_advantageNum('Lin'), Lout:__lever_advantageNum('Lout'), MA:MA});
+    TBKit.history.mount('#lever_advantageHist',function(rec){ if(rec.Lin!=null)document.getElementById('Lin').value=rec.Lin; if(rec.Lout!=null)document.getElementById('Lout').value=rec.Lout; calcTool(); });
+    TBKit.util.diffBox('#lever_advantageDiff',['MA']);
+}
+function __lever_advantageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lever_advantageTable','lever-advantage.csv'); } catch(e){}
+}
+function __lever_advantagePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lever_advantagePresets',[
+        {label:'默认',labelEn:'Default',values:{Lin:'1.0', Lout:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Lin:'2', Lout:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Lin:'0.5', Lout:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __lever_advantageExtras(); }catch(e){} };
+function __lever_advantageBoot(){ try{ __lever_advantagePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lever_advantageBoot();
+else document.addEventListener('DOMContentLoaded', __lever_advantageBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="centrifugal_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__centrifugal_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="centrifugal_forceTable"></div>
+    <div id="centrifugal_forceDiff"></div>
+    <div id="centrifugal_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('m').value = '10';
       document.getElementById('rpm').value = '600';
       calcTool();}
 calcTool();
+
+function __centrifugal_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __centrifugal_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'), r=num('r'), rpm=num('rpm');
+    var w=2*Math.PI*rpm/60; // rad/s
+    var F=m*w*w*r; // N
+    if (!isFinite(__centrifugal_forceNum('m')) || !isFinite(__centrifugal_forceNum('r')) || !isFinite(__centrifugal_forceNum('rpm'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#centrifugal_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['离心力 F (N)', F.toFixed(1)],
+            ['离心力 F (kN)', (F/1000).toFixed(2)],
+            ['角速度 ω (rad/s)', w.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({m:__centrifugal_forceNum('m'), r:__centrifugal_forceNum('r'), rpm:__centrifugal_forceNum('rpm'), w:w});
+    TBKit.history.mount('#centrifugal_forceHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.rpm!=null)document.getElementById('rpm').value=rec.rpm; calcTool(); });
+    TBKit.util.diffBox('#centrifugal_forceDiff',['w']);
+}
+function __centrifugal_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#centrifugal_forceTable','centrifugal-force.csv'); } catch(e){}
+}
+function __centrifugal_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#centrifugal_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{m:'10', r:'0.5', rpm:'600'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'20', r:'1', rpm:'1200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'5', r:'0.25', rpm:'300'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __centrifugal_forceExtras(); }catch(e){} };
+function __centrifugal_forceBoot(){ try{ __centrifugal_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __centrifugal_forceBoot();
+else document.addEventListener('DOMContentLoaded', __centrifugal_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
