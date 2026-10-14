@@ -125,11 +125,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>坝底宽度 L (m)</label><input type="number" id="v1" value="25" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 B"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="shenliu_jinrunxian_weizhiPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__shenliu_jinrunxian_weizhiExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="shenliu_jinrunxian_weizhiTable"></div> <div id="shenliu_jinrunxian_weizhiDiff"></div> <div id="shenliu_jinrunxian_weizhiChart"></div> <div id="shenliu_jinrunxian_weizhiHist"></div>
     <div class="info-box">💡 q = k·H²/(2L)，k 取 1 m/d；浸润线 y = √(2qx/k)，中点 x = L/2 处 y = H/√2；平均渗透坡降 i = H/L。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -646,6 +646,114 @@ function resetAll(){
   if(a)a.value='6';if(b)b.value='25';calc();
 }
 try{calc();}catch(e){}
+
+var __shenliu_jinrunxian_weizhi_last=0,__shenliu_jinrunxian_weizhi_skip=false;
+function __shenliu_jinrunxian_weizhiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __shenliu_jinrunxian_weizhiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __shenliu_jinrunxian_weizhiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __shenliu_jinrunxian_weizhiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__shenliu_jinrunxian_weizhiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#shenliu_jinrunxian_weizhiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#shenliu_jinrunxian_weizhiDiff');
+        TBKit.history.mount('#shenliu_jinrunxian_weizhiHist',function(rec){
+            __shenliu_jinrunxian_weizhi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __shenliu_jinrunxian_weizhi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__shenliu_jinrunxian_weizhiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#shenliu_jinrunxian_weizhiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __shenliu_jinrunxian_weizhiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__shenliu_jinrunxian_weizhi_skip) return;
+    var snap=__shenliu_jinrunxian_weizhiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__shenliu_jinrunxian_weizhiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__shenliu_jinrunxian_weizhi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __shenliu_jinrunxian_weizhi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __shenliu_jinrunxian_weizhiRender(keys,rk,en);
+}
+function __shenliu_jinrunxian_weizhiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#shenliu_jinrunxian_weizhiTable','shenliu-jinrunxian-weizhi.csv'); } catch(e){}
+}
+function __shenliu_jinrunxian_weizhiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#shenliu_jinrunxian_weizhiPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'6', 'v1':'25'}}],function(){ calc(); });
+}
+var __shenliu_jinrunxian_weizhi_f0=(typeof calc==='function')?calc:null;
+if(__shenliu_jinrunxian_weizhi_f0){
+    calc=function(){ var __r=__shenliu_jinrunxian_weizhi_f0.apply(null,arguments); try{ __shenliu_jinrunxian_weizhiExtras(); }catch(e){} return __r; };
+}
+function __shenliu_jinrunxian_weizhiBoot(){ try{ __shenliu_jinrunxian_weizhiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __shenliu_jinrunxian_weizhiBoot();
+else document.addEventListener('DOMContentLoaded', __shenliu_jinrunxian_weizhiBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

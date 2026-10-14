@@ -166,7 +166,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calcAll()">计算并评估</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__assessor_33Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="assessor_33Table"></div> <div id="assessor_33Diff"></div> <div id="assessor_33Chart"></div> <div id="assessor_33Hist"></div>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -406,6 +406,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __assessor_33_last=0,__assessor_33_skip=false;
+function __assessor_33Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_33ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_33Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_33Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_33Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_33Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_33Diff');
+        TBKit.history.mount('#assessor_33Hist',function(rec){
+            __assessor_33_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcEff();
+            }catch(e2){}
+            __assessor_33_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_33Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_33Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_33Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_33_skip) return;
+    var snap=__assessor_33Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_33ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_33_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_33_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_33Render(keys,rk,en);
+}
+function __assessor_33Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_33Table','assessor-33.csv'); } catch(e){}
+}
+function __assessor_33Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_33Presets',[{label:'默认参数',labelEn:'Default',values:{'qt':'100', 'qa':'92', 'tt':'80', 'ta':'95', 'rc_m':'5000', 'rc_h':'3', 'rc_t':'10', 'rc_eta':'65', 'sv_p':'22', 'sv_t':'8', 'sv_load':'60', 'sv_save':'35'}}],function(){ calcEff(); });
+}
+var __assessor_33_f0=(typeof calcEff==='function')?calcEff:null;
+if(__assessor_33_f0){
+    calcEff=function(){ var __r=__assessor_33_f0.apply(null,arguments); try{ __assessor_33Extras(); }catch(e){} return __r; };
+}
+function __assessor_33Boot(){ try{ __assessor_33Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_33Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_33Boot);
 </script>
 
 </body>

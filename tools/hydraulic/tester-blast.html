@@ -139,8 +139,8 @@ s.parentNode.insertBefore(el, s);
   <option value="pneu">气压试验</option>
 </select></div></div>
 
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算试验参数</button><button type="button" class="btn" onclick="copyReport()">复制测试方案</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="tester_blastPresets"></div><button type="button" class="btn primary" onclick="calc()">计算试验参数</button><button class="btn" type="button" onclick="__tester_blastExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyReport()">复制测试方案</button></div>
+<div class="result-box" id="res"></div> <div id="tester_blastTable"></div> <div id="tester_blastDiff"></div> <div id="tester_blastChart"></div> <div id="tester_blastHist"></div>
   </div>
 
 <!-- SEO 介绍区块 -->
@@ -358,4 +358,112 @@ var dp=+document.getElementById('dp').value||0;
 }
 function copyReport(){ToolBox.copyText(document.getElementById('res').innerText, i18nText('msg480'));}
 calc();
+
+var __tester_blast_last=0,__tester_blast_skip=false;
+function __tester_blastSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tester_blastResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tester_blastTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tester_blastRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tester_blastTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tester_blastTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#tester_blastDiff');
+        TBKit.history.mount('#tester_blastHist',function(rec){
+            __tester_blast_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tester_blast_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tester_blastTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tester_blastChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tester_blastExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tester_blast_skip) return;
+    var snap=__tester_blastSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tester_blastResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tester_blast_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tester_blast_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tester_blastRender(keys,rk,en);
+}
+function __tester_blastExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tester_blastTable','tester-blast.csv'); } catch(e){}
+}
+function __tester_blastPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tester_blastPresets',[{label:'默认参数',labelEn:'Default',values:{'dp':'1.6', 'wp':'1.4', 'sb':'520', 'ss':'345', 'di':'1000', 't':'10', 'phi':'1.0', 'testType':'hydro'}}],function(){ calc(); });
+}
+var __tester_blast_f0=(typeof calc==='function')?calc:null;
+if(__tester_blast_f0){
+    calc=function(){ var __r=__tester_blast_f0.apply(null,arguments); try{ __tester_blastExtras(); }catch(e){} return __r; };
+}
+function __tester_blastBoot(){ try{ __tester_blastPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tester_blastBoot();
+else document.addEventListener('DOMContentLoaded', __tester_blastBoot);
 </script>

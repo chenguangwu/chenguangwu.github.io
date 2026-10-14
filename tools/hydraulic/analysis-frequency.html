@@ -119,8 +119,8 @@ s.parentNode.insertBefore(el, s);
 <textarea id="data" rows="3" oninput="calc()" placeholder="例如: 1200,1500,1800,2100,1400">1200,1500,1800,2100,1400,1600,1900,1700,1300,2000,2200,1100,1700,1500,1850</textarea>
 <label>设计重现期 T（年）</label>
 <input id="T" type="number" value="100" oninput="calc()">
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算设计洪峰</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="analysis_frequencyPresets"></div><button type="button" class="btn primary" onclick="calc()">计算设计洪峰</button><button class="btn" type="button" onclick="__analysis_frequencyExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
+<div class="result-box" id="res"></div> <div id="analysis_frequencyTable"></div> <div id="analysis_frequencyDiff"></div> <div id="analysis_frequencyChart"></div> <div id="analysis_frequencyHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -332,6 +332,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __analysis_frequency_last=0,__analysis_frequency_skip=false;
+function __analysis_frequencySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __analysis_frequencyResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __analysis_frequencyTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __analysis_frequencyRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__analysis_frequencyTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#analysis_frequencyTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#analysis_frequencyDiff');
+        TBKit.history.mount('#analysis_frequencyHist',function(rec){
+            __analysis_frequency_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __analysis_frequency_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__analysis_frequencyTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#analysis_frequencyChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __analysis_frequencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__analysis_frequency_skip) return;
+    var snap=__analysis_frequencySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__analysis_frequencyResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__analysis_frequency_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __analysis_frequency_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __analysis_frequencyRender(keys,rk,en);
+}
+function __analysis_frequencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#analysis_frequencyTable','analysis-frequency.csv'); } catch(e){}
+}
+function __analysis_frequencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#analysis_frequencyPresets',[{label:'默认参数',labelEn:'Default',values:{'T':'100'}}],function(){ calc(); });
+}
+var __analysis_frequency_f0=(typeof calc==='function')?calc:null;
+if(__analysis_frequency_f0){
+    calc=function(){ var __r=__analysis_frequency_f0.apply(null,arguments); try{ __analysis_frequencyExtras(); }catch(e){} return __r; };
+}
+function __analysis_frequencyBoot(){ try{ __analysis_frequencyPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __analysis_frequencyBoot();
+else document.addEventListener('DOMContentLoaded', __analysis_frequencyBoot);
 </script>
 
 </body>

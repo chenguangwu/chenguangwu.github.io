@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
   <div class="stat-card"><div class="val" id="resC">--</div><div class="lbl">综合系数 C</div></div>
 </div>
 
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="spillway_calcTable"></div> <div id="spillway_calcDiff"></div> <div id="spillway_calcChart"></div> <div id="spillway_calcHist"></div>
 
 <div class="formula-box">
       <div class="formula-eq">Q = m·ε·σ·L·√(2g)·H^(3/2)</div>
@@ -182,7 +182,7 @@ s.parentNode.insertBefore(el, s);
 <div class="tip-box tip-info">💡 实用堰（WES/克奥格型）m≈0.49；宽顶堰 m≈0.36；自由出流时 σ=1，下游水位高于堰顶时 σ&lt;1。</div>
 
 <div class="toolbar">
-  <button type="button" class="btn primary" onclick="calc()">🧮 计算</button>
+  <div id="spillway_calcPresets"></div><button type="button" class="btn primary" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__spillway_calcExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
 </div>
@@ -348,6 +348,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __spillway_calc_last=0,__spillway_calc_skip=false;
+function __spillway_calcSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __spillway_calcResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __spillway_calcTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __spillway_calcRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__spillway_calcTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#spillway_calcTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#spillway_calcDiff');
+        TBKit.history.mount('#spillway_calcHist',function(rec){
+            __spillway_calc_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __spillway_calc_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__spillway_calcTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#spillway_calcChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __spillway_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__spillway_calc_skip) return;
+    var snap=__spillway_calcSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__spillway_calcResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__spillway_calc_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __spillway_calc_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __spillway_calcRender(keys,rk,en);
+}
+function __spillway_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spillway_calcTable','spillway-calc.csv'); } catch(e){}
+}
+function __spillway_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#spillway_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'inL':'20', 'inH':'3', 'inM':'0.49', 'inEps':'0.95', 'inSigma':'1'}}],function(){ calc(); });
+}
+var __spillway_calc_f0=(typeof calc==='function')?calc:null;
+if(__spillway_calc_f0){
+    calc=function(){ var __r=__spillway_calc_f0.apply(null,arguments); try{ __spillway_calcExtras(); }catch(e){} return __r; };
+}
+function __spillway_calcBoot(){ try{ __spillway_calcPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __spillway_calcBoot();
+else document.addEventListener('DOMContentLoaded', __spillway_calcBoot);
 </script>
 
 </body>

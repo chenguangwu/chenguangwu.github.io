@@ -125,11 +125,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>淤积物干容重 (t/m³)</label><input type="number" id="v1" value="1.3" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 B"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="yuji_nisha_kurongsunshiPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__yuji_nisha_kurongsunshiExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="yuji_nisha_kurongsunshiTable"></div> <div id="yuji_nisha_kurongsunshiDiff"></div> <div id="yuji_nisha_kurongsunshiChart"></div> <div id="yuji_nisha_kurongsunshiHist"></div>
     <div class="info-box">💡 年淤积体积（万 m³）= 年入库沙量 ÷ 干容重；库容损失率 = 50 年累计 ÷ 总库容（按 1000 万 m³）× 100%。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -646,6 +646,114 @@ function resetAll(){
   if(a)a.value='15';if(b)b.value='1.3';calc();
 }
 try{calc();}catch(e){}
+
+var __yuji_nisha_kurongsunshi_last=0,__yuji_nisha_kurongsunshi_skip=false;
+function __yuji_nisha_kurongsunshiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __yuji_nisha_kurongsunshiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __yuji_nisha_kurongsunshiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __yuji_nisha_kurongsunshiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__yuji_nisha_kurongsunshiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#yuji_nisha_kurongsunshiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#yuji_nisha_kurongsunshiDiff');
+        TBKit.history.mount('#yuji_nisha_kurongsunshiHist',function(rec){
+            __yuji_nisha_kurongsunshi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __yuji_nisha_kurongsunshi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__yuji_nisha_kurongsunshiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#yuji_nisha_kurongsunshiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __yuji_nisha_kurongsunshiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__yuji_nisha_kurongsunshi_skip) return;
+    var snap=__yuji_nisha_kurongsunshiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__yuji_nisha_kurongsunshiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__yuji_nisha_kurongsunshi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __yuji_nisha_kurongsunshi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __yuji_nisha_kurongsunshiRender(keys,rk,en);
+}
+function __yuji_nisha_kurongsunshiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#yuji_nisha_kurongsunshiTable','yuji-nisha-kurongsunshi.csv'); } catch(e){}
+}
+function __yuji_nisha_kurongsunshiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#yuji_nisha_kurongsunshiPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'15', 'v1':'1.3'}}],function(){ calc(); });
+}
+var __yuji_nisha_kurongsunshi_f0=(typeof calc==='function')?calc:null;
+if(__yuji_nisha_kurongsunshi_f0){
+    calc=function(){ var __r=__yuji_nisha_kurongsunshi_f0.apply(null,arguments); try{ __yuji_nisha_kurongsunshiExtras(); }catch(e){} return __r; };
+}
+function __yuji_nisha_kurongsunshiBoot(){ try{ __yuji_nisha_kurongsunshiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __yuji_nisha_kurongsunshiBoot();
+else document.addEventListener('DOMContentLoaded', __yuji_nisha_kurongsunshiBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -180,7 +180,7 @@ s.parentNode.insertBefore(el, s);
   <div class="stat-card"><div class="val" id="resRe">--</div><div class="lbl">雷诺数 Re</div></div>
 </div>
 
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="flow_rateTable"></div> <div id="flow_rateDiff"></div> <div id="flow_rateChart"></div> <div id="flow_rateHist"></div>
 
 <div class="formula-box">
       <div class="formula-eq">管道：A = πD²/4，Q = A·v；明渠（曼宁）：A = (b + m·h)·h，P湿周 = b + 2h·√(1+m²)，R = A/P，Q = (1/n)·A·R^(2/3)·√i</div>
@@ -191,7 +191,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <div class="toolbar">
-  <button type="button" class="btn primary" onclick="calc()">🧮 计算</button>
+  <div id="flow_ratePresets"></div><button type="button" class="btn primary" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__flow_rateExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
 </div>
@@ -393,6 +393,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __flow_rate_last=0,__flow_rate_skip=false;
+function __flow_rateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __flow_rateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __flow_rateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __flow_rateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__flow_rateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#flow_rateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#flow_rateDiff');
+        TBKit.history.mount('#flow_rateHist',function(rec){
+            __flow_rate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __flow_rate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__flow_rateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#flow_rateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __flow_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__flow_rate_skip) return;
+    var snap=__flow_rateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__flow_rateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__flow_rate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __flow_rate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __flow_rateRender(keys,rk,en);
+}
+function __flow_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#flow_rateTable','flow-rate.csv'); } catch(e){}
+}
+function __flow_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#flow_ratePresets',[{label:'默认参数',labelEn:'Default',values:{'pipeD':'300', 'pipeV':'1.5', 'chB':'2', 'chH':'1.2', 'chM':'1.5', 'chN':'0.014', 'chI':'0.0005'}}],function(){ calc(); });
+}
+var __flow_rate_f0=(typeof calc==='function')?calc:null;
+if(__flow_rate_f0){
+    calc=function(){ var __r=__flow_rate_f0.apply(null,arguments); try{ __flow_rateExtras(); }catch(e){} return __r; };
+}
+function __flow_rateBoot(){ try{ __flow_ratePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __flow_rateBoot();
+else document.addEventListener('DOMContentLoaded', __flow_rateBoot);
 </script>
 
 </body>
