@@ -301,7 +301,8 @@ RESULT_IDS = ("result", "res", "output")
 # 表格插错位置 → 改为显式名单，宁可少接也不错接。
 RESULT_IDS2 = ("resultList", "result-list", "countryList", "guaList", "plantList",
                "cardList", "itemList", "listBox", "list", "listDiv", "rodList",
-               "formulaList", "herbList", "recipeList", "results", "detail")
+               "formulaList", "herbList", "recipeList", "results", "detail",
+               "grid", "tableWrap", "tableArea")
 RESULT_CLASSES = ("result-box", "result-display")
 # 末级兜底：按 id 名的**词边界**猜结果容器（resultBox / cssOutput / breakdown / …）。
 # 必须词边界而非子串——"res" 是 "presets" 的子串、"list" 会命中 "presetGrid"/"hiveList"
@@ -347,10 +348,15 @@ def extract_custom(page):
     # （copyCode/switchTab/addHive/togglePlay/openAddVeh/useEyeDropper）当成计算入口，
     # 包裹后表格/历史只在用户点那个具体控件时才渲染 → 接线形同虚设且位置错乱。
     FN_OK = r'^(?:calc|calculate|compute|solve|count|estimate|eval|evaluate|convert|generate|analyze|analyse|render|filter|search|doSearch|lookup|update|apply)\w*$'
+    def _declared(c):
+        if re.search(r'(?:^|[;}])\s*function\s+%s\s*\(' % re.escape(c), s, re.M):
+            return True
+        # var / window. 赋值式声明可安全重包；const/let 不可（运行时 TypeError）
+        return bool(re.search(r'(?:var\s+%s\s*=\s*function|window\.%s\s*=\s*function)'
+                              % (re.escape(c), re.escape(c)), s))
     fn = None
     for c in cands:
-        if re.match(FN_OK, c, re.I) and \
-                re.search(r'(?:^|[;}])\s*function\s+%s\s*\(' % re.escape(c), s, re.M):
+        if re.match(FN_OK, c, re.I) and _declared(c):
             fn = c
             break
     if fn is None:
