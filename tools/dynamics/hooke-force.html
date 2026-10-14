@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hooke_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hooke_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hooke_forceTable"></div>
+    <div id="hooke_forceDiff"></div>
+    <div id="hooke_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('k').value = '200';
       document.getElementById('x').value = '0.1';
       calcTool();}
 calcTool();
+
+function __hooke_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hooke_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k=num('k'),x=num('x');
+    var F=k*x;
+    if (!isFinite(__hooke_forceNum('k')) || !isFinite(__hooke_forceNum('x'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hooke_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['弹力 F (N)', F.toFixed(2)],
+            ['弹性势能 U (J)', (0.5*k*x*x).toFixed(4)],
+            ['劲度与位移平方之积 (J)', (k*x*x).toFixed(4)],
+            ['劲度系数倒数 (m/N)', (1/Math.max(k,1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({k:__hooke_forceNum('k'), x:__hooke_forceNum('x'), F:F});
+    TBKit.history.mount('#hooke_forceHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.x!=null)document.getElementById('x').value=rec.x; calcTool(); });
+    TBKit.util.diffBox('#hooke_forceDiff',['F']);
+}
+function __hooke_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hooke_forceTable','hooke-force.csv'); } catch(e){}
+}
+function __hooke_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hooke_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{k:'200', x:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'400', x:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'100', x:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hooke_forceExtras(); }catch(e){} };
+function __hooke_forceBoot(){ try{ __hooke_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hooke_forceBoot();
+else document.addEventListener('DOMContentLoaded', __hooke_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="power_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__power_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="power_forceTable"></div>
+    <div id="power_forceDiff"></div>
+    <div id="power_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,43 @@ function resetForm(){document.getElementById('F').value = '2000';
       document.getElementById('v').value = '10';
       calcTool();}
 calcTool();
+
+function __power_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __power_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F = num('F'), v = num('v');
+    if (!isFinite(__power_forceNum('F')) || !isFinite(__power_forceNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#power_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['功率 P (W)', (F * v).toFixed(1)],
+            ['P (kW)', (F * v / 1000).toFixed(2)],
+            ['功率 (公制马力 PS)', (F*v/735.5).toFixed(3)],
+            ['功率 (英制马力 hp)', (F*v/745.7).toFixed(3)],
+            ['每小时做功 (kJ/h)', (F*v*3.6).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({F:__power_forceNum('F'), v:__power_forceNum('v')});
+    TBKit.history.mount('#power_forceHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+}
+function __power_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#power_forceTable','power-force.csv'); } catch(e){}
+}
+function __power_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#power_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{F:'2000', v:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'4000', v:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'1000', v:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __power_forceExtras(); }catch(e){} };
+function __power_forceBoot(){ try{ __power_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __power_forceBoot();
+else document.addEventListener('DOMContentLoaded', __power_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

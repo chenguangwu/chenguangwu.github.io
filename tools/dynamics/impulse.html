@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="impulsePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__impulseExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="impulseTable"></div>
+    <div id="impulseDiff"></div>
+    <div id="impulseHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,42 @@ function resetForm(){document.getElementById('F').value = '100';
       document.getElementById('dt').value = '0.5';
       calcTool();}
 calcTool();
+
+function __impulseNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __impulseExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F = num('F'), dt = num('dt');
+    if (!isFinite(__impulseNum('F')) || !isFinite(__impulseNum('dt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#impulseTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['冲量 J (N·s)', (F * dt).toFixed(2)],
+            ['冲量 (N·ms 牛毫秒)', (F*dt*1000).toFixed(1)],
+            ['冲量 (kgf·s 千克力秒)', (F*dt/9.80665).toFixed(4)],
+            ['力与作用时间之比 (N/s)', (F/Math.max(dt,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({F:__impulseNum('F'), dt:__impulseNum('dt')});
+    TBKit.history.mount('#impulseHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.dt!=null)document.getElementById('dt').value=rec.dt; calcTool(); });
+}
+function __impulseExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#impulseTable','impulse.csv'); } catch(e){}
+}
+function __impulsePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#impulsePresets',[
+        {label:'默认',labelEn:'Default',values:{F:'100', dt:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'200', dt:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'50', dt:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __impulseExtras(); }catch(e){} };
+function __impulseBoot(){ try{ __impulsePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __impulseBoot();
+else document.addEventListener('DOMContentLoaded', __impulseBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

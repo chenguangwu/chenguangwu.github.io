@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="torque_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__torque_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="torque_forceTable"></div>
+    <div id="torque_forceDiff"></div>
+    <div id="torque_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,41 @@ function resetForm(){document.getElementById('r').value = '0.5';
       document.getElementById('th').value = '90';
       calcTool();}
 calcTool();
+
+function __torque_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __torque_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r'), F = num('F'), th = num('th') * Math.PI / 180;
+    if (!isFinite(__torque_forceNum('r')) || !isFinite(__torque_forceNum('F')) || !isFinite(__torque_forceNum('th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#torque_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['力矩 τ (N·m)', (r * F * Math.sin(th)).toFixed(2)],
+            ['有效力臂 (m)', (r*Math.sin(th)).toFixed(4)],
+            ['径向分量 (N)', (F*Math.cos(th)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({r:__torque_forceNum('r'), F:__torque_forceNum('F'), th:__torque_forceNum('th')});
+    TBKit.history.mount('#torque_forceHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.th!=null)document.getElementById('th').value=rec.th; calcTool(); });
+}
+function __torque_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#torque_forceTable','torque-force.csv'); } catch(e){}
+}
+function __torque_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#torque_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{r:'0.5', F:'100', th:'90'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'1', F:'200', th:'180'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'0.25', F:'50', th:'45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __torque_forceExtras(); }catch(e){} };
+function __torque_forceBoot(){ try{ __torque_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __torque_forceBoot();
+else document.addEventListener('DOMContentLoaded', __torque_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

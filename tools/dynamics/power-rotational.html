@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="power_rotationalPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__power_rotationalExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="power_rotationalTable"></div>
+    <div id="power_rotationalDiff"></div>
+    <div id="power_rotationalHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('tau').value = '10';
       document.getElementById('w').value = '5';
       calcTool();}
 calcTool();
+
+function __power_rotationalNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __power_rotationalExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var tau=num('tau'),w=num('w');
+    var P=tau*w;
+    if (!isFinite(__power_rotationalNum('tau')) || !isFinite(__power_rotationalNum('w'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#power_rotationalTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['旋转功率 P (W)', P.toFixed(2)],
+            ['旋转功率 (hp)', (P/745.7).toFixed(4)],
+            ['旋转功率 (kW)', (P/1000).toFixed(4)],
+            ['旋转功率 (PS)', (P/735.5).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({tau:__power_rotationalNum('tau'), w:__power_rotationalNum('w'), P:P});
+    TBKit.history.mount('#power_rotationalHist',function(rec){ if(rec.tau!=null)document.getElementById('tau').value=rec.tau; if(rec.w!=null)document.getElementById('w').value=rec.w; calcTool(); });
+    TBKit.util.diffBox('#power_rotationalDiff',['P']);
+}
+function __power_rotationalExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#power_rotationalTable','power-rotational.csv'); } catch(e){}
+}
+function __power_rotationalPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#power_rotationalPresets',[
+        {label:'默认',labelEn:'Default',values:{tau:'10', w:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{tau:'20', w:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{tau:'5', w:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __power_rotationalExtras(); }catch(e){} };
+function __power_rotationalBoot(){ try{ __power_rotationalPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __power_rotationalBoot();
+else document.addEventListener('DOMContentLoaded', __power_rotationalBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

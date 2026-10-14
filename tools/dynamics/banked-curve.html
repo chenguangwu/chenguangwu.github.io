@@ -139,12 +139,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="banked_curvePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__banked_curveExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="banked_curveTable"></div>
+    <div id="banked_curveDiff"></div>
+    <div id="banked_curveHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -271,6 +277,43 @@ function resetForm(){document.getElementById('r').value = '50';
       document.getElementById('g').value = '9.81';
       calcTool();}
 calcTool();
+
+function __banked_curveNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __banked_curveExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r=num('r'),th=num('th'),g=num('g');
+    var v=Math.sqrt(r*g*Math.tan(th*Math.PI/180));
+    if (!isFinite(__banked_curveNum('r')) || !isFinite(__banked_curveNum('th')) || !isFinite(__banked_curveNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#banked_curveTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['设计速度 v (m/s)', v.toFixed(2)],
+            ['设计速度 (km/h)', (v*3.6).toFixed(2)],
+            ['载荷系数 n = 1/cosθ', (1/Math.cos(th*Math.PI/180)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({r:__banked_curveNum('r'), th:__banked_curveNum('th'), g:__banked_curveNum('g'), v:v});
+    TBKit.history.mount('#banked_curveHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.th!=null)document.getElementById('th').value=rec.th; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#banked_curveDiff',['v']);
+}
+function __banked_curveExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#banked_curveTable','banked-curve.csv'); } catch(e){}
+}
+function __banked_curvePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#banked_curvePresets',[
+        {label:'默认',labelEn:'Default',values:{r:'50', th:'30', g:'9.81'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'100', th:'60', g:'19.62'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'25', th:'15', g:'4.905'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __banked_curveExtras(); }catch(e){} };
+function __banked_curveBoot(){ try{ __banked_curvePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __banked_curveBoot();
+else document.addEventListener('DOMContentLoaded', __banked_curveBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

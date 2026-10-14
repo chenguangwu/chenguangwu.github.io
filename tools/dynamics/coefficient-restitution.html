@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="coefficient_restitutionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__coefficient_restitutionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="coefficient_restitutionTable"></div>
+    <div id="coefficient_restitutionDiff"></div>
+    <div id="coefficient_restitutionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -275,6 +281,43 @@ function resetForm(){document.getElementById('v1').value = '5';
       document.getElementById('v2p').value = '3';
       calcTool();}
 calcTool();
+
+function __coefficient_restitutionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __coefficient_restitutionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v1=num('v1'),v2=num('v2'),v1p=num('v1p'),v2p=num('v2p');
+    var e=(v2p-v1p)/(v1-v2);
+    if (!isFinite(__coefficient_restitutionNum('v1')) || !isFinite(__coefficient_restitutionNum('v2')) || !isFinite(__coefficient_restitutionNum('v1p')) || !isFinite(__coefficient_restitutionNum('v2p'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#coefficient_restitutionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['恢复系数 e', e.toFixed(3)],
+            ['碰前相对速度 (m/s)', (v1-v2).toFixed(3)],
+            ['碰后相对速度 (m/s)', (v2p-v1p).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v1:__coefficient_restitutionNum('v1'), v2:__coefficient_restitutionNum('v2'), v1p:__coefficient_restitutionNum('v1p'), v2p:__coefficient_restitutionNum('v2p'), e:e});
+    TBKit.history.mount('#coefficient_restitutionHist',function(rec){ if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; if(rec.v1p!=null)document.getElementById('v1p').value=rec.v1p; if(rec.v2p!=null)document.getElementById('v2p').value=rec.v2p; calcTool(); });
+    TBKit.util.diffBox('#coefficient_restitutionDiff',['e']);
+}
+function __coefficient_restitutionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#coefficient_restitutionTable','coefficient-restitution.csv'); } catch(e){}
+}
+function __coefficient_restitutionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#coefficient_restitutionPresets',[
+        {label:'默认',labelEn:'Default',values:{v1:'5', v2:'0', v1p:'2', v2p:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v1:'10', v2:'0', v1p:'4', v2p:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v1:'2.5', v2:'0', v1p:'1', v2p:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __coefficient_restitutionExtras(); }catch(e){} };
+function __coefficient_restitutionBoot(){ try{ __coefficient_restitutionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __coefficient_restitutionBoot();
+else document.addEventListener('DOMContentLoaded', __coefficient_restitutionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

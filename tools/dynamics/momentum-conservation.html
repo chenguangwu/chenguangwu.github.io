@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="momentum_conservationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__momentum_conservationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="momentum_conservationTable"></div>
+    <div id="momentum_conservationDiff"></div>
+    <div id="momentum_conservationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -260,6 +266,41 @@ function resetForm(){document.getElementById('m1').value = '1000';
       document.getElementById('v2').value = '0';
       calcTool();}
 calcTool();
+
+function __momentum_conservationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __momentum_conservationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m1 = num('m1'), v1 = num('v1'), m2 = num('m2'), v2 = num('v2');
+    var vp = (m1 * v1 + m2 * v2) / (m1 + m2);
+    if (!isFinite(__momentum_conservationNum('m1')) || !isFinite(__momentum_conservationNum('v1')) || !isFinite(__momentum_conservationNum('m2')) || !isFinite(__momentum_conservationNum('v2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#momentum_conservationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末速度 v′ (m/s)', vp.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m1:__momentum_conservationNum('m1'), v1:__momentum_conservationNum('v1'), m2:__momentum_conservationNum('m2'), v2:__momentum_conservationNum('v2'), vp:vp});
+    TBKit.history.mount('#momentum_conservationHist',function(rec){ if(rec.m1!=null)document.getElementById('m1').value=rec.m1; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.m2!=null)document.getElementById('m2').value=rec.m2; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; calcTool(); });
+    TBKit.util.diffBox('#momentum_conservationDiff',['vp']);
+}
+function __momentum_conservationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#momentum_conservationTable','momentum-conservation.csv'); } catch(e){}
+}
+function __momentum_conservationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#momentum_conservationPresets',[
+        {label:'默认',labelEn:'Default',values:{m1:'1000', v1:'20', m2:'1500', v2:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m1:'2000', v1:'40', m2:'3000', v2:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m1:'500', v1:'10', m2:'750', v2:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __momentum_conservationExtras(); }catch(e){} };
+function __momentum_conservationBoot(){ try{ __momentum_conservationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __momentum_conservationBoot();
+else document.addEventListener('DOMContentLoaded', __momentum_conservationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

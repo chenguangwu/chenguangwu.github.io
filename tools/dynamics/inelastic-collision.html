@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="inelastic_collisionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__inelastic_collisionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="inelastic_collisionTable"></div>
+    <div id="inelastic_collisionDiff"></div>
+    <div id="inelastic_collisionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,43 @@ function resetForm(){document.getElementById('m1').value = '2';
       document.getElementById('v2').value = '0';
       calcTool();}
 calcTool();
+
+function __inelastic_collisionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __inelastic_collisionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m1=num('m1'),m2=num('m2'),v1=num('v1'),v2=num('v2');
+    var v=(m1*v1+m2*v2)/(m1+m2);
+    if (!isFinite(__inelastic_collisionNum('m1')) || !isFinite(__inelastic_collisionNum('m2')) || !isFinite(__inelastic_collisionNum('v1')) || !isFinite(__inelastic_collisionNum('v2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#inelastic_collisionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['共同速度 v (m/s)', v.toFixed(3)],
+            ['碰撞前动能 (J)', (0.5*m1*v1*v1+0.5*m2*v2*v2).toFixed(3)],
+            ['碰撞后动能 (J)', (0.5*(m1+m2)*v*v).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m1:__inelastic_collisionNum('m1'), m2:__inelastic_collisionNum('m2'), v1:__inelastic_collisionNum('v1'), v2:__inelastic_collisionNum('v2'), v:v});
+    TBKit.history.mount('#inelastic_collisionHist',function(rec){ if(rec.m1!=null)document.getElementById('m1').value=rec.m1; if(rec.m2!=null)document.getElementById('m2').value=rec.m2; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; calcTool(); });
+    TBKit.util.diffBox('#inelastic_collisionDiff',['v']);
+}
+function __inelastic_collisionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#inelastic_collisionTable','inelastic-collision.csv'); } catch(e){}
+}
+function __inelastic_collisionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#inelastic_collisionPresets',[
+        {label:'默认',labelEn:'Default',values:{m1:'2', m2:'1', v1:'4', v2:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m1:'4', m2:'2', v1:'8', v2:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m1:'1', m2:'0.5', v1:'2', v2:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __inelastic_collisionExtras(); }catch(e){} };
+function __inelastic_collisionBoot(){ try{ __inelastic_collisionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __inelastic_collisionBoot();
+else document.addEventListener('DOMContentLoaded', __inelastic_collisionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="kinetic_frictionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__kinetic_frictionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="kinetic_frictionTable"></div>
+    <div id="kinetic_frictionDiff"></div>
+    <div id="kinetic_frictionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,42 @@ function resetForm(){document.getElementById('mu').value = '0.3';
       document.getElementById('N').value = '100';
       calcTool();}
 calcTool();
+
+function __kinetic_frictionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __kinetic_frictionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var mu = num('mu'), N = num('N');
+    if (!isFinite(__kinetic_frictionNum('mu')) || !isFinite(__kinetic_frictionNum('N'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#kinetic_frictionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['动摩擦力 F_k (N)', (mu * N).toFixed(2)],
+            ['正压力与摩擦系数之比', (N/Math.max(mu,1e-9)).toFixed(4)],
+            ['摩擦力 (kgf 千克力)', (mu*N/9.80665).toFixed(4)],
+            ['摩擦系数平方', (mu*mu).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({mu:__kinetic_frictionNum('mu'), N:__kinetic_frictionNum('N')});
+    TBKit.history.mount('#kinetic_frictionHist',function(rec){ if(rec.mu!=null)document.getElementById('mu').value=rec.mu; if(rec.N!=null)document.getElementById('N').value=rec.N; calcTool(); });
+}
+function __kinetic_frictionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#kinetic_frictionTable','kinetic-friction.csv'); } catch(e){}
+}
+function __kinetic_frictionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#kinetic_frictionPresets',[
+        {label:'默认',labelEn:'Default',values:{mu:'0.3', N:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{mu:'0.6', N:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mu:'0.15', N:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __kinetic_frictionExtras(); }catch(e){} };
+function __kinetic_frictionBoot(){ try{ __kinetic_frictionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __kinetic_frictionBoot();
+else document.addEventListener('DOMContentLoaded', __kinetic_frictionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

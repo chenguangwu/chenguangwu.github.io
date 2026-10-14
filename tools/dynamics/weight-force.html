@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="weight_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__weight_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="weight_forceTable"></div>
+    <div id="weight_forceDiff"></div>
+    <div id="weight_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,43 @@ function resetForm(){document.getElementById('m').value = '70';
       document.getElementById('g').value = '9.8';
       calcTool();}
 calcTool();
+
+function __weight_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __weight_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m = num('m'), g = num('g');
+    if (!isFinite(__weight_forceNum('m')) || !isFinite(__weight_forceNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#weight_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['重力 W (N)', (m * g).toFixed(2)],
+            ['W (kgf)', (m * g / 9.81).toFixed(2)],
+            ['月球表面重力 (N)', (m*1.62).toFixed(2)],
+            ['火星表面重力 (N)', (m*3.71).toFixed(2)],
+            ['重力 W (kgf 标准重力)', (m*g/9.80665).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m:__weight_forceNum('m'), g:__weight_forceNum('g')});
+    TBKit.history.mount('#weight_forceHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+}
+function __weight_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#weight_forceTable','weight-force.csv'); } catch(e){}
+}
+function __weight_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#weight_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{m:'70', g:'9.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'140', g:'19.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'35', g:'4.9'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __weight_forceExtras(); }catch(e){} };
+function __weight_forceBoot(){ try{ __weight_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __weight_forceBoot();
+else document.addEventListener('DOMContentLoaded', __weight_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

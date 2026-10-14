@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="terminal_velocityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__terminal_velocityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="terminal_velocityTable"></div>
+    <div id="terminal_velocityDiff"></div>
+    <div id="terminal_velocityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -278,6 +284,41 @@ function resetForm(){document.getElementById('m').value = '80';
       document.getElementById('A').value = '0.7';
       calcTool();}
 calcTool();
+
+function __terminal_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __terminal_velocityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'),g=num('g'),rho=num('rho'),cd=num('cd'),A=num('A');
+    var vt=Math.sqrt(2*m*g/(rho*cd*A));
+    if (!isFinite(__terminal_velocityNum('m')) || !isFinite(__terminal_velocityNum('g')) || !isFinite(__terminal_velocityNum('rho')) || !isFinite(__terminal_velocityNum('cd')) || !isFinite(__terminal_velocityNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#terminal_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['终端速度 v_t (m/s)', vt.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({m:__terminal_velocityNum('m'), g:__terminal_velocityNum('g'), rho:__terminal_velocityNum('rho'), cd:__terminal_velocityNum('cd'), A:__terminal_velocityNum('A'), vt:vt});
+    TBKit.history.mount('#terminal_velocityHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.g!=null)document.getElementById('g').value=rec.g; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.cd!=null)document.getElementById('cd').value=rec.cd; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#terminal_velocityDiff',['vt']);
+}
+function __terminal_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#terminal_velocityTable','terminal-velocity.csv'); } catch(e){}
+}
+function __terminal_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#terminal_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'80', g:'9.81', rho:'1.2', cd:'1.0', A:'0.7'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'160', g:'19.62', rho:'2.4', cd:'2', A:'1.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'40', g:'4.905', rho:'0.6', cd:'0.5', A:'0.35'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __terminal_velocityExtras(); }catch(e){} };
+function __terminal_velocityBoot(){ try{ __terminal_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __terminal_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __terminal_velocityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

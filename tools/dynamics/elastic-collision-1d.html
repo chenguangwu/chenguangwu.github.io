@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="elastic_collision_1dPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__elastic_collision_1dExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="elastic_collision_1dTable"></div>
+    <div id="elastic_collision_1dDiff"></div>
+    <div id="elastic_collision_1dHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -258,6 +264,44 @@ function resetForm(){document.getElementById('m1').value = '2';
       document.getElementById('v2').value = '0';
       calcTool();}
 calcTool();
+
+function __elastic_collision_1dNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __elastic_collision_1dExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m1=num('m1'),m2=num('m2'),v1=num('v1'),v2=num('v2');
+    var s=m1+m2;
+    var v1p=(m1-m2)*v1/s+2*m2*v2/s;
+    var v2p=2*m1*v1/s-(m1-m2)*v2/s;
+    if (!isFinite(__elastic_collision_1dNum('m1')) || !isFinite(__elastic_collision_1dNum('m2')) || !isFinite(__elastic_collision_1dNum('v1')) || !isFinite(__elastic_collision_1dNum('v2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#elastic_collision_1dTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['碰后速度 v₁′ (m/s)', v1p.toFixed(3)],
+            ['碰后速度 v₂′ (m/s)', v2p.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m1:__elastic_collision_1dNum('m1'), m2:__elastic_collision_1dNum('m2'), v1:__elastic_collision_1dNum('v1'), v2:__elastic_collision_1dNum('v2'), s:s});
+    TBKit.history.mount('#elastic_collision_1dHist',function(rec){ if(rec.m1!=null)document.getElementById('m1').value=rec.m1; if(rec.m2!=null)document.getElementById('m2').value=rec.m2; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; calcTool(); });
+    TBKit.util.diffBox('#elastic_collision_1dDiff',['s']);
+}
+function __elastic_collision_1dExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#elastic_collision_1dTable','elastic-collision-1d.csv'); } catch(e){}
+}
+function __elastic_collision_1dPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#elastic_collision_1dPresets',[
+        {label:'默认',labelEn:'Default',values:{m1:'2', m2:'1', v1:'4', v2:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m1:'4', m2:'2', v1:'8', v2:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m1:'1', m2:'0.5', v1:'2', v2:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __elastic_collision_1dExtras(); }catch(e){} };
+function __elastic_collision_1dBoot(){ try{ __elastic_collision_1dPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __elastic_collision_1dBoot();
+else document.addEventListener('DOMContentLoaded', __elastic_collision_1dBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

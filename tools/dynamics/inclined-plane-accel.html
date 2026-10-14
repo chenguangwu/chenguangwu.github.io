@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="inclined_plane_accelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__inclined_plane_accelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="inclined_plane_accelTable"></div>
+    <div id="inclined_plane_accelDiff"></div>
+    <div id="inclined_plane_accelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,42 @@ function resetForm(){document.getElementById('th').value = '30';
       document.getElementById('g').value = '9.8';
       calcTool();}
 calcTool();
+
+function __inclined_plane_accelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __inclined_plane_accelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var th = num('th') * Math.PI / 180, mu = num('mu'), g = num('g');
+    var a = g * (Math.sin(th) - mu * Math.cos(th));
+    if (!isFinite(__inclined_plane_accelNum('th')) || !isFinite(__inclined_plane_accelNum('mu')) || !isFinite(__inclined_plane_accelNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#inclined_plane_accelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['加速度 a (m/s²)', a.toFixed(3)],
+            ['状态', (a > 0 ? '向下滑' : '静止/需外力')],
+        ]
+    });
+    TBKit.history.record({th:__inclined_plane_accelNum('th'), mu:__inclined_plane_accelNum('mu'), g:__inclined_plane_accelNum('g'), a:a});
+    TBKit.history.mount('#inclined_plane_accelHist',function(rec){ if(rec.th!=null)document.getElementById('th').value=rec.th; if(rec.mu!=null)document.getElementById('mu').value=rec.mu; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#inclined_plane_accelDiff',['a']);
+}
+function __inclined_plane_accelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#inclined_plane_accelTable','inclined-plane-accel.csv'); } catch(e){}
+}
+function __inclined_plane_accelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#inclined_plane_accelPresets',[
+        {label:'默认',labelEn:'Default',values:{th:'30', mu:'0.1', g:'9.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{th:'60', mu:'0.2', g:'19.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{th:'15', mu:'0.05', g:'4.9'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __inclined_plane_accelExtras(); }catch(e){} };
+function __inclined_plane_accelBoot(){ try{ __inclined_plane_accelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __inclined_plane_accelBoot();
+else document.addEventListener('DOMContentLoaded', __inclined_plane_accelBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

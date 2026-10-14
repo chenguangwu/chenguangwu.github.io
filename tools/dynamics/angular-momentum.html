@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="angular_momentumPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__angular_momentumExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="angular_momentumTable"></div>
+    <div id="angular_momentumDiff"></div>
+    <div id="angular_momentumHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('I').value = '0.5';
       document.getElementById('w').value = '10';
       calcTool();}
 calcTool();
+
+function __angular_momentumNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __angular_momentumExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I=num('I'),w=num('w');
+    var L=I*w;
+    if (!isFinite(__angular_momentumNum('I')) || !isFinite(__angular_momentumNum('w'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#angular_momentumTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角动量 L (kg·m²/s)', L.toFixed(3)],
+            ['两倍角动量', (L*2).toFixed(3)],
+            ['由 L 反推角速度', (L/Math.max(I,1e-9)).toFixed(4)],
+            ['转动动能 (J)', (0.5*I*w*w).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({I:__angular_momentumNum('I'), w:__angular_momentumNum('w'), L:L});
+    TBKit.history.mount('#angular_momentumHist',function(rec){ if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.w!=null)document.getElementById('w').value=rec.w; calcTool(); });
+    TBKit.util.diffBox('#angular_momentumDiff',['L']);
+}
+function __angular_momentumExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#angular_momentumTable','angular-momentum.csv'); } catch(e){}
+}
+function __angular_momentumPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#angular_momentumPresets',[
+        {label:'默认',labelEn:'Default',values:{I:'0.5', w:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I:'1', w:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'0.25', w:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __angular_momentumExtras(); }catch(e){} };
+function __angular_momentumBoot(){ try{ __angular_momentumPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __angular_momentumBoot();
+else document.addEventListener('DOMContentLoaded', __angular_momentumBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="work_energy_theoremPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__work_energy_theoremExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="work_energy_theoremTable"></div>
+    <div id="work_energy_theoremDiff"></div>
+    <div id="work_energy_theoremHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('m').value = '2';
       document.getElementById('v2').value = '10';
       calcTool();}
 calcTool();
+
+function __work_energy_theoremNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __work_energy_theoremExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'),v1=num('v1'),v2=num('v2');
+    var W=0.5*m*(v2*v2-v1*v1);
+    if (!isFinite(__work_energy_theoremNum('m')) || !isFinite(__work_energy_theoremNum('v1')) || !isFinite(__work_energy_theoremNum('v2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#work_energy_theoremTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['合外力功 W (J)', W.toFixed(2)],
+            ['末动能 (J)', (0.5*m*v2*v2).toFixed(2)],
+            ['初动能 (J)', (0.5*m*v1*v1).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({m:__work_energy_theoremNum('m'), v1:__work_energy_theoremNum('v1'), v2:__work_energy_theoremNum('v2'), W:W});
+    TBKit.history.mount('#work_energy_theoremHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; calcTool(); });
+    TBKit.util.diffBox('#work_energy_theoremDiff',['W']);
+}
+function __work_energy_theoremExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#work_energy_theoremTable','work-energy-theorem.csv'); } catch(e){}
+}
+function __work_energy_theoremPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#work_energy_theoremPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'2', v1:'0', v2:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'4', v1:'0', v2:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'1', v1:'0', v2:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __work_energy_theoremExtras(); }catch(e){} };
+function __work_energy_theoremBoot(){ try{ __work_energy_theoremPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __work_energy_theoremBoot();
+else document.addEventListener('DOMContentLoaded', __work_energy_theoremBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="angular_momentum_conservationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__angular_momentum_conservationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="angular_momentum_conservationTable"></div>
+    <div id="angular_momentum_conservationDiff"></div>
+    <div id="angular_momentum_conservationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,43 @@ function resetForm(){document.getElementById('I1').value = '2';
       document.getElementById('I2').value = '1';
       calcTool();}
 calcTool();
+
+function __angular_momentum_conservationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __angular_momentum_conservationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I1=num('I1'),w1=num('w1'),I2=num('I2');
+    var w2=I1*w1/I2;
+    if (!isFinite(__angular_momentum_conservationNum('I1')) || !isFinite(__angular_momentum_conservationNum('w1')) || !isFinite(__angular_momentum_conservationNum('I2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#angular_momentum_conservationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末角速度 ω₂ (rad/s)', w2.toFixed(3)],
+            ['角动量 L (kg*m2/s)', (I1*w1).toFixed(4)],
+            ['末转动动能 (J)', (0.5*I2*w2*w2).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({I1:__angular_momentum_conservationNum('I1'), w1:__angular_momentum_conservationNum('w1'), I2:__angular_momentum_conservationNum('I2'), w2:w2});
+    TBKit.history.mount('#angular_momentum_conservationHist',function(rec){ if(rec.I1!=null)document.getElementById('I1').value=rec.I1; if(rec.w1!=null)document.getElementById('w1').value=rec.w1; if(rec.I2!=null)document.getElementById('I2').value=rec.I2; calcTool(); });
+    TBKit.util.diffBox('#angular_momentum_conservationDiff',['w2']);
+}
+function __angular_momentum_conservationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#angular_momentum_conservationTable','angular-momentum-conservation.csv'); } catch(e){}
+}
+function __angular_momentum_conservationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#angular_momentum_conservationPresets',[
+        {label:'默认',labelEn:'Default',values:{I1:'2', w1:'10', I2:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I1:'4', w1:'20', I2:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I1:'1', w1:'5', I2:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __angular_momentum_conservationExtras(); }catch(e){} };
+function __angular_momentum_conservationBoot(){ try{ __angular_momentum_conservationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __angular_momentum_conservationBoot();
+else document.addEventListener('DOMContentLoaded', __angular_momentum_conservationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
