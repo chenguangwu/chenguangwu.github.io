@@ -255,7 +255,7 @@ s.parentNode.insertBefore(el, s);
         <div id="batchRows"></div>
       </div>
 
-      <div class="result-box" id="batchResult" style="max-height:300px;overflow-y:auto;"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__utm_builderExport()">导出明细 CSV</button></div><div class="result-box" id="batchResult" style="max-height:300px;overflow-y:auto;"></div> <div id="utm_builderTable"></div> <div id="utm_builderDiff"></div> <div id="utm_builderChart"></div> <div id="utm_builderHist"></div>
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="copyBatchResult()">📋 复制全部</button>
         <button type="button" class="btn" onclick="exportBatch()">📥 导出CSV</button>
@@ -600,6 +600,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __utm_builder_last=0,__utm_builder_skip=false;
+function __utm_builderSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __utm_builderResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __utm_builderTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __utm_builderRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__utm_builderTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#utm_builderTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#utm_builderDiff');
+        TBKit.history.mount('#utm_builderHist',function(rec){
+            __utm_builder_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __utm_builder_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__utm_builderTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#utm_builderChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __utm_builderExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__utm_builder_skip) return;
+    var snap=__utm_builderSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__utm_builderResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__utm_builder_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __utm_builder_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __utm_builderRender(keys,rk,en);
+}
+function __utm_builderExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#utm_builderTable','utm-builder.csv'); } catch(e){}
+}
+function __utm_builderPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#utm_builderPresets',[{label:'默认参数',labelEn:'Default',values:{'url':'https://example.com/product', 'source':'baidu', 'medium':'cpc', 'campaign':'summer_sale_2024', 'batchBaseUrl':'https://example.com/landing'}}],function(){ switchTab(); });
+}
+var __utm_builder_f0=(typeof switchTab==='function')?switchTab:null;
+if(__utm_builder_f0){
+    switchTab=function(){ var __r=__utm_builder_f0.apply(null,arguments); try{ __utm_builderExtras(); }catch(e){} return __r; };
+}
+function __utm_builderBoot(){ try{ __utm_builderPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __utm_builderBoot();
+else document.addEventListener('DOMContentLoaded', __utm_builderBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

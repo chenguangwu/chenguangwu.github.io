@@ -120,8 +120,8 @@ s.parentNode.insertBefore(el, s);
 <div><label>代码类型</label><select id="lang" onchange="calc()"><option value="html">HTML</option><option value="xml">XML</option><option value="css">CSS</option></select></div>
 <div><label>缩进空格数</label><input type="number" id="indent" value="2" min="1" max="8" step="1" oninput="calc()"></div>
 </div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="xml_html_css_geshihua_yiyou_kebuchongPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__xml_html_css_geshihua_yiyou_kebuchongExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="result-box" id="res"></div> <div id="xml_html_css_geshihua_yiyou_kebuchongTable"></div> <div id="xml_html_css_geshihua_yiyou_kebuchongDiff"></div> <div id="xml_html_css_geshihua_yiyou_kebuchongChart"></div> <div id="xml_html_css_geshihua_yiyou_kebuchongHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -342,6 +342,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __xml_html_css_geshihua_yiyou_kebuchong_last=0,__xml_html_css_geshihua_yiyou_kebuchong_skip=false;
+function __xml_html_css_geshihua_yiyou_kebuchongSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __xml_html_css_geshihua_yiyou_kebuchongResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __xml_html_css_geshihua_yiyou_kebuchongTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __xml_html_css_geshihua_yiyou_kebuchongRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__xml_html_css_geshihua_yiyou_kebuchongTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#xml_html_css_geshihua_yiyou_kebuchongTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#xml_html_css_geshihua_yiyou_kebuchongDiff');
+        TBKit.history.mount('#xml_html_css_geshihua_yiyou_kebuchongHist',function(rec){
+            __xml_html_css_geshihua_yiyou_kebuchong_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __xml_html_css_geshihua_yiyou_kebuchong_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__xml_html_css_geshihua_yiyou_kebuchongTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#xml_html_css_geshihua_yiyou_kebuchongChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __xml_html_css_geshihua_yiyou_kebuchongExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__xml_html_css_geshihua_yiyou_kebuchong_skip) return;
+    var snap=__xml_html_css_geshihua_yiyou_kebuchongSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__xml_html_css_geshihua_yiyou_kebuchongResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__xml_html_css_geshihua_yiyou_kebuchong_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __xml_html_css_geshihua_yiyou_kebuchong_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __xml_html_css_geshihua_yiyou_kebuchongRender(keys,rk,en);
+}
+function __xml_html_css_geshihua_yiyou_kebuchongExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#xml_html_css_geshihua_yiyou_kebuchongTable','xml-html-css-geshihua-yiyou-kebuchong.csv'); } catch(e){}
+}
+function __xml_html_css_geshihua_yiyou_kebuchongPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#xml_html_css_geshihua_yiyou_kebuchongPresets',[{label:'默认参数',labelEn:'Default',values:{'lang':'html', 'indent':'2'}}],function(){ calc(); });
+}
+var __xml_html_css_geshihua_yiyou_kebuchong_f0=(typeof calc==='function')?calc:null;
+if(__xml_html_css_geshihua_yiyou_kebuchong_f0){
+    calc=function(){ var __r=__xml_html_css_geshihua_yiyou_kebuchong_f0.apply(null,arguments); try{ __xml_html_css_geshihua_yiyou_kebuchongExtras(); }catch(e){} return __r; };
+}
+function __xml_html_css_geshihua_yiyou_kebuchongBoot(){ try{ __xml_html_css_geshihua_yiyou_kebuchongPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __xml_html_css_geshihua_yiyou_kebuchongBoot();
+else document.addEventListener('DOMContentLoaded', __xml_html_css_geshihua_yiyou_kebuchongBoot);
 </script>
 
 </body>

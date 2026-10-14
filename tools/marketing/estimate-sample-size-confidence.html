@@ -136,12 +136,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="estimate_sample_size_confidencePresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__estimate_sample_size_confidenceExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="estimate_sample_size_confidenceTable"></div> <div id="estimate_sample_size_confidenceDiff"></div> <div id="estimate_sample_size_confidenceChart"></div> <div id="estimate_sample_size_confidenceHist"></div>
     <div class="info-box">💡 Cochran 公式：n₀ = Z²·p·(1−p) ÷ e²；有限总体修正 n = n₀ ÷（1 +（n₀−1）/N）。</div>
 
     <div class="tool-notes" style="--tool-accent:#1E88E5;">
@@ -218,6 +218,114 @@ function resetAll(){
 }
 function saveHistory(o){try{var l=JSON.parse(localStorage.getItem(HKEY)||'[]');l.unshift(Object.assign({time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})},o));if(l.length>6)l=l.slice(0,6);localStorage.setItem(HKEY,JSON.stringify(l));}catch(e){}}
 calc();
+
+var __estimate_sample_size_confidence_last=0,__estimate_sample_size_confidence_skip=false;
+function __estimate_sample_size_confidenceSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __estimate_sample_size_confidenceResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __estimate_sample_size_confidenceTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __estimate_sample_size_confidenceRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__estimate_sample_size_confidenceTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#estimate_sample_size_confidenceTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#estimate_sample_size_confidenceDiff');
+        TBKit.history.mount('#estimate_sample_size_confidenceHist',function(rec){
+            __estimate_sample_size_confidence_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __estimate_sample_size_confidence_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__estimate_sample_size_confidenceTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#estimate_sample_size_confidenceChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __estimate_sample_size_confidenceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__estimate_sample_size_confidence_skip) return;
+    var snap=__estimate_sample_size_confidenceSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__estimate_sample_size_confidenceResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__estimate_sample_size_confidence_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __estimate_sample_size_confidence_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __estimate_sample_size_confidenceRender(keys,rk,en);
+}
+function __estimate_sample_size_confidenceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#estimate_sample_size_confidenceTable','estimate-sample-size-confidence.csv'); } catch(e){}
+}
+function __estimate_sample_size_confidencePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#estimate_sample_size_confidencePresets',[{label:'默认参数',labelEn:'Default',values:{'conf':'1.645', 'e':'5', 'p':'50', 'N':'0'}}],function(){ calc(); });
+}
+var __estimate_sample_size_confidence_f0=(typeof calc==='function')?calc:null;
+if(__estimate_sample_size_confidence_f0){
+    calc=function(){ var __r=__estimate_sample_size_confidence_f0.apply(null,arguments); try{ __estimate_sample_size_confidenceExtras(); }catch(e){} return __r; };
+}
+function __estimate_sample_size_confidenceBoot(){ try{ __estimate_sample_size_confidencePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __estimate_sample_size_confidenceBoot();
+else document.addEventListener('DOMContentLoaded', __estimate_sample_size_confidenceBoot);
 </script>
 
 

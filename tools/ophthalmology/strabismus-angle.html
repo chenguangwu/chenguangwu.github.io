@@ -129,7 +129,7 @@ s.parentNode.insertBefore(el, s);
 <div class="formula-eq">斜视角度换算：1 棱镜度(PD) ≈ arctan(0.01) ≈ 0.573°（即 100cm 处偏移 1cm）；Hirschberg 法角膜光反射每偏离 1mm ≈ 15 PD（约 7.5°），斜视角 ≈ 偏离量 × 15 PD；Krimsky 法用三棱镜中和光反射，棱镜量即斜视量。</div></div>
 
     <div class="tabs">
-      <button class="active" onclick="switchTab('conv',this)">单位换算</button>
+      <div id="strabismus_anglePresets"></div><button class="active" onclick="switchTab('conv',this)">单位换算</button><button class="btn" type="button" onclick="__strabismus_angleExport()">导出明细 CSV</button>
       <button onclick="switchTab('hirschberg',this)">Hirschberg/Krimsky</button>
       <button onclick="switchTab('combine',this)">棱镜叠加</button>
     </div>
@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
         <div><label>角膜反光点偏移 (mm)</label><input type="number" id="mm" value="2" step="0.5" oninput="hirsch()"></div>
         <div><label>瞳孔直径 (mm，选填)</label><input type="number" id="pd2" value="4" step="0.5" oninput="hirsch()"></div>
       </div>
-      <div class="result-box" id="hirschResult"></div>
+      <div class="result-box" id="hirschResult"></div> <div id="strabismus_angleTable"></div> <div id="strabismus_angleDiff"></div> <div id="strabismus_angleChart"></div> <div id="strabismus_angleHist"></div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Hirschberg 经验：反光点位于瞳孔缘≈15°(30Δ)，虹膜中段≈30°(60Δ)，角膜缘≈45°(100Δ)。约 1mm ≈ 7° ≈ 12Δ。</p>
     </div>
 
@@ -355,6 +355,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __strabismus_angle_last=0,__strabismus_angle_skip=false;
+function __strabismus_angleSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __strabismus_angleResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __strabismus_angleTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __strabismus_angleRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__strabismus_angleTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#strabismus_angleTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#strabismus_angleDiff');
+        TBKit.history.mount('#strabismus_angleHist',function(rec){
+            __strabismus_angle_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __strabismus_angle_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__strabismus_angleTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#strabismus_angleChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __strabismus_angleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__strabismus_angle_skip) return;
+    var snap=__strabismus_angleSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__strabismus_angleResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__strabismus_angle_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __strabismus_angle_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __strabismus_angleRender(keys,rk,en);
+}
+function __strabismus_angleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#strabismus_angleTable','strabismus-angle.csv'); } catch(e){}
+}
+function __strabismus_anglePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#strabismus_anglePresets',[{label:'默认参数',labelEn:'Default',values:{'inVal':'20', 'inUnit':'pd', 'mm':'2', 'pd2':'4', 'pr1':'10', 'pr2':'15', 'pr3':'0'}}],function(){ switchTab(); });
+}
+var __strabismus_angle_f0=(typeof switchTab==='function')?switchTab:null;
+if(__strabismus_angle_f0){
+    switchTab=function(){ var __r=__strabismus_angle_f0.apply(null,arguments); try{ __strabismus_angleExtras(); }catch(e){} return __r; };
+}
+function __strabismus_angleBoot(){ try{ __strabismus_anglePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __strabismus_angleBoot();
+else document.addEventListener('DOMContentLoaded', __strabismus_angleBoot);
 </script>
 
 </body>

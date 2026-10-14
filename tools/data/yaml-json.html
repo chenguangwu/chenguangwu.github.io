@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 
     <div class="dir-tabs">
-      <button class="active" onclick="setDir('j2y')">JSON → YAML</button>
+      <div id="yaml_jsonPresets"></div><button class="active" onclick="setDir('j2y')">JSON → YAML</button><button class="btn" type="button" onclick="__yaml_jsonExport()">导出明细 CSV</button>
       <button onclick="setDir('y2j')">YAML → JSON</button>
     </div>
     <label id="inLabel">JSON 输入</label>
@@ -177,7 +177,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="swap()">⇅ 交换</button>
     </div>
     <label id="outLabel">YAML 输出</label>
-    <textarea id="output" readonly style="min-height:200px;font-family:monospace;font-size:13px;background:#f8f9ff;"></textarea>
+    <textarea id="output" readonly style="min-height:200px;font-family:monospace;font-size:13px;background:#f8f9ff;"></textarea> <div id="yaml_jsonTable"></div> <div id="yaml_jsonDiff"></div> <div id="yaml_jsonChart"></div> <div id="yaml_jsonHist"></div>
   </div>
   <div class="card">
     <h2>📖 YAML 语法说明</h2>
@@ -403,6 +403,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __yaml_json_last=0,__yaml_json_skip=false;
+function __yaml_jsonSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __yaml_jsonResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __yaml_jsonTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __yaml_jsonRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__yaml_jsonTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#yaml_jsonTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#yaml_jsonDiff');
+        TBKit.history.mount('#yaml_jsonHist',function(rec){
+            __yaml_json_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                setDir();
+            }catch(e2){}
+            __yaml_json_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__yaml_jsonTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#yaml_jsonChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __yaml_jsonExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__yaml_json_skip) return;
+    var snap=__yaml_jsonSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__yaml_jsonResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__yaml_json_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __yaml_json_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __yaml_jsonRender(keys,rk,en);
+}
+function __yaml_jsonExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#yaml_jsonTable','yaml-json.csv'); } catch(e){}
+}
+function __yaml_jsonPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __yaml_json_f0=(typeof setDir==='function')?setDir:null;
+if(__yaml_json_f0){
+    setDir=function(){ var __r=__yaml_json_f0.apply(null,arguments); try{ __yaml_jsonExtras(); }catch(e){} return __r; };
+}
+function __yaml_jsonBoot(){ try{ __yaml_jsonPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __yaml_jsonBoot();
+else document.addEventListener('DOMContentLoaded', __yaml_jsonBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

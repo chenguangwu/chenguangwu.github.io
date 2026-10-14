@@ -163,7 +163,7 @@ s.parentNode.insertBefore(el, s);
 <div><label>坡向</label><select id="aspect" onchange="calc()"><option value="flat">平地</option><option value="sunny">阳坡</option><option value="shady">阴坡</option><option value="semi">半阳/半阴</option></select></div>
 </div>
 <div class="toolbar"><button type="button" class="btn primary" onclick="calc();saveHistory()">📐 计算面积</button><button type="button" class="btn" onclick="resetForm()">🔄 重置</button></div>
-<div class="result-box" id="result"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__forest_areaExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="forest_areaTable"></div> <div id="forest_areaDiff"></div> <div id="forest_areaChart"></div> <div id="forest_areaHist"></div>
 </div>
 <div id="tab-guide" class="tab-content">
 <div class="ref-card"><h4>📐 面积公式</h4>
@@ -310,6 +310,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __forest_area_last=0,__forest_area_skip=false;
+function __forest_areaSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __forest_areaResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __forest_areaTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __forest_areaRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__forest_areaTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#forest_areaTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#forest_areaDiff');
+        TBKit.history.mount('#forest_areaHist',function(rec){
+            __forest_area_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __forest_area_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__forest_areaTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#forest_areaChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __forest_areaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__forest_area_skip) return;
+    var snap=__forest_areaSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__forest_areaResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__forest_area_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __forest_area_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __forest_areaRender(keys,rk,en);
+}
+function __forest_areaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#forest_areaTable','forest-area.csv'); } catch(e){}
+}
+function __forest_areaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#forest_areaPresets',[{label:'默认参数',labelEn:'Default',values:{'slope':'0', 'aspect':'flat', 'len1':'100', 'len2':'50', 'len3':'50', 'pointCount':'4'}}],function(){ calc(); });
+}
+var __forest_area_f0=(typeof calc==='function')?calc:null;
+if(__forest_area_f0){
+    calc=function(){ var __r=__forest_area_f0.apply(null,arguments); try{ __forest_areaExtras(); }catch(e){} return __r; };
+}
+function __forest_areaBoot(){ try{ __forest_areaPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __forest_areaBoot();
+else document.addEventListener('DOMContentLoaded', __forest_areaBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

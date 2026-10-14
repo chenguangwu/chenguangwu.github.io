@@ -155,7 +155,7 @@ s.parentNode.insertBefore(el, s);
       <div class="checkbox-row">
         <label><input type="checkbox" id="contact" onchange="calcCorr()"> 接触法(压平角膜约0.15mm)</label>
       </div>
-      <div class="result-box" id="corrResult"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__axial_lengthExport()">导出明细 CSV</button></div><div class="result-box" id="corrResult"></div> <div id="axial_lengthTable"></div> <div id="axial_lengthDiff"></div> <div id="axial_lengthChart"></div> <div id="axial_lengthHist"></div>
     </div>
 
     <div class="tab-content" id="tab-seg">
@@ -371,6 +371,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __axial_length_last=0,__axial_length_skip=false;
+function __axial_lengthSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __axial_lengthResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __axial_lengthTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __axial_lengthRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__axial_lengthTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#axial_lengthTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#axial_lengthDiff');
+        TBKit.history.mount('#axial_lengthHist',function(rec){
+            __axial_length_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcCorr();
+            }catch(e2){}
+            __axial_length_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__axial_lengthTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#axial_lengthChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __axial_lengthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__axial_length_skip) return;
+    var snap=__axial_lengthSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__axial_lengthResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__axial_length_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __axial_length_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __axial_lengthRender(keys,rk,en);
+}
+function __axial_lengthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#axial_lengthTable','axial-length.csv'); } catch(e){}
+}
+function __axial_lengthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#axial_lengthPresets',[{label:'默认参数',labelEn:'Default',values:{'al':'23.50', 'vMeas':'1532', 'eyeType':'1555', 'sAcd':'3.5', 'vAcd':'1532', 'sLt':'4.5', 'vLt':'1641', 'sVl':'15.5', 'vVl':'1532'}}],function(){ calcCorr(); });
+}
+var __axial_length_f0=(typeof calcCorr==='function')?calcCorr:null;
+if(__axial_length_f0){
+    calcCorr=function(){ var __r=__axial_length_f0.apply(null,arguments); try{ __axial_lengthExtras(); }catch(e){} return __r; };
+}
+function __axial_lengthBoot(){ try{ __axial_lengthPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __axial_lengthBoot();
+else document.addEventListener('DOMContentLoaded', __axial_lengthBoot);
 </script>
 
 </body>

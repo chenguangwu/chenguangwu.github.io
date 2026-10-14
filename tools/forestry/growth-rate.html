@@ -161,7 +161,7 @@ s.parentNode.insertBefore(el, s);
 <div><label>计算指标</label><select id="metric" onchange="calc()"><option value="volume">材积</option><option value="dbh">胸径</option><option value="height">树高</option></select></div>
 </div>
 <div class="toolbar"><button type="button" class="btn primary" onclick="calc();saveHistory()">🧮 计算生长率</button><button type="button" class="btn" onclick="resetForm()">🔄 重置</button></div>
-<div class="result-box" id="result"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__growth_rateExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="growth_rateTable"></div> <div id="growth_rateDiff"></div> <div id="growth_rateChart"></div> <div id="growth_rateHist"></div>
 <div id="chartWrap" style="display:none;"><div class="chart-container"><canvas id="chart"></canvas></div></div>
 </div>
 <div id="tab-guide" class="tab-content">
@@ -295,6 +295,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __growth_rate_last=0,__growth_rate_skip=false;
+function __growth_rateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __growth_rateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __growth_rateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __growth_rateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__growth_rateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#growth_rateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#growth_rateDiff');
+        TBKit.history.mount('#growth_rateHist',function(rec){
+            __growth_rate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __growth_rate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__growth_rateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#growth_rateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __growth_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__growth_rate_skip) return;
+    var snap=__growth_rateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__growth_rateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__growth_rate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __growth_rate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __growth_rateRender(keys,rk,en);
+}
+function __growth_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#growth_rateTable','growth-rate.csv'); } catch(e){}
+}
+function __growth_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#growth_ratePresets',[{label:'默认参数',labelEn:'Default',values:{'v1':'0.1', 'v2':'0.15', 'years':'5', 'metric':'volume'}}],function(){ calc(); });
+}
+var __growth_rate_f0=(typeof calc==='function')?calc:null;
+if(__growth_rate_f0){
+    calc=function(){ var __r=__growth_rate_f0.apply(null,arguments); try{ __growth_rateExtras(); }catch(e){} return __r; };
+}
+function __growth_rateBoot(){ try{ __growth_ratePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __growth_rateBoot();
+else document.addEventListener('DOMContentLoaded', __growth_rateBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

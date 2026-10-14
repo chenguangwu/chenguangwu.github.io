@@ -145,7 +145,7 @@ s.parentNode.insertBefore(el, s);
         <div><label>柱镜 C (D)</label><input type="number" id="c" value="-1.00" step="0.25" oninput="calcSingle()"></div>
         <div><label>轴位 Axis (°)</label><input type="number" id="ax" value="180" min="1" max="180" oninput="calcSingle()"></div>
       </div>
-      <div class="result-box" id="singleResult"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__refraction_errorExport()">导出明细 CSV</button></div><div class="result-box" id="singleResult"></div> <div id="refraction_errorTable"></div> <div id="refraction_errorDiff"></div> <div id="refraction_errorChart"></div> <div id="refraction_errorHist"></div>
     </div>
 
     <div class="tab-content" id="tab-combine">
@@ -409,6 +409,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __refraction_error_last=0,__refraction_error_skip=false;
+function __refraction_errorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __refraction_errorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __refraction_errorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __refraction_errorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__refraction_errorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#refraction_errorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#refraction_errorDiff');
+        TBKit.history.mount('#refraction_errorHist',function(rec){
+            __refraction_error_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcSingle();
+            }catch(e2){}
+            __refraction_error_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__refraction_errorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#refraction_errorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __refraction_errorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__refraction_error_skip) return;
+    var snap=__refraction_errorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__refraction_errorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__refraction_error_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __refraction_error_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __refraction_errorRender(keys,rk,en);
+}
+function __refraction_errorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#refraction_errorTable','refraction-error.csv'); } catch(e){}
+}
+function __refraction_errorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#refraction_errorPresets',[{label:'默认参数',labelEn:'Default',values:{'s':'-2.00', 'c':'-1.00', 'ax':'180', 's1':'-3.00', 'c1':'-0.75', 'ax1':'90', 's2':'-0.50', 'c2':'-0.50', 'ax2':'180'}}],function(){ calcSingle(); });
+}
+var __refraction_error_f0=(typeof calcSingle==='function')?calcSingle:null;
+if(__refraction_error_f0){
+    calcSingle=function(){ var __r=__refraction_error_f0.apply(null,arguments); try{ __refraction_errorExtras(); }catch(e){} return __r; };
+}
+function __refraction_errorBoot(){ try{ __refraction_errorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __refraction_errorBoot();
+else document.addEventListener('DOMContentLoaded', __refraction_errorBoot);
 </script>
 
 </body>

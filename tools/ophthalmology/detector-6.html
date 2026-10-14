@@ -115,8 +115,8 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>1. 儿童年龄</label><select id="age" onchange="calc()" style="font-size:16px;"><option value="3">3-4岁</option><option value="5">5-6岁</option><option value="7" selected>7岁及以上</option></select></div><div><label>2. 检查方法</label><select id="method" onchange="calc()" style="font-size:16px;"><option value="titmus" selected>Titmus立体图</option><option value="tno">TNO随机点立体图</option><option value="lang">Lang立体图</option><option value="yan">颜氏随机点立体图</option></select></div></div>
 <div class="input-row"><div><label>3. 测得立体视锐度</label><select id="sa" onchange="calc()" style="font-size:16px;"><option value="40">40角秒（正常高限）</option><option value="50">50角秒</option><option value="60" selected>60角秒（正常阈值）</option><option value="80">80角秒</option><option value="100">100角秒</option><option value="200">200角秒</option><option value="400">400角秒</option><option value="800">800角秒</option><option value="3000">3000角秒（仅粗略立体感）</option><option value="9999">无法识别</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估结果</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="detector_6Presets"></div><button type="button" class="btn primary" onclick="calc()">评估结果</button><button class="btn" type="button" onclick="__detector_6Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="detector_6Table"></div> <div id="detector_6Diff"></div> <div id="detector_6Chart"></div> <div id="detector_6Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -261,6 +261,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __detector_6_last=0,__detector_6_skip=false;
+function __detector_6Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __detector_6ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __detector_6Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __detector_6Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__detector_6Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#detector_6Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#detector_6Diff');
+        TBKit.history.mount('#detector_6Hist',function(rec){
+            __detector_6_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __detector_6_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__detector_6Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#detector_6Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __detector_6Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__detector_6_skip) return;
+    var snap=__detector_6Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__detector_6ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__detector_6_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __detector_6_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __detector_6Render(keys,rk,en);
+}
+function __detector_6Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#detector_6Table','detector-6.csv'); } catch(e){}
+}
+function __detector_6Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#detector_6Presets',[{label:'默认参数',labelEn:'Default',values:{'age':'3', 'method':'titmus', 'sa':'40'}}],function(){ calc(); });
+}
+var __detector_6_f0=(typeof calc==='function')?calc:null;
+if(__detector_6_f0){
+    calc=function(){ var __r=__detector_6_f0.apply(null,arguments); try{ __detector_6Extras(); }catch(e){} return __r; };
+}
+function __detector_6Boot(){ try{ __detector_6Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __detector_6Boot();
+else document.addEventListener('DOMContentLoaded', __detector_6Boot);
 </script>
 
 </body>

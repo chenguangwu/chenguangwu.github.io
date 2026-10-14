@@ -170,7 +170,7 @@ s.parentNode.insertBefore(el, s);
 <label><input type="checkbox" id="configRect" checked onchange="calc()"> 矩形配置</label>
 </div>
 <div class="toolbar"><button type="button" class="btn primary" onclick="calc();saveHistory()">🧮 计算</button><button type="button" class="btn" onclick="resetForm()">🔄 重置</button></div>
-<div class="result-box" id="result"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__planting_densityExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="planting_densityTable"></div> <div id="planting_densityDiff"></div> <div id="planting_densityChart"></div> <div id="planting_densityHist"></div>
 <div id="chartWrap" style="display:none;"><div class="chart-container"><canvas id="chart"></canvas></div></div>
 </div>
 <div id="tab-guide" class="tab-content">
@@ -289,6 +289,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __planting_density_last=0,__planting_density_skip=false;
+function __planting_densitySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __planting_densityResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __planting_densityTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __planting_densityRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__planting_densityTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#planting_densityTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#planting_densityDiff');
+        TBKit.history.mount('#planting_densityHist',function(rec){
+            __planting_density_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __planting_density_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__planting_densityTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#planting_densityChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __planting_densityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__planting_density_skip) return;
+    var snap=__planting_densitySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__planting_densityResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__planting_density_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __planting_density_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __planting_densityRender(keys,rk,en);
+}
+function __planting_densityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#planting_densityTable','planting-density.csv'); } catch(e){}
+}
+function __planting_densityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#planting_densityPresets',[{label:'默认参数',labelEn:'Default',values:{'spacing':'2', 'rowSpacing':'3', 'area':'100', 'site':'good'}}],function(){ calc(); });
+}
+var __planting_density_f0=(typeof calc==='function')?calc:null;
+if(__planting_density_f0){
+    calc=function(){ var __r=__planting_density_f0.apply(null,arguments); try{ __planting_densityExtras(); }catch(e){} return __r; };
+}
+function __planting_densityBoot(){ try{ __planting_densityPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __planting_densityBoot();
+else document.addEventListener('DOMContentLoaded', __planting_densityBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
