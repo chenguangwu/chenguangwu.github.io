@@ -132,6 +132,12 @@ def gen_script(name, info):
     return inputs, compute, matrix_rows, rec, restore, primary
 
 def apply_page(page, dry=False):
+    # 含嵌套函数定义（erf/invNorm 等）的页：提取会打碎函数体、把局部 const 展平到同一作用域，
+    # 导致「already been declared」或表格静默失效 → 跳过，留待手动 A 档精做（不破坏核心计算）。
+    s0 = open(page, encoding='utf-8').read()
+    m = re.search(r'function calcTool\(\)\s*\{(.*?)\n\s*\}', s0, re.S)
+    if m and re.search(r'function\s+\w+\s*\(', m.group(1)):
+        return "skip:complex-nested-functions"
     info = extract(page)
     if info is None:
         return "skip:no-calcTool/datagrid"
@@ -170,10 +176,11 @@ def apply_page(page, dry=False):
     js.append("function __%sNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}" % p)
     js.append("function __%sExtras(){" % p)
     js.append("    if (typeof TBKit === 'undefined') return;")
-    # 重跑计算（复用页面赋值段）
+    # 重跑计算（复用页面赋值段）；const/let 转 var 避免重复声明（如同名系数数组与输入）
     for line in compute.splitlines():
         line = line.strip()
         if line:
+            line = re.sub(r'^(const|let)\b', 'var', line)
             js.append("    " + line)
     # 守卫：任一输入 NaN 则返回（无输入页跳过守卫，避免 if () 语法错误）
     if inputs:

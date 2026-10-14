@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="xbar_control_limitsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__xbar_control_limitsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="xbar_control_limitsTable"></div>
+    <div id="xbar_control_limitsDiff"></div>
+    <div id="xbar_control_limitsHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -268,6 +274,43 @@ function resetForm(){document.getElementById('mean').value = '50';
       document.getElementById('n').value = '5';
       calcTool();}
 calcTool();
+
+function __xbar_control_limitsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __xbar_control_limitsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('mean'),s=num('sigma'),n=num('n');
+    var se=s/Math.sqrt(n);
+    if (!isFinite(__xbar_control_limitsNum('mean')) || !isFinite(__xbar_control_limitsNum('sigma')) || !isFinite(__xbar_control_limitsNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#xbar_control_limitsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['UCL', (m+3*se).toFixed(3)],
+            ['LCL', (m-3*se).toFixed(3)],
+            ['中心线 CL', m.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({mean:__xbar_control_limitsNum('mean'), sigma:__xbar_control_limitsNum('sigma'), n:__xbar_control_limitsNum('n'), m:m});
+    TBKit.history.mount('#xbar_control_limitsHist',function(rec){ if(rec.mean!=null)document.getElementById('mean').value=rec.mean; if(rec.sigma!=null)document.getElementById('sigma').value=rec.sigma; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#xbar_control_limitsDiff',['m']);
+}
+function __xbar_control_limitsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#xbar_control_limitsTable','xbar-control-limits.csv'); } catch(e){}
+}
+function __xbar_control_limitsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#xbar_control_limitsPresets',[
+        {label:'默认',labelEn:'Default',values:{mean:'50', sigma:'2', n:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{mean:'100', sigma:'4', n:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mean:'25', sigma:'1', n:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __xbar_control_limitsExtras(); }catch(e){} };
+function __xbar_control_limitsBoot(){ try{ __xbar_control_limitsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __xbar_control_limitsBoot();
+else document.addEventListener('DOMContentLoaded', __xbar_control_limitsBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

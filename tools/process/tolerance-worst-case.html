@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tolerance_worst_casePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tolerance_worst_caseExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tolerance_worst_caseTable"></div>
+    <div id="tolerance_worst_caseDiff"></div>
+    <div id="tolerance_worst_caseHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,41 @@ function resetForm(){document.getElementById('t1').value = '0.1';
       document.getElementById('t3').value = '0.2';
       calcTool();}
 calcTool();
+
+function __tolerance_worst_caseNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tolerance_worst_caseExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var t1=num('t1'),t2=num('t2'),t3=num('t3');
+    if (!isFinite(__tolerance_worst_caseNum('t1')) || !isFinite(__tolerance_worst_caseNum('t2')) || !isFinite(__tolerance_worst_caseNum('t3'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#tolerance_worst_caseTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['总公差 (最差)', (t1+t2+t3).toFixed(3)],
+            ['统计公差 (RSS)', (Math.sqrt(t1*t1+t2*t2+t3*t3)).toFixed(3)],
+            ['平均单项公差', ((t1+t2+t3)/3).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({t1:__tolerance_worst_caseNum('t1'), t2:__tolerance_worst_caseNum('t2'), t3:__tolerance_worst_caseNum('t3')});
+    TBKit.history.mount('#tolerance_worst_caseHist',function(rec){ if(rec.t1!=null)document.getElementById('t1').value=rec.t1; if(rec.t2!=null)document.getElementById('t2').value=rec.t2; if(rec.t3!=null)document.getElementById('t3').value=rec.t3; calcTool(); });
+}
+function __tolerance_worst_caseExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tolerance_worst_caseTable','tolerance-worst-case.csv'); } catch(e){}
+}
+function __tolerance_worst_casePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tolerance_worst_casePresets',[
+        {label:'默认',labelEn:'Default',values:{t1:'0.1', t2:'0.15', t3:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{t1:'0.2', t2:'0.3', t3:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{t1:'0.05', t2:'0.075', t3:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __tolerance_worst_caseExtras(); }catch(e){} };
+function __tolerance_worst_caseBoot(){ try{ __tolerance_worst_casePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tolerance_worst_caseBoot();
+else document.addEventListener('DOMContentLoaded', __tolerance_worst_caseBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cpk_indexPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cpk_indexExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cpk_indexTable"></div>
+    <div id="cpk_indexDiff"></div>
+    <div id="cpk_indexHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -260,6 +266,41 @@ function resetForm(){document.getElementById('usl').value = '10.05';
       document.getElementById('sigma').value = '0.01';
       calcTool();}
 calcTool();
+
+function __cpk_indexNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cpk_indexExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var usl=num('usl'),lsl=num('lsl'),m=num('mu'),s=num('sigma');
+    var cpk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s));
+    if (!isFinite(__cpk_indexNum('usl')) || !isFinite(__cpk_indexNum('lsl')) || !isFinite(__cpk_indexNum('mu')) || !isFinite(__cpk_indexNum('sigma'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cpk_indexTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['Cpk', cpk.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({usl:__cpk_indexNum('usl'), lsl:__cpk_indexNum('lsl'), mu:__cpk_indexNum('mu'), sigma:__cpk_indexNum('sigma'), cpk:cpk});
+    TBKit.history.mount('#cpk_indexHist',function(rec){ if(rec.usl!=null)document.getElementById('usl').value=rec.usl; if(rec.lsl!=null)document.getElementById('lsl').value=rec.lsl; if(rec.mu!=null)document.getElementById('mu').value=rec.mu; if(rec.sigma!=null)document.getElementById('sigma').value=rec.sigma; calcTool(); });
+    TBKit.util.diffBox('#cpk_indexDiff',['cpk']);
+}
+function __cpk_indexExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cpk_indexTable','cpk-index.csv'); } catch(e){}
+}
+function __cpk_indexPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cpk_indexPresets',[
+        {label:'默认',labelEn:'Default',values:{usl:'10.05', lsl:'9.95', mu:'10.0', sigma:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{usl:'20.1', lsl:'19.9', mu:'20', sigma:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{usl:'5.025', lsl:'4.975', mu:'5', sigma:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cpk_indexExtras(); }catch(e){} };
+function __cpk_indexBoot(){ try{ __cpk_indexPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cpk_indexBoot();
+else document.addEventListener('DOMContentLoaded', __cpk_indexBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

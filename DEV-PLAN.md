@@ -100,9 +100,9 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 
 ### 1.7 当前分类（进行中）
 
-（surveying/legal/robotics/electromagnetism 已收口，见下方存档；下一分类从 §1.8 最弱候选起，按「最弱优先」开：当前最弱 `process` 2.27/80% → `geometry`/`fluid` 2.21/79% → `metrology`/`kinematics` 2.23/77% → `quantum` 2.32/75% → `acoustics` 2.31/69% 等）
+（surveying/legal/robotics/electromagnetism/process 已收口，见下方存档；下一分类从 §1.8 最弱候选起，按「最弱优先」开：当前最弱 `geometry`/`fluid` 2.21/79% → `metrology`/`kinematics` 2.23/77% → `quantum` 2.32/75% → `acoustics` 2.31/69% 等）
 
-**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）；**`surveying` 45 页 1.89→7.78、薄弱 31→1（仅 `distance-4` 重定向存根不可改造、`index` 导航页不动；SV-1~SV-5 五批；图表范式 line 31.1%/bar 35.6% 合规；calc-1 EN 态动态标签时序 bug + convert-46 字典遗漏已修；4 个 `type="number"` 逗号输入框待修见 §2 P1）**；`legal` 53 页 1.96→6.19、薄弱 37→5（图表+速查表+历史+预设+导出+i18n 双语全量收口；剩余 5 页为模板/检索型无计算内核，留最后单独一档）；**`robotics` 29 页 1.07→6.86、薄弱 29→0（28 页用 `scripts/_ux_wire.py` 批量补线 table+history+presets+export+i18n 双语；1 页重定向/导航存根不可改造；harness 56/56 全过）**；**`electromagnetism` 27 页 1.15→（均分待基线刷新）薄弱 23→0（25 页用 `_ux_wire.py` 补线，ohms-law 为 tool-page-runtime 三模式计算器无 calcTool 跳过；harness 51/51 全过；生成器修复空输入页语法错误）**。
+**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）；**`surveying` 45 页 1.89→7.78、薄弱 31→1（仅 `distance-4` 重定向存根不可改造、`index` 导航页不动；SV-1~SV-5 五批；图表范式 line 31.1%/bar 35.6% 合规；calc-1 EN 态动态标签时序 bug + convert-46 字典遗漏已修；4 个 `type="number"` 逗号输入框待修见 §2 P1）**；`legal` 53 页 1.96→6.19、薄弱 37→5（图表+速查表+历史+预设+导出+i18n 双语全量收口；剩余 5 页为模板/检索型无计算内核，留最后单独一档）；**`robotics` 29 页 1.07→6.86、薄弱 29→0（28 页用 `scripts/_ux_wire.py` 批量补线 table+history+presets+export+i18n 双语；1 页重定向/导航存根不可改造；harness 56/56 全过）**；**`electromagnetism` 27 页 1.15→（均分待基线刷新）薄弱 23→0（25 页用 `_ux_wire.py` 补线，ohms-law 为 tool-page-runtime 三模式计算器无 calcTool 跳过；harness 51/51 全过；生成器修复空输入页语法错误）**；**`process` 15 页 1.27→（均分待基线刷新）薄弱 14→2（12 页用 `_ux_wire.py` 补线，harness 14/14 全过；`defect-probability`/`sigma-level` 含嵌套函数 erf/invNorm，生成器跳过留手动 A 档精做；生成器新增「嵌套函数 skip + const/let→var」防重复声明）**。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 
@@ -225,7 +225,6 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 - `pet` 16/3.88/3
 - `logistics` 16/3.56/2
 - `transport` 16/3.81/1
-- `process` 15/1.27/14
 - `mechanical` 15/2.47/9
 - `chemical` 15/3.07/5
 - `medical` 15/3.47/3

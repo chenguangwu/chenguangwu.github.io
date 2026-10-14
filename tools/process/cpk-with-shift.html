@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cpk_with_shiftPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cpk_with_shiftExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cpk_with_shiftTable"></div>
+    <div id="cpk_with_shiftDiff"></div>
+    <div id="cpk_with_shiftHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,42 @@ function resetForm(){document.getElementById('usl').value = '10.05';
       document.getElementById('sigma').value = '0.01';
       calcTool();}
 calcTool();
+
+function __cpk_with_shiftNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cpk_with_shiftExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var usl=num('usl'),lsl=num('lsl'),nom=num('nominal'),d=num('shift'),s=num('sigma');
+    var mu=nom+d;
+    if (!isFinite(__cpk_with_shiftNum('usl')) || !isFinite(__cpk_with_shiftNum('lsl')) || !isFinite(__cpk_with_shiftNum('nominal')) || !isFinite(__cpk_with_shiftNum('shift')) || !isFinite(__cpk_with_shiftNum('sigma'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cpk_with_shiftTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['Cpk (偏移后)', Math.min((usl-mu)/(3*s),(mu-lsl)/(3*s)).toFixed(3)],
+            ['实际均值 μ', mu.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({usl:__cpk_with_shiftNum('usl'), lsl:__cpk_with_shiftNum('lsl'), nominal:__cpk_with_shiftNum('nominal'), shift:__cpk_with_shiftNum('shift'), sigma:__cpk_with_shiftNum('sigma'), mu:mu});
+    TBKit.history.mount('#cpk_with_shiftHist',function(rec){ if(rec.usl!=null)document.getElementById('usl').value=rec.usl; if(rec.lsl!=null)document.getElementById('lsl').value=rec.lsl; if(rec.nominal!=null)document.getElementById('nominal').value=rec.nominal; if(rec.shift!=null)document.getElementById('shift').value=rec.shift; if(rec.sigma!=null)document.getElementById('sigma').value=rec.sigma; calcTool(); });
+    TBKit.util.diffBox('#cpk_with_shiftDiff',['mu']);
+}
+function __cpk_with_shiftExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cpk_with_shiftTable','cpk-with-shift.csv'); } catch(e){}
+}
+function __cpk_with_shiftPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cpk_with_shiftPresets',[
+        {label:'默认',labelEn:'Default',values:{usl:'10.05', lsl:'9.95', nominal:'10.0', shift:'0.02', sigma:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{usl:'20.1', lsl:'19.9', nominal:'20', shift:'0.04', sigma:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{usl:'5.025', lsl:'4.975', nominal:'5', shift:'0.01', sigma:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cpk_with_shiftExtras(); }catch(e){} };
+function __cpk_with_shiftBoot(){ try{ __cpk_with_shiftPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cpk_with_shiftBoot();
+else document.addEventListener('DOMContentLoaded', __cpk_with_shiftBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

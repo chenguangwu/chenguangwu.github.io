@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cp_indexPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cp_indexExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cp_indexTable"></div>
+    <div id="cp_indexDiff"></div>
+    <div id="cp_indexHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,41 @@ function resetForm(){document.getElementById('usl').value = '10.05';
       document.getElementById('sigma').value = '0.01';
       calcTool();}
 calcTool();
+
+function __cp_indexNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cp_indexExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var usl=num('usl'),lsl=num('lsl'),s=num('sigma');
+    if (!isFinite(__cp_indexNum('usl')) || !isFinite(__cp_indexNum('lsl')) || !isFinite(__cp_indexNum('sigma'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cp_indexTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['Cp', ((usl-lsl)/(6*s)).toFixed(3)],
+            ['公差带宽度', (usl-lsl).toFixed(4)],
+            ['6 sigma 宽度', (6*s).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({usl:__cp_indexNum('usl'), lsl:__cp_indexNum('lsl'), sigma:__cp_indexNum('sigma')});
+    TBKit.history.mount('#cp_indexHist',function(rec){ if(rec.usl!=null)document.getElementById('usl').value=rec.usl; if(rec.lsl!=null)document.getElementById('lsl').value=rec.lsl; if(rec.sigma!=null)document.getElementById('sigma').value=rec.sigma; calcTool(); });
+}
+function __cp_indexExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cp_indexTable','cp-index.csv'); } catch(e){}
+}
+function __cp_indexPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cp_indexPresets',[
+        {label:'默认',labelEn:'Default',values:{usl:'10.05', lsl:'9.95', sigma:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{usl:'20.1', lsl:'19.9', sigma:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{usl:'5.025', lsl:'4.975', sigma:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cp_indexExtras(); }catch(e){} };
+function __cp_indexBoot(){ try{ __cp_indexPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cp_indexBoot();
+else document.addEventListener('DOMContentLoaded', __cp_indexBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

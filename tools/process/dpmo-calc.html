@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="dpmo_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__dpmo_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dpmo_calcTable"></div>
+    <div id="dpmo_calcDiff"></div>
+    <div id="dpmo_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,42 @@ function resetForm(){document.getElementById('def').value = '124';
       document.getElementById('opp').value = '10';
       calcTool();}
 calcTool();
+
+function __dpmo_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dpmo_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var d=num('def'),u=num('units'),o=num('opp');
+    if (!isFinite(__dpmo_calcNum('def')) || !isFinite(__dpmo_calcNum('units')) || !isFinite(__dpmo_calcNum('opp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#dpmo_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['DPMO', (d/(u*o)*1e6).toFixed(1)],
+            ['总机会数', (u*o).toFixed(0)],
+            ['单位缺陷数 (DPU)', (d/(u||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({def:__dpmo_calcNum('def'), units:__dpmo_calcNum('units'), opp:__dpmo_calcNum('opp'), d:d});
+    TBKit.history.mount('#dpmo_calcHist',function(rec){ if(rec.def!=null)document.getElementById('def').value=rec.def; if(rec.units!=null)document.getElementById('units').value=rec.units; if(rec.opp!=null)document.getElementById('opp').value=rec.opp; calcTool(); });
+    TBKit.util.diffBox('#dpmo_calcDiff',['d']);
+}
+function __dpmo_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dpmo_calcTable','dpmo-calc.csv'); } catch(e){}
+}
+function __dpmo_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dpmo_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{def:'124', units:'2000', opp:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{def:'248', units:'4000', opp:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{def:'62', units:'1000', opp:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __dpmo_calcExtras(); }catch(e){} };
+function __dpmo_calcBoot(){ try{ __dpmo_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dpmo_calcBoot();
+else document.addEventListener('DOMContentLoaded', __dpmo_calcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

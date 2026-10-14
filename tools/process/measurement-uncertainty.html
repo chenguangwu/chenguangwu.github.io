@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="measurement_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__measurement_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="measurement_uncertaintyTable"></div>
+    <div id="measurement_uncertaintyDiff"></div>
+    <div id="measurement_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,41 @@ function resetForm(){document.getElementById('u1').value = '0.5';
       document.getElementById('u3').value = '0.2';
       calcTool();}
 calcTool();
+
+function __measurement_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __measurement_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var u1=num('u1'),u2=num('u2'),u3=num('u3');
+    if (!isFinite(__measurement_uncertaintyNum('u1')) || !isFinite(__measurement_uncertaintyNum('u2')) || !isFinite(__measurement_uncertaintyNum('u3'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#measurement_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['合成不确定度 u_c', Math.sqrt(u1*u1+u2*u2+u3*u3).toFixed(4)],
+            ['线性叠加不确定度', (u1+u2+u3).toFixed(4)],
+            ['扩展不确定度 U (k=2)', (2*Math.sqrt(u1*u1+u2*u2+u3*u3)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({u1:__measurement_uncertaintyNum('u1'), u2:__measurement_uncertaintyNum('u2'), u3:__measurement_uncertaintyNum('u3')});
+    TBKit.history.mount('#measurement_uncertaintyHist',function(rec){ if(rec.u1!=null)document.getElementById('u1').value=rec.u1; if(rec.u2!=null)document.getElementById('u2').value=rec.u2; if(rec.u3!=null)document.getElementById('u3').value=rec.u3; calcTool(); });
+}
+function __measurement_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#measurement_uncertaintyTable','measurement-uncertainty.csv'); } catch(e){}
+}
+function __measurement_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#measurement_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{u1:'0.5', u2:'0.3', u3:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{u1:'1', u2:'0.6', u3:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{u1:'0.25', u2:'0.15', u3:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __measurement_uncertaintyExtras(); }catch(e){} };
+function __measurement_uncertaintyBoot(){ try{ __measurement_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __measurement_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __measurement_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
