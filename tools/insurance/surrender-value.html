@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="surrender_valuePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__surrender_valueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="surrender_valueTable"></div>
+    <div id="surrender_valueDiff"></div>
+    <div id="surrender_valueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('res').value = '50000';
       document.getElementById('rate').value = '0.8';
       calcTool();}
 calcTool();
+
+function __surrender_valueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __surrender_valueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var res=num('res'),rate=num('rate');
+    var cv=res*rate;
+    if (!isFinite(__surrender_valueNum('res')) || !isFinite(__surrender_valueNum('rate'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#surrender_valueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['现金价值 (元)', cv.toFixed(2)],
+            ['退保费用扣减额 (元)', (res-cv).toFixed(2)],
+            ['退保损失率', (1-rate).toFixed(4)],
+            ['现金价值率', (cv/Math.max(res,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({res:__surrender_valueNum('res'), rate:__surrender_valueNum('rate'), cv:cv});
+    TBKit.history.mount('#surrender_valueHist',function(rec){ if(rec.res!=null)document.getElementById('res').value=rec.res; if(rec.rate!=null)document.getElementById('rate').value=rec.rate; calcTool(); });
+    TBKit.util.diffBox('#surrender_valueDiff',['cv']);
+}
+function __surrender_valueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#surrender_valueTable','surrender-value.csv'); } catch(e){}
+}
+function __surrender_valuePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#surrender_valuePresets',[
+        {label:'默认',labelEn:'Default',values:{res:'50000', rate:'0.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{res:'100000', rate:'1.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{res:'25000', rate:'0.4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __surrender_valueExtras(); }catch(e){} };
+function __surrender_valueBoot(){ try{ __surrender_valuePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __surrender_valueBoot();
+else document.addEventListener('DOMContentLoaded', __surrender_valueBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

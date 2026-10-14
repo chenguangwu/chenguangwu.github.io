@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ibnr_estimatePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ibnr_estimateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ibnr_estimateTable"></div>
+    <div id="ibnr_estimateDiff"></div>
+    <div id="ibnr_estimateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('ult').value = '100000';
       document.getElementById('paid').value = '0.7';
       calcTool();}
 calcTool();
+
+function __ibnr_estimateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ibnr_estimateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ult=num('ult'),paid=num('paid');
+    var ibnr=ult*(1-paid);
+    if (!isFinite(__ibnr_estimateNum('ult')) || !isFinite(__ibnr_estimateNum('paid'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ibnr_estimateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['IBNR 准备金 (元)', ibnr.toFixed(2)],
+            ['已付赔款比例 (%)', (paid*100).toFixed(2)],
+            ['已付赔款 (元)', (ult*paid).toFixed(2)],
+            ['最终赔款 (元)', (ult).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({ult:__ibnr_estimateNum('ult'), paid:__ibnr_estimateNum('paid'), ibnr:ibnr});
+    TBKit.history.mount('#ibnr_estimateHist',function(rec){ if(rec.ult!=null)document.getElementById('ult').value=rec.ult; if(rec.paid!=null)document.getElementById('paid').value=rec.paid; calcTool(); });
+    TBKit.util.diffBox('#ibnr_estimateDiff',['ibnr']);
+}
+function __ibnr_estimateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ibnr_estimateTable','ibnr-estimate.csv'); } catch(e){}
+}
+function __ibnr_estimatePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ibnr_estimatePresets',[
+        {label:'默认',labelEn:'Default',values:{ult:'100000', paid:'0.7'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ult:'200000', paid:'1.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ult:'50000', paid:'0.35'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ibnr_estimateExtras(); }catch(e){} };
+function __ibnr_estimateBoot(){ try{ __ibnr_estimatePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ibnr_estimateBoot();
+else document.addEventListener('DOMContentLoaded', __ibnr_estimateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

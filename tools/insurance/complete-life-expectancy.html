@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="complete_life_expectancyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__complete_life_expectancyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="complete_life_expectancyTable"></div>
+    <div id="complete_life_expectancyDiff"></div>
+    <div id="complete_life_expectancyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -192,6 +198,42 @@ function calcTool(){
 function resetForm(){document.getElementById('tpx').value = '0.95, 0.9, 0.85, 0.8, 0.75';
       calcTool();}
 calcTool();
+
+function __complete_life_expectancyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __complete_life_expectancyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var raw=document.getElementById('tpx').value.split(/[ ,]+/).filter(Boolean).map(parseFloat);
+    var s=0;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#complete_life_expectancyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['完全期望寿命 e_x', s.toFixed(3)],
+            ['生命表项数 N', raw.length],
+            ['平均预期余命', (s/(raw.length||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({raw:raw});
+    TBKit.history.mount('#complete_life_expectancyHist',function(rec){  calcTool(); });
+    TBKit.util.diffBox('#complete_life_expectancyDiff',['raw']);
+}
+function __complete_life_expectancyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#complete_life_expectancyTable','complete-life-expectancy.csv'); } catch(e){}
+}
+function __complete_life_expectancyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#complete_life_expectancyPresets',[
+        {label:'默认',labelEn:'Default',values:{}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __complete_life_expectancyExtras(); }catch(e){} };
+function __complete_life_expectancyBoot(){ try{ __complete_life_expectancyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __complete_life_expectancyBoot();
+else document.addEventListener('DOMContentLoaded', __complete_life_expectancyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

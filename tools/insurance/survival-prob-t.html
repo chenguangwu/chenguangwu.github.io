@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="survival_prob_tPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__survival_prob_tExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="survival_prob_tTable"></div>
+    <div id="survival_prob_tDiff"></div>
+    <div id="survival_prob_tHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('lxt').value = '950';
       document.getElementById('lx').value = '1000';
       calcTool();}
 calcTool();
+
+function __survival_prob_tNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __survival_prob_tExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var lxt=num('lxt'),lx=num('lx');
+    var tpx=lxt/lx;
+    if (!isFinite(__survival_prob_tNum('lxt')) || !isFinite(__survival_prob_tNum('lx'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#survival_prob_tTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['t 年生存概率 ₜp_x', tpx.toFixed(4)],
+            ['t 年死亡概率', (1-tpx).toFixed(4)],
+            ['每千人存活数', (tpx*1000).toFixed(3)],
+            ['对数生存率 ln(tpx)', (Math.log(Math.max(tpx,1e-12))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({lxt:__survival_prob_tNum('lxt'), lx:__survival_prob_tNum('lx'), tpx:tpx});
+    TBKit.history.mount('#survival_prob_tHist',function(rec){ if(rec.lxt!=null)document.getElementById('lxt').value=rec.lxt; if(rec.lx!=null)document.getElementById('lx').value=rec.lx; calcTool(); });
+    TBKit.util.diffBox('#survival_prob_tDiff',['tpx']);
+}
+function __survival_prob_tExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#survival_prob_tTable','survival-prob-t.csv'); } catch(e){}
+}
+function __survival_prob_tPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#survival_prob_tPresets',[
+        {label:'默认',labelEn:'Default',values:{lxt:'950', lx:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{lxt:'1900', lx:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{lxt:'475', lx:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __survival_prob_tExtras(); }catch(e){} };
+function __survival_prob_tBoot(){ try{ __survival_prob_tPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __survival_prob_tBoot();
+else document.addEventListener('DOMContentLoaded', __survival_prob_tBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

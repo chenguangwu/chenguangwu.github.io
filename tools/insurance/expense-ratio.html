@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="expense_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__expense_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="expense_ratioTable"></div>
+    <div id="expense_ratioDiff"></div>
+    <div id="expense_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,43 @@ function resetForm(){document.getElementById('exp').value = '2500000';
       document.getElementById('premium').value = '10000000';
       calcTool();}
 calcTool();
+
+function __expense_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __expense_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var e=num('exp'),p=num('premium');
+    if (!isFinite(__expense_ratioNum('exp')) || !isFinite(__expense_ratioNum('premium'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#expense_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['费用率 (%)', (e/p*100).toFixed(2)],
+            ['保费与费用比', (p/Math.max(e,1e-9)).toFixed(3)],
+            ['保费与费用之差', (p-e).toFixed(2)],
+            ['费用率小数', (e/Math.max(p,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({exp:__expense_ratioNum('exp'), premium:__expense_ratioNum('premium'), e:e});
+    TBKit.history.mount('#expense_ratioHist',function(rec){ if(rec.exp!=null)document.getElementById('exp').value=rec.exp; if(rec.premium!=null)document.getElementById('premium').value=rec.premium; calcTool(); });
+    TBKit.util.diffBox('#expense_ratioDiff',['e']);
+}
+function __expense_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#expense_ratioTable','expense-ratio.csv'); } catch(e){}
+}
+function __expense_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#expense_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{exp:'2500000', premium:'10000000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{exp:'5000000', premium:'20000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{exp:'1250000', premium:'5000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __expense_ratioExtras(); }catch(e){} };
+function __expense_ratioBoot(){ try{ __expense_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __expense_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __expense_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

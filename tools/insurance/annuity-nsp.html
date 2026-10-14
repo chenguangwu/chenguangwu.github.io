@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="annuity_nspPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__annuity_nspExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="annuity_nspTable"></div>
+    <div id="annuity_nspDiff"></div>
+    <div id="annuity_nspHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('b').value = '1000';
       document.getElementById('ax').value = '15';
       calcTool();}
 calcTool();
+
+function __annuity_nspNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __annuity_nspExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var b=num('b'),ax=num('ax');
+    var NSP=b*ax;
+    if (!isFinite(__annuity_nspNum('b')) || !isFinite(__annuity_nspNum('ax'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#annuity_nspTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['净单保费 NSP (元)', NSP.toFixed(2)],
+            ['年金现值系数倒数', (1/Math.max(ax,1e-12)).toFixed(4)],
+            ['每单位给付的保费', (NSP/Math.max(b,1e-12)).toFixed(4)],
+            ['月均摊保费', (NSP/12).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({b:__annuity_nspNum('b'), ax:__annuity_nspNum('ax'), NSP:NSP});
+    TBKit.history.mount('#annuity_nspHist',function(rec){ if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.ax!=null)document.getElementById('ax').value=rec.ax; calcTool(); });
+    TBKit.util.diffBox('#annuity_nspDiff',['NSP']);
+}
+function __annuity_nspExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#annuity_nspTable','annuity-nsp.csv'); } catch(e){}
+}
+function __annuity_nspPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#annuity_nspPresets',[
+        {label:'默认',labelEn:'Default',values:{b:'1000', ax:'15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{b:'2000', ax:'30'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{b:'500', ax:'7.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __annuity_nspExtras(); }catch(e){} };
+function __annuity_nspBoot(){ try{ __annuity_nspPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __annuity_nspBoot();
+else document.addEventListener('DOMContentLoaded', __annuity_nspBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mortality_probPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mortality_probExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mortality_probTable"></div>
+    <div id="mortality_probDiff"></div>
+    <div id="mortality_probHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,46 @@ function resetForm(){document.getElementById('p').value = '0.99';
       document.getElementById('n').value = '10';
       calcTool();}
 calcTool();
+
+function __mortality_probNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mortality_probExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),n=num('n');
+    var q=1-p;
+    var sp=Math.pow(p,n);
+    if (!isFinite(__mortality_probNum('p')) || !isFinite(__mortality_probNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mortality_probTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年死亡率 q (%)', (q*100).toFixed(3)],
+            ['n 年生存概率 (%)', (sp*100).toFixed(3)],
+            ['n 年内死亡概率 (%)', ((1-sp)*100).toFixed(3)],
+            ['预期生存年数 1/q', (1/q).toFixed(2)],
+            ['半数生存年数', (Math.log(0.5)/Math.log(p)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p:__mortality_probNum('p'), n:__mortality_probNum('n'), q:q});
+    TBKit.history.mount('#mortality_probHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#mortality_probDiff',['q']);
+}
+function __mortality_probExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mortality_probTable','mortality-prob.csv'); } catch(e){}
+}
+function __mortality_probPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mortality_probPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'0.99', n:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'1.98', n:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'0.495', n:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mortality_probExtras(); }catch(e){} };
+function __mortality_probBoot(){ try{ __mortality_probPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mortality_probBoot();
+else document.addEventListener('DOMContentLoaded', __mortality_probBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

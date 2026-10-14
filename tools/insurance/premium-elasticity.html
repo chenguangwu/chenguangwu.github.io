@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="premium_elasticityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__premium_elasticityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="premium_elasticityTable"></div>
+    <div id="premium_elasticityDiff"></div>
+    <div id="premium_elasticityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('dq').value = '0.1';
       document.getElementById('dp').value = '0.2';
       calcTool();}
 calcTool();
+
+function __premium_elasticityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __premium_elasticityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dq=num('dq'),dp=num('dp');
+    var e=dq/dp;
+    if (!isFinite(__premium_elasticityNum('dq')) || !isFinite(__premium_elasticityNum('dp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#premium_elasticityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['需求弹性', e.toFixed(2)],
+            ['弹性倒数', (1/Math.max(e,1e-9)).toFixed(4)],
+            ['弹性百分数', (e*100).toFixed(2)],
+            ['弹性除以 (1+e)', (e/Math.max(1+e,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({dq:__premium_elasticityNum('dq'), dp:__premium_elasticityNum('dp'), e:e});
+    TBKit.history.mount('#premium_elasticityHist',function(rec){ if(rec.dq!=null)document.getElementById('dq').value=rec.dq; if(rec.dp!=null)document.getElementById('dp').value=rec.dp; calcTool(); });
+    TBKit.util.diffBox('#premium_elasticityDiff',['e']);
+}
+function __premium_elasticityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#premium_elasticityTable','premium-elasticity.csv'); } catch(e){}
+}
+function __premium_elasticityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#premium_elasticityPresets',[
+        {label:'默认',labelEn:'Default',values:{dq:'0.1', dp:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dq:'0.2', dp:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dq:'0.05', dp:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __premium_elasticityExtras(); }catch(e){} };
+function __premium_elasticityBoot(){ try{ __premium_elasticityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __premium_elasticityBoot();
+else document.addEventListener('DOMContentLoaded', __premium_elasticityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

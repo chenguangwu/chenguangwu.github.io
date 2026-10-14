@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="force_of_mortalityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__force_of_mortalityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="force_of_mortalityTable"></div>
+    <div id="force_of_mortalityDiff"></div>
+    <div id="force_of_mortalityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -260,6 +266,45 @@ const px=num('px');
 function resetForm(){document.getElementById('px').value = '0.99';
       calcTool();}
 calcTool();
+
+function __force_of_mortalityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __force_of_mortalityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var px=num('px');
+    var mu=-Math.log(px);
+    if (!isFinite(__force_of_mortalityNum('px'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#force_of_mortalityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['死亡力 μ', mu.toFixed(5)],
+            ['半衰期（年）', (Math.log(2)/Math.max(mu,1e-12)).toFixed(4)],
+            ['死亡力 (‰)', (mu*1000).toFixed(4)],
+            ['平均余命近似（年）', (1/Math.max(mu,1e-12)).toFixed(4)],
+            ['年死亡概率 q_x', (1-px).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({px:__force_of_mortalityNum('px'), mu:mu});
+    TBKit.history.mount('#force_of_mortalityHist',function(rec){ if(rec.px!=null)document.getElementById('px').value=rec.px; calcTool(); });
+    TBKit.util.diffBox('#force_of_mortalityDiff',['mu']);
+}
+function __force_of_mortalityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#force_of_mortalityTable','force-of-mortality.csv'); } catch(e){}
+}
+function __force_of_mortalityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#force_of_mortalityPresets',[
+        {label:'默认',labelEn:'Default',values:{px:'0.99'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{px:'1.98'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{px:'0.495'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __force_of_mortalityExtras(); }catch(e){} };
+function __force_of_mortalityBoot(){ try{ __force_of_mortalityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __force_of_mortalityBoot();
+else document.addEventListener('DOMContentLoaded', __force_of_mortalityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

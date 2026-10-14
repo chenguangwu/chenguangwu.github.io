@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="uw_marginPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__uw_marginExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="uw_marginTable"></div>
+    <div id="uw_marginDiff"></div>
+    <div id="uw_marginHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('LR').value = '60';
       document.getElementById('ER').value = '25';
       calcTool();}
 calcTool();
+
+function __uw_marginNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __uw_marginExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var LR=num('LR'),ER=num('ER');
+    var m=100-(LR+ER);
+    if (!isFinite(__uw_marginNum('LR')) || !isFinite(__uw_marginNum('ER'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#uw_marginTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['承保利润率 (%)', m.toFixed(1)],
+            ['赔付与费用合计 (%)', (LR+ER).toFixed(2)],
+            ['利润率与成本率之比', (m/Math.max(LR+ER,1e-9)).toFixed(4)],
+            ['成本占保费比', (1-m/100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({LR:__uw_marginNum('LR'), ER:__uw_marginNum('ER'), m:m});
+    TBKit.history.mount('#uw_marginHist',function(rec){ if(rec.LR!=null)document.getElementById('LR').value=rec.LR; if(rec.ER!=null)document.getElementById('ER').value=rec.ER; calcTool(); });
+    TBKit.util.diffBox('#uw_marginDiff',['m']);
+}
+function __uw_marginExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#uw_marginTable','uw-margin.csv'); } catch(e){}
+}
+function __uw_marginPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#uw_marginPresets',[
+        {label:'默认',labelEn:'Default',values:{LR:'60', ER:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{LR:'120', ER:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{LR:'30', ER:'12.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __uw_marginExtras(); }catch(e){} };
+function __uw_marginBoot(){ try{ __uw_marginPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __uw_marginBoot();
+else document.addEventListener('DOMContentLoaded', __uw_marginBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

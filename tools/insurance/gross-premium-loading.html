@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gross_premium_loadingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gross_premium_loadingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gross_premium_loadingTable"></div>
+    <div id="gross_premium_loadingDiff"></div>
+    <div id="gross_premium_loadingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('pp').value = '10';
       document.getElementById('load').value = '0.4';
       calcTool();}
 calcTool();
+
+function __gross_premium_loadingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gross_premium_loadingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var pp=num('pp'),load=num('load');
+    var gp=pp*(1+load);
+    if (!isFinite(__gross_premium_loadingNum('pp')) || !isFinite(__gross_premium_loadingNum('load'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gross_premium_loadingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['毛保费 (元)', gp.toFixed(2)],
+            ['附加费用额 (元)', (gp-pp).toFixed(2)],
+            ['纯保费占毛保费比', (1/(1+load)).toFixed(5)],
+            ['附加费占毛保费 (%)', (load/(1+load)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({pp:__gross_premium_loadingNum('pp'), load:__gross_premium_loadingNum('load'), gp:gp});
+    TBKit.history.mount('#gross_premium_loadingHist',function(rec){ if(rec.pp!=null)document.getElementById('pp').value=rec.pp; if(rec.load!=null)document.getElementById('load').value=rec.load; calcTool(); });
+    TBKit.util.diffBox('#gross_premium_loadingDiff',['gp']);
+}
+function __gross_premium_loadingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gross_premium_loadingTable','gross-premium-loading.csv'); } catch(e){}
+}
+function __gross_premium_loadingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gross_premium_loadingPresets',[
+        {label:'默认',labelEn:'Default',values:{pp:'10', load:'0.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{pp:'20', load:'0.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{pp:'5', load:'0.2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gross_premium_loadingExtras(); }catch(e){} };
+function __gross_premium_loadingBoot(){ try{ __gross_premium_loadingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gross_premium_loadingBoot();
+else document.addEventListener('DOMContentLoaded', __gross_premium_loadingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

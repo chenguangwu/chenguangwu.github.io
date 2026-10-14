@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pure_premium_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pure_premium_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pure_premium_rateTable"></div>
+    <div id="pure_premium_rateDiff"></div>
+    <div id="pure_premium_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('el').value = '1000';
       document.getElementById('exp').value = '100';
       calcTool();}
 calcTool();
+
+function __pure_premium_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pure_premium_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var el=num('el'),exp=num('exp');
+    var ppr=el/exp;
+    if (!isFinite(__pure_premium_rateNum('el')) || !isFinite(__pure_premium_rateNum('exp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pure_premium_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['纯费率 (元/单位)', ppr.toFixed(2)],
+            ['纯费率百分数', (ppr*100).toFixed(3)],
+            ['风险单位与损失之差', (exp-el).toFixed(2)],
+            ['纯费率小数形式', (ppr/100).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({el:__pure_premium_rateNum('el'), exp:__pure_premium_rateNum('exp'), ppr:ppr});
+    TBKit.history.mount('#pure_premium_rateHist',function(rec){ if(rec.el!=null)document.getElementById('el').value=rec.el; if(rec.exp!=null)document.getElementById('exp').value=rec.exp; calcTool(); });
+    TBKit.util.diffBox('#pure_premium_rateDiff',['ppr']);
+}
+function __pure_premium_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pure_premium_rateTable','pure-premium-rate.csv'); } catch(e){}
+}
+function __pure_premium_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pure_premium_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{el:'1000', exp:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{el:'2000', exp:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{el:'500', exp:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pure_premium_rateExtras(); }catch(e){} };
+function __pure_premium_rateBoot(){ try{ __pure_premium_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pure_premium_rateBoot();
+else document.addEventListener('DOMContentLoaded', __pure_premium_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
