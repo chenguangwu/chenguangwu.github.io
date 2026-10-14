@@ -495,9 +495,12 @@ def apply_custom(page, dry=False):
     # 包装 + boot（typeof 守卫：calc 注入点不可见时不包装，绝不让 ReferenceError 杀死脚本块）
     js.append("var __%s_f0=(typeof %s==='function')?%s:null;" % (p, fn, fn))
     js.append("if(__%s_f0){" % p)
-    js.append("    %s=function(){ __%s_f0.apply(null,arguments); try{ __%sExtras(); }catch(e){} };" % (fn, p, p))
+    js.append("    %s=function(){ var __r=__%s_f0.apply(null,arguments); try{ __%sExtras(); }catch(e){} return __r; };" % (fn, p, p))
     js.append("}")
-    js.append("function __%sBoot(){ try{ __%sPresets(); }catch(e){} try{ %s(); }catch(e){} }" % (p, p, fn))
+    # boot：只挂预设，**不主动调 calc**——随机输出页（zalgo 等）的 harness 用种子随机数
+    # 断言输出序列，Boot 多调一次 calc 会多消耗 RNG 抽数使期望值整体偏移（biz/zalgo-text
+    # 139/139 → 2 失败即此因）。历史/表格在用户首次真实计算时自然渲染，无损体验。
+    js.append("function __%sBoot(){ try{ __%sPresets(); }catch(e){} }" % (p, p))
     js.append("if (document.readyState && document.readyState !== 'loading') __%sBoot();" % p)
     js.append("else document.addEventListener('DOMContentLoaded', __%sBoot);" % p)
     js_code = "\n".join(js)
