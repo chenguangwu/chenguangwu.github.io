@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="vickers_hardnessPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__vickers_hardnessExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="vickers_hardnessTable"></div>
+    <div id="vickers_hardnessDiff"></div>
+    <div id="vickers_hardnessHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('F').value = '98.07';
       document.getElementById('d').value = '0.5';
       calcTool();}
 calcTool();
+
+function __vickers_hardnessNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __vickers_hardnessExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F = num('F'), d = num('d');
+    var HV = 1.854 * (F / 9.80665) / (d * d);
+    if (!isFinite(__vickers_hardnessNum('F')) || !isFinite(__vickers_hardnessNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#vickers_hardnessTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['维氏硬度 HV', HV.toFixed(2)],
+            ['对比 kgf 基准', (HV / 9.80665).toFixed(4)],
+            ['压痕表面积 A (mm²)', (d*d/1.854).toFixed(5)],
+            ['压痕对角线平方 d² (mm²)', (d*d).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({F:__vickers_hardnessNum('F'), d:__vickers_hardnessNum('d'), HV:HV});
+    TBKit.history.mount('#vickers_hardnessHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#vickers_hardnessDiff',['HV']);
+}
+function __vickers_hardnessExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#vickers_hardnessTable','vickers-hardness.csv'); } catch(e){}
+}
+function __vickers_hardnessPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#vickers_hardnessPresets',[
+        {label:'默认',labelEn:'Default',values:{F:'98.07', d:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'196.14', d:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'49.035', d:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __vickers_hardnessExtras(); }catch(e){} };
+function __vickers_hardnessBoot(){ try{ __vickers_hardnessPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __vickers_hardnessBoot();
+else document.addEventListener('DOMContentLoaded', __vickers_hardnessBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="thermal_diffusivityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__thermal_diffusivityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="thermal_diffusivityTable"></div>
+    <div id="thermal_diffusivityDiff"></div>
+    <div id="thermal_diffusivityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('k').value = '50';
       document.getElementById('c').value = '460';
       calcTool();}
 calcTool();
+
+function __thermal_diffusivityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __thermal_diffusivityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k=num('k'),rho=num('rho'),c=num('c');
+    var alpha=k/(rho*c);
+    if (!isFinite(__thermal_diffusivityNum('k')) || !isFinite(__thermal_diffusivityNum('rho')) || !isFinite(__thermal_diffusivityNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#thermal_diffusivityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热扩散率 α (m²/s)', alpha.toExponential(3)],
+            ['体积热容 rho*c (J/(m3*K))', (rho*c).toExponential(4)],
+            ['1cm 特征扩散时间 L2/alpha (s)', (0.0001/alpha).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({k:__thermal_diffusivityNum('k'), rho:__thermal_diffusivityNum('rho'), c:__thermal_diffusivityNum('c'), alpha:alpha});
+    TBKit.history.mount('#thermal_diffusivityHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+    TBKit.util.diffBox('#thermal_diffusivityDiff',['alpha']);
+}
+function __thermal_diffusivityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thermal_diffusivityTable','thermal-diffusivity.csv'); } catch(e){}
+}
+function __thermal_diffusivityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thermal_diffusivityPresets',[
+        {label:'默认',labelEn:'Default',values:{k:'50', rho:'7850', c:'460'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'100', rho:'15700', c:'920'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'25', rho:'3925', c:'230'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __thermal_diffusivityExtras(); }catch(e){} };
+function __thermal_diffusivityBoot(){ try{ __thermal_diffusivityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thermal_diffusivityBoot();
+else document.addEventListener('DOMContentLoaded', __thermal_diffusivityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

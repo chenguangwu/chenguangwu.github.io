@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rule_of_mixturesPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rule_of_mixturesExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rule_of_mixturesTable"></div>
+    <div id="rule_of_mixturesDiff"></div>
+    <div id="rule_of_mixturesHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,42 @@ function resetForm(){document.getElementById('Vf').value = '0.5';
       document.getElementById('Em').value = '3e9';
       calcTool();}
 calcTool();
+
+function __rule_of_mixturesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rule_of_mixturesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Vf = num('Vf'), Ef = num('Ef'), Em = num('Em');
+    var Ec = Vf * Ef + (1 - Vf) * Em;
+    if (!isFinite(__rule_of_mixturesNum('Vf')) || !isFinite(__rule_of_mixturesNum('Ef')) || !isFinite(__rule_of_mixturesNum('Em'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rule_of_mixturesTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['复合模量 E_c (GPa)', (Ec / 1e9).toFixed(2)],
+            ['E_c (Pa)', (Ec).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({Vf:__rule_of_mixturesNum('Vf'), Ef:__rule_of_mixturesNum('Ef'), Em:__rule_of_mixturesNum('Em'), Ec:Ec});
+    TBKit.history.mount('#rule_of_mixturesHist',function(rec){ if(rec.Vf!=null)document.getElementById('Vf').value=rec.Vf; if(rec.Ef!=null)document.getElementById('Ef').value=rec.Ef; if(rec.Em!=null)document.getElementById('Em').value=rec.Em; calcTool(); });
+    TBKit.util.diffBox('#rule_of_mixturesDiff',['Ec']);
+}
+function __rule_of_mixturesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rule_of_mixturesTable','rule-of-mixtures.csv'); } catch(e){}
+}
+function __rule_of_mixturesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rule_of_mixturesPresets',[
+        {label:'默认',labelEn:'Default',values:{Vf:'0.5', Ef:'200e9', Em:'3e9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Vf:'1', Ef:'400000000000', Em:'6000000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Vf:'0.25', Ef:'100000000000', Em:'1500000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rule_of_mixturesExtras(); }catch(e){} };
+function __rule_of_mixturesBoot(){ try{ __rule_of_mixturesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rule_of_mixturesBoot();
+else document.addEventListener('DOMContentLoaded', __rule_of_mixturesBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

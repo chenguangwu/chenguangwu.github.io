@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="lame_lambdaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__lame_lambdaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="lame_lambdaTable"></div>
+    <div id="lame_lambdaDiff"></div>
+    <div id="lame_lambdaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('E').value = '200e9';
       document.getElementById('nu').value = '0.3';
       calcTool();}
 calcTool();
+
+function __lame_lambdaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lame_lambdaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var E=num('E'),nu=num('nu');
+    var lam=E*nu/((1+nu)*(1-2*nu));
+    if (!isFinite(__lame_lambdaNum('E')) || !isFinite(__lame_lambdaNum('nu'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#lame_lambdaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['拉梅常数 λ (GPa)', (lam/1e9).toFixed(2)],
+            ['剪切模量 G (GPa)', (E/(2*(1+nu))/1e9).toFixed(2)],
+            ['P 波模量 (GPa)', (E*(1-nu)/((1+nu)*(1-2*nu))/1e9).toFixed(2)],
+            ['G (Pa)', (E/(2*(1+nu))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({E:__lame_lambdaNum('E'), nu:__lame_lambdaNum('nu'), lam:lam});
+    TBKit.history.mount('#lame_lambdaHist',function(rec){ if(rec.E!=null)document.getElementById('E').value=rec.E; if(rec.nu!=null)document.getElementById('nu').value=rec.nu; calcTool(); });
+    TBKit.util.diffBox('#lame_lambdaDiff',['lam']);
+}
+function __lame_lambdaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lame_lambdaTable','lame-lambda.csv'); } catch(e){}
+}
+function __lame_lambdaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lame_lambdaPresets',[
+        {label:'默认',labelEn:'Default',values:{E:'200e9', nu:'0.3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{E:'400000000000', nu:'0.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{E:'100000000000', nu:'0.15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __lame_lambdaExtras(); }catch(e){} };
+function __lame_lambdaBoot(){ try{ __lame_lambdaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lame_lambdaBoot();
+else document.addEventListener('DOMContentLoaded', __lame_lambdaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

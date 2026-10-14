@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="true_strainPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__true_strainExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="true_strainTable"></div>
+    <div id="true_strainDiff"></div>
+    <div id="true_strainHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,44 @@ function resetForm(){document.getElementById('L').value = '101';
       document.getElementById('L0').value = '100';
       calcTool();}
 calcTool();
+
+function __true_strainNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __true_strainExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L = num('L'), L0 = num('L0');
+    var et = Math.log(L / L0);
+    if (!isFinite(__true_strainNum('L')) || !isFinite(__true_strainNum('L0'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#true_strainTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['真实应变 ε_t', et.toFixed(6)],
+            ['ε_t (%)', (et * 100).toFixed(4)],
+            ['工程应变', ((L-L0)/L0).toFixed(6)],
+            ['伸长量 (同长度单位)', (L-L0).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({L:__true_strainNum('L'), L0:__true_strainNum('L0'), et:et});
+    TBKit.history.mount('#true_strainHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.L0!=null)document.getElementById('L0').value=rec.L0; calcTool(); });
+    TBKit.util.diffBox('#true_strainDiff',['et']);
+}
+function __true_strainExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#true_strainTable','true-strain.csv'); } catch(e){}
+}
+function __true_strainPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#true_strainPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'101', L0:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'202', L0:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'50.5', L0:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __true_strainExtras(); }catch(e){} };
+function __true_strainBoot(){ try{ __true_strainPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __true_strainBoot();
+else document.addEventListener('DOMContentLoaded', __true_strainBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

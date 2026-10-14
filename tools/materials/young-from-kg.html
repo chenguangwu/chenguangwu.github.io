@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="young_from_kgPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__young_from_kgExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="young_from_kgTable"></div>
+    <div id="young_from_kgDiff"></div>
+    <div id="young_from_kgHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('K').value = '166.7e9';
       document.getElementById('G').value = '76.9e9';
       calcTool();}
 calcTool();
+
+function __young_from_kgNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __young_from_kgExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var K=num('K'),G=num('G');
+    var E=9*K*G/(3*K+G);
+    if (!isFinite(__young_from_kgNum('K')) || !isFinite(__young_from_kgNum('G'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#young_from_kgTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['弹性模量 E (GPa)', (E/1e9).toFixed(2)],
+            ['体积模量 K (GPa)', (K/1e9).toFixed(2)],
+            ['剪切模量 G (GPa)', (G/1e9).toFixed(2)],
+            ['E/G 比值', (E/Math.max(G,1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({K:__young_from_kgNum('K'), G:__young_from_kgNum('G'), E:E});
+    TBKit.history.mount('#young_from_kgHist',function(rec){ if(rec.K!=null)document.getElementById('K').value=rec.K; if(rec.G!=null)document.getElementById('G').value=rec.G; calcTool(); });
+    TBKit.util.diffBox('#young_from_kgDiff',['E']);
+}
+function __young_from_kgExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#young_from_kgTable','young-from-kg.csv'); } catch(e){}
+}
+function __young_from_kgPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#young_from_kgPresets',[
+        {label:'默认',labelEn:'Default',values:{K:'166.7e9', G:'76.9e9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{K:'333400000000', G:'153800000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{K:'83350000000', G:'38450000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __young_from_kgExtras(); }catch(e){} };
+function __young_from_kgBoot(){ try{ __young_from_kgPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __young_from_kgBoot();
+else document.addEventListener('DOMContentLoaded', __young_from_kgBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

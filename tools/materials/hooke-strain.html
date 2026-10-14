@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hooke_strainPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hooke_strainExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hooke_strainTable"></div>
+    <div id="hooke_strainDiff"></div>
+    <div id="hooke_strainHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('s').value = '200e6';
       document.getElementById('E').value = '200e9';
       calcTool();}
 calcTool();
+
+function __hooke_strainNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hooke_strainExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s = num('s'), E = num('E');
+    var eps = s / E;
+    if (!isFinite(__hooke_strainNum('s')) || !isFinite(__hooke_strainNum('E'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hooke_strainTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['应变 ε', eps.toFixed(5)],
+            ['ε (%)', (eps * 100).toFixed(3)],
+            ['应变 (微应变)', (eps*1e6).toFixed(2)],
+            ['应力 (MPa)', (s/1e6).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({s:__hooke_strainNum('s'), E:__hooke_strainNum('E'), eps:eps});
+    TBKit.history.mount('#hooke_strainHist',function(rec){ if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.E!=null)document.getElementById('E').value=rec.E; calcTool(); });
+    TBKit.util.diffBox('#hooke_strainDiff',['eps']);
+}
+function __hooke_strainExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hooke_strainTable','hooke-strain.csv'); } catch(e){}
+}
+function __hooke_strainPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hooke_strainPresets',[
+        {label:'默认',labelEn:'Default',values:{s:'200e6', E:'200e9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{s:'400000000', E:'400000000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{s:'100000000', E:'100000000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hooke_strainExtras(); }catch(e){} };
+function __hooke_strainBoot(){ try{ __hooke_strainPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hooke_strainBoot();
+else document.addEventListener('DOMContentLoaded', __hooke_strainBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

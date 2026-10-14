@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="poisson_ratio_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__poisson_ratio_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="poisson_ratio_calcTable"></div>
+    <div id="poisson_ratio_calcDiff"></div>
+    <div id="poisson_ratio_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('el').value = '-0.003';
       document.getElementById('ea').value = '0.01';
       calcTool();}
 calcTool();
+
+function __poisson_ratio_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __poisson_ratio_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var el=num('el'),ea=num('ea');
+    var nu=-el/ea;
+    if (!isFinite(__poisson_ratio_calcNum('el')) || !isFinite(__poisson_ratio_calcNum('ea'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#poisson_ratio_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['泊松比 ν', nu.toFixed(3)],
+            ['泊松比绝对值', (Math.abs(nu)).toFixed(4)],
+            ['1 加 ν', (1+nu).toFixed(4)],
+            ['ν 百分数', (nu*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({el:__poisson_ratio_calcNum('el'), ea:__poisson_ratio_calcNum('ea'), nu:nu});
+    TBKit.history.mount('#poisson_ratio_calcHist',function(rec){ if(rec.el!=null)document.getElementById('el').value=rec.el; if(rec.ea!=null)document.getElementById('ea').value=rec.ea; calcTool(); });
+    TBKit.util.diffBox('#poisson_ratio_calcDiff',['nu']);
+}
+function __poisson_ratio_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#poisson_ratio_calcTable','poisson-ratio-calc.csv'); } catch(e){}
+}
+function __poisson_ratio_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#poisson_ratio_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{el:'-0.003', ea:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{el:'-0.006', ea:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{el:'-0.0015', ea:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __poisson_ratio_calcExtras(); }catch(e){} };
+function __poisson_ratio_calcBoot(){ try{ __poisson_ratio_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __poisson_ratio_calcBoot();
+else document.addEventListener('DOMContentLoaded', __poisson_ratio_calcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

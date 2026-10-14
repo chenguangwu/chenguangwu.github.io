@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="specific_heat_capacityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__specific_heat_capacityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="specific_heat_capacityTable"></div>
+    <div id="specific_heat_capacityDiff"></div>
+    <div id="specific_heat_capacityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('m').value = '2';
       document.getElementById('c').value = '4200';
       calcTool();}
 calcTool();
+
+function __specific_heat_capacityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __specific_heat_capacityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'),c=num('c');
+    var C=m*c;
+    if (!isFinite(__specific_heat_capacityNum('m')) || !isFinite(__specific_heat_capacityNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#specific_heat_capacityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热容 C (J/K)', C.toFixed(0)],
+            ['热容 C (kJ/K)', (C/1000).toFixed(4)],
+            ['热容倒数 (K/J)', (1/Math.max(C,1e-9)).toFixed(6)],
+            ['比热容 c (kJ/(kg·K))', (C/Math.max(m*1000,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({m:__specific_heat_capacityNum('m'), c:__specific_heat_capacityNum('c'), C:C});
+    TBKit.history.mount('#specific_heat_capacityHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+    TBKit.util.diffBox('#specific_heat_capacityDiff',['C']);
+}
+function __specific_heat_capacityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#specific_heat_capacityTable','specific-heat-capacity.csv'); } catch(e){}
+}
+function __specific_heat_capacityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#specific_heat_capacityPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'2', c:'4200'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'4', c:'8400'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'1', c:'2100'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __specific_heat_capacityExtras(); }catch(e){} };
+function __specific_heat_capacityBoot(){ try{ __specific_heat_capacityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __specific_heat_capacityBoot();
+else document.addEventListener('DOMContentLoaded', __specific_heat_capacityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

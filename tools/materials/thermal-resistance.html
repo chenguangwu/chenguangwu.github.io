@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="thermal_resistancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__thermal_resistanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="thermal_resistanceTable"></div>
+    <div id="thermal_resistanceDiff"></div>
+    <div id="thermal_resistanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('L').value = '0.05';
       document.getElementById('A').value = '0.01';
       calcTool();}
 calcTool();
+
+function __thermal_resistanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __thermal_resistanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L=num('L'),k=num('k'),A=num('A');
+    var R=L/(k*A);
+    if (!isFinite(__thermal_resistanceNum('L')) || !isFinite(__thermal_resistanceNum('k')) || !isFinite(__thermal_resistanceNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#thermal_resistanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热阻 R_th (K/W)', R.toFixed(4)],
+            ['热导 (W/K)', (1/(R||1)).toFixed(4)],
+            ['单位面积热阻 (m2*K/W)', (R*A).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({L:__thermal_resistanceNum('L'), k:__thermal_resistanceNum('k'), A:__thermal_resistanceNum('A'), R:R});
+    TBKit.history.mount('#thermal_resistanceHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#thermal_resistanceDiff',['R']);
+}
+function __thermal_resistanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thermal_resistanceTable','thermal-resistance.csv'); } catch(e){}
+}
+function __thermal_resistancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thermal_resistancePresets',[
+        {label:'默认',labelEn:'Default',values:{L:'0.05', k:'50', A:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'0.1', k:'100', A:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'0.025', k:'25', A:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __thermal_resistanceExtras(); }catch(e){} };
+function __thermal_resistanceBoot(){ try{ __thermal_resistancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thermal_resistanceBoot();
+else document.addEventListener('DOMContentLoaded', __thermal_resistanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tensile_force_areaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tensile_force_areaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tensile_force_areaTable"></div>
+    <div id="tensile_force_areaDiff"></div>
+    <div id="tensile_force_areaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('s').value = '250e6';
       document.getElementById('A').value = '1e-4';
       calcTool();}
 calcTool();
+
+function __tensile_force_areaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tensile_force_areaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s = num('s'), A = num('A');
+    var F = s * A;
+    if (!isFinite(__tensile_force_areaNum('s')) || !isFinite(__tensile_force_areaNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#tensile_force_areaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['拉力 F (N)', (F).toFixed(1)],
+            ['F (kN)', (F / 1000).toFixed(2)],
+            ['应力复算 (Pa)', (F/(A||1)).toFixed(4)],
+            ['应力 (MPa)', (s/1e6).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({s:__tensile_force_areaNum('s'), A:__tensile_force_areaNum('A'), F:F});
+    TBKit.history.mount('#tensile_force_areaHist',function(rec){ if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#tensile_force_areaDiff',['F']);
+}
+function __tensile_force_areaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tensile_force_areaTable','tensile-force-area.csv'); } catch(e){}
+}
+function __tensile_force_areaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tensile_force_areaPresets',[
+        {label:'默认',labelEn:'Default',values:{s:'250e6', A:'1e-4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{s:'500000000', A:'0.0002'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{s:'125000000', A:'0.0001'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __tensile_force_areaExtras(); }catch(e){} };
+function __tensile_force_areaBoot(){ try{ __tensile_force_areaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tensile_force_areaBoot();
+else document.addEventListener('DOMContentLoaded', __tensile_force_areaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

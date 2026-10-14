@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="poisson_lateralPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__poisson_lateralExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="poisson_lateralTable"></div>
+    <div id="poisson_lateralDiff"></div>
+    <div id="poisson_lateralHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('nu').value = '0.3';
       document.getElementById('el').value = '0.001';
       calcTool();}
 calcTool();
+
+function __poisson_lateralNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __poisson_lateralExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var nu = num('nu'), el = num('el');
+    var elat = -nu * el;
+    if (!isFinite(__poisson_lateralNum('nu')) || !isFinite(__poisson_lateralNum('el'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#poisson_lateralTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['横向应变 ε_lat', elat.toFixed(6)],
+            ['回算 ν', (-elat / el).toFixed(3)],
+            ['体积应变 (%)', ((1-2*nu)*el*100).toFixed(4)],
+            ['轴向应变 (%)', (el*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({nu:__poisson_lateralNum('nu'), el:__poisson_lateralNum('el'), elat:elat});
+    TBKit.history.mount('#poisson_lateralHist',function(rec){ if(rec.nu!=null)document.getElementById('nu').value=rec.nu; if(rec.el!=null)document.getElementById('el').value=rec.el; calcTool(); });
+    TBKit.util.diffBox('#poisson_lateralDiff',['elat']);
+}
+function __poisson_lateralExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#poisson_lateralTable','poisson-lateral.csv'); } catch(e){}
+}
+function __poisson_lateralPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#poisson_lateralPresets',[
+        {label:'默认',labelEn:'Default',values:{nu:'0.3', el:'0.001'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{nu:'0.6', el:'0.002'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{nu:'0.15', el:'0.0005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __poisson_lateralExtras(); }catch(e){} };
+function __poisson_lateralBoot(){ try{ __poisson_lateralPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __poisson_lateralBoot();
+else document.addEventListener('DOMContentLoaded', __poisson_lateralBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

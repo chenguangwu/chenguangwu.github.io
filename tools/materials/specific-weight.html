@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="specific_weightPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__specific_weightExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="specific_weightTable"></div>
+    <div id="specific_weightDiff"></div>
+    <div id="specific_weightHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,45 @@ function calcTool(){
 function resetForm(){document.getElementById('rho').value = '7850';
       calcTool();}
 calcTool();
+
+function __specific_weightNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __specific_weightExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho = num('rho');
+    var g = 9.81;
+    var gamma = rho * g;
+    if (!isFinite(__specific_weightNum('rho'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#specific_weightTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['重度 γ (N/m³)', gamma.toFixed(1)],
+            ['γ (kN/m³)', (gamma / 1000).toFixed(2)],
+            ['密度复算 (kg/m3)', (gamma/9.81).toFixed(3)],
+            ['相对密度（水=1）', (rho/1000).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({rho:__specific_weightNum('rho'), g:g});
+    TBKit.history.mount('#specific_weightHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; calcTool(); });
+    TBKit.util.diffBox('#specific_weightDiff',['g']);
+}
+function __specific_weightExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#specific_weightTable','specific-weight.csv'); } catch(e){}
+}
+function __specific_weightPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#specific_weightPresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'7850'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'15700'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'3925'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __specific_weightExtras(); }catch(e){} };
+function __specific_weightBoot(){ try{ __specific_weightPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __specific_weightBoot();
+else document.addEventListener('DOMContentLoaded', __specific_weightBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

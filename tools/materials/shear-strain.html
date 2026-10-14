@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="shear_strainPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__shear_strainExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="shear_strainTable"></div>
+    <div id="shear_strainDiff"></div>
+    <div id="shear_strainHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('tau').value = '50e6';
       document.getElementById('G').value = '80e9';
       calcTool();}
 calcTool();
+
+function __shear_strainNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __shear_strainExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var tau=num('tau'),G=num('G');
+    var g=tau/G;
+    if (!isFinite(__shear_strainNum('tau')) || !isFinite(__shear_strainNum('G'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#shear_strainTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['剪应变 γ', g.toExponential(3)],
+            ['剪应变 (μrad)', (g*1e6).toExponential(3)],
+            ['剪切角 (rad)', (Math.atan(g)).toExponential(4)],
+            ['剪切角 (°)', (g*180/Math.PI).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({tau:__shear_strainNum('tau'), G:__shear_strainNum('G'), g:g});
+    TBKit.history.mount('#shear_strainHist',function(rec){ if(rec.tau!=null)document.getElementById('tau').value=rec.tau; if(rec.G!=null)document.getElementById('G').value=rec.G; calcTool(); });
+    TBKit.util.diffBox('#shear_strainDiff',['g']);
+}
+function __shear_strainExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#shear_strainTable','shear-strain.csv'); } catch(e){}
+}
+function __shear_strainPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#shear_strainPresets',[
+        {label:'默认',labelEn:'Default',values:{tau:'50e6', G:'80e9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{tau:'100000000', G:'160000000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{tau:'25000000', G:'40000000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __shear_strainExtras(); }catch(e){} };
+function __shear_strainBoot(){ try{ __shear_strainPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __shear_strainBoot();
+else document.addEventListener('DOMContentLoaded', __shear_strainBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

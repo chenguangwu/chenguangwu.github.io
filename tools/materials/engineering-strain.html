@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="engineering_strainPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__engineering_strainExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="engineering_strainTable"></div>
+    <div id="engineering_strainDiff"></div>
+    <div id="engineering_strainHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('L').value = '101';
       document.getElementById('L0').value = '100';
       calcTool();}
 calcTool();
+
+function __engineering_strainNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __engineering_strainExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L = num('L'), L0 = num('L0');
+    var eps = (L - L0) / L0;
+    if (!isFinite(__engineering_strainNum('L')) || !isFinite(__engineering_strainNum('L0'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#engineering_strainTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['工程应变 ε', eps.toFixed(5)],
+            ['伸长率 (%)', (eps * 100).toFixed(3)],
+            ['真实应变 ln(L/L0)', (Math.log(L/L0)).toFixed(6)],
+            ['长度变化 (同单位)', (L-L0).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({L:__engineering_strainNum('L'), L0:__engineering_strainNum('L0'), eps:eps});
+    TBKit.history.mount('#engineering_strainHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.L0!=null)document.getElementById('L0').value=rec.L0; calcTool(); });
+    TBKit.util.diffBox('#engineering_strainDiff',['eps']);
+}
+function __engineering_strainExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#engineering_strainTable','engineering-strain.csv'); } catch(e){}
+}
+function __engineering_strainPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#engineering_strainPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'101', L0:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'202', L0:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'50.5', L0:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __engineering_strainExtras(); }catch(e){} };
+function __engineering_strainBoot(){ try{ __engineering_strainPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __engineering_strainBoot();
+else document.addEventListener('DOMContentLoaded', __engineering_strainBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

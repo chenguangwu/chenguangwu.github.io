@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mass_from_densityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mass_from_densityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mass_from_densityTable"></div>
+    <div id="mass_from_densityDiff"></div>
+    <div id="mass_from_densityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('rho').value = '7850';
       document.getElementById('V').value = '0.002';
       calcTool();}
 calcTool();
+
+function __mass_from_densityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mass_from_densityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho = num('rho'), V = num('V');
+    var m = rho * V;
+    if (!isFinite(__mass_from_densityNum('rho')) || !isFinite(__mass_from_densityNum('V'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mass_from_densityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['质量 m (kg)', m.toFixed(3)],
+            ['m (g)', (m * 1000).toFixed(1)],
+            ['密度复算 (kg/m3)', (m/(V||1)).toFixed(4)],
+            ['比容 V/m (m3/kg)', (V/(m||1)).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({rho:__mass_from_densityNum('rho'), V:__mass_from_densityNum('V'), m:m});
+    TBKit.history.mount('#mass_from_densityHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.V!=null)document.getElementById('V').value=rec.V; calcTool(); });
+    TBKit.util.diffBox('#mass_from_densityDiff',['m']);
+}
+function __mass_from_densityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mass_from_densityTable','mass-from-density.csv'); } catch(e){}
+}
+function __mass_from_densityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mass_from_densityPresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'7850', V:'0.002'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'15700', V:'0.004'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'3925', V:'0.001'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mass_from_densityExtras(); }catch(e){} };
+function __mass_from_densityBoot(){ try{ __mass_from_densityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mass_from_densityBoot();
+else document.addEventListener('DOMContentLoaded', __mass_from_densityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

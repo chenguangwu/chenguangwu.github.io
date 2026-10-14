@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fracture_toughnessPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fracture_toughnessExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fracture_toughnessTable"></div>
+    <div id="fracture_toughnessDiff"></div>
+    <div id="fracture_toughnessHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -268,6 +274,43 @@ function resetForm(){document.getElementById('Y').value = '1.12';
       document.getElementById('a').value = '0.01';
       calcTool();}
 calcTool();
+
+function __fracture_toughnessNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fracture_toughnessExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Y=num('Y'),sig=num('sig'),a=num('a');
+    var K=Y*sig*Math.sqrt(Math.PI*a);
+    if (!isFinite(__fracture_toughnessNum('Y')) || !isFinite(__fracture_toughnessNum('sig')) || !isFinite(__fracture_toughnessNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fracture_toughnessTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['应力强度因子 K (MPa√m)', (K/1e6).toFixed(2)],
+            ['远端应力 Y·σ (Pa)', (Y*sig).toFixed(0)],
+            ['几何因子 √(πa) (m^0.5)', Math.sqrt(Math.PI*a).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({Y:__fracture_toughnessNum('Y'), sig:__fracture_toughnessNum('sig'), a:__fracture_toughnessNum('a'), K:K});
+    TBKit.history.mount('#fracture_toughnessHist',function(rec){ if(rec.Y!=null)document.getElementById('Y').value=rec.Y; if(rec.sig!=null)document.getElementById('sig').value=rec.sig; if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+    TBKit.util.diffBox('#fracture_toughnessDiff',['K']);
+}
+function __fracture_toughnessExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fracture_toughnessTable','fracture-toughness.csv'); } catch(e){}
+}
+function __fracture_toughnessPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fracture_toughnessPresets',[
+        {label:'默认',labelEn:'Default',values:{Y:'1.12', sig:'100e6', a:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Y:'2.24', sig:'200000000', a:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Y:'0.56', sig:'50000000', a:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fracture_toughnessExtras(); }catch(e){} };
+function __fracture_toughnessBoot(){ try{ __fracture_toughnessPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fracture_toughnessBoot();
+else document.addEventListener('DOMContentLoaded', __fracture_toughnessBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

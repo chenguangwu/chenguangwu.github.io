@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="elastic_energy_densityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__elastic_energy_densityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="elastic_energy_densityTable"></div>
+    <div id="elastic_energy_densityDiff"></div>
+    <div id="elastic_energy_densityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('sig').value = '200e6';
       document.getElementById('E').value = '200e9';
       calcTool();}
 calcTool();
+
+function __elastic_energy_densityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __elastic_energy_densityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var sig=num('sig'),E=num('E');
+    var u=sig*sig/(2*E);
+    if (!isFinite(__elastic_energy_densityNum('sig')) || !isFinite(__elastic_energy_densityNum('E'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#elastic_energy_densityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['应变能密度 u (kJ/m³)', (u/1e3).toFixed(1)],
+            ['弹性应变 σ/E', (sig/E).toFixed(6)],
+            ['应力 (MPa)', (sig*1e-6).toFixed(4)],
+            ['弹性模量 (GPa)', (E*1e-9).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({sig:__elastic_energy_densityNum('sig'), E:__elastic_energy_densityNum('E'), u:u});
+    TBKit.history.mount('#elastic_energy_densityHist',function(rec){ if(rec.sig!=null)document.getElementById('sig').value=rec.sig; if(rec.E!=null)document.getElementById('E').value=rec.E; calcTool(); });
+    TBKit.util.diffBox('#elastic_energy_densityDiff',['u']);
+}
+function __elastic_energy_densityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#elastic_energy_densityTable','elastic-energy-density.csv'); } catch(e){}
+}
+function __elastic_energy_densityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#elastic_energy_densityPresets',[
+        {label:'默认',labelEn:'Default',values:{sig:'200e6', E:'200e9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{sig:'400000000', E:'400000000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{sig:'100000000', E:'100000000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __elastic_energy_densityExtras(); }catch(e){} };
+function __elastic_energy_densityBoot(){ try{ __elastic_energy_densityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __elastic_energy_densityBoot();
+else document.addEventListener('DOMContentLoaded', __elastic_energy_densityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bulk_modulusPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bulk_modulusExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bulk_modulusTable"></div>
+    <div id="bulk_modulusDiff"></div>
+    <div id="bulk_modulusHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -269,6 +275,44 @@ function resetForm(){document.getElementById('E').value = '200e9';
       document.getElementById('nu').value = '0.3';
       calcTool();}
 calcTool();
+
+function __bulk_modulusNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bulk_modulusExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var E = num('E'), nu = num('nu');
+    var K = E / (3 * (1 - 2 * nu));
+    if (!isFinite(__bulk_modulusNum('E')) || !isFinite(__bulk_modulusNum('nu'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bulk_modulusTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['体积模量 K (Pa)', K.toExponential(3)],
+            ['K (GPa)', (K / 1e9).toFixed(2)],
+            ['剪切模量 G (Pa)', (E/(2*(1+nu))).toExponential(4)],
+            ['拉梅常数 lambda (Pa)', (E*nu/((1+nu)*(1-2*nu))).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({E:__bulk_modulusNum('E'), nu:__bulk_modulusNum('nu'), K:K});
+    TBKit.history.mount('#bulk_modulusHist',function(rec){ if(rec.E!=null)document.getElementById('E').value=rec.E; if(rec.nu!=null)document.getElementById('nu').value=rec.nu; calcTool(); });
+    TBKit.util.diffBox('#bulk_modulusDiff',['K']);
+}
+function __bulk_modulusExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bulk_modulusTable','bulk-modulus.csv'); } catch(e){}
+}
+function __bulk_modulusPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bulk_modulusPresets',[
+        {label:'默认',labelEn:'Default',values:{E:'200e9', nu:'0.3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{E:'400000000000', nu:'0.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{E:'100000000000', nu:'0.15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bulk_modulusExtras(); }catch(e){} };
+function __bulk_modulusBoot(){ try{ __bulk_modulusPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bulk_modulusBoot();
+else document.addEventListener('DOMContentLoaded', __bulk_modulusBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
