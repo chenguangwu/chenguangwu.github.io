@@ -3492,7 +3492,18 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         return _ind_cache[ind].get(base, {}).get('zh-CN', {}).get('title')
 
     def _zh_desc_of(rt):
-        # 相关工具卡片描述：贪心取首个含中文候选（与搜索索引/hot-tools 同源修复），
+        # 相关工具卡片描述：先走唯一权威源 scripts/tool_desc_source.py（i18n 非弱 desc →
+        # intro → 人工精翻表 → 页面 meta → name），与分类页/搜索/首页/导航四处同源。
+        # 旧实现只判「含中文」就返回，而 i18n 的 zh-CN.desc 常常就是标题本身
+        # （如「成本（核算/分析/控制）方法」）→ 7913 张卡片 rt-desc 退化成工具名，导流文案等于没有。
+        try:
+            _auth = TDS.zh_desc(rt, max_len=80)
+        except Exception:
+            _auth = ''
+        _nm = rt.get('name', '') or ''
+        if _auth and _auth != _nm and _has_cjk(_auth):
+            return _auth
+        # 兜底：贪心取首个含中文候选（与搜索索引/hot-tools 同源修复），
         # 避免中文模式相关工具卡片显示英文 proper-noun（如 "Grace Score"）。
         # 候选优先级：i18n zh-CN.desc > zh-CN.intro > tools.json 自带 desc > 中文名；全无中文才回退英文原名。
         ind = rt.get('industry', 'it')
