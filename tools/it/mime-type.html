@@ -159,7 +159,7 @@ s.parentNode.insertBefore(el, s);
 
     <input type="text" id="search" placeholder="搜索扩展名或 MIME 类型..." oninput="render()" style="margin-bottom:12px;">
     <div class="cat-filter" id="catFilter"></div>
-    <div id="list"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__mime_typeExport()">导出明细 CSV</button></div><div id="list"></div> <div id="mime_typeTable"></div> <div id="mime_typeDiff"></div> <div id="mime_typeChart"></div> <div id="mime_typeHist"></div>
     <div id="count" style="margin-top:12px;color:var(--text-muted);font-size:13px;"></div>
   </div>
 
@@ -339,6 +339,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __mime_type_last=0,__mime_type_skip=false;
+function __mime_typeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __mime_typeResText(){
+    var r=document.getElementById('list');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __mime_typeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __mime_typeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__mime_typeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#mime_typeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#mime_typeDiff');
+        TBKit.history.mount('#mime_typeHist',function(rec){
+            __mime_type_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                render();
+            }catch(e2){}
+            __mime_type_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__mime_typeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#mime_typeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __mime_typeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__mime_type_skip) return;
+    var snap=__mime_typeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__mime_typeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__mime_type_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __mime_type_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __mime_typeRender(keys,rk,en);
+}
+function __mime_typeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mime_typeTable','mime-type.csv'); } catch(e){}
+}
+function __mime_typePresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __mime_type_f0=(typeof render==='function')?render:null;
+if(__mime_type_f0){
+    render=function(){ var __r=__mime_type_f0.apply(null,arguments); try{ __mime_typeExtras(); }catch(e){} return __r; };
+}
+function __mime_typeBoot(){ try{ __mime_typePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mime_typeBoot();
+else document.addEventListener('DOMContentLoaded', __mime_typeBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

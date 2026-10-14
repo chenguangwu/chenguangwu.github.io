@@ -160,7 +160,7 @@ s.parentNode.insertBefore(el, s);
     
     <div class="cat-row" id="cat-buttons"></div>
     
-    <div id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__phrase_translatorExport()">导出明细 CSV</button></div><div id="result"></div> <div id="phrase_translatorTable"></div> <div id="phrase_translatorDiff"></div> <div id="phrase_translatorChart"></div> <div id="phrase_translatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -324,6 +324,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __phrase_translator_last=0,__phrase_translator_skip=false;
+function __phrase_translatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __phrase_translatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __phrase_translatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __phrase_translatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__phrase_translatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#phrase_translatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#phrase_translatorDiff');
+        TBKit.history.mount('#phrase_translatorHist',function(rec){
+            __phrase_translator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                doSearch();
+            }catch(e2){}
+            __phrase_translator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__phrase_translatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#phrase_translatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __phrase_translatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__phrase_translator_skip) return;
+    var snap=__phrase_translatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__phrase_translatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__phrase_translator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __phrase_translator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __phrase_translatorRender(keys,rk,en);
+}
+function __phrase_translatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#phrase_translatorTable','phrase-translator.csv'); } catch(e){}
+}
+function __phrase_translatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __phrase_translator_f0=(typeof doSearch==='function')?doSearch:null;
+if(__phrase_translator_f0){
+    doSearch=function(){ var __r=__phrase_translator_f0.apply(null,arguments); try{ __phrase_translatorExtras(); }catch(e){} return __r; };
+}
+function __phrase_translatorBoot(){ try{ __phrase_translatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __phrase_translatorBoot();
+else document.addEventListener('DOMContentLoaded', __phrase_translatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

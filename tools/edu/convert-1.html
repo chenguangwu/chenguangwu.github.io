@@ -117,8 +117,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>源时间 (HH:MM)</label><input type="text" id="val" value="12:00" oninput="calc()"></div></div>
 <div class="input-row"><div><label>源时区</label><select id="from" onchange="calc()"><option value="-8">洛杉矶 PST (UTC-8)</option><option value="-7">丹佛 MST (UTC-7)</option><option value="-6">芝加哥 CST (UTC-6)</option><option value="-5">纽约 EST (UTC-5)</option><option value="0" selected>伦敦 UTC+0</option><option value="1">柏林/巴黎 CET (UTC+1)</option><option value="2">雅典 EET (UTC+2)</option><option value="3">莫斯科 (UTC+3)</option><option value="5">卡拉奇 (UTC+5)</option><option value="5.5">印度 IST (UTC+5.5)</option><option value="7">曼谷 (UTC+7)</option><option value="8">北京/上海/香港/新加坡 CST (UTC+8)</option><option value="9">东京/首尔 (UTC+9)</option><option value="10">悉尼 AEST (UTC+10)</option></select></div>
 <div><label>目标时区</label><select id="to" onchange="calc()"><option value="-8">洛杉矶 PST (UTC-8)</option><option value="-7">丹佛 MST (UTC-7)</option><option value="-6">芝加哥 CST (UTC-6)</option><option value="-5">纽约 EST (UTC-5)</option><option value="0">伦敦 UTC+0</option><option value="1" selected>柏林/巴黎 CET (UTC+1)</option><option value="2">雅典 EET (UTC+2)</option><option value="3">莫斯科 (UTC+3)</option><option value="5">卡拉奇 (UTC+5)</option><option value="5.5">印度 IST (UTC+5.5)</option><option value="7">曼谷 (UTC+7)</option><option value="8">北京/上海/香港/新加坡 CST (UTC+8)</option><option value="9">东京/首尔 (UTC+9)</option><option value="10">悉尼 AEST (UTC+10)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">转换</button></div>
-<div class="result-box" id="res"></div></div>
+<div class="toolbar"><div id="convert_1Presets"></div><button type="button" class="btn primary" onclick="calc()">转换</button><button class="btn" type="button" onclick="__convert_1Export()">导出明细 CSV</button></div>
+<div class="result-box" id="res"></div> <div id="convert_1Table"></div> <div id="convert_1Diff"></div> <div id="convert_1Chart"></div> <div id="convert_1Hist"></div></div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
@@ -227,6 +227,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __convert_1_last=0,__convert_1_skip=false;
+function __convert_1Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __convert_1ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __convert_1Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __convert_1Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__convert_1Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#convert_1Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#convert_1Diff');
+        TBKit.history.mount('#convert_1Hist',function(rec){
+            __convert_1_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __convert_1_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__convert_1Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#convert_1Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __convert_1Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__convert_1_skip) return;
+    var snap=__convert_1Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__convert_1ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__convert_1_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __convert_1_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __convert_1Render(keys,rk,en);
+}
+function __convert_1Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#convert_1Table','convert-1.csv'); } catch(e){}
+}
+function __convert_1Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#convert_1Presets',[{label:'默认参数',labelEn:'Default',values:{'val':'12:00', 'from':'-8', 'to':'-8'}}],function(){ calc(); });
+}
+var __convert_1_f0=(typeof calc==='function')?calc:null;
+if(__convert_1_f0){
+    calc=function(){ var __r=__convert_1_f0.apply(null,arguments); try{ __convert_1Extras(); }catch(e){} return __r; };
+}
+function __convert_1Boot(){ try{ __convert_1Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __convert_1Boot();
+else document.addEventListener('DOMContentLoaded', __convert_1Boot);
 </script>
 
 </body>

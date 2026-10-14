@@ -140,11 +140,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="doSearch()">搜索</button>
+      <div id="ingredient_substitutePresets"></div><button type="button" class="btn primary" onclick="doSearch()">搜索</button><button class="btn" type="button" onclick="__ingredient_substituteExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="showAll()">显示全部</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="ingredient_substituteTable"></div> <div id="ingredient_substituteDiff"></div> <div id="ingredient_substituteChart"></div> <div id="ingredient_substituteHist"></div>
   </div>
 
   <div class="card">
@@ -403,6 +403,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __ingredient_substitute_last=0,__ingredient_substitute_skip=false;
+function __ingredient_substituteSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ingredient_substituteResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ingredient_substituteTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ingredient_substituteRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ingredient_substituteTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ingredient_substituteTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ingredient_substituteDiff');
+        TBKit.history.mount('#ingredient_substituteHist',function(rec){
+            __ingredient_substitute_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                doSearch();
+            }catch(e2){}
+            __ingredient_substitute_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ingredient_substituteTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ingredient_substituteChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ingredient_substituteExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ingredient_substitute_skip) return;
+    var snap=__ingredient_substituteSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ingredient_substituteResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ingredient_substitute_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ingredient_substitute_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ingredient_substituteRender(keys,rk,en);
+}
+function __ingredient_substituteExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ingredient_substituteTable','ingredient-substitute.csv'); } catch(e){}
+}
+function __ingredient_substitutePresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __ingredient_substitute_f0=(typeof doSearch==='function')?doSearch:null;
+if(__ingredient_substitute_f0){
+    doSearch=function(){ var __r=__ingredient_substitute_f0.apply(null,arguments); try{ __ingredient_substituteExtras(); }catch(e){} return __r; };
+}
+function __ingredient_substituteBoot(){ try{ __ingredient_substitutePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ingredient_substituteBoot();
+else document.addEventListener('DOMContentLoaded', __ingredient_substituteBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用食材替代查询</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>搜索食材</li><li>如：蚝油、料酒、八角...</li></ul><h2>适用场景</h2><p>适用于烹饪临时缺料、家人过敏忌口或素食需求的场景：快速查找风味与质地相近的替代食材及替换比例，尽量还原原菜结构与口味，避免半成品报废。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>食材替代查询是做什么的？</dt><dd>食材替代查询器，输入食材搜索可替代方案或查看替换建议与比例，解决缺料时的烹饪替代。</dd><dt>如何使用食材替代查询？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>食材替代查询适合哪些场景？</dt><dd>适用于烹饪临时缺料、家人过敏忌口或素食需求的场景：快速查找风味与质地相近的替代食材及替换比例，尽量还原原菜结构与口味，避免半成品报废。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

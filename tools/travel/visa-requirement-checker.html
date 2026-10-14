@@ -184,7 +184,7 @@ s.parentNode.insertBefore(el, s);
         <span class="filter-chip" onclick="filterType('eta',this)">📱 电子签</span>
         <span class="filter-chip" onclick="filterType('required',this)">📋 需签证</span>
       </div>
-      <div id="countryList"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__visa_requirement_checkerExport()">导出明细 CSV</button></div><div id="countryList"></div> <div id="visa_requirement_checkerTable"></div> <div id="visa_requirement_checkerDiff"></div> <div id="visa_requirement_checkerChart"></div> <div id="visa_requirement_checkerHist"></div>
     </div>
 
     <div id="tab-regions" class="tab-content">
@@ -495,6 +495,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __visa_requirement_checker_last=0,__visa_requirement_checker_skip=false;
+function __visa_requirement_checkerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __visa_requirement_checkerResText(){
+    var r=document.getElementById('countryList');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __visa_requirement_checkerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __visa_requirement_checkerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__visa_requirement_checkerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#visa_requirement_checkerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#visa_requirement_checkerDiff');
+        TBKit.history.mount('#visa_requirement_checkerHist',function(rec){
+            __visa_requirement_checker_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                filter();
+            }catch(e2){}
+            __visa_requirement_checker_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__visa_requirement_checkerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#visa_requirement_checkerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __visa_requirement_checkerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__visa_requirement_checker_skip) return;
+    var snap=__visa_requirement_checkerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__visa_requirement_checkerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__visa_requirement_checker_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __visa_requirement_checker_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __visa_requirement_checkerRender(keys,rk,en);
+}
+function __visa_requirement_checkerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#visa_requirement_checkerTable','visa-requirement-checker.csv'); } catch(e){}
+}
+function __visa_requirement_checkerPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __visa_requirement_checker_f0=(typeof filter==='function')?filter:null;
+if(__visa_requirement_checker_f0){
+    filter=function(){ var __r=__visa_requirement_checker_f0.apply(null,arguments); try{ __visa_requirement_checkerExtras(); }catch(e){} return __r; };
+}
+function __visa_requirement_checkerBoot(){ try{ __visa_requirement_checkerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __visa_requirement_checkerBoot();
+else document.addEventListener('DOMContentLoaded', __visa_requirement_checkerBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

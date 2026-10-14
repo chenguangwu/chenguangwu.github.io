@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h2>📋 卷杠对照表</h2>
-    <div id="rodList"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__perming_rodExport()">导出明细 CSV</button></div><div id="rodList"></div> <div id="perming_rodTable"></div> <div id="perming_rodDiff"></div> <div id="perming_rodChart"></div> <div id="perming_rodHist"></div>
     <div id="detailPanel"></div>
   </div>
 
@@ -349,6 +349,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __perming_rod_last=0,__perming_rod_skip=false;
+function __perming_rodSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __perming_rodResText(){
+    var r=document.getElementById('rodList');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __perming_rodTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __perming_rodRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__perming_rodTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#perming_rodTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#perming_rodDiff');
+        TBKit.history.mount('#perming_rodHist',function(rec){
+            __perming_rod_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                filterRods();
+            }catch(e2){}
+            __perming_rod_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__perming_rodTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#perming_rodChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __perming_rodExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__perming_rod_skip) return;
+    var snap=__perming_rodSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__perming_rodResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__perming_rod_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __perming_rod_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __perming_rodRender(keys,rk,en);
+}
+function __perming_rodExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#perming_rodTable','perming-rod.csv'); } catch(e){}
+}
+function __perming_rodPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#perming_rodPresets',[{label:'默认参数',labelEn:'Default',values:{'targetCurl':'all', 'hairLen':'short'}}],function(){ filterRods(); });
+}
+var __perming_rod_f0=(typeof filterRods==='function')?filterRods:null;
+if(__perming_rod_f0){
+    filterRods=function(){ var __r=__perming_rod_f0.apply(null,arguments); try{ __perming_rodExtras(); }catch(e){} return __r; };
+}
+function __perming_rodBoot(){ try{ __perming_rodPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __perming_rodBoot();
+else document.addEventListener('DOMContentLoaded', __perming_rodBoot);
 </script>
 
 
