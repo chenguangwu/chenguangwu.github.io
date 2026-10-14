@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wind_directionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wind_directionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wind_directionTable"></div>
+    <div id="wind_directionDiff"></div>
+    <div id="wind_directionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -190,6 +196,43 @@ function calcTool(){
 function resetForm(){document.getElementById('deg').value = 225;
       calcTool();}
 calcTool();
+
+function __wind_directionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wind_directionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var deg=((num('deg')%360)+360)%360;
+    var names=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+    var idx = Math.round(deg/22.5)%16;
+    if (!isFinite(__wind_directionNum('deg'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wind_directionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['方位角 (rad)', (deg*Math.PI/180).toFixed(4)],
+            ['相反风向', names[(idx+8)%16]],
+        ]
+    });
+    TBKit.history.record({deg:__wind_directionNum('deg'), names:names});
+    TBKit.history.mount('#wind_directionHist',function(rec){ if(rec.deg!=null)document.getElementById('deg').value=rec.deg; calcTool(); });
+    TBKit.util.diffBox('#wind_directionDiff',['names']);
+}
+function __wind_directionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wind_directionTable','wind-direction.csv'); } catch(e){}
+}
+function __wind_directionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wind_directionPresets',[
+        {label:'默认',labelEn:'Default',values:{deg:'225'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{deg:'450'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{deg:'112.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wind_directionExtras(); }catch(e){} };
+function __wind_directionBoot(){ try{ __wind_directionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wind_directionBoot();
+else document.addEventListener('DOMContentLoaded', __wind_directionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

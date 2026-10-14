@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="apparent_temperaturePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__apparent_temperatureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="apparent_temperatureTable"></div>
+    <div id="apparent_temperatureDiff"></div>
+    <div id="apparent_temperatureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,44 @@ function resetForm(){document.getElementById('T').value = 30;
       document.getElementById('ws').value = 2;
       calcTool();}
 calcTool();
+
+function __apparent_temperatureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __apparent_temperatureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'), RH=num('RH'), ws=num('ws');
+    var e = (RH/100)*6.105*Math.exp(17.27*T/(237.7+T)); // hPa
+    var AT = T + 0.33*e - 0.70*ws - 4.0;
+    if (!isFinite(__apparent_temperatureNum('T')) || !isFinite(__apparent_temperatureNum('RH')) || !isFinite(__apparent_temperatureNum('ws'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#apparent_temperatureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['体感温度 AT（Steadman 简化）', AT.toFixed(1)+' °C'],
+            ['水汽压 e (hPa)', (e).toFixed(2)],
+            ['体感温差 (°C)', (T-AT).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({T:__apparent_temperatureNum('T'), RH:__apparent_temperatureNum('RH'), ws:__apparent_temperatureNum('ws'), e:e});
+    TBKit.history.mount('#apparent_temperatureHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.RH!=null)document.getElementById('RH').value=rec.RH; if(rec.ws!=null)document.getElementById('ws').value=rec.ws; calcTool(); });
+    TBKit.util.diffBox('#apparent_temperatureDiff',['e']);
+}
+function __apparent_temperatureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#apparent_temperatureTable','apparent-temperature.csv'); } catch(e){}
+}
+function __apparent_temperaturePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#apparent_temperaturePresets',[
+        {label:'默认',labelEn:'Default',values:{T:'30', RH:'70', ws:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'60', RH:'140', ws:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'15', RH:'35', ws:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __apparent_temperatureExtras(); }catch(e){} };
+function __apparent_temperatureBoot(){ try{ __apparent_temperaturePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __apparent_temperatureBoot();
+else document.addEventListener('DOMContentLoaded', __apparent_temperatureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

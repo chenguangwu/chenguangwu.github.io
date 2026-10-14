@@ -123,12 +123,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="precipitation_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__precipitation_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="precipitation_rateTable"></div>
+    <div id="precipitation_rateDiff"></div>
+    <div id="precipitation_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -185,6 +191,44 @@ function calcTool(){
 function resetForm(){document.getElementById('mm').value = 12;
       calcTool();}
 calcTool();
+
+function __precipitation_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __precipitation_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var mm=num('mm');
+    var lv = mm<2.5?'小雨' : mm<8?'中雨' : mm<16?'大雨' : mm<50?'暴雨' : mm<100?'大暴雨':'特大暴雨';
+    if (!isFinite(__precipitation_rateNum('mm'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#precipitation_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['降雨等级（mm/h）', lv],
+            ['按 24 小时折算降水量 (mm)', (mm*24).toFixed(2)],
+            ['降水量 (in 英寸)', (mm/25.4).toFixed(4)],
+            ['降水强度 (mm/s)', (mm*1000/3600).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({mm:__precipitation_rateNum('mm'), lv:lv});
+    TBKit.history.mount('#precipitation_rateHist',function(rec){ if(rec.mm!=null)document.getElementById('mm').value=rec.mm; calcTool(); });
+    TBKit.util.diffBox('#precipitation_rateDiff',['lv']);
+}
+function __precipitation_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#precipitation_rateTable','precipitation-rate.csv'); } catch(e){}
+}
+function __precipitation_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#precipitation_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{mm:'12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{mm:'24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mm:'6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __precipitation_rateExtras(); }catch(e){} };
+function __precipitation_rateBoot(){ try{ __precipitation_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __precipitation_rateBoot();
+else document.addEventListener('DOMContentLoaded', __precipitation_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="dew_pointPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__dew_pointExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dew_pointTable"></div>
+    <div id="dew_pointDiff"></div>
+    <div id="dew_pointHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,45 @@ function resetForm(){document.getElementById('T').value = 25;
       document.getElementById('RH').value = 60;
       calcTool();}
 calcTool();
+
+function __dew_pointNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dew_pointExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'), RH=num('RH');
+    var a=17.625, b=243.04;
+    var g = Math.log(Math.max(RH,1)/100) + a*T/(b+T);
+    var Td = b*g/(a-g);
+    if (!isFinite(__dew_pointNum('T')) || !isFinite(__dew_pointNum('RH'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#dew_pointTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['露点温度 Td', Td.toFixed(2)+' °C'],
+            ['温度露点差 (摄氏度)', (T-Td).toFixed(2)],
+            ['水汽压 e (hPa)', (6.112*Math.exp(a*Td/(b+Td))).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({T:__dew_pointNum('T'), RH:__dew_pointNum('RH'), a:a});
+    TBKit.history.mount('#dew_pointHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.RH!=null)document.getElementById('RH').value=rec.RH; calcTool(); });
+    TBKit.util.diffBox('#dew_pointDiff',['a']);
+}
+function __dew_pointExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dew_pointTable','dew-point.csv'); } catch(e){}
+}
+function __dew_pointPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dew_pointPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'25', RH:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'50', RH:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'12.5', RH:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __dew_pointExtras(); }catch(e){} };
+function __dew_pointBoot(){ try{ __dew_pointPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dew_pointBoot();
+else document.addEventListener('DOMContentLoaded', __dew_pointBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

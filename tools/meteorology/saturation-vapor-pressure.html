@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="saturation_vapor_pressurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__saturation_vapor_pressureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="saturation_vapor_pressureTable"></div>
+    <div id="saturation_vapor_pressureDiff"></div>
+    <div id="saturation_vapor_pressureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -190,6 +196,44 @@ function calcTool(){
 function resetForm(){document.getElementById('T').value = 25;
       calcTool();}
 calcTool();
+
+function __saturation_vapor_pressureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __saturation_vapor_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T');
+    var es = 6.1094*Math.exp(17.625*T/(T+243.04));
+    if (!isFinite(__saturation_vapor_pressureNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#saturation_vapor_pressureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['饱和水汽压 e_s', es.toFixed(2)+' hPa'],
+            ['饱和水汽压 (mmHg 毫米汞柱)', (es*7.50062).toFixed(3)],
+            ['饱和水汽压 (Pa 帕)', (es*100).toFixed(2)],
+            ['Magnus 与 Bolton 参数化之比 (%)', (es/Math.max(6.112*Math.exp(17.67*T/(T+243.5)),1e-9)*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({T:__saturation_vapor_pressureNum('T'), es:es});
+    TBKit.history.mount('#saturation_vapor_pressureHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#saturation_vapor_pressureDiff',['es']);
+}
+function __saturation_vapor_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#saturation_vapor_pressureTable','saturation-vapor-pressure.csv'); } catch(e){}
+}
+function __saturation_vapor_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#saturation_vapor_pressurePresets',[
+        {label:'默认',labelEn:'Default',values:{T:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'12.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __saturation_vapor_pressureExtras(); }catch(e){} };
+function __saturation_vapor_pressureBoot(){ try{ __saturation_vapor_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __saturation_vapor_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __saturation_vapor_pressureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

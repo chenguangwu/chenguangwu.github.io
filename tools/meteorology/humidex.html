@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="humidexPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__humidexExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="humidexTable"></div>
+    <div id="humidexDiff"></div>
+    <div id="humidexHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,44 @@ function resetForm(){document.getElementById('T').value = 30;
       document.getElementById('RH').value = 70;
       calcTool();}
 calcTool();
+
+function __humidexNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __humidexExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'), RH=num('RH');
+    var e = (RH/100)*6.1094*Math.exp(17.625*T/(T+243.04)); // hPa
+    var H = T + 0.5555*(e - 10);
+    if (!isFinite(__humidexNum('T')) || !isFinite(__humidexNum('RH'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#humidexTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['湿热指数 Humidex', H.toFixed(1)],
+            ['水汽压 e (hPa)', e.toFixed(2)],
+            ['湿热指数增量 (度)', (H-T).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({T:__humidexNum('T'), RH:__humidexNum('RH'), e:e});
+    TBKit.history.mount('#humidexHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.RH!=null)document.getElementById('RH').value=rec.RH; calcTool(); });
+    TBKit.util.diffBox('#humidexDiff',['e']);
+}
+function __humidexExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#humidexTable','humidex.csv'); } catch(e){}
+}
+function __humidexPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#humidexPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'30', RH:'70'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'60', RH:'140'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'15', RH:'35'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __humidexExtras(); }catch(e){} };
+function __humidexBoot(){ try{ __humidexPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __humidexBoot();
+else document.addEventListener('DOMContentLoaded', __humidexBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

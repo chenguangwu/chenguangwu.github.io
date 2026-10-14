@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wind_chillPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wind_chillExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wind_chillTable"></div>
+    <div id="wind_chillDiff"></div>
+    <div id="wind_chillHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -261,6 +267,43 @@ function resetForm(){document.getElementById('T').value = -5;
       document.getElementById('v').value = 20;
       calcTool();}
 calcTool();
+
+function __wind_chillNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wind_chillExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'), v=num('v');
+    var WCT = 13.12 + 0.6215*T - 11.37*Math.pow(v,0.16) + 0.3965*T*Math.pow(v,0.16);
+    if (!isFinite(__wind_chillNum('T')) || !isFinite(__wind_chillNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wind_chillTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['风寒指数 WCT', WCT.toFixed(1)+' °C'],
+            ['风寒降温幅度 (度)', (WCT-T).toFixed(1)],
+            ['风速 (km/h)', (v*3.6).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({T:__wind_chillNum('T'), v:__wind_chillNum('v'), WCT:WCT});
+    TBKit.history.mount('#wind_chillHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#wind_chillDiff',['WCT']);
+}
+function __wind_chillExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wind_chillTable','wind-chill.csv'); } catch(e){}
+}
+function __wind_chillPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wind_chillPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'-5', v:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'-10', v:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'-2.5', v:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wind_chillExtras(); }catch(e){} };
+function __wind_chillBoot(){ try{ __wind_chillPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wind_chillBoot();
+else document.addEventListener('DOMContentLoaded', __wind_chillBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

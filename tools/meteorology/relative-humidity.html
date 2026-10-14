@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="relative_humidityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__relative_humidityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="relative_humidityTable"></div>
+    <div id="relative_humidityDiff"></div>
+    <div id="relative_humidityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,44 @@ function resetForm(){document.getElementById('T').value = 25;
       document.getElementById('Td').value = 16.7;
       calcTool();}
 calcTool();
+
+function __relative_humidityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __relative_humidityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'), Td=num('Td');
+    var a=17.625, b=243.04;
+    var RH = 100*Math.exp((a*Td/(b+Td)) - (a*T/(b+T)));
+    if (!isFinite(__relative_humidityNum('T')) || !isFinite(__relative_humidityNum('Td'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#relative_humidityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['相对湿度 RH', RH.toFixed(1)+' %'],
+            ['温度露点差 (摄氏度)', (T-Td).toFixed(2)],
+            ['饱和水汽压 (hPa)', (6.112*Math.exp(a*T/(b+T))).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({T:__relative_humidityNum('T'), Td:__relative_humidityNum('Td'), a:a});
+    TBKit.history.mount('#relative_humidityHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.Td!=null)document.getElementById('Td').value=rec.Td; calcTool(); });
+    TBKit.util.diffBox('#relative_humidityDiff',['a']);
+}
+function __relative_humidityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#relative_humidityTable','relative-humidity.csv'); } catch(e){}
+}
+function __relative_humidityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#relative_humidityPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'25', Td:'16.7'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'50', Td:'33.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'12.5', Td:'8.35'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __relative_humidityExtras(); }catch(e){} };
+function __relative_humidityBoot(){ try{ __relative_humidityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __relative_humidityBoot();
+else document.addEventListener('DOMContentLoaded', __relative_humidityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

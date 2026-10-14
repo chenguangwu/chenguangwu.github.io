@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cloud_base_heightPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cloud_base_heightExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cloud_base_heightTable"></div>
+    <div id="cloud_base_heightDiff"></div>
+    <div id="cloud_base_heightHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,44 @@ function resetForm(){document.getElementById('T').value = 25;
       document.getElementById('Td').value = 15;
       calcTool();}
 calcTool();
+
+function __cloud_base_heightNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cloud_base_heightExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'), Td=num('Td');
+    var H = (T - Td) * 125;
+    if (!isFinite(__cloud_base_heightNum('T')) || !isFinite(__cloud_base_heightNum('Td'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cloud_base_heightTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['估算云底高度 H=(T−Td)×125', H.toFixed(0)+' m'],
+            ['温度露点差 (°C)', (T-Td).toFixed(2)],
+            ['云底高度 (ft 英尺)', (H/0.3048).toFixed(1)],
+            ['露点华氏温度 (°F)', (Td*1.8+32).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({T:__cloud_base_heightNum('T'), Td:__cloud_base_heightNum('Td'), H:H});
+    TBKit.history.mount('#cloud_base_heightHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.Td!=null)document.getElementById('Td').value=rec.Td; calcTool(); });
+    TBKit.util.diffBox('#cloud_base_heightDiff',['H']);
+}
+function __cloud_base_heightExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cloud_base_heightTable','cloud-base-height.csv'); } catch(e){}
+}
+function __cloud_base_heightPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cloud_base_heightPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'25', Td:'15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'50', Td:'30'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'12.5', Td:'7.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cloud_base_heightExtras(); }catch(e){} };
+function __cloud_base_heightBoot(){ try{ __cloud_base_heightPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cloud_base_heightBoot();
+else document.addEventListener('DOMContentLoaded', __cloud_base_heightBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

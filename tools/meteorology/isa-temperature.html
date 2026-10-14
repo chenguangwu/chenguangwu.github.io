@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="isa_temperaturePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__isa_temperatureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="isa_temperatureTable"></div>
+    <div id="isa_temperatureDiff"></div>
+    <div id="isa_temperatureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,43 @@ function calcTool(){
 function resetForm(){document.getElementById('h').value = 5;
       calcTool();}
 calcTool();
+
+function __isa_temperatureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __isa_temperatureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var h=num('h');
+    var T;
+    if (!isFinite(__isa_temperatureNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#isa_temperatureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['标准气温 T（ISA）', T.toFixed(1)+' °C'],
+            ['相对海平面温度差 (°C)', (15-T).toFixed(2)],
+            ['绝对温度 (K)', (T+273.15).toFixed(2)],
+            ['气压比（ISA 无量纲）', (Math.pow(1-2.25577e-5*h,5.25588)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({h:__isa_temperatureNum('h')});
+    TBKit.history.mount('#isa_temperatureHist',function(rec){ if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+}
+function __isa_temperatureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#isa_temperatureTable','isa-temperature.csv'); } catch(e){}
+}
+function __isa_temperaturePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#isa_temperaturePresets',[
+        {label:'默认',labelEn:'Default',values:{h:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{h:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{h:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __isa_temperatureExtras(); }catch(e){} };
+function __isa_temperatureBoot(){ try{ __isa_temperaturePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __isa_temperatureBoot();
+else document.addEventListener('DOMContentLoaded', __isa_temperatureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

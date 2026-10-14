@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pressure_altitudePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pressure_altitudeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pressure_altitudeTable"></div>
+    <div id="pressure_altitudeDiff"></div>
+    <div id="pressure_altitudeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,44 @@ function resetForm(){document.getElementById('P').value = 900;
       document.getElementById('P0').value = 1013.25;
       calcTool();}
 calcTool();
+
+function __pressure_altitudeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pressure_altitudeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P=num('P'), P0=num('P0');
+    var h = 44330*(1 - Math.pow(P/P0,0.1903));
+    if (!isFinite(__pressure_altitudeNum('P')) || !isFinite(__pressure_altitudeNum('P0'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pressure_altitudeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['海拔（气压高度）', h.toFixed(0)+' m'],
+            ['气压比 (%)', (P/Math.max(P0,1e-9)*100).toFixed(3)],
+            ['海拔 (km)', (h/1000).toFixed(4)],
+            ['气压比幂次项', (Math.pow(P/Math.max(P0,1e-9),0.1903)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({P:__pressure_altitudeNum('P'), P0:__pressure_altitudeNum('P0'), h:h});
+    TBKit.history.mount('#pressure_altitudeHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.P0!=null)document.getElementById('P0').value=rec.P0; calcTool(); });
+    TBKit.util.diffBox('#pressure_altitudeDiff',['h']);
+}
+function __pressure_altitudeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pressure_altitudeTable','pressure-altitude.csv'); } catch(e){}
+}
+function __pressure_altitudePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pressure_altitudePresets',[
+        {label:'默认',labelEn:'Default',values:{P:'900', P0:'1013.25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'1800', P0:'2026.5'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'450', P0:'506.625'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pressure_altitudeExtras(); }catch(e){} };
+function __pressure_altitudeBoot(){ try{ __pressure_altitudePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pressure_altitudeBoot();
+else document.addEventListener('DOMContentLoaded', __pressure_altitudeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

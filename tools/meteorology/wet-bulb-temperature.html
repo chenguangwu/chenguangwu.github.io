@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wet_bulb_temperaturePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wet_bulb_temperatureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wet_bulb_temperatureTable"></div>
+    <div id="wet_bulb_temperatureDiff"></div>
+    <div id="wet_bulb_temperatureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -263,6 +269,41 @@ function resetForm(){document.getElementById('T').value = 25;
       document.getElementById('RH').value = 60;
       calcTool();}
 calcTool();
+
+function __wet_bulb_temperatureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wet_bulb_temperatureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'), RH=num('RH');
+    var Tw = T*Math.atan(0.151977*Math.sqrt(RH+8.313659)) + Math.atan(T+RH) - Math.atan(RH-1.676331) + 0.00391838*Math.pow(RH,1.5)*Math.atan(0.023101*RH) - 4.686035;
+    if (!isFinite(__wet_bulb_temperatureNum('T')) || !isFinite(__wet_bulb_temperatureNum('RH'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wet_bulb_temperatureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['湿球温度 T_w（Stull）', Tw.toFixed(2)+' °C'],
+        ]
+    });
+    TBKit.history.record({T:__wet_bulb_temperatureNum('T'), RH:__wet_bulb_temperatureNum('RH'), Tw:Tw});
+    TBKit.history.mount('#wet_bulb_temperatureHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.RH!=null)document.getElementById('RH').value=rec.RH; calcTool(); });
+    TBKit.util.diffBox('#wet_bulb_temperatureDiff',['Tw']);
+}
+function __wet_bulb_temperatureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wet_bulb_temperatureTable','wet-bulb-temperature.csv'); } catch(e){}
+}
+function __wet_bulb_temperaturePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wet_bulb_temperaturePresets',[
+        {label:'默认',labelEn:'Default',values:{T:'25', RH:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'50', RH:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'12.5', RH:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wet_bulb_temperatureExtras(); }catch(e){} };
+function __wet_bulb_temperatureBoot(){ try{ __wet_bulb_temperaturePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wet_bulb_temperatureBoot();
+else document.addEventListener('DOMContentLoaded', __wet_bulb_temperatureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
