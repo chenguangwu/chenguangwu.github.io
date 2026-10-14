@@ -124,7 +124,9 @@ s.parentNode.insertBefore(el, s);
       <label>24小时交通量（每行一个数，按0-23时顺序，用逗号/空格/换行分隔）</label>
       <textarea id="hourly" rows="5" placeholder="如：120,80,50,40,60,180,450,780,820,700,650,720,760,690,640,720,820,950,1050,880,620,400,260,160">120,80,50,40,60,180,450,780,820,700,650,720,760,690,640,720,820,950,1050,880,620,400,260,160</textarea>
       <div class="toolbar" style="margin-top:12px;">
-        <button class="btn primary" type="button" onclick="calcHourly()">🧮 计算并绘图</button>
+        <div id="calc_53Presets"></div>
+      <button class="btn primary" type="button" onclick="calcHourly()">🧮 计算并绘图</button>
+      <button class="btn" type="button" onclick="__calc_53Export()">导出明细 CSV</button>
         <button class="btn" type="button" onclick="loadSample()">📌 填入示例</button>
         <button class="btn" type="button" onclick="document.getElementById('hourly').value='';calcHourly()">🗑️ 清空</button>
       </div>
@@ -142,6 +144,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="res"></div>
+    <div id="calc_53Table"></div>
+    <div id="calc_53Diff"></div>
+    <div id="calc_53Chart"></div>
+    <div id="calc_53Hist"></div>
     <div class="tip-box tip-info">💡 PHF 取值 0.25~1.0，越接近1表示流量越均匀；AADT（年均日交通量）≈ 观测日交通量，需长期多日观测才能精确估算。</div>
   </div>
 
@@ -285,6 +291,111 @@ function loadSample(){
   ToolBox.showToast(i18nText() ,'info');
 }
 calcHourly();
+
+var __calc_53_last=0,__calc_53_skip=false;
+function __calc_53Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_53ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_53Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_53Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_53Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_53Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_53Diff');
+        TBKit.history.mount('#calc_53Hist',function(rec){
+            __calc_53_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calcHourly();
+            }catch(e2){}
+            __calc_53_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_53Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_53Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_53Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_53_skip) return;
+    var snap=__calc_53Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_53ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_53_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_53_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_53Render(keys,rk,en);
+}
+function __calc_53Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_53Table','calc-53.csv'); } catch(e){}
+}
+function __calc_53Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_53Presets',[{label:'默认参数',labelEn:'Default',values:{'q1':'320', 'q2':'380', 'q3':'410', 'q4':'350'}}],function(){ calcHourly(); });
+}
+var __calc_53_f0=(typeof calcHourly==='function')?calcHourly:null;
+if(__calc_53_f0){
+    calcHourly=function(){ var __r=__calc_53_f0.apply(null,arguments); try{ __calc_53Extras(); }catch(e){} return __r; };
+}
+function __calc_53Boot(){ try{ __calc_53Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_53Boot();
+else document.addEventListener('DOMContentLoaded', __calc_53Boot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
