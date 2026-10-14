@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tax_on_discountPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tax_on_discountExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tax_on_discountTable"></div>
+    <div id="tax_on_discountDiff"></div>
+    <div id="tax_on_discountHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,44 @@ function resetForm(){document.getElementById('price').value = '200';
       document.getElementById('r').value = '13';
       calcTool();}
 calcTool();
+
+function __tax_on_discountNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tax_on_discountExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p = num('price'), d = num('disc') / 100, r = num('r') / 100;
+    var net = p * (1 - d);
+    if (!isFinite(__tax_on_discountNum('price')) || !isFinite(__tax_on_discountNum('disc')) || !isFinite(__tax_on_discountNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#tax_on_discountTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['折后价', net.toFixed(2)],
+            ['税额', (net * r).toFixed(2)],
+            ['优惠金额', (p-net).toFixed(2)],
+            ['含税总价', (net*(1+r)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({price:__tax_on_discountNum('price'), disc:__tax_on_discountNum('disc'), r:__tax_on_discountNum('r'), p:p});
+    TBKit.history.mount('#tax_on_discountHist',function(rec){ if(rec.price!=null)document.getElementById('price').value=rec.price; if(rec.disc!=null)document.getElementById('disc').value=rec.disc; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#tax_on_discountDiff',['p']);
+}
+function __tax_on_discountExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tax_on_discountTable','tax-on-discount.csv'); } catch(e){}
+}
+function __tax_on_discountPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tax_on_discountPresets',[
+        {label:'默认',labelEn:'Default',values:{price:'200', disc:'20', r:'13'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{price:'400', disc:'40', r:'26'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{price:'100', disc:'10', r:'6.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __tax_on_discountExtras(); }catch(e){} };
+function __tax_on_discountBoot(){ try{ __tax_on_discountPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tax_on_discountBoot();
+else document.addEventListener('DOMContentLoaded', __tax_on_discountBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

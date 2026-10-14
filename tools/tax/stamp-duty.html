@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stamp_dutyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stamp_dutyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stamp_dutyTable"></div>
+    <div id="stamp_dutyDiff"></div>
+    <div id="stamp_dutyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,43 @@ function resetForm(){document.getElementById('amount').value = '1000000';
       document.getElementById('r').value = '0.05';
       calcTool();}
 calcTool();
+
+function __stamp_dutyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stamp_dutyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a = num('amount'), r = num('r') / 100;
+    if (!isFinite(__stamp_dutyNum('amount')) || !isFinite(__stamp_dutyNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stamp_dutyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['印花税额', (a * r).toFixed(2)],
+            ['含税金额', (a*(1+r)).toFixed(2)],
+            ['税率倒数', (1/Math.max(r,1e-12)).toFixed(3)],
+            ['按含税价反算税额', (a*r/(1+r)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({amount:__stamp_dutyNum('amount'), r:__stamp_dutyNum('r'), a:a});
+    TBKit.history.mount('#stamp_dutyHist',function(rec){ if(rec.amount!=null)document.getElementById('amount').value=rec.amount; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#stamp_dutyDiff',['a']);
+}
+function __stamp_dutyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stamp_dutyTable','stamp-duty.csv'); } catch(e){}
+}
+function __stamp_dutyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stamp_dutyPresets',[
+        {label:'默认',labelEn:'Default',values:{amount:'1000000', r:'0.05'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{amount:'2000000', r:'0.1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{amount:'500000', r:'0.025'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stamp_dutyExtras(); }catch(e){} };
+function __stamp_dutyBoot(){ try{ __stamp_dutyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stamp_dutyBoot();
+else document.addEventListener('DOMContentLoaded', __stamp_dutyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="interest_income_taxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__interest_income_taxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="interest_income_taxTable"></div>
+    <div id="interest_income_taxDiff"></div>
+    <div id="interest_income_taxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,43 @@ function resetForm(){document.getElementById('interest').value = '5000';
       document.getElementById('r').value = '20';
       calcTool();}
 calcTool();
+
+function __interest_income_taxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __interest_income_taxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var i = num('interest'), r = num('r') / 100;
+    if (!isFinite(__interest_income_taxNum('interest')) || !isFinite(__interest_income_taxNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#interest_income_taxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['利息所得税', (i * r).toFixed(2)],
+            ['税后利息', (i * (1 - r)).toFixed(2)],
+            ['利息税率 (%)', (r*100).toFixed(2)],
+            ['利息/税额 倍数', (i/((i*r)||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({interest:__interest_income_taxNum('interest'), r:__interest_income_taxNum('r'), i:i});
+    TBKit.history.mount('#interest_income_taxHist',function(rec){ if(rec.interest!=null)document.getElementById('interest').value=rec.interest; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#interest_income_taxDiff',['i']);
+}
+function __interest_income_taxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#interest_income_taxTable','interest-income-tax.csv'); } catch(e){}
+}
+function __interest_income_taxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#interest_income_taxPresets',[
+        {label:'默认',labelEn:'Default',values:{interest:'5000', r:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{interest:'10000', r:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{interest:'2500', r:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __interest_income_taxExtras(); }catch(e){} };
+function __interest_income_taxBoot(){ try{ __interest_income_taxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __interest_income_taxBoot();
+else document.addEventListener('DOMContentLoaded', __interest_income_taxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

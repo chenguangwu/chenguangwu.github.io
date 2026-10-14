@@ -153,12 +153,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="progressive_income_taxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__progressive_income_taxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="progressive_income_taxTable"></div>
+    <div id="progressive_income_taxDiff"></div>
+    <div id="progressive_income_taxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -277,6 +283,42 @@ function resetForm(){document.getElementById('income').value = '30000';
       document.getElementById('r3').value = '30';
       calcTool();}
 calcTool();
+
+function __progressive_income_taxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __progressive_income_taxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I = num('income'), l1 = num('l1'), r1 = num('r1') / 100, l2 = num('l2'), r2 = num('r2') / 100, r3 = num('r3') / 100;
+    var tax = 0;
+    if (!isFinite(__progressive_income_taxNum('income')) || !isFinite(__progressive_income_taxNum('l1')) || !isFinite(__progressive_income_taxNum('r1')) || !isFinite(__progressive_income_taxNum('l2')) || !isFinite(__progressive_income_taxNum('r2')) || !isFinite(__progressive_income_taxNum('r3'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#progressive_income_taxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['应纳税额', tax.toFixed(2)],
+            ['实际税率 (%)', (tax / I * 100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({income:__progressive_income_taxNum('income'), l1:__progressive_income_taxNum('l1'), r1:__progressive_income_taxNum('r1'), l2:__progressive_income_taxNum('l2'), r2:__progressive_income_taxNum('r2'), r3:__progressive_income_taxNum('r3'), I:I});
+    TBKit.history.mount('#progressive_income_taxHist',function(rec){ if(rec.income!=null)document.getElementById('income').value=rec.income; if(rec.l1!=null)document.getElementById('l1').value=rec.l1; if(rec.r1!=null)document.getElementById('r1').value=rec.r1; if(rec.l2!=null)document.getElementById('l2').value=rec.l2; if(rec.r2!=null)document.getElementById('r2').value=rec.r2; if(rec.r3!=null)document.getElementById('r3').value=rec.r3; calcTool(); });
+    TBKit.util.diffBox('#progressive_income_taxDiff',['I']);
+}
+function __progressive_income_taxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#progressive_income_taxTable','progressive-income-tax.csv'); } catch(e){}
+}
+function __progressive_income_taxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#progressive_income_taxPresets',[
+        {label:'默认',labelEn:'Default',values:{income:'30000', l1:'10000', r1:'10', l2:'20000', r2:'20', r3:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{income:'60000', l1:'20000', r1:'20', l2:'40000', r2:'40', r3:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{income:'15000', l1:'5000', r1:'5', l2:'10000', r2:'10', r3:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __progressive_income_taxExtras(); }catch(e){} };
+function __progressive_income_taxBoot(){ try{ __progressive_income_taxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __progressive_income_taxBoot();
+else document.addEventListener('DOMContentLoaded', __progressive_income_taxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

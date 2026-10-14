@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tax_to_gdpPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tax_to_gdpExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tax_to_gdpTable"></div>
+    <div id="tax_to_gdpDiff"></div>
+    <div id="tax_to_gdpHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('tax').value = '18';
       document.getElementById('gdp').value = '100';
       calcTool();}
 calcTool();
+
+function __tax_to_gdpNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tax_to_gdpExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var tax=num('tax'),gdp=num('gdp');
+    var r=tax/gdp*100;
+    if (!isFinite(__tax_to_gdpNum('tax')) || !isFinite(__tax_to_gdpNum('gdp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#tax_to_gdpTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['宏观税负 (%)', r.toFixed(2)],
+            ['宏观税负倒数', (1/Math.max(r,1e-9)).toFixed(4)],
+            ['非税 GDP 部分', (gdp-tax).toFixed(2)],
+            ['宏观税负小数', (r/100).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({tax:__tax_to_gdpNum('tax'), gdp:__tax_to_gdpNum('gdp'), r:r});
+    TBKit.history.mount('#tax_to_gdpHist',function(rec){ if(rec.tax!=null)document.getElementById('tax').value=rec.tax; if(rec.gdp!=null)document.getElementById('gdp').value=rec.gdp; calcTool(); });
+    TBKit.util.diffBox('#tax_to_gdpDiff',['r']);
+}
+function __tax_to_gdpExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tax_to_gdpTable','tax-to-gdp.csv'); } catch(e){}
+}
+function __tax_to_gdpPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tax_to_gdpPresets',[
+        {label:'默认',labelEn:'Default',values:{tax:'18', gdp:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{tax:'36', gdp:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{tax:'9', gdp:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __tax_to_gdpExtras(); }catch(e){} };
+function __tax_to_gdpBoot(){ try{ __tax_to_gdpPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tax_to_gdpBoot();
+else document.addEventListener('DOMContentLoaded', __tax_to_gdpBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

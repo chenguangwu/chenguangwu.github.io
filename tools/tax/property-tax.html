@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="property_taxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__property_taxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="property_taxTable"></div>
+    <div id="property_taxDiff"></div>
+    <div id="property_taxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('base').value = '800000';
       document.getElementById('r').value = '1.2';
       calcTool();}
 calcTool();
+
+function __property_taxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __property_taxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var b = num('base'), r = num('r') / 100;
+    if (!isFinite(__property_taxNum('base')) || !isFinite(__property_taxNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#property_taxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年房产税额', (b * r).toFixed(2)],
+            ['月均房产税 (元)', (b*r/12).toFixed(2)],
+            ['税率小数形式', (r/100).toFixed(6)],
+            ['五年累计税额 (元)', (b*r*5).toFixed(2)],
+            ['房产原值 (百万元)', (b/1e6).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({base:__property_taxNum('base'), r:__property_taxNum('r'), b:b});
+    TBKit.history.mount('#property_taxHist',function(rec){ if(rec.base!=null)document.getElementById('base').value=rec.base; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#property_taxDiff',['b']);
+}
+function __property_taxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#property_taxTable','property-tax.csv'); } catch(e){}
+}
+function __property_taxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#property_taxPresets',[
+        {label:'默认',labelEn:'Default',values:{base:'800000', r:'1.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{base:'1600000', r:'2.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{base:'400000', r:'0.6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __property_taxExtras(); }catch(e){} };
+function __property_taxBoot(){ try{ __property_taxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __property_taxBoot();
+else document.addEventListener('DOMContentLoaded', __property_taxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

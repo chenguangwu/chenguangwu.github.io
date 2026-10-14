@@ -139,12 +139,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="capital_gains_taxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__capital_gains_taxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="capital_gains_taxTable"></div>
+    <div id="capital_gains_taxDiff"></div>
+    <div id="capital_gains_taxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -205,6 +211,44 @@ function resetForm(){document.getElementById('sell').value = '150000';
       document.getElementById('r').value = '20';
       calcTool();}
 calcTool();
+
+function __capital_gains_taxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __capital_gains_taxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var sell = num('sell'), cost = num('cost'), r = num('r') / 100;
+    var gain = sell - cost;
+    var tax = Math.max(0, gain) * r;
+    if (!isFinite(__capital_gains_taxNum('sell')) || !isFinite(__capital_gains_taxNum('cost')) || !isFinite(__capital_gains_taxNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#capital_gains_taxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['资本利得', gain.toFixed(2)],
+            ['资本利得税', tax.toFixed(2)],
+            ['税后到手', (sell - tax).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({sell:__capital_gains_taxNum('sell'), cost:__capital_gains_taxNum('cost'), r:__capital_gains_taxNum('r'), gain:gain});
+    TBKit.history.mount('#capital_gains_taxHist',function(rec){ if(rec.sell!=null)document.getElementById('sell').value=rec.sell; if(rec.cost!=null)document.getElementById('cost').value=rec.cost; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#capital_gains_taxDiff',['gain']);
+}
+function __capital_gains_taxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#capital_gains_taxTable','capital-gains-tax.csv'); } catch(e){}
+}
+function __capital_gains_taxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#capital_gains_taxPresets',[
+        {label:'默认',labelEn:'Default',values:{sell:'150000', cost:'100000', r:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{sell:'300000', cost:'200000', r:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{sell:'75000', cost:'50000', r:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __capital_gains_taxExtras(); }catch(e){} };
+function __capital_gains_taxBoot(){ try{ __capital_gains_taxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __capital_gains_taxBoot();
+else document.addEventListener('DOMContentLoaded', __capital_gains_taxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

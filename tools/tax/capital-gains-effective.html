@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="capital_gains_effectivePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__capital_gains_effectiveExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="capital_gains_effectiveTable"></div>
+    <div id="capital_gains_effectiveDiff"></div>
+    <div id="capital_gains_effectiveHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('g').value = '100000';
       document.getElementById('r').value = '0.1';
       calcTool();}
 calcTool();
+
+function __capital_gains_effectiveNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __capital_gains_effectiveExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var g=num('g'),r=num('r');
+    var T=g*r;
+    if (!isFinite(__capital_gains_effectiveNum('g')) || !isFinite(__capital_gains_effectiveNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#capital_gains_effectiveTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['资本利得税 T (元)', T.toFixed(2)],
+            ['税后利得', (g-T).toFixed(2)],
+            ['有效税率 (%)', (T/Math.max(g,1e-9)*100).toFixed(2)],
+            ['税率倒数', (1/Math.max(r,1e-12)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({g:__capital_gains_effectiveNum('g'), r:__capital_gains_effectiveNum('r'), T:T});
+    TBKit.history.mount('#capital_gains_effectiveHist',function(rec){ if(rec.g!=null)document.getElementById('g').value=rec.g; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#capital_gains_effectiveDiff',['T']);
+}
+function __capital_gains_effectiveExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#capital_gains_effectiveTable','capital-gains-effective.csv'); } catch(e){}
+}
+function __capital_gains_effectivePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#capital_gains_effectivePresets',[
+        {label:'默认',labelEn:'Default',values:{g:'100000', r:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{g:'200000', r:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{g:'50000', r:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __capital_gains_effectiveExtras(); }catch(e){} };
+function __capital_gains_effectiveBoot(){ try{ __capital_gains_effectivePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __capital_gains_effectiveBoot();
+else document.addEventListener('DOMContentLoaded', __capital_gains_effectiveBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

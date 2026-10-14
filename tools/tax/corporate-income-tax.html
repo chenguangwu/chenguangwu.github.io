@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="corporate_income_taxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__corporate_income_taxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="corporate_income_taxTable"></div>
+    <div id="corporate_income_taxDiff"></div>
+    <div id="corporate_income_taxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,43 @@ function resetForm(){document.getElementById('profit').value = '1000000';
       document.getElementById('r').value = '25';
       calcTool();}
 calcTool();
+
+function __corporate_income_taxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __corporate_income_taxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p = num('profit'), r = num('r') / 100;
+    if (!isFinite(__corporate_income_taxNum('profit')) || !isFinite(__corporate_income_taxNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#corporate_income_taxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['企业所得税额', (p * r).toFixed(2)],
+            ['税后利润', (p * (1 - r)).toFixed(2)],
+            ['所得税税率 (%)', (r*100).toFixed(2)],
+            ['利润/税额 倍数', (p/((p*r)||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({profit:__corporate_income_taxNum('profit'), r:__corporate_income_taxNum('r'), p:p});
+    TBKit.history.mount('#corporate_income_taxHist',function(rec){ if(rec.profit!=null)document.getElementById('profit').value=rec.profit; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#corporate_income_taxDiff',['p']);
+}
+function __corporate_income_taxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#corporate_income_taxTable','corporate-income-tax.csv'); } catch(e){}
+}
+function __corporate_income_taxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#corporate_income_taxPresets',[
+        {label:'默认',labelEn:'Default',values:{profit:'1000000', r:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{profit:'2000000', r:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{profit:'500000', r:'12.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __corporate_income_taxExtras(); }catch(e){} };
+function __corporate_income_taxBoot(){ try{ __corporate_income_taxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __corporate_income_taxBoot();
+else document.addEventListener('DOMContentLoaded', __corporate_income_taxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="marginal_tax_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__marginal_tax_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="marginal_tax_rateTable"></div>
+    <div id="marginal_tax_rateDiff"></div>
+    <div id="marginal_tax_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -273,6 +279,41 @@ function resetForm(){document.getElementById('Y1').value = '100000';
       document.getElementById('T2').value = '35000';
       calcTool();}
 calcTool();
+
+function __marginal_tax_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __marginal_tax_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Y1=num('Y1'),T1=num('T1'),Y2=num('Y2'),T2=num('T2');
+    var MTR=(T2-T1)/(Y2-Y1);
+    if (!isFinite(__marginal_tax_rateNum('Y1')) || !isFinite(__marginal_tax_rateNum('T1')) || !isFinite(__marginal_tax_rateNum('Y2')) || !isFinite(__marginal_tax_rateNum('T2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#marginal_tax_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['边际税率 MTR (%)', (MTR*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({Y1:__marginal_tax_rateNum('Y1'), T1:__marginal_tax_rateNum('T1'), Y2:__marginal_tax_rateNum('Y2'), T2:__marginal_tax_rateNum('T2'), MTR:MTR});
+    TBKit.history.mount('#marginal_tax_rateHist',function(rec){ if(rec.Y1!=null)document.getElementById('Y1').value=rec.Y1; if(rec.T1!=null)document.getElementById('T1').value=rec.T1; if(rec.Y2!=null)document.getElementById('Y2').value=rec.Y2; if(rec.T2!=null)document.getElementById('T2').value=rec.T2; calcTool(); });
+    TBKit.util.diffBox('#marginal_tax_rateDiff',['MTR']);
+}
+function __marginal_tax_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#marginal_tax_rateTable','marginal-tax-rate.csv'); } catch(e){}
+}
+function __marginal_tax_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#marginal_tax_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{Y1:'100000', T1:'20000', Y2:'150000', T2:'35000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Y1:'200000', T1:'40000', Y2:'300000', T2:'70000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Y1:'50000', T1:'10000', Y2:'75000', T2:'17500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __marginal_tax_rateExtras(); }catch(e){} };
+function __marginal_tax_rateBoot(){ try{ __marginal_tax_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __marginal_tax_rateBoot();
+else document.addEventListener('DOMContentLoaded', __marginal_tax_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="excise_taxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__excise_taxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="excise_taxTable"></div>
+    <div id="excise_taxDiff"></div>
+    <div id="excise_taxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('p').value = '10';
       document.getElementById('r').value = '0.2';
       calcTool();}
 calcTool();
+
+function __excise_taxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __excise_taxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),q=num('q'),r=num('r');
+    var T=p*q*r;
+    if (!isFinite(__excise_taxNum('p')) || !isFinite(__excise_taxNum('q')) || !isFinite(__excise_taxNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#excise_taxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['消费税 T (元)', T.toFixed(2)],
+            ['计税金额 (元)', (p*q).toFixed(3)],
+            ['综合税率 (%)', (T/((p*q)||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({p:__excise_taxNum('p'), q:__excise_taxNum('q'), r:__excise_taxNum('r'), T:T});
+    TBKit.history.mount('#excise_taxHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.q!=null)document.getElementById('q').value=rec.q; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#excise_taxDiff',['T']);
+}
+function __excise_taxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#excise_taxTable','excise-tax.csv'); } catch(e){}
+}
+function __excise_taxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#excise_taxPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'10', q:'100', r:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'20', q:'200', r:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'5', q:'50', r:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __excise_taxExtras(); }catch(e){} };
+function __excise_taxBoot(){ try{ __excise_taxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __excise_taxBoot();
+else document.addEventListener('DOMContentLoaded', __excise_taxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

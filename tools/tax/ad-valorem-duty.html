@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ad_valorem_dutyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ad_valorem_dutyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ad_valorem_dutyTable"></div>
+    <div id="ad_valorem_dutyDiff"></div>
+    <div id="ad_valorem_dutyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('p').value = '1000';
       document.getElementById('r').value = '0.1';
       calcTool();}
 calcTool();
+
+function __ad_valorem_dutyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ad_valorem_dutyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),r=num('r');
+    var T=p*r;
+    if (!isFinite(__ad_valorem_dutyNum('p')) || !isFinite(__ad_valorem_dutyNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ad_valorem_dutyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['从价税 T (元)', T.toFixed(2)],
+            ['完税价格合计 (元)', (p+T).toFixed(2)],
+            ['从价税率 (%)', (T/Math.max(p,1e-9)*100).toFixed(2)],
+            ['货值与税额之差', (p-T).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p:__ad_valorem_dutyNum('p'), r:__ad_valorem_dutyNum('r'), T:T});
+    TBKit.history.mount('#ad_valorem_dutyHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#ad_valorem_dutyDiff',['T']);
+}
+function __ad_valorem_dutyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ad_valorem_dutyTable','ad-valorem-duty.csv'); } catch(e){}
+}
+function __ad_valorem_dutyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ad_valorem_dutyPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'1000', r:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'2000', r:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'500', r:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ad_valorem_dutyExtras(); }catch(e){} };
+function __ad_valorem_dutyBoot(){ try{ __ad_valorem_dutyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ad_valorem_dutyBoot();
+else document.addEventListener('DOMContentLoaded', __ad_valorem_dutyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

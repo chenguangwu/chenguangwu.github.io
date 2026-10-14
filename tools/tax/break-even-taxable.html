@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="break_even_taxablePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__break_even_taxableExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="break_even_taxableTable"></div>
+    <div id="break_even_taxableDiff"></div>
+    <div id="break_even_taxableHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,42 @@ function resetForm(){document.getElementById('target').value = '750000';
       document.getElementById('r').value = '25';
       calcTool();}
 calcTool();
+
+function __break_even_taxableNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __break_even_taxableExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var t = num('target'), d = num('deduct'), r = num('r') / 100;
+    var taxable = (t + d) / (1 - r);
+    if (!isFinite(__break_even_taxableNum('target')) || !isFinite(__break_even_taxableNum('deduct')) || !isFinite(__break_even_taxableNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#break_even_taxableTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['所需应税所得', taxable.toFixed(2)],
+            ['应纳税额', (taxable * r).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({target:__break_even_taxableNum('target'), deduct:__break_even_taxableNum('deduct'), r:__break_even_taxableNum('r'), t:t});
+    TBKit.history.mount('#break_even_taxableHist',function(rec){ if(rec.target!=null)document.getElementById('target').value=rec.target; if(rec.deduct!=null)document.getElementById('deduct').value=rec.deduct; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#break_even_taxableDiff',['t']);
+}
+function __break_even_taxableExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#break_even_taxableTable','break-even-taxable.csv'); } catch(e){}
+}
+function __break_even_taxablePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#break_even_taxablePresets',[
+        {label:'默认',labelEn:'Default',values:{target:'750000', deduct:'0', r:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{target:'1500000', deduct:'0', r:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{target:'375000', deduct:'0', r:'12.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __break_even_taxableExtras(); }catch(e){} };
+function __break_even_taxableBoot(){ try{ __break_even_taxablePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __break_even_taxableBoot();
+else document.addEventListener('DOMContentLoaded', __break_even_taxableBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

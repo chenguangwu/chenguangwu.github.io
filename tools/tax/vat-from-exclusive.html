@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="vat_from_exclusivePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__vat_from_exclusiveExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="vat_from_exclusiveTable"></div>
+    <div id="vat_from_exclusiveDiff"></div>
+    <div id="vat_from_exclusiveHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('ex').value = '100';
       document.getElementById('r').value = '13';
       calcTool();}
 calcTool();
+
+function __vat_from_exclusiveNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __vat_from_exclusiveExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ex = num('ex'), r = num('r') / 100;
+    var tax = ex * r;
+    if (!isFinite(__vat_from_exclusiveNum('ex')) || !isFinite(__vat_from_exclusiveNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#vat_from_exclusiveTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['增值税额', tax.toFixed(2)],
+            ['含税金额', (ex + tax).toFixed(2)],
+            ['税率 (%)', (r*100).toFixed(2)],
+            ['税额占不含税价比 (%)', (tax/(ex||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({ex:__vat_from_exclusiveNum('ex'), r:__vat_from_exclusiveNum('r'), tax:tax});
+    TBKit.history.mount('#vat_from_exclusiveHist',function(rec){ if(rec.ex!=null)document.getElementById('ex').value=rec.ex; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#vat_from_exclusiveDiff',['tax']);
+}
+function __vat_from_exclusiveExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#vat_from_exclusiveTable','vat-from-exclusive.csv'); } catch(e){}
+}
+function __vat_from_exclusivePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#vat_from_exclusivePresets',[
+        {label:'默认',labelEn:'Default',values:{ex:'100', r:'13'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ex:'200', r:'26'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ex:'50', r:'6.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __vat_from_exclusiveExtras(); }catch(e){} };
+function __vat_from_exclusiveBoot(){ try{ __vat_from_exclusivePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __vat_from_exclusiveBoot();
+else document.addEventListener('DOMContentLoaded', __vat_from_exclusiveBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

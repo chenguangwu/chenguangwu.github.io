@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="specific_dutyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__specific_dutyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="specific_dutyTable"></div>
+    <div id="specific_dutyDiff"></div>
+    <div id="specific_dutyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,45 @@ function resetForm(){document.getElementById('q').value = '100';
       document.getElementById('u').value = '5';
       calcTool();}
 calcTool();
+
+function __specific_dutyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __specific_dutyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var q=num('q'),u=num('u');
+    var T=q*u;
+    if (!isFinite(__specific_dutyNum('q')) || !isFinite(__specific_dutyNum('u'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#specific_dutyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['从量税 T (元)', T.toFixed(2)],
+            ['税额 (万元)', (T/10000).toFixed(6)],
+            ['月均税额 (元)', (T/12).toFixed(2)],
+            ['年化税额 (元)', (T*12).toFixed(2)],
+            ['单位税额与数量之比', (u/Math.max(q,1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({q:__specific_dutyNum('q'), u:__specific_dutyNum('u'), T:T});
+    TBKit.history.mount('#specific_dutyHist',function(rec){ if(rec.q!=null)document.getElementById('q').value=rec.q; if(rec.u!=null)document.getElementById('u').value=rec.u; calcTool(); });
+    TBKit.util.diffBox('#specific_dutyDiff',['T']);
+}
+function __specific_dutyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#specific_dutyTable','specific-duty.csv'); } catch(e){}
+}
+function __specific_dutyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#specific_dutyPresets',[
+        {label:'默认',labelEn:'Default',values:{q:'100', u:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q:'200', u:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q:'50', u:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __specific_dutyExtras(); }catch(e){} };
+function __specific_dutyBoot(){ try{ __specific_dutyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __specific_dutyBoot();
+else document.addEventListener('DOMContentLoaded', __specific_dutyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

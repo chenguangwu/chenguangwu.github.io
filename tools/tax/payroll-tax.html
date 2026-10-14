@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="payroll_taxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__payroll_taxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="payroll_taxTable"></div>
+    <div id="payroll_taxDiff"></div>
+    <div id="payroll_taxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('w').value = '10000';
       document.getElementById('ee').value = '0.08';
       calcTool();}
 calcTool();
+
+function __payroll_taxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __payroll_taxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var w=num('w'),er=num('er'),ee=num('ee');
+    var T=w*(er+ee);
+    if (!isFinite(__payroll_taxNum('w')) || !isFinite(__payroll_taxNum('er')) || !isFinite(__payroll_taxNum('ee'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#payroll_taxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['工薪税 T (元)', T.toFixed(2)],
+            ['合计税率', (er+ee).toFixed(4)],
+            ['税后实得 (元)', (w-T).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({w:__payroll_taxNum('w'), er:__payroll_taxNum('er'), ee:__payroll_taxNum('ee'), T:T});
+    TBKit.history.mount('#payroll_taxHist',function(rec){ if(rec.w!=null)document.getElementById('w').value=rec.w; if(rec.er!=null)document.getElementById('er').value=rec.er; if(rec.ee!=null)document.getElementById('ee').value=rec.ee; calcTool(); });
+    TBKit.util.diffBox('#payroll_taxDiff',['T']);
+}
+function __payroll_taxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#payroll_taxTable','payroll-tax.csv'); } catch(e){}
+}
+function __payroll_taxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#payroll_taxPresets',[
+        {label:'默认',labelEn:'Default',values:{w:'10000', er:'0.2', ee:'0.08'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{w:'20000', er:'0.4', ee:'0.16'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{w:'5000', er:'0.1', ee:'0.04'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __payroll_taxExtras(); }catch(e){} };
+function __payroll_taxBoot(){ try{ __payroll_taxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __payroll_taxBoot();
+else document.addEventListener('DOMContentLoaded', __payroll_taxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

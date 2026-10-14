@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="foreign_tax_creditPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__foreign_tax_creditExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="foreign_tax_creditTable"></div>
+    <div id="foreign_tax_creditDiff"></div>
+    <div id="foreign_tax_creditHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('ft').value = '2000';
       document.getElementById('lim').value = '1500';
       calcTool();}
 calcTool();
+
+function __foreign_tax_creditNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __foreign_tax_creditExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ft=num('ft'),lim=num('lim');
+    var cr=Math.min(ft,lim);
+    if (!isFinite(__foreign_tax_creditNum('ft')) || !isFinite(__foreign_tax_creditNum('lim'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#foreign_tax_creditTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['可抵扣额 (元)', cr.toFixed(2)],
+            ['抵免限额 (元)', (lim).toFixed(2)],
+            ['境外已纳税额 (元)', (ft).toFixed(2)],
+            ['超出限额部分 (元)', (ft-lim).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({ft:__foreign_tax_creditNum('ft'), lim:__foreign_tax_creditNum('lim'), cr:cr});
+    TBKit.history.mount('#foreign_tax_creditHist',function(rec){ if(rec.ft!=null)document.getElementById('ft').value=rec.ft; if(rec.lim!=null)document.getElementById('lim').value=rec.lim; calcTool(); });
+    TBKit.util.diffBox('#foreign_tax_creditDiff',['cr']);
+}
+function __foreign_tax_creditExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#foreign_tax_creditTable','foreign-tax-credit.csv'); } catch(e){}
+}
+function __foreign_tax_creditPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#foreign_tax_creditPresets',[
+        {label:'默认',labelEn:'Default',values:{ft:'2000', lim:'1500'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ft:'4000', lim:'3000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ft:'1000', lim:'750'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __foreign_tax_creditExtras(); }catch(e){} };
+function __foreign_tax_creditBoot(){ try{ __foreign_tax_creditPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __foreign_tax_creditBoot();
+else document.addEventListener('DOMContentLoaded', __foreign_tax_creditBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

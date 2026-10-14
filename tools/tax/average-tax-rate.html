@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="average_tax_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__average_tax_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="average_tax_rateTable"></div>
+    <div id="average_tax_rateDiff"></div>
+    <div id="average_tax_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('T').value = '30000';
       document.getElementById('Y').value = '100000';
       calcTool();}
 calcTool();
+
+function __average_tax_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __average_tax_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'),Y=num('Y');
+    var ATR=T/Y;
+    if (!isFinite(__average_tax_rateNum('T')) || !isFinite(__average_tax_rateNum('Y'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#average_tax_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['平均税率 ATR (%)', (ATR*100).toFixed(2)],
+            ['净收入留存率 (%)', (100-ATR*100).toFixed(2)],
+            ['税后收入', (Y-T).toFixed(2)],
+            ['平均税率倒数', (1/Math.max(ATR,1e-9)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({T:__average_tax_rateNum('T'), Y:__average_tax_rateNum('Y'), ATR:ATR});
+    TBKit.history.mount('#average_tax_rateHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.Y!=null)document.getElementById('Y').value=rec.Y; calcTool(); });
+    TBKit.util.diffBox('#average_tax_rateDiff',['ATR']);
+}
+function __average_tax_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#average_tax_rateTable','average-tax-rate.csv'); } catch(e){}
+}
+function __average_tax_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#average_tax_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{T:'30000', Y:'100000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'60000', Y:'200000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'15000', Y:'50000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __average_tax_rateExtras(); }catch(e){} };
+function __average_tax_rateBoot(){ try{ __average_tax_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __average_tax_rateBoot();
+else document.addEventListener('DOMContentLoaded', __average_tax_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

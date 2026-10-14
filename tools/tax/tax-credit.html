@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tax_creditPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tax_creditExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tax_creditTable"></div>
+    <div id="tax_creditDiff"></div>
+    <div id="tax_creditHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('t').value = '5000';
       document.getElementById('c').value = '1000';
       calcTool();}
 calcTool();
+
+function __tax_creditNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tax_creditExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var t=num('t'),c=num('c');
+    var Tp=Math.max(t-c,0);
+    if (!isFinite(__tax_creditNum('t')) || !isFinite(__tax_creditNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#tax_creditTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['抵免后税额 T′ (元)', Tp.toFixed(2)],
+            ['抵免额占税额比', (c/Math.max(t,1e-9)).toFixed(4)],
+            ['税负下降幅度 (%)', ((t-c)/Math.max(t,1e-9)*100).toFixed(2)],
+            ['实际抵减比例', (1-Tp/Math.max(t,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({t:__tax_creditNum('t'), c:__tax_creditNum('c'), Tp:Tp});
+    TBKit.history.mount('#tax_creditHist',function(rec){ if(rec.t!=null)document.getElementById('t').value=rec.t; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+    TBKit.util.diffBox('#tax_creditDiff',['Tp']);
+}
+function __tax_creditExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tax_creditTable','tax-credit.csv'); } catch(e){}
+}
+function __tax_creditPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tax_creditPresets',[
+        {label:'默认',labelEn:'Default',values:{t:'5000', c:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{t:'10000', c:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{t:'2500', c:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __tax_creditExtras(); }catch(e){} };
+function __tax_creditBoot(){ try{ __tax_creditPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tax_creditBoot();
+else document.addEventListener('DOMContentLoaded', __tax_creditBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

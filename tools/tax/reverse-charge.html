@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="reverse_chargePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__reverse_chargeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="reverse_chargeTable"></div>
+    <div id="reverse_chargeDiff"></div>
+    <div id="reverse_chargeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,44 @@ function resetForm(){document.getElementById('a').value = '5000';
       document.getElementById('r').value = '0.03';
       calcTool();}
 calcTool();
+
+function __reverse_chargeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __reverse_chargeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a'),r=num('r');
+    var T=a*r;
+    if (!isFinite(__reverse_chargeNum('a')) || !isFinite(__reverse_chargeNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#reverse_chargeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['代扣代缴 T (元)', T.toFixed(2)],
+            ['含税合计 (元)', (a+T).toFixed(2)],
+            ['代扣代缴比例 (%)', (T/Math.max(a,1e-9)*100).toFixed(2)],
+            ['金额与税额之差', (a-T).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({a:__reverse_chargeNum('a'), r:__reverse_chargeNum('r'), T:T});
+    TBKit.history.mount('#reverse_chargeHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#reverse_chargeDiff',['T']);
+}
+function __reverse_chargeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#reverse_chargeTable','reverse-charge.csv'); } catch(e){}
+}
+function __reverse_chargePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#reverse_chargePresets',[
+        {label:'默认',labelEn:'Default',values:{a:'5000', r:'0.03'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'10000', r:'0.06'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'2500', r:'0.015'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __reverse_chargeExtras(); }catch(e){} };
+function __reverse_chargeBoot(){ try{ __reverse_chargePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __reverse_chargeBoot();
+else document.addEventListener('DOMContentLoaded', __reverse_chargeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

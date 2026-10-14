@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sales_tax_addonPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sales_tax_addonExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="sales_tax_addonTable"></div>
+    <div id="sales_tax_addonDiff"></div>
+    <div id="sales_tax_addonHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -198,6 +204,43 @@ function resetForm(){document.getElementById('price').value = '100';
       document.getElementById('r').value = '5';
       calcTool();}
 calcTool();
+
+function __sales_tax_addonNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sales_tax_addonExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p = num('price'), r = num('r') / 100;
+    if (!isFinite(__sales_tax_addonNum('price')) || !isFinite(__sales_tax_addonNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#sales_tax_addonTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['消费税额', (p * r).toFixed(2)],
+            ['含税价', (p * (1 + r)).toFixed(2)],
+            ['税率 (%)', (r*100).toFixed(2)],
+            ['税额占含税价比 (%)', (p*r/((p*(1+r))||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({price:__sales_tax_addonNum('price'), r:__sales_tax_addonNum('r'), p:p});
+    TBKit.history.mount('#sales_tax_addonHist',function(rec){ if(rec.price!=null)document.getElementById('price').value=rec.price; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#sales_tax_addonDiff',['p']);
+}
+function __sales_tax_addonExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sales_tax_addonTable','sales-tax-addon.csv'); } catch(e){}
+}
+function __sales_tax_addonPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sales_tax_addonPresets',[
+        {label:'默认',labelEn:'Default',values:{price:'100', r:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{price:'200', r:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{price:'50', r:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __sales_tax_addonExtras(); }catch(e){} };
+function __sales_tax_addonBoot(){ try{ __sales_tax_addonPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sales_tax_addonBoot();
+else document.addEventListener('DOMContentLoaded', __sales_tax_addonBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

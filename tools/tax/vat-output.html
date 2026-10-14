@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="vat_outputPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__vat_outputExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="vat_outputTable"></div>
+    <div id="vat_outputDiff"></div>
+    <div id="vat_outputHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -267,6 +273,44 @@ function resetForm(){document.getElementById('s').value = '10000';
       document.getElementById('r').value = '0.13';
       calcTool();}
 calcTool();
+
+function __vat_outputNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __vat_outputExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s=num('s'),r=num('r');
+    var T=s*r;
+    if (!isFinite(__vat_outputNum('s')) || !isFinite(__vat_outputNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#vat_outputTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['销项税额 T (元)', T.toFixed(2)],
+            ['不含税销售额', (T/(1+r)).toFixed(4)],
+            ['税负率 (%)', (T/Math.max(s,1e-9)*100).toFixed(2)],
+            ['价税合计 (元)', (s+T).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({s:__vat_outputNum('s'), r:__vat_outputNum('r'), T:T});
+    TBKit.history.mount('#vat_outputHist',function(rec){ if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#vat_outputDiff',['T']);
+}
+function __vat_outputExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#vat_outputTable','vat-output.csv'); } catch(e){}
+}
+function __vat_outputPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#vat_outputPresets',[
+        {label:'默认',labelEn:'Default',values:{s:'10000', r:'0.13'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{s:'20000', r:'0.26'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{s:'5000', r:'0.065'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __vat_outputExtras(); }catch(e){} };
+function __vat_outputBoot(){ try{ __vat_outputPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __vat_outputBoot();
+else document.addEventListener('DOMContentLoaded', __vat_outputBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
