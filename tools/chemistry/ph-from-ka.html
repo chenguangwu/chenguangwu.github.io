@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ph_from_kaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ph_from_kaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ph_from_kaTable"></div>
+    <div id="ph_from_kaDiff"></div>
+    <div id="ph_from_kaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -265,6 +271,45 @@ function resetForm(){document.getElementById('C').value = '0.1';
       document.getElementById('Ka').value = '1.8e-5';
       calcTool();}
 calcTool();
+
+function __ph_from_kaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ph_from_kaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var C=num('C'), Ka=num('Ka');
+    var h=Math.sqrt(Ka*C);
+    var ph=-Math.log10(h);
+    if (!isFinite(__ph_from_kaNum('C')) || !isFinite(__ph_from_kaNum('Ka'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ph_from_kaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['[H⁺] (mol/L)', h.toExponential(3)],
+            ['pH', ph.toFixed(3)],
+            ['pOH = 14 − pH', (14-ph).toFixed(3)],
+            ['pKa = −lg Ka', (-Math.log10(Ka)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({C:__ph_from_kaNum('C'), Ka:__ph_from_kaNum('Ka'), h:h});
+    TBKit.history.mount('#ph_from_kaHist',function(rec){ if(rec.C!=null)document.getElementById('C').value=rec.C; if(rec.Ka!=null)document.getElementById('Ka').value=rec.Ka; calcTool(); });
+    TBKit.util.diffBox('#ph_from_kaDiff',['h']);
+}
+function __ph_from_kaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ph_from_kaTable','ph-from-ka.csv'); } catch(e){}
+}
+function __ph_from_kaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ph_from_kaPresets',[
+        {label:'默认',labelEn:'Default',values:{C:'0.1', Ka:'1.8e-5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{C:'0.2', Ka:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{C:'0.05', Ka:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ph_from_kaExtras(); }catch(e){} };
+function __ph_from_kaBoot(){ try{ __ph_from_kaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ph_from_kaBoot();
+else document.addEventListener('DOMContentLoaded', __ph_from_kaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

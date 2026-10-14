@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="nernst_equationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__nernst_equationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="nernst_equationTable"></div>
+    <div id="nernst_equationDiff"></div>
+    <div id="nernst_equationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -274,6 +280,42 @@ function resetForm(){document.getElementById('E0').value = '1.23';
       document.getElementById('T').value = '298';
       calcTool();}
 calcTool();
+
+function __nernst_equationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __nernst_equationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var E0=num('E0'),n=num('n'),Q=num('Q'),T=num('T');
+    var E=E0 - (8.314*T/(n*96485))*Math.log(Q);
+    if (!isFinite(__nernst_equationNum('E0')) || !isFinite(__nernst_equationNum('n')) || !isFinite(__nernst_equationNum('Q')) || !isFinite(__nernst_equationNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#nernst_equationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电极电势 E (V)', E.toFixed(4)],
+            ['(RT/nF)ln10 (V)', ((8.314*T/(n*96485))*Math.log(10)).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({E0:__nernst_equationNum('E0'), n:__nernst_equationNum('n'), Q:__nernst_equationNum('Q'), T:__nernst_equationNum('T'), E:E});
+    TBKit.history.mount('#nernst_equationHist',function(rec){ if(rec.E0!=null)document.getElementById('E0').value=rec.E0; if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.Q!=null)document.getElementById('Q').value=rec.Q; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#nernst_equationDiff',['E']);
+}
+function __nernst_equationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#nernst_equationTable','nernst-equation.csv'); } catch(e){}
+}
+function __nernst_equationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#nernst_equationPresets',[
+        {label:'默认',labelEn:'Default',values:{E0:'1.23', n:'2', Q:'1', T:'298'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{E0:'2.46', n:'4', Q:'2', T:'596'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{E0:'0.615', n:'1', Q:'0.5', T:'149'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __nernst_equationExtras(); }catch(e){} };
+function __nernst_equationBoot(){ try{ __nernst_equationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __nernst_equationBoot();
+else document.addEventListener('DOMContentLoaded', __nernst_equationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

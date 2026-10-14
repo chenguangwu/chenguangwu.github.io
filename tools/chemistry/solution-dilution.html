@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="solution_dilutionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__solution_dilutionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="solution_dilutionTable"></div>
+    <div id="solution_dilutionDiff"></div>
+    <div id="solution_dilutionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,43 @@ function resetForm(){document.getElementById('C1').value = '10';
       document.getElementById('C2').value = '2';
       calcTool();}
 calcTool();
+
+function __solution_dilutionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __solution_dilutionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var C1 = num('C1'), V1 = num('V1'), C2 = num('C2');
+    var V2 = C1 * V1 / C2;
+    if (!isFinite(__solution_dilutionNum('C1')) || !isFinite(__solution_dilutionNum('V1')) || !isFinite(__solution_dilutionNum('C2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#solution_dilutionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['稀释后体积 V₂ (mL)', V2.toFixed(2)],
+            ['需加溶剂量 (mL)', (V2 - V1).toFixed(2)],
+            ['稀释倍数 C₁/C₂', (C2/C1).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({C1:__solution_dilutionNum('C1'), V1:__solution_dilutionNum('V1'), C2:__solution_dilutionNum('C2'), V2:V2});
+    TBKit.history.mount('#solution_dilutionHist',function(rec){ if(rec.C1!=null)document.getElementById('C1').value=rec.C1; if(rec.V1!=null)document.getElementById('V1').value=rec.V1; if(rec.C2!=null)document.getElementById('C2').value=rec.C2; calcTool(); });
+    TBKit.util.diffBox('#solution_dilutionDiff',['V2']);
+}
+function __solution_dilutionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#solution_dilutionTable','solution-dilution.csv'); } catch(e){}
+}
+function __solution_dilutionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#solution_dilutionPresets',[
+        {label:'默认',labelEn:'Default',values:{C1:'10', V1:'100', C2:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{C1:'20', V1:'200', C2:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{C1:'5', V1:'50', C2:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __solution_dilutionExtras(); }catch(e){} };
+function __solution_dilutionBoot(){ try{ __solution_dilutionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __solution_dilutionBoot();
+else document.addEventListener('DOMContentLoaded', __solution_dilutionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

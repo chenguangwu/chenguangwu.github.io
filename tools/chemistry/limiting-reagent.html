@@ -160,12 +160,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="limiting_reagentPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__limiting_reagentExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="limiting_reagentTable"></div>
+    <div id="limiting_reagentDiff"></div>
+    <div id="limiting_reagentHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,49 @@ function resetForm(){document.getElementById('mA').value = '10';
       document.getElementById('c').value = '1';
       calcTool();}
 calcTool();
+
+function __limiting_reagentNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __limiting_reagentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var mA=num('mA'),MA=num('MA'),a=num('a'),mB=num('mB'),MB=num('MB'),b=num('b'),MP=num('MP'),c=num('c');
+    var nA=mA/MA, nB=mB/MB;
+    var extA=nA/a, extB=nB/b;
+    var limiting = extA<=extB ? 'A' : 'B';
+    var ext = Math.min(extA, extB);
+    var yieldMass = ext*c*MP;
+    if (!isFinite(__limiting_reagentNum('mA')) || !isFinite(__limiting_reagentNum('MA')) || !isFinite(__limiting_reagentNum('a')) || !isFinite(__limiting_reagentNum('mB')) || !isFinite(__limiting_reagentNum('MB')) || !isFinite(__limiting_reagentNum('b')) || !isFinite(__limiting_reagentNum('MP')) || !isFinite(__limiting_reagentNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#limiting_reagentTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['限量反应物', (limiting==='A'?'A (反应物A)':'B (反应物B)')],
+            ['A 物质的量 (mol)', nA.toFixed(4)],
+            ['B 物质的量 (mol)', nB.toFixed(4)],
+            ['反应程度 ξ (mol)', ext.toFixed(4)],
+            ['理论产量 (g)', yieldMass.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({mA:__limiting_reagentNum('mA'), MA:__limiting_reagentNum('MA'), a:__limiting_reagentNum('a'), mB:__limiting_reagentNum('mB'), MB:__limiting_reagentNum('MB'), b:__limiting_reagentNum('b'), MP:__limiting_reagentNum('MP'), c:__limiting_reagentNum('c'), nA:nA});
+    TBKit.history.mount('#limiting_reagentHist',function(rec){ if(rec.mA!=null)document.getElementById('mA').value=rec.mA; if(rec.MA!=null)document.getElementById('MA').value=rec.MA; if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.mB!=null)document.getElementById('mB').value=rec.mB; if(rec.MB!=null)document.getElementById('MB').value=rec.MB; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.MP!=null)document.getElementById('MP').value=rec.MP; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+    TBKit.util.diffBox('#limiting_reagentDiff',['nA']);
+}
+function __limiting_reagentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#limiting_reagentTable','limiting-reagent.csv'); } catch(e){}
+}
+function __limiting_reagentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#limiting_reagentPresets',[
+        {label:'默认',labelEn:'Default',values:{mA:'10', MA:'36.46', a:'1', mB:'8', MB:'40.00', b:'2', MP:'58.44', c:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{mA:'20', MA:'72.92', a:'2', mB:'16', MB:'80', b:'4', MP:'116.88', c:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mA:'5', MA:'18.23', a:'0.5', mB:'4', MB:'20', b:'1', MP:'29.22', c:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __limiting_reagentExtras(); }catch(e){} };
+function __limiting_reagentBoot(){ try{ __limiting_reagentPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __limiting_reagentBoot();
+else document.addEventListener('DOMContentLoaded', __limiting_reagentBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

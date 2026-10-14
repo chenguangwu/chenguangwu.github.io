@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="solubility_productPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__solubility_productExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="solubility_productTable"></div>
+    <div id="solubility_productDiff"></div>
+    <div id="solubility_productHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -207,6 +213,42 @@ function resetForm(){document.getElementById('cA').value = '1e-5';
       document.getElementById('mB').value = '1';
       calcTool();}
 calcTool();
+
+function __solubility_productNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __solubility_productExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var cA=num('cA'),mA=num('mA'),cB=num('cB'),mB=num('mB');
+    var Ksp=Math.pow(cA,mA)*Math.pow(cB,mB);
+    if (!isFinite(__solubility_productNum('cA')) || !isFinite(__solubility_productNum('mA')) || !isFinite(__solubility_productNum('cB')) || !isFinite(__solubility_productNum('mB'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#solubility_productTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['溶度积 Ksp', Ksp.toExponential(3)],
+            ['若 1:1 则溶解度 s (mol/L)', Math.sqrt(Ksp).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({cA:__solubility_productNum('cA'), mA:__solubility_productNum('mA'), cB:__solubility_productNum('cB'), mB:__solubility_productNum('mB'), Ksp:Ksp});
+    TBKit.history.mount('#solubility_productHist',function(rec){ if(rec.cA!=null)document.getElementById('cA').value=rec.cA; if(rec.mA!=null)document.getElementById('mA').value=rec.mA; if(rec.cB!=null)document.getElementById('cB').value=rec.cB; if(rec.mB!=null)document.getElementById('mB').value=rec.mB; calcTool(); });
+    TBKit.util.diffBox('#solubility_productDiff',['Ksp']);
+}
+function __solubility_productExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#solubility_productTable','solubility-product.csv'); } catch(e){}
+}
+function __solubility_productPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#solubility_productPresets',[
+        {label:'默认',labelEn:'Default',values:{cA:'1e-5', mA:'1', cB:'1e-5', mB:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{cA:'0', mA:'2', cB:'0', mB:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{cA:'0', mA:'0.5', cB:'0', mB:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __solubility_productExtras(); }catch(e){} };
+function __solubility_productBoot(){ try{ __solubility_productPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __solubility_productBoot();
+else document.addEventListener('DOMContentLoaded', __solubility_productBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

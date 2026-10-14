@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="boiling_point_elevationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__boiling_point_elevationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="boiling_point_elevationTable"></div>
+    <div id="boiling_point_elevationDiff"></div>
+    <div id="boiling_point_elevationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,44 @@ function resetForm(){document.getElementById('Kb').value = '0.512';
       document.getElementById('i').value = '1';
       calcTool();}
 calcTool();
+
+function __boiling_point_elevationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __boiling_point_elevationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Kb = num('Kb'), m = num('m'), i = num('i');
+    var dT = Kb * m * i;
+    if (!isFinite(__boiling_point_elevationNum('Kb')) || !isFinite(__boiling_point_elevationNum('m')) || !isFinite(__boiling_point_elevationNum('i'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#boiling_point_elevationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['沸点升高 ΔT_b (°C)', dT.toFixed(4)],
+            ['溶液沸点 (°C, 以水为基准)', (100 + dT).toFixed(4)],
+            ['理想（i = 1）升高 ΔT_b (°C)', (Kb*m).toFixed(4)],
+            ['电解质引起的升高增幅 (%)', ((i-1)*100).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({Kb:__boiling_point_elevationNum('Kb'), m:__boiling_point_elevationNum('m'), i:__boiling_point_elevationNum('i'), dT:dT});
+    TBKit.history.mount('#boiling_point_elevationHist',function(rec){ if(rec.Kb!=null)document.getElementById('Kb').value=rec.Kb; if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.i!=null)document.getElementById('i').value=rec.i; calcTool(); });
+    TBKit.util.diffBox('#boiling_point_elevationDiff',['dT']);
+}
+function __boiling_point_elevationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#boiling_point_elevationTable','boiling-point-elevation.csv'); } catch(e){}
+}
+function __boiling_point_elevationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#boiling_point_elevationPresets',[
+        {label:'默认',labelEn:'Default',values:{Kb:'0.512', m:'1', i:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Kb:'1.024', m:'2', i:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Kb:'0.256', m:'0.5', i:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __boiling_point_elevationExtras(); }catch(e){} };
+function __boiling_point_elevationBoot(){ try{ __boiling_point_elevationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __boiling_point_elevationBoot();
+else document.addEventListener('DOMContentLoaded', __boiling_point_elevationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

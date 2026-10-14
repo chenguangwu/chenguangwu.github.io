@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="kp_kcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__kp_kcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="kp_kcTable"></div>
+    <div id="kp_kcDiff"></div>
+    <div id="kp_kcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,42 @@ function resetForm(){document.getElementById('Kc').value = '0.5';
       document.getElementById('dn').value = '1';
       calcTool();}
 calcTool();
+
+function __kp_kcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __kp_kcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Kc=num('Kc'),T=num('T'),dn=num('dn');
+    var Kp=Kc*Math.pow(8.314*T, dn);
+    if (!isFinite(__kp_kcNum('Kc')) || !isFinite(__kp_kcNum('T')) || !isFinite(__kp_kcNum('dn'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#kp_kcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['压力平衡常数 Kp', Kp.toExponential(3)],
+            ['RT (L·kPa/mol·K 等效)', (8.314*T).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({Kc:__kp_kcNum('Kc'), T:__kp_kcNum('T'), dn:__kp_kcNum('dn'), Kp:Kp});
+    TBKit.history.mount('#kp_kcHist',function(rec){ if(rec.Kc!=null)document.getElementById('Kc').value=rec.Kc; if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.dn!=null)document.getElementById('dn').value=rec.dn; calcTool(); });
+    TBKit.util.diffBox('#kp_kcDiff',['Kp']);
+}
+function __kp_kcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#kp_kcTable','kp-kc.csv'); } catch(e){}
+}
+function __kp_kcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#kp_kcPresets',[
+        {label:'默认',labelEn:'Default',values:{Kc:'0.5', T:'298', dn:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Kc:'1', T:'596', dn:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Kc:'0.25', T:'149', dn:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __kp_kcExtras(); }catch(e){} };
+function __kp_kcBoot(){ try{ __kp_kcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __kp_kcBoot();
+else document.addEventListener('DOMContentLoaded', __kp_kcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

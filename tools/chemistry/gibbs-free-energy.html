@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gibbs_free_energyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gibbs_free_energyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gibbs_free_energyTable"></div>
+    <div id="gibbs_free_energyDiff"></div>
+    <div id="gibbs_free_energyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('dH').value = '-100';
       document.getElementById('T').value = '298';
       calcTool();}
 calcTool();
+
+function __gibbs_free_energyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gibbs_free_energyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dH=num('dH'),dS=num('dS'),T=num('T');
+    var dG=dH - T*dS;
+    var spon = dG<0 ? '自发 (ΔG<0)' : (dG>0 ? '非自发 (ΔG>0)' : '平衡');
+    if (!isFinite(__gibbs_free_energyNum('dH')) || !isFinite(__gibbs_free_energyNum('dS')) || !isFinite(__gibbs_free_energyNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gibbs_free_energyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['ΔG (kJ/mol)', dG.toFixed(3)],
+            ['反应方向', spon],
+        ]
+    });
+    TBKit.history.record({dH:__gibbs_free_energyNum('dH'), dS:__gibbs_free_energyNum('dS'), T:__gibbs_free_energyNum('T'), dG:dG});
+    TBKit.history.mount('#gibbs_free_energyHist',function(rec){ if(rec.dH!=null)document.getElementById('dH').value=rec.dH; if(rec.dS!=null)document.getElementById('dS').value=rec.dS; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#gibbs_free_energyDiff',['dG']);
+}
+function __gibbs_free_energyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gibbs_free_energyTable','gibbs-free-energy.csv'); } catch(e){}
+}
+function __gibbs_free_energyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gibbs_free_energyPresets',[
+        {label:'默认',labelEn:'Default',values:{dH:'-100', dS:'0.05', T:'298'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dH:'-200', dS:'0.1', T:'596'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dH:'-50', dS:'0.025', T:'149'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gibbs_free_energyExtras(); }catch(e){} };
+function __gibbs_free_energyBoot(){ try{ __gibbs_free_energyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gibbs_free_energyBoot();
+else document.addEventListener('DOMContentLoaded', __gibbs_free_energyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

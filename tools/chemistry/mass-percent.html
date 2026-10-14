@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mass_percentPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mass_percentExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mass_percentTable"></div>
+    <div id="mass_percentDiff"></div>
+    <div id="mass_percentHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,45 @@ function resetForm(){document.getElementById('ms').value = '9';
       document.getElementById('msol').value = '100';
       calcTool();}
 calcTool();
+
+function __mass_percentNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mass_percentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ms=num('ms'), msol=num('msol');
+    var w=ms/msol;
+    if (!isFinite(__mass_percentNum('ms')) || !isFinite(__mass_percentNum('msol'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mass_percentTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['质量分数 w', w.toFixed(4)],
+            ['质量分数 (%)', (w*100).toFixed(2)],
+            ['溶剂质量 (g)', (msol-ms).toFixed(2)],
+            ['溶质/溶剂 质量比', (ms/((msol-ms)||1)).toFixed(4)],
+            ['每 100 g 溶剂含溶质 (g)', (ms/((msol-ms)||1)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({ms:__mass_percentNum('ms'), msol:__mass_percentNum('msol'), w:w});
+    TBKit.history.mount('#mass_percentHist',function(rec){ if(rec.ms!=null)document.getElementById('ms').value=rec.ms; if(rec.msol!=null)document.getElementById('msol').value=rec.msol; calcTool(); });
+    TBKit.util.diffBox('#mass_percentDiff',['w']);
+}
+function __mass_percentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mass_percentTable','mass-percent.csv'); } catch(e){}
+}
+function __mass_percentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mass_percentPresets',[
+        {label:'默认',labelEn:'Default',values:{ms:'9', msol:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ms:'18', msol:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ms:'4.5', msol:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mass_percentExtras(); }catch(e){} };
+function __mass_percentBoot(){ try{ __mass_percentPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mass_percentBoot();
+else document.addEventListener('DOMContentLoaded', __mass_percentBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="arrheniusPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__arrheniusExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="arrheniusTable"></div>
+    <div id="arrheniusDiff"></div>
+    <div id="arrheniusHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('A').value = '1e13';
       document.getElementById('T').value = '298';
       calcTool();}
 calcTool();
+
+function __arrheniusNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __arrheniusExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var A=num('A'),Ea=num('Ea'),T=num('T');
+    var k=A*Math.exp(-Ea/(8.314*T));
+    if (!isFinite(__arrheniusNum('A')) || !isFinite(__arrheniusNum('Ea')) || !isFinite(__arrheniusNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#arrheniusTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['速率常数 k', k.toExponential(3)],
+            ['指数项 (−Ea/RT)', (-Ea/(8.314*T)).toFixed(2)],
+            ['升温 10 K 的速率倍数 k(T+10)/k(T)', (A*Math.exp(-Ea/(8.314*(T+10)))/k).toFixed(3)],
+            ['温度敏感区间宽窄 T²R/Ea (K)', (8.314*T*T/(Ea||1)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({A:__arrheniusNum('A'), Ea:__arrheniusNum('Ea'), T:__arrheniusNum('T'), k:k});
+    TBKit.history.mount('#arrheniusHist',function(rec){ if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.Ea!=null)document.getElementById('Ea').value=rec.Ea; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#arrheniusDiff',['k']);
+}
+function __arrheniusExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#arrheniusTable','arrhenius.csv'); } catch(e){}
+}
+function __arrheniusPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#arrheniusPresets',[
+        {label:'默认',labelEn:'Default',values:{A:'1e13', Ea:'50000', T:'298'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{A:'20000000000000', Ea:'100000', T:'596'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{A:'5000000000000', Ea:'25000', T:'149'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __arrheniusExtras(); }catch(e){} };
+function __arrheniusBoot(){ try{ __arrheniusPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __arrheniusBoot();
+else document.addEventListener('DOMContentLoaded', __arrheniusBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

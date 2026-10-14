@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mass_fractionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mass_fractionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mass_fractionTable"></div>
+    <div id="mass_fractionDiff"></div>
+    <div id="mass_fractionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('ms').value = '20';
       document.getElementById('mt').value = '100';
       calcTool();}
 calcTool();
+
+function __mass_fractionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mass_fractionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ms = num('ms'), mt = num('mt');
+    var w = ms / mt * 100;
+    if (!isFinite(__mass_fractionNum('ms')) || !isFinite(__mass_fractionNum('mt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mass_fractionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['质量分数 w (%)', w.toFixed(2)],
+            ['溶剂质量 (g)', (mt - ms).toFixed(2)],
+            ['质量分数（小数）', (w/100).toFixed(5)],
+            ['溶剂质量占比 (%)', ((mt-ms)/(mt||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({ms:__mass_fractionNum('ms'), mt:__mass_fractionNum('mt'), w:w});
+    TBKit.history.mount('#mass_fractionHist',function(rec){ if(rec.ms!=null)document.getElementById('ms').value=rec.ms; if(rec.mt!=null)document.getElementById('mt').value=rec.mt; calcTool(); });
+    TBKit.util.diffBox('#mass_fractionDiff',['w']);
+}
+function __mass_fractionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mass_fractionTable','mass-fraction.csv'); } catch(e){}
+}
+function __mass_fractionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mass_fractionPresets',[
+        {label:'默认',labelEn:'Default',values:{ms:'20', mt:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ms:'40', mt:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ms:'10', mt:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mass_fractionExtras(); }catch(e){} };
+function __mass_fractionBoot(){ try{ __mass_fractionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mass_fractionBoot();
+else document.addEventListener('DOMContentLoaded', __mass_fractionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

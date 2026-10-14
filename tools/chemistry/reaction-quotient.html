@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="reaction_quotientPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__reaction_quotientExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="reaction_quotientTable"></div>
+    <div id="reaction_quotientDiff"></div>
+    <div id="reaction_quotientHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -267,6 +273,43 @@ function resetForm(){document.getElementById('rP').value = '1.0';
       document.getElementById('K').value = '2.0';
       calcTool();}
 calcTool();
+
+function __reaction_quotientNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __reaction_quotientExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rP=num('rP'),rN=num('rN'),pP=num('pP'),pN=num('pN'),K=num('K');
+    var Q=Math.pow(pP,pN)/Math.pow(rP,rN);
+    var dir = Q<K ? '正向进行 (Q<K)' : (Q>K ? '逆向进行 (Q>K)' : '已达平衡');
+    if (!isFinite(__reaction_quotientNum('rP')) || !isFinite(__reaction_quotientNum('rN')) || !isFinite(__reaction_quotientNum('pP')) || !isFinite(__reaction_quotientNum('pN')) || !isFinite(__reaction_quotientNum('K'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#reaction_quotientTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['反应商 Q', Q.toFixed(4)],
+            ['反应方向', dir],
+        ]
+    });
+    TBKit.history.record({rP:__reaction_quotientNum('rP'), rN:__reaction_quotientNum('rN'), pP:__reaction_quotientNum('pP'), pN:__reaction_quotientNum('pN'), K:__reaction_quotientNum('K'), Q:Q});
+    TBKit.history.mount('#reaction_quotientHist',function(rec){ if(rec.rP!=null)document.getElementById('rP').value=rec.rP; if(rec.rN!=null)document.getElementById('rN').value=rec.rN; if(rec.pP!=null)document.getElementById('pP').value=rec.pP; if(rec.pN!=null)document.getElementById('pN').value=rec.pN; if(rec.K!=null)document.getElementById('K').value=rec.K; calcTool(); });
+    TBKit.util.diffBox('#reaction_quotientDiff',['Q']);
+}
+function __reaction_quotientExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#reaction_quotientTable','reaction-quotient.csv'); } catch(e){}
+}
+function __reaction_quotientPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#reaction_quotientPresets',[
+        {label:'默认',labelEn:'Default',values:{rP:'1.0', rN:'1', pP:'0.5', pN:'1', K:'2.0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rP:'2', rN:'2', pP:'1', pN:'2', K:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rP:'0.5', rN:'0.5', pP:'0.25', pN:'0.5', K:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __reaction_quotientExtras(); }catch(e){} };
+function __reaction_quotientBoot(){ try{ __reaction_quotientPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __reaction_quotientBoot();
+else document.addEventListener('DOMContentLoaded', __reaction_quotientBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

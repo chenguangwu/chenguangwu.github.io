@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="molalityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__molalityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="molalityTable"></div>
+    <div id="molalityDiff"></div>
+    <div id="molalityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('n').value = '1';
       document.getElementById('ms').value = '0.5';
       calcTool();}
 calcTool();
+
+function __molalityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __molalityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n = num('n'), ms = num('ms');
+    var b = n / ms;
+    if (!isFinite(__molalityNum('n')) || !isFinite(__molalityNum('ms'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#molalityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['质量摩尔浓度 b (mol/kg)', b.toFixed(4)],
+            ['毫摩尔每千克 (mmol/kg)', (b * 1000).toFixed(2)],
+            ['摩尔分数 x（以水为溶剂）', (b/(b+55.51)).toFixed(6)],
+            ['溶剂摩尔分数', (55.51/(b+55.51)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({n:__molalityNum('n'), ms:__molalityNum('ms'), b:b});
+    TBKit.history.mount('#molalityHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.ms!=null)document.getElementById('ms').value=rec.ms; calcTool(); });
+    TBKit.util.diffBox('#molalityDiff',['b']);
+}
+function __molalityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#molalityTable','molality.csv'); } catch(e){}
+}
+function __molalityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#molalityPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1', ms:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2', ms:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.5', ms:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __molalityExtras(); }catch(e){} };
+function __molalityBoot(){ try{ __molalityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __molalityBoot();
+else document.addEventListener('DOMContentLoaded', __molalityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

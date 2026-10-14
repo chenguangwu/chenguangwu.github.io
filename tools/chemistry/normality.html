@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="normalityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__normalityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="normalityTable"></div>
+    <div id="normalityDiff"></div>
+    <div id="normalityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('n').value = '1';
       document.getElementById('V').value = '1';
       calcTool();}
 calcTool();
+
+function __normalityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __normalityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n = num('n'), z = num('z'), V = num('V');
+    var N = n * z / V;
+    if (!isFinite(__normalityNum('n')) || !isFinite(__normalityNum('z')) || !isFinite(__normalityNum('V'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#normalityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['当量浓度 N (eq/L)', N.toFixed(4)],
+            ['等价摩尔浓度 (mol/L × z)', (N).toFixed(4)],
+            ['摩尔浓度 c (mol/L)', (n/V).toFixed(4)],
+            ['溶质当量数 (eq)', (n*z).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__normalityNum('n'), z:__normalityNum('z'), V:__normalityNum('V'), N:N});
+    TBKit.history.mount('#normalityHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.z!=null)document.getElementById('z').value=rec.z; if(rec.V!=null)document.getElementById('V').value=rec.V; calcTool(); });
+    TBKit.util.diffBox('#normalityDiff',['N']);
+}
+function __normalityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#normalityTable','normality.csv'); } catch(e){}
+}
+function __normalityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#normalityPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1', z:'2', V:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2', z:'4', V:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.5', z:'1', V:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __normalityExtras(); }catch(e){} };
+function __normalityBoot(){ try{ __normalityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __normalityBoot();
+else document.addEventListener('DOMContentLoaded', __normalityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

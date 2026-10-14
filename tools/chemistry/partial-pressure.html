@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="partial_pressurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__partial_pressureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="partial_pressureTable"></div>
+    <div id="partial_pressureDiff"></div>
+    <div id="partial_pressureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('x').value = '0.2';
       document.getElementById('Pt').value = '100';
       calcTool();}
 calcTool();
+
+function __partial_pressureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __partial_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x = num('x'), Pt = num('Pt');
+    var Pi = x * Pt;
+    if (!isFinite(__partial_pressureNum('x')) || !isFinite(__partial_pressureNum('Pt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#partial_pressureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['分压 Pᵢ (kPa)', Pi.toFixed(2)],
+            ['其余组分分压 (kPa)', (Pt - Pi).toFixed(2)],
+            ['摩尔分数 (%)', (x*100).toFixed(3)],
+            ['其余组分占比 (%)', ((Pt-Pi)/(Pt||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({x:__partial_pressureNum('x'), Pt:__partial_pressureNum('Pt'), Pi:Pi});
+    TBKit.history.mount('#partial_pressureHist',function(rec){ if(rec.x!=null)document.getElementById('x').value=rec.x; if(rec.Pt!=null)document.getElementById('Pt').value=rec.Pt; calcTool(); });
+    TBKit.util.diffBox('#partial_pressureDiff',['Pi']);
+}
+function __partial_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#partial_pressureTable','partial-pressure.csv'); } catch(e){}
+}
+function __partial_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#partial_pressurePresets',[
+        {label:'默认',labelEn:'Default',values:{x:'0.2', Pt:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x:'0.4', Pt:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x:'0.1', Pt:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __partial_pressureExtras(); }catch(e){} };
+function __partial_pressureBoot(){ try{ __partial_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __partial_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __partial_pressureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

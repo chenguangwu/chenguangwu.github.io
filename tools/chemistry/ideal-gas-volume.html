@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ideal_gas_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ideal_gas_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ideal_gas_volumeTable"></div>
+    <div id="ideal_gas_volumeDiff"></div>
+    <div id="ideal_gas_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('n').value = '1';
       document.getElementById('T').value = '273.15';
       calcTool();}
 calcTool();
+
+function __ideal_gas_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ideal_gas_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n = num('n'), P = num('P'), T = num('T');
+    var R = 8.314; // kPa·L/(mol·K)
+    var V = n * R * T / P;
+    if (!isFinite(__ideal_gas_volumeNum('n')) || !isFinite(__ideal_gas_volumeNum('P')) || !isFinite(__ideal_gas_volumeNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ideal_gas_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['体积 V (L)', V.toFixed(3)],
+            ['回算温度 T (K)', (P * V / (n * R)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({n:__ideal_gas_volumeNum('n'), P:__ideal_gas_volumeNum('P'), T:__ideal_gas_volumeNum('T'), R:R});
+    TBKit.history.mount('#ideal_gas_volumeHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#ideal_gas_volumeDiff',['R']);
+}
+function __ideal_gas_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ideal_gas_volumeTable','ideal-gas-volume.csv'); } catch(e){}
+}
+function __ideal_gas_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ideal_gas_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1', P:'101.325', T:'273.15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2', P:'202.65', T:'546.3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.5', P:'50.6625', T:'136.575'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ideal_gas_volumeExtras(); }catch(e){} };
+function __ideal_gas_volumeBoot(){ try{ __ideal_gas_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ideal_gas_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __ideal_gas_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

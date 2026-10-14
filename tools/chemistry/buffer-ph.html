@@ -139,12 +139,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="buffer_phPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__buffer_phExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="buffer_phTable"></div>
+    <div id="buffer_phDiff"></div>
+    <div id="buffer_phHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -259,6 +265,44 @@ function resetForm(){document.getElementById('pKa').value = '4.76';
       document.getElementById('HA').value = '0.1';
       calcTool();}
 calcTool();
+
+function __buffer_phNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __buffer_phExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var pKa=num('pKa'),Ab=num('Abase'),HA=num('HA');
+    var ph=pKa+Math.log10(Ab/HA);
+    if (!isFinite(__buffer_phNum('pKa')) || !isFinite(__buffer_phNum('Abase')) || !isFinite(__buffer_phNum('HA'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#buffer_phTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['pH', ph.toFixed(3)],
+            ['[A⁻]/[HA] 比', (Ab/HA).toFixed(3)],
+            ['缓冲有效上限 pH（pKa+1）', (pKa+1).toFixed(3)],
+            ['缓冲有效下限 pH（pKa−1）', (pKa-1).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({pKa:__buffer_phNum('pKa'), Abase:__buffer_phNum('Abase'), HA:__buffer_phNum('HA'), ph:ph});
+    TBKit.history.mount('#buffer_phHist',function(rec){ if(rec.pKa!=null)document.getElementById('pKa').value=rec.pKa; if(rec.Abase!=null)document.getElementById('Abase').value=rec.Abase; if(rec.HA!=null)document.getElementById('HA').value=rec.HA; calcTool(); });
+    TBKit.util.diffBox('#buffer_phDiff',['ph']);
+}
+function __buffer_phExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#buffer_phTable','buffer-ph.csv'); } catch(e){}
+}
+function __buffer_phPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#buffer_phPresets',[
+        {label:'默认',labelEn:'Default',values:{pKa:'4.76', Abase:'0.1', HA:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{pKa:'9.52', Abase:'0.2', HA:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{pKa:'2.38', Abase:'0.05', HA:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __buffer_phExtras(); }catch(e){} };
+function __buffer_phBoot(){ try{ __buffer_phPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __buffer_phBoot();
+else document.addEventListener('DOMContentLoaded', __buffer_phBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

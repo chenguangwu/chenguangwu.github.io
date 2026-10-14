@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mass_to_molesPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mass_to_molesExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mass_to_molesTable"></div>
+    <div id="mass_to_molesDiff"></div>
+    <div id="mass_to_molesHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('m').value = '18';
       document.getElementById('M').value = '18.015';
       calcTool();}
 calcTool();
+
+function __mass_to_molesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mass_to_molesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m = num('m'), M = num('M');
+    var n = m / M;
+    if (!isFinite(__mass_to_molesNum('m')) || !isFinite(__mass_to_molesNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mass_to_molesTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['物质的量 n (mol)', n.toFixed(4)],
+            ['摩尔质量倒数 (mol/g)', (M/m).toFixed(4)],
+            ['摩尔质量复算 (g/mol)', (m/(n||1)).toFixed(4)],
+            ['分子数 (个)', (n*6.02214076e23).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({m:__mass_to_molesNum('m'), M:__mass_to_molesNum('M'), n:n});
+    TBKit.history.mount('#mass_to_molesHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.M!=null)document.getElementById('M').value=rec.M; calcTool(); });
+    TBKit.util.diffBox('#mass_to_molesDiff',['n']);
+}
+function __mass_to_molesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mass_to_molesTable','mass-to-moles.csv'); } catch(e){}
+}
+function __mass_to_molesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mass_to_molesPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'18', M:'18.015'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'36', M:'36.03'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'9', M:'9.0075'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mass_to_molesExtras(); }catch(e){} };
+function __mass_to_molesBoot(){ try{ __mass_to_molesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mass_to_molesBoot();
+else document.addEventListener('DOMContentLoaded', __mass_to_molesBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

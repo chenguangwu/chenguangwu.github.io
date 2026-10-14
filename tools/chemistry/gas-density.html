@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gas_densityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gas_densityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gas_densityTable"></div>
+    <div id="gas_densityDiff"></div>
+    <div id="gas_densityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('P').value = '101.325';
       document.getElementById('T').value = '273.15';
       calcTool();}
 calcTool();
+
+function __gas_densityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gas_densityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('P'), M = num('M'), T = num('T');
+    var R = 8.314;
+    var rho = P * M / (R * T);
+    if (!isFinite(__gas_densityNum('P')) || !isFinite(__gas_densityNum('M')) || !isFinite(__gas_densityNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gas_densityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['气体密度 ρ (g/L)', rho.toFixed(4)],
+            ['密度 (kg/m³)', (rho / 1000).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({P:__gas_densityNum('P'), M:__gas_densityNum('M'), T:__gas_densityNum('T'), R:R});
+    TBKit.history.mount('#gas_densityHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.M!=null)document.getElementById('M').value=rec.M; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#gas_densityDiff',['R']);
+}
+function __gas_densityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gas_densityTable','gas-density.csv'); } catch(e){}
+}
+function __gas_densityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gas_densityPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'101.325', M:'28.97', T:'273.15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'202.65', M:'57.94', T:'546.3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'50.6625', M:'14.485', T:'136.575'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gas_densityExtras(); }catch(e){} };
+function __gas_densityBoot(){ try{ __gas_densityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gas_densityBoot();
+else document.addEventListener('DOMContentLoaded', __gas_densityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

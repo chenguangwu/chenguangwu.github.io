@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ph_to_hPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ph_to_hExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ph_to_hTable"></div>
+    <div id="ph_to_hDiff"></div>
+    <div id="ph_to_hHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,45 @@ function calcTool(){
 function resetForm(){document.getElementById('pH').value = '7';
       calcTool();}
 calcTool();
+
+function __ph_to_hNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ph_to_hExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var pH = num('pH');
+    var H = Math.pow(10, -pH);
+    if (!isFinite(__ph_to_hNum('pH'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ph_to_hTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['氢离子浓度 [H⁺] (mol/L)', H.toExponential(3)],
+            ['回算 pH', (-Math.log10(H)).toFixed(3)],
+            ['pOH 值', (14-pH).toFixed(3)],
+            ['氢氧根浓度 (mol/L)', (1e-14/Math.max(H,1e-300)).toExponential(3)],
+            ['由浓度回算 pH', (Math.log10(1/Math.max(H,1e-300))).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({pH:__ph_to_hNum('pH'), H:H});
+    TBKit.history.mount('#ph_to_hHist',function(rec){ if(rec.pH!=null)document.getElementById('pH').value=rec.pH; calcTool(); });
+    TBKit.util.diffBox('#ph_to_hDiff',['H']);
+}
+function __ph_to_hExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ph_to_hTable','ph-to-h.csv'); } catch(e){}
+}
+function __ph_to_hPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ph_to_hPresets',[
+        {label:'默认',labelEn:'Default',values:{pH:'7'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{pH:'14'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{pH:'3.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ph_to_hExtras(); }catch(e){} };
+function __ph_to_hBoot(){ try{ __ph_to_hPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ph_to_hBoot();
+else document.addEventListener('DOMContentLoaded', __ph_to_hBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

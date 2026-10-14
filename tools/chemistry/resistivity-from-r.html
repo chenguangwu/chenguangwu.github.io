@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="resistivity_from_rPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__resistivity_from_rExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="resistivity_from_rTable"></div>
+    <div id="resistivity_from_rDiff"></div>
+    <div id="resistivity_from_rHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,42 @@ function resetForm(){document.getElementById('R').value = '10';
       document.getElementById('L').value = '1';
       calcTool();}
 calcTool();
+
+function __resistivity_from_rNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __resistivity_from_rExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var R = num('R'), A = num('A'), L = num('L');
+    var rho = R * (A / 1e6) / L; // A mm² -> m²
+    if (!isFinite(__resistivity_from_rNum('R')) || !isFinite(__resistivity_from_rNum('A')) || !isFinite(__resistivity_from_rNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#resistivity_from_rTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电阻率 ρ (Ω·m)', rho.toExponential(3)],
+            ['电导率 κ (S/m)', (1 / rho).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({R:__resistivity_from_rNum('R'), A:__resistivity_from_rNum('A'), L:__resistivity_from_rNum('L'), rho:rho});
+    TBKit.history.mount('#resistivity_from_rHist',function(rec){ if(rec.R!=null)document.getElementById('R').value=rec.R; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#resistivity_from_rDiff',['rho']);
+}
+function __resistivity_from_rExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#resistivity_from_rTable','resistivity-from-r.csv'); } catch(e){}
+}
+function __resistivity_from_rPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#resistivity_from_rPresets',[
+        {label:'默认',labelEn:'Default',values:{R:'10', A:'1', L:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{R:'20', A:'2', L:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{R:'5', A:'0.5', L:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __resistivity_from_rExtras(); }catch(e){} };
+function __resistivity_from_rBoot(){ try{ __resistivity_from_rPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __resistivity_from_rBoot();
+else document.addEventListener('DOMContentLoaded', __resistivity_from_rBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

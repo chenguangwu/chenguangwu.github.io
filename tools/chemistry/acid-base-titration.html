@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="acid_base_titrationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__acid_base_titrationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="acid_base_titrationTable"></div>
+    <div id="acid_base_titrationDiff"></div>
+    <div id="acid_base_titrationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,42 @@ function resetForm(){document.getElementById('Ca').value = '0.1';
       document.getElementById('nb').value = '1';
       calcTool();}
 calcTool();
+
+function __acid_base_titrationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __acid_base_titrationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Ca = num('Ca'), Va = num('Va'), na = num('na'), Cb = num('Cb'), nb = num('nb');
+    var Vb = Ca * Va * na / (Cb * nb);
+    if (!isFinite(__acid_base_titrationNum('Ca')) || !isFinite(__acid_base_titrationNum('Va')) || !isFinite(__acid_base_titrationNum('na')) || !isFinite(__acid_base_titrationNum('Cb')) || !isFinite(__acid_base_titrationNum('nb'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#acid_base_titrationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['所需碱体积 V_b (mL)', Vb.toFixed(2)],
+            ['回算酸浓度 (mol/L)', (Cb * Vb * nb / (Va * na)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({Ca:__acid_base_titrationNum('Ca'), Va:__acid_base_titrationNum('Va'), na:__acid_base_titrationNum('na'), Cb:__acid_base_titrationNum('Cb'), nb:__acid_base_titrationNum('nb'), Vb:Vb});
+    TBKit.history.mount('#acid_base_titrationHist',function(rec){ if(rec.Ca!=null)document.getElementById('Ca').value=rec.Ca; if(rec.Va!=null)document.getElementById('Va').value=rec.Va; if(rec.na!=null)document.getElementById('na').value=rec.na; if(rec.Cb!=null)document.getElementById('Cb').value=rec.Cb; if(rec.nb!=null)document.getElementById('nb').value=rec.nb; calcTool(); });
+    TBKit.util.diffBox('#acid_base_titrationDiff',['Vb']);
+}
+function __acid_base_titrationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#acid_base_titrationTable','acid-base-titration.csv'); } catch(e){}
+}
+function __acid_base_titrationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#acid_base_titrationPresets',[
+        {label:'默认',labelEn:'Default',values:{Ca:'0.1', Va:'25', na:'1', Cb:'0.1', nb:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Ca:'0.2', Va:'50', na:'2', Cb:'0.2', nb:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Ca:'0.05', Va:'12.5', na:'0.5', Cb:'0.05', nb:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __acid_base_titrationExtras(); }catch(e){} };
+function __acid_base_titrationBoot(){ try{ __acid_base_titrationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __acid_base_titrationBoot();
+else document.addEventListener('DOMContentLoaded', __acid_base_titrationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
