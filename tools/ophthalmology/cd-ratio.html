@@ -134,7 +134,12 @@ s.parentNode.insertBefore(el, s);
       <label><input type="checkbox" id="isnt" onchange="calc()"> ISNT 规则被违反(下方盘沿变薄)</label>
     </div>
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__cd_ratioExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result"></div>
+    <div id="cd_ratioTable"></div>
+    <div id="cd_ratioDiff"></div>
+    <div id="cd_ratioChart"></div>
+    <div id="cd_ratioHist"></div>
     <div class="cd-wrap" id="visual"></div>
   </div>
 
@@ -329,6 +334,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __cd_ratio_last=0,__cd_ratio_skip=false;
+function __cd_ratioSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cd_ratioResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cd_ratioTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cd_ratioRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cd_ratioTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cd_ratioTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cd_ratioDiff');
+        TBKit.history.mount('#cd_ratioHist',function(rec){
+            __cd_ratio_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __cd_ratio_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cd_ratioTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cd_ratioChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cd_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cd_ratio_skip) return;
+    var snap=__cd_ratioSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cd_ratioResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cd_ratio_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cd_ratio_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cd_ratioRender(keys,rk,en);
+}
+function __cd_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cd_ratioTable','cd-ratio.csv'); } catch(e){}
+}
+function __cd_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cd_ratioPresets',[{label:'默认参数',labelEn:'Default',values:{od:'0.4', os:'0.5'}}],function(){ calc(); });
+}
+var __cd_ratio_f0=(typeof calc==='function')?calc:null;
+if(__cd_ratio_f0){
+    calc=function(){ __cd_ratio_f0.apply(null,arguments); try{ __cd_ratioExtras(); }catch(e){} };
+}
+function __cd_ratioBoot(){ try{ __cd_ratioPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cd_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __cd_ratioBoot);
 </script>
 
 </body>

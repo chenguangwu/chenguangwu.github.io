@@ -140,8 +140,14 @@ s.parentNode.insertBefore(el, s);
 
     <div class="section-title" style="font-size:15px;font-weight:600;color:var(--heading);margin:20px 0 8px;">📝 视疲劳症状问卷 (近1周)</div>
     <div id="questionnaire"></div>
-    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">✅ 综合评估</button> <button type="button" class="btn" onclick="reset()">重置</button></div>
+    <div class="toolbar"><div id="visual_fatigue_vasPresets"></div>
+      <button type="button" class="btn primary" onclick="calc()">✅ 综合评估</button>
+      <button class="btn" type="button" onclick="__visual_fatigue_vasExport()">导出明细 CSV</button> <button type="button" class="btn" onclick="reset()">重置</button></div>
     <div class="result-box" id="result" style="margin-top:12px;"></div>
+    <div id="visual_fatigue_vasTable"></div>
+    <div id="visual_fatigue_vasDiff"></div>
+    <div id="visual_fatigue_vasChart"></div>
+    <div id="visual_fatigue_vasHist"></div>
   </div>
 
   <div class="card">
@@ -373,6 +379,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __visual_fatigue_vas_last=0,__visual_fatigue_vas_skip=false;
+function __visual_fatigue_vasSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __visual_fatigue_vasResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __visual_fatigue_vasTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __visual_fatigue_vasRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__visual_fatigue_vasTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#visual_fatigue_vasTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#visual_fatigue_vasDiff');
+        TBKit.history.mount('#visual_fatigue_vasHist',function(rec){
+            __visual_fatigue_vas_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __visual_fatigue_vas_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__visual_fatigue_vasTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#visual_fatigue_vasChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __visual_fatigue_vasExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__visual_fatigue_vas_skip) return;
+    var snap=__visual_fatigue_vasSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__visual_fatigue_vasResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__visual_fatigue_vas_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __visual_fatigue_vas_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __visual_fatigue_vasRender(keys,rk,en);
+}
+function __visual_fatigue_vasExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#visual_fatigue_vasTable','visual-fatigue-vas.csv'); } catch(e){}
+}
+function __visual_fatigue_vasPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#visual_fatigue_vasPresets',[{label:'默认参数',labelEn:'Default',values:{vasSlider:'5'}}],function(){ calc(); });
+}
+var __visual_fatigue_vas_f0=(typeof calc==='function')?calc:null;
+if(__visual_fatigue_vas_f0){
+    calc=function(){ __visual_fatigue_vas_f0.apply(null,arguments); try{ __visual_fatigue_vasExtras(); }catch(e){} };
+}
+function __visual_fatigue_vasBoot(){ try{ __visual_fatigue_vasPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __visual_fatigue_vasBoot();
+else document.addEventListener('DOMContentLoaded', __visual_fatigue_vasBoot);
 </script>
 
 </body>
