@@ -175,7 +175,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="solar_elevationPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__solar_elevationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
@@ -190,7 +190,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>🌅 日出 / 正午 / 日落</h3>
     <div class="data-grid" id="sunGrid"></div>
-    <div class="result-box" id="sunDetail" style="margin-top:12px;"></div>
+    <div class="result-box" id="sunDetail" style="margin-top:12px;"></div> <div id="solar_elevationTable"></div> <div id="solar_elevationDiff"></div> <div id="solar_elevationChart"></div> <div id="solar_elevationHist"></div>
   </div>
 
   <div class="card">
@@ -857,6 +857,114 @@ s.parentNode.insertBefore(el, s);
   initDefaults();
   calc();
 })();
+
+var __solar_elevation_last=0,__solar_elevation_skip=false;
+function __solar_elevationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __solar_elevationResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __solar_elevationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __solar_elevationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__solar_elevationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#solar_elevationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#solar_elevationDiff');
+        TBKit.history.mount('#solar_elevationHist',function(rec){
+            __solar_elevation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __solar_elevation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__solar_elevationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#solar_elevationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __solar_elevationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__solar_elevation_skip) return;
+    var snap=__solar_elevationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__solar_elevationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__solar_elevation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __solar_elevation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __solar_elevationRender(keys,rk,en);
+}
+function __solar_elevationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#solar_elevationTable','solar-elevation.csv'); } catch(e){}
+}
+function __solar_elevationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#solar_elevationPresets',[{label:'默认参数',labelEn:'Default',values:{'latInput':'39.9042', 'lonInput':'116.4074'}}],function(){ calc(); });
+}
+var __solar_elevation_f0=(typeof calc==='function')?calc:null;
+if(__solar_elevation_f0){
+    calc=function(){ var __r=__solar_elevation_f0.apply(null,arguments); try{ __solar_elevationExtras(); }catch(e){} return __r; };
+}
+function __solar_elevationBoot(){ try{ __solar_elevationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __solar_elevationBoot();
+else document.addEventListener('DOMContentLoaded', __solar_elevationBoot);
 </script>
 
 <script type="application/ld+json">

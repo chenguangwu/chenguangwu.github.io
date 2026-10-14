@@ -143,10 +143,10 @@ s.parentNode.insertBefore(el, s);
     <div id="emps"></div>
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="addEmp()">+ 添加员工</button>
-      <button type="button" class="btn primary" onclick="calc()">📊 统计</button>
+      <div id="tracking_hoursPresets"></div><button type="button" class="btn primary" onclick="calc()">📊 统计</button><button class="btn" type="button" onclick="__tracking_hoursExport()">导出明细 CSV</button>
     </div>
 
-    <div class="summary-grid" id="summary"></div>
+    <div class="summary-grid" id="summary"></div> <div id="tracking_hoursTable"></div> <div id="tracking_hoursDiff"></div> <div id="tracking_hoursChart"></div> <div id="tracking_hoursHist"></div>
 
     <div id="resultTable"></div>
 
@@ -373,6 +373,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __tracking_hours_last=0,__tracking_hours_skip=false;
+function __tracking_hoursSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tracking_hoursResText(){
+    var r=document.getElementById('summary');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tracking_hoursTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tracking_hoursRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tracking_hoursTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tracking_hoursTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#tracking_hoursDiff');
+        TBKit.history.mount('#tracking_hoursHist',function(rec){
+            __tracking_hours_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tracking_hours_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tracking_hoursTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tracking_hoursChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tracking_hoursExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tracking_hours_skip) return;
+    var snap=__tracking_hoursSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tracking_hoursResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tracking_hours_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tracking_hours_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tracking_hoursRender(keys,rk,en);
+}
+function __tracking_hoursExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tracking_hoursTable','tracking-hours.csv'); } catch(e){}
+}
+function __tracking_hoursPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tracking_hoursPresets',[{label:'默认参数',labelEn:'Default',values:{'required':'40', 'deadline':'2025-12-31', 'dept':'研发部'}}],function(){ calc(); });
+}
+var __tracking_hours_f0=(typeof calc==='function')?calc:null;
+if(__tracking_hours_f0){
+    calc=function(){ var __r=__tracking_hours_f0.apply(null,arguments); try{ __tracking_hoursExtras(); }catch(e){} return __r; };
+}
+function __tracking_hoursBoot(){ try{ __tracking_hoursPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tracking_hoursBoot();
+else document.addEventListener('DOMContentLoaded', __tracking_hoursBoot);
 </script>
 
 </body>

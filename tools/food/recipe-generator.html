@@ -232,9 +232,9 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <button type="button" class="btn primary" style="width:100%;margin:12px 0;" onclick="generate()">生成菜谱</button>
+    <div id="recipe_generatorPresets"></div><button type="button" class="btn primary" style="width:100%;margin:12px 0;" onclick="generate()">生成菜谱</button><button class="btn" type="button" onclick="__recipe_generatorExport()">导出明细 CSV</button>
 
-    <div id="recipeOutput"></div>
+    <div id="recipeOutput"></div> <div id="recipe_generatorTable"></div> <div id="recipe_generatorDiff"></div> <div id="recipe_generatorChart"></div> <div id="recipe_generatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -518,6 +518,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __recipe_generator_last=0,__recipe_generator_skip=false;
+function __recipe_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __recipe_generatorResText(){
+    var r=document.getElementById('recipeOutput');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __recipe_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __recipe_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__recipe_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#recipe_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#recipe_generatorDiff');
+        TBKit.history.mount('#recipe_generatorHist',function(rec){
+            __recipe_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generate();
+            }catch(e2){}
+            __recipe_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__recipe_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#recipe_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __recipe_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__recipe_generator_skip) return;
+    var snap=__recipe_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__recipe_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__recipe_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __recipe_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __recipe_generatorRender(keys,rk,en);
+}
+function __recipe_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#recipe_generatorTable','recipe-generator.csv'); } catch(e){}
+}
+function __recipe_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#recipe_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'cuisine':'chinese', 'difficulty':'easy', 'servings':'1', 'method':'stir-fry', 'time':'15'}}],function(){ generate(); });
+}
+var __recipe_generator_f0=(typeof generate==='function')?generate:null;
+if(__recipe_generator_f0){
+    generate=function(){ var __r=__recipe_generator_f0.apply(null,arguments); try{ __recipe_generatorExtras(); }catch(e){} return __r; };
+}
+function __recipe_generatorBoot(){ try{ __recipe_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __recipe_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __recipe_generatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

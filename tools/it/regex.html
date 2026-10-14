@@ -239,7 +239,7 @@ IP: 192.168.1.1, 10.0.0.255
       <p style="font-size:12px;color:var(--text-muted);margin:-2px 0 12px;">使用浏览器 JavaScript 正则引擎；结果与前端 <code>RegExp</code> 行为一致。</p>
 
       <label>匹配结果</label>
-      <div id="matchResult" style="font-size:13px;color:var(--text-muted);">输入正则后将自动匹配...</div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__regexExport()">导出明细 CSV</button></div><div id="matchResult" style="font-size:13px;color:var(--text-muted);">输入正则后将自动匹配...</div> <div id="regexTable"></div> <div id="regexDiff"></div> <div id="regexChart"></div> <div id="regexHist"></div>
       
       <label style="margin-top:16px;">高亮显示</label>
       <div id="highlight-output">高亮结果将显示在这里...</div>
@@ -676,6 +676,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __regex_last=0,__regex_skip=false;
+function __regexSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __regexResText(){
+    var r=document.getElementById('matchResult');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __regexTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __regexRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__regexTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#regexTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#regexDiff');
+        TBKit.history.mount('#regexHist',function(rec){
+            __regex_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                applyPreset();
+            }catch(e2){}
+            __regex_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__regexTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#regexChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __regexExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__regex_skip) return;
+    var snap=__regexSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__regexResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__regex_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __regex_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __regexRender(keys,rk,en);
+}
+function __regexExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#regexTable','regex.csv'); } catch(e){}
+}
+function __regexPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#regexPresets',[{label:'默认参数',labelEn:'Default',values:{'pattern':'d+', 'flags':'g', 'replaceWith':'[$&]'}}],function(){ applyPreset(); });
+}
+var __regex_f0=(typeof applyPreset==='function')?applyPreset:null;
+if(__regex_f0){
+    applyPreset=function(){ var __r=__regex_f0.apply(null,arguments); try{ __regexExtras(); }catch(e){} return __r; };
+}
+function __regexBoot(){ try{ __regexPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __regexBoot();
+else document.addEventListener('DOMContentLoaded', __regexBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

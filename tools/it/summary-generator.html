@@ -232,7 +232,7 @@ s.parentNode.insertBefore(el, s);
         <option value="custom">自定义</option>
       </select>
       <input type="number" id="customCount" class="sg-custom-input" value="3" min="1" max="50" style="display:none;" oninput="generateSummary()">
-      <button type="button" class="btn primary" onclick="generateSummary()">生成摘要</button>
+      <div id="summary_generatorPresets"></div><button type="button" class="btn primary" onclick="generateSummary()">生成摘要</button><button class="btn" type="button" onclick="__summary_generatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="loadExample()">载入示例</button>
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
     </div>
@@ -265,7 +265,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn success" onclick="copySummary()">复制摘要</button>
       <button type="button" class="btn" onclick="ToolBox.downloadText('摘要.txt', getSummaryText())">下载文本</button>
     </div>
-    <div class="result-box sg-summary-output" id="summaryResult"></div>
+    <div class="result-box sg-summary-output" id="summaryResult"></div> <div id="summary_generatorTable"></div> <div id="summary_generatorDiff"></div> <div id="summary_generatorChart"></div> <div id="summary_generatorHist"></div>
   </div>
 
   <!-- 句子权重可视化 -->
@@ -711,6 +711,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __summary_generator_last=0,__summary_generator_skip=false;
+function __summary_generatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __summary_generatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __summary_generatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __summary_generatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__summary_generatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#summary_generatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#summary_generatorDiff');
+        TBKit.history.mount('#summary_generatorHist',function(rec){
+            __summary_generator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generateSummary();
+            }catch(e2){}
+            __summary_generator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__summary_generatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#summary_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __summary_generatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__summary_generator_skip) return;
+    var snap=__summary_generatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__summary_generatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__summary_generator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __summary_generator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __summary_generatorRender(keys,rk,en);
+}
+function __summary_generatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#summary_generatorTable','summary-generator.csv'); } catch(e){}
+}
+function __summary_generatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#summary_generatorPresets',[{label:'默认参数',labelEn:'Default',values:{'sentenceCount':'3', 'customCount':'3'}}],function(){ generateSummary(); });
+}
+var __summary_generator_f0=(typeof generateSummary==='function')?generateSummary:null;
+if(__summary_generator_f0){
+    generateSummary=function(){ var __r=__summary_generator_f0.apply(null,arguments); try{ __summary_generatorExtras(); }catch(e){} return __r; };
+}
+function __summary_generatorBoot(){ try{ __summary_generatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __summary_generatorBoot();
+else document.addEventListener('DOMContentLoaded', __summary_generatorBoot);
 </script>
 
 

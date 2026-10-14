@@ -142,10 +142,10 @@ s.parentNode.insertBefore(el, s);
     <div id="emps"></div>
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="addEmp()">+ 添加员工</button>
-      <button type="button" class="btn primary" onclick="calc()">📊 统计</button>
+      <div id="attendance_statsPresets"></div><button type="button" class="btn primary" onclick="calc()">📊 统计</button><button class="btn" type="button" onclick="__attendance_statsExport()">导出明细 CSV</button>
     </div>
 
-    <div class="summary-grid" id="summary"></div>
+    <div class="summary-grid" id="summary"></div> <div id="attendance_statsTable"></div> <div id="attendance_statsDiff"></div> <div id="attendance_statsChart"></div> <div id="attendance_statsHist"></div>
 
     <div id="resultTable"></div>
 
@@ -343,6 +343,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __attendance_stats_last=0,__attendance_stats_skip=false;
+function __attendance_statsSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __attendance_statsResText(){
+    var r=document.getElementById('summary');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __attendance_statsTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __attendance_statsRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__attendance_statsTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#attendance_statsTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#attendance_statsDiff');
+        TBKit.history.mount('#attendance_statsHist',function(rec){
+            __attendance_stats_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __attendance_stats_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__attendance_statsTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#attendance_statsChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __attendance_statsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__attendance_stats_skip) return;
+    var snap=__attendance_statsSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__attendance_statsResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__attendance_stats_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __attendance_stats_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __attendance_statsRender(keys,rk,en);
+}
+function __attendance_statsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#attendance_statsTable','attendance-stats.csv'); } catch(e){}
+}
+function __attendance_statsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#attendance_statsPresets',[{label:'默认参数',labelEn:'Default',values:{'workDays':'22', 'lateFine':'20', 'earlyFine':'20', 'absentFine':'200'}}],function(){ calc(); });
+}
+var __attendance_stats_f0=(typeof calc==='function')?calc:null;
+if(__attendance_stats_f0){
+    calc=function(){ var __r=__attendance_stats_f0.apply(null,arguments); try{ __attendance_statsExtras(); }catch(e){} return __r; };
+}
+function __attendance_statsBoot(){ try{ __attendance_statsPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __attendance_statsBoot();
+else document.addEventListener('DOMContentLoaded', __attendance_statsBoot);
 </script>
 
 </body>

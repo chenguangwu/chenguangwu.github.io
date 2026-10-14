@@ -159,7 +159,7 @@ s.parentNode.insertBefore(el, s);
     <div id="phaseInputs"></div>
 
     <div class="toolbar" style="margin-top:14px;">
-      <button type="button" class="btn primary" onclick="calc()">计算配时</button>
+      <div id="cycle_signalPresets"></div><button type="button" class="btn primary" onclick="calc()">计算配时</button><button class="btn" type="button" onclick="__cycle_signalExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="useWebster()">采用最佳周期</button>
       <button type="button" class="btn" onclick="exportPlan()">导出方案</button>
       <button type="button" class="btn" onclick="savePlan()">保存方案</button>
@@ -185,7 +185,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h3>通行能力分析</h3>
-    <div id="capResult"></div>
+    <div id="capResult"></div> <div id="cycle_signalTable"></div> <div id="cycle_signalDiff"></div> <div id="cycle_signalChart"></div> <div id="cycle_signalHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -481,6 +481,114 @@ document.addEventListener('DOMContentLoaded',function(){
     h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});
   });
 });
+
+var __cycle_signal_last=0,__cycle_signal_skip=false;
+function __cycle_signalSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cycle_signalResText(){
+    var r=document.getElementById('capResult');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cycle_signalTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cycle_signalRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cycle_signalTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cycle_signalTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cycle_signalDiff');
+        TBKit.history.mount('#cycle_signalHist',function(rec){
+            __cycle_signal_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cycle_signal_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cycle_signalTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cycle_signalChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cycle_signalExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cycle_signal_skip) return;
+    var snap=__cycle_signalSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cycle_signalResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cycle_signal_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cycle_signal_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cycle_signalRender(keys,rk,en);
+}
+function __cycle_signalExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cycle_signalTable','cycle-signal.csv'); } catch(e){}
+}
+function __cycle_signalPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cycle_signalPresets',[{label:'默认参数',labelEn:'Default',values:{'phaseCount':'2', 'cycle':'90', 'satFlow':'1800'}}],function(){ calc(); });
+}
+var __cycle_signal_f0=(typeof calc==='function')?calc:null;
+if(__cycle_signal_f0){
+    calc=function(){ var __r=__cycle_signal_f0.apply(null,arguments); try{ __cycle_signalExtras(); }catch(e){} return __r; };
+}
+function __cycle_signalBoot(){ try{ __cycle_signalPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cycle_signalBoot();
+else document.addEventListener('DOMContentLoaded', __cycle_signalBoot);
 </script>
 </body>
 </html>

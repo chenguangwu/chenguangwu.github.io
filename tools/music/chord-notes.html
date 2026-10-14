@@ -250,7 +250,7 @@ s.parentNode.insertBefore(el, s);
 
     <!-- 工具栏 -->
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="analyzeChord()">🔍 分析和弦</button>
+      <div id="chord_notesPresets"></div><button type="button" class="btn primary" onclick="analyzeChord()">🔍 分析和弦</button><button class="btn" type="button" onclick="__chord_notesExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="playChord()">🔊 播放和弦</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
       <button type="button" class="btn" onclick="clearInput()">✕ 清空</button>
@@ -323,7 +323,7 @@ s.parentNode.insertBefore(el, s);
           <tr><td>小六和弦</td><td>Am6</td><td>0, 3, 7, 9</td><td>小三+六音</td></tr>
         </tbody>
       </table>
-    </div>
+    </div> <div id="chord_notesTable"></div> <div id="chord_notesDiff"></div> <div id="chord_notesChart"></div> <div id="chord_notesHist"></div>
   </div>
 
   <!-- SEO 工具介绍 -->
@@ -899,6 +899,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __chord_notes_last=0,__chord_notes_skip=false;
+function __chord_notesSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __chord_notesResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __chord_notesTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __chord_notesRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__chord_notesTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#chord_notesTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#chord_notesDiff');
+        TBKit.history.mount('#chord_notesHist',function(rec){
+            __chord_notes_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                analyzeChord();
+            }catch(e2){}
+            __chord_notes_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__chord_notesTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#chord_notesChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __chord_notesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__chord_notes_skip) return;
+    var snap=__chord_notesSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__chord_notesResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__chord_notes_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __chord_notes_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __chord_notesRender(keys,rk,en);
+}
+function __chord_notesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#chord_notesTable','chord-notes.csv'); } catch(e){}
+}
+function __chord_notesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#chord_notesPresets',[{label:'默认参数',labelEn:'Default',values:{'chordInput':'C'}}],function(){ analyzeChord(); });
+}
+var __chord_notes_f0=(typeof analyzeChord==='function')?analyzeChord:null;
+if(__chord_notes_f0){
+    analyzeChord=function(){ var __r=__chord_notes_f0.apply(null,arguments); try{ __chord_notesExtras(); }catch(e){} return __r; };
+}
+function __chord_notesBoot(){ try{ __chord_notesPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __chord_notesBoot();
+else document.addEventListener('DOMContentLoaded', __chord_notesBoot);
 </script>
 
 </body>
