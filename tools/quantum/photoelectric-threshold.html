@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="photoelectric_thresholdPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__photoelectric_thresholdExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="photoelectric_thresholdTable"></div>
+    <div id="photoelectric_thresholdDiff"></div>
+    <div id="photoelectric_thresholdHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,45 @@ const h=6.62607015e-34, e=1.602176634e-19;
 function resetForm(){document.getElementById('phi').value = '4.5';
       calcTool();}
 calcTool();
+
+function __photoelectric_thresholdNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __photoelectric_thresholdExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var h=6.62607015e-34, e=1.602176634e-19;
+    var phi=num('phi')*e;
+    var f0=phi/h;
+    if (!isFinite(__photoelectric_thresholdNum('phi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#photoelectric_thresholdTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['截止频率 f₀ (Hz)', f0.toExponential(3)],
+            ['截止周期 (s)', (1/f0).toExponential(4)],
+            ['逸出功 (J)', (h*f0).toExponential(3)],
+            ['截止频率 (THz)', (f0/1e12).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({phi:__photoelectric_thresholdNum('phi'), h:h});
+    TBKit.history.mount('#photoelectric_thresholdHist',function(rec){ if(rec.phi!=null)document.getElementById('phi').value=rec.phi; calcTool(); });
+    TBKit.util.diffBox('#photoelectric_thresholdDiff',['h']);
+}
+function __photoelectric_thresholdExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#photoelectric_thresholdTable','photoelectric-threshold.csv'); } catch(e){}
+}
+function __photoelectric_thresholdPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#photoelectric_thresholdPresets',[
+        {label:'默认',labelEn:'Default',values:{phi:'4.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{phi:'9'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{phi:'2.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __photoelectric_thresholdExtras(); }catch(e){} };
+function __photoelectric_thresholdBoot(){ try{ __photoelectric_thresholdPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __photoelectric_thresholdBoot();
+else document.addEventListener('DOMContentLoaded', __photoelectric_thresholdBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

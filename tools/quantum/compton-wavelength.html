@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="compton_wavelengthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__compton_wavelengthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="compton_wavelengthTable"></div>
+    <div id="compton_wavelengthDiff"></div>
+    <div id="compton_wavelengthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,45 @@ const h=6.62607015e-34, c=2.99792458e8;
 function resetForm(){document.getElementById('m').value = '9.109e-31';
       calcTool();}
 calcTool();
+
+function __compton_wavelengthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __compton_wavelengthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var h=6.62607015e-34, c=2.99792458e8;
+    var m=num('m');
+    var lc=h/(m*c);
+    if (!isFinite(__compton_wavelengthNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#compton_wavelengthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['康普顿波长 λ_c (pm)', (lc*1e12).toFixed(3)],
+            ['康普顿波长 (fm)', (lc*1e15).toFixed(4)],
+            ['康普顿频率 (Hz)', (m*c/h).toExponential(4)],
+            ['与电子康普顿波长之比', (lc/2.42631023867e-12).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({m:__compton_wavelengthNum('m'), h:h});
+    TBKit.history.mount('#compton_wavelengthHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#compton_wavelengthDiff',['h']);
+}
+function __compton_wavelengthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#compton_wavelengthTable','compton-wavelength.csv'); } catch(e){}
+}
+function __compton_wavelengthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#compton_wavelengthPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'9.109e-31'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __compton_wavelengthExtras(); }catch(e){} };
+function __compton_wavelengthBoot(){ try{ __compton_wavelengthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __compton_wavelengthBoot();
+else document.addEventListener('DOMContentLoaded', __compton_wavelengthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

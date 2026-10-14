@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="band_gap_photonPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__band_gap_photonExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="band_gap_photonTable"></div>
+    <div id="band_gap_photonDiff"></div>
+    <div id="band_gap_photonHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,45 @@ const h=6.62607015e-34, c=2.99792458e8, e=1.602176634e-19;
 function resetForm(){document.getElementById('Eg').value = '1.12';
       calcTool();}
 calcTool();
+
+function __band_gap_photonNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __band_gap_photonExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var h=6.62607015e-34, c=2.99792458e8, e=1.602176634e-19;
+    var Eg=num('Eg')*e;
+    var lam=h*c/Eg;
+    if (!isFinite(__band_gap_photonNum('Eg'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#band_gap_photonTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['波长 λ (nm)', (lam*1e9).toFixed(1)],
+            ['光子频率 (THz)', (Eg/h/1e12).toFixed(4)],
+            ['波长 (m)', (h*c/Eg).toExponential(3)],
+            ['禁带能量 (J)', (Eg).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({Eg:__band_gap_photonNum('Eg'), h:h});
+    TBKit.history.mount('#band_gap_photonHist',function(rec){ if(rec.Eg!=null)document.getElementById('Eg').value=rec.Eg; calcTool(); });
+    TBKit.util.diffBox('#band_gap_photonDiff',['h']);
+}
+function __band_gap_photonExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#band_gap_photonTable','band-gap-photon.csv'); } catch(e){}
+}
+function __band_gap_photonPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#band_gap_photonPresets',[
+        {label:'默认',labelEn:'Default',values:{Eg:'1.12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Eg:'2.24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Eg:'0.56'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __band_gap_photonExtras(); }catch(e){} };
+function __band_gap_photonBoot(){ try{ __band_gap_photonPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __band_gap_photonBoot();
+else document.addEventListener('DOMContentLoaded', __band_gap_photonBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

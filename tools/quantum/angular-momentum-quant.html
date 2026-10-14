@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="angular_momentum_quantPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__angular_momentum_quantExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="angular_momentum_quantTable"></div>
+    <div id="angular_momentum_quantDiff"></div>
+    <div id="angular_momentum_quantHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,45 @@ function calcTool(){
 function resetForm(){document.getElementById('n').value = '3';
       calcTool();}
 calcTool();
+
+function __angular_momentum_quantNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __angular_momentum_quantExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var hbar=1.054571817e-34;
+    var n=num('n');
+    var L=n*hbar;
+    if (!isFinite(__angular_momentum_quantNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#angular_momentum_quantTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角动量 L (10⁻³⁴ J·s)', (L*1e34).toFixed(4)],
+            ['轨道角动量 √(l(l+1))·ħ (10⁻³⁴ J·s)', (Math.sqrt(n*(n+1))*hbar*1e34).toFixed(4)],
+            ['量子数平方与 ħ 之积', (n*n*hbar*1e34).toFixed(4)],
+            ['相邻能级角动量差', ((n-1)*hbar*1e34).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__angular_momentum_quantNum('n'), hbar:hbar});
+    TBKit.history.mount('#angular_momentum_quantHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#angular_momentum_quantDiff',['hbar']);
+}
+function __angular_momentum_quantExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#angular_momentum_quantTable','angular-momentum-quant.csv'); } catch(e){}
+}
+function __angular_momentum_quantPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#angular_momentum_quantPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __angular_momentum_quantExtras(); }catch(e){} };
+function __angular_momentum_quantBoot(){ try{ __angular_momentum_quantPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __angular_momentum_quantBoot();
+else document.addEventListener('DOMContentLoaded', __angular_momentum_quantBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fermi_energy_3dPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fermi_energy_3dExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fermi_energy_3dTable"></div>
+    <div id="fermi_energy_3dDiff"></div>
+    <div id="fermi_energy_3dHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,44 @@ function resetForm(){document.getElementById('n').value = '8.5e28';
       document.getElementById('m').value = '9.109e-31';
       calcTool();}
 calcTool();
+
+function __fermi_energy_3dNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fermi_energy_3dExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var hbar=1.054571817e-34, e=1.602176634e-19;
+    var n=num('n'),m=num('m');
+    var EF=Math.pow(hbar,2)/(2*m)*Math.pow(3*Math.PI*Math.PI*n,2/3);
+    if (!isFinite(__fermi_energy_3dNum('n')) || !isFinite(__fermi_energy_3dNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fermi_energy_3dTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['费米能 E_F (eV)', (EF/e).toFixed(3)],
+            ['费米能 (keV)', (EF/e/1e3).toFixed(6)],
+            ['费米波矢 k_F (m⁻¹)', Math.pow(3*Math.PI*Math.PI*n,1/3).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__fermi_energy_3dNum('n'), m:__fermi_energy_3dNum('m'), hbar:hbar});
+    TBKit.history.mount('#fermi_energy_3dHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#fermi_energy_3dDiff',['hbar']);
+}
+function __fermi_energy_3dExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fermi_energy_3dTable','fermi-energy-3d.csv'); } catch(e){}
+}
+function __fermi_energy_3dPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fermi_energy_3dPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'8.5e28', m:'9.109e-31'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'1.7e+29', m:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'4.25e+28', m:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fermi_energy_3dExtras(); }catch(e){} };
+function __fermi_energy_3dBoot(){ try{ __fermi_energy_3dPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fermi_energy_3dBoot();
+else document.addEventListener('DOMContentLoaded', __fermi_energy_3dBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

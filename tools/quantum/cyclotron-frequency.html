@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cyclotron_frequencyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cyclotron_frequencyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cyclotron_frequencyTable"></div>
+    <div id="cyclotron_frequencyDiff"></div>
+    <div id="cyclotron_frequencyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('q').value = '1.602e-19';
       document.getElementById('m').value = '9.11e-31';
       calcTool();}
 calcTool();
+
+function __cyclotron_frequencyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cyclotron_frequencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
+    var q = num('q'), B = num('B'), m = num('m');
+    var w = q * B / m;
+    if (!isFinite(__cyclotron_frequencyNum('q')) || !isFinite(__cyclotron_frequencyNum('B')) || !isFinite(__cyclotron_frequencyNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cyclotron_frequencyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角频率 ω (rad/s)', w.toExponential(3)],
+            ['频率 f (Hz)', (w / (2 * Math.PI)).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({q:__cyclotron_frequencyNum('q'), B:__cyclotron_frequencyNum('B'), m:__cyclotron_frequencyNum('m'), H:H});
+    TBKit.history.mount('#cyclotron_frequencyHist',function(rec){ if(rec.q!=null)document.getElementById('q').value=rec.q; if(rec.B!=null)document.getElementById('B').value=rec.B; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#cyclotron_frequencyDiff',['H']);
+}
+function __cyclotron_frequencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cyclotron_frequencyTable','cyclotron-frequency.csv'); } catch(e){}
+}
+function __cyclotron_frequencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cyclotron_frequencyPresets',[
+        {label:'默认',labelEn:'Default',values:{q:'1.602e-19', B:'1', m:'9.11e-31'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q:'0', B:'2', m:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q:'0', B:'0.5', m:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cyclotron_frequencyExtras(); }catch(e){} };
+function __cyclotron_frequencyBoot(){ try{ __cyclotron_frequencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cyclotron_frequencyBoot();
+else document.addEventListener('DOMContentLoaded', __cyclotron_frequencyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

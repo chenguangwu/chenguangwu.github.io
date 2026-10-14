@@ -123,12 +123,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="heisenberg_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__heisenberg_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="heisenberg_uncertaintyTable"></div>
+    <div id="heisenberg_uncertaintyDiff"></div>
+    <div id="heisenberg_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -241,6 +247,44 @@ const H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291
 function resetForm(){document.getElementById('dx').value = '1e-10';
       calcTool();}
 calcTool();
+
+function __heisenberg_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __heisenberg_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
+    var dx = num('dx');
+    var hbar = H / (2 * Math.PI);
+    var dp = hbar / (2 * dx);
+    if (!isFinite(__heisenberg_uncertaintyNum('dx'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#heisenberg_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['动量不确定度 Δp (kg·m/s)', dp.toExponential(3)],
+            ['等效速度不确定 (m/s)', (dp / ME).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({dx:__heisenberg_uncertaintyNum('dx'), H:H});
+    TBKit.history.mount('#heisenberg_uncertaintyHist',function(rec){ if(rec.dx!=null)document.getElementById('dx').value=rec.dx; calcTool(); });
+    TBKit.util.diffBox('#heisenberg_uncertaintyDiff',['H']);
+}
+function __heisenberg_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#heisenberg_uncertaintyTable','heisenberg-uncertainty.csv'); } catch(e){}
+}
+function __heisenberg_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#heisenberg_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{dx:'1e-10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dx:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dx:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __heisenberg_uncertaintyExtras(); }catch(e){} };
+function __heisenberg_uncertaintyBoot(){ try{ __heisenberg_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __heisenberg_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __heisenberg_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

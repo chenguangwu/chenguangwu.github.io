@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="spin_magnetic_momentPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__spin_magnetic_momentExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="spin_magnetic_momentTable"></div>
+    <div id="spin_magnetic_momentDiff"></div>
+    <div id="spin_magnetic_momentHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('ml').value = '1';
       calcTool();}
 calcTool();
+
+function __spin_magnetic_momentNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spin_magnetic_momentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var muB=9.2740100783e-24;
+    var ml=num('ml');
+    var mu=muB*ml;
+    if (!isFinite(__spin_magnetic_momentNum('ml'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#spin_magnetic_momentTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['磁矩 μ (μ_B)', ml.toFixed(0)],
+            ['磁矩 μ (J/T)', mu.toExponential(3)],
+            ['玻尔磁子 (J/T)', (muB).toExponential(4)],
+            ['每特斯拉塞曼分裂能 (eV)', (muB*ml*5.7883818e-5).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({ml:__spin_magnetic_momentNum('ml'), muB:muB});
+    TBKit.history.mount('#spin_magnetic_momentHist',function(rec){ if(rec.ml!=null)document.getElementById('ml').value=rec.ml; calcTool(); });
+    TBKit.util.diffBox('#spin_magnetic_momentDiff',['muB']);
+}
+function __spin_magnetic_momentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spin_magnetic_momentTable','spin-magnetic-moment.csv'); } catch(e){}
+}
+function __spin_magnetic_momentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#spin_magnetic_momentPresets',[
+        {label:'默认',labelEn:'Default',values:{ml:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ml:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ml:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __spin_magnetic_momentExtras(); }catch(e){} };
+function __spin_magnetic_momentBoot(){ try{ __spin_magnetic_momentPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __spin_magnetic_momentBoot();
+else document.addEventListener('DOMContentLoaded', __spin_magnetic_momentBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

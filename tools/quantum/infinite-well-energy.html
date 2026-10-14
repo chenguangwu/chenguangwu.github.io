@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="infinite_well_energyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__infinite_well_energyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="infinite_well_energyTable"></div>
+    <div id="infinite_well_energyDiff"></div>
+    <div id="infinite_well_energyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('n').value = '1';
       document.getElementById('L').value = '1e-9';
       calcTool();}
 calcTool();
+
+function __infinite_well_energyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __infinite_well_energyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
+    var n = Math.round(num('n')), m = num('m'), L = num('L');
+    var E = n * n * H * H / (8 * m * L * L);
+    if (!isFinite(__infinite_well_energyNum('n')) || !isFinite(__infinite_well_energyNum('m')) || !isFinite(__infinite_well_energyNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#infinite_well_energyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['能级 E_n (J)', E.toExponential(3)],
+            ['E_n (eV)', (E / EV).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__infinite_well_energyNum('n'), m:__infinite_well_energyNum('m'), L:__infinite_well_energyNum('L'), H:H});
+    TBKit.history.mount('#infinite_well_energyHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#infinite_well_energyDiff',['H']);
+}
+function __infinite_well_energyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#infinite_well_energyTable','infinite-well-energy.csv'); } catch(e){}
+}
+function __infinite_well_energyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#infinite_well_energyPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1', m:'9.11e-31', L:'1e-9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2', m:'0', L:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.5', m:'0', L:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __infinite_well_energyExtras(); }catch(e){} };
+function __infinite_well_energyBoot(){ try{ __infinite_well_energyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __infinite_well_energyBoot();
+else document.addEventListener('DOMContentLoaded', __infinite_well_energyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

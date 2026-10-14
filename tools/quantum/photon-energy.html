@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="photon_energyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__photon_energyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="photon_energyTable"></div>
+    <div id="photon_energyDiff"></div>
+    <div id="photon_energyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -245,6 +251,43 @@ const H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291
 function resetForm(){document.getElementById('lam').value = '500e-9';
       calcTool();}
 calcTool();
+
+function __photon_energyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __photon_energyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
+    var lam = num('lam');
+    var E = H * C / lam;
+    if (!isFinite(__photon_energyNum('lam'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#photon_energyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['能量 E (J)', E.toExponential(3)],
+            ['E (eV)', (E / EV).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({lam:__photon_energyNum('lam'), H:H});
+    TBKit.history.mount('#photon_energyHist',function(rec){ if(rec.lam!=null)document.getElementById('lam').value=rec.lam; calcTool(); });
+    TBKit.util.diffBox('#photon_energyDiff',['H']);
+}
+function __photon_energyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#photon_energyTable','photon-energy.csv'); } catch(e){}
+}
+function __photon_energyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#photon_energyPresets',[
+        {label:'默认',labelEn:'Default',values:{lam:'500e-9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{lam:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{lam:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __photon_energyExtras(); }catch(e){} };
+function __photon_energyBoot(){ try{ __photon_energyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __photon_energyBoot();
+else document.addEventListener('DOMContentLoaded', __photon_energyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

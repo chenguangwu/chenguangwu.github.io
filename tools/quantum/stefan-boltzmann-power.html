@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stefan_boltzmann_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stefan_boltzmann_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stefan_boltzmann_powerTable"></div>
+    <div id="stefan_boltzmann_powerDiff"></div>
+    <div id="stefan_boltzmann_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('A').value = '0.01';
       document.getElementById('T').value = '300';
       calcTool();}
 calcTool();
+
+function __stefan_boltzmann_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stefan_boltzmann_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var sig=5.670374419e-8;
+    var A=num('A'),T=num('T');
+    var P=sig*A*Math.pow(T,4);
+    if (!isFinite(__stefan_boltzmann_powerNum('A')) || !isFinite(__stefan_boltzmann_powerNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stefan_boltzmann_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['辐射功率 P (W)', P.toFixed(3)],
+            ['辐射出射度 (W/m2)', (P/(A||1)).toFixed(3)],
+            ['维恩峰值波长 (m)', (2.897771955e-3/T).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({A:__stefan_boltzmann_powerNum('A'), T:__stefan_boltzmann_powerNum('T'), sig:sig});
+    TBKit.history.mount('#stefan_boltzmann_powerHist',function(rec){ if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#stefan_boltzmann_powerDiff',['sig']);
+}
+function __stefan_boltzmann_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stefan_boltzmann_powerTable','stefan-boltzmann-power.csv'); } catch(e){}
+}
+function __stefan_boltzmann_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stefan_boltzmann_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{A:'0.01', T:'300'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{A:'0.02', T:'600'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{A:'0.005', T:'150'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stefan_boltzmann_powerExtras(); }catch(e){} };
+function __stefan_boltzmann_powerBoot(){ try{ __stefan_boltzmann_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stefan_boltzmann_powerBoot();
+else document.addEventListener('DOMContentLoaded', __stefan_boltzmann_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="zeeman_splittingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__zeeman_splittingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="zeeman_splittingTable"></div>
+    <div id="zeeman_splittingDiff"></div>
+    <div id="zeeman_splittingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('B').value = '1';
       calcTool();}
 calcTool();
+
+function __zeeman_splittingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __zeeman_splittingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var muB=9.2740100783e-24, e=1.602176634e-19;
+    var B=num('B');
+    var dE=muB*B;
+    if (!isFinite(__zeeman_splittingNum('B'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#zeeman_splittingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['能级分裂 ΔE (eV)', (dE/e).toExponential(3)],
+            ['分裂能 (J)', (dE).toExponential(3)],
+            ['玻尔磁子 (J/T)', (muB).toExponential(4)],
+            ['分裂能 (meV)', (dE/e*1e3).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({B:__zeeman_splittingNum('B'), muB:muB});
+    TBKit.history.mount('#zeeman_splittingHist',function(rec){ if(rec.B!=null)document.getElementById('B').value=rec.B; calcTool(); });
+    TBKit.util.diffBox('#zeeman_splittingDiff',['muB']);
+}
+function __zeeman_splittingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#zeeman_splittingTable','zeeman-splitting.csv'); } catch(e){}
+}
+function __zeeman_splittingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#zeeman_splittingPresets',[
+        {label:'默认',labelEn:'Default',values:{B:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{B:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{B:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __zeeman_splittingExtras(); }catch(e){} };
+function __zeeman_splittingBoot(){ try{ __zeeman_splittingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __zeeman_splittingBoot();
+else document.addEventListener('DOMContentLoaded', __zeeman_splittingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bohr_orbit_radiusPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bohr_orbit_radiusExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bohr_orbit_radiusTable"></div>
+    <div id="bohr_orbit_radiusDiff"></div>
+    <div id="bohr_orbit_radiusHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -191,6 +197,43 @@ function calcTool(){
 function resetForm(){document.getElementById('n').value = '1';
       calcTool();}
 calcTool();
+
+function __bohr_orbit_radiusNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bohr_orbit_radiusExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
+    var n = Math.round(num('n'));
+    var r = A0 * n * n;
+    if (!isFinite(__bohr_orbit_radiusNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bohr_orbit_radiusTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['轨道半径 r_n (Å)', (r * 1e10).toFixed(4)],
+            ['r_n (nm)', (r * 1e9).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__bohr_orbit_radiusNum('n'), H:H});
+    TBKit.history.mount('#bohr_orbit_radiusHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#bohr_orbit_radiusDiff',['H']);
+}
+function __bohr_orbit_radiusExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bohr_orbit_radiusTable','bohr-orbit-radius.csv'); } catch(e){}
+}
+function __bohr_orbit_radiusPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bohr_orbit_radiusPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bohr_orbit_radiusExtras(); }catch(e){} };
+function __bohr_orbit_radiusBoot(){ try{ __bohr_orbit_radiusPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bohr_orbit_radiusBoot();
+else document.addEventListener('DOMContentLoaded', __bohr_orbit_radiusBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

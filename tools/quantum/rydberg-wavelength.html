@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rydberg_wavelengthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rydberg_wavelengthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rydberg_wavelengthTable"></div>
+    <div id="rydberg_wavelengthDiff"></div>
+    <div id="rydberg_wavelengthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,43 @@ function resetForm(){document.getElementById('n1').value = '2';
       document.getElementById('n2').value = '3';
       calcTool();}
 calcTool();
+
+function __rydberg_wavelengthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rydberg_wavelengthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
+    var n1 = Math.round(num('n1')), n2 = Math.round(num('n2'));
+    var inv = RY * (1/(n1*n1) - 1/(n2*n2));
+    if (!isFinite(__rydberg_wavelengthNum('n1')) || !isFinite(__rydberg_wavelengthNum('n2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rydberg_wavelengthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['波数 1/λ (m⁻¹)', inv.toExponential(3)],
+            ['波长 λ (nm)', ((1/inv) * 1e9).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({n1:__rydberg_wavelengthNum('n1'), n2:__rydberg_wavelengthNum('n2'), H:H});
+    TBKit.history.mount('#rydberg_wavelengthHist',function(rec){ if(rec.n1!=null)document.getElementById('n1').value=rec.n1; if(rec.n2!=null)document.getElementById('n2').value=rec.n2; calcTool(); });
+    TBKit.util.diffBox('#rydberg_wavelengthDiff',['H']);
+}
+function __rydberg_wavelengthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rydberg_wavelengthTable','rydberg-wavelength.csv'); } catch(e){}
+}
+function __rydberg_wavelengthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rydberg_wavelengthPresets',[
+        {label:'默认',labelEn:'Default',values:{n1:'2', n2:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n1:'4', n2:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n1:'1', n2:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rydberg_wavelengthExtras(); }catch(e){} };
+function __rydberg_wavelengthBoot(){ try{ __rydberg_wavelengthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rydberg_wavelengthBoot();
+else document.addEventListener('DOMContentLoaded', __rydberg_wavelengthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

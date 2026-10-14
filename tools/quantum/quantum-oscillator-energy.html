@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="quantum_oscillator_energyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__quantum_oscillator_energyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="quantum_oscillator_energyTable"></div>
+    <div id="quantum_oscillator_energyDiff"></div>
+    <div id="quantum_oscillator_energyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('n').value = '2';
       document.getElementById('f').value = '1e14';
       calcTool();}
 calcTool();
+
+function __quantum_oscillator_energyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __quantum_oscillator_energyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var hbar=1.054571817e-34, e=1.602176634e-19;
+    var n=num('n'),f=num('f');
+    var E=hbar*2*Math.PI*f*(n+0.5);
+    if (!isFinite(__quantum_oscillator_energyNum('n')) || !isFinite(__quantum_oscillator_energyNum('f'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#quantum_oscillator_energyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['能量 E (eV)', (E/e).toFixed(4)],
+            ['角频率 omega (rad/s)', (2*Math.PI*f).toExponential(4)],
+            ['零点能 (eV)', (hbar*2*Math.PI*f*0.5/e).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__quantum_oscillator_energyNum('n'), f:__quantum_oscillator_energyNum('f'), hbar:hbar});
+    TBKit.history.mount('#quantum_oscillator_energyHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.f!=null)document.getElementById('f').value=rec.f; calcTool(); });
+    TBKit.util.diffBox('#quantum_oscillator_energyDiff',['hbar']);
+}
+function __quantum_oscillator_energyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#quantum_oscillator_energyTable','quantum-oscillator-energy.csv'); } catch(e){}
+}
+function __quantum_oscillator_energyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#quantum_oscillator_energyPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'2', f:'1e14'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'4', f:'200000000000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'1', f:'50000000000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __quantum_oscillator_energyExtras(); }catch(e){} };
+function __quantum_oscillator_energyBoot(){ try{ __quantum_oscillator_energyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __quantum_oscillator_energyBoot();
+else document.addEventListener('DOMContentLoaded', __quantum_oscillator_energyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="energy_time_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__energy_time_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="energy_time_uncertaintyTable"></div>
+    <div id="energy_time_uncertaintyDiff"></div>
+    <div id="energy_time_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,45 @@ const hbar=1.054571817e-34, e=1.602176634e-19;
 function resetForm(){document.getElementById('dt').value = '1e-9';
       calcTool();}
 calcTool();
+
+function __energy_time_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __energy_time_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var hbar=1.054571817e-34, e=1.602176634e-19;
+    var dt=num('dt');
+    var dE=hbar/(2*dt);
+    if (!isFinite(__energy_time_uncertaintyNum('dt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#energy_time_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['能量展宽 ΔE (eV)', (dE/e).toExponential(3)],
+            ['能量展宽 (J)', (hbar/(2*dt)).toExponential(3)],
+            ['能量展宽 (eV) 重算', (hbar/e/(2*dt)).toExponential(3)],
+            ['时间不确定度 (s)', (dt).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({dt:__energy_time_uncertaintyNum('dt'), hbar:hbar});
+    TBKit.history.mount('#energy_time_uncertaintyHist',function(rec){ if(rec.dt!=null)document.getElementById('dt').value=rec.dt; calcTool(); });
+    TBKit.util.diffBox('#energy_time_uncertaintyDiff',['hbar']);
+}
+function __energy_time_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_time_uncertaintyTable','energy-time-uncertainty.csv'); } catch(e){}
+}
+function __energy_time_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_time_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{dt:'1e-9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dt:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dt:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __energy_time_uncertaintyExtras(); }catch(e){} };
+function __energy_time_uncertaintyBoot(){ try{ __energy_time_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_time_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __energy_time_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

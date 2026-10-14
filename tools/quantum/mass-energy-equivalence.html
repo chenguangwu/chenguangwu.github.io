@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mass_energy_equivalencePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mass_energy_equivalenceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mass_energy_equivalenceTable"></div>
+    <div id="mass_energy_equivalenceDiff"></div>
+    <div id="mass_energy_equivalenceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -194,6 +200,43 @@ function calcTool(){
 function resetForm(){document.getElementById('m').value = '1';
       calcTool();}
 calcTool();
+
+function __mass_energy_equivalenceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mass_energy_equivalenceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
+    var m = num('m');
+    var E = m * C * C;
+    if (!isFinite(__mass_energy_equivalenceNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mass_energy_equivalenceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['能量 E (J)', E.toExponential(3)],
+            ['E (MeV)', (E / EV / 1e6).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({m:__mass_energy_equivalenceNum('m'), H:H});
+    TBKit.history.mount('#mass_energy_equivalenceHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#mass_energy_equivalenceDiff',['H']);
+}
+function __mass_energy_equivalenceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mass_energy_equivalenceTable','mass-energy-equivalence.csv'); } catch(e){}
+}
+function __mass_energy_equivalencePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mass_energy_equivalencePresets',[
+        {label:'默认',labelEn:'Default',values:{m:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mass_energy_equivalenceExtras(); }catch(e){} };
+function __mass_energy_equivalenceBoot(){ try{ __mass_energy_equivalencePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mass_energy_equivalenceBoot();
+else document.addEventListener('DOMContentLoaded', __mass_energy_equivalenceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

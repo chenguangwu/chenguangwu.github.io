@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="compton_shiftPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__compton_shiftExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="compton_shiftTable"></div>
+    <div id="compton_shiftDiff"></div>
+    <div id="compton_shiftHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -191,6 +197,43 @@ function calcTool(){
 function resetForm(){document.getElementById('th').value = '90';
       calcTool();}
 calcTool();
+
+function __compton_shiftNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __compton_shiftExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var H=6.62607015e-34,C=299792458,ME=9.10938356e-31,EV=1.602176634e-19,A0=5.291772109e-11,RY=1.0973731568e7,B_WIEN=2.897771955e-3;
+    var th = num('th') * Math.PI / 180;
+    var dl = (H / (ME * C)) * (1 - Math.cos(th));
+    if (!isFinite(__compton_shiftNum('th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#compton_shiftTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['Δλ (pm)', (dl * 1e12).toFixed(4)],
+            ['Δλ (nm)', (dl * 1e9).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({th:__compton_shiftNum('th'), H:H});
+    TBKit.history.mount('#compton_shiftHist',function(rec){ if(rec.th!=null)document.getElementById('th').value=rec.th; calcTool(); });
+    TBKit.util.diffBox('#compton_shiftDiff',['H']);
+}
+function __compton_shiftExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#compton_shiftTable','compton-shift.csv'); } catch(e){}
+}
+function __compton_shiftPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#compton_shiftPresets',[
+        {label:'默认',labelEn:'Default',values:{th:'90'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{th:'180'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{th:'45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __compton_shiftExtras(); }catch(e){} };
+function __compton_shiftBoot(){ try{ __compton_shiftPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __compton_shiftBoot();
+else document.addEventListener('DOMContentLoaded', __compton_shiftBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
