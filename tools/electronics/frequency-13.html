@@ -123,11 +123,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>频率 (MHz)</label><input type="number" class="calc-input" id="freq" value="433" step="any" oninput="calc()" enterkeyhint="done" aria-label="频率 (MHz)"></div><div><label>天线长度 (m)</label><input type="number" class="calc-input" id="len" value="0.35" step="any" oninput="calc()" enterkeyhint="done" aria-label="天线长度 (m)"></div><div><label>天线类型</label><select class="calc-input" id="type" onchange="calc()" aria-label="天线类型"><option value="q">1/4波长</option><option value="h">1/2波长</option><option value="f">全波长</option></select></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="frequency_13Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__frequency_13Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="frequency_13Table"></div> <div id="frequency_13Diff"></div> <div id="frequency_13Chart"></div> <div id="frequency_13Hist"></div>
     <div class="info-box">💡 波长 λ = 300÷f(MHz)；理想长度 = λ÷4(1/4波)或λ÷2(1/2波)或λ(全波)；驻波比依长度匹配度估算</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -177,7 +177,115 @@ function calc(){
 }
 function resetAll(){document.getElementById('freq').value=433;document.getElementById('len').value=0.35;document.getElementById('type').value='q';setInvalid(document.getElementById('freq'),false);setInvalid(document.getElementById('len'),false);calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __frequency_13_last=0,__frequency_13_skip=false;
+function __frequency_13Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __frequency_13ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __frequency_13Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __frequency_13Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__frequency_13Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#frequency_13Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#frequency_13Diff');
+        TBKit.history.mount('#frequency_13Hist',function(rec){
+            __frequency_13_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __frequency_13_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__frequency_13Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#frequency_13Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __frequency_13Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__frequency_13_skip) return;
+    var snap=__frequency_13Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__frequency_13ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__frequency_13_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __frequency_13_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __frequency_13Render(keys,rk,en);
+}
+function __frequency_13Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#frequency_13Table','frequency-13.csv'); } catch(e){}
+}
+function __frequency_13Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#frequency_13Presets',[{label:'默认参数',labelEn:'Default',values:{'freq':'433', 'len':'0.35', 'type':'q'}}],function(){ calc(); });
+}
+var __frequency_13_f0=(typeof calc==='function')?calc:null;
+if(__frequency_13_f0){
+    calc=function(){ var __r=__frequency_13_f0.apply(null,arguments); try{ __frequency_13Extras(); }catch(e){} return __r; };
+}
+function __frequency_13Boot(){ try{ __frequency_13Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __frequency_13Boot();
+else document.addEventListener('DOMContentLoaded', __frequency_13Boot);
+</script>
 
 </div>
 

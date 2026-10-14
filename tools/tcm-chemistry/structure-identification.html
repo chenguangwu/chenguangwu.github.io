@@ -122,7 +122,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入波谱数据，自动解析特征峰归属，辅助结构鉴定">Structure Identification</p>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('ir',this)">红外IR</button>
+      <div id="structure_identificationPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('ir',this)">红外IR</button><button class="btn" type="button" onclick="__structure_identificationExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('uv',this)">紫外UV</button>
       <button type="button" class="tab-btn" onclick="switchTab('nmr',this)">核磁NMR</button>
       <button type="button" class="tab-btn" onclick="switchTab('ms',this)">质谱MS</button>
@@ -138,7 +138,7 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="parseIR()">📊 解析IR数据</button>
       </div>
-      <div class="result-box" id="irResult"></div>
+      <div class="result-box" id="irResult"></div> <div id="structure_identificationTable"></div> <div id="structure_identificationDiff"></div> <div id="structure_identificationChart"></div> <div id="structure_identificationHist"></div>
     </div>
 
     <div class="tab-content" id="tab-uv">
@@ -523,6 +523,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __structure_identification_last=0,__structure_identification_skip=false;
+function __structure_identificationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __structure_identificationResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __structure_identificationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __structure_identificationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__structure_identificationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#structure_identificationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#structure_identificationDiff');
+        TBKit.history.mount('#structure_identificationHist',function(rec){
+            __structure_identification_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __structure_identification_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__structure_identificationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#structure_identificationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __structure_identificationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__structure_identification_skip) return;
+    var snap=__structure_identificationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__structure_identificationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__structure_identification_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __structure_identification_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __structure_identificationRender(keys,rk,en);
+}
+function __structure_identificationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#structure_identificationTable','structure-identification.csv'); } catch(e){}
+}
+function __structure_identificationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#structure_identificationPresets',[{label:'默认参数',labelEn:'Default',values:{'irInput':'3400, 2920, 1700, 1600, 1520, 1450, 1280', 'uvInput':'220, 270, 310', 'uvSolvent':'methanol', 'nmrInput':'12.5, 9.8, 7.5, 7.3, 6.9, 6.5, 3.8', 'msM':'270', 'msFrag':'242, 224, 152, 124, 96'}}],function(){ switchTab(); });
+}
+var __structure_identification_f0=(typeof switchTab==='function')?switchTab:null;
+if(__structure_identification_f0){
+    switchTab=function(){ var __r=__structure_identification_f0.apply(null,arguments); try{ __structure_identificationExtras(); }catch(e){} return __r; };
+}
+function __structure_identificationBoot(){ try{ __structure_identificationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __structure_identificationBoot();
+else document.addEventListener('DOMContentLoaded', __structure_identificationBoot);
 </script>
 
 </body>

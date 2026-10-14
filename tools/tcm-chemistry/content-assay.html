@@ -155,9 +155,9 @@ s.parentNode.insertBefore(el, s);
         </div>
       </div>
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcFactor()">⚖️ 计算校正因子</button>
+        <div id="content_assayPresets"></div><button type="button" class="btn primary" onclick="calcFactor()">⚖️ 计算校正因子</button><button class="btn" type="button" onclick="__content_assayExport()">导出明细 CSV</button>
       </div>
-      <div class="result-box" id="factorResult"></div>
+      <div class="result-box" id="factorResult"></div> <div id="content_assayTable"></div> <div id="content_assayDiff"></div> <div id="content_assayChart"></div> <div id="content_assayHist"></div>
     </div>
 
     <div class="tab-content" id="tab-assay">
@@ -414,6 +414,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __content_assay_last=0,__content_assay_skip=false;
+function __content_assaySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __content_assayResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __content_assayTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __content_assayRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__content_assayTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#content_assayTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#content_assayDiff');
+        TBKit.history.mount('#content_assayHist',function(rec){
+            __content_assay_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcFactor();
+            }catch(e2){}
+            __content_assay_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__content_assayTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#content_assayChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __content_assayExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__content_assay_skip) return;
+    var snap=__content_assaySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__content_assayResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__content_assay_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __content_assay_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __content_assayRender(keys,rk,en);
+}
+function __content_assayExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#content_assayTable','content-assay.csv'); } catch(e){}
+}
+function __content_assayPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#content_assayPresets',[{label:'默认参数',labelEn:'Default',values:{'stdMass':'10.00', 'stdConc':'0.50', 'isMass':'8.00', 'isConc':'0.40', 'stdArea':'500000', 'isArea':'450000', 'factor':'0.889', 'sampleMass':'500', 'sampleIS':'8.00', 'sampleVol':'25', 'sampleArea':'480000', 'sampleISArea':'440000'}}],function(){ calcFactor(); });
+}
+var __content_assay_f0=(typeof calcFactor==='function')?calcFactor:null;
+if(__content_assay_f0){
+    calcFactor=function(){ var __r=__content_assay_f0.apply(null,arguments); try{ __content_assayExtras(); }catch(e){} return __r; };
+}
+function __content_assayBoot(){ try{ __content_assayPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __content_assayBoot();
+else document.addEventListener('DOMContentLoaded', __content_assayBoot);
 </script>
 
 </body>

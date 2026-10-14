@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="分析方剂中君臣佐使的组方结构与剂量比例，支持经典方剂查询与自定义组方分析">Jun Chen Zuo Shi</p>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('classic')">经典方剂</button>
+      <div id="jun_chen_zuo_shiPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('classic')">经典方剂</button><button class="btn" type="button" onclick="__jun_chen_zuo_shiExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('custom')">自定义组方</button>
     </div>
 
@@ -144,7 +144,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <div class="result-box" id="result" style="display:none;"></div>
+    <div class="result-box" id="result" style="display:none;"></div> <div id="jun_chen_zuo_shiTable"></div> <div id="jun_chen_zuo_shiDiff"></div> <div id="jun_chen_zuo_shiChart"></div> <div id="jun_chen_zuo_shiHist"></div>
   </div>
 
   <div class="card">
@@ -556,6 +556,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __jun_chen_zuo_shi_last=0,__jun_chen_zuo_shi_skip=false;
+function __jun_chen_zuo_shiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __jun_chen_zuo_shiResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __jun_chen_zuo_shiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __jun_chen_zuo_shiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__jun_chen_zuo_shiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#jun_chen_zuo_shiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#jun_chen_zuo_shiDiff');
+        TBKit.history.mount('#jun_chen_zuo_shiHist',function(rec){
+            __jun_chen_zuo_shi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __jun_chen_zuo_shi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__jun_chen_zuo_shiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#jun_chen_zuo_shiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __jun_chen_zuo_shiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__jun_chen_zuo_shi_skip) return;
+    var snap=__jun_chen_zuo_shiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__jun_chen_zuo_shiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__jun_chen_zuo_shi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __jun_chen_zuo_shi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __jun_chen_zuo_shiRender(keys,rk,en);
+}
+function __jun_chen_zuo_shiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#jun_chen_zuo_shiTable','jun-chen-zuo-shi.csv'); } catch(e){}
+}
+function __jun_chen_zuo_shiPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __jun_chen_zuo_shi_f0=(typeof switchTab==='function')?switchTab:null;
+if(__jun_chen_zuo_shi_f0){
+    switchTab=function(){ var __r=__jun_chen_zuo_shi_f0.apply(null,arguments); try{ __jun_chen_zuo_shiExtras(); }catch(e){} return __r; };
+}
+function __jun_chen_zuo_shiBoot(){ try{ __jun_chen_zuo_shiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __jun_chen_zuo_shiBoot();
+else document.addEventListener('DOMContentLoaded', __jun_chen_zuo_shiBoot);
 </script>
 
 </body>

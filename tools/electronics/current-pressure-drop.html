@@ -123,11 +123,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>正向电流 (mA)</label><input type="number" class="calc-input" id="im" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="正向电流 (mA)"></div><div><label>工作温度 (℃)</label><input type="number" class="calc-input" id="temp" value="25" step="any" oninput="calc()" enterkeyhint="done" aria-label="工作温度 (℃)"></div><div><label>二极管类型</label><select class="calc-input" id="type" onchange="calc()" aria-label="二极管类型"><option value="si">硅二极管</option><option value="ge">锗二极管</option><option value="sch">肖特基二极管</option></select></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="current_pressure_dropPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__current_pressure_dropExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="current_pressure_dropTable"></div> <div id="current_pressure_dropDiff"></div> <div id="current_pressure_dropChart"></div> <div id="current_pressure_dropHist"></div>
     <div class="info-box">💡 Vd = V0 − 0.002×(T−25) + 0.026×ln(I÷10)；功耗 P = Vd × I</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -239,7 +239,115 @@ var im=num('im'),tp=num('temp');
 }
 function resetAll(){document.getElementById('im').value=100;document.getElementById('temp').value=25;document.getElementById('type').value='si';setInvalid(document.getElementById('im'),false);calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __current_pressure_drop_last=0,__current_pressure_drop_skip=false;
+function __current_pressure_dropSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __current_pressure_dropResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __current_pressure_dropTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __current_pressure_dropRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__current_pressure_dropTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#current_pressure_dropTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#current_pressure_dropDiff');
+        TBKit.history.mount('#current_pressure_dropHist',function(rec){
+            __current_pressure_drop_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __current_pressure_drop_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__current_pressure_dropTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#current_pressure_dropChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __current_pressure_dropExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__current_pressure_drop_skip) return;
+    var snap=__current_pressure_dropSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__current_pressure_dropResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__current_pressure_drop_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __current_pressure_drop_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __current_pressure_dropRender(keys,rk,en);
+}
+function __current_pressure_dropExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#current_pressure_dropTable','current-pressure-drop.csv'); } catch(e){}
+}
+function __current_pressure_dropPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#current_pressure_dropPresets',[{label:'默认参数',labelEn:'Default',values:{'im':'100', 'temp':'25', 'type':'si'}}],function(){ calc(); });
+}
+var __current_pressure_drop_f0=(typeof calc==='function')?calc:null;
+if(__current_pressure_drop_f0){
+    calc=function(){ var __r=__current_pressure_drop_f0.apply(null,arguments); try{ __current_pressure_dropExtras(); }catch(e){} return __r; };
+}
+function __current_pressure_dropBoot(){ try{ __current_pressure_dropPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __current_pressure_dropBoot();
+else document.addEventListener('DOMContentLoaded', __current_pressure_dropBoot);
+</script>
 
 </div>
 

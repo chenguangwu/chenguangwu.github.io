@@ -114,7 +114,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="中药经典配伍禁忌（十八反十九畏）及理化配伍禁忌检测">Compatibility Taboo</p>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('classic',this)">经典配伍禁忌</button>
+      <div id="compatibility_tabooPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('classic',this)">经典配伍禁忌</button><button class="btn" type="button" onclick="__compatibility_tabooExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('physchem',this)">理化配伍禁忌</button>
       <button type="button" class="tab-btn" onclick="switchTab('ref',this)">参考速查</button>
     </div>
@@ -139,7 +139,7 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn primary" onclick="checkClassic()">💊 检测禁忌</button>
         <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
       </div>
-      <div class="result-box" id="classicResult"></div>
+      <div class="result-box" id="classicResult"></div> <div id="compatibility_tabooTable"></div> <div id="compatibility_tabooDiff"></div> <div id="compatibility_tabooChart"></div> <div id="compatibility_tabooHist"></div>
     </div>
 
     <!-- 理化配伍禁忌 -->
@@ -579,6 +579,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __compatibility_taboo_last=0,__compatibility_taboo_skip=false;
+function __compatibility_tabooSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __compatibility_tabooResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __compatibility_tabooTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __compatibility_tabooRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__compatibility_tabooTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#compatibility_tabooTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#compatibility_tabooDiff');
+        TBKit.history.mount('#compatibility_tabooHist',function(rec){
+            __compatibility_taboo_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __compatibility_taboo_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__compatibility_tabooTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#compatibility_tabooChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __compatibility_tabooExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__compatibility_taboo_skip) return;
+    var snap=__compatibility_tabooSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__compatibility_tabooResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__compatibility_taboo_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __compatibility_taboo_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __compatibility_tabooRender(keys,rk,en);
+}
+function __compatibility_tabooExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#compatibility_tabooTable','compatibility-taboo.csv'); } catch(e){}
+}
+function __compatibility_tabooPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#compatibility_tabooPresets',[{label:'默认参数',labelEn:'Default',values:{'phA':'acidic', 'phB':'acidic', 'solA':'water', 'envPh':'7.0'}}],function(){ switchTab(); });
+}
+var __compatibility_taboo_f0=(typeof switchTab==='function')?switchTab:null;
+if(__compatibility_taboo_f0){
+    switchTab=function(){ var __r=__compatibility_taboo_f0.apply(null,arguments); try{ __compatibility_tabooExtras(); }catch(e){} return __r; };
+}
+function __compatibility_tabooBoot(){ try{ __compatibility_tabooPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __compatibility_tabooBoot();
+else document.addEventListener('DOMContentLoaded', __compatibility_tabooBoot);
 </script>
 
 </body>

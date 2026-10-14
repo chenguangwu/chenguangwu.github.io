@@ -175,10 +175,10 @@ s.parentNode.insertBefore(el, s);
 
     <div class="result-box" id="resultBox">
       <p style="color:var(--text-muted);">请输入参数计算对线数据</p>
-    </div>
+    </div> <div id="prosthesis_alignmentTable"></div> <div id="prosthesis_alignmentDiff"></div> <div id="prosthesis_alignmentChart"></div> <div id="prosthesis_alignmentHist"></div>
 
     <div class="toolbar" style="margin-top:12px;">
-      <button type="button" class="btn primary" onclick="calc()">计算对线参数</button>
+      <div id="prosthesis_alignmentPresets"></div><button type="button" class="btn primary" onclick="calc()">计算对线参数</button><button class="btn" type="button" onclick="__prosthesis_alignmentExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="saveRecord()">保存记录</button>
     </div>
@@ -499,6 +499,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __prosthesis_alignment_last=0,__prosthesis_alignment_skip=false;
+function __prosthesis_alignmentSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __prosthesis_alignmentResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __prosthesis_alignmentTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __prosthesis_alignmentRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__prosthesis_alignmentTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#prosthesis_alignmentTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#prosthesis_alignmentDiff');
+        TBKit.history.mount('#prosthesis_alignmentHist',function(rec){
+            __prosthesis_alignment_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __prosthesis_alignment_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__prosthesis_alignmentTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#prosthesis_alignmentChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __prosthesis_alignmentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__prosthesis_alignment_skip) return;
+    var snap=__prosthesis_alignmentSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__prosthesis_alignmentResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__prosthesis_alignment_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __prosthesis_alignment_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __prosthesis_alignmentRender(keys,rk,en);
+}
+function __prosthesis_alignmentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#prosthesis_alignmentTable','prosthesis-alignment.csv'); } catch(e){}
+}
+function __prosthesis_alignmentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#prosthesis_alignmentPresets',[{label:'默认参数',labelEn:'Default',values:{'prosthesisType':'transtibial', 'footType':'sach', 'heelHeight':'2'}}],function(){ calc(); });
+}
+var __prosthesis_alignment_f0=(typeof calc==='function')?calc:null;
+if(__prosthesis_alignment_f0){
+    calc=function(){ var __r=__prosthesis_alignment_f0.apply(null,arguments); try{ __prosthesis_alignmentExtras(); }catch(e){} return __r; };
+}
+function __prosthesis_alignmentBoot(){ try{ __prosthesis_alignmentPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __prosthesis_alignmentBoot();
+else document.addEventListener('DOMContentLoaded', __prosthesis_alignmentBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用假肢对线(承重线)调整计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>假肢类型</li><li>残肢长度（cm）</li><li>残端宽度（cm）</li><li>患者体重（kg）</li><li>髋关节中心高度（cm，从坐骨）</li><li>膝关节轴高度（cm，从坐骨）</li><li>假脚型号</li><li>鞋跟高度（cm）</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>假肢对线(承重线)调整计算器是做什么的？</dt><dd>输入截肢者残肢参数与假肢几何尺寸，工具计算承重线（LOAD 线）位置与对线偏移量，提示内外翻风险，辅助假肢技师装配与动态调整，提升穿戴步态稳定性。</dd><dt>如何使用假肢对线(承重线)调整计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>假肢对线(承重线)调整计算器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

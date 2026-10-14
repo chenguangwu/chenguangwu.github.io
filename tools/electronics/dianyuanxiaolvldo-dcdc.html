@@ -123,11 +123,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>电源类型</label><select class="calc-input" id="type" onchange="calc()" aria-label="电源类型"><option value="ldo">LDO线性稳压</option><option value="dcdc">DCDC开关电源</option></select></div><div><label>输入电压 (V)</label><input type="number" class="calc-input" id="vin" value="12" step="any" oninput="calc()" enterkeyhint="done" aria-label="输入电压 (V)"></div><div><label>输出电压 (V)</label><input type="number" class="calc-input" id="vout" value="5" step="any" oninput="calc()" enterkeyhint="done" aria-label="输出电压 (V)"></div><div><label>输出电流 (A)</label><input type="number" class="calc-input" id="iout" value="1" step="any" oninput="calc()" enterkeyhint="done" aria-label="输出电流 (A)"></div><div><label>DCDC效率 (%)</label><input type="number" class="calc-input" id="eff" value="90" step="any" oninput="calc()" enterkeyhint="done" aria-label="DCDC效率 (%)"></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="dianyuanxiaolvldo_dcdcPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__dianyuanxiaolvldo_dcdcExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="dianyuanxiaolvldo_dcdcTable"></div> <div id="dianyuanxiaolvldo_dcdcDiff"></div> <div id="dianyuanxiaolvldo_dcdcChart"></div> <div id="dianyuanxiaolvldo_dcdcHist"></div>
     <div class="info-box">💡 LDO：效率=Vout/Vin，功耗=(Vin−Vout)×I；DCDC：输入功率=输出功率÷效率，功耗=输入功率−输出功率</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -186,7 +186,115 @@ function calc(){
 }
 function resetAll(){document.getElementById('type').value='ldo';document.getElementById('vin').value=12;document.getElementById('vout').value=5;document.getElementById('iout').value=1;document.getElementById('eff').value=90;['vin','vout','iout','eff'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __dianyuanxiaolvldo_dcdc_last=0,__dianyuanxiaolvldo_dcdc_skip=false;
+function __dianyuanxiaolvldo_dcdcSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __dianyuanxiaolvldo_dcdcResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __dianyuanxiaolvldo_dcdcTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __dianyuanxiaolvldo_dcdcRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__dianyuanxiaolvldo_dcdcTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#dianyuanxiaolvldo_dcdcTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#dianyuanxiaolvldo_dcdcDiff');
+        TBKit.history.mount('#dianyuanxiaolvldo_dcdcHist',function(rec){
+            __dianyuanxiaolvldo_dcdc_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __dianyuanxiaolvldo_dcdc_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__dianyuanxiaolvldo_dcdcTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#dianyuanxiaolvldo_dcdcChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __dianyuanxiaolvldo_dcdcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__dianyuanxiaolvldo_dcdc_skip) return;
+    var snap=__dianyuanxiaolvldo_dcdcSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__dianyuanxiaolvldo_dcdcResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__dianyuanxiaolvldo_dcdc_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __dianyuanxiaolvldo_dcdc_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __dianyuanxiaolvldo_dcdcRender(keys,rk,en);
+}
+function __dianyuanxiaolvldo_dcdcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dianyuanxiaolvldo_dcdcTable','dianyuanxiaolvldo-dcdc.csv'); } catch(e){}
+}
+function __dianyuanxiaolvldo_dcdcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dianyuanxiaolvldo_dcdcPresets',[{label:'默认参数',labelEn:'Default',values:{'type':'ldo', 'vin':'12', 'vout':'5', 'iout':'1', 'eff':'90'}}],function(){ calc(); });
+}
+var __dianyuanxiaolvldo_dcdc_f0=(typeof calc==='function')?calc:null;
+if(__dianyuanxiaolvldo_dcdc_f0){
+    calc=function(){ var __r=__dianyuanxiaolvldo_dcdc_f0.apply(null,arguments); try{ __dianyuanxiaolvldo_dcdcExtras(); }catch(e){} return __r; };
+}
+function __dianyuanxiaolvldo_dcdcBoot(){ try{ __dianyuanxiaolvldo_dcdcPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dianyuanxiaolvldo_dcdcBoot();
+else document.addEventListener('DOMContentLoaded', __dianyuanxiaolvldo_dcdcBoot);
+</script>
 
 </div>
 

@@ -169,11 +169,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="design()">📐 设计梯度方案</button>
+      <div id="chromatography_gradientPresets"></div><button type="button" class="btn primary" onclick="design()">📐 设计梯度方案</button><button class="btn" type="button" onclick="__chromatography_gradientExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制方案</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="chromatography_gradientTable"></div> <div id="chromatography_gradientDiff"></div> <div id="chromatography_gradientChart"></div> <div id="chromatography_gradientHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -536,6 +536,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __chromatography_gradient_last=0,__chromatography_gradient_skip=false;
+function __chromatography_gradientSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __chromatography_gradientResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __chromatography_gradientTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __chromatography_gradientRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__chromatography_gradientTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#chromatography_gradientTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#chromatography_gradientDiff');
+        TBKit.history.mount('#chromatography_gradientHist',function(rec){
+            __chromatography_gradient_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                design();
+            }catch(e2){}
+            __chromatography_gradient_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__chromatography_gradientTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#chromatography_gradientChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __chromatography_gradientExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__chromatography_gradient_skip) return;
+    var snap=__chromatography_gradientSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__chromatography_gradientResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__chromatography_gradient_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __chromatography_gradient_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __chromatography_gradientRender(keys,rk,en);
+}
+function __chromatography_gradientExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#chromatography_gradientTable','chromatography-gradient.csv'); } catch(e){}
+}
+function __chromatography_gradientPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#chromatography_gradientPresets',[{label:'默认参数',labelEn:'Default',values:{'compoundType':'alkaloid', 'silicaRatio':'1:30', 'colDiameter':'3', 'sampleWeight':'2'}}],function(){ design(); });
+}
+var __chromatography_gradient_f0=(typeof design==='function')?design:null;
+if(__chromatography_gradient_f0){
+    design=function(){ var __r=__chromatography_gradient_f0.apply(null,arguments); try{ __chromatography_gradientExtras(); }catch(e){} return __r; };
+}
+function __chromatography_gradientBoot(){ try{ __chromatography_gradientPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __chromatography_gradientBoot();
+else document.addEventListener('DOMContentLoaded', __chromatography_gradientBoot);
 </script>
 
 </body>

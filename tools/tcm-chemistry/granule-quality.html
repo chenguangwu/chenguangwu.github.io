@@ -176,10 +176,10 @@ s.parentNode.insertBefore(el, s);
       </div>
 
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcSize()">🧪 分析粒度</button>
+        <div id="granule_qualityPresets"></div><button type="button" class="btn primary" onclick="calcSize()">🧪 分析粒度</button><button class="btn" type="button" onclick="__granule_qualityExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
       </div>
-      <div class="result-box" id="sizeResult"></div>
+      <div class="result-box" id="sizeResult"></div> <div id="granule_qualityTable"></div> <div id="granule_qualityDiff"></div> <div id="granule_qualityChart"></div> <div id="granule_qualityHist"></div>
     </div>
 
     <!-- 综合质控 -->
@@ -632,6 +632,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __granule_quality_last=0,__granule_quality_skip=false;
+function __granule_qualitySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __granule_qualityResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __granule_qualityTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __granule_qualityRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__granule_qualityTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#granule_qualityTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#granule_qualityDiff');
+        TBKit.history.mount('#granule_qualityHist',function(rec){
+            __granule_quality_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcSize();
+            }catch(e2){}
+            __granule_quality_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__granule_qualityTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#granule_qualityChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __granule_qualityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__granule_quality_skip) return;
+    var snap=__granule_qualitySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__granule_qualityResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__granule_quality_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __granule_quality_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __granule_qualityRender(keys,rk,en);
+}
+function __granule_qualityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#granule_qualityTable','granule-quality.csv'); } catch(e){}
+}
+function __granule_qualityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#granule_qualityPresets',[{label:'默认参数',labelEn:'Default',values:{'totalWt':'100', 'granuleType':'general', 's1':'2', 's2':'15', 's3':'55', 's4':'20', 's5':'5', 's6':'3', 'moisture':'4.0', 'solubility':'pass', 'rsd':'3.0', 'assay':'98'}}],function(){ calcSize(); });
+}
+var __granule_quality_f0=(typeof calcSize==='function')?calcSize:null;
+if(__granule_quality_f0){
+    calcSize=function(){ var __r=__granule_quality_f0.apply(null,arguments); try{ __granule_qualityExtras(); }catch(e){} return __r; };
+}
+function __granule_qualityBoot(){ try{ __granule_qualityPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __granule_qualityBoot();
+else document.addEventListener('DOMContentLoaded', __granule_qualityBoot);
 </script>
 
 </body>

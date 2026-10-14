@@ -116,8 +116,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()"></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="gen()">生成</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="recommender_face_shapePresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__recommender_face_shapeExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="result-box" id="res"></div> <div id="recommender_face_shapeTable"></div> <div id="recommender_face_shapeDiff"></div> <div id="recommender_face_shapeChart"></div> <div id="recommender_face_shapeHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -267,6 +267,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __recommender_face_shape_last=0,__recommender_face_shape_skip=false;
+function __recommender_face_shapeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __recommender_face_shapeResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __recommender_face_shapeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __recommender_face_shapeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__recommender_face_shapeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#recommender_face_shapeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#recommender_face_shapeDiff');
+        TBKit.history.mount('#recommender_face_shapeHist',function(rec){
+            __recommender_face_shape_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                gen();
+            }catch(e2){}
+            __recommender_face_shape_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__recommender_face_shapeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#recommender_face_shapeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __recommender_face_shapeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__recommender_face_shape_skip) return;
+    var snap=__recommender_face_shapeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__recommender_face_shapeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__recommender_face_shape_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __recommender_face_shape_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __recommender_face_shapeRender(keys,rk,en);
+}
+function __recommender_face_shapeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#recommender_face_shapeTable','recommender-face-shape.csv'); } catch(e){}
+}
+function __recommender_face_shapePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#recommender_face_shapePresets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}}],function(){ gen(); });
+}
+var __recommender_face_shape_f0=(typeof gen==='function')?gen:null;
+if(__recommender_face_shape_f0){
+    gen=function(){ var __r=__recommender_face_shape_f0.apply(null,arguments); try{ __recommender_face_shapeExtras(); }catch(e){} return __r; };
+}
+function __recommender_face_shapeBoot(){ try{ __recommender_face_shapePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __recommender_face_shapeBoot();
+else document.addEventListener('DOMContentLoaded', __recommender_face_shapeBoot);
 </script>
 
 

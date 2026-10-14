@@ -123,11 +123,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>振荡类型</label><select class="calc-input" id="type" onchange="calc()" aria-label="振荡类型"><option value="rc">RC文氏桥</option><option value="lc">LC考毕兹</option><option value="xtal">晶体振荡器</option></select></div><div><label>电阻 R (Ω)</label><input type="number" class="calc-input" id="r" value="16000" step="any" oninput="calc()" enterkeyhint="done" aria-label="电阻 R (Ω)"></div><div><label>电容 C (μF)</label><input type="number" class="calc-input" id="c" value="0.01" step="any" oninput="calc()" enterkeyhint="done" aria-label="电容 C (μF)"></div><div><label>电感 L (μH)</label><input type="number" class="calc-input" id="l" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="电感 L (μH)"></div><div><label>C1 (pF)</label><input type="number" class="calc-input" id="c1" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="C1 (pF)"></div><div><label>C2 (pF)</label><input type="number" class="calc-input" id="c2" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="C2 (pF)"></div><div><label>晶振频率 (MHz)</label><input type="number" class="calc-input" id="xf" value="12" step="any" oninput="calc()" enterkeyhint="done" aria-label="晶振频率 (MHz)"></div></div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="frequency_12Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__frequency_12Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="frequency_12Table"></div> <div id="frequency_12Diff"></div> <div id="frequency_12Chart"></div> <div id="frequency_12Hist"></div>
     <div class="info-box">💡 RC文氏：f=1/(2πRC)；LC考毕兹：f=1/(2π√(L×Ceq))，Ceq=C1×C2/(C1+C2)；晶体：f=晶振标称频率</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -189,7 +189,115 @@ function calc(){
 }
 function resetAll(){document.getElementById('type').value='rc';document.getElementById('r').value=16000;document.getElementById('c').value=0.01;document.getElementById('l').value=100;document.getElementById('c1').value=100;document.getElementById('c2').value=100;document.getElementById('xf').value=12;['r','c','l','c1','c2','xf'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __frequency_12_last=0,__frequency_12_skip=false;
+function __frequency_12Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __frequency_12ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __frequency_12Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __frequency_12Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__frequency_12Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#frequency_12Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#frequency_12Diff');
+        TBKit.history.mount('#frequency_12Hist',function(rec){
+            __frequency_12_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __frequency_12_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__frequency_12Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#frequency_12Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __frequency_12Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__frequency_12_skip) return;
+    var snap=__frequency_12Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__frequency_12ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__frequency_12_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __frequency_12_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __frequency_12Render(keys,rk,en);
+}
+function __frequency_12Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#frequency_12Table','frequency-12.csv'); } catch(e){}
+}
+function __frequency_12Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#frequency_12Presets',[{label:'默认参数',labelEn:'Default',values:{'type':'rc', 'r':'16000', 'c':'0.01', 'l':'100', 'c1':'100', 'c2':'100', 'xf':'12'}}],function(){ calc(); });
+}
+var __frequency_12_f0=(typeof calc==='function')?calc:null;
+if(__frequency_12_f0){
+    calc=function(){ var __r=__frequency_12_f0.apply(null,arguments); try{ __frequency_12Extras(); }catch(e){} return __r; };
+}
+function __frequency_12Boot(){ try{ __frequency_12Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __frequency_12Boot();
+else document.addEventListener('DOMContentLoaded', __frequency_12Boot);
+</script>
 
 </div>
 
