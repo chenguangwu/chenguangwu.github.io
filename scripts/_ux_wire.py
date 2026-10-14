@@ -290,13 +290,21 @@ def find_tag_close(s, open_idx):
 
 
 RESULT_IDS = ("result", "res", "output")
+# 次级容器：搜索/筛选型「可检索参考列表」页（rock-identify / cloud-identify /
+# pottery-typology / 64-gua / plant-care 等）用 render()/filterList() 渲染到列表容器，
+# 无 result/res/output。仅在无主容器时退化使用，避免误伤导航列表页。
+RESULT_IDS2 = ("resultList", "result-list", "countryList", "guaList", "plantList",
+               "cardList", "itemList", "listBox", "list", "detail")
 RESULT_CLASSES = ("result-box", "result-display")
 
 def find_result_container(s):
-    """定位结果容器：优先 id（result/res/output），退化 class（result-box/result-display）。
+    """定位结果容器：优先 id（result/res/output），退化次级列表容器，再退化 class。
     返回 ('id', val) / ('class', val) / None。新架构页（leather/pet 等）用 id="res"，
     部分页只有 class="result-box" 无 id。"""
     for rid in RESULT_IDS:
+        if re.search(r'id="%s"' % re.escape(rid), s):
+            return ("id", rid)
+    for rid in RESULT_IDS2:
         if re.search(r'id="%s"' % re.escape(rid), s):
             return ("id", rid)
     for rc in RESULT_CLASSES:
