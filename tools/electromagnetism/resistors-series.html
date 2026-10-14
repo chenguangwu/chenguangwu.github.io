@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="resistors_seriesPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__resistors_seriesExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="resistors_seriesTable"></div>
+    <div id="resistors_seriesDiff"></div>
+    <div id="resistors_seriesHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('R1').value = '10';
       document.getElementById('R3').value = '30';
       calcTool();}
 calcTool();
+
+function __resistors_seriesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __resistors_seriesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const R1 = num('R1'), R2 = num('R2'), R3 = num('R3');
+    const R = R1 + R2 + R3;
+    if (!isFinite(__resistors_seriesNum('R1')) || !isFinite(__resistors_seriesNum('R2')) || !isFinite(__resistors_seriesNum('R3'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#resistors_seriesTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['等效电阻 R (Ω)', R.toFixed(3)],
+            ['等效电导 (S)', (1 / R).toFixed(5)],
+            ['并联等效电阻（对比）(Ω)', (1/(1/R1+1/R2+1/R3)).toFixed(3)],
+            ['R1 分压占比 (%)', (R1/R*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({R1:__resistors_seriesNum('R1'), R2:__resistors_seriesNum('R2'), R3:__resistors_seriesNum('R3'), R:R});
+    TBKit.history.mount('#resistors_seriesHist',function(rec){ if(rec.R1!=null)document.getElementById('R1').value=rec.R1; if(rec.R2!=null)document.getElementById('R2').value=rec.R2; if(rec.R3!=null)document.getElementById('R3').value=rec.R3; calcTool(); });
+    TBKit.util.diffBox('#resistors_seriesDiff',['R']);
+}
+function __resistors_seriesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#resistors_seriesTable','resistors-series.csv'); } catch(e){}
+}
+function __resistors_seriesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#resistors_seriesPresets',[
+        {label:'默认',labelEn:'Default',values:{R1:'10', R2:'20', R3:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{R1:'20', R2:'40', R3:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{R1:'5', R2:'10', R3:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __resistors_seriesExtras(); }catch(e){} };
+function __resistors_seriesBoot(){ try{ __resistors_seriesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __resistors_seriesBoot();
+else document.addEventListener('DOMContentLoaded', __resistors_seriesBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

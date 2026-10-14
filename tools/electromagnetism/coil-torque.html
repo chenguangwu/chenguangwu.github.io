@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="coil_torquePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__coil_torqueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="coil_torqueTable"></div>
+    <div id="coil_torqueDiff"></div>
+    <div id="coil_torqueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -211,6 +217,41 @@ function resetForm(){document.getElementById('N').value = '200';
       document.getElementById('th').value = '90';
       calcTool();}
 calcTool();
+
+function __coil_torqueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __coil_torqueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const N=num('N'),I=num('I'),A=num('A'),B=num('B'),th=num('th');
+    const tau=N*I*A*B*Math.sin(th*Math.PI/180);
+    if (!isFinite(__coil_torqueNum('N')) || !isFinite(__coil_torqueNum('I')) || !isFinite(__coil_torqueNum('A')) || !isFinite(__coil_torqueNum('B')) || !isFinite(__coil_torqueNum('th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#coil_torqueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['磁力矩 τ (N·m)', tau.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({N:__coil_torqueNum('N'), I:__coil_torqueNum('I'), A:__coil_torqueNum('A'), B:__coil_torqueNum('B'), th:__coil_torqueNum('th'), tau:tau});
+    TBKit.history.mount('#coil_torqueHist',function(rec){ if(rec.N!=null)document.getElementById('N').value=rec.N; if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.B!=null)document.getElementById('B').value=rec.B; if(rec.th!=null)document.getElementById('th').value=rec.th; calcTool(); });
+    TBKit.util.diffBox('#coil_torqueDiff',['tau']);
+}
+function __coil_torqueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#coil_torqueTable','coil-torque.csv'); } catch(e){}
+}
+function __coil_torquePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#coil_torquePresets',[
+        {label:'默认',labelEn:'Default',values:{N:'200', I:'0.5', A:'0.01', B:'0.1', th:'90'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{N:'400', I:'1', A:'0.02', B:'0.2', th:'180'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{N:'100', I:'0.25', A:'0.005', B:'0.05', th:'45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __coil_torqueExtras(); }catch(e){} };
+function __coil_torqueBoot(){ try{ __coil_torquePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __coil_torqueBoot();
+else document.addEventListener('DOMContentLoaded', __coil_torqueBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

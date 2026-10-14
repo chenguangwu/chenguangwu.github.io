@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="resistors_parallelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__resistors_parallelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="resistors_parallelTable"></div>
+    <div id="resistors_parallelDiff"></div>
+    <div id="resistors_parallelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('R1').value = '10';
       document.getElementById('R2').value = '10';
       calcTool();}
 calcTool();
+
+function __resistors_parallelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __resistors_parallelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const R1 = num('R1'), R2 = num('R2');
+    const R = 1 / (1 / R1 + 1 / R2);
+    if (!isFinite(__resistors_parallelNum('R1')) || !isFinite(__resistors_parallelNum('R2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#resistors_parallelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['等效电阻 R (Ω)', R.toFixed(3)],
+            ['总电导 (S)', (1 / R).toFixed(4)],
+            ['串联等效 (ohm)', (R1+R2).toFixed(3)],
+            ['电流经 R1 占比 (%)', (R2/((R1+R2)||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({R1:__resistors_parallelNum('R1'), R2:__resistors_parallelNum('R2'), R:R});
+    TBKit.history.mount('#resistors_parallelHist',function(rec){ if(rec.R1!=null)document.getElementById('R1').value=rec.R1; if(rec.R2!=null)document.getElementById('R2').value=rec.R2; calcTool(); });
+    TBKit.util.diffBox('#resistors_parallelDiff',['R']);
+}
+function __resistors_parallelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#resistors_parallelTable','resistors-parallel.csv'); } catch(e){}
+}
+function __resistors_parallelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#resistors_parallelPresets',[
+        {label:'默认',labelEn:'Default',values:{R1:'10', R2:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{R1:'20', R2:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{R1:'5', R2:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __resistors_parallelExtras(); }catch(e){} };
+function __resistors_parallelBoot(){ try{ __resistors_parallelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __resistors_parallelBoot();
+else document.addEventListener('DOMContentLoaded', __resistors_parallelBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

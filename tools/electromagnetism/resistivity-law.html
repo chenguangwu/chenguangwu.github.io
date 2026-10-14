@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="resistivity_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__resistivity_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="resistivity_lawTable"></div>
+    <div id="resistivity_lawDiff"></div>
+    <div id="resistivity_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('rho').value = '1.68e-8';
       document.getElementById('A').value = '1e-6';
       calcTool();}
 calcTool();
+
+function __resistivity_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __resistivity_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const rho=num('rho'),L=num('L'),A=num('A');
+    const R=rho*L/A;
+    if (!isFinite(__resistivity_lawNum('rho')) || !isFinite(__resistivity_lawNum('L')) || !isFinite(__resistivity_lawNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#resistivity_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电阻 R (Ω)', R.toFixed(5)],
+            ['电导 G (S)', (1/(R||1)).toFixed(5)],
+            ['电导率 sigma (S/m)', (1/(rho||1)).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({rho:__resistivity_lawNum('rho'), L:__resistivity_lawNum('L'), A:__resistivity_lawNum('A'), R:R});
+    TBKit.history.mount('#resistivity_lawHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#resistivity_lawDiff',['R']);
+}
+function __resistivity_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#resistivity_lawTable','resistivity-law.csv'); } catch(e){}
+}
+function __resistivity_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#resistivity_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1.68e-8', L:'1', A:'1e-6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'0', L:'2', A:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'0', L:'0.5', A:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __resistivity_lawExtras(); }catch(e){} };
+function __resistivity_lawBoot(){ try{ __resistivity_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __resistivity_lawBoot();
+else document.addEventListener('DOMContentLoaded', __resistivity_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

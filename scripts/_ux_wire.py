@@ -175,9 +175,10 @@ def apply_page(page, dry=False):
         line = line.strip()
         if line:
             js.append("    " + line)
-    # 守卫：任一输入 NaN 则返回
-    guard = " || ".join("!isFinite(__%sNum('%s'))" % (p, i) for i in inputs)
-    js.append("    if (%s) return;" % guard)
+    # 守卫：任一输入 NaN 则返回（无输入页跳过守卫，避免 if () 语法错误）
+    if inputs:
+        guard = " || ".join("!isFinite(__%sNum('%s'))" % (p, i) for i in inputs)
+        js.append("    if (%s) return;" % guard)
     js.append("    var en=TBKit.util.isEn();")
     # matrix 表
     js.append("    TBKit.matrix.table('#%sTable',{" % p)
@@ -187,10 +188,11 @@ def apply_page(page, dry=False):
         js.append("            [%r, %s]," % (lbl, val))
     js.append("        ]")
     js.append("    });")
-    # history
-    rec = ", ".join("%s:__%sNum('%s')" % (i, p, i) for i in inputs)
+    # history（输入字段 + 主结果；无输入页 rec 仅含主结果，避免前导逗号语法错误）
+    rec_parts = ["%s:__%sNum('%s')" % (i, p, i) for i in inputs]
     if primary:
-        rec += ", %s:%s" % (primary, primary)
+        rec_parts.append("%s:%s" % (primary, primary))
+    rec = ", ".join(rec_parts)
     js.append("    TBKit.history.record({%s});" % rec)
     restore = " ".join("if(rec.%s!=null)document.getElementById('%s').value=rec.%s;" % (i, i, i) for i in inputs)
     js.append("    TBKit.history.mount('#%sHist',function(rec){ %s calcTool(); });" % (p, restore))

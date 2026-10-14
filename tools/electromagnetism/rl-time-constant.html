@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rl_time_constantPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rl_time_constantExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rl_time_constantTable"></div>
+    <div id="rl_time_constantDiff"></div>
+    <div id="rl_time_constantHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('L').value = '0.1';
       document.getElementById('R').value = '10';
       calcTool();}
 calcTool();
+
+function __rl_time_constantNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rl_time_constantExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const L=num('L'),R=num('R');
+    const tau=L/R;
+    if (!isFinite(__rl_time_constantNum('L')) || !isFinite(__rl_time_constantNum('R'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rl_time_constantTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['时间常数 τ (s)', tau.toFixed(4)],
+            ['时间常数倒数（角频率）', (1/Math.max(tau,1e-12)).toFixed(4)],
+            ['时间常数 (ms)', (tau*1e3).toFixed(4)],
+            ['R 与 L 之比', (R/Math.max(L,1e-12)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({L:__rl_time_constantNum('L'), R:__rl_time_constantNum('R'), tau:tau});
+    TBKit.history.mount('#rl_time_constantHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.R!=null)document.getElementById('R').value=rec.R; calcTool(); });
+    TBKit.util.diffBox('#rl_time_constantDiff',['tau']);
+}
+function __rl_time_constantExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rl_time_constantTable','rl-time-constant.csv'); } catch(e){}
+}
+function __rl_time_constantPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rl_time_constantPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'0.1', R:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'0.2', R:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'0.05', R:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rl_time_constantExtras(); }catch(e){} };
+function __rl_time_constantBoot(){ try{ __rl_time_constantPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rl_time_constantBoot();
+else document.addEventListener('DOMContentLoaded', __rl_time_constantBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

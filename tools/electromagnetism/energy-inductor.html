@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="energy_inductorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__energy_inductorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="energy_inductorTable"></div>
+    <div id="energy_inductorDiff"></div>
+    <div id="energy_inductorHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -267,6 +273,44 @@ function resetForm(){document.getElementById('L').value = '0.1';
       document.getElementById('I').value = '2';
       calcTool();}
 calcTool();
+
+function __energy_inductorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __energy_inductorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const L=num('L'),I=num('I');
+    const E=0.5*L*I*I;
+    if (!isFinite(__energy_inductorNum('L')) || !isFinite(__energy_inductorNum('I'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#energy_inductorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['储能 E (J)', E.toFixed(4)],
+            ['两倍储能', (E*2).toFixed(4)],
+            ['由储能反推电流 (A)', (Math.sqrt(2*E/Math.max(L,1e-12))).toFixed(4)],
+            ['储能与电感比', (E/Math.max(L,1e-12)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({L:__energy_inductorNum('L'), I:__energy_inductorNum('I'), E:E});
+    TBKit.history.mount('#energy_inductorHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.I!=null)document.getElementById('I').value=rec.I; calcTool(); });
+    TBKit.util.diffBox('#energy_inductorDiff',['E']);
+}
+function __energy_inductorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_inductorTable','energy-inductor.csv'); } catch(e){}
+}
+function __energy_inductorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_inductorPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'0.1', I:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'0.2', I:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'0.05', I:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __energy_inductorExtras(); }catch(e){} };
+function __energy_inductorBoot(){ try{ __energy_inductorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_inductorBoot();
+else document.addEventListener('DOMContentLoaded', __energy_inductorBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

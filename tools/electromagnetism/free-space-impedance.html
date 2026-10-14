@@ -127,12 +127,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="free_space_impedancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__free_space_impedanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="free_space_impedanceTable"></div>
+    <div id="free_space_impedanceDiff"></div>
+    <div id="free_space_impedanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -191,6 +197,43 @@ function calcTool(){
 function resetForm(){document.getElementById('x').value = '0';
       calcTool();}
 calcTool();
+
+function __free_space_impedanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __free_space_impedanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const mu0=4*Math.PI*1e-7, eps0=8.854187817e-12;
+    const Z0=Math.sqrt(mu0/eps0);
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#free_space_impedanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['波阻抗 Z₀ (Ω)', Z0.toFixed(2)],
+            ['真空光速 (×10⁸ m/s)', (1/Math.sqrt(mu0*eps0)/1e8).toFixed(6)],
+            ['真空磁导率 μ₀ (μH/m)', (mu0*1e6).toFixed(6)],
+            ['真空介电常数 ε₀ (pF/m)', (eps0*1e12).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({mu0:mu0});
+    TBKit.history.mount('#free_space_impedanceHist',function(rec){  calcTool(); });
+    TBKit.util.diffBox('#free_space_impedanceDiff',['mu0']);
+}
+function __free_space_impedanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#free_space_impedanceTable','free-space-impedance.csv'); } catch(e){}
+}
+function __free_space_impedancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#free_space_impedancePresets',[
+        {label:'默认',labelEn:'Default',values:{}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __free_space_impedanceExtras(); }catch(e){} };
+function __free_space_impedanceBoot(){ try{ __free_space_impedancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __free_space_impedanceBoot();
+else document.addEventListener('DOMContentLoaded', __free_space_impedanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

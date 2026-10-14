@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="current_densityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__current_densityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="current_densityTable"></div>
+    <div id="current_densityDiff"></div>
+    <div id="current_densityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('I').value = '5';
       document.getElementById('A').value = '1e-6';
       calcTool();}
 calcTool();
+
+function __current_densityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __current_densityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const I=num('I'),A=num('A');
+    const J=I/A;
+    if (!isFinite(__current_densityNum('I')) || !isFinite(__current_densityNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#current_densityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电流密度 J (A/m²)', J.toExponential(3)],
+            ['电流密度倒数', (1/Math.max(J,1e-30)).toExponential(3)],
+            ['电流密度 (A/mm²)', (J/1e6).toExponential(3)],
+            ['面积与电流比', (A/Math.max(I,1e-30)).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({I:__current_densityNum('I'), A:__current_densityNum('A'), J:J});
+    TBKit.history.mount('#current_densityHist',function(rec){ if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#current_densityDiff',['J']);
+}
+function __current_densityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#current_densityTable','current-density.csv'); } catch(e){}
+}
+function __current_densityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#current_densityPresets',[
+        {label:'默认',labelEn:'Default',values:{I:'5', A:'1e-6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I:'10', A:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'2.5', A:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __current_densityExtras(); }catch(e){} };
+function __current_densityBoot(){ try{ __current_densityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __current_densityBoot();
+else document.addEventListener('DOMContentLoaded', __current_densityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

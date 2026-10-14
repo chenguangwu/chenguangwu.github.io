@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="capacitance_parallel_platePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__capacitance_parallel_plateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="capacitance_parallel_plateTable"></div>
+    <div id="capacitance_parallel_plateDiff"></div>
+    <div id="capacitance_parallel_plateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('er').value = '1';
       document.getElementById('d').value = '1e-3';
       calcTool();}
 calcTool();
+
+function __capacitance_parallel_plateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __capacitance_parallel_plateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const eps0=8.854187817e-12;
+    const er=num('er'),A=num('A'),d=num('d');
+    const C=eps0*er*A/d;
+    if (!isFinite(__capacitance_parallel_plateNum('er')) || !isFinite(__capacitance_parallel_plateNum('A')) || !isFinite(__capacitance_parallel_plateNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#capacitance_parallel_plateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电容 C (pF)', (C*1e12).toFixed(3)],
+            ['电容 C (F)', (C).toExponential(3)],
+            ['单位面积电容 (F/m²)', (eps0*er/d).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({er:__capacitance_parallel_plateNum('er'), A:__capacitance_parallel_plateNum('A'), d:__capacitance_parallel_plateNum('d'), eps0:eps0});
+    TBKit.history.mount('#capacitance_parallel_plateHist',function(rec){ if(rec.er!=null)document.getElementById('er').value=rec.er; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#capacitance_parallel_plateDiff',['eps0']);
+}
+function __capacitance_parallel_plateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#capacitance_parallel_plateTable','capacitance-parallel-plate.csv'); } catch(e){}
+}
+function __capacitance_parallel_platePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#capacitance_parallel_platePresets',[
+        {label:'默认',labelEn:'Default',values:{er:'1', A:'0.01', d:'1e-3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{er:'2', A:'0.02', d:'0.002'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{er:'0.5', A:'0.005', d:'0.0005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __capacitance_parallel_plateExtras(); }catch(e){} };
+function __capacitance_parallel_plateBoot(){ try{ __capacitance_parallel_platePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __capacitance_parallel_plateBoot();
+else document.addEventListener('DOMContentLoaded', __capacitance_parallel_plateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

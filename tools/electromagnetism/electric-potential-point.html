@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="electric_potential_pointPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__electric_potential_pointExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="electric_potential_pointTable"></div>
+    <div id="electric_potential_pointDiff"></div>
+    <div id="electric_potential_pointHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,45 @@ function resetForm(){document.getElementById('q').value = '1e-6';
       document.getElementById('r').value = '1';
       calcTool();}
 calcTool();
+
+function __electric_potential_pointNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __electric_potential_pointExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const k=8.987551787e9;
+    const q=num('q'),r=num('r');
+    const V=k*q/r;
+    if (!isFinite(__electric_potential_pointNum('q')) || !isFinite(__electric_potential_pointNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#electric_potential_pointTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电势 V (V)', V.toFixed(3)],
+            ['电场强度 E (V/m)', (8.987551787e9*q/r/r).toFixed(4)],
+            ['电势绝对值 (V)', (8.987551787e9*Math.abs(q)/r).toFixed(3)],
+            ['电势绝对值 (kV)', (8.987551787e9*Math.abs(q)/r/1000).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({q:__electric_potential_pointNum('q'), r:__electric_potential_pointNum('r'), k:k});
+    TBKit.history.mount('#electric_potential_pointHist',function(rec){ if(rec.q!=null)document.getElementById('q').value=rec.q; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#electric_potential_pointDiff',['k']);
+}
+function __electric_potential_pointExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#electric_potential_pointTable','electric-potential-point.csv'); } catch(e){}
+}
+function __electric_potential_pointPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#electric_potential_pointPresets',[
+        {label:'默认',labelEn:'Default',values:{q:'1e-6', r:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q:'0', r:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q:'0', r:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __electric_potential_pointExtras(); }catch(e){} };
+function __electric_potential_pointBoot(){ try{ __electric_potential_pointPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __electric_potential_pointBoot();
+else document.addEventListener('DOMContentLoaded', __electric_potential_pointBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

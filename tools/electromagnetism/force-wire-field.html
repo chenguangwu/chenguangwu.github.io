@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="force_wire_fieldPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__force_wire_fieldExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="force_wire_fieldTable"></div>
+    <div id="force_wire_fieldDiff"></div>
+    <div id="force_wire_fieldHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -208,6 +214,43 @@ function resetForm(){document.getElementById('B').value = '0.5';
       document.getElementById('th').value = '90';
       calcTool();}
 calcTool();
+
+function __force_wire_fieldNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __force_wire_fieldExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const B=num('B'),I=num('I'),L=num('L'),th=num('th');
+    const F=B*I*L*Math.sin(th*Math.PI/180);
+    if (!isFinite(__force_wire_fieldNum('B')) || !isFinite(__force_wire_fieldNum('I')) || !isFinite(__force_wire_fieldNum('L')) || !isFinite(__force_wire_fieldNum('th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#force_wire_fieldTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['安培力 F (N)', F.toFixed(4)],
+            ['单位长度受力 F/L (N/m)', (B*I).toFixed(4)],
+            ['最大安培力 F_max（θ = 90°）(N)', (B*I*L).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({B:__force_wire_fieldNum('B'), I:__force_wire_fieldNum('I'), L:__force_wire_fieldNum('L'), th:__force_wire_fieldNum('th'), F:F});
+    TBKit.history.mount('#force_wire_fieldHist',function(rec){ if(rec.B!=null)document.getElementById('B').value=rec.B; if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.th!=null)document.getElementById('th').value=rec.th; calcTool(); });
+    TBKit.util.diffBox('#force_wire_fieldDiff',['F']);
+}
+function __force_wire_fieldExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#force_wire_fieldTable','force-wire-field.csv'); } catch(e){}
+}
+function __force_wire_fieldPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#force_wire_fieldPresets',[
+        {label:'默认',labelEn:'Default',values:{B:'0.5', I:'10', L:'0.2', th:'90'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{B:'1', I:'20', L:'0.4', th:'180'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{B:'0.25', I:'5', L:'0.1', th:'45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __force_wire_fieldExtras(); }catch(e){} };
+function __force_wire_fieldBoot(){ try{ __force_wire_fieldPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __force_wire_fieldBoot();
+else document.addEventListener('DOMContentLoaded', __force_wire_fieldBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

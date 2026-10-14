@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="capacitive_reactancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__capacitive_reactanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="capacitive_reactanceTable"></div>
+    <div id="capacitive_reactanceDiff"></div>
+    <div id="capacitive_reactanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('f').value = '60';
       document.getElementById('C').value = '1';
       calcTool();}
 calcTool();
+
+function __capacitive_reactanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __capacitive_reactanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const f = num('f'), C = num('C') / 1e6;
+    const Xc = 1 / (2 * Math.PI * f * C);
+    if (!isFinite(__capacitive_reactanceNum('f')) || !isFinite(__capacitive_reactanceNum('C'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#capacitive_reactanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['容抗 X_C (Ω)', Xc.toFixed(2)],
+            ['阻抗虚部 (Ω)', (-Xc).toFixed(2)],
+            ['导纳 B_C (S)', (1/Xc).toExponential(4)],
+            ['角频率 omega (rad/s)', (2*Math.PI*f).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({f:__capacitive_reactanceNum('f'), C:__capacitive_reactanceNum('C'), Xc:Xc});
+    TBKit.history.mount('#capacitive_reactanceHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.C!=null)document.getElementById('C').value=rec.C; calcTool(); });
+    TBKit.util.diffBox('#capacitive_reactanceDiff',['Xc']);
+}
+function __capacitive_reactanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#capacitive_reactanceTable','capacitive-reactance.csv'); } catch(e){}
+}
+function __capacitive_reactancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#capacitive_reactancePresets',[
+        {label:'默认',labelEn:'Default',values:{f:'60', C:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'120', C:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'30', C:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __capacitive_reactanceExtras(); }catch(e){} };
+function __capacitive_reactanceBoot(){ try{ __capacitive_reactancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __capacitive_reactanceBoot();
+else document.addEventListener('DOMContentLoaded', __capacitive_reactanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

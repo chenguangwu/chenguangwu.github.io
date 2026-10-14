@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="capacitors_seriesPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__capacitors_seriesExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="capacitors_seriesTable"></div>
+    <div id="capacitors_seriesDiff"></div>
+    <div id="capacitors_seriesHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('C1').value = '2';
       document.getElementById('C2').value = '2';
       calcTool();}
 calcTool();
+
+function __capacitors_seriesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __capacitors_seriesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const C1 = num('C1'), C2 = num('C2');
+    const C = 1 / (1 / C1 + 1 / C2);
+    if (!isFinite(__capacitors_seriesNum('C1')) || !isFinite(__capacitors_seriesNum('C2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#capacitors_seriesTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['等效电容 C (µF)', C.toFixed(4)],
+            ['并联等效 (µF)', (C1 + C2).toFixed(4)],
+            ['分压占比 V1 (%)', (C2/((C1+C2)||1)*100).toFixed(3)],
+            ['分压占比 V2 (%)', (C1/((C1+C2)||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({C1:__capacitors_seriesNum('C1'), C2:__capacitors_seriesNum('C2'), C:C});
+    TBKit.history.mount('#capacitors_seriesHist',function(rec){ if(rec.C1!=null)document.getElementById('C1').value=rec.C1; if(rec.C2!=null)document.getElementById('C2').value=rec.C2; calcTool(); });
+    TBKit.util.diffBox('#capacitors_seriesDiff',['C']);
+}
+function __capacitors_seriesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#capacitors_seriesTable','capacitors-series.csv'); } catch(e){}
+}
+function __capacitors_seriesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#capacitors_seriesPresets',[
+        {label:'默认',labelEn:'Default',values:{C1:'2', C2:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{C1:'4', C2:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{C1:'1', C2:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __capacitors_seriesExtras(); }catch(e){} };
+function __capacitors_seriesBoot(){ try{ __capacitors_seriesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __capacitors_seriesBoot();
+else document.addEventListener('DOMContentLoaded', __capacitors_seriesBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

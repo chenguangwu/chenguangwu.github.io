@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="inductance_solenoidPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__inductance_solenoidExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="inductance_solenoidTable"></div>
+    <div id="inductance_solenoidDiff"></div>
+    <div id="inductance_solenoidHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('N').value = '100';
       document.getElementById('l').value = '0.2';
       calcTool();}
 calcTool();
+
+function __inductance_solenoidNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __inductance_solenoidExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const mu0=4*Math.PI*1e-7;
+    const N=num('N'),A=num('A'),l=num('l');
+    const L=mu0*N*N*A/l;
+    if (!isFinite(__inductance_solenoidNum('N')) || !isFinite(__inductance_solenoidNum('A')) || !isFinite(__inductance_solenoidNum('l'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#inductance_solenoidTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电感 L (mH)', (L*1e3).toFixed(4)],
+            ['电感 L (µH)', (L*1e6).toFixed(3)],
+            ['单位截面积电感 (H·m²)', (mu0*N*N/l).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({N:__inductance_solenoidNum('N'), A:__inductance_solenoidNum('A'), l:__inductance_solenoidNum('l'), mu0:mu0});
+    TBKit.history.mount('#inductance_solenoidHist',function(rec){ if(rec.N!=null)document.getElementById('N').value=rec.N; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.l!=null)document.getElementById('l').value=rec.l; calcTool(); });
+    TBKit.util.diffBox('#inductance_solenoidDiff',['mu0']);
+}
+function __inductance_solenoidExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#inductance_solenoidTable','inductance-solenoid.csv'); } catch(e){}
+}
+function __inductance_solenoidPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#inductance_solenoidPresets',[
+        {label:'默认',labelEn:'Default',values:{N:'100', A:'0.01', l:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{N:'200', A:'0.02', l:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{N:'50', A:'0.005', l:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __inductance_solenoidExtras(); }catch(e){} };
+function __inductance_solenoidBoot(){ try{ __inductance_solenoidPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __inductance_solenoidBoot();
+else document.addEventListener('DOMContentLoaded', __inductance_solenoidBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="lc_resonancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__lc_resonanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="lc_resonanceTable"></div>
+    <div id="lc_resonanceDiff"></div>
+    <div id="lc_resonanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('L').value = '1';
       document.getElementById('C').value = '1';
       calcTool();}
 calcTool();
+
+function __lc_resonanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lc_resonanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const L = num('L') / 1000, C = num('C') / 1e6;
+    const f = 1 / (2 * Math.PI * Math.sqrt(L * C));
+    if (!isFinite(__lc_resonanceNum('L')) || !isFinite(__lc_resonanceNum('C'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#lc_resonanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['谐振频率 f (Hz)', f.toFixed(2)],
+            ['f (kHz)', (f / 1000).toFixed(4)],
+            ['角频率 ω (rad/s)', (2*Math.PI*f).toFixed(2)],
+            ['谐振周期 T (s)', (1/(2*Math.PI*f)).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({L:__lc_resonanceNum('L'), C:__lc_resonanceNum('C'), f:f});
+    TBKit.history.mount('#lc_resonanceHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.C!=null)document.getElementById('C').value=rec.C; calcTool(); });
+    TBKit.util.diffBox('#lc_resonanceDiff',['f']);
+}
+function __lc_resonanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lc_resonanceTable','lc-resonance.csv'); } catch(e){}
+}
+function __lc_resonancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lc_resonancePresets',[
+        {label:'默认',labelEn:'Default',values:{L:'1', C:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'2', C:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'0.5', C:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __lc_resonanceExtras(); }catch(e){} };
+function __lc_resonanceBoot(){ try{ __lc_resonancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lc_resonanceBoot();
+else document.addEventListener('DOMContentLoaded', __lc_resonanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

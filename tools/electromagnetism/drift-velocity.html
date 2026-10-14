@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="drift_velocityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__drift_velocityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="drift_velocityTable"></div>
+    <div id="drift_velocityDiff"></div>
+    <div id="drift_velocityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('I').value = '1';
       document.getElementById('A').value = '1e-6';
       calcTool();}
 calcTool();
+
+function __drift_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __drift_velocityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const e=1.602176634e-19;
+    const I=num('I'),n=num('n'),A=num('A');
+    const vd=I/(n*A*e);
+    if (!isFinite(__drift_velocityNum('I')) || !isFinite(__drift_velocityNum('n')) || !isFinite(__drift_velocityNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#drift_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['漂移速度 v_d (m/s)', vd.toExponential(3)],
+            ['电流密度 J (A/m²)', (I/A).toExponential(3)],
+            ['单位长度载流子数 nA (m⁻¹)', (n*A*e).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({I:__drift_velocityNum('I'), n:__drift_velocityNum('n'), A:__drift_velocityNum('A'), e:e});
+    TBKit.history.mount('#drift_velocityHist',function(rec){ if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#drift_velocityDiff',['e']);
+}
+function __drift_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#drift_velocityTable','drift-velocity.csv'); } catch(e){}
+}
+function __drift_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#drift_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{I:'1', n:'8.5e28', A:'1e-6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I:'2', n:'1.7e+29', A:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'0.5', n:'4.25e+28', A:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __drift_velocityExtras(); }catch(e){} };
+function __drift_velocityBoot(){ try{ __drift_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __drift_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __drift_velocityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

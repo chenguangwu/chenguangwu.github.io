@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="inductors_parallelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__inductors_parallelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="inductors_parallelTable"></div>
+    <div id="inductors_parallelDiff"></div>
+    <div id="inductors_parallelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('L1').value = '2';
       document.getElementById('L2').value = '2';
       calcTool();}
 calcTool();
+
+function __inductors_parallelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __inductors_parallelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const L1 = num('L1'), L2 = num('L2');
+    const L = 1 / (1 / L1 + 1 / L2);
+    if (!isFinite(__inductors_parallelNum('L1')) || !isFinite(__inductors_parallelNum('L2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#inductors_parallelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['等效电感 L (mH)', L.toFixed(4)],
+            ['总倒感 (1/mH)', (1 / L).toFixed(4)],
+            ['串联等效 (mH)', (L1+L2).toFixed(4)],
+            ['等效占 L1 比 (%)', (L/(L1||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({L1:__inductors_parallelNum('L1'), L2:__inductors_parallelNum('L2'), L:L});
+    TBKit.history.mount('#inductors_parallelHist',function(rec){ if(rec.L1!=null)document.getElementById('L1').value=rec.L1; if(rec.L2!=null)document.getElementById('L2').value=rec.L2; calcTool(); });
+    TBKit.util.diffBox('#inductors_parallelDiff',['L']);
+}
+function __inductors_parallelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#inductors_parallelTable','inductors-parallel.csv'); } catch(e){}
+}
+function __inductors_parallelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#inductors_parallelPresets',[
+        {label:'默认',labelEn:'Default',values:{L1:'2', L2:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L1:'4', L2:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L1:'1', L2:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __inductors_parallelExtras(); }catch(e){} };
+function __inductors_parallelBoot(){ try{ __inductors_parallelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __inductors_parallelBoot();
+else document.addEventListener('DOMContentLoaded', __inductors_parallelBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

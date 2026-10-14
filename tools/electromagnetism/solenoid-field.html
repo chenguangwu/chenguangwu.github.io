@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="solenoid_fieldPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__solenoid_fieldExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="solenoid_fieldTable"></div>
+    <div id="solenoid_fieldDiff"></div>
+    <div id="solenoid_fieldHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,45 @@ function resetForm(){document.getElementById('n').value = '1000';
       document.getElementById('I').value = '1';
       calcTool();}
 calcTool();
+
+function __solenoid_fieldNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __solenoid_fieldExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const n = num('n'), I = num('I');
+    const mu0 = 4 * Math.PI * 1e-7;
+    const B = mu0 * n * I;
+    if (!isFinite(__solenoid_fieldNum('n')) || !isFinite(__solenoid_fieldNum('I'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#solenoid_fieldTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['磁感应强度 B (T)', B.toExponential(3)],
+            ['B (mT)', (B * 1e3).toFixed(3)],
+            ['单位电流磁场 (T/A)', (mu0*n).toExponential(4)],
+            ['磁感应强度 B (Gauss)', (B*1e4).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({n:__solenoid_fieldNum('n'), I:__solenoid_fieldNum('I'), mu0:mu0});
+    TBKit.history.mount('#solenoid_fieldHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.I!=null)document.getElementById('I').value=rec.I; calcTool(); });
+    TBKit.util.diffBox('#solenoid_fieldDiff',['mu0']);
+}
+function __solenoid_fieldExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#solenoid_fieldTable','solenoid-field.csv'); } catch(e){}
+}
+function __solenoid_fieldPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#solenoid_fieldPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1000', I:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2000', I:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'500', I:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __solenoid_fieldExtras(); }catch(e){} };
+function __solenoid_fieldBoot(){ try{ __solenoid_fieldPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __solenoid_fieldBoot();
+else document.addEventListener('DOMContentLoaded', __solenoid_fieldBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

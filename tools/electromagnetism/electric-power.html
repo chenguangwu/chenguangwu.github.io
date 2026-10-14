@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="electric_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__electric_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="electric_powerTable"></div>
+    <div id="electric_powerDiff"></div>
+    <div id="electric_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('V').value = '12';
       document.getElementById('I').value = '2';
       calcTool();}
 calcTool();
+
+function __electric_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __electric_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const V = num('V'), I = num('I');
+    const P = V * I;
+    if (!isFinite(__electric_powerNum('V')) || !isFinite(__electric_powerNum('I'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#electric_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['功率 P (W)', P.toFixed(3)],
+            ['功率 (kW)', (P / 1000).toFixed(4)],
+            ['等效电阻 R (ohm)', (V/(I||1)).toFixed(3)],
+            ['等效电阻 V^2/P (ohm)', (V*V/(P||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({V:__electric_powerNum('V'), I:__electric_powerNum('I'), P:P});
+    TBKit.history.mount('#electric_powerHist',function(rec){ if(rec.V!=null)document.getElementById('V').value=rec.V; if(rec.I!=null)document.getElementById('I').value=rec.I; calcTool(); });
+    TBKit.util.diffBox('#electric_powerDiff',['P']);
+}
+function __electric_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#electric_powerTable','electric-power.csv'); } catch(e){}
+}
+function __electric_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#electric_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{V:'12', I:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{V:'24', I:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{V:'6', I:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __electric_powerExtras(); }catch(e){} };
+function __electric_powerBoot(){ try{ __electric_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __electric_powerBoot();
+else document.addEventListener('DOMContentLoaded', __electric_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

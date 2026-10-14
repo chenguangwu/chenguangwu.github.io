@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="faraday_inductionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__faraday_inductionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="faraday_inductionTable"></div>
+    <div id="faraday_inductionDiff"></div>
+    <div id="faraday_inductionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,42 @@ function resetForm(){document.getElementById('N').value = '100';
       document.getElementById('dt').value = '0.1';
       calcTool();}
 calcTool();
+
+function __faraday_inductionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __faraday_inductionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const N = num('N'), dPhi = num('dPhi'), dt = num('dt');
+    const eps = N * Math.abs(dPhi) / dt;
+    if (!isFinite(__faraday_inductionNum('N')) || !isFinite(__faraday_inductionNum('dPhi')) || !isFinite(__faraday_inductionNum('dt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#faraday_inductionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['感应电动势 ε (V)', eps.toFixed(4)],
+            ['每匝 (V)', (eps / N).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({N:__faraday_inductionNum('N'), dPhi:__faraday_inductionNum('dPhi'), dt:__faraday_inductionNum('dt'), eps:eps});
+    TBKit.history.mount('#faraday_inductionHist',function(rec){ if(rec.N!=null)document.getElementById('N').value=rec.N; if(rec.dPhi!=null)document.getElementById('dPhi').value=rec.dPhi; if(rec.dt!=null)document.getElementById('dt').value=rec.dt; calcTool(); });
+    TBKit.util.diffBox('#faraday_inductionDiff',['eps']);
+}
+function __faraday_inductionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#faraday_inductionTable','faraday-induction.csv'); } catch(e){}
+}
+function __faraday_inductionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#faraday_inductionPresets',[
+        {label:'默认',labelEn:'Default',values:{N:'100', dPhi:'0.001', dt:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{N:'200', dPhi:'0.002', dt:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{N:'50', dPhi:'0.0005', dt:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __faraday_inductionExtras(); }catch(e){} };
+function __faraday_inductionBoot(){ try{ __faraday_inductionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __faraday_inductionBoot();
+else document.addEventListener('DOMContentLoaded', __faraday_inductionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

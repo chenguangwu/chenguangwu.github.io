@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="magnetic_fluxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__magnetic_fluxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="magnetic_fluxTable"></div>
+    <div id="magnetic_fluxDiff"></div>
+    <div id="magnetic_fluxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,44 @@ function resetForm(){document.getElementById('B').value = '0.001';
       document.getElementById('A').value = '0.01';
       calcTool();}
 calcTool();
+
+function __magnetic_fluxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __magnetic_fluxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const B = num('B'), A = num('A');
+    const Phi = B * A;
+    if (!isFinite(__magnetic_fluxNum('B')) || !isFinite(__magnetic_fluxNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#magnetic_fluxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['磁通 Φ (Wb)', Phi.toExponential(3)],
+            ['Φ (µWb)', (Phi * 1e6).toFixed(2)],
+            ['磁通 (mWb)', (Phi*1e3).toFixed(4)],
+            ['磁感应强度复算 (T)', (Phi/(A||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({B:__magnetic_fluxNum('B'), A:__magnetic_fluxNum('A'), Phi:Phi});
+    TBKit.history.mount('#magnetic_fluxHist',function(rec){ if(rec.B!=null)document.getElementById('B').value=rec.B; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#magnetic_fluxDiff',['Phi']);
+}
+function __magnetic_fluxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#magnetic_fluxTable','magnetic-flux.csv'); } catch(e){}
+}
+function __magnetic_fluxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#magnetic_fluxPresets',[
+        {label:'默认',labelEn:'Default',values:{B:'0.001', A:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{B:'0.002', A:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{B:'0.0005', A:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __magnetic_fluxExtras(); }catch(e){} };
+function __magnetic_fluxBoot(){ try{ __magnetic_fluxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __magnetic_fluxBoot();
+else document.addEventListener('DOMContentLoaded', __magnetic_fluxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

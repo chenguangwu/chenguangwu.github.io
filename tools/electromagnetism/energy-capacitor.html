@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="energy_capacitorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__energy_capacitorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="energy_capacitorTable"></div>
+    <div id="energy_capacitorDiff"></div>
+    <div id="energy_capacitorHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('C').value = '1e-6';
       document.getElementById('V').value = '10';
       calcTool();}
 calcTool();
+
+function __energy_capacitorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __energy_capacitorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const C=num('C'),V=num('V');
+    const E=0.5*C*V*V;
+    if (!isFinite(__energy_capacitorNum('C')) || !isFinite(__energy_capacitorNum('V'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#energy_capacitorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['储能 E (µJ)', (E*1e6).toFixed(3)],
+            ['储能 E (J)', E.toExponential(3)],
+            ['电荷量 (mC)', (C*V*1000).toFixed(3)],
+            ['电荷量 Q = CV (C)', (C*V).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({C:__energy_capacitorNum('C'), V:__energy_capacitorNum('V'), E:E});
+    TBKit.history.mount('#energy_capacitorHist',function(rec){ if(rec.C!=null)document.getElementById('C').value=rec.C; if(rec.V!=null)document.getElementById('V').value=rec.V; calcTool(); });
+    TBKit.util.diffBox('#energy_capacitorDiff',['E']);
+}
+function __energy_capacitorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_capacitorTable','energy-capacitor.csv'); } catch(e){}
+}
+function __energy_capacitorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_capacitorPresets',[
+        {label:'默认',labelEn:'Default',values:{C:'1e-6', V:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{C:'0', V:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{C:'0', V:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __energy_capacitorExtras(); }catch(e){} };
+function __energy_capacitorBoot(){ try{ __energy_capacitorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_capacitorBoot();
+else document.addEventListener('DOMContentLoaded', __energy_capacitorBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
