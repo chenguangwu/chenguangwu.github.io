@@ -141,12 +141,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="shaft_torsionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__shaft_torsionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="shaft_torsionTable"></div>
+    <div id="shaft_torsionDiff"></div>
+    <div id="shaft_torsionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -212,6 +218,45 @@ function resetForm(){document.getElementById('T').value = '2';
       document.getElementById('L').value = '1';
       calcTool();}
 calcTool();
+
+function __shaft_torsionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __shaft_torsionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T')*1000, d=num('d')/1000, G=num('G')*1e9, L=num('L');
+    var J=Math.PI*Math.pow(d,4)/32;
+    var tau=T*d/2/J/1e6;     // Pa -> MPa
+    var theta=T*L/(G*J);     // rad
+    if (!isFinite(__shaft_torsionNum('T')) || !isFinite(__shaft_torsionNum('d')) || !isFinite(__shaft_torsionNum('G')) || !isFinite(__shaft_torsionNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#shaft_torsionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['极惯性矩 J (mm⁴)', (J*1e12).toFixed(3)],
+            ['最大剪应力 τ_max (MPa)', tau.toFixed(2)],
+            ['扭转角 θ (°)', (theta*180/Math.PI).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({T:__shaft_torsionNum('T'), d:__shaft_torsionNum('d'), G:__shaft_torsionNum('G'), L:__shaft_torsionNum('L'), J:J});
+    TBKit.history.mount('#shaft_torsionHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.d!=null)document.getElementById('d').value=rec.d; if(rec.G!=null)document.getElementById('G').value=rec.G; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#shaft_torsionDiff',['J']);
+}
+function __shaft_torsionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#shaft_torsionTable','shaft-torsion.csv'); } catch(e){}
+}
+function __shaft_torsionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#shaft_torsionPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'2', d:'50', G:'80', L:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'4', d:'100', G:'160', L:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'1', d:'25', G:'40', L:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __shaft_torsionExtras(); }catch(e){} };
+function __shaft_torsionBoot(){ try{ __shaft_torsionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __shaft_torsionBoot();
+else document.addEventListener('DOMContentLoaded', __shaft_torsionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

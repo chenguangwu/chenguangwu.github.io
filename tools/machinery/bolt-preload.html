@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bolt_preloadPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bolt_preloadExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bolt_preloadTable"></div>
+    <div id="bolt_preloadDiff"></div>
+    <div id="bolt_preloadHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,42 @@ function resetForm(){document.getElementById('T').value = '100';
       document.getElementById('K').value = '0.2';
       calcTool();}
 calcTool();
+
+function __bolt_preloadNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bolt_preloadExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'), d=num('d')/1000, K=num('K');
+    var F=T/(K*d);   // N
+    if (!isFinite(__bolt_preloadNum('T')) || !isFinite(__bolt_preloadNum('d')) || !isFinite(__bolt_preloadNum('K'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bolt_preloadTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['预紧力 F (kN)', (F/1000).toFixed(2)],
+            ['预紧力 F (N)', (F).toFixed(0)],
+        ]
+    });
+    TBKit.history.record({T:__bolt_preloadNum('T'), d:__bolt_preloadNum('d'), K:__bolt_preloadNum('K'), F:F});
+    TBKit.history.mount('#bolt_preloadHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.d!=null)document.getElementById('d').value=rec.d; if(rec.K!=null)document.getElementById('K').value=rec.K; calcTool(); });
+    TBKit.util.diffBox('#bolt_preloadDiff',['F']);
+}
+function __bolt_preloadExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bolt_preloadTable','bolt-preload.csv'); } catch(e){}
+}
+function __bolt_preloadPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bolt_preloadPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'100', d:'12', K:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'200', d:'24', K:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'50', d:'6', K:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bolt_preloadExtras(); }catch(e){} };
+function __bolt_preloadBoot(){ try{ __bolt_preloadPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bolt_preloadBoot();
+else document.addEventListener('DOMContentLoaded', __bolt_preloadBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
