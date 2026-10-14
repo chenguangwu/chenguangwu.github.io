@@ -130,7 +130,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__weight_capacity_trainingExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="weight_capacity_trainingTable"></div> <div id="weight_capacity_trainingDiff"></div> <div id="weight_capacity_trainingChart"></div> <div id="weight_capacity_trainingHist"></div>
     <div class="info-box">💡 训练容量 = 重量 × 组数 × 次数；Epley 公式：1RM = 重量 × (1 + 次数/30)；强度% = 训练重量 / 1RM × 100%。</div>
     <div class="tool-notes" style="--tool-accent:#EC4899;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -205,6 +205,114 @@ function restoreHistory(i){try{var list=JSON.parse(localStorage.getItem(historyK
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();['weight','sets','reps','onerm'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();calc();saveHistory();}});});});
 calc();
+
+var __weight_capacity_training_last=0,__weight_capacity_training_skip=false;
+function __weight_capacity_trainingSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __weight_capacity_trainingResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __weight_capacity_trainingTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __weight_capacity_trainingRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__weight_capacity_trainingTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#weight_capacity_trainingTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#weight_capacity_trainingDiff');
+        TBKit.history.mount('#weight_capacity_trainingHist',function(rec){
+            __weight_capacity_training_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __weight_capacity_training_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__weight_capacity_trainingTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#weight_capacity_trainingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __weight_capacity_trainingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__weight_capacity_training_skip) return;
+    var snap=__weight_capacity_trainingSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__weight_capacity_trainingResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__weight_capacity_training_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __weight_capacity_training_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __weight_capacity_trainingRender(keys,rk,en);
+}
+function __weight_capacity_trainingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#weight_capacity_trainingTable','weight-capacity-training.csv'); } catch(e){}
+}
+function __weight_capacity_trainingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#weight_capacity_trainingPresets',[{label:'默认参数',labelEn:'Default',values:{'weight':'60', 'sets':'4', 'reps':'10'}}],function(){ calc(); });
+}
+var __weight_capacity_training_f0=(typeof calc==='function')?calc:null;
+if(__weight_capacity_training_f0){
+    calc=function(){ var __r=__weight_capacity_training_f0.apply(null,arguments); try{ __weight_capacity_trainingExtras(); }catch(e){} return __r; };
+}
+function __weight_capacity_trainingBoot(){ try{ __weight_capacity_trainingPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __weight_capacity_trainingBoot();
+else document.addEventListener('DOMContentLoaded', __weight_capacity_trainingBoot);
 </script>
 
 </div>

@@ -117,8 +117,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>1. 评估方案科学性</label><select id="q1" onchange="calc()" style="font-size:16px;"><option value="5">非常科学 (5分)</option><option value="4">较科学 (4分)</option><option value="3">一般 (3分)</option><option value="2">不够科学 (2分)</option><option value="1">不科学 (1分)</option></select></div><div><label>2. 评估项目全面性</label><select id="q2" onchange="calc()" style="font-size:16px;"><option value="5">全面 (5分)</option><option value="4">较全面 (4分)</option><option value="3">一般 (3分)</option><option value="2">不够全面 (2分)</option><option value="1">不全面 (1分)</option></select></div></div>
 <div class="input-row"><div><label>3. 数据采集准确性</label><select id="q3" onchange="calc()" style="font-size:16px;"><option value="5">准确 (5分)</option><option value="4">较好 (4分)</option><option value="3">一般 (3分)</option><option value="2">误差大 (2分)</option><option value="1">不准确 (1分)</option></select></div><div><label>4. 结果解读专业性</label><select id="q4" onchange="calc()" style="font-size:16px;"><option value="5">专业深入 (5分)</option><option value="4">较好 (4分)</option><option value="3">一般 (3分)</option><option value="2">不够专业 (2分)</option><option value="1">不专业 (1分)</option></select></div></div>
 <div class="input-row"><div><label>5. 改进建议可执行性</label><select id="q5" onchange="calc()" style="font-size:16px;"><option value="5">高度可执行 (5分)</option><option value="4">较好 (4分)</option><option value="3">一般 (3分)</option><option value="2">难以执行 (2分)</option><option value="1">不可执行 (1分)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估质量</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="assessor_63Presets"></div><button type="button" class="btn primary" onclick="calc()">评估质量</button><button class="btn" type="button" onclick="__assessor_63Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="assessor_63Table"></div> <div id="assessor_63Diff"></div> <div id="assessor_63Chart"></div> <div id="assessor_63Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -261,6 +261,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __assessor_63_last=0,__assessor_63_skip=false;
+function __assessor_63Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_63ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_63Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_63Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_63Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_63Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_63Diff');
+        TBKit.history.mount('#assessor_63Hist',function(rec){
+            __assessor_63_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_63_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_63Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_63Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_63Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_63_skip) return;
+    var snap=__assessor_63Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_63ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_63_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_63_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_63Render(keys,rk,en);
+}
+function __assessor_63Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_63Table','assessor-63.csv'); } catch(e){}
+}
+function __assessor_63Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_63Presets',[{label:'默认参数',labelEn:'Default',values:{'q1':'5', 'q2':'5', 'q3':'5', 'q4':'5', 'q5':'5'}}],function(){ calc(); });
+}
+var __assessor_63_f0=(typeof calc==='function')?calc:null;
+if(__assessor_63_f0){
+    calc=function(){ var __r=__assessor_63_f0.apply(null,arguments); try{ __assessor_63Extras(); }catch(e){} return __r; };
+}
+function __assessor_63Boot(){ try{ __assessor_63Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_63Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_63Boot);
 </script>
 
 </body>

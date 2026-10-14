@@ -132,11 +132,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🔍 计算</button>
+      <div id="pond_desiltingPresets"></div><button type="button" class="btn primary" onclick="calc()">🔍 计算</button><button class="btn" type="button" onclick="__pond_desiltingExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="pond_desiltingTable"></div> <div id="pond_desiltingDiff"></div> <div id="pond_desiltingChart"></div> <div id="pond_desiltingHist"></div>
 
     <div class="tip-box tip-info">
       <strong>计算依据：</strong>剩余可沉积厚度=允许厚度-当前厚度；清淤周期=剩余厚度÷年沉积速率。清淤量=面积×666.67×(当前淤泥厚度+周期内新增)/100 转为 m³。淤泥过厚会败坏水质、滋生病原，建议周期前清淤。
@@ -305,6 +305,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __pond_desilting_last=0,__pond_desilting_skip=false;
+function __pond_desiltingSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pond_desiltingResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pond_desiltingTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pond_desiltingRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pond_desiltingTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pond_desiltingTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pond_desiltingDiff');
+        TBKit.history.mount('#pond_desiltingHist',function(rec){
+            __pond_desilting_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __pond_desilting_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pond_desiltingTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pond_desiltingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pond_desiltingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pond_desilting_skip) return;
+    var snap=__pond_desiltingSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pond_desiltingResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pond_desilting_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pond_desilting_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pond_desiltingRender(keys,rk,en);
+}
+function __pond_desiltingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pond_desiltingTable','pond-desilting.csv'); } catch(e){}
+}
+function __pond_desiltingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pond_desiltingPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'5', 'rate':'3', 'allow':'20', 'cur':'8', 'price':'15'}}],function(){ calc(); });
+}
+var __pond_desilting_f0=(typeof calc==='function')?calc:null;
+if(__pond_desilting_f0){
+    calc=function(){ var __r=__pond_desilting_f0.apply(null,arguments); try{ __pond_desiltingExtras(); }catch(e){} return __r; };
+}
+function __pond_desiltingBoot(){ try{ __pond_desiltingPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pond_desiltingBoot();
+else document.addEventListener('DOMContentLoaded', __pond_desiltingBoot);
 </script>
 
 </body>

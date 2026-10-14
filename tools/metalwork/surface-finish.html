@@ -137,10 +137,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>数值 (μm)</label><input type="number" id="inVal" value="1.6" min="0.001" step="0.001" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">换算</button>
+      <div id="surface_finishPresets"></div><button type="button" class="btn primary" onclick="calc()">换算</button><button class="btn" type="button" onclick="__surface_finishExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="surface_finishTable"></div> <div id="surface_finishDiff"></div> <div id="surface_finishChart"></div> <div id="surface_finishHist"></div>
   </div>
   <div class="card">
     <h2>📋 Ra / Rz / N 级 对照表</h2>
@@ -336,6 +336,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __surface_finish_last=0,__surface_finish_skip=false;
+function __surface_finishSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __surface_finishResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __surface_finishTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __surface_finishRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__surface_finishTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#surface_finishTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#surface_finishDiff');
+        TBKit.history.mount('#surface_finishHist',function(rec){
+            __surface_finish_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __surface_finish_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__surface_finishTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#surface_finishChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __surface_finishExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__surface_finish_skip) return;
+    var snap=__surface_finishSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__surface_finishResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__surface_finish_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __surface_finish_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __surface_finishRender(keys,rk,en);
+}
+function __surface_finishExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#surface_finishTable','surface-finish.csv'); } catch(e){}
+}
+function __surface_finishPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#surface_finishPresets',[{label:'默认参数',labelEn:'Default',values:{'inType':'ra', 'inVal':'1.6'}}],function(){ calc(); });
+}
+var __surface_finish_f0=(typeof calc==='function')?calc:null;
+if(__surface_finish_f0){
+    calc=function(){ var __r=__surface_finish_f0.apply(null,arguments); try{ __surface_finishExtras(); }catch(e){} return __r; };
+}
+function __surface_finishBoot(){ try{ __surface_finishPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __surface_finishBoot();
+else document.addEventListener('DOMContentLoaded', __surface_finishBoot);
 </script>
 
 </body>

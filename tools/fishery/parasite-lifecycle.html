@@ -134,11 +134,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🔍 模拟</button>
+      <div id="parasite_lifecyclePresets"></div><button type="button" class="btn primary" onclick="calc()">🔍 模拟</button><button class="btn" type="button" onclick="__parasite_lifecycleExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="parasite_lifecycleTable"></div> <div id="parasite_lifecycleDiff"></div> <div id="parasite_lifecycleChart"></div> <div id="parasite_lifecycleHist"></div>
 
     <div class="tip-box tip-info">
       <strong>计算依据：</strong>度日模型：发育时间=K÷(T-T₀)，T₀ 为发育起点温度，K 为有效积温(℃·天)。完成一个生活史周期=各阶段发育时间之和。水温越高发育越快、世代越短、爆发风险越高。
@@ -319,6 +319,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __parasite_lifecycle_last=0,__parasite_lifecycle_skip=false;
+function __parasite_lifecycleSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __parasite_lifecycleResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __parasite_lifecycleTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __parasite_lifecycleRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__parasite_lifecycleTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#parasite_lifecycleTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#parasite_lifecycleDiff');
+        TBKit.history.mount('#parasite_lifecycleHist',function(rec){
+            __parasite_lifecycle_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __parasite_lifecycle_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__parasite_lifecycleTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#parasite_lifecycleChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __parasite_lifecycleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__parasite_lifecycle_skip) return;
+    var snap=__parasite_lifecycleSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__parasite_lifecycleResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__parasite_lifecycle_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __parasite_lifecycle_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __parasite_lifecycleRender(keys,rk,en);
+}
+function __parasite_lifecycleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#parasite_lifecycleTable','parasite-lifecycle.csv'); } catch(e){}
+}
+function __parasite_lifecyclePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#parasite_lifecyclePresets',[{label:'默认参数',labelEn:'Default',values:{'parasite':'ich', 'temp':'24'}}],function(){ calc(); });
+}
+var __parasite_lifecycle_f0=(typeof calc==='function')?calc:null;
+if(__parasite_lifecycle_f0){
+    calc=function(){ var __r=__parasite_lifecycle_f0.apply(null,arguments); try{ __parasite_lifecycleExtras(); }catch(e){} return __r; };
+}
+function __parasite_lifecycleBoot(){ try{ __parasite_lifecyclePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __parasite_lifecycleBoot();
+else document.addEventListener('DOMContentLoaded', __parasite_lifecycleBoot);
 </script>
 
 </body>

@@ -120,10 +120,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>废弃物分</label><input type="number" id="waste" value="50" step="any" oninput="calc()"></div>
     <div class="input-row"><label>排放分</label><input type="number" id="emis" value="70" step="any" oninput="calc()"></div>
     <div class="toolbar">
-      <button class="btn primary" onclick="calc()">计算</button>
+      <div id="env_impact_scorePresets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__env_impact_scoreExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div> <div id="env_impact_scoreTable"></div> <div id="env_impact_scoreDiff"></div> <div id="env_impact_scoreChart"></div> <div id="env_impact_scoreHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -219,6 +219,114 @@ function copyResult() {
   });
 }
 calc();
+
+var __env_impact_score_last=0,__env_impact_score_skip=false;
+function __env_impact_scoreSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __env_impact_scoreResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __env_impact_scoreTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __env_impact_scoreRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__env_impact_scoreTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#env_impact_scoreTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#env_impact_scoreDiff');
+        TBKit.history.mount('#env_impact_scoreHist',function(rec){
+            __env_impact_score_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __env_impact_score_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__env_impact_scoreTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#env_impact_scoreChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __env_impact_scoreExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__env_impact_score_skip) return;
+    var snap=__env_impact_scoreSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__env_impact_scoreResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__env_impact_score_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __env_impact_score_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __env_impact_scoreRender(keys,rk,en);
+}
+function __env_impact_scoreExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#env_impact_scoreTable','env-impact-score.csv'); } catch(e){}
+}
+function __env_impact_scorePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#env_impact_scorePresets',[{label:'默认参数',labelEn:'Default',values:{'energy':'60', 'water':'40', 'waste':'50', 'emis':'70'}}],function(){ calc(); });
+}
+var __env_impact_score_f0=(typeof calc==='function')?calc:null;
+if(__env_impact_score_f0){
+    calc=function(){ var __r=__env_impact_score_f0.apply(null,arguments); try{ __env_impact_scoreExtras(); }catch(e){} return __r; };
+}
+function __env_impact_scoreBoot(){ try{ __env_impact_scorePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __env_impact_scoreBoot();
+else document.addEventListener('DOMContentLoaded', __env_impact_scoreBoot);
 </script>
 <section class="opt-guide"><h2>如何使用环境影响评分</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>能耗分(0-100)</li><li>水耗分</li><li>废弃物分</li><li>排放分</li></ul><h2>适用场景</h2><p>能耗、碳排放与环保相关的估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>环境影响评分是做什么的？</dt><dd>输入能耗、水耗、废弃物与排放等数据，综合评分量化产品或项目的环境影响（分越高影响越大），用于方案对比。</dd><dt>如何使用环境影响评分？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>环境影响评分适合哪些场景？</dt><dd>能耗、碳排放与环保相关的估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 </body>

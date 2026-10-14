@@ -116,10 +116,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>总量 kg</label><input type="number" id="total" value="100" step="any" oninput="calc()"></div>
     <div class="input-row"><label>周期 天</label><input type="number" id="days" value="30" step="any" oninput="calc()"></div>
     <div class="toolbar">
-      <button class="btn primary" onclick="calc()">计算</button>
+      <div id="recycle_ratePresets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__recycle_rateExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div> <div id="recycle_rateTable"></div> <div id="recycle_rateDiff"></div> <div id="recycle_rateChart"></div> <div id="recycle_rateHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -270,6 +270,114 @@ function copyResult() {
   });
 }
 calc();
+
+var __recycle_rate_last=0,__recycle_rate_skip=false;
+function __recycle_rateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __recycle_rateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __recycle_rateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __recycle_rateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__recycle_rateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#recycle_rateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#recycle_rateDiff');
+        TBKit.history.mount('#recycle_rateHist',function(rec){
+            __recycle_rate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __recycle_rate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__recycle_rateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#recycle_rateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __recycle_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__recycle_rate_skip) return;
+    var snap=__recycle_rateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__recycle_rateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__recycle_rate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __recycle_rate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __recycle_rateRender(keys,rk,en);
+}
+function __recycle_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#recycle_rateTable','recycle-rate.csv'); } catch(e){}
+}
+function __recycle_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#recycle_ratePresets',[{label:'默认参数',labelEn:'Default',values:{'recycled':'30', 'total':'100', 'days':'30'}}],function(){ calc(); });
+}
+var __recycle_rate_f0=(typeof calc==='function')?calc:null;
+if(__recycle_rate_f0){
+    calc=function(){ var __r=__recycle_rate_f0.apply(null,arguments); try{ __recycle_rateExtras(); }catch(e){} return __r; };
+}
+function __recycle_rateBoot(){ try{ __recycle_ratePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __recycle_rateBoot();
+else document.addEventListener('DOMContentLoaded', __recycle_rateBoot);
 </script>
 </body>
 </html>

@@ -130,8 +130,8 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><div><label>缺陷长度 (mm)</label><input type="number" id="defLen" value="5" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>母材厚度 (mm)</label><input type="number" id="thick" value="20" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>缺陷数量（评定区内）</label><input type="number" id="defCount" value="1" style="font-size:16px;" oninput="calc()"></div></div>
-    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评定等级</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar"><div id="detector_24Presets"></div><button type="button" class="btn primary" onclick="calc()">评定等级</button><button class="btn" type="button" onclick="__detector_24Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
+    <div class="result-box" id="res"></div> <div id="detector_24Table"></div> <div id="detector_24Diff"></div> <div id="detector_24Chart"></div> <div id="detector_24Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -288,6 +288,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __detector_24_last=0,__detector_24_skip=false;
+function __detector_24Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __detector_24ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __detector_24Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __detector_24Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__detector_24Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#detector_24Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#detector_24Diff');
+        TBKit.history.mount('#detector_24Hist',function(rec){
+            __detector_24_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __detector_24_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__detector_24Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#detector_24Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __detector_24Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__detector_24_skip) return;
+    var snap=__detector_24Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__detector_24ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__detector_24_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __detector_24_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __detector_24Render(keys,rk,en);
+}
+function __detector_24Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#detector_24Table','detector-24.csv'); } catch(e){}
+}
+function __detector_24Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#detector_24Presets',[{label:'默认参数',labelEn:'Default',values:{'method':'rt', 'defLen':'5', 'thick':'20', 'defCount':'1'}}],function(){ calc(); });
+}
+var __detector_24_f0=(typeof calc==='function')?calc:null;
+if(__detector_24_f0){
+    calc=function(){ var __r=__detector_24_f0.apply(null,arguments); try{ __detector_24Extras(); }catch(e){} return __r; };
+}
+function __detector_24Boot(){ try{ __detector_24Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __detector_24Boot();
+else document.addEventListener('DOMContentLoaded', __detector_24Boot);
 </script>
 
 <section class="opt-guide"><h2>如何使用检测（X光/超声/渗透）探伤</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>探伤方法</li><li>缺陷长度 (mm)</li><li>母材厚度 (mm)</li><li>缺陷数量（评定区内）</li></ul><h2>适用场景</h2><p>射线探伤（RT）等级评定：输入缺陷长度与母材厚度，对照 GB/T 3323 评定铸钢件或焊缝质量等级（Ⅰ–Ⅳ级），输出是否合格及整改建议；超声探伤（UT）焊缝检测：对对接焊缝扫查，按 GB/T 11345 评定缺陷指示长度与等级，定位未熔合、未焊透等体积型缺陷。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>检测（X光/超声/渗透）探伤是做什么的？</dt><dd>选择探伤方法，输入缺陷参数，依据GB/T 3323、GB/T 11345等标准评定缺陷等级</dd><dt>如何使用检测（X光/超声/渗透）探伤？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>检测（X光/超声/渗透）探伤适合哪些场景？</dt><dd>射线探伤（RT）等级评定：输入缺陷长度与母材厚度，对照 GB/T 3323 评定铸钢件或焊缝质量等级（Ⅰ–Ⅳ级），输出是否合格及整改建议；超声探伤（UT）焊缝检测：对对接焊缝扫查，按 GB/T 11345 评定缺陷指示长度与等级，定位未熔合、未焊透等体积型缺陷。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

@@ -139,11 +139,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🔍 优化计算</button>
+      <div id="stocking_densityPresets"></div><button type="button" class="btn primary" onclick="calc()">🔍 优化计算</button><button class="btn" type="button" onclick="__stocking_densityExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="stocking_densityTable"></div> <div id="stocking_densityDiff"></div> <div id="stocking_densityChart"></div> <div id="stocking_densityHist"></div>
 
     <div class="tip-box tip-info">
       <strong>计算依据：</strong>载鱼量按增氧功率估算（精养每 kW 约支撑 700 kg/亩产量，半精养 450，粗养 200）；同时按水体容量设安全上限（精养≤60 kg/m³ 存塘量折算）。推荐密度取两者较小值，密度=载鱼量÷(规格×成活率)。
@@ -373,6 +373,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __stocking_density_last=0,__stocking_density_skip=false;
+function __stocking_densitySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __stocking_densityResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __stocking_densityTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __stocking_densityRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__stocking_densityTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#stocking_densityTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#stocking_densityDiff');
+        TBKit.history.mount('#stocking_densityHist',function(rec){
+            __stocking_density_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __stocking_density_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__stocking_densityTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#stocking_densityChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __stocking_densityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__stocking_density_skip) return;
+    var snap=__stocking_densitySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__stocking_densityResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__stocking_density_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __stocking_density_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __stocking_densityRender(keys,rk,en);
+}
+function __stocking_densityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stocking_densityTable','stocking-density.csv'); } catch(e){}
+}
+function __stocking_densityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stocking_densityPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'5', 'depth':'1.2', 'power':'4', 'size':'15', 'surv':'75', 'mode':'semi'}}],function(){ calc(); });
+}
+var __stocking_density_f0=(typeof calc==='function')?calc:null;
+if(__stocking_density_f0){
+    calc=function(){ var __r=__stocking_density_f0.apply(null,arguments); try{ __stocking_densityExtras(); }catch(e){} return __r; };
+}
+function __stocking_densityBoot(){ try{ __stocking_densityPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stocking_densityBoot();
+else document.addEventListener('DOMContentLoaded', __stocking_densityBoot);
 </script>
 
 </body>

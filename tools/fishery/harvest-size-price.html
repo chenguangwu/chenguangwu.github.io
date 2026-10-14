@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
     <div id="tiers"></div>
     <div class="toolbar">
       <button type="button" class="btn" onclick="addTier()">➕ 添加档位</button>
-      <button type="button" class="btn primary" onclick="calc()">📊 分析</button>
+      <div id="harvest_size_pricePresets"></div><button type="button" class="btn primary" onclick="calc()">📊 分析</button><button class="btn" type="button" onclick="__harvest_size_priceExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
@@ -146,7 +146,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>饲料单价 (元/kg)</label><input type="number" id="feedPrice" value="8" step="0.5" oninput="calc()"></div>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="harvest_size_priceTable"></div> <div id="harvest_size_priceDiff"></div> <div id="harvest_size_priceChart"></div> <div id="harvest_size_priceHist"></div>
 
     <div class="tip-box tip-info">
       <strong>计算依据：</strong>规格价格线性插值；存塘鱼数=存塘量×1000÷均重；长至目标规格新增产量=鱼数×(目标重-当前重)÷1000；所需天数=ln(目标重/当前重)×100÷SGR；新增饲料=新增产量×FCR；净收益对比=延迟收获收入-当前收获收入-饲料成本。
@@ -354,6 +354,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __harvest_size_price_last=0,__harvest_size_price_skip=false;
+function __harvest_size_priceSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __harvest_size_priceResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __harvest_size_priceTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __harvest_size_priceRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__harvest_size_priceTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#harvest_size_priceTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#harvest_size_priceDiff');
+        TBKit.history.mount('#harvest_size_priceHist',function(rec){
+            __harvest_size_price_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __harvest_size_price_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__harvest_size_priceTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#harvest_size_priceChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __harvest_size_priceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__harvest_size_price_skip) return;
+    var snap=__harvest_size_priceSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__harvest_size_priceResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__harvest_size_price_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __harvest_size_price_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __harvest_size_priceRender(keys,rk,en);
+}
+function __harvest_size_priceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#harvest_size_priceTable','harvest-size-price.csv'); } catch(e){}
+}
+function __harvest_size_pricePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#harvest_size_pricePresets',[{label:'默认参数',labelEn:'Default',values:{'biomass':'2000', 'curW':'350', 'sgr':'1.0', 'fcr':'1.6', 'feedPrice':'8'}}],function(){ calc(); });
+}
+var __harvest_size_price_f0=(typeof calc==='function')?calc:null;
+if(__harvest_size_price_f0){
+    calc=function(){ var __r=__harvest_size_price_f0.apply(null,arguments); try{ __harvest_size_priceExtras(); }catch(e){} return __r; };
+}
+function __harvest_size_priceBoot(){ try{ __harvest_size_pricePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __harvest_size_priceBoot();
+else document.addEventListener('DOMContentLoaded', __harvest_size_priceBoot);
 </script>
 
 

@@ -138,11 +138,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🔍 估算</button>
+      <div id="plankton_biomassPresets"></div><button type="button" class="btn primary" onclick="calc()">🔍 估算</button><button class="btn" type="button" onclick="__plankton_biomassExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="plankton_biomassTable"></div> <div id="plankton_biomassDiff"></div> <div id="plankton_biomassChart"></div> <div id="plankton_biomassHist"></div>
 
     <div class="tip-box tip-info">
       <strong>计算依据：</strong>细胞密度(个/mL)=计数÷框体积×倍数；单细胞质量=体积×系数；生物量(mg/L)=密度×单细胞质量(pg)×1e-6。碳生物量系数取 0.11 pg C/μm³（Menden-Deuer & Lessard），鲜重按密度 1.0 估算。
@@ -311,6 +311,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __plankton_biomass_last=0,__plankton_biomass_skip=false;
+function __plankton_biomassSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __plankton_biomassResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __plankton_biomassTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __plankton_biomassRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__plankton_biomassTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#plankton_biomassTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#plankton_biomassDiff');
+        TBKit.history.mount('#plankton_biomassHist',function(rec){
+            __plankton_biomass_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __plankton_biomass_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__plankton_biomassTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#plankton_biomassChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __plankton_biomassExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__plankton_biomass_skip) return;
+    var snap=__plankton_biomassSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__plankton_biomassResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__plankton_biomass_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __plankton_biomass_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __plankton_biomassRender(keys,rk,en);
+}
+function __plankton_biomassExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#plankton_biomassTable','plankton-biomass.csv'); } catch(e){}
+}
+function __plankton_biomassPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#plankton_biomassPresets',[{label:'默认参数',labelEn:'Default',values:{'count':'120', 'chamber':'1', 'dilution':'1', 'vol':'500', 'factor':'0.11', 'ctype':'carbon'}}],function(){ calc(); });
+}
+var __plankton_biomass_f0=(typeof calc==='function')?calc:null;
+if(__plankton_biomass_f0){
+    calc=function(){ var __r=__plankton_biomass_f0.apply(null,arguments); try{ __plankton_biomassExtras(); }catch(e){} return __r; };
+}
+function __plankton_biomassBoot(){ try{ __plankton_biomassPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __plankton_biomassBoot();
+else document.addEventListener('DOMContentLoaded', __plankton_biomassBoot);
 </script>
 
 </body>

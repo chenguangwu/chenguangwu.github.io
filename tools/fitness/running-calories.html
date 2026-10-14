@@ -238,7 +238,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <div class="result-box" style="text-align:center;padding:24px;margin-top:16px;">
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__running_caloriesExport()">导出明细 CSV</button></div><div class="result-box" style="text-align:center;padding:24px;margin-top:16px;">
       <div style="font-size:14px;color:var(--text-muted);margin-bottom:4px;">卡路里消耗</div>
       <div style="font-size:56px;font-weight:700;color:var(--primary);" id="calVal">--</div>
       <div style="font-size:14px;color:var(--text-muted);">kcal</div>
@@ -252,7 +252,7 @@ s.parentNode.insertBefore(el, s);
         <div class="fat-val" id="fatVal">--</div>
         <div class="fat-lbl">🔥 估算脂肪燃烧 (约1g脂肪=9kcal)</div>
       </div>
-    </div>
+    </div> <div id="running_caloriesTable"></div> <div id="running_caloriesDiff"></div> <div id="running_caloriesChart"></div> <div id="running_caloriesHist"></div>
   </div>
 
   <div class="card">
@@ -583,6 +583,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __running_calories_last=0,__running_calories_skip=false;
+function __running_caloriesSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __running_caloriesResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __running_caloriesTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __running_caloriesRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__running_caloriesTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#running_caloriesTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#running_caloriesDiff');
+        TBKit.history.mount('#running_caloriesHist',function(rec){
+            __running_calories_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __running_calories_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__running_caloriesTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#running_caloriesChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __running_caloriesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__running_calories_skip) return;
+    var snap=__running_caloriesSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__running_caloriesResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__running_calories_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __running_calories_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __running_caloriesRender(keys,rk,en);
+}
+function __running_caloriesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#running_caloriesTable','running-calories.csv'); } catch(e){}
+}
+function __running_caloriesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#running_caloriesPresets',[{label:'默认参数',labelEn:'Default',values:{'weight':'65', 'age':'30', 'paceMin':'6', 'paceSec':'0', 'distance':'5', 'distance2':'5', 'timeMin':'30', 'timeSec':'0', 'paceMin2':'6', 'paceSec2':'0', 'timeHour':'0', 'timeMin2':'30'}}],function(){ calc(); });
+}
+var __running_calories_f0=(typeof calc==='function')?calc:null;
+if(__running_calories_f0){
+    calc=function(){ var __r=__running_calories_f0.apply(null,arguments); try{ __running_caloriesExtras(); }catch(e){} return __r; };
+}
+function __running_caloriesBoot(){ try{ __running_caloriesPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __running_caloriesBoot();
+else document.addEventListener('DOMContentLoaded', __running_caloriesBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

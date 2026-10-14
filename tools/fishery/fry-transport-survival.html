@@ -138,11 +138,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🔍 估算</button>
+      <div id="fry_transport_survivalPresets"></div><button type="button" class="btn primary" onclick="calc()">🔍 估算</button><button class="btn" type="button" onclick="__fry_transport_survivalExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="fry_transport_survivalTable"></div> <div id="fry_transport_survivalDiff"></div> <div id="fry_transport_survivalChart"></div> <div id="fry_transport_survivalHist"></div>
 
     <div class="tip-box tip-info">
       <strong>计算依据：</strong>风险率=0.02×(密度/100)×(时长/6)×exp((水温-15)/12)×增氧系数；成活率=100×exp(-风险率)。纯氧系数0.5，空气1.0，无增氧2.0。建议密度按目标成活率反推。
@@ -309,6 +309,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __fry_transport_survival_last=0,__fry_transport_survival_skip=false;
+function __fry_transport_survivalSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __fry_transport_survivalResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __fry_transport_survivalTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __fry_transport_survivalRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__fry_transport_survivalTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#fry_transport_survivalTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#fry_transport_survivalDiff');
+        TBKit.history.mount('#fry_transport_survivalHist',function(rec){
+            __fry_transport_survival_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __fry_transport_survival_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__fry_transport_survivalTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#fry_transport_survivalChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __fry_transport_survivalExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__fry_transport_survival_skip) return;
+    var snap=__fry_transport_survivalSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__fry_transport_survivalResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__fry_transport_survival_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __fry_transport_survival_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __fry_transport_survivalRender(keys,rk,en);
+}
+function __fry_transport_survivalExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fry_transport_survivalTable','fry-transport-survival.csv'); } catch(e){}
+}
+function __fry_transport_survivalPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fry_transport_survivalPresets',[{label:'默认参数',labelEn:'Default',values:{'density':'80', 'duration':'8', 'temp':'18', 'oxy':'pure', 'target':'95'}}],function(){ calc(); });
+}
+var __fry_transport_survival_f0=(typeof calc==='function')?calc:null;
+if(__fry_transport_survival_f0){
+    calc=function(){ var __r=__fry_transport_survival_f0.apply(null,arguments); try{ __fry_transport_survivalExtras(); }catch(e){} return __r; };
+}
+function __fry_transport_survivalBoot(){ try{ __fry_transport_survivalPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fry_transport_survivalBoot();
+else document.addEventListener('DOMContentLoaded', __fry_transport_survivalBoot);
 </script>
 
 </body>

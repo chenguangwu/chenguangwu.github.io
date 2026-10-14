@@ -139,7 +139,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calcExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="calcTable"></div> <div id="calcDiff"></div> <div id="calcChart"></div> <div id="calcHist"></div>
     <div class="info-box">💡 Mifflin-St Jeor：男 BMR = 10×kg + 6.25×cm − 5×年龄 + 5；女 = 10×kg + 6.25×cm − 5×年龄 − 161。TDEE = BMR × 活动系数。</div>
     <div class="tool-notes" style="--tool-accent:#EC4899;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -197,6 +197,114 @@ function restoreHistory(i){try{var list=JSON.parse(localStorage.getItem(historyK
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();['age','h','w'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();calc();saveHistory();}});});});
 calc();
+
+var __calc_last=0,__calc_skip=false;
+function __calcSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calcResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calcTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calcRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calcTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calcTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calcDiff');
+        TBKit.history.mount('#calcHist',function(rec){
+            __calc_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calcTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calcChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_skip) return;
+    var snap=__calcSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calcResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calcRender(keys,rk,en);
+}
+function __calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calcTable','calc.csv'); } catch(e){}
+}
+function __calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calcPresets',[{label:'默认参数',labelEn:'Default',values:{'sex':'m', 'age':'30', 'h':'175', 'w':'70', 'act':'1.2'}}],function(){ calc(); });
+}
+var __calc_f0=(typeof calc==='function')?calc:null;
+if(__calc_f0){
+    calc=function(){ var __r=__calc_f0.apply(null,arguments); try{ __calcExtras(); }catch(e){} return __r; };
+}
+function __calcBoot(){ try{ __calcPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calcBoot();
+else document.addEventListener('DOMContentLoaded', __calcBoot);
 </script>
 
 </div>
