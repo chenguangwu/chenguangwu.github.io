@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="option_breakeven_putPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__option_breakeven_putExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="option_breakeven_putTable"></div>
+    <div id="option_breakeven_putDiff"></div>
+    <div id="option_breakeven_putHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('K').value = '50';
       document.getElementById('P').value = '3';
       calcTool();}
 calcTool();
+
+function __option_breakeven_putNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __option_breakeven_putExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var K=num('K'),P=num('P');
+    var BE=K-P;
+    if (!isFinite(__option_breakeven_putNum('K')) || !isFinite(__option_breakeven_putNum('P'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#option_breakeven_putTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['盈亏平衡价 BE (元)', BE.toFixed(2)],
+            ['执行价与盈亏平衡价之比', (K/Math.max(BE,1e-9)).toFixed(4)],
+            ['权利金占执行价 (%)', (P/Math.max(K,1e-9)*100).toFixed(3)],
+            ['执行价与权利金之和', (K+P).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({K:__option_breakeven_putNum('K'), P:__option_breakeven_putNum('P'), BE:BE});
+    TBKit.history.mount('#option_breakeven_putHist',function(rec){ if(rec.K!=null)document.getElementById('K').value=rec.K; if(rec.P!=null)document.getElementById('P').value=rec.P; calcTool(); });
+    TBKit.util.diffBox('#option_breakeven_putDiff',['BE']);
+}
+function __option_breakeven_putExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#option_breakeven_putTable','option-breakeven-put.csv'); } catch(e){}
+}
+function __option_breakeven_putPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#option_breakeven_putPresets',[
+        {label:'默认',labelEn:'Default',values:{K:'50', P:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{K:'100', P:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{K:'25', P:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __option_breakeven_putExtras(); }catch(e){} };
+function __option_breakeven_putBoot(){ try{ __option_breakeven_putPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __option_breakeven_putBoot();
+else document.addEventListener('DOMContentLoaded', __option_breakeven_putBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

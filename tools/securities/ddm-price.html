@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ddm_pricePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ddm_priceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ddm_priceTable"></div>
+    <div id="ddm_priceDiff"></div>
+    <div id="ddm_priceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -269,6 +275,44 @@ function resetForm(){document.getElementById('d1').value = '4';
       document.getElementById('g').value = '0.04';
       calcTool();}
 calcTool();
+
+function __ddm_priceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ddm_priceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var d1=num('d1'),r=num('r'),g=num('g');
+    var p=d1/(r-g);
+    if (!isFinite(__ddm_priceNum('d1')) || !isFinite(__ddm_priceNum('r')) || !isFinite(__ddm_priceNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ddm_priceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['股票内在价值 (元)', p.toFixed(2)],
+            ['贴水率 (r-g)', (r-g).toFixed(4)],
+            ['股息率 (%)', (d1/p*100).toFixed(3)],
+            ['市盈率上限参考 1/(r−g)', (1/(r-g)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({d1:__ddm_priceNum('d1'), r:__ddm_priceNum('r'), g:__ddm_priceNum('g'), p:p});
+    TBKit.history.mount('#ddm_priceHist',function(rec){ if(rec.d1!=null)document.getElementById('d1').value=rec.d1; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#ddm_priceDiff',['p']);
+}
+function __ddm_priceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ddm_priceTable','ddm-price.csv'); } catch(e){}
+}
+function __ddm_pricePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ddm_pricePresets',[
+        {label:'默认',labelEn:'Default',values:{d1:'4', r:'0.1', g:'0.04'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{d1:'8', r:'0.2', g:'0.08'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{d1:'2', r:'0.05', g:'0.02'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ddm_priceExtras(); }catch(e){} };
+function __ddm_priceBoot(){ try{ __ddm_pricePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ddm_priceBoot();
+else document.addEventListener('DOMContentLoaded', __ddm_priceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

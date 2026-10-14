@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="market_capPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__market_capExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="market_capTable"></div>
+    <div id="market_capDiff"></div>
+    <div id="market_capHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('price').value = '50';
       document.getElementById('shares').value = '2000000000';
       calcTool();}
 calcTool();
+
+function __market_capNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __market_capExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('price'),s=num('shares');
+    if (!isFinite(__market_capNum('price')) || !isFinite(__market_capNum('shares'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#market_capTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['总市值 (亿元)', (p*s/1e8).toFixed(2)],
+            ['总市值 (元)', (p*s).toFixed(0)],
+            ['总市值 (万元)', (p*s/1e4).toFixed(0)],
+            ['股数 (亿股)', (s/1e8).toFixed(4)],
+            ['总市值 (万亿元)', (p*s/1e12).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({price:__market_capNum('price'), shares:__market_capNum('shares'), p:p});
+    TBKit.history.mount('#market_capHist',function(rec){ if(rec.price!=null)document.getElementById('price').value=rec.price; if(rec.shares!=null)document.getElementById('shares').value=rec.shares; calcTool(); });
+    TBKit.util.diffBox('#market_capDiff',['p']);
+}
+function __market_capExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#market_capTable','market-cap.csv'); } catch(e){}
+}
+function __market_capPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#market_capPresets',[
+        {label:'默认',labelEn:'Default',values:{price:'50', shares:'2000000000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{price:'100', shares:'4000000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{price:'25', shares:'1000000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __market_capExtras(); }catch(e){} };
+function __market_capBoot(){ try{ __market_capPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __market_capBoot();
+else document.addEventListener('DOMContentLoaded', __market_capBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

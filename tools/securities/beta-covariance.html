@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="beta_covariancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__beta_covarianceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="beta_covarianceTable"></div>
+    <div id="beta_covarianceDiff"></div>
+    <div id="beta_covarianceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('cov').value = '0.002';
       document.getElementById('varm').value = '0.0016';
       calcTool();}
 calcTool();
+
+function __beta_covarianceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __beta_covarianceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var cov=num('cov'),varm=num('varm');
+    var beta=cov/varm;
+    if (!isFinite(__beta_covarianceNum('cov')) || !isFinite(__beta_covarianceNum('varm'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#beta_covarianceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['β', beta.toFixed(3)],
+            ['协方差与方差积', (cov*varm).toExponential(4)],
+            ['系统风险 β²×市场方差', (beta*beta*varm).toExponential(4)],
+            ['协方差复核 β·Var', (beta*varm).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({cov:__beta_covarianceNum('cov'), varm:__beta_covarianceNum('varm'), beta:beta});
+    TBKit.history.mount('#beta_covarianceHist',function(rec){ if(rec.cov!=null)document.getElementById('cov').value=rec.cov; if(rec.varm!=null)document.getElementById('varm').value=rec.varm; calcTool(); });
+    TBKit.util.diffBox('#beta_covarianceDiff',['beta']);
+}
+function __beta_covarianceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#beta_covarianceTable','beta-covariance.csv'); } catch(e){}
+}
+function __beta_covariancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#beta_covariancePresets',[
+        {label:'默认',labelEn:'Default',values:{cov:'0.002', varm:'0.0016'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{cov:'0.004', varm:'0.0032'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{cov:'0.001', varm:'0.0008'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __beta_covarianceExtras(); }catch(e){} };
+function __beta_covarianceBoot(){ try{ __beta_covariancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __beta_covarianceBoot();
+else document.addEventListener('DOMContentLoaded', __beta_covarianceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -105,9 +105,13 @@ def extract(page):
             i = end
         else:
             i += 1
-    # compute 段：切到 dataGrid( 之前
+    # compute 段：切到「含 dataGrid( 的整行」之前（避免把 `let x=dataGrid(` 同行的 `let x=` 悬空成语法错）
     gi = body.find('dataGrid(')
-    pre = body[:gi]
+    line_start = body.rfind('\n', 0, gi) + 1
+    pre = body[:line_start]
+    # 含 for/while 循环累加的计算（如债券久期/凸性）无法用扁平赋值复现 → 跳过，避免产出 NaN 表
+    if re.search(r'\b(for|while)\s*\(', pre):
+        return None
     # 去掉 __ig 守卫整体
     pre = re.sub(r"var __ig=.*?return;\s*\}", "", pre, flags=re.S)
     # 整块删除 if/for/while/switch(...) {...} 控制流（括号匹配，避免悬挂开括号）

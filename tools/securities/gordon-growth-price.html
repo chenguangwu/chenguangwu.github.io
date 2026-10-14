@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gordon_growth_pricePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gordon_growth_priceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gordon_growth_priceTable"></div>
+    <div id="gordon_growth_priceDiff"></div>
+    <div id="gordon_growth_priceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -268,6 +274,43 @@ function resetForm(){document.getElementById('D1').value = '4';
       document.getElementById('g').value = '0.04';
       calcTool();}
 calcTool();
+
+function __gordon_growth_priceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gordon_growth_priceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var D1=num('D1'),r=num('r'),g=num('g');
+    var P=D1/(r-g);
+    if (!isFinite(__gordon_growth_priceNum('D1')) || !isFinite(__gordon_growth_priceNum('r')) || !isFinite(__gordon_growth_priceNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gordon_growth_priceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['合理股价 P (元)', P.toFixed(2)],
+            ['股息收益率 (%)', (D1/(P||1)*100).toFixed(4)],
+            ['折现率与增长率差 (r-g)', (r-g).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({D1:__gordon_growth_priceNum('D1'), r:__gordon_growth_priceNum('r'), g:__gordon_growth_priceNum('g'), P:P});
+    TBKit.history.mount('#gordon_growth_priceHist',function(rec){ if(rec.D1!=null)document.getElementById('D1').value=rec.D1; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#gordon_growth_priceDiff',['P']);
+}
+function __gordon_growth_priceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gordon_growth_priceTable','gordon-growth-price.csv'); } catch(e){}
+}
+function __gordon_growth_pricePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gordon_growth_pricePresets',[
+        {label:'默认',labelEn:'Default',values:{D1:'4', r:'0.1', g:'0.04'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{D1:'8', r:'0.2', g:'0.08'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{D1:'2', r:'0.05', g:'0.02'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gordon_growth_priceExtras(); }catch(e){} };
+function __gordon_growth_priceBoot(){ try{ __gordon_growth_pricePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gordon_growth_priceBoot();
+else document.addEventListener('DOMContentLoaded', __gordon_growth_priceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

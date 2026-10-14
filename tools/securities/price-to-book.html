@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="price_to_bookPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__price_to_bookExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="price_to_bookTable"></div>
+    <div id="price_to_bookDiff"></div>
+    <div id="price_to_bookHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('price').value = '30';
       document.getElementById('bv').value = '10';
       calcTool();}
 calcTool();
+
+function __price_to_bookNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __price_to_bookExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('price'),b=num('bv');
+    if (!isFinite(__price_to_bookNum('price')) || !isFinite(__price_to_bookNum('bv'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#price_to_bookTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['市净率 P/B', (p/b).toFixed(2)],
+            ['账面市值比', (b/p).toFixed(3)],
+            ['P/B 百分数', (p/b*100).toFixed(1)],
+            ['股价减每股账面', (p-b).toFixed(2)],
+            ['账面市值比 (%)', (b/Math.max(p,1e-9)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({price:__price_to_bookNum('price'), bv:__price_to_bookNum('bv'), p:p});
+    TBKit.history.mount('#price_to_bookHist',function(rec){ if(rec.price!=null)document.getElementById('price').value=rec.price; if(rec.bv!=null)document.getElementById('bv').value=rec.bv; calcTool(); });
+    TBKit.util.diffBox('#price_to_bookDiff',['p']);
+}
+function __price_to_bookExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#price_to_bookTable','price-to-book.csv'); } catch(e){}
+}
+function __price_to_bookPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#price_to_bookPresets',[
+        {label:'默认',labelEn:'Default',values:{price:'30', bv:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{price:'60', bv:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{price:'15', bv:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __price_to_bookExtras(); }catch(e){} };
+function __price_to_bookBoot(){ try{ __price_to_bookPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __price_to_bookBoot();
+else document.addEventListener('DOMContentLoaded', __price_to_bookBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

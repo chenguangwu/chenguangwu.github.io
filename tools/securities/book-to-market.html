@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="book_to_marketPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__book_to_marketExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="book_to_marketTable"></div>
+    <div id="book_to_marketDiff"></div>
+    <div id="book_to_marketHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('BVPS').value = '30';
       document.getElementById('P').value = '100';
       calcTool();}
 calcTool();
+
+function __book_to_marketNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __book_to_marketExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var BVPS=num('BVPS'),P=num('P');
+    var BM=BVPS/P;
+    if (!isFinite(__book_to_marketNum('BVPS')) || !isFinite(__book_to_marketNum('P'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#book_to_marketTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['账面市值比 B/M', BM.toFixed(3)],
+            ['市净率 P/B（倒数）', (P/Math.max(BVPS,1e-9)).toFixed(3)],
+            ['账面市值比百分数', (BM*100).toFixed(2)],
+            ['股价与每股账面差', (P-BVPS).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({BVPS:__book_to_marketNum('BVPS'), P:__book_to_marketNum('P'), BM:BM});
+    TBKit.history.mount('#book_to_marketHist',function(rec){ if(rec.BVPS!=null)document.getElementById('BVPS').value=rec.BVPS; if(rec.P!=null)document.getElementById('P').value=rec.P; calcTool(); });
+    TBKit.util.diffBox('#book_to_marketDiff',['BM']);
+}
+function __book_to_marketExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#book_to_marketTable','book-to-market.csv'); } catch(e){}
+}
+function __book_to_marketPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#book_to_marketPresets',[
+        {label:'默认',labelEn:'Default',values:{BVPS:'30', P:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{BVPS:'60', P:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{BVPS:'15', P:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __book_to_marketExtras(); }catch(e){} };
+function __book_to_marketBoot(){ try{ __book_to_marketPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __book_to_marketBoot();
+else document.addEventListener('DOMContentLoaded', __book_to_marketBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

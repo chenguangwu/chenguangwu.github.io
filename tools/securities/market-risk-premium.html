@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="market_risk_premiumPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__market_risk_premiumExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="market_risk_premiumTable"></div>
+    <div id="market_risk_premiumDiff"></div>
+    <div id="market_risk_premiumHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,42 @@ function resetForm(){document.getElementById('rm').value = '0.08';
       document.getElementById('rf').value = '0.025';
       calcTool();}
 calcTool();
+
+function __market_risk_premiumNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __market_risk_premiumExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rm=num('rm'),rf=num('rf');
+    if (!isFinite(__market_risk_premiumNum('rm')) || !isFinite(__market_risk_premiumNum('rf'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#market_risk_premiumTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['市场风险溢价 (%)', ((rm-rf)*100).toFixed(2)],
+            ['市场收益率 (%)', (rm*100).toFixed(2)],
+            ['无风险利率 (%)', (rf*100).toFixed(2)],
+            ['溢价与无风险利率之比 (%)', ((rm-rf)/Math.max(rf,1e-9)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rm:__market_risk_premiumNum('rm'), rf:__market_risk_premiumNum('rf')});
+    TBKit.history.mount('#market_risk_premiumHist',function(rec){ if(rec.rm!=null)document.getElementById('rm').value=rec.rm; if(rec.rf!=null)document.getElementById('rf').value=rec.rf; calcTool(); });
+}
+function __market_risk_premiumExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#market_risk_premiumTable','market-risk-premium.csv'); } catch(e){}
+}
+function __market_risk_premiumPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#market_risk_premiumPresets',[
+        {label:'默认',labelEn:'Default',values:{rm:'0.08', rf:'0.025'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rm:'0.16', rf:'0.05'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rm:'0.04', rf:'0.0125'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __market_risk_premiumExtras(); }catch(e){} };
+function __market_risk_premiumBoot(){ try{ __market_risk_premiumPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __market_risk_premiumBoot();
+else document.addEventListener('DOMContentLoaded', __market_risk_premiumBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

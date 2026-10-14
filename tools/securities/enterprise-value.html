@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="enterprise_valuePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__enterprise_valueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="enterprise_valueTable"></div>
+    <div id="enterprise_valueDiff"></div>
+    <div id="enterprise_valueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('MCap').value = '1000';
       document.getElementById('Cash').value = '100';
       calcTool();}
 calcTool();
+
+function __enterprise_valueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __enterprise_valueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var MCap=num('MCap'),Debt=num('Debt'),Cash=num('Cash');
+    var EV=MCap+Debt-Cash;
+    if (!isFinite(__enterprise_valueNum('MCap')) || !isFinite(__enterprise_valueNum('Debt')) || !isFinite(__enterprise_valueNum('Cash'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#enterprise_valueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['企业价值 EV (万元)', EV.toFixed(2)],
+            ['净市值（市值 − 现金）', (MCap-Cash).toFixed(2)],
+            ['债务/市值 比', (Debt/(MCap||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({MCap:__enterprise_valueNum('MCap'), Debt:__enterprise_valueNum('Debt'), Cash:__enterprise_valueNum('Cash'), EV:EV});
+    TBKit.history.mount('#enterprise_valueHist',function(rec){ if(rec.MCap!=null)document.getElementById('MCap').value=rec.MCap; if(rec.Debt!=null)document.getElementById('Debt').value=rec.Debt; if(rec.Cash!=null)document.getElementById('Cash').value=rec.Cash; calcTool(); });
+    TBKit.util.diffBox('#enterprise_valueDiff',['EV']);
+}
+function __enterprise_valueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#enterprise_valueTable','enterprise-value.csv'); } catch(e){}
+}
+function __enterprise_valuePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#enterprise_valuePresets',[
+        {label:'默认',labelEn:'Default',values:{MCap:'1000', Debt:'200', Cash:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{MCap:'2000', Debt:'400', Cash:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{MCap:'500', Debt:'100', Cash:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __enterprise_valueExtras(); }catch(e){} };
+function __enterprise_valueBoot(){ try{ __enterprise_valuePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __enterprise_valueBoot();
+else document.addEventListener('DOMContentLoaded', __enterprise_valueBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

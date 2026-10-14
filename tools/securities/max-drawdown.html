@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="max_drawdownPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__max_drawdownExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="max_drawdownTable"></div>
+    <div id="max_drawdownDiff"></div>
+    <div id="max_drawdownHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,43 @@ function resetForm(){document.getElementById('peak').value = '100';
       document.getElementById('trough').value = '70';
       calcTool();}
 calcTool();
+
+function __max_drawdownNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __max_drawdownExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var peak=num('peak'),trough=num('trough');
+    var md=(peak-trough)/peak*100;
+    if (!isFinite(__max_drawdownNum('peak')) || !isFinite(__max_drawdownNum('trough'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#max_drawdownTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最大回撤 MD (%)', md.toFixed(2)],
+            ['回撤幅度（绝对）', (peak-trough).toFixed(2)],
+            ['恢复所需涨幅 (%)', ((peak/(trough||1)-1)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({peak:__max_drawdownNum('peak'), trough:__max_drawdownNum('trough'), md:md});
+    TBKit.history.mount('#max_drawdownHist',function(rec){ if(rec.peak!=null)document.getElementById('peak').value=rec.peak; if(rec.trough!=null)document.getElementById('trough').value=rec.trough; calcTool(); });
+    TBKit.util.diffBox('#max_drawdownDiff',['md']);
+}
+function __max_drawdownExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#max_drawdownTable','max-drawdown.csv'); } catch(e){}
+}
+function __max_drawdownPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#max_drawdownPresets',[
+        {label:'默认',labelEn:'Default',values:{peak:'100', trough:'70'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{peak:'200', trough:'140'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{peak:'50', trough:'35'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __max_drawdownExtras(); }catch(e){} };
+function __max_drawdownBoot(){ try{ __max_drawdownPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __max_drawdownBoot();
+else document.addEventListener('DOMContentLoaded', __max_drawdownBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

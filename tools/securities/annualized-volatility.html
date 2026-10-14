@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="annualized_volatilityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__annualized_volatilityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="annualized_volatilityTable"></div>
+    <div id="annualized_volatilityDiff"></div>
+    <div id="annualized_volatilityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('dv').value = '0.015';
       document.getElementById('d').value = '252';
       calcTool();}
 calcTool();
+
+function __annualized_volatilityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __annualized_volatilityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dv=num('dv'),d=num('d');
+    var av=dv*Math.sqrt(d);
+    if (!isFinite(__annualized_volatilityNum('dv')) || !isFinite(__annualized_volatilityNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#annualized_volatilityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年化波动率 (%)', (av*100).toFixed(2)],
+            ['日波动率 (%)', (av/Math.sqrt(d)*100).toFixed(3)],
+            ['年化方差 sigma^2', (av*av).toExponential(4)],
+            ['95% 单日 VaR 近似 (%)', (1.645*dv*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({dv:__annualized_volatilityNum('dv'), d:__annualized_volatilityNum('d'), av:av});
+    TBKit.history.mount('#annualized_volatilityHist',function(rec){ if(rec.dv!=null)document.getElementById('dv').value=rec.dv; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#annualized_volatilityDiff',['av']);
+}
+function __annualized_volatilityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#annualized_volatilityTable','annualized-volatility.csv'); } catch(e){}
+}
+function __annualized_volatilityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#annualized_volatilityPresets',[
+        {label:'默认',labelEn:'Default',values:{dv:'0.015', d:'252'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dv:'0.03', d:'504'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dv:'0.0075', d:'126'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __annualized_volatilityExtras(); }catch(e){} };
+function __annualized_volatilityBoot(){ try{ __annualized_volatilityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __annualized_volatilityBoot();
+else document.addEventListener('DOMContentLoaded', __annualized_volatilityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

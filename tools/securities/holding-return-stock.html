@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="holding_return_stockPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__holding_return_stockExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="holding_return_stockTable"></div>
+    <div id="holding_return_stockDiff"></div>
+    <div id="holding_return_stockHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('P0').value = '100';
       document.getElementById('D').value = '2';
       calcTool();}
 calcTool();
+
+function __holding_return_stockNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __holding_return_stockExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P0=num('P0'),P1=num('P1'),D=num('D');
+    var r=(P1-P0+D)/P0*100;
+    if (!isFinite(__holding_return_stockNum('P0')) || !isFinite(__holding_return_stockNum('P1')) || !isFinite(__holding_return_stockNum('D'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#holding_return_stockTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['持有期收益率 (%)', r.toFixed(2)],
+            ['资本利得率 (%)', ((P1-P0)/P0*100).toFixed(3)],
+            ['股息收益率 (%)', (D/(P0||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({P0:__holding_return_stockNum('P0'), P1:__holding_return_stockNum('P1'), D:__holding_return_stockNum('D'), r:r});
+    TBKit.history.mount('#holding_return_stockHist',function(rec){ if(rec.P0!=null)document.getElementById('P0').value=rec.P0; if(rec.P1!=null)document.getElementById('P1').value=rec.P1; if(rec.D!=null)document.getElementById('D').value=rec.D; calcTool(); });
+    TBKit.util.diffBox('#holding_return_stockDiff',['r']);
+}
+function __holding_return_stockExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#holding_return_stockTable','holding-return-stock.csv'); } catch(e){}
+}
+function __holding_return_stockPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#holding_return_stockPresets',[
+        {label:'默认',labelEn:'Default',values:{P0:'100', P1:'110', D:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P0:'200', P1:'220', D:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P0:'50', P1:'55', D:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __holding_return_stockExtras(); }catch(e){} };
+function __holding_return_stockBoot(){ try{ __holding_return_stockPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __holding_return_stockBoot();
+else document.addEventListener('DOMContentLoaded', __holding_return_stockBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

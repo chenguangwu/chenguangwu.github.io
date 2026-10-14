@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="annualized_volPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__annualized_volExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="annualized_volTable"></div>
+    <div id="annualized_volDiff"></div>
+    <div id="annualized_volHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('sd').value = '0.01';
       calcTool();}
 calcTool();
+
+function __annualized_volNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __annualized_volExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var sd=num('sd');
+    var sa=sd*Math.sqrt(252);
+    if (!isFinite(__annualized_volNum('sd'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#annualized_volTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年化波动率 (%)', (sa*100).toFixed(2)],
+            ['日波动率 (%)', (sd*100).toFixed(4)],
+            ['年化波动率倒数', (1/Math.max(sa,1e-12)).toFixed(6)],
+            ['周波动率折算 (%)', (sd*Math.sqrt(52)*100).toFixed(4)],
+            ['月波动率折算 (%)', (sd*Math.sqrt(12)*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({sd:__annualized_volNum('sd'), sa:sa});
+    TBKit.history.mount('#annualized_volHist',function(rec){ if(rec.sd!=null)document.getElementById('sd').value=rec.sd; calcTool(); });
+    TBKit.util.diffBox('#annualized_volDiff',['sa']);
+}
+function __annualized_volExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#annualized_volTable','annualized-vol.csv'); } catch(e){}
+}
+function __annualized_volPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#annualized_volPresets',[
+        {label:'默认',labelEn:'Default',values:{sd:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{sd:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{sd:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __annualized_volExtras(); }catch(e){} };
+function __annualized_volBoot(){ try{ __annualized_volPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __annualized_volBoot();
+else document.addEventListener('DOMContentLoaded', __annualized_volBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

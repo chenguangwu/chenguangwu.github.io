@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="option_breakeven_callPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__option_breakeven_callExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="option_breakeven_callTable"></div>
+    <div id="option_breakeven_callDiff"></div>
+    <div id="option_breakeven_callHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,42 @@ function resetForm(){document.getElementById('k').value = '100';
       document.getElementById('prem').value = '8';
       calcTool();}
 calcTool();
+
+function __option_breakeven_callNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __option_breakeven_callExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k=num('k'),pr=num('prem');
+    if (!isFinite(__option_breakeven_callNum('k')) || !isFinite(__option_breakeven_callNum('prem'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#option_breakeven_callTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['盈亏平衡股价 (元)', (k+pr).toFixed(2)],
+            ['权利金率 (%)', (pr/Math.max(k,1e-9)*100).toFixed(4)],
+            ['行权价占盈亏平衡价之比 (%)', (k/(k+pr)*100).toFixed(2)],
+            ['两倍权利金盈亏平衡价 (元)', (k+2*pr).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({k:__option_breakeven_callNum('k'), prem:__option_breakeven_callNum('prem')});
+    TBKit.history.mount('#option_breakeven_callHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.prem!=null)document.getElementById('prem').value=rec.prem; calcTool(); });
+}
+function __option_breakeven_callExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#option_breakeven_callTable','option-breakeven-call.csv'); } catch(e){}
+}
+function __option_breakeven_callPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#option_breakeven_callPresets',[
+        {label:'默认',labelEn:'Default',values:{k:'100', prem:'8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'200', prem:'16'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'50', prem:'4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __option_breakeven_callExtras(); }catch(e){} };
+function __option_breakeven_callBoot(){ try{ __option_breakeven_callPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __option_breakeven_callBoot();
+else document.addEventListener('DOMContentLoaded', __option_breakeven_callBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

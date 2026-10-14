@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="current_yieldPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__current_yieldExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="current_yieldTable"></div>
+    <div id="current_yieldDiff"></div>
+    <div id="current_yieldHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,42 @@ function resetForm(){document.getElementById('c').value = '50';
       document.getElementById('p').value = '950';
       calcTool();}
 calcTool();
+
+function __current_yieldNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __current_yieldExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var c=num('c'),p=num('p');
+    if (!isFinite(__current_yieldNum('c')) || !isFinite(__current_yieldNum('p'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#current_yieldTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['当前收益率 (%)', (c/p*100).toFixed(2)],
+            ['价格与年息之比（收益率倒数）', (p/Math.max(c,1e-9)).toFixed(4)],
+            ['当前收益率（小数）', (c/p).toFixed(6)],
+            ['当前收益率（万分比）', (c/p*10000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({c:__current_yieldNum('c'), p:__current_yieldNum('p')});
+    TBKit.history.mount('#current_yieldHist',function(rec){ if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.p!=null)document.getElementById('p').value=rec.p; calcTool(); });
+}
+function __current_yieldExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#current_yieldTable','current-yield.csv'); } catch(e){}
+}
+function __current_yieldPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#current_yieldPresets',[
+        {label:'默认',labelEn:'Default',values:{c:'50', p:'950'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{c:'100', p:'1900'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{c:'25', p:'475'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __current_yieldExtras(); }catch(e){} };
+function __current_yieldBoot(){ try{ __current_yieldPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __current_yieldBoot();
+else document.addEventListener('DOMContentLoaded', __current_yieldBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

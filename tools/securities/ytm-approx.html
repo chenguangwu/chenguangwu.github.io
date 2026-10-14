@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ytm_approxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ytm_approxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ytm_approxTable"></div>
+    <div id="ytm_approxDiff"></div>
+    <div id="ytm_approxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -261,6 +267,42 @@ function resetForm(){document.getElementById('c').value = '50';
       document.getElementById('n').value = '10';
       calcTool();}
 calcTool();
+
+function __ytm_approxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ytm_approxExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var c=num('c'),f=num('f'),p=num('p'),n=num('n');
+    var ytm=(c+(f-p)/n)/((f+p)/2);
+    if (!isFinite(__ytm_approxNum('c')) || !isFinite(__ytm_approxNum('f')) || !isFinite(__ytm_approxNum('p')) || !isFinite(__ytm_approxNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ytm_approxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['到期收益率 (%)', (ytm*100).toFixed(2)],
+            ['当前收益率 (%)', ((c/p)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({c:__ytm_approxNum('c'), f:__ytm_approxNum('f'), p:__ytm_approxNum('p'), n:__ytm_approxNum('n'), ytm:ytm});
+    TBKit.history.mount('#ytm_approxHist',function(rec){ if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#ytm_approxDiff',['ytm']);
+}
+function __ytm_approxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ytm_approxTable','ytm-approx.csv'); } catch(e){}
+}
+function __ytm_approxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ytm_approxPresets',[
+        {label:'默认',labelEn:'Default',values:{c:'50', f:'1000', p:'950', n:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{c:'100', f:'2000', p:'1900', n:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{c:'25', f:'500', p:'475', n:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ytm_approxExtras(); }catch(e){} };
+function __ytm_approxBoot(){ try{ __ytm_approxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ytm_approxBoot();
+else document.addEventListener('DOMContentLoaded', __ytm_approxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
