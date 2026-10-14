@@ -129,9 +129,15 @@ s.parentNode.insertBefore(el, s);
       <div><label>目标</label><select id="goal" onchange="calc()"><option value="lose">减脂（轻度）</option><option value="lose2">减脂（更快）</option><option value="maintain">维持体重</option><option value="gain">增肌</option></select></div>
     </div>
 
-    <div class="toolbar"><button class="btn primary" onclick="calc()">立即计算</button></div>
+    <div class="toolbar"><div id="calorie_deficitPresets"></div>
+      <button class="btn primary" onclick="calc()">立即计算</button>
+      <button class="btn" type="button" onclick="__calorie_deficitExport()">导出明细 CSV</button></div>
 
     <div id="result" class="result-box"></div>
+    <div id="calorie_deficitTable"></div>
+    <div id="calorie_deficitDiff"></div>
+    <div id="calorie_deficitChart"></div>
+    <div id="calorie_deficitHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 说明</div>
@@ -223,6 +229,111 @@ function calc() {
 }
 
 calc();
+
+var __calorie_deficit_last=0,__calorie_deficit_skip=false;
+function __calorie_deficitSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calorie_deficitResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calorie_deficitTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calorie_deficitRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calorie_deficitTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calorie_deficitTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calorie_deficitDiff');
+        TBKit.history.mount('#calorie_deficitHist',function(rec){
+            __calorie_deficit_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __calorie_deficit_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calorie_deficitTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calorie_deficitChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calorie_deficitExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calorie_deficit_skip) return;
+    var snap=__calorie_deficitSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calorie_deficitResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calorie_deficit_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calorie_deficit_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calorie_deficitRender(keys,rk,en);
+}
+function __calorie_deficitExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calorie_deficitTable','calorie-deficit.csv'); } catch(e){}
+}
+function __calorie_deficitPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calorie_deficitPresets',[{label:'默认参数',labelEn:'Default',values:{gender:'male', age:'28', height:'170', weight:'65', activity:'1.2', goal:'lose'}}],function(){ calc(); });
+}
+var __calorie_deficit_f0=(typeof calc==='function')?calc:null;
+if(__calorie_deficit_f0){
+    calc=function(){ var __r=__calorie_deficit_f0.apply(null,arguments); try{ __calorie_deficitExtras(); }catch(e){} return __r; };
+}
+function __calorie_deficitBoot(){ try{ __calorie_deficitPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calorie_deficitBoot();
+else document.addEventListener('DOMContentLoaded', __calorie_deficitBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
