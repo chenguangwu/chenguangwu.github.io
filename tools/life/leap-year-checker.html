@@ -155,11 +155,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="check()">检查</button>
+      <div id="leap_year_checkerPresets"></div><button type="button" class="btn primary" onclick="check()">检查</button><button class="btn" type="button" onclick="__leap_year_checkerExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="document.getElementById('year').value = new Date().getFullYear();check()">当前年</button>
     </div>
 
-    <div class="result-box" id="resultBox">请输入年份</div>
+    <div class="result-box" id="resultBox">请输入年份</div> <div id="leap_year_checkerTable"></div> <div id="leap_year_checkerDiff"></div> <div id="leap_year_checkerChart"></div> <div id="leap_year_checkerHist"></div>
   </div>
 
   <div class="card">
@@ -265,6 +265,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __leap_year_checker_last=0,__leap_year_checker_skip=false;
+function __leap_year_checkerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __leap_year_checkerResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __leap_year_checkerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __leap_year_checkerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__leap_year_checkerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#leap_year_checkerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#leap_year_checkerDiff');
+        TBKit.history.mount('#leap_year_checkerHist',function(rec){
+            __leap_year_checker_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                check();
+            }catch(e2){}
+            __leap_year_checker_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__leap_year_checkerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#leap_year_checkerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __leap_year_checkerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__leap_year_checker_skip) return;
+    var snap=__leap_year_checkerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__leap_year_checkerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__leap_year_checker_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __leap_year_checker_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __leap_year_checkerRender(keys,rk,en);
+}
+function __leap_year_checkerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#leap_year_checkerTable','leap-year-checker.csv'); } catch(e){}
+}
+function __leap_year_checkerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#leap_year_checkerPresets',[{label:'默认参数',labelEn:'Default',values:{'year':'2024', 'range':'10'}}],function(){ check(); });
+}
+var __leap_year_checker_f0=(typeof check==='function')?check:null;
+if(__leap_year_checker_f0){
+    check=function(){ var __r=__leap_year_checker_f0.apply(null,arguments); try{ __leap_year_checkerExtras(); }catch(e){} return __r; };
+}
+function __leap_year_checkerBoot(){ try{ __leap_year_checkerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __leap_year_checkerBoot();
+else document.addEventListener('DOMContentLoaded', __leap_year_checkerBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

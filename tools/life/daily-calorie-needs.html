@@ -215,7 +215,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcBMI()">计算 BMI</button>
+        <div id="daily_calorie_needsPresets"></div><button type="button" class="btn primary" onclick="calcBMI()">计算 BMI</button><button class="btn" type="button" onclick="__daily_calorie_needsExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="saveToHistory('bmi')">保存到历史</button>
       </div>
 
@@ -379,7 +379,7 @@ s.parentNode.insertBefore(el, s);
       <p>• BMI 正常范围：18.5 - 23.9（中国标准）</p>
       <p>• 减肥建议每周减重 0.5-1kg，每日减少 300-500 千卡</p>
       <p>• 数据仅供参考，具体请咨询专业营养师或医生</p>
-    </div></div>
+    </div> <div id="daily_calorie_needsTable"></div> <div id="daily_calorie_needsDiff"></div> <div id="daily_calorie_needsChart"></div> <div id="daily_calorie_needsHist"></div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -801,6 +801,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __daily_calorie_needs_last=0,__daily_calorie_needs_skip=false;
+function __daily_calorie_needsSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __daily_calorie_needsResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __daily_calorie_needsTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __daily_calorie_needsRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__daily_calorie_needsTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#daily_calorie_needsTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#daily_calorie_needsDiff');
+        TBKit.history.mount('#daily_calorie_needsHist',function(rec){
+            __daily_calorie_needs_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcBMI();
+            }catch(e2){}
+            __daily_calorie_needs_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__daily_calorie_needsTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#daily_calorie_needsChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __daily_calorie_needsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__daily_calorie_needs_skip) return;
+    var snap=__daily_calorie_needsSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__daily_calorie_needsResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__daily_calorie_needs_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __daily_calorie_needs_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __daily_calorie_needsRender(keys,rk,en);
+}
+function __daily_calorie_needsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#daily_calorie_needsTable','daily-calorie-needs.csv'); } catch(e){}
+}
+function __daily_calorie_needsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#daily_calorie_needsPresets',[{label:'默认参数',labelEn:'Default',values:{'bmiGender':'male', 'bmiAge':'25', 'bmiHeight':'170', 'bmiWeight':'65', 'bmrGender':'male', 'bmrAge':'25', 'bmrHeight':'170', 'bmrWeight':'65', 'tdeeGender':'male', 'tdeeAge':'25', 'tdeeHeight':'170', 'tdeeWeight':'65'}}],function(){ calcBMI(); });
+}
+var __daily_calorie_needs_f0=(typeof calcBMI==='function')?calcBMI:null;
+if(__daily_calorie_needs_f0){
+    calcBMI=function(){ var __r=__daily_calorie_needs_f0.apply(null,arguments); try{ __daily_calorie_needsExtras(); }catch(e){} return __r; };
+}
+function __daily_calorie_needsBoot(){ try{ __daily_calorie_needsPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __daily_calorie_needsBoot();
+else document.addEventListener('DOMContentLoaded', __daily_calorie_needsBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

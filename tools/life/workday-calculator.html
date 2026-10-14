@@ -166,11 +166,11 @@ s.parentNode.insertBefore(el, s);
     <textarea id="holidays" placeholder="如：2026-01-01&#10;2026-02-10"></textarea>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="workday_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__workday_calculatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
 
-    <div class="result-box" id="resultBox">请选择日期进行计算</div>
+    <div class="result-box" id="resultBox">请选择日期进行计算</div> <div id="workday_calculatorTable"></div> <div id="workday_calculatorDiff"></div> <div id="workday_calculatorChart"></div> <div id="workday_calculatorHist"></div>
   </div>
 
   <div class="card">
@@ -311,6 +311,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __workday_calculator_last=0,__workday_calculator_skip=false;
+function __workday_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __workday_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __workday_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __workday_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__workday_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#workday_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#workday_calculatorDiff');
+        TBKit.history.mount('#workday_calculatorHist',function(rec){
+            __workday_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __workday_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__workday_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#workday_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __workday_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__workday_calculator_skip) return;
+    var snap=__workday_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__workday_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__workday_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __workday_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __workday_calculatorRender(keys,rk,en);
+}
+function __workday_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#workday_calculatorTable','workday-calculator.csv'); } catch(e){}
+}
+function __workday_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __workday_calculator_f0=(typeof calc==='function')?calc:null;
+if(__workday_calculator_f0){
+    calc=function(){ var __r=__workday_calculator_f0.apply(null,arguments); try{ __workday_calculatorExtras(); }catch(e){} return __r; };
+}
+function __workday_calculatorBoot(){ try{ __workday_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __workday_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __workday_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

@@ -310,14 +310,14 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h3>📖 使用说明</h3>
-    <div class="result-box">
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__percentage_calculatorExport()">导出明细 CSV</button></div><div class="result-box">
       <p>• <strong>X是Y的百分之几</strong>：计算部分占整体的比例</p>
       <p>• <strong>X%是多少</strong>：计算某个百分比对应的具体数值</p>
       <p>• <strong>增加X%</strong>：计算原值增加一定比例后的结果</p>
       <p>• <strong>减少X%</strong>：计算原值减少一定比例后的结果</p>
       <p>• <strong>变化率</strong>：计算从旧值到新值的百分比变化</p>
       <p>• 历史记录自动保存在本地，最多保存50条</p>
-    </div></div>
+    </div> <div id="percentage_calculatorTable"></div> <div id="percentage_calculatorDiff"></div> <div id="percentage_calculatorChart"></div> <div id="percentage_calculatorHist"></div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -615,6 +615,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __percentage_calculator_last=0,__percentage_calculator_skip=false;
+function __percentage_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __percentage_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __percentage_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __percentage_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__percentage_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#percentage_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#percentage_calculatorDiff');
+        TBKit.history.mount('#percentage_calculatorHist',function(rec){
+            __percentage_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcIsWhat();
+            }catch(e2){}
+            __percentage_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__percentage_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#percentage_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __percentage_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__percentage_calculator_skip) return;
+    var snap=__percentage_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__percentage_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__percentage_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __percentage_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __percentage_calculatorRender(keys,rk,en);
+}
+function __percentage_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#percentage_calculatorTable','percentage-calculator.csv'); } catch(e){}
+}
+function __percentage_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#percentage_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'isWhatX':'25', 'isWhatY':'100', 'ofWhatPct':'20', 'ofWhatY':'200', 'incX':'100', 'incPct':'15', 'decX':'100', 'decPct':'20', 'chgOld':'100', 'chgNew':'120'}}],function(){ calcIsWhat(); });
+}
+var __percentage_calculator_f0=(typeof calcIsWhat==='function')?calcIsWhat:null;
+if(__percentage_calculator_f0){
+    calcIsWhat=function(){ var __r=__percentage_calculator_f0.apply(null,arguments); try{ __percentage_calculatorExtras(); }catch(e){} return __r; };
+}
+function __percentage_calculatorBoot(){ try{ __percentage_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __percentage_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __percentage_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

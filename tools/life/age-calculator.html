@@ -211,7 +211,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">Calculate</button>
+      <div id="age_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">Calculate</button><button class="btn" type="button" onclick="__age_calculatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="useNow()">Fill Current Time</button>
       <button type="button" class="btn" onclick="shareResult()">Share Result</button>
     </div>
@@ -228,7 +228,7 @@ s.parentNode.insertBefore(el, s);
     <div class="stat-grid" id="statGrid"></div>
     <div class="result-box" style="margin-top:14px;">
       <p id="nextBirthday"></p>
-    </div>
+    </div> <div id="age_calculatorTable"></div> <div id="age_calculatorDiff"></div> <div id="age_calculatorChart"></div> <div id="age_calculatorHist"></div>
     
     <div class="retirement-box" id="retirementBox" style="display:none;">
       <h4>👴 Retirement Countdown</h4>
@@ -640,6 +640,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __age_calculator_last=0,__age_calculator_skip=false;
+function __age_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __age_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __age_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __age_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__age_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#age_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#age_calculatorDiff');
+        TBKit.history.mount('#age_calculatorHist',function(rec){
+            __age_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __age_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__age_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#age_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __age_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__age_calculator_skip) return;
+    var snap=__age_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__age_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__age_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __age_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __age_calculatorRender(keys,rk,en);
+}
+function __age_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#age_calculatorTable','age-calculator.csv'); } catch(e){}
+}
+function __age_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#age_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'by':'1995', 'bm':'1', 'bd':'1', 'bh':'0', 'bmin':'0', 'bs':'0', 'retireAge':'55'}}],function(){ calc(); });
+}
+var __age_calculator_f0=(typeof calc==='function')?calc:null;
+if(__age_calculator_f0){
+    calc=function(){ var __r=__age_calculator_f0.apply(null,arguments); try{ __age_calculatorExtras(); }catch(e){} return __r; };
+}
+function __age_calculatorBoot(){ try{ __age_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __age_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __age_calculatorBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
