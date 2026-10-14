@@ -123,11 +123,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>皮厚 (mm)</label><input type="number" class="calc-input" id="thk" value="3" step="any" oninput="calc()" enterkeyhint="done" aria-label="皮厚 (mm)"></div><div><label>酶活力 (U/g)</label><input type="number" class="calc-input" id="act" value="5000" step="any" oninput="calc()" enterkeyhint="done" aria-label="酶活力 (U/g)"></div><div><label>温度 (℃)</label><input type="number" class="calc-input" id="temp" value="38" step="any" oninput="calc()" enterkeyhint="done" aria-label="温度 (℃)"></div></div>
     <div class="toolbar">
+      <div id="time_34Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__time_34Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="time_34Table"></div>
+    <div id="time_34Diff"></div>
+    <div id="time_34Chart"></div>
+    <div id="time_34Hist"></div>
     <div class="info-box">💡 基准时间 = 皮厚 × 10 min；温度系数 = 1+|T−38.5|×0.05；酶活力系数 = 5000÷活力；软化时间 = 基准 × 温度系数 × 活力系数</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -177,7 +183,112 @@ function calc(){
 }
 function resetAll(){document.getElementById('thk').value=3;document.getElementById('act').value=5000;document.getElementById('temp').value=38;['thk','act','temp'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __time_34_last=0,__time_34_skip=false;
+function __time_34Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __time_34ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __time_34Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __time_34Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__time_34Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#time_34Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#time_34Diff');
+        TBKit.history.mount('#time_34Hist',function(rec){
+            __time_34_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __time_34_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__time_34Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#time_34Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __time_34Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__time_34_skip) return;
+    var snap=__time_34Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__time_34ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__time_34_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __time_34_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __time_34Render(keys,rk,en);
+}
+function __time_34Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#time_34Table','time-34.csv'); } catch(e){}
+}
+function __time_34Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#time_34Presets',[{label:'默认参数',labelEn:'Default',values:{'thk':'3', 'act':'5000', 'temp':'38'}}],function(){ calc(); });
+}
+var __time_34_f0=(typeof calc==='function')?calc:null;
+if(__time_34_f0){
+    calc=function(){ var __r=__time_34_f0.apply(null,arguments); try{ __time_34Extras(); }catch(e){} return __r; };
+}
+function __time_34Boot(){ try{ __time_34Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __time_34Boot();
+else document.addEventListener('DOMContentLoaded', __time_34Boot);
+</script>
 
 </div>
 

@@ -123,11 +123,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>辊速 (rpm)</label><input type="number" class="calc-input" id="rpm" value="800" step="any" oninput="calc()" enterkeyhint="done" aria-label="辊速 (rpm)"></div><div><label>压力 (MPa)</label><input type="number" class="calc-input" id="press" value="0.3" step="any" oninput="calc()" enterkeyhint="done" aria-label="压力 (MPa)"></div><div><label>抛光次数</label><input type="number" class="calc-input" id="times" value="3" step="any" oninput="calc()" enterkeyhint="done" aria-label="抛光次数"></div></div>
     <div class="toolbar">
+      <div id="paoguangliangdupingguPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__paoguangliangdupingguExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="paoguangliangdupingguTable"></div>
+    <div id="paoguangliangdupingguDiff"></div>
+    <div id="paoguangliangdupingguChart"></div>
+    <div id="paoguangliangdupingguHist"></div>
     <div class="info-box">💡 亮度指数 = (辊速÷1000) × 压力 × 次数 × 100（归一化至0~100）</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -178,7 +184,112 @@ function calc(){
 }
 function resetAll(){document.getElementById('rpm').value=800;document.getElementById('press').value=0.3;document.getElementById('times').value=3;['rpm','press','times'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __paoguangliangdupinggu_last=0,__paoguangliangdupinggu_skip=false;
+function __paoguangliangdupingguSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __paoguangliangdupingguResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __paoguangliangdupingguTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __paoguangliangdupingguRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__paoguangliangdupingguTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#paoguangliangdupingguTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#paoguangliangdupingguDiff');
+        TBKit.history.mount('#paoguangliangdupingguHist',function(rec){
+            __paoguangliangdupinggu_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __paoguangliangdupinggu_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__paoguangliangdupingguTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#paoguangliangdupingguChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __paoguangliangdupingguExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__paoguangliangdupinggu_skip) return;
+    var snap=__paoguangliangdupingguSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__paoguangliangdupingguResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__paoguangliangdupinggu_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __paoguangliangdupinggu_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __paoguangliangdupingguRender(keys,rk,en);
+}
+function __paoguangliangdupingguExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#paoguangliangdupingguTable','paoguangliangdupinggu.csv'); } catch(e){}
+}
+function __paoguangliangdupingguPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#paoguangliangdupingguPresets',[{label:'默认参数',labelEn:'Default',values:{'rpm':'800', 'press':'0.3', 'times':'3'}}],function(){ calc(); });
+}
+var __paoguangliangdupinggu_f0=(typeof calc==='function')?calc:null;
+if(__paoguangliangdupinggu_f0){
+    calc=function(){ var __r=__paoguangliangdupinggu_f0.apply(null,arguments); try{ __paoguangliangdupingguExtras(); }catch(e){} return __r; };
+}
+function __paoguangliangdupingguBoot(){ try{ __paoguangliangdupingguPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __paoguangliangdupingguBoot();
+else document.addEventListener('DOMContentLoaded', __paoguangliangdupingguBoot);
+</script>
 
 </div>
 

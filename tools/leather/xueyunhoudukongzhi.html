@@ -123,11 +123,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>目标厚度 (mm)</label><input type="number" class="calc-input" id="target" value="1.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="目标厚度 (mm)"></div><div><label>刀片转速 (rpm)</label><input type="number" class="calc-input" id="rpm" value="1200" step="any" oninput="calc()" enterkeyhint="done" aria-label="刀片转速 (rpm)"></div><div><label>进给速度 (m/min)</label><input type="number" class="calc-input" id="feed" value="8" step="any" oninput="calc()" enterkeyhint="done" aria-label="进给速度 (m/min)"></div></div>
     <div class="toolbar">
+      <div id="xueyunhoudukongzhiPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__xueyunhoudukongzhiExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="xueyunhoudukongzhiTable"></div>
+    <div id="xueyunhoudukongzhiDiff"></div>
+    <div id="xueyunhoudukongzhiChart"></div>
+    <div id="xueyunhoudukongzhiHist"></div>
     <div class="info-box">💡 均匀度评分 = min(100, 转速÷进给速度×10)；厚度偏差 ≈ (100−评分)×0.05 mm</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -176,7 +182,112 @@ function calc(){
 }
 function resetAll(){document.getElementById('target').value=1.5;document.getElementById('rpm').value=1200;document.getElementById('feed').value=8;['target','rpm','feed'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __xueyunhoudukongzhi_last=0,__xueyunhoudukongzhi_skip=false;
+function __xueyunhoudukongzhiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __xueyunhoudukongzhiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __xueyunhoudukongzhiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __xueyunhoudukongzhiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__xueyunhoudukongzhiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#xueyunhoudukongzhiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#xueyunhoudukongzhiDiff');
+        TBKit.history.mount('#xueyunhoudukongzhiHist',function(rec){
+            __xueyunhoudukongzhi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __xueyunhoudukongzhi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__xueyunhoudukongzhiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#xueyunhoudukongzhiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __xueyunhoudukongzhiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__xueyunhoudukongzhi_skip) return;
+    var snap=__xueyunhoudukongzhiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__xueyunhoudukongzhiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__xueyunhoudukongzhi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __xueyunhoudukongzhi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __xueyunhoudukongzhiRender(keys,rk,en);
+}
+function __xueyunhoudukongzhiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#xueyunhoudukongzhiTable','xueyunhoudukongzhi.csv'); } catch(e){}
+}
+function __xueyunhoudukongzhiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#xueyunhoudukongzhiPresets',[{label:'默认参数',labelEn:'Default',values:{'target':'1.5', 'rpm':'1200', 'feed':'8'}}],function(){ calc(); });
+}
+var __xueyunhoudukongzhi_f0=(typeof calc==='function')?calc:null;
+if(__xueyunhoudukongzhi_f0){
+    calc=function(){ var __r=__xueyunhoudukongzhi_f0.apply(null,arguments); try{ __xueyunhoudukongzhiExtras(); }catch(e){} return __r; };
+}
+function __xueyunhoudukongzhiBoot(){ try{ __xueyunhoudukongzhiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __xueyunhoudukongzhiBoot();
+else document.addEventListener('DOMContentLoaded', __xueyunhoudukongzhiBoot);
+</script>
 
 </div>
 

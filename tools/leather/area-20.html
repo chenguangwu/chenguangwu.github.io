@@ -122,11 +122,17 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>厚度 (mm)</label><input type="number" class="calc-input" id="thickness" value="2.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="厚度 (mm)"></div><div><label>面积 (ft²)</label><input type="number" class="calc-input" id="area" value="18" step="any" oninput="calc()" enterkeyhint="done" aria-label="面积 (ft²)"></div></div>
     <div class="toolbar">
+      <div id="area_20Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__area_20Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="area_20Table"></div>
+    <div id="area_20Diff"></div>
+    <div id="area_20Chart"></div>
+    <div id="area_20Hist"></div>
     <div class="info-box">💡 厚度分级：≥3.5mm 头层厚皮 / 1.2~3.5mm 头层 / 0.8~1.2mm 薄头层 / <0.8mm 二层；面积分级：≥25 大皮 / 15~25 中皮 / 8~15 小皮 / <8 碎皮</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -179,7 +185,112 @@ function calc(){
 }
 function resetAll(){document.getElementById('thickness').value=2.5;document.getElementById('area').value=18;setInvalid(document.getElementById('thickness'),false);setInvalid(document.getElementById('area'),false);calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __area_20_last=0,__area_20_skip=false;
+function __area_20Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __area_20ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __area_20Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __area_20Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__area_20Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#area_20Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#area_20Diff');
+        TBKit.history.mount('#area_20Hist',function(rec){
+            __area_20_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __area_20_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__area_20Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#area_20Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __area_20Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__area_20_skip) return;
+    var snap=__area_20Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__area_20ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__area_20_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __area_20_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __area_20Render(keys,rk,en);
+}
+function __area_20Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#area_20Table','area-20.csv'); } catch(e){}
+}
+function __area_20Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#area_20Presets',[{label:'默认参数',labelEn:'Default',values:{'thickness':'2.5', 'area':'18'}}],function(){ calc(); });
+}
+var __area_20_f0=(typeof calc==='function')?calc:null;
+if(__area_20_f0){
+    calc=function(){ var __r=__area_20_f0.apply(null,arguments); try{ __area_20Extras(); }catch(e){} return __r; };
+}
+function __area_20Boot(){ try{ __area_20Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __area_20Boot();
+else document.addEventListener('DOMContentLoaded', __area_20Boot);
+</script>
 
 </div>
 

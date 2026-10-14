@@ -123,11 +123,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="input-row"><div><label>初始铬浓度 (mg/L)</label><input type="number" class="calc-input" id="c0" value="5000" step="any" oninput="calc()" enterkeyhint="done" aria-label="初始铬浓度 (mg/L)"></div><div><label>废液铬浓度 (mg/L)</label><input type="number" class="calc-input" id="c1" value="800" step="any" oninput="calc()" enterkeyhint="done" aria-label="废液铬浓度 (mg/L)"></div><div><label>皮重 (kg)</label><input type="number" class="calc-input" id="weight" value="100" step="any" oninput="calc()" enterkeyhint="done" aria-label="皮重 (kg)"></div><div><label>液比</label><input type="number" class="calc-input" id="lr" value="2.0" step="any" oninput="calc()" enterkeyhint="done" aria-label="液比"></div></div>
     <div class="toolbar">
+      <div id="yield_ratePresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__yield_rateExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="yield_rateTable"></div>
+    <div id="yield_rateDiff"></div>
+    <div id="yield_rateChart"></div>
+    <div id="yield_rateHist"></div>
     <div class="info-box">💡 吸收率 = (初始−废液) ÷ 初始 × 100%；液量 = 皮重 × 液比；铬吸收量 = (初始−废液) × 液量 ÷ 10⁶</div>
     <div class="tool-notes">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -179,7 +185,112 @@ function calc(){
 }
 function resetAll(){document.getElementById('c0').value=5000;document.getElementById('c1').value=800;document.getElementById('weight').value=100;document.getElementById('lr').value=2.0;['c0','c1','weight','lr'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 calc();
-  </script>
+  
+var __yield_rate_last=0,__yield_rate_skip=false;
+function __yield_rateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __yield_rateResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __yield_rateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __yield_rateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__yield_rateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#yield_rateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#yield_rateDiff');
+        TBKit.history.mount('#yield_rateHist',function(rec){
+            __yield_rate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __yield_rate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__yield_rateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#yield_rateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __yield_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__yield_rate_skip) return;
+    var snap=__yield_rateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__yield_rateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__yield_rate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __yield_rate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __yield_rateRender(keys,rk,en);
+}
+function __yield_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#yield_rateTable','yield-rate.csv'); } catch(e){}
+}
+function __yield_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#yield_ratePresets',[{label:'默认参数',labelEn:'Default',values:{'c0':'5000', 'c1':'800', 'weight':'100', 'lr':'2.0'}}],function(){ calc(); });
+}
+var __yield_rate_f0=(typeof calc==='function')?calc:null;
+if(__yield_rate_f0){
+    calc=function(){ var __r=__yield_rate_f0.apply(null,arguments); try{ __yield_rateExtras(); }catch(e){} return __r; };
+}
+function __yield_rateBoot(){ try{ __yield_ratePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __yield_rateBoot();
+else document.addEventListener('DOMContentLoaded', __yield_rateBoot);
+</script>
 
 </div>
 
