@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hotpot_portionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hotpot_portionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hotpot_portionTable"></div>
+    <div id="hotpot_portionDiff"></div>
+    <div id="hotpot_portionHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -269,6 +275,59 @@ function resetForm(){document.getElementById('people').value='4';
       document.getElementById('intensity').selectedIndex=0;
       calcTool();}
 calcTool();
+
+function __hotpot_portionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hotpot_portionExtras(){
+    function __hotpot_portionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var people=Math.floor(num('people'));
+    var style=document.getElementById('style').value;
+    var intensity=document.getElementById('intensity').value;
+    var k={light:0.85,normal:1.0,heavy:1.2}[intensity]||1.0;
+    var meatP, vegP;
+    if(style==='meat'||style==='0'){meatP=0.55;vegP=0.25;}
+    else if(style==='balance'){meatP=0.40;vegP=0.40;}
+    else{meatP=0.20;vegP=0.60;}
+    var total=people*600*k;   // 人均 600g 基准
+    var meat=Math.round(total*meatP);
+    var veg=Math.round(total*vegP);
+    var soy=Math.round(total*0.15);
+    var staple=Math.round(people*80*k);
+    var soup=Math.round(people*250*k);
+    if (!isFinite(__hotpot_portionNum('people')) || !__hotpot_portionRaw('style') || !__hotpot_portionRaw('intensity')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hotpot_portionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['肉类/海鲜', meat+' g'],
+            ['蔬菜菌菇', veg+' g'],
+            ['豆制品', soy+' g'],
+            ['主食', staple+' g'],
+            ['汤底用量', soup+' ml'],
+        ]
+    });
+    TBKit.history.record({people:__hotpot_portionRaw('people'), style:__hotpot_portionRaw('style'), intensity:__hotpot_portionRaw('intensity'), k:k});
+    function __hotpot_portionRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#hotpot_portionHist',function(rec){ __hotpot_portionRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#hotpot_portionDiff',['k']);
+}
+function __hotpot_portionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hotpot_portionTable','hotpot-portion.csv'); } catch(e){}
+}
+function __hotpot_portionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hotpot_portionPresets',[
+        {label:'默认',labelEn:'Default',values:{people:'4', style:'', intensity:''}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{people:'8', style:'', intensity:''}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{people:'2', style:'', intensity:''}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hotpot_portionExtras(); }catch(e){} };
+function __hotpot_portionBoot(){ try{ __hotpot_portionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hotpot_portionBoot();
+else document.addEventListener('DOMContentLoaded', __hotpot_portionBoot);
 </script>
 </body>
 </html>

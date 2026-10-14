@@ -161,12 +161,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="estimate_six_sigmaPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__estimate_six_sigmaExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="estimate_six_sigmaTable"></div> <div id="estimate_six_sigmaDiff"></div> <div id="estimate_six_sigmaChart"></div> <div id="estimate_six_sigmaHist"></div>
 
     <h3 style="margin-top:18px;">DPMO — Sigma 水平对照表（含1.5σ漂移）</h3>
     <div id="refTable"></div>
@@ -344,6 +344,114 @@ function buildRefTable(){
 
 calc();
 buildRefTable();
+
+var __estimate_six_sigma_last=0,__estimate_six_sigma_skip=false;
+function __estimate_six_sigmaSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __estimate_six_sigmaResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __estimate_six_sigmaTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __estimate_six_sigmaRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__estimate_six_sigmaTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#estimate_six_sigmaTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#estimate_six_sigmaDiff');
+        TBKit.history.mount('#estimate_six_sigmaHist',function(rec){
+            __estimate_six_sigma_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __estimate_six_sigma_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__estimate_six_sigmaTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#estimate_six_sigmaChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __estimate_six_sigmaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__estimate_six_sigma_skip) return;
+    var snap=__estimate_six_sigmaSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__estimate_six_sigmaResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__estimate_six_sigma_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __estimate_six_sigma_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __estimate_six_sigmaRender(keys,rk,en);
+}
+function __estimate_six_sigmaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#estimate_six_sigmaTable','estimate-six-sigma.csv'); } catch(e){}
+}
+function __estimate_six_sigmaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#estimate_six_sigmaPresets',[{label:'默认参数',labelEn:'Default',values:{'dpmo':'6210', 'defects':'62', 'units':'10000', 'opps':'1'}}],function(){ calc(); });
+}
+var __estimate_six_sigma_f0=(typeof calc==='function')?calc:null;
+if(__estimate_six_sigma_f0){
+    calc=function(){ var __r=__estimate_six_sigma_f0.apply(null,arguments); try{ __estimate_six_sigmaExtras(); }catch(e){} return __r; };
+}
+function __estimate_six_sigmaBoot(){ try{ __estimate_six_sigmaPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __estimate_six_sigmaBoot();
+else document.addEventListener('DOMContentLoaded', __estimate_six_sigmaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

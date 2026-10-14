@@ -133,11 +133,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" onclick="calcTool()">计算</button>
+      <div id="capm_betaPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__capm_betaExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="capm_betaTable"></div> <div id="capm_betaDiff"></div> <div id="capm_betaChart"></div> <div id="capm_betaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +256,114 @@ function resetForm(){document.getElementById('ri').value = '0.02,0.03,-0.01,0.04
       document.getElementById('rm').value = '0.01,0.02,0.00,0.03,0.01';
       calcTool();}
 calcTool();
+
+var __capm_beta_last=0,__capm_beta_skip=false;
+function __capm_betaSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __capm_betaResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __capm_betaTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __capm_betaRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__capm_betaTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#capm_betaTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#capm_betaDiff');
+        TBKit.history.mount('#capm_betaHist',function(rec){
+            __capm_beta_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcTool();
+            }catch(e2){}
+            __capm_beta_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__capm_betaTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#capm_betaChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __capm_betaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__capm_beta_skip) return;
+    var snap=__capm_betaSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__capm_betaResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__capm_beta_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __capm_beta_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __capm_betaRender(keys,rk,en);
+}
+function __capm_betaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#capm_betaTable','capm-beta.csv'); } catch(e){}
+}
+function __capm_betaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#capm_betaPresets',[{label:'默认参数',labelEn:'Default',values:{'ri':'0.02,0.03,-0.01,0.04,0.01', 'rm':'0.01,0.02,0.00,0.03,0.01'}}],function(){ calcTool(); });
+}
+var __capm_beta_f0=(typeof calcTool==='function')?calcTool:null;
+if(__capm_beta_f0){
+    calcTool=function(){ var __r=__capm_beta_f0.apply(null,arguments); try{ __capm_betaExtras(); }catch(e){} return __r; };
+}
+function __capm_betaBoot(){ try{ __capm_betaPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __capm_betaBoot();
+else document.addEventListener('DOMContentLoaded', __capm_betaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

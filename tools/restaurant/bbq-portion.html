@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bbq_portionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bbq_portionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bbq_portionTable"></div>
+    <div id="bbq_portionDiff"></div>
+    <div id="bbq_portionHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -270,6 +276,57 @@ function resetForm(){document.getElementById('people').value='6';
       document.getElementById('drink').selectedIndex=0;
       calcTool();}
 calcTool();
+
+function __bbq_portionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bbq_portionExtras(){
+    function __bbq_portionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var people=Math.floor(num('people'));
+    var type=document.getElementById('type').value;
+    var drink=document.getElementById('drink').value;
+    var meatPer, skewerPer;
+    if(type==='bbq'||type==='0'){meatPer=350;skewerPer=12;}
+    else if(type==='korean'){meatPer=450;skewerPer=0;}
+    else{meatPer=400;skewerPer=0;}
+    var meat=Math.round(meatPer*people);
+    var veg=Math.round(200*people);
+    var sides=Math.round(150*people);
+    var drinks=drink==='yes'?Math.round((people*700)/330):0;
+    var skewers=skewerPer?skewerPer*people:0;
+    if (!isFinite(__bbq_portionNum('people')) || !__bbq_portionRaw('type') || !__bbq_portionRaw('drink')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bbq_portionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['肉串数', (skewers?skewers+' 串':'—')],
+            ['肉类总量', meat+' g'],
+            ['蔬菜', veg+' g'],
+            ['主食/小食', sides+' g'],
+            ['饮品（330ml）', drinks?drinks+' 瓶':'—'],
+        ]
+    });
+    TBKit.history.record({people:__bbq_portionRaw('people'), type:__bbq_portionRaw('type'), drink:__bbq_portionRaw('drink'), meat:meat});
+    function __bbq_portionRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#bbq_portionHist',function(rec){ __bbq_portionRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#bbq_portionDiff',['meat']);
+}
+function __bbq_portionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bbq_portionTable','bbq-portion.csv'); } catch(e){}
+}
+function __bbq_portionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bbq_portionPresets',[
+        {label:'默认',labelEn:'Default',values:{people:'6', type:'', drink:''}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{people:'12', type:'', drink:''}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{people:'3', type:'', drink:''}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bbq_portionExtras(); }catch(e){} };
+function __bbq_portionBoot(){ try{ __bbq_portionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bbq_portionBoot();
+else document.addEventListener('DOMContentLoaded', __bbq_portionBoot);
 </script>
 </body>
 </html>

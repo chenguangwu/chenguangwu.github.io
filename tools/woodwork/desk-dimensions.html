@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="desk_dimensionsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__desk_dimensionsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="desk_dimensionsTable"></div>
+    <div id="desk_dimensionsDiff"></div>
+    <div id="desk_dimensionsHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -247,6 +253,49 @@ function resetForm(){document.getElementById('height').value='170';
       document.getElementById('mon').value='24';
       calcTool();}
 calcTool();
+
+function __desk_dimensionsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __desk_dimensionsExtras(){
+    function __desk_dimensionsRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var h=num('height'), scene=document.getElementById('scene').value||'computer', mon=num('mon'); // 人体工学经验比例
+    var deskH, chairH, screenH, depth;
+    if(scene==='standing'){ deskH=h*0.62; chairH=0; screenH=h*0.95; depth=60; } else { deskH=h*0.46; chairH=h*0.26; screenH=h*0.71; depth=(scene==='computer')?70:60; }
+    var viewDistMin=mon*2.54*1.5, viewDistMax=mon*2.54*2.0;
+    var sceneName={computer:'电脑办公',write:'书写阅读',standing:'站立办公'}[scene]||'电脑办公';
+    var chairNote=chairH>0?'椅面高约 '+chairH.toFixed(0)+' cm，建议选可调升降款':'站立办公建议配抗疲劳垫';
+    if (!isFinite(__desk_dimensionsNum('height')) || !isFinite(__desk_dimensionsNum('mon')) || !__desk_dimensionsRaw('scene')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#desk_dimensionsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['椅面高度', chairH>0?chairH.toFixed(0)+' cm':'—'],
+            ['屏幕中心高度', screenH.toFixed(0)+' cm'],
+            ['建议桌面深度', depth+' cm'],
+        ]
+    });
+    TBKit.history.record({height:__desk_dimensionsRaw('height'), mon:__desk_dimensionsRaw('mon'), scene:__desk_dimensionsRaw('scene'), h:h});
+    function __desk_dimensionsRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#desk_dimensionsHist',function(rec){ __desk_dimensionsRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#desk_dimensionsDiff',['h']);
+}
+function __desk_dimensionsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#desk_dimensionsTable','desk-dimensions.csv'); } catch(e){}
+}
+function __desk_dimensionsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#desk_dimensionsPresets',[
+        {label:'默认',labelEn:'Default',values:{height:'170', mon:'24', scene:''}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{height:'340', mon:'48', scene:''}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{height:'85', mon:'12', scene:''}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __desk_dimensionsExtras(); }catch(e){} };
+function __desk_dimensionsBoot(){ try{ __desk_dimensionsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __desk_dimensionsBoot();
+else document.addEventListener('DOMContentLoaded', __desk_dimensionsBoot);
 </script>
 </body>
 </html>
