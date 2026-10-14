@@ -140,14 +140,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="analyze()">分析</button>
+      <div id="thyroid_function_modelPresets"></div><button type="button" class="btn primary" onclick="analyze()">分析</button><button class="btn" type="button" onclick="__thyroid_function_modelExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="loadPattern('hyper')">甲亢示例</button>
       <button type="button" class="btn" onclick="loadPattern('hypo')">甲减示例</button>
       <button type="button" class="btn" onclick="loadPattern('sub_hyper')">亚临床甲亢</button>
       <button type="button" class="btn" onclick="loadPattern('sub_hypo')">亚临床甲减</button>
     </div>
 
-    <div id="result"></div>
+    <div id="result"></div> <div id="thyroid_function_modelTable"></div> <div id="thyroid_function_modelDiff"></div> <div id="thyroid_function_modelChart"></div> <div id="thyroid_function_modelHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">下丘脑-垂体-甲状腺轴(HPT轴)</h3>
     <div class="axis-box">
@@ -365,6 +365,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __thyroid_function_model_last=0,__thyroid_function_model_skip=false;
+function __thyroid_function_modelSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __thyroid_function_modelResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __thyroid_function_modelTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __thyroid_function_modelRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__thyroid_function_modelTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#thyroid_function_modelTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#thyroid_function_modelDiff');
+        TBKit.history.mount('#thyroid_function_modelHist',function(rec){
+            __thyroid_function_model_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                analyze();
+            }catch(e2){}
+            __thyroid_function_model_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__thyroid_function_modelTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#thyroid_function_modelChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __thyroid_function_modelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__thyroid_function_model_skip) return;
+    var snap=__thyroid_function_modelSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__thyroid_function_modelResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__thyroid_function_model_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __thyroid_function_model_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __thyroid_function_modelRender(keys,rk,en);
+}
+function __thyroid_function_modelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thyroid_function_modelTable','thyroid-function-model.csv'); } catch(e){}
+}
+function __thyroid_function_modelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thyroid_function_modelPresets',[{label:'默认参数',labelEn:'Default',values:{'tsh':'2.0', 'ft3':'5.0', 'ft4':'16', 'tt3':'1.5', 'tt4':'100', 'tpo':'0'}}],function(){ analyze(); });
+}
+var __thyroid_function_model_f0=(typeof analyze==='function')?analyze:null;
+if(__thyroid_function_model_f0){
+    analyze=function(){ var __r=__thyroid_function_model_f0.apply(null,arguments); try{ __thyroid_function_modelExtras(); }catch(e){} return __r; };
+}
+function __thyroid_function_modelBoot(){ try{ __thyroid_function_modelPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thyroid_function_modelBoot();
+else document.addEventListener('DOMContentLoaded', __thyroid_function_modelBoot);
 </script>
 
 </body>

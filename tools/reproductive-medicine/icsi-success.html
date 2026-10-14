@@ -142,10 +142,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>移植胚胎数</label><input type="number" id="tr" value="2" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估</button>
+      <div id="icsi_successPresets"></div><button type="button" class="btn primary" onclick="calc()">评估</button><button class="btn" type="button" onclick="__icsi_successExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="icsi_successTable"></div> <div id="icsi_successDiff"></div> <div id="icsi_successChart"></div> <div id="icsi_successHist"></div>
   </div>
 
   <div class="card">
@@ -354,6 +354,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __icsi_success_last=0,__icsi_success_skip=false;
+function __icsi_successSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __icsi_successResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __icsi_successTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __icsi_successRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__icsi_successTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#icsi_successTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#icsi_successDiff');
+        TBKit.history.mount('#icsi_successHist',function(rec){
+            __icsi_success_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __icsi_success_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__icsi_successTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#icsi_successChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __icsi_successExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__icsi_success_skip) return;
+    var snap=__icsi_successSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__icsi_successResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__icsi_success_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __icsi_success_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __icsi_successRender(keys,rk,en);
+}
+function __icsi_successExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#icsi_successTable','icsi-success.csv'); } catch(e){}
+}
+function __icsi_successPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#icsi_successPresets',[{label:'默认参数',labelEn:'Default',values:{'mii':'10', 'injected':'10', 'survived':'9', 'fert':'7', 'good':'4', 'age':'&lt;30', 'tr':'2'}}],function(){ calc(); });
+}
+var __icsi_success_f0=(typeof calc==='function')?calc:null;
+if(__icsi_success_f0){
+    calc=function(){ var __r=__icsi_success_f0.apply(null,arguments); try{ __icsi_successExtras(); }catch(e){} return __r; };
+}
+function __icsi_successBoot(){ try{ __icsi_successPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __icsi_successBoot();
+else document.addEventListener('DOMContentLoaded', __icsi_successBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用ICSI 单精子注射成功率评估器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>MII 卵数</li><li>ICSI 注射数</li><li>注射后存活数</li><li>受精(2PN)数</li><li>优质胚胎数</li><li>女方年龄</li><li>移植胚胎数</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>ICSI 单精子注射成功率评估器是做什么的？</dt><dd>输入获卵数、成熟卵与正常受精数等实验室指标，结合女方年龄等因素，工具评估 ICSI 单精子注射的受精效率与临床妊娠预期，辅助生殖中心做周期咨询与质控。</dd><dt>如何使用ICSI 单精子注射成功率评估器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>ICSI 单精子注射成功率评估器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

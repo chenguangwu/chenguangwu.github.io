@@ -137,10 +137,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>既往流产次数</label><input type="number" id="rplVal" value="0" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估指征</button>
+      <div id="pgt_indicationPresets"></div><button type="button" class="btn primary" onclick="calc()">评估指征</button><button class="btn" type="button" onclick="__pgt_indicationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="pgt_indicationTable"></div> <div id="pgt_indicationDiff"></div> <div id="pgt_indicationChart"></div> <div id="pgt_indicationHist"></div>
   </div>
 
   <div class="card">
@@ -362,6 +362,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __pgt_indication_last=0,__pgt_indication_skip=false;
+function __pgt_indicationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pgt_indicationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pgt_indicationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pgt_indicationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pgt_indicationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pgt_indicationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pgt_indicationDiff');
+        TBKit.history.mount('#pgt_indicationHist',function(rec){
+            __pgt_indication_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __pgt_indication_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pgt_indicationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pgt_indicationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pgt_indicationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pgt_indication_skip) return;
+    var snap=__pgt_indicationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pgt_indicationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pgt_indication_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pgt_indication_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pgt_indicationRender(keys,rk,en);
+}
+function __pgt_indicationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pgt_indicationTable','pgt-indication.csv'); } catch(e){}
+}
+function __pgt_indicationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pgt_indicationPresets',[{label:'默认参数',labelEn:'Default',values:{'ageVal':'35', 'rplVal':'0'}}],function(){ calc(); });
+}
+var __pgt_indication_f0=(typeof calc==='function')?calc:null;
+if(__pgt_indication_f0){
+    calc=function(){ var __r=__pgt_indication_f0.apply(null,arguments); try{ __pgt_indicationExtras(); }catch(e){} return __r; };
+}
+function __pgt_indicationBoot(){ try{ __pgt_indicationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pgt_indicationBoot();
+else document.addEventListener('DOMContentLoaded', __pgt_indicationBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用PGT 遗传学筛查指征评估器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>女方高龄 ≥38岁</li><li>反复流产(≥3次)</li><li>反复种植失败(≥3次优质胚胎未孕)</li><li>严重男性因素(少弱畸精)</li><li>已知单基因病(致病基因明确)</li><li>染色体平衡易位/倒位</li><li>既往非整倍体妊娠/子代</li><li>遗传病家族史</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>PGT 遗传学筛查指征评估器是做什么的？</dt><dd>依据指征逐项评估是否适用 PGT-A、PGT-M 或 PGT-SR，辅助辅助生殖遗传筛查决策。</dd><dt>如何使用PGT 遗传学筛查指征评估器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>PGT 遗传学筛查指征评估器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

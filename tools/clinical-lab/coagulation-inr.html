@@ -141,11 +141,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="coagulation_inrPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__coagulation_inrExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div id="result"></div>
+    <div id="result"></div> <div id="coagulation_inrTable"></div> <div id="coagulation_inrDiff"></div> <div id="coagulation_inrChart"></div> <div id="coagulation_inrHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">华法林抗凝治疗目标INR</h3>
     <div class="target-row" id="targetRow"></div>
@@ -353,6 +353,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __coagulation_inr_last=0,__coagulation_inr_skip=false;
+function __coagulation_inrSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __coagulation_inrResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __coagulation_inrTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __coagulation_inrRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__coagulation_inrTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#coagulation_inrTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#coagulation_inrDiff');
+        TBKit.history.mount('#coagulation_inrHist',function(rec){
+            __coagulation_inr_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __coagulation_inr_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__coagulation_inrTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#coagulation_inrChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __coagulation_inrExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__coagulation_inr_skip) return;
+    var snap=__coagulation_inrSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__coagulation_inrResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__coagulation_inr_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __coagulation_inr_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __coagulation_inrRender(keys,rk,en);
+}
+function __coagulation_inrExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#coagulation_inrTable','coagulation-inr.csv'); } catch(e){}
+}
+function __coagulation_inrPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#coagulation_inrPresets',[{label:'默认参数',labelEn:'Default',values:{'pt':'14.5', 'ptNormal':'12.0', 'isi':'1.0', 'aptt':'30', 'apttNormal':'30'}}],function(){ calc(); });
+}
+var __coagulation_inr_f0=(typeof calc==='function')?calc:null;
+if(__coagulation_inr_f0){
+    calc=function(){ var __r=__coagulation_inr_f0.apply(null,arguments); try{ __coagulation_inrExtras(); }catch(e){} return __r; };
+}
+function __coagulation_inrBoot(){ try{ __coagulation_inrPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __coagulation_inrBoot();
+else document.addEventListener('DOMContentLoaded', __coagulation_inrBoot);
 </script>
 
 </body>

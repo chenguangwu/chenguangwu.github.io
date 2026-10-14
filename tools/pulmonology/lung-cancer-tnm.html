@@ -148,11 +148,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">检索分期</button>
+      <div id="lung_cancer_tnmPresets"></div><button type="button" class="btn primary" onclick="calc()">检索分期</button><button class="btn" type="button" onclick="__lung_cancer_tnmExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="lung_cancer_tnmTable"></div> <div id="lung_cancer_tnmDiff"></div> <div id="lung_cancer_tnmChart"></div> <div id="lung_cancer_tnmHist"></div>
   </div>
 
   <div class="card">
@@ -365,6 +365,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __lung_cancer_tnm_last=0,__lung_cancer_tnm_skip=false;
+function __lung_cancer_tnmSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __lung_cancer_tnmResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __lung_cancer_tnmTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __lung_cancer_tnmRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__lung_cancer_tnmTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#lung_cancer_tnmTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#lung_cancer_tnmDiff');
+        TBKit.history.mount('#lung_cancer_tnmHist',function(rec){
+            __lung_cancer_tnm_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __lung_cancer_tnm_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__lung_cancer_tnmTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#lung_cancer_tnmChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __lung_cancer_tnmExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__lung_cancer_tnm_skip) return;
+    var snap=__lung_cancer_tnmSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__lung_cancer_tnmResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__lung_cancer_tnm_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __lung_cancer_tnm_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __lung_cancer_tnmRender(keys,rk,en);
+}
+function __lung_cancer_tnmExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lung_cancer_tnmTable','lung-cancer-tnm.csv'); } catch(e){}
+}
+function __lung_cancer_tnmPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lung_cancer_tnmPresets',[{label:'默认参数',labelEn:'Default',values:{'t':'T1a', 'n':'N0', 'm':'M0'}}],function(){ calc(); });
+}
+var __lung_cancer_tnm_f0=(typeof calc==='function')?calc:null;
+if(__lung_cancer_tnm_f0){
+    calc=function(){ var __r=__lung_cancer_tnm_f0.apply(null,arguments); try{ __lung_cancer_tnmExtras(); }catch(e){} return __r; };
+}
+function __lung_cancer_tnmBoot(){ try{ __lung_cancer_tnmPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lung_cancer_tnmBoot();
+else document.addEventListener('DOMContentLoaded', __lung_cancer_tnmBoot);
 </script>
 
 </body>

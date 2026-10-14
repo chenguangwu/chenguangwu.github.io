@@ -126,11 +126,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">风险筛查</button>
+      <div id="stop_bangPresets"></div><button type="button" class="btn primary" onclick="calc()">风险筛查</button><button class="btn" type="button" onclick="__stop_bangExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="stop_bangTable"></div> <div id="stop_bangDiff"></div> <div id="stop_bangChart"></div> <div id="stop_bangHist"></div>
   </div>
 
   <div class="card">
@@ -300,6 +300,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __stop_bang_last=0,__stop_bang_skip=false;
+function __stop_bangSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __stop_bangResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __stop_bangTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __stop_bangRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__stop_bangTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#stop_bangTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#stop_bangDiff');
+        TBKit.history.mount('#stop_bangHist',function(rec){
+            __stop_bang_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __stop_bang_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__stop_bangTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#stop_bangChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __stop_bangExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__stop_bang_skip) return;
+    var snap=__stop_bangSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__stop_bangResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__stop_bang_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __stop_bang_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __stop_bangRender(keys,rk,en);
+}
+function __stop_bangExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stop_bangTable','stop-bang.csv'); } catch(e){}
+}
+function __stop_bangPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __stop_bang_f0=(typeof calc==='function')?calc:null;
+if(__stop_bang_f0){
+    calc=function(){ var __r=__stop_bang_f0.apply(null,arguments); try{ __stop_bangExtras(); }catch(e){} return __r; };
+}
+function __stop_bangBoot(){ try{ __stop_bangPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stop_bangBoot();
+else document.addEventListener('DOMContentLoaded', __stop_bangBoot);
 </script>
 
 </body>

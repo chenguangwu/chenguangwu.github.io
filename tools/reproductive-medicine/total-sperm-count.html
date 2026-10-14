@@ -130,10 +130,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>精液量 (mL)</label><input type="number" id="vol" value="3.0" step="0.1" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="total_sperm_countPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__total_sperm_countExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="total_sperm_countTable"></div> <div id="total_sperm_countDiff"></div> <div id="total_sperm_countChart"></div> <div id="total_sperm_countHist"></div>
   </div>
 
   <div class="card">
@@ -317,6 +317,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __total_sperm_count_last=0,__total_sperm_count_skip=false;
+function __total_sperm_countSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __total_sperm_countResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __total_sperm_countTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __total_sperm_countRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__total_sperm_countTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#total_sperm_countTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#total_sperm_countDiff');
+        TBKit.history.mount('#total_sperm_countHist',function(rec){
+            __total_sperm_count_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __total_sperm_count_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__total_sperm_countTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#total_sperm_countChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __total_sperm_countExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__total_sperm_count_skip) return;
+    var snap=__total_sperm_countSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__total_sperm_countResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__total_sperm_count_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __total_sperm_count_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __total_sperm_countRender(keys,rk,en);
+}
+function __total_sperm_countExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#total_sperm_countTable','total-sperm-count.csv'); } catch(e){}
+}
+function __total_sperm_countPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#total_sperm_countPresets',[{label:'默认参数',labelEn:'Default',values:{'conc':'40', 'vol':'3.0'}}],function(){ calc(); });
+}
+var __total_sperm_count_f0=(typeof calc==='function')?calc:null;
+if(__total_sperm_count_f0){
+    calc=function(){ var __r=__total_sperm_count_f0.apply(null,arguments); try{ __total_sperm_countExtras(); }catch(e){} return __r; };
+}
+function __total_sperm_countBoot(){ try{ __total_sperm_countPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __total_sperm_countBoot();
+else document.addEventListener('DOMContentLoaded', __total_sperm_countBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用总精子数计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>精子浓度 (×10⁶/mL)</li><li>精液量 (mL)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>总精子数计算器是做什么的？</dt><dd>按精子浓度与精液体积计算总精子数，对照参考值提示是否偏低，用于精液分析自查，纯前端计算非诊断。</dd><dt>如何使用总精子数计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>总精子数计算器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

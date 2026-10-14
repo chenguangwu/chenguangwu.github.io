@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查询支气管镜下常见病变(气道肿瘤、黏膜炎症、气道狭窄)的分级标准及临床意义">Bronchoscopy Grading</p>
 
     <div class="tabs" id="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('tumor')">气道肿瘤</button>
+      <div id="bronchoscopy_gradingPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('tumor')">气道肿瘤</button><button class="btn" type="button" onclick="__bronchoscopy_gradingExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('inflam')">黏膜炎症</button>
       <button type="button" class="tab-btn" onclick="switchTab('stenosis')">气道狭窄</button>
     </div>
@@ -135,7 +135,7 @@ s.parentNode.insertBefore(el, s);
           </select>
         </div>
       </div>
-      <div class="result-box" id="tumorRes"></div>
+      <div class="result-box" id="tumorRes"></div> <div id="bronchoscopy_gradingTable"></div> <div id="bronchoscopy_gradingDiff"></div> <div id="bronchoscopy_gradingChart"></div> <div id="bronchoscopy_gradingHist"></div>
     </div>
 
     <div class="tab-content" id="tab-inflam">
@@ -360,6 +360,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __bronchoscopy_grading_last=0,__bronchoscopy_grading_skip=false;
+function __bronchoscopy_gradingSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bronchoscopy_gradingResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bronchoscopy_gradingTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bronchoscopy_gradingRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bronchoscopy_gradingTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bronchoscopy_gradingTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bronchoscopy_gradingDiff');
+        TBKit.history.mount('#bronchoscopy_gradingHist',function(rec){
+            __bronchoscopy_grading_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __bronchoscopy_grading_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bronchoscopy_gradingTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bronchoscopy_gradingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bronchoscopy_gradingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bronchoscopy_grading_skip) return;
+    var snap=__bronchoscopy_gradingSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bronchoscopy_gradingResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bronchoscopy_grading_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bronchoscopy_grading_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bronchoscopy_gradingRender(keys,rk,en);
+}
+function __bronchoscopy_gradingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bronchoscopy_gradingTable','bronchoscopy-grading.csv'); } catch(e){}
+}
+function __bronchoscopy_gradingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bronchoscopy_gradingPresets',[{label:'默认参数',labelEn:'Default',values:{'tumorType':'0', 'inflamGrade':'0', 'stenGrade':'1'}}],function(){ switchTab(); });
+}
+var __bronchoscopy_grading_f0=(typeof switchTab==='function')?switchTab:null;
+if(__bronchoscopy_grading_f0){
+    switchTab=function(){ var __r=__bronchoscopy_grading_f0.apply(null,arguments); try{ __bronchoscopy_gradingExtras(); }catch(e){} return __r; };
+}
+function __bronchoscopy_gradingBoot(){ try{ __bronchoscopy_gradingPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bronchoscopy_gradingBoot();
+else document.addEventListener('DOMContentLoaded', __bronchoscopy_gradingBoot);
 </script>
 
 </body>
