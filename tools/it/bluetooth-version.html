@@ -277,6 +277,7 @@ calcTool();
 
 function __bluetooth_versionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __bluetooth_versionExtras(){
+    function __bluetooth_versionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var v=document.getElementById('v').value||'5.3';
     var v2=document.getElementById('v2').value||'5.0';
@@ -285,6 +286,7 @@ function __bluetooth_versionExtras(){
     var row=info[v]||info['5.3'], row2=info[v2]||info['5.0'];
     var sceneAdv={audio:v>='5.2'?'支持 LE Audio（LC3）':'仅经典音频（SBC/AAC）',iot:v>='5.0'?'广播容量大、mesh 稳定':'BLE 基础功能',peripheral:v>='5.0'?'速率/距离更优':'够用'}[scene]||'';
     var adv=parseFloat(v)>=parseFloat(v2)?'较新，特性更全':'旧版，兼容性更广';
+    if (!__bluetooth_versionRaw('v') || !__bluetooth_versionRaw('v2') || !__bluetooth_versionRaw('scene')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#bluetooth_versionTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -296,8 +298,9 @@ function __bluetooth_versionExtras(){
             ['建议', adv+' · '+sceneAdv],
         ]
     });
-    TBKit.history.record({v:v});
-    TBKit.history.mount('#bluetooth_versionHist',function(rec){  calcTool(); });
+    TBKit.history.record({v:__bluetooth_versionRaw('v'), v2:__bluetooth_versionRaw('v2'), scene:__bluetooth_versionRaw('scene'), info:info});
+    function __bluetooth_versionRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#bluetooth_versionHist',function(rec){ __bluetooth_versionRestore(rec); calcTool(); });
     TBKit.util.diffBox('#bluetooth_versionDiff',['v']);
 }
 function __bluetooth_versionExport(){

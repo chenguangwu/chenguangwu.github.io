@@ -115,6 +115,15 @@ def extract(page):
         g = re.search(r"__tbInputGuard\(\s*\[([^\]]*)\]", body)
         if g:
             inputs = re.findall(r"'([^']+)'", g.group(1))
+    num_ids = list(inputs)
+    # 补：calc 内直读 getElementById('id').value/.checked 的控件——num() 只覆盖数值输入，
+    # select/checkbox/列表粘贴输入直读曾致漏识别（记录缺列、历史缺字段、restore 丢状态，
+    # 如 drinking-water-plan 的 act/stage、free-space-impedance 的 x）
+    # .value/.checked 后不得紧跟 =（resetForm 的赋值形态，曾把 dummy 占位输入误纳）
+    for m in re.finditer(r"getElementById\('([\w-]+)'\)\.(?:value|checked)(?![^;]{0,4}=)", body):
+        iid = m.group(1)
+        if iid not in inputs and re.search(r'<(?:input|select|textarea)\b[^>]*\bid="%s"' % re.escape(iid), s):
+            inputs.append(iid)
     # dataGrid 数组
     dg = find_datagrid_array(body)
     if dg is None:
@@ -145,18 +154,50 @@ def extract(page):
         return None
     # 去掉 __ig 守卫整体
     pre = re.sub(r"var __ig=.*?return;\s*\}", "", pre, flags=re.S)
-    # 整块删除 if/for/while/switch(...) {...} 控制流（括号匹配，避免悬挂开括号）
-    pre = re.sub(r"\b(if|for|while|switch)\s*\([^()]*\)\s*\{[^}]*\}", "", pre, flags=re.S)
     # 去掉悬挂 const __gN=
     pre = re.sub(r"const\s+__g\d*\s*=\s*$", "", pre)
-    # 合并续行 + 仅保留纯赋值行（丢弃残留控制流/return）
+    # 语句级过滤：保留 ① const/var/let 赋值 ② 完整括号平衡的 if/else 链（花括号/无花括号均可）
+    # 整块丢弃 for/while/switch/try/function（花括号须平衡，防悬挂）；含 for/while/dataGrid 的
+    # if 链也丢。曾因整段删除花括号 if/else 致 `var Ea;`/`let I,W,desc;` 悬空 → 表行
+    # Ea.toFixed TypeError 被 try/catch 吞掉、明细表静默死亡（active-earth-rankine 真案例）；
+    # 也曾因丢弃无花括号 if 链致 `var perDay;` 悬空（diaper-usage 真案例）。
+    # 孤立 else（其 if 已被丢弃）必须一并丢弃，否则语法错。
+    def _brace_delta(t):
+        return t.count('{') - t.count('}')
     keep = []
-    for ln in pre.splitlines():
-        st = ln.strip()
+    lines = pre.splitlines()
+    i = 0
+    while i < len(lines):
+        st = lines[i].strip()
+        i += 1
         if not st:
             continue
         if re.match(r"^(const|var|let)\b", st) and "setResult" not in st and "__tbInputGuard" not in st and "__ig" not in st:
             keep.append(st)
+        elif re.match(r"^(if|else)\b", st):
+            # 收集完整 if/else-if/else 语句（花括号平衡为止）
+            stmt = [st]
+            depth = _brace_delta(st)
+            while depth > 0 and i < len(lines):
+                nxt = lines[i]
+                if not nxt.strip().startswith('//'):
+                    stmt.append(nxt.strip())  # 纯注释行跳过：拼行会把后续代码吞进注释
+                depth += _brace_delta(nxt)
+                i += 1
+            text = " ".join(x for x in stmt if x)
+            if re.match(r"^else\b", st) and not (keep and re.match(r"^(if|else)\b", keep[-1])):
+                continue  # 孤立 else：配对的 if 已丢弃 → 丢 else 防语法错
+            if re.search(r'\b(for|while)\s*\(|dataGrid\(', text):
+                continue  # 循环/表格生成无法安全内联 → 丢
+            if "setResult" in text or re.search(r'\breturn\b', text):
+                continue  # Extras 重跑段不能 setResult（覆写结果区/双弹提示）也不能提前 return（跳过记录与挂载）
+            keep.append(text)
+        elif re.match(r"^(for|while|switch|try|function)\b", st):
+            # 整块丢弃（消费到花括号平衡）
+            depth = _brace_delta(st)
+            while depth > 0 and i < len(lines):
+                depth += _brace_delta(lines[i])
+                i += 1
         elif keep and not re.match(r"^(const|var|let|if|for|while|switch|function|return|else|do|try|catch|throw|break|continue)\b", st):
             # 续行拼接：以 } ] ) 开头的闭合行，在上一行括号未闭合时（多行对象/数组字面量）必须拼回，
             # 否则会丢闭合括号产生语法错（如 const info={...} 跨行、闭合行独立成 `};`）。
@@ -166,14 +207,32 @@ def extract(page):
             keep[-1] += " " + st
         # 其余（控制流/孤立续行）丢弃
     pre = "\n".join(keep)
-    # primary 结果变量：第一个非输入的 const/var 赋值
+    # 末尾修剪：dataGrid 切分线（line_start）可能拦腰斩断「块体含 dataGrid 的 if/else」，
+    # 使 pre 末尾留下未闭合块头（如 `if (v2sq < 0) {`）→ extras 花括号不平衡 SyntaxError、
+    # 整块接线死（bernoulli-velocity / slope-line / quadratic-solver 真案例）。
+    # 正向扫描，只保留到最后一个「花括号深度归零」的行为止。
+    tl = pre.splitlines()
+    depth = 0
+    last_ok = -1
+    for idx, ln in enumerate(tl):
+        if depth == 0 and not ln.strip():
+            last_ok = idx
+            continue
+        depth += _brace_delta(ln)
+        if depth <= 0:
+            depth = 0
+            last_ok = idx
+    pre = "\n".join(tl[:last_ok + 1])
+    # primary 结果变量：第一个非输入的 const/var 赋值（compute 内联时块级 const/let
+    # 已全部提升为 var——函数作用域，Extras 顶层可达；dilution-c1v1 真案例：
+    # `if(...){ const V=...; }` 曾致 record 的 V:V ReferenceError）
     primary = None
     for mm in re.finditer(r"(?:const|var|let)\s+(\w+)\s*=", pre):
         v = mm.group(1)
         if v not in inputs and v not in ('__g1','__g2','__ig'):
             primary = v
             break
-    return {"inputs": inputs, "compute": pre, "dg_rows": rows, "primary": primary}
+    return {"inputs": inputs, "num_ids": num_ids, "compute": pre, "dg_rows": rows, "primary": primary}
 
 def find_tag_close(s, open_idx):
     """open_idx 指向 '<tagname'；返回该元素闭合标签结束索引（自闭合返回开标签结束）。
@@ -281,6 +340,62 @@ def gen_script(name, info):
     # 预设：默认 + 2× + 0.5×（基于输入默认值，需从 HTML 取，这里先留占位，外部补）
     return inputs, compute, matrix_rows, rec, restore, primary
 
+def gen_classic_extras(p, inputs, compute, rows, primary, num_ids=None, diff_fields=None):
+    """生成经典模式 __xExtras 函数文本（行列表）。apply_page() 与历史缺陷修复脚本共用，
+    保证「重生成」与「新生成」同源。函数自包含（Raw/Restore 均为局部声明），
+    修复脚本可单独替换整个 Extras 块。"""
+    num_ids = set(num_ids or [])
+    js = []
+    js.append("function __%sExtras(){" % p)
+    # 原始值读取（select/checkbox/列表粘贴输入用；parseFloat 会丢列表与文本）
+    js.append("    function __%sRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}" % p)
+    js.append("    if (typeof TBKit === 'undefined') return;")
+    # 重跑计算（复用页面赋值段）；const/let 转 var 避免重复声明（如同名系数数组与输入）
+    for line in compute.splitlines():
+        line = line.strip()
+        if line:
+            line = re.sub(r'^(const|let)\b', 'var', line)
+            # 行内 if/else 块中的 const/let → var：块级声明在 Extras 顶层不可达
+            # （dilution-c1v1 真案例：`if(...){ const V=...; }` 致 record 的 V:V
+            #  ReferenceError → 整表+记录死）。要求后跟 `标识符=` 防误伤对象属性。
+            line = re.sub(r'([{,]\s*)(const|let)\s+(\w+\s*=)', r'\1var \3', line)
+            js.append("    " + line)
+    # 守卫：数值输入 NaN 跳过；非数值输入（select/checkbox/列表）空值跳过
+    if inputs:
+        gp = []
+        for i in inputs:
+            if i in num_ids:
+                gp.append("!isFinite(__%sNum('%s'))" % (p, i))
+            else:
+                gp.append("!__%sRaw('%s')" % (p, i))
+        js.append("    if (%s) return;" % " || ".join(gp))
+    js.append("    var en=TBKit.util.isEn();")
+    # matrix 表
+    js.append("    TBKit.matrix.table('#%sTable',{" % p)
+    js.append("        head: en?['Item','Value']:['项目','数值'],")
+    js.append("        rows: [")
+    for val, lbl in rows:
+        js.append("            [%r, %s]," % (lbl, val))
+    js.append("        ]")
+    js.append("    });")
+    # history（输入字段 + 主结果；无输入页 rec 仅含主结果，避免前导逗号语法错误）
+    rec_parts = ["%s:__%sRaw('%s')" % (i, p, i) for i in inputs]
+    if primary:
+        rec_parts.append("%s:%s" % (primary, primary))
+    js.append("    TBKit.history.record({%s});" % ", ".join(rec_parts))
+    # 回填：checkbox/radio 按勾选态还原（设 .value 不生效，曾致 restore 后状态丢失、
+    # 重算结果与历史记录不符）；其余控件按值回填
+    js.append("    function __%sRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}" % p)
+    js.append("    TBKit.history.mount('#%sHist',function(rec){ __%sRestore(rec); calcTool(); });" % (p, p))
+    # diffBox：优先保留原页已有的对比字段（可能是派生量，如 __g0/dx），避免有损重生成丢
+    # compare 特征（实测 quadratic-solver/slope-line 原 diff 在派生量上，primary 提取为 None
+    # 致整行消失 → 基线 compare 掉分）。diff_fields 为空且 primary 存在时用 primary。
+    _diff = diff_fields if diff_fields else ([primary] if primary else None)
+    if _diff:
+        js.append("    TBKit.util.diffBox('#%sDiff',[%s]);" % (p, ",".join("'%s'" % f for f in _diff)))
+    js.append("}")
+    return js
+
 def apply_page(page, dry=False):
     # 含嵌套函数定义（erf/invNorm 等）的页：提取会打碎函数体、把局部 const 展平到同一作用域，
     # 导致「already been declared」或表格静默失效 → 跳过，留待手动 A 档精做（不破坏核心计算）。
@@ -328,39 +443,7 @@ def apply_page(page, dry=False):
 
     js = []
     js.append("function __%sNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}" % p)
-    js.append("function __%sExtras(){" % p)
-    js.append("    if (typeof TBKit === 'undefined') return;")
-    # 重跑计算（复用页面赋值段）；const/let 转 var 避免重复声明（如同名系数数组与输入）
-    for line in compute.splitlines():
-        line = line.strip()
-        if line:
-            line = re.sub(r'^(const|let)\b', 'var', line)
-            js.append("    " + line)
-    # 守卫：任一输入 NaN 则返回（无输入页跳过守卫，避免 if () 语法错误）
-    if inputs:
-        guard = " || ".join("!isFinite(__%sNum('%s'))" % (p, i) for i in inputs)
-        js.append("    if (%s) return;" % guard)
-    js.append("    var en=TBKit.util.isEn();")
-    # matrix 表
-    js.append("    TBKit.matrix.table('#%sTable',{" % p)
-    js.append("        head: en?['Item','Value']:['项目','数值'],")
-    js.append("        rows: [")
-    for val, lbl in rows:
-        js.append("            [%r, %s]," % (lbl, val))
-    js.append("        ]")
-    js.append("    });")
-    # history（输入字段 + 主结果；无输入页 rec 仅含主结果，避免前导逗号语法错误）
-    rec_parts = ["%s:__%sNum('%s')" % (i, p, i) for i in inputs]
-    if primary:
-        rec_parts.append("%s:%s" % (primary, primary))
-    rec = ", ".join(rec_parts)
-    js.append("    TBKit.history.record({%s});" % rec)
-    restore = " ".join("if(rec.%s!=null)document.getElementById('%s').value=rec.%s;" % (i, i, i) for i in inputs)
-    js.append("    TBKit.history.mount('#%sHist',function(rec){ %s calcTool(); });" % (p, restore))
-    # diffBox
-    if primary:
-        js.append("    TBKit.util.diffBox('#%sDiff',['%s']);" % (p, primary))
-    js.append("}")
+    js.extend(gen_classic_extras(p, inputs, compute, rows, primary, info.get("num_ids")))
     # export
     js.append("function __%sExport(){" % p)
     js.append("    if (typeof TBKit === 'undefined') return;")
@@ -417,6 +500,50 @@ def apply_page(page, dry=False):
             return "written-but-en-json-err:%s" % e
     return "applied"
 
+def gen_custom_render(p, fn):
+    """生成 custom 模式 __pRender 函数文本（行列表）。apply_custom() 与历史缺陷修复脚本
+    共用。回填对 checkbox/radio 按勾选态还原（设 .value 不生效，曾致 restore 后状态
+    丢失、重算结果与历史记录不符）。"""
+    js = []
+    js.append("function __%sRender(keys,rk,en){" % p)
+    js.append("    try{")
+    js.append("        var arr=TBKit.history.list().slice(0,10);")
+    js.append("        var head=[en?'Time':'时间'].concat(keys).concat([rk]);")
+    js.append("        var rows=arr.map(function(it){")
+    js.append("            var row=[__%sTime(it.t)];" % p)
+    js.append("            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}")
+    js.append("            var r=it.d[rk];row.push(r==null?'':r);")
+    js.append("            return row;")
+    js.append("        });")
+    js.append("        TBKit.matrix.table('#%sTable',{head:head,rows:rows});" % p)
+    js.append("        TBKit.util.diffBox('#%sDiff');" % p)
+    js.append("        TBKit.history.mount('#%sHist',function(rec){" % p)
+    js.append("            __%s_skip=true;" % p)
+    js.append("            try{")
+    js.append("                for(var k in rec){")
+    js.append("                    if(k===rk) continue;")
+    js.append("                    var e=document.getElementById(k);")
+    js.append("                    if(!e) continue;")
+    js.append("                    var t=(e.type||'').toLowerCase();")
+    js.append("                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}")
+    js.append("                    else{e.value=rec[k];}")
+    js.append("                }")
+    js.append("                %s();" % fn)
+    js.append("            }catch(e2){}")
+    js.append("            __%s_skip=false;" % p)
+    js.append("        });")
+    js.append("        var nums=[],labels=[];")
+    js.append("        for(var j=arr.length-1;j>=0;j--){")
+    js.append("            var v=parseFloat(arr[j].d[rk]);")
+    js.append("            if(isFinite(v)){nums.push(v);labels.push(__%sTime(arr[j].t));}" % p)
+    js.append("        }")
+    js.append("        if(nums.length>=2){")
+    js.append("            TBKit.chart.line('#%sChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});" % p)
+    js.append("        }")
+    js.append("    }catch(e3){}")
+    js.append("}")
+    return js
+
 def apply_custom(page, dry=False):
     """新架构手工页接线：包装顶层 calc 函数，calc 后快照输入+结果摘要，
     经 TBKit 落 history/matrix/diffBox/chart/preset/export。全部 try 包裹，
@@ -464,40 +591,7 @@ def apply_custom(page, dry=False):
     js.append("    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());")
     js.append("}")
     # 渲染：明细表 + 与上次相比 + 历史面板 + 趋势图
-    js.append("function __%sRender(keys,rk,en){" % p)
-    js.append("    try{")
-    js.append("        var arr=TBKit.history.list().slice(0,10);")
-    js.append("        var head=[en?'Time':'时间'].concat(keys).concat([rk]);")
-    js.append("        var rows=arr.map(function(it){")
-    js.append("            var row=[__%sTime(it.t)];" % p)
-    js.append("            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}")
-    js.append("            var r=it.d[rk];row.push(r==null?'':r);")
-    js.append("            return row;")
-    js.append("        });")
-    js.append("        TBKit.matrix.table('#%sTable',{head:head,rows:rows});" % p)
-    js.append("        TBKit.util.diffBox('#%sDiff');" % p)
-    js.append("        TBKit.history.mount('#%sHist',function(rec){" % p)
-    js.append("            __%s_skip=true;" % p)
-    js.append("            try{")
-    js.append("                for(var k in rec){")
-    js.append("                    if(k===rk) continue;")
-    js.append("                    var e=document.getElementById(k);")
-    js.append("                    if(e) e.value=rec[k];")
-    js.append("                }")
-    js.append("                %s();" % fn)
-    js.append("            }catch(e2){}")
-    js.append("            __%s_skip=false;" % p)
-    js.append("        });")
-    js.append("        var nums=[],labels=[];")
-    js.append("        for(var j=arr.length-1;j>=0;j--){")
-    js.append("            var v=parseFloat(arr[j].d[rk]);")
-    js.append("            if(isFinite(v)){nums.push(v);labels.push(__%sTime(arr[j].t));}" % p)
-    js.append("        }")
-    js.append("        if(nums.length>=2){")
-    js.append("            TBKit.chart.line('#%sChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});" % p)
-    js.append("        }")
-    js.append("    }catch(e3){}")
-    js.append("}")
+    js.extend(gen_custom_render(p, fn))
     # extras：快照 + 记录（1s 防抖 + 同参去重）+ 渲染
     js.append("function __%sExtras(){" % p)
     js.append("    if (typeof TBKit === 'undefined') return;")

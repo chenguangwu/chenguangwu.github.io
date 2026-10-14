@@ -201,9 +201,11 @@ calcTool();
 
 function __energy_discreteNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __energy_discreteExtras(){
+    function __energy_discreteRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var s=document.getElementById('s').value.split(/[ ,]+/).filter(Boolean).map(Number);
     var E=s.reduce(function(a,b){return a+b*b;},0);
+    if (!__energy_discreteRaw('s')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#energy_discreteTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -214,8 +216,9 @@ function __energy_discreteExtras(){
             ['均方根值 RMS', (Math.sqrt(E/(s.length||1))).toFixed(4)],
         ]
     });
-    TBKit.history.record({s:s});
-    TBKit.history.mount('#energy_discreteHist',function(rec){  calcTool(); });
+    TBKit.history.record({s:__energy_discreteRaw('s'), E:E});
+    function __energy_discreteRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#energy_discreteHist',function(rec){ __energy_discreteRestore(rec); calcTool(); });
     TBKit.util.diffBox('#energy_discreteDiff',['s']);
 }
 function __energy_discreteExport(){

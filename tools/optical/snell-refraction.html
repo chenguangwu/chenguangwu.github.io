@@ -265,10 +265,13 @@ calcTool();
 
 function __snell_refractionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __snell_refractionExtras(){
+    function __snell_refractionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var n1=num('n1'), n2=num('n2'), t1=num('theta1')*Math.PI/180;
     var s = n1*Math.sin(t1)/n2;
     var out;
+    if (s>1) out='发生全反射，无折射光';
+    else out=(Math.asin(s)*180/Math.PI).toFixed(2)+' °';
     if (!isFinite(__snell_refractionNum('n1')) || !isFinite(__snell_refractionNum('n2')) || !isFinite(__snell_refractionNum('theta1'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#snell_refractionTable',{
@@ -278,8 +281,9 @@ function __snell_refractionExtras(){
             ['n₁·sinθ₁', (n1*Math.sin(t1)).toFixed(4)],
         ]
     });
-    TBKit.history.record({n1:__snell_refractionNum('n1'), n2:__snell_refractionNum('n2'), theta1:__snell_refractionNum('theta1'), s:s});
-    TBKit.history.mount('#snell_refractionHist',function(rec){ if(rec.n1!=null)document.getElementById('n1').value=rec.n1; if(rec.n2!=null)document.getElementById('n2').value=rec.n2; if(rec.theta1!=null)document.getElementById('theta1').value=rec.theta1; calcTool(); });
+    TBKit.history.record({n1:__snell_refractionRaw('n1'), n2:__snell_refractionRaw('n2'), theta1:__snell_refractionRaw('theta1'), s:s});
+    function __snell_refractionRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#snell_refractionHist',function(rec){ __snell_refractionRestore(rec); calcTool(); });
     TBKit.util.diffBox('#snell_refractionDiff',['s']);
 }
 function __snell_refractionExport(){

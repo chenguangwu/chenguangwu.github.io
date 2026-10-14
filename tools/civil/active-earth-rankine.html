@@ -224,11 +224,15 @@ calcTool();
 
 function __active_earth_rankineNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __active_earth_rankineExtras(){
+    function __active_earth_rankineRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var g=num('gamma'), H=num('H'), phi=num('phi')*Math.PI/180, c=num('c');
     var Ka = Math.pow(Math.tan(Math.PI/4 - phi/2),2);
     var z0 = 0;
+    if(c>0) z0 = 2*c/Math.sqrt(Ka)/g;
     var Ea;
+    if(c>0 && z0>=H){ Ea=0; }
+    else { Ea = 0.5*g*H*H*Ka - 2*c*H*Math.sqrt(Ka); if(Ea<0) Ea=0; }
     var pa_bottom = g*H*Ka - 2*c*Math.sqrt(Ka);
     if (!isFinite(__active_earth_rankineNum('gamma')) || !isFinite(__active_earth_rankineNum('H')) || !isFinite(__active_earth_rankineNum('phi')) || !isFinite(__active_earth_rankineNum('c'))) return;
     var en=TBKit.util.isEn();
@@ -241,8 +245,9 @@ function __active_earth_rankineExtras(){
             ['主动土压力合力 E_a (kN/m)', Ea.toFixed(1)],
         ]
     });
-    TBKit.history.record({gamma:__active_earth_rankineNum('gamma'), H:__active_earth_rankineNum('H'), phi:__active_earth_rankineNum('phi'), c:__active_earth_rankineNum('c'), g:g});
-    TBKit.history.mount('#active_earth_rankineHist',function(rec){ if(rec.gamma!=null)document.getElementById('gamma').value=rec.gamma; if(rec.H!=null)document.getElementById('H').value=rec.H; if(rec.phi!=null)document.getElementById('phi').value=rec.phi; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+    TBKit.history.record({gamma:__active_earth_rankineRaw('gamma'), H:__active_earth_rankineRaw('H'), phi:__active_earth_rankineRaw('phi'), c:__active_earth_rankineRaw('c'), g:g});
+    function __active_earth_rankineRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#active_earth_rankineHist',function(rec){ __active_earth_rankineRestore(rec); calcTool(); });
     TBKit.util.diffBox('#active_earth_rankineDiff',['g']);
 }
 function __active_earth_rankineExport(){

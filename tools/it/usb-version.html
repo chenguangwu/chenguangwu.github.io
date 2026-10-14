@@ -276,6 +276,7 @@ calcTool();
 
 function __usb_versionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __usb_versionExtras(){
+    function __usb_versionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var v=document.getElementById('v').value||'3.2';
     var v2=document.getElementById('v2').value||'2.0';
@@ -284,6 +285,7 @@ function __usb_versionExtras(){
     var row=info[v]||info['3.2'], row2=info[v2]||info['2.0'];
     var connNote={usbc:parseFloat(v)>=3.1?'USB-C 支持全速率':'USB-C 仅承载较低速率',typea:parseFloat(v)<=3.0?'Type-A 常见':'Type-A 少见（需 C）',micro:parseFloat(v)<=2.0?'Micro 常见':'Micro 已淘汰'}[conn]||'';
     var adv=parseFloat(v)>=parseFloat(v2)?'较新，速率更高':'旧版，兼容更广';
+    if (!__usb_versionRaw('v') || !__usb_versionRaw('v2') || !__usb_versionRaw('conn')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#usb_versionTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -295,8 +297,9 @@ function __usb_versionExtras(){
             ['建议', adv+' · '+connNote],
         ]
     });
-    TBKit.history.record({v:v});
-    TBKit.history.mount('#usb_versionHist',function(rec){  calcTool(); });
+    TBKit.history.record({v:__usb_versionRaw('v'), v2:__usb_versionRaw('v2'), conn:__usb_versionRaw('conn'), info:info});
+    function __usb_versionRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#usb_versionHist',function(rec){ __usb_versionRestore(rec); calcTool(); });
     TBKit.util.diffBox('#usb_versionDiff',['v']);
 }
 function __usb_versionExport(){

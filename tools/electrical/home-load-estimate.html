@@ -290,6 +290,7 @@ calcTool();
 
 function __home_load_estimateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __home_load_estimateExtras(){
+    function __home_load_estimateRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var fridge=num('fridge'), ac=num('ac'), washer=num('washer'), wh=num('waterheater'), kitchen=num('kitchen'), light=num('light');
     var totalInstalled=fridge*200+ac*1200+washer*500+wh*2000+kitchen+light; // 需用系数：同时开启的比例估算
@@ -297,6 +298,11 @@ function __home_load_estimateExtras(){
     var load=totalInstalled*coeff;
     var current=load/220; // 进线建议
     var wire, breaker;
+    if(current<=25){wire='2.5 mm²';breaker='32 A';}
+    else if(current<=35){wire='4 mm²';breaker='40 A';}
+    else if(current<=50){wire='6 mm²';breaker='50 A';}
+    else if(current<=70){wire='10 mm²';breaker='63 A';}
+    else{wire='≥16 mm²（需复核）';breaker='≥80 A';}
     if (!isFinite(__home_load_estimateNum('fridge')) || !isFinite(__home_load_estimateNum('ac')) || !isFinite(__home_load_estimateNum('washer')) || !isFinite(__home_load_estimateNum('waterheater')) || !isFinite(__home_load_estimateNum('kitchen')) || !isFinite(__home_load_estimateNum('light'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#home_load_estimateTable',{
@@ -309,8 +315,9 @@ function __home_load_estimateExtras(){
             ['建议总开关', breaker],
         ]
     });
-    TBKit.history.record({fridge:__home_load_estimateNum('fridge'), ac:__home_load_estimateNum('ac'), washer:__home_load_estimateNum('washer'), waterheater:__home_load_estimateNum('waterheater'), kitchen:__home_load_estimateNum('kitchen'), light:__home_load_estimateNum('light'), totalInstalled:totalInstalled});
-    TBKit.history.mount('#home_load_estimateHist',function(rec){ if(rec.fridge!=null)document.getElementById('fridge').value=rec.fridge; if(rec.ac!=null)document.getElementById('ac').value=rec.ac; if(rec.washer!=null)document.getElementById('washer').value=rec.washer; if(rec.waterheater!=null)document.getElementById('waterheater').value=rec.waterheater; if(rec.kitchen!=null)document.getElementById('kitchen').value=rec.kitchen; if(rec.light!=null)document.getElementById('light').value=rec.light; calcTool(); });
+    TBKit.history.record({fridge:__home_load_estimateRaw('fridge'), ac:__home_load_estimateRaw('ac'), washer:__home_load_estimateRaw('washer'), waterheater:__home_load_estimateRaw('waterheater'), kitchen:__home_load_estimateRaw('kitchen'), light:__home_load_estimateRaw('light'), totalInstalled:totalInstalled});
+    function __home_load_estimateRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#home_load_estimateHist',function(rec){ __home_load_estimateRestore(rec); calcTool(); });
     TBKit.util.diffBox('#home_load_estimateDiff',['totalInstalled']);
 }
 function __home_load_estimateExport(){

@@ -286,9 +286,13 @@ calcTool();
 
 function __progressive_income_taxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __progressive_income_taxExtras(){
+    function __progressive_income_taxRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var I = num('income'), l1 = num('l1'), r1 = num('r1') / 100, l2 = num('l2'), r2 = num('r2') / 100, r3 = num('r3') / 100;
     var tax = 0;
+    if (I > 0) tax += Math.min(I, l1) * r1;
+    if (I > l1) tax += Math.min(I - l1, l2 - l1) * r2;
+    if (I > l2) tax += (I - l2) * r3;
     if (!isFinite(__progressive_income_taxNum('income')) || !isFinite(__progressive_income_taxNum('l1')) || !isFinite(__progressive_income_taxNum('r1')) || !isFinite(__progressive_income_taxNum('l2')) || !isFinite(__progressive_income_taxNum('r2')) || !isFinite(__progressive_income_taxNum('r3'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#progressive_income_taxTable',{
@@ -298,8 +302,9 @@ function __progressive_income_taxExtras(){
             ['实际税率 (%)', (tax / I * 100).toFixed(2)],
         ]
     });
-    TBKit.history.record({income:__progressive_income_taxNum('income'), l1:__progressive_income_taxNum('l1'), r1:__progressive_income_taxNum('r1'), l2:__progressive_income_taxNum('l2'), r2:__progressive_income_taxNum('r2'), r3:__progressive_income_taxNum('r3'), I:I});
-    TBKit.history.mount('#progressive_income_taxHist',function(rec){ if(rec.income!=null)document.getElementById('income').value=rec.income; if(rec.l1!=null)document.getElementById('l1').value=rec.l1; if(rec.r1!=null)document.getElementById('r1').value=rec.r1; if(rec.l2!=null)document.getElementById('l2').value=rec.l2; if(rec.r2!=null)document.getElementById('r2').value=rec.r2; if(rec.r3!=null)document.getElementById('r3').value=rec.r3; calcTool(); });
+    TBKit.history.record({income:__progressive_income_taxRaw('income'), l1:__progressive_income_taxRaw('l1'), r1:__progressive_income_taxRaw('r1'), l2:__progressive_income_taxRaw('l2'), r2:__progressive_income_taxRaw('r2'), r3:__progressive_income_taxRaw('r3'), I:I});
+    function __progressive_income_taxRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#progressive_income_taxHist',function(rec){ __progressive_income_taxRestore(rec); calcTool(); });
     TBKit.util.diffBox('#progressive_income_taxDiff',['I']);
 }
 function __progressive_income_taxExport(){

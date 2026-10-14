@@ -293,6 +293,7 @@ calcTool();
 
 function __video_bitrateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __video_bitrateExtras(){
+    function __video_bitrateRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var w=num('w'), h=num('h'), fps=Math.floor(num('fps')), dur=num('dur'), br=num('br');
     var pixels=w*h;
@@ -302,6 +303,11 @@ function __video_bitrateExtras(){
     var rec={p480:2.5,p720:5,p1080:8,p1440:16,p2160:35};
     var px=pixels;
     var recBr;
+    if(px<=854*480) recBr=rec.p480;
+    else if(px<=1280*720) recBr=rec.p720;
+    else if(px<=1920*1080) recBr=rec.p1080;
+    else if(px<=2560*1440) recBr=rec.p1440;
+    else recBr=rec.p2160;
     var recSize=recBr*1000000/8/1024/1024*dur*60;
     if (!isFinite(__video_bitrateNum('w')) || !isFinite(__video_bitrateNum('h')) || !isFinite(__video_bitrateNum('fps')) || !isFinite(__video_bitrateNum('dur')) || !isFinite(__video_bitrateNum('br'))) return;
     var en=TBKit.util.isEn();
@@ -315,8 +321,9 @@ function __video_bitrateExtras(){
             ['推荐码率下大小', recSize.toFixed(1)+' MB'],
         ]
     });
-    TBKit.history.record({w:__video_bitrateNum('w'), h:__video_bitrateNum('h'), fps:__video_bitrateNum('fps'), dur:__video_bitrateNum('dur'), br:__video_bitrateNum('br'), pixels:pixels});
-    TBKit.history.mount('#video_bitrateHist',function(rec){ if(rec.w!=null)document.getElementById('w').value=rec.w; if(rec.h!=null)document.getElementById('h').value=rec.h; if(rec.fps!=null)document.getElementById('fps').value=rec.fps; if(rec.dur!=null)document.getElementById('dur').value=rec.dur; if(rec.br!=null)document.getElementById('br').value=rec.br; calcTool(); });
+    TBKit.history.record({w:__video_bitrateRaw('w'), h:__video_bitrateRaw('h'), fps:__video_bitrateRaw('fps'), dur:__video_bitrateRaw('dur'), br:__video_bitrateRaw('br'), pixels:pixels});
+    function __video_bitrateRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#video_bitrateHist',function(rec){ __video_bitrateRestore(rec); calcTool(); });
     TBKit.util.diffBox('#video_bitrateDiff',['pixels']);
 }
 function __video_bitrateExport(){

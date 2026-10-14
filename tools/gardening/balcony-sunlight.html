@@ -270,6 +270,7 @@ calcTool();
 
 function __balcony_sunlightNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __balcony_sunlightExtras(){
+    function __balcony_sunlightRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var dir=document.getElementById('dir').value||'south', floor=document.getElementById('floor').value||'mid', season=document.getElementById('season').value||'spring'; // 基准直射光照（小时/天）按朝向×季节（含兜底）
     var sunTab={south:{spring:6,summer:8,autumn:6,winter:4},east:{spring:4,summer:5,autumn:3.5,winter:3},west:{spring:4,summer:6,autumn:4,winter:2.5},north:{spring:1.5,summer:2,autumn:1,winter:0.5}};
@@ -279,6 +280,11 @@ function __balcony_sunlightExtras(){
     var dirName={south:'南向',east:'东向',west:'西向',north:'北向'}[dir]||'南向';
     var seasonName={spring:'春',summer:'夏',autumn:'秋',winter:'冬'}[season]||'春'; // 植物推荐
     var rec='', type='';
+    if(hours>=6){ type='全日照'; rec='月季、茉莉、三角梅、蓝雪花、多肉、向日葵'; }
+    else if(hours>=4){ type='半日照'; rec='长寿花、天竺葵、绣球（遮午）、薄荷、矮牵牛'; }
+    else if(hours>=2){ type='散射光'; rec='绿萝、吊兰、龟背竹、发财树、文竹、常春藤'; }
+    else { type='耐阴'; rec='虎皮兰、一叶兰、蕨类、竹芋、白掌'; }
+    if (!__balcony_sunlightRaw('dir') || !__balcony_sunlightRaw('floor') || !__balcony_sunlightRaw('season')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#balcony_sunlightTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -288,8 +294,9 @@ function __balcony_sunlightExtras(){
             ['朝向 · 季节', dirName+' · '+seasonName],
         ]
     });
-    TBKit.history.record({dir:dir});
-    TBKit.history.mount('#balcony_sunlightHist',function(rec){  calcTool(); });
+    TBKit.history.record({dir:__balcony_sunlightRaw('dir'), floor:__balcony_sunlightRaw('floor'), season:__balcony_sunlightRaw('season'), sunTab:sunTab});
+    function __balcony_sunlightRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#balcony_sunlightHist',function(rec){ __balcony_sunlightRestore(rec); calcTool(); });
     TBKit.util.diffBox('#balcony_sunlightDiff',['dir']);
 }
 function __balcony_sunlightExport(){

@@ -275,15 +275,17 @@ calcTool();
 
 function __drinking_water_planNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __drinking_water_planExtras(){
+    function __drinking_water_planRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var w=num('w'), act=document.getElementById('act').value, temp=num('temp'), stage=document.getElementById('stage').value; // 基础：30ml/kg（WHO 一般成人建议区间 30-35ml/kg）
     var base=w*30;
     var actAdd={none:0,light:200,mid:500,high:800}[act]||0;
     var tempAdd=0;
+    if(temp>=30) tempAdd=400; else if(temp>=25) tempAdd=250;
     var stageAdd={normal:0,preg:300,lact:700}[stage]||0;
     var total=base+actAdd+tempAdd+stageAdd;
     var cups=total/250; // 分段计划：7:00-22:00 每段 1.5h，按比例分配
-    if (!isFinite(__drinking_water_planNum('w')) || !isFinite(__drinking_water_planNum('temp'))) return;
+    if (!isFinite(__drinking_water_planNum('w')) || !isFinite(__drinking_water_planNum('temp')) || !__drinking_water_planRaw('act') || !__drinking_water_planRaw('stage')) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#drinking_water_planTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -294,8 +296,9 @@ function __drinking_water_planExtras(){
             ['基础量（体重×30ml）', base+' ml'],
         ]
     });
-    TBKit.history.record({w:__drinking_water_planNum('w'), temp:__drinking_water_planNum('temp'), base:base});
-    TBKit.history.mount('#drinking_water_planHist',function(rec){ if(rec.w!=null)document.getElementById('w').value=rec.w; if(rec.temp!=null)document.getElementById('temp').value=rec.temp; calcTool(); });
+    TBKit.history.record({w:__drinking_water_planRaw('w'), temp:__drinking_water_planRaw('temp'), act:__drinking_water_planRaw('act'), stage:__drinking_water_planRaw('stage'), base:base});
+    function __drinking_water_planRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#drinking_water_planHist',function(rec){ __drinking_water_planRestore(rec); calcTool(); });
     TBKit.util.diffBox('#drinking_water_planDiff',['base']);
 }
 function __drinking_water_planExport(){
