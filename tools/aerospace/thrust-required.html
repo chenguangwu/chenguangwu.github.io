@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="thrust_requiredPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__thrust_requiredExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="thrust_requiredTable"></div>
+    <div id="thrust_requiredDiff"></div>
+    <div id="thrust_requiredHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,43 @@ calcTool();
     }
   ]
 }
+
+function __thrust_requiredNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __thrust_requiredExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho=num('rho'),v=num('v'),S=num('s'),cd=num('cd');
+    var T=0.5*rho*v*v*S*cd;
+    if (!isFinite(__thrust_requiredNum('rho')) || !isFinite(__thrust_requiredNum('v')) || !isFinite(__thrust_requiredNum('s')) || !isFinite(__thrust_requiredNum('cd'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#thrust_requiredTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['所需推力 (kN)', (T/1000).toFixed(3)],
+            ['动压 q = ½ρv² (Pa)', (0.5*rho*v*v).toFixed(1)],
+            ['等效推力 (kgf)', (T/9.80665).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rho:__thrust_requiredNum('rho'), v:__thrust_requiredNum('v'), s:__thrust_requiredNum('s'), cd:__thrust_requiredNum('cd'), T:T});
+    TBKit.history.mount('#thrust_requiredHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.cd!=null)document.getElementById('cd').value=rec.cd; calcTool(); });
+    TBKit.util.diffBox('#thrust_requiredDiff',['T']);
+}
+function __thrust_requiredExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thrust_requiredTable','thrust-required.csv'); } catch(e){}
+}
+function __thrust_requiredPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thrust_requiredPresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1.225', v:'80', s:'16', cd:'0.05'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'2.45', v:'160', s:'32', cd:'0.1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'0.6125', v:'40', s:'8', cd:'0.025'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __thrust_requiredExtras(); }catch(e){} };
+function __thrust_requiredBoot(){ try{ __thrust_requiredPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thrust_requiredBoot();
+else document.addEventListener('DOMContentLoaded', __thrust_requiredBoot);
 </script>
 </body>
 </html>

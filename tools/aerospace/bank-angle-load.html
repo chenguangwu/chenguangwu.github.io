@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bank_angle_loadPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bank_angle_loadExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bank_angle_loadTable"></div>
+    <div id="bank_angle_loadDiff"></div>
+    <div id="bank_angle_loadHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,45 @@ calcTool();
     }
   ]
 }
+
+function __bank_angle_loadNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bank_angle_loadExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var phi=num('phi')*Math.PI/180;
+    var n=1/Math.cos(phi);
+    if (!isFinite(__bank_angle_loadNum('phi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bank_angle_loadTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['载荷因数 n', n.toFixed(3)],
+            ['坡度角 (°)', (phi*180/Math.PI).toFixed(4)],
+            ['坡度 (%)', (Math.tan(phi)*100).toFixed(4)],
+            ['载荷因数平方减一', (n*n-1).toFixed(4)],
+            ['坡度角余弦 cos φ', (Math.cos(phi)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({phi:__bank_angle_loadNum('phi'), n:n});
+    TBKit.history.mount('#bank_angle_loadHist',function(rec){ if(rec.phi!=null)document.getElementById('phi').value=rec.phi; calcTool(); });
+    TBKit.util.diffBox('#bank_angle_loadDiff',['n']);
+}
+function __bank_angle_loadExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bank_angle_loadTable','bank-angle-load.csv'); } catch(e){}
+}
+function __bank_angle_loadPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bank_angle_loadPresets',[
+        {label:'默认',labelEn:'Default',values:{phi:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{phi:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{phi:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bank_angle_loadExtras(); }catch(e){} };
+function __bank_angle_loadBoot(){ try{ __bank_angle_loadPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bank_angle_loadBoot();
+else document.addEventListener('DOMContentLoaded', __bank_angle_loadBoot);
 </script>
 </body>
 </html>

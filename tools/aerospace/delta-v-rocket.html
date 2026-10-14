@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="delta_v_rocketPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__delta_v_rocketExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="delta_v_rocketTable"></div>
+    <div id="delta_v_rocketDiff"></div>
+    <div id="delta_v_rocketHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -312,6 +318,42 @@ calcTool();
     }
   ]
 }
+
+function __delta_v_rocketNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __delta_v_rocketExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var isp=num('isp'),m0=num('m0'),mf=num('mf');
+    var dv=isp*9.81*Math.log(m0/mf);
+    if (!isFinite(__delta_v_rocketNum('isp')) || !isFinite(__delta_v_rocketNum('m0')) || !isFinite(__delta_v_rocketNum('mf'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#delta_v_rocketTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['速度增量 Δv (km/s)', (dv/1000).toFixed(2)],
+            ['Δv (m/s)', dv.toFixed(0)],
+        ]
+    });
+    TBKit.history.record({isp:__delta_v_rocketNum('isp'), m0:__delta_v_rocketNum('m0'), mf:__delta_v_rocketNum('mf'), dv:dv});
+    TBKit.history.mount('#delta_v_rocketHist',function(rec){ if(rec.isp!=null)document.getElementById('isp').value=rec.isp; if(rec.m0!=null)document.getElementById('m0').value=rec.m0; if(rec.mf!=null)document.getElementById('mf').value=rec.mf; calcTool(); });
+    TBKit.util.diffBox('#delta_v_rocketDiff',['dv']);
+}
+function __delta_v_rocketExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#delta_v_rocketTable','delta-v-rocket.csv'); } catch(e){}
+}
+function __delta_v_rocketPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#delta_v_rocketPresets',[
+        {label:'默认',labelEn:'Default',values:{isp:'300', m0:'500000', mf:'100000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{isp:'600', m0:'1000000', mf:'200000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{isp:'150', m0:'250000', mf:'50000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __delta_v_rocketExtras(); }catch(e){} };
+function __delta_v_rocketBoot(){ try{ __delta_v_rocketPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __delta_v_rocketBoot();
+else document.addEventListener('DOMContentLoaded', __delta_v_rocketBoot);
 </script>
 </body>
 </html>

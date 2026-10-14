@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="drag_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__drag_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="drag_forceTable"></div>
+    <div id="drag_forceDiff"></div>
+    <div id="drag_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,43 @@ calcTool();
     }
   ]
 }
+
+function __drag_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __drag_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho=num('rho'),v=num('v'),CD=num('CD'),A=num('A');
+    var D=0.5*rho*v*v*CD*A;
+    if (!isFinite(__drag_forceNum('rho')) || !isFinite(__drag_forceNum('v')) || !isFinite(__drag_forceNum('CD')) || !isFinite(__drag_forceNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#drag_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['阻力 D (N)', D.toFixed(2)],
+            ['动压 q = ½ρv² (Pa)', (0.5*rho*v*v).toFixed(1)],
+            ['阻力 (kgf)', (D/9.80665).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rho:__drag_forceNum('rho'), v:__drag_forceNum('v'), CD:__drag_forceNum('CD'), A:__drag_forceNum('A'), D:D});
+    TBKit.history.mount('#drag_forceHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.CD!=null)document.getElementById('CD').value=rec.CD; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#drag_forceDiff',['D']);
+}
+function __drag_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#drag_forceTable','drag-force.csv'); } catch(e){}
+}
+function __drag_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#drag_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1.225', v:'100', CD:'0.3', A:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'2.45', v:'200', CD:'0.6', A:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'0.6125', v:'50', CD:'0.15', A:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __drag_forceExtras(); }catch(e){} };
+function __drag_forceBoot(){ try{ __drag_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __drag_forceBoot();
+else document.addEventListener('DOMContentLoaded', __drag_forceBoot);
 </script>
 </body>
 </html>

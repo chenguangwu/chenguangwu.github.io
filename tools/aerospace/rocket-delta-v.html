@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rocket_delta_vPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rocket_delta_vExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rocket_delta_vTable"></div>
+    <div id="rocket_delta_vDiff"></div>
+    <div id="rocket_delta_vHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -315,6 +321,43 @@ calcTool();
     }
   ]
 }
+
+function __rocket_delta_vNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rocket_delta_vExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ve=num('ve'),m0=num('m0'),mf=num('mf');
+    var dv=ve*Math.log(m0/mf);
+    if (!isFinite(__rocket_delta_vNum('ve')) || !isFinite(__rocket_delta_vNum('m0')) || !isFinite(__rocket_delta_vNum('mf'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rocket_delta_vTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['速度增量 Δv (m/s)', dv.toFixed(1)],
+            ['质量比 m0/m_f', (m0/mf).toFixed(4)],
+            ['推进剂质量分数 (%)', ((m0-mf)/m0*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({ve:__rocket_delta_vNum('ve'), m0:__rocket_delta_vNum('m0'), mf:__rocket_delta_vNum('mf'), dv:dv});
+    TBKit.history.mount('#rocket_delta_vHist',function(rec){ if(rec.ve!=null)document.getElementById('ve').value=rec.ve; if(rec.m0!=null)document.getElementById('m0').value=rec.m0; if(rec.mf!=null)document.getElementById('mf').value=rec.mf; calcTool(); });
+    TBKit.util.diffBox('#rocket_delta_vDiff',['dv']);
+}
+function __rocket_delta_vExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rocket_delta_vTable','rocket-delta-v.csv'); } catch(e){}
+}
+function __rocket_delta_vPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rocket_delta_vPresets',[
+        {label:'默认',labelEn:'Default',values:{ve:'2500', m0:'100', mf:'50'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ve:'5000', m0:'200', mf:'100'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ve:'1250', m0:'50', mf:'25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rocket_delta_vExtras(); }catch(e){} };
+function __rocket_delta_vBoot(){ try{ __rocket_delta_vPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rocket_delta_vBoot();
+else document.addEventListener('DOMContentLoaded', __rocket_delta_vBoot);
 </script>
 </body>
 </html>

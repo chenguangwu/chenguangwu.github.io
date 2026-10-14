@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="lift_equationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__lift_equationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="lift_equationTable"></div>
+    <div id="lift_equationDiff"></div>
+    <div id="lift_equationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,43 @@ calcTool();
     }
   ]
 }
+
+function __lift_equationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lift_equationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho=num('rho'),v=num('v'),CL=num('CL'),A=num('A');
+    var L=0.5*rho*v*v*CL*A;
+    if (!isFinite(__lift_equationNum('rho')) || !isFinite(__lift_equationNum('v')) || !isFinite(__lift_equationNum('CL')) || !isFinite(__lift_equationNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#lift_equationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['升力 L (N)', L.toFixed(2)],
+            ['动压 q = ½ρv² (Pa)', (0.5*rho*v*v).toFixed(1)],
+            ['升力 (kgf)', (L/9.80665).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rho:__lift_equationNum('rho'), v:__lift_equationNum('v'), CL:__lift_equationNum('CL'), A:__lift_equationNum('A'), L:L});
+    TBKit.history.mount('#lift_equationHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.CL!=null)document.getElementById('CL').value=rec.CL; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#lift_equationDiff',['L']);
+}
+function __lift_equationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lift_equationTable','lift-equation.csv'); } catch(e){}
+}
+function __lift_equationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lift_equationPresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1.225', v:'100', CL:'0.5', A:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'2.45', v:'200', CL:'1', A:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'0.6125', v:'50', CL:'0.25', A:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __lift_equationExtras(); }catch(e){} };
+function __lift_equationBoot(){ try{ __lift_equationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lift_equationBoot();
+else document.addEventListener('DOMContentLoaded', __lift_equationBoot);
 </script>
 </body>
 </html>

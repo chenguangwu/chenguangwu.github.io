@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="descent_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__descent_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="descent_rateTable"></div>
+    <div id="descent_rateDiff"></div>
+    <div id="descent_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -257,6 +263,44 @@ calcTool();
     }
   ]
 }
+
+function __descent_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __descent_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),gamma=num('g')*Math.PI/180;
+    var sink=v*Math.sin(gamma);
+    if (!isFinite(__descent_rateNum('v')) || !isFinite(__descent_rateNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#descent_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['下降率 (m/min)', (sink*60).toFixed(1)],
+            ['下降率 (m/s)', sink.toFixed(2)],
+            ['水平速度 (m/s)', (v*Math.cos(gamma)).toFixed(2)],
+            ['下降梯度 (%)', (Math.tan(gamma)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v:__descent_rateNum('v'), g:__descent_rateNum('g'), sink:sink});
+    TBKit.history.mount('#descent_rateHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#descent_rateDiff',['sink']);
+}
+function __descent_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#descent_rateTable','descent-rate.csv'); } catch(e){}
+}
+function __descent_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#descent_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{v:'70', g:'-3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'140', g:'-6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'35', g:'-1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __descent_rateExtras(); }catch(e){} };
+function __descent_rateBoot(){ try{ __descent_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __descent_rateBoot();
+else document.addEventListener('DOMContentLoaded', __descent_rateBoot);
 </script>
 </body>
 </html>

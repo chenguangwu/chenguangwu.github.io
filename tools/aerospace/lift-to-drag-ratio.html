@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="lift_to_drag_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__lift_to_drag_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="lift_to_drag_ratioTable"></div>
+    <div id="lift_to_drag_ratioDiff"></div>
+    <div id="lift_to_drag_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -309,6 +315,43 @@ calcTool();
     }
   ]
 }
+
+function __lift_to_drag_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lift_to_drag_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var cl=num('cl'),cd=num('cd');
+    if (!isFinite(__lift_to_drag_ratioNum('cl')) || !isFinite(__lift_to_drag_ratioNum('cd'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#lift_to_drag_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['升阻比 L/D', (cl/cd).toFixed(2)],
+            ['阻力占比 (%)', (cd/cl*100).toFixed(2)],
+            ['下滑角 (°)', (Math.atan(cd/cl)*180/Math.PI).toFixed(3)],
+            ['升力占比 (%)', (cl/(cl+cd)*100).toFixed(2)],
+            ['升阻比百分数', (cl/cd*100).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({cl:__lift_to_drag_ratioNum('cl'), cd:__lift_to_drag_ratioNum('cd')});
+    TBKit.history.mount('#lift_to_drag_ratioHist',function(rec){ if(rec.cl!=null)document.getElementById('cl').value=rec.cl; if(rec.cd!=null)document.getElementById('cd').value=rec.cd; calcTool(); });
+}
+function __lift_to_drag_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lift_to_drag_ratioTable','lift-to-drag-ratio.csv'); } catch(e){}
+}
+function __lift_to_drag_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lift_to_drag_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{cl:'1.0', cd:'0.05'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{cl:'2', cd:'0.1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{cl:'0.5', cd:'0.025'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __lift_to_drag_ratioExtras(); }catch(e){} };
+function __lift_to_drag_ratioBoot(){ try{ __lift_to_drag_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lift_to_drag_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __lift_to_drag_ratioBoot);
 </script>
 </body>
 </html>

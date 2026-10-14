@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="breguet_rangePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__breguet_rangeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="breguet_rangeTable"></div>
+    <div id="breguet_rangeDiff"></div>
+    <div id="breguet_rangeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -319,6 +325,42 @@ calcTool();
     }
   ]
 }
+
+function __breguet_rangeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __breguet_rangeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),ld=num('ld'),wi=num('wi'),wf=num('wf');
+    var R=v*ld/9.81*Math.log(wi/wf);
+    if (!isFinite(__breguet_rangeNum('v')) || !isFinite(__breguet_rangeNum('ld')) || !isFinite(__breguet_rangeNum('wi')) || !isFinite(__breguet_rangeNum('wf'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#breguet_rangeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['航程 (km)', (R/1000).toFixed(1)],
+            ['航程 (n mile)', (R/1852).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({v:__breguet_rangeNum('v'), ld:__breguet_rangeNum('ld'), wi:__breguet_rangeNum('wi'), wf:__breguet_rangeNum('wf'), R:R});
+    TBKit.history.mount('#breguet_rangeHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.ld!=null)document.getElementById('ld').value=rec.ld; if(rec.wi!=null)document.getElementById('wi').value=rec.wi; if(rec.wf!=null)document.getElementById('wf').value=rec.wf; calcTool(); });
+    TBKit.util.diffBox('#breguet_rangeDiff',['R']);
+}
+function __breguet_rangeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#breguet_rangeTable','breguet-range.csv'); } catch(e){}
+}
+function __breguet_rangePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#breguet_rangePresets',[
+        {label:'默认',labelEn:'Default',values:{v:'120', ld:'12', wi:'12000', wf:'8000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'240', ld:'24', wi:'24000', wf:'16000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'60', ld:'6', wi:'6000', wf:'4000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __breguet_rangeExtras(); }catch(e){} };
+function __breguet_rangeBoot(){ try{ __breguet_rangePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __breguet_rangeBoot();
+else document.addEventListener('DOMContentLoaded', __breguet_rangeBoot);
 </script>
 </body>
 </html>

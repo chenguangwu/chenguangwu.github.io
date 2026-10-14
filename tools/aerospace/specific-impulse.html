@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="specific_impulsePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__specific_impulseExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="specific_impulseTable"></div>
+    <div id="specific_impulseDiff"></div>
+    <div id="specific_impulseHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -311,6 +317,44 @@ calcTool();
     }
   ]
 }
+
+function __specific_impulseNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __specific_impulseExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f'),md=num('mdot');
+    var isp=f/(md*9.81);
+    if (!isFinite(__specific_impulseNum('f')) || !isFinite(__specific_impulseNum('mdot'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#specific_impulseTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['比冲 Isp (s)', isp.toFixed(1)],
+            ['有效排气速度 (m/s)', (f/Math.max(md,1e-12)).toFixed(1)],
+            ['排气速度 (km/s)', (f/Math.max(md,1e-12)/1000).toFixed(4)],
+            ['由比冲换算排气速度 (m/s)', (isp*9.81).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({f:__specific_impulseNum('f'), mdot:__specific_impulseNum('mdot'), isp:isp});
+    TBKit.history.mount('#specific_impulseHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.mdot!=null)document.getElementById('mdot').value=rec.mdot; calcTool(); });
+    TBKit.util.diffBox('#specific_impulseDiff',['isp']);
+}
+function __specific_impulseExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#specific_impulseTable','specific-impulse.csv'); } catch(e){}
+}
+function __specific_impulsePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#specific_impulsePresets',[
+        {label:'默认',labelEn:'Default',values:{f:'100000', mdot:'40'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'200000', mdot:'80'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'50000', mdot:'20'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __specific_impulseExtras(); }catch(e){} };
+function __specific_impulseBoot(){ try{ __specific_impulsePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __specific_impulseBoot();
+else document.addEventListener('DOMContentLoaded', __specific_impulseBoot);
 </script>
 </body>
 </html>

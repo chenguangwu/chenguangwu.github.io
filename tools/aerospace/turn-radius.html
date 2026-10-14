@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="turn_radiusPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__turn_radiusExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="turn_radiusTable"></div>
+    <div id="turn_radiusDiff"></div>
+    <div id="turn_radiusHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -311,6 +317,44 @@ calcTool();
     }
   ]
 }
+
+function __turn_radiusNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __turn_radiusExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),phi=num('phi')*Math.PI/180;
+    var R=v*v/(9.81*Math.tan(phi));
+    if (!isFinite(__turn_radiusNum('v')) || !isFinite(__turn_radiusNum('phi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#turn_radiusTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['转弯半径 (m)', R.toFixed(1)],
+            ['转弯半径 (km)', (R/1000).toFixed(3)],
+            ['侧向加速度 (m/s²)', (9.81*Math.tan(phi)).toFixed(3)],
+            ['盘旋周期 (s)', (2*Math.PI*R/v).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({v:__turn_radiusNum('v'), phi:__turn_radiusNum('phi'), R:R});
+    TBKit.history.mount('#turn_radiusHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.phi!=null)document.getElementById('phi').value=rec.phi; calcTool(); });
+    TBKit.util.diffBox('#turn_radiusDiff',['R']);
+}
+function __turn_radiusExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#turn_radiusTable','turn-radius.csv'); } catch(e){}
+}
+function __turn_radiusPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#turn_radiusPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'100', phi:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'200', phi:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'50', phi:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __turn_radiusExtras(); }catch(e){} };
+function __turn_radiusBoot(){ try{ __turn_radiusPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __turn_radiusBoot();
+else document.addEventListener('DOMContentLoaded', __turn_radiusBoot);
 </script>
 </body>
 </html>

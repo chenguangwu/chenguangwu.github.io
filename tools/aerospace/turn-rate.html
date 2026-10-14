@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="turn_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__turn_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="turn_rateTable"></div>
+    <div id="turn_rateDiff"></div>
+    <div id="turn_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -311,6 +317,44 @@ calcTool();
     }
   ]
 }
+
+function __turn_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __turn_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),phi=num('phi')*Math.PI/180;
+    var w=9.81*Math.tan(phi)/v;
+    if (!isFinite(__turn_rateNum('v')) || !isFinite(__turn_rateNum('phi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#turn_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角速度 (°/s)', (w*180/Math.PI).toFixed(2)],
+            ['转弯率 (°/min)', (60*w*180/Math.PI).toFixed(1)],
+            ['转弯半径 R (m)', (v*v/(9.81*Math.tan(phi))).toFixed(2)],
+            ['载荷系数 n = 1/cosφ', (1/Math.cos(phi)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v:__turn_rateNum('v'), phi:__turn_rateNum('phi'), w:w});
+    TBKit.history.mount('#turn_rateHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.phi!=null)document.getElementById('phi').value=rec.phi; calcTool(); });
+    TBKit.util.diffBox('#turn_rateDiff',['w']);
+}
+function __turn_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#turn_rateTable','turn-rate.csv'); } catch(e){}
+}
+function __turn_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#turn_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{v:'100', phi:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'200', phi:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'50', phi:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __turn_rateExtras(); }catch(e){} };
+function __turn_rateBoot(){ try{ __turn_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __turn_rateBoot();
+else document.addEventListener('DOMContentLoaded', __turn_rateBoot);
 </script>
 </body>
 </html>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="climb_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__climb_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="climb_rateTable"></div>
+    <div id="climb_rateDiff"></div>
+    <div id="climb_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -314,6 +320,44 @@ calcTool();
     }
   ]
 }
+
+function __climb_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __climb_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var pav=num('pav'),preq=num('preq'),w=num('w');
+    var roc=(pav-preq)/w;
+    if (!isFinite(__climb_rateNum('pav')) || !isFinite(__climb_rateNum('preq')) || !isFinite(__climb_rateNum('w'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#climb_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['爬升率 (m/s)', roc.toFixed(2)],
+            ['爬升率 (m/min)', (roc*60).toFixed(1)],
+            ['剩余功率 (W)', (pav-preq).toFixed(0)],
+            ['剩余功率占比 (%)', (((pav-preq)/pav)*100).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({pav:__climb_rateNum('pav'), preq:__climb_rateNum('preq'), w:__climb_rateNum('w'), roc:roc});
+    TBKit.history.mount('#climb_rateHist',function(rec){ if(rec.pav!=null)document.getElementById('pav').value=rec.pav; if(rec.preq!=null)document.getElementById('preq').value=rec.preq; if(rec.w!=null)document.getElementById('w').value=rec.w; calcTool(); });
+    TBKit.util.diffBox('#climb_rateDiff',['roc']);
+}
+function __climb_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#climb_rateTable','climb-rate.csv'); } catch(e){}
+}
+function __climb_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#climb_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{pav:'200000', preq:'120000', w:'10000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{pav:'400000', preq:'240000', w:'20000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{pav:'100000', preq:'60000', w:'5000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __climb_rateExtras(); }catch(e){} };
+function __climb_rateBoot(){ try{ __climb_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __climb_rateBoot();
+else document.addEventListener('DOMContentLoaded', __climb_rateBoot);
 </script>
 </body>
 </html>

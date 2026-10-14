@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="thrust_to_weightPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__thrust_to_weightExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="thrust_to_weightTable"></div>
+    <div id="thrust_to_weightDiff"></div>
+    <div id="thrust_to_weightHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -309,6 +315,44 @@ calcTool();
     }
   ]
 }
+
+function __thrust_to_weightNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __thrust_to_weightExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T=num('T'),W=num('W');
+    var tw=T/W;
+    if (!isFinite(__thrust_to_weightNum('T')) || !isFinite(__thrust_to_weightNum('W'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#thrust_to_weightTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['推重比 T/W', tw.toFixed(3)],
+            ['推重比倒数（载荷与推力之比）', (1/Math.max(tw,1e-9)).toFixed(4)],
+            ['推力与重量之差', (T-W).toFixed(2)],
+            ['推重比对应加速度 (m/s²)', (tw*9.80665).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({T:__thrust_to_weightNum('T'), W:__thrust_to_weightNum('W'), tw:tw});
+    TBKit.history.mount('#thrust_to_weightHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.W!=null)document.getElementById('W').value=rec.W; calcTool(); });
+    TBKit.util.diffBox('#thrust_to_weightDiff',['tw']);
+}
+function __thrust_to_weightExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thrust_to_weightTable','thrust-to-weight.csv'); } catch(e){}
+}
+function __thrust_to_weightPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thrust_to_weightPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'50000', W:'80000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'100000', W:'160000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'25000', W:'40000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __thrust_to_weightExtras(); }catch(e){} };
+function __thrust_to_weightBoot(){ try{ __thrust_to_weightPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thrust_to_weightBoot();
+else document.addEventListener('DOMContentLoaded', __thrust_to_weightBoot);
 </script>
 </body>
 </html>

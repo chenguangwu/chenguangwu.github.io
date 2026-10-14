@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mach_numberPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mach_numberExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mach_numberTable"></div>
+    <div id="mach_numberDiff"></div>
+    <div id="mach_numberHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -327,6 +333,44 @@ calcTool();
     }
   ]
 }
+
+function __mach_numberNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mach_numberExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),T=num('t')+273.15,gamma=num('g');
+    var a=Math.sqrt(gamma*287*T);
+    if (!isFinite(__mach_numberNum('v')) || !isFinite(__mach_numberNum('t')) || !isFinite(__mach_numberNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mach_numberTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['马赫数 M', (v/a).toFixed(3)],
+            ['声速 a (m/s)', a.toFixed(1)],
+            ['飞行速度 (km/h)', (v*3.6).toFixed(1)],
+            ['速度区间判定', (v/a>1?'超音速':'亚音速')],
+        ]
+    });
+    TBKit.history.record({v:__mach_numberNum('v'), t:__mach_numberNum('t'), g:__mach_numberNum('g'), a:a});
+    TBKit.history.mount('#mach_numberHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.t!=null)document.getElementById('t').value=rec.t; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#mach_numberDiff',['a']);
+}
+function __mach_numberExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mach_numberTable','mach-number.csv'); } catch(e){}
+}
+function __mach_numberPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mach_numberPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'340', t:'15', g:'1.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'680', t:'30', g:'2.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'170', t:'7.5', g:'0.7'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mach_numberExtras(); }catch(e){} };
+function __mach_numberBoot(){ try{ __mach_numberPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mach_numberBoot();
+else document.addEventListener('DOMContentLoaded', __mach_numberBoot);
 </script>
 </body>
 </html>

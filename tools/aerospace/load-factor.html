@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="load_factorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__load_factorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="load_factorTable"></div>
+    <div id="load_factorDiff"></div>
+    <div id="load_factorHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,45 @@ calcTool();
     }
   ]
 }
+
+function __load_factorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __load_factorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var phi=num('phi')*Math.PI/180;
+    var n=1/Math.cos(phi);
+    if (!isFinite(__load_factorNum('phi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#load_factorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['载荷因子 n', n.toFixed(2)],
+            ['等效 g', (n).toFixed(2)],
+            ['等效过载加速度 (m/s²)', (n*9.80665).toFixed(2)],
+            ['载荷增量系数', (n-1).toFixed(4)],
+            ['载荷因子倒数', (1/Math.max(n,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({phi:__load_factorNum('phi'), n:n});
+    TBKit.history.mount('#load_factorHist',function(rec){ if(rec.phi!=null)document.getElementById('phi').value=rec.phi; calcTool(); });
+    TBKit.util.diffBox('#load_factorDiff',['n']);
+}
+function __load_factorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#load_factorTable','load-factor.csv'); } catch(e){}
+}
+function __load_factorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#load_factorPresets',[
+        {label:'默认',labelEn:'Default',values:{phi:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{phi:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{phi:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __load_factorExtras(); }catch(e){} };
+function __load_factorBoot(){ try{ __load_factorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __load_factorBoot();
+else document.addEventListener('DOMContentLoaded', __load_factorBoot);
 </script>
 </body>
 </html>
