@@ -138,11 +138,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估</button>
+      <div id="myocardial_bridgePresets"></div><button type="button" class="btn primary" onclick="calc()">评估</button><button class="btn" type="button" onclick="__myocardial_bridgeExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="myocardial_bridgeTable"></div> <div id="myocardial_bridgeDiff"></div> <div id="myocardial_bridgeChart"></div> <div id="myocardial_bridgeHist"></div>
   </div>
 
   <div class="card">
@@ -397,6 +397,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __myocardial_bridge_last=0,__myocardial_bridge_skip=false;
+function __myocardial_bridgeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __myocardial_bridgeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __myocardial_bridgeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __myocardial_bridgeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__myocardial_bridgeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#myocardial_bridgeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#myocardial_bridgeDiff');
+        TBKit.history.mount('#myocardial_bridgeHist',function(rec){
+            __myocardial_bridge_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __myocardial_bridge_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__myocardial_bridgeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#myocardial_bridgeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __myocardial_bridgeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__myocardial_bridge_skip) return;
+    var snap=__myocardial_bridgeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__myocardial_bridgeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__myocardial_bridge_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __myocardial_bridge_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __myocardial_bridgeRender(keys,rk,en);
+}
+function __myocardial_bridgeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#myocardial_bridgeTable','myocardial-bridge.csv'); } catch(e){}
+}
+function __myocardial_bridgePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#myocardial_bridgePresets',[{label:'默认参数',labelEn:'Default',values:{'compression':'65', 'diastolic':'10', 'length':'25', 'depth':'3'}}],function(){ calc(); });
+}
+var __myocardial_bridge_f0=(typeof calc==='function')?calc:null;
+if(__myocardial_bridge_f0){
+    calc=function(){ var __r=__myocardial_bridge_f0.apply(null,arguments); try{ __myocardial_bridgeExtras(); }catch(e){} return __r; };
+}
+function __myocardial_bridgeBoot(){ try{ __myocardial_bridgePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __myocardial_bridgeBoot();
+else document.addEventListener('DOMContentLoaded', __myocardial_bridgeBoot);
 </script>
 
 </body>

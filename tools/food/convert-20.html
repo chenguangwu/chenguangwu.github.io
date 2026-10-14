@@ -128,8 +128,8 @@ s.parentNode.insertBefore(el, s);
 <div><label>直接输入 SHU</label><input type="number" id="shuIn" value="50000" step="any" oninput="calc()"></div>
 <div><label>目标辣度上限（SHU）</label><input type="number" id="target" value="5000" step="any" oninput="calc()"></div>
 </div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="convert_20Presets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__convert_20Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="result-box" id="res"></div> <div id="convert_20Table"></div> <div id="convert_20Diff"></div> <div id="convert_20Chart"></div> <div id="convert_20Hist"></div>
 
 <div class="card" style="margin:16px 0;"><h3 style="margin-bottom:10px;">常见辣椒斯科维尔辣度（SHU）</h3><p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="斯科维尔指数（Scoville Heat Units） approximate 公开参考值">Convert 20 - convert values in-browser instantly with local processing.</p><table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="border-bottom:1px solid var(--color-border);"><th style="text-align:left;padding:6px;">辣椒</th><th style="text-align:right;padding:6px;">SHU</th></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">甜椒</td><td style="text-align:right;padding:6px;">0</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">香蕉辣椒</td><td style="text-align:right;padding:6px;">100–900</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">墨西哥椒 Jalapeño</td><td style="text-align:right;padding:6px;">2,500–8,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">塞拉诺</td><td style="text-align:right;padding:6px;">10,000–23,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">卡宴</td><td style="text-align:right;padding:6px;">30,000–50,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">泰椒</td><td style="text-align:right;padding:6px;">50,000–100,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">哈瓦那</td><td style="text-align:right;padding:6px;">100,000–350,000</td></tr><tr style="border-bottom:1px solid var(--color-border);"><td style="padding:6px;">鬼椒 Bhut Jolokia</td><td style="text-align:right;padding:6px;">855,000–1,041,427</td></tr><tr><td style="padding:6px;">卡罗莱纳死神</td><td style="text-align:right;padding:6px;">1,500,000–2,200,000</td></tr></table></div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -333,6 +333,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __convert_20_last=0,__convert_20_skip=false;
+function __convert_20Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __convert_20ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __convert_20Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __convert_20Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__convert_20Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#convert_20Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#convert_20Diff');
+        TBKit.history.mount('#convert_20Hist',function(rec){
+            __convert_20_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __convert_20_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__convert_20Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#convert_20Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __convert_20Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__convert_20_skip) return;
+    var snap=__convert_20Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__convert_20ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__convert_20_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __convert_20_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __convert_20Render(keys,rk,en);
+}
+function __convert_20Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#convert_20Table','convert-20.csv'); } catch(e){}
+}
+function __convert_20Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#convert_20Presets',[{label:'默认参数',labelEn:'Default',values:{'mode':'dish', 'variety':'0', 'amount':'20', 'totalW':'500', 'shuIn':'50000', 'target':'5000'}}],function(){ calc(); });
+}
+var __convert_20_f0=(typeof calc==='function')?calc:null;
+if(__convert_20_f0){
+    calc=function(){ var __r=__convert_20_f0.apply(null,arguments); try{ __convert_20Extras(); }catch(e){} return __r; };
+}
+function __convert_20Boot(){ try{ __convert_20Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __convert_20Boot();
+else document.addEventListener('DOMContentLoaded', __convert_20Boot);
 </script>
 
 </body>

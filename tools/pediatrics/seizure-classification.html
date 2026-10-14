@@ -155,11 +155,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">生成分类报告</button>
+      <div id="seizure_classificationPresets"></div><button type="button" class="btn primary" onclick="calc()">生成分类报告</button><button class="btn" type="button" onclick="__seizure_classificationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="seizure_classificationTable"></div> <div id="seizure_classificationDiff"></div> <div id="seizure_classificationChart"></div> <div id="seizure_classificationHist"></div>
   </div>
 
   <div class="card">
@@ -419,6 +419,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __seizure_classification_last=0,__seizure_classification_skip=false;
+function __seizure_classificationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __seizure_classificationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __seizure_classificationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __seizure_classificationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__seizure_classificationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#seizure_classificationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#seizure_classificationDiff');
+        TBKit.history.mount('#seizure_classificationHist',function(rec){
+            __seizure_classification_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __seizure_classification_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__seizure_classificationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#seizure_classificationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __seizure_classificationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__seizure_classification_skip) return;
+    var snap=__seizure_classificationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__seizure_classificationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__seizure_classification_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __seizure_classification_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __seizure_classificationRender(keys,rk,en);
+}
+function __seizure_classificationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#seizure_classificationTable','seizure-classification.csv'); } catch(e){}
+}
+function __seizure_classificationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#seizure_classificationPresets',[{label:'默认参数',labelEn:'Default',values:{'age':'20'}}],function(){ calc(); });
+}
+var __seizure_classification_f0=(typeof calc==='function')?calc:null;
+if(__seizure_classification_f0){
+    calc=function(){ var __r=__seizure_classification_f0.apply(null,arguments); try{ __seizure_classificationExtras(); }catch(e){} return __r; };
+}
+function __seizure_classificationBoot(){ try{ __seizure_classificationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __seizure_classificationBoot();
+else document.addEventListener('DOMContentLoaded', __seizure_classificationBoot);
 </script>
 
 </body>

@@ -165,11 +165,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估疾病活动</button>
+      <div id="complement_levelPresets"></div><button type="button" class="btn primary" onclick="calc()">评估疾病活动</button><button class="btn" type="button" onclick="__complement_levelExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="complement_levelTable"></div> <div id="complement_levelDiff"></div> <div id="complement_levelChart"></div> <div id="complement_levelHist"></div>
   </div>
 
   <div class="card">
@@ -438,6 +438,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __complement_level_last=0,__complement_level_skip=false;
+function __complement_levelSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __complement_levelResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __complement_levelTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __complement_levelRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__complement_levelTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#complement_levelTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#complement_levelDiff');
+        TBKit.history.mount('#complement_levelHist',function(rec){
+            __complement_level_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __complement_level_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__complement_levelTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#complement_levelChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __complement_levelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__complement_level_skip) return;
+    var snap=__complement_levelSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__complement_levelResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__complement_level_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __complement_level_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __complement_levelRender(keys,rk,en);
+}
+function __complement_levelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#complement_levelTable','complement-level.csv'); } catch(e){}
+}
+function __complement_levelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#complement_levelPresets',[{label:'默认参数',labelEn:'Default',values:{'c3':'0.5', 'c4':'0.08', 'ch50':'15', 'disease':'sle', 'dsdna':'neg'}}],function(){ calc(); });
+}
+var __complement_level_f0=(typeof calc==='function')?calc:null;
+if(__complement_level_f0){
+    calc=function(){ var __r=__complement_level_f0.apply(null,arguments); try{ __complement_levelExtras(); }catch(e){} return __r; };
+}
+function __complement_levelBoot(){ try{ __complement_levelPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __complement_levelBoot();
+else document.addEventListener('DOMContentLoaded', __complement_levelBoot);
 </script>
 
 </body>

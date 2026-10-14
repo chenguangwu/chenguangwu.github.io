@@ -133,11 +133,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="compare()">生成对比</button>
+      <div id="vitamin_c_comparePresets"></div><button type="button" class="btn primary" onclick="compare()">生成对比</button><button class="btn" type="button" onclick="__vitamin_c_compareExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="clearAll()">清空选择</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="vitamin_c_compareTable"></div> <div id="vitamin_c_compareDiff"></div> <div id="vitamin_c_compareChart"></div> <div id="vitamin_c_compareHist"></div>
   </div>
 
   <div class="card">
@@ -403,6 +403,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __vitamin_c_compare_last=0,__vitamin_c_compare_skip=false;
+function __vitamin_c_compareSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __vitamin_c_compareResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __vitamin_c_compareTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __vitamin_c_compareRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__vitamin_c_compareTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#vitamin_c_compareTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#vitamin_c_compareDiff');
+        TBKit.history.mount('#vitamin_c_compareHist',function(rec){
+            __vitamin_c_compare_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                compare();
+            }catch(e2){}
+            __vitamin_c_compare_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__vitamin_c_compareTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#vitamin_c_compareChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __vitamin_c_compareExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__vitamin_c_compare_skip) return;
+    var snap=__vitamin_c_compareSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__vitamin_c_compareResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__vitamin_c_compare_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __vitamin_c_compare_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __vitamin_c_compareRender(keys,rk,en);
+}
+function __vitamin_c_compareExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#vitamin_c_compareTable','vitamin-c-compare.csv'); } catch(e){}
+}
+function __vitamin_c_comparePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#vitamin_c_comparePresets',[{label:'默认参数',labelEn:'Default',values:{'dailyNeed':'100'}}],function(){ compare(); });
+}
+var __vitamin_c_compare_f0=(typeof compare==='function')?compare:null;
+if(__vitamin_c_compare_f0){
+    compare=function(){ var __r=__vitamin_c_compare_f0.apply(null,arguments); try{ __vitamin_c_compareExtras(); }catch(e){} return __r; };
+}
+function __vitamin_c_compareBoot(){ try{ __vitamin_c_comparePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __vitamin_c_compareBoot();
+else document.addEventListener('DOMContentLoaded', __vitamin_c_compareBoot);
 </script>
 
 </body>

@@ -132,12 +132,12 @@ s.parentNode.insertBefore(el, s);
     <div id="quizArea" style="margin-top:12px;"></div>
 
     <div class="toolbar" style="margin-top:12px;">
-      <button type="button" class="btn primary" onclick="calc()">计算筛查结果</button>
+      <div id="mchat_autismPresets"></div><button type="button" class="btn primary" onclick="calc()">计算筛查结果</button><button class="btn" type="button" onclick="__mchat_autismExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="resetQuiz()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result" style="display:none;"></div>
+    <div class="result-box" id="result" style="display:none;"></div> <div id="mchat_autismTable"></div> <div id="mchat_autismDiff"></div> <div id="mchat_autismChart"></div> <div id="mchat_autismHist"></div>
   </div>
 
   <div class="card">
@@ -445,6 +445,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __mchat_autism_last=0,__mchat_autism_skip=false;
+function __mchat_autismSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __mchat_autismResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __mchat_autismTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __mchat_autismRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__mchat_autismTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#mchat_autismTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#mchat_autismDiff');
+        TBKit.history.mount('#mchat_autismHist',function(rec){
+            __mchat_autism_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __mchat_autism_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__mchat_autismTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#mchat_autismChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __mchat_autismExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__mchat_autism_skip) return;
+    var snap=__mchat_autismSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__mchat_autismResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__mchat_autism_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __mchat_autism_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __mchat_autismRender(keys,rk,en);
+}
+function __mchat_autismExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mchat_autismTable','mchat-autism.csv'); } catch(e){}
+}
+function __mchat_autismPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mchat_autismPresets',[{label:'默认参数',labelEn:'Default',values:{'age':'18'}}],function(){ calc(); });
+}
+var __mchat_autism_f0=(typeof calc==='function')?calc:null;
+if(__mchat_autism_f0){
+    calc=function(){ var __r=__mchat_autism_f0.apply(null,arguments); try{ __mchat_autismExtras(); }catch(e){} return __r; };
+}
+function __mchat_autismBoot(){ try{ __mchat_autismPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mchat_autismBoot();
+else document.addEventListener('DOMContentLoaded', __mchat_autismBoot);
 </script>
 
 </body>
