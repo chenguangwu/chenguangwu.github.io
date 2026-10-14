@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="isothermal_workPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__isothermal_workExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="isothermal_workTable"></div>
+    <div id="isothermal_workDiff"></div>
+    <div id="isothermal_workHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,43 @@ function resetForm(){document.getElementById('n').value = '1';
       document.getElementById('V2').value = '2';
       calcTool();}
 calcTool();
+
+function __isothermal_workNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __isothermal_workExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n = num('n'), T = num('T'), V1 = num('V1'), V2 = num('V2');
+    var R = 8.314;
+    var W = n * R * T * Math.log(V2 / V1);
+    if (!isFinite(__isothermal_workNum('n')) || !isFinite(__isothermal_workNum('T')) || !isFinite(__isothermal_workNum('V1')) || !isFinite(__isothermal_workNum('V2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#isothermal_workTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['膨胀功 W (J)', W.toFixed(1)],
+            ['功 (kJ)', (W / 1000).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({n:__isothermal_workNum('n'), T:__isothermal_workNum('T'), V1:__isothermal_workNum('V1'), V2:__isothermal_workNum('V2'), R:R});
+    TBKit.history.mount('#isothermal_workHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.V1!=null)document.getElementById('V1').value=rec.V1; if(rec.V2!=null)document.getElementById('V2').value=rec.V2; calcTool(); });
+    TBKit.util.diffBox('#isothermal_workDiff',['R']);
+}
+function __isothermal_workExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#isothermal_workTable','isothermal-work.csv'); } catch(e){}
+}
+function __isothermal_workPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#isothermal_workPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1', T:'300', V1:'1', V2:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2', T:'600', V1:'2', V2:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.5', T:'150', V1:'0.5', V2:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __isothermal_workExtras(); }catch(e){} };
+function __isothermal_workBoot(){ try{ __isothermal_workPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __isothermal_workBoot();
+else document.addEventListener('DOMContentLoaded', __isothermal_workBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

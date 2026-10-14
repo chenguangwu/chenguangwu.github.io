@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="entropy_changePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__entropy_changeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="entropy_changeTable"></div>
+    <div id="entropy_changeDiff"></div>
+    <div id="entropy_changeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,44 @@ function resetForm(){document.getElementById('Q').value = '4186';
       document.getElementById('T').value = '373.15';
       calcTool();}
 calcTool();
+
+function __entropy_changeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __entropy_changeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Q = num('Q'), T = num('T');
+    var dS = Q / T;
+    if (!isFinite(__entropy_changeNum('Q')) || !isFinite(__entropy_changeNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#entropy_changeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['熵变 ΔS (J/K)', dS.toFixed(3)],
+            ['1/T (1/K)', (dS / Q).toFixed(6)],
+            ['热量复算 Q = T*dS (J)', (T*dS).toFixed(2)],
+            ['1/dS (K/J)', (1/(dS||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({Q:__entropy_changeNum('Q'), T:__entropy_changeNum('T'), dS:dS});
+    TBKit.history.mount('#entropy_changeHist',function(rec){ if(rec.Q!=null)document.getElementById('Q').value=rec.Q; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#entropy_changeDiff',['dS']);
+}
+function __entropy_changeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#entropy_changeTable','entropy-change.csv'); } catch(e){}
+}
+function __entropy_changePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#entropy_changePresets',[
+        {label:'默认',labelEn:'Default',values:{Q:'4186', T:'373.15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Q:'8372', T:'746.3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Q:'2093', T:'186.575'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __entropy_changeExtras(); }catch(e){} };
+function __entropy_changeBoot(){ try{ __entropy_changePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __entropy_changeBoot();
+else document.addEventListener('DOMContentLoaded', __entropy_changeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

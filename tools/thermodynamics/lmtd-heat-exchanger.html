@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="lmtd_heat_exchangerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__lmtd_heat_exchangerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="lmtd_heat_exchangerTable"></div>
+    <div id="lmtd_heat_exchangerDiff"></div>
+    <div id="lmtd_heat_exchangerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('dt1').value = '60';
       document.getElementById('dt2').value = '30';
       calcTool();}
 calcTool();
+
+function __lmtd_heat_exchangerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lmtd_heat_exchangerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('dt1'),b=num('dt2');
+    var lmtd=(a-b)/Math.log(a/b);
+    if (!isFinite(__lmtd_heat_exchangerNum('dt1')) || !isFinite(__lmtd_heat_exchangerNum('dt2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#lmtd_heat_exchangerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['对数平均温差 LMTD (K)', lmtd.toFixed(2)],
+            ['两端温差之差 (K)', (a-b).toFixed(2)],
+            ['两端温差比', (a/b).toFixed(4)],
+            ['算术平均温差 (K)', ((a+b)/2).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({dt1:__lmtd_heat_exchangerNum('dt1'), dt2:__lmtd_heat_exchangerNum('dt2'), a:a});
+    TBKit.history.mount('#lmtd_heat_exchangerHist',function(rec){ if(rec.dt1!=null)document.getElementById('dt1').value=rec.dt1; if(rec.dt2!=null)document.getElementById('dt2').value=rec.dt2; calcTool(); });
+    TBKit.util.diffBox('#lmtd_heat_exchangerDiff',['a']);
+}
+function __lmtd_heat_exchangerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lmtd_heat_exchangerTable','lmtd-heat-exchanger.csv'); } catch(e){}
+}
+function __lmtd_heat_exchangerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lmtd_heat_exchangerPresets',[
+        {label:'默认',labelEn:'Default',values:{dt1:'60', dt2:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dt1:'120', dt2:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dt1:'30', dt2:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __lmtd_heat_exchangerExtras(); }catch(e){} };
+function __lmtd_heat_exchangerBoot(){ try{ __lmtd_heat_exchangerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lmtd_heat_exchangerBoot();
+else document.addEventListener('DOMContentLoaded', __lmtd_heat_exchangerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

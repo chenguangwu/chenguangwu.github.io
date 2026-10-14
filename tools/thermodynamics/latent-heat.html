@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="latent_heatPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__latent_heatExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="latent_heatTable"></div>
+    <div id="latent_heatDiff"></div>
+    <div id="latent_heatHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('m').value = '1';
       document.getElementById('L').value = '334000';
       calcTool();}
 calcTool();
+
+function __latent_heatNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __latent_heatExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m = num('m'), L = num('L');
+    var Q = m * L;
+    if (!isFinite(__latent_heatNum('m')) || !isFinite(__latent_heatNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#latent_heatTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['相变热量 Q (J)', Q.toFixed(0)],
+            ['热量 (MJ)', (Q / 1e6).toFixed(3)],
+            ['比潜热复算 (J/kg)', (Q/(m||1)).toFixed(0)],
+            ['热量 (kJ)', (Q/1000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({m:__latent_heatNum('m'), L:__latent_heatNum('L'), Q:Q});
+    TBKit.history.mount('#latent_heatHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#latent_heatDiff',['Q']);
+}
+function __latent_heatExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#latent_heatTable','latent-heat.csv'); } catch(e){}
+}
+function __latent_heatPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#latent_heatPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'1', L:'334000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'2', L:'668000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'0.5', L:'167000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __latent_heatExtras(); }catch(e){} };
+function __latent_heatBoot(){ try{ __latent_heatPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __latent_heatBoot();
+else document.addEventListener('DOMContentLoaded', __latent_heatBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

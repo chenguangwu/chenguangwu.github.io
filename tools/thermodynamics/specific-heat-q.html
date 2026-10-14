@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="specific_heat_qPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__specific_heat_qExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="specific_heat_qTable"></div>
+    <div id="specific_heat_qDiff"></div>
+    <div id="specific_heat_qHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -207,6 +213,42 @@ function resetForm(){document.getElementById('m').value = '1';
       document.getElementById('T2').value = '30';
       calcTool();}
 calcTool();
+
+function __specific_heat_qNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __specific_heat_qExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m = num('m'), c = num('c'), T1 = num('T1'), T2 = num('T2');
+    var Q = m * c * (T2 - T1);
+    if (!isFinite(__specific_heat_qNum('m')) || !isFinite(__specific_heat_qNum('c')) || !isFinite(__specific_heat_qNum('T1')) || !isFinite(__specific_heat_qNum('T2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#specific_heat_qTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热量 Q (J)', Q.toFixed(1)],
+            ['热量 (kJ)', (Q / 1000).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m:__specific_heat_qNum('m'), c:__specific_heat_qNum('c'), T1:__specific_heat_qNum('T1'), T2:__specific_heat_qNum('T2'), Q:Q});
+    TBKit.history.mount('#specific_heat_qHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.T1!=null)document.getElementById('T1').value=rec.T1; if(rec.T2!=null)document.getElementById('T2').value=rec.T2; calcTool(); });
+    TBKit.util.diffBox('#specific_heat_qDiff',['Q']);
+}
+function __specific_heat_qExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#specific_heat_qTable','specific-heat-q.csv'); } catch(e){}
+}
+function __specific_heat_qPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#specific_heat_qPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'1', c:'4186', T1:'20', T2:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'2', c:'8372', T1:'40', T2:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'0.5', c:'2093', T1:'10', T2:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __specific_heat_qExtras(); }catch(e){} };
+function __specific_heat_qBoot(){ try{ __specific_heat_qPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __specific_heat_qBoot();
+else document.addEventListener('DOMContentLoaded', __specific_heat_qBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

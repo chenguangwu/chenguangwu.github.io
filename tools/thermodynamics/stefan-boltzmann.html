@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stefan_boltzmannPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stefan_boltzmannExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stefan_boltzmannTable"></div>
+    <div id="stefan_boltzmannDiff"></div>
+    <div id="stefan_boltzmannHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('eps').value = '1';
       document.getElementById('T').value = '300';
       calcTool();}
 calcTool();
+
+function __stefan_boltzmannNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stefan_boltzmannExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var eps = num('eps'), A = num('A'), T = num('T');
+    var sigma = 5.67e-8;
+    var P = eps * sigma * A * Math.pow(T, 4);
+    if (!isFinite(__stefan_boltzmannNum('eps')) || !isFinite(__stefan_boltzmannNum('A')) || !isFinite(__stefan_boltzmannNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stefan_boltzmannTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['辐射功率 P (W)', P.toFixed(2)],
+            ['辐射出射度 (W/m²)', (P / A).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({eps:__stefan_boltzmannNum('eps'), A:__stefan_boltzmannNum('A'), T:__stefan_boltzmannNum('T'), sigma:sigma});
+    TBKit.history.mount('#stefan_boltzmannHist',function(rec){ if(rec.eps!=null)document.getElementById('eps').value=rec.eps; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#stefan_boltzmannDiff',['sigma']);
+}
+function __stefan_boltzmannExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stefan_boltzmannTable','stefan-boltzmann.csv'); } catch(e){}
+}
+function __stefan_boltzmannPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stefan_boltzmannPresets',[
+        {label:'默认',labelEn:'Default',values:{eps:'1', A:'1', T:'300'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{eps:'2', A:'2', T:'600'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{eps:'0.5', A:'0.5', T:'150'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stefan_boltzmannExtras(); }catch(e){} };
+function __stefan_boltzmannBoot(){ try{ __stefan_boltzmannPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stefan_boltzmannBoot();
+else document.addEventListener('DOMContentLoaded', __stefan_boltzmannBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

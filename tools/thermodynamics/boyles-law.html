@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="boyles_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__boyles_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="boyles_lawTable"></div>
+    <div id="boyles_lawDiff"></div>
+    <div id="boyles_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('P1').value = '100';
       document.getElementById('P2').value = '50';
       calcTool();}
 calcTool();
+
+function __boyles_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __boyles_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P1 = num('P1'), V1 = num('V1'), P2 = num('P2');
+    var V2 = P1 * V1 / P2;
+    if (!isFinite(__boyles_lawNum('P1')) || !isFinite(__boyles_lawNum('V1')) || !isFinite(__boyles_lawNum('P2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#boyles_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末体积 V₂ (L)', V2.toFixed(4)],
+            ['体积放大倍数', ((P1 / P2)).toFixed(4)],
+            ['体积变化 ΔV (L)', (V2-V1).toFixed(4)],
+            ['压强变化 ΔP (kPa)', (P2-P1).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({P1:__boyles_lawNum('P1'), V1:__boyles_lawNum('V1'), P2:__boyles_lawNum('P2'), V2:V2});
+    TBKit.history.mount('#boyles_lawHist',function(rec){ if(rec.P1!=null)document.getElementById('P1').value=rec.P1; if(rec.V1!=null)document.getElementById('V1').value=rec.V1; if(rec.P2!=null)document.getElementById('P2').value=rec.P2; calcTool(); });
+    TBKit.util.diffBox('#boyles_lawDiff',['V2']);
+}
+function __boyles_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#boyles_lawTable','boyles-law.csv'); } catch(e){}
+}
+function __boyles_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#boyles_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{P1:'100', V1:'2', P2:'50'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P1:'200', V1:'4', P2:'100'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P1:'50', V1:'1', P2:'25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __boyles_lawExtras(); }catch(e){} };
+function __boyles_lawBoot(){ try{ __boyles_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __boyles_lawBoot();
+else document.addEventListener('DOMContentLoaded', __boyles_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

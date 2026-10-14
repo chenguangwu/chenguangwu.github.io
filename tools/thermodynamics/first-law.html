@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="first_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__first_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="first_lawTable"></div>
+    <div id="first_lawDiff"></div>
+    <div id="first_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('Q').value = '1000';
       document.getElementById('W').value = '400';
       calcTool();}
 calcTool();
+
+function __first_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __first_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Q = num('Q'), W = num('W');
+    var dU = Q - W;
+    if (!isFinite(__first_lawNum('Q')) || !isFinite(__first_lawNum('W'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#first_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['内能变化 ΔU (J)', dU.toFixed(1)],
+            ['占吸热比 (%)', ((dU / Q) * 100).toFixed(2)],
+            ['做功占吸热比 (%)', (W/(Q||1)*100).toFixed(3)],
+            ['内能变化/做功 比', (dU/(W||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({Q:__first_lawNum('Q'), W:__first_lawNum('W'), dU:dU});
+    TBKit.history.mount('#first_lawHist',function(rec){ if(rec.Q!=null)document.getElementById('Q').value=rec.Q; if(rec.W!=null)document.getElementById('W').value=rec.W; calcTool(); });
+    TBKit.util.diffBox('#first_lawDiff',['dU']);
+}
+function __first_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#first_lawTable','first-law.csv'); } catch(e){}
+}
+function __first_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#first_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{Q:'1000', W:'400'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Q:'2000', W:'800'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Q:'500', W:'200'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __first_lawExtras(); }catch(e){} };
+function __first_lawBoot(){ try{ __first_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __first_lawBoot();
+else document.addEventListener('DOMContentLoaded', __first_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

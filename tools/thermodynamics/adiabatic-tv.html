@@ -145,12 +145,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="adiabatic_tvPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__adiabatic_tvExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="adiabatic_tvTable"></div>
+    <div id="adiabatic_tvDiff"></div>
+    <div id="adiabatic_tvHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,42 @@ function resetForm(){document.getElementById('T1').value = '300';
       document.getElementById('gamma').value = '1.4';
       calcTool();}
 calcTool();
+
+function __adiabatic_tvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __adiabatic_tvExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T1=num('T1'),V1=num('V1'),V2=num('V2'),g=num('gamma');
+    var T2=T1*Math.pow(V1/V2, g-1);
+    if (!isFinite(__adiabatic_tvNum('T1')) || !isFinite(__adiabatic_tvNum('V1')) || !isFinite(__adiabatic_tvNum('V2')) || !isFinite(__adiabatic_tvNum('gamma'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#adiabatic_tvTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末态温度 T₂ (K)', T2.toFixed(2)],
+            ['末态温度 (℃)', (T2-273.15).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({T1:__adiabatic_tvNum('T1'), V1:__adiabatic_tvNum('V1'), V2:__adiabatic_tvNum('V2'), gamma:__adiabatic_tvNum('gamma'), T2:T2});
+    TBKit.history.mount('#adiabatic_tvHist',function(rec){ if(rec.T1!=null)document.getElementById('T1').value=rec.T1; if(rec.V1!=null)document.getElementById('V1').value=rec.V1; if(rec.V2!=null)document.getElementById('V2').value=rec.V2; if(rec.gamma!=null)document.getElementById('gamma').value=rec.gamma; calcTool(); });
+    TBKit.util.diffBox('#adiabatic_tvDiff',['T2']);
+}
+function __adiabatic_tvExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#adiabatic_tvTable','adiabatic-tv.csv'); } catch(e){}
+}
+function __adiabatic_tvPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#adiabatic_tvPresets',[
+        {label:'默认',labelEn:'Default',values:{T1:'300', V1:'1', V2:'2', gamma:'1.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T1:'600', V1:'2', V2:'4', gamma:'2.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T1:'150', V1:'0.5', V2:'1', gamma:'0.7'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __adiabatic_tvExtras(); }catch(e){} };
+function __adiabatic_tvBoot(){ try{ __adiabatic_tvPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __adiabatic_tvBoot();
+else document.addEventListener('DOMContentLoaded', __adiabatic_tvBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -145,12 +145,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="heat_conductionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__heat_conductionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="heat_conductionTable"></div>
+    <div id="heat_conductionDiff"></div>
+    <div id="heat_conductionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,42 @@ function resetForm(){document.getElementById('k').value = '400';
       document.getElementById('L').value = '0.1';
       calcTool();}
 calcTool();
+
+function __heat_conductionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __heat_conductionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k = num('k'), A = num('A'), dT = num('dT'), L = num('L');
+    var q = k * A * dT / L;
+    if (!isFinite(__heat_conductionNum('k')) || !isFinite(__heat_conductionNum('A')) || !isFinite(__heat_conductionNum('dT')) || !isFinite(__heat_conductionNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#heat_conductionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['导热热流 q (W)', q.toFixed(1)],
+            ['热流密度 (W/m²)', (q / A).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({k:__heat_conductionNum('k'), A:__heat_conductionNum('A'), dT:__heat_conductionNum('dT'), L:__heat_conductionNum('L'), q:q});
+    TBKit.history.mount('#heat_conductionHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.dT!=null)document.getElementById('dT').value=rec.dT; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#heat_conductionDiff',['q']);
+}
+function __heat_conductionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#heat_conductionTable','heat-conduction.csv'); } catch(e){}
+}
+function __heat_conductionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#heat_conductionPresets',[
+        {label:'默认',labelEn:'Default',values:{k:'400', A:'0.01', dT:'100', L:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'800', A:'0.02', dT:'200', L:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'200', A:'0.005', dT:'50', L:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __heat_conductionExtras(); }catch(e){} };
+function __heat_conductionBoot(){ try{ __heat_conductionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __heat_conductionBoot();
+else document.addEventListener('DOMContentLoaded', __heat_conductionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

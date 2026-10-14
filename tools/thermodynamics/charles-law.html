@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="charles_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__charles_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="charles_lawTable"></div>
+    <div id="charles_lawDiff"></div>
+    <div id="charles_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('V1').value = '1';
       document.getElementById('T2').value = '373.15';
       calcTool();}
 calcTool();
+
+function __charles_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __charles_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var V1 = num('V1'), T1 = num('T1'), T2 = num('T2');
+    var V2 = V1 * T2 / T1;
+    if (!isFinite(__charles_lawNum('V1')) || !isFinite(__charles_lawNum('T1')) || !isFinite(__charles_lawNum('T2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#charles_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末体积 V₂ (L)', V2.toFixed(4)],
+            ['体积放大倍数', ((T2 / T1)).toFixed(4)],
+            ['体积变化 ΔV (L)', (V2-V1).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({V1:__charles_lawNum('V1'), T1:__charles_lawNum('T1'), T2:__charles_lawNum('T2'), V2:V2});
+    TBKit.history.mount('#charles_lawHist',function(rec){ if(rec.V1!=null)document.getElementById('V1').value=rec.V1; if(rec.T1!=null)document.getElementById('T1').value=rec.T1; if(rec.T2!=null)document.getElementById('T2').value=rec.T2; calcTool(); });
+    TBKit.util.diffBox('#charles_lawDiff',['V2']);
+}
+function __charles_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#charles_lawTable','charles-law.csv'); } catch(e){}
+}
+function __charles_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#charles_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{V1:'1', T1:'273.15', T2:'373.15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{V1:'2', T1:'546.3', T2:'746.3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{V1:'0.5', T1:'136.575', T2:'186.575'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __charles_lawExtras(); }catch(e){} };
+function __charles_lawBoot(){ try{ __charles_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __charles_lawBoot();
+else document.addEventListener('DOMContentLoaded', __charles_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

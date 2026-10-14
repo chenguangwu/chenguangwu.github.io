@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="polytropic_workPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__polytropic_workExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="polytropic_workTable"></div>
+    <div id="polytropic_workDiff"></div>
+    <div id="polytropic_workHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -211,6 +217,41 @@ function resetForm(){document.getElementById('p1').value = '100';
       document.getElementById('n').value = '1.3';
       calcTool();}
 calcTool();
+
+function __polytropic_workNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __polytropic_workExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p1=num('p1')*1000, v1=num('v1'), p2=num('p2')*1000, v2=num('v2'), n=num('n');
+    var W=(p2*v2 - p1*v1)/(1-n);
+    if (!isFinite(__polytropic_workNum('p1')) || !isFinite(__polytropic_workNum('v1')) || !isFinite(__polytropic_workNum('p2')) || !isFinite(__polytropic_workNum('v2')) || !isFinite(__polytropic_workNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#polytropic_workTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['过程功 W (kJ)', (W/1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p1:__polytropic_workNum('p1'), v1:__polytropic_workNum('v1'), p2:__polytropic_workNum('p2'), v2:__polytropic_workNum('v2'), n:__polytropic_workNum('n'), W:W});
+    TBKit.history.mount('#polytropic_workHist',function(rec){ if(rec.p1!=null)document.getElementById('p1').value=rec.p1; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.p2!=null)document.getElementById('p2').value=rec.p2; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#polytropic_workDiff',['W']);
+}
+function __polytropic_workExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#polytropic_workTable','polytropic-work.csv'); } catch(e){}
+}
+function __polytropic_workPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#polytropic_workPresets',[
+        {label:'默认',labelEn:'Default',values:{p1:'100', v1:'1', p2:'50', v2:'2', n:'1.3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p1:'200', v1:'2', p2:'100', v2:'4', n:'2.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p1:'50', v1:'0.5', p2:'25', v2:'1', n:'0.65'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __polytropic_workExtras(); }catch(e){} };
+function __polytropic_workBoot(){ try{ __polytropic_workPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __polytropic_workBoot();
+else document.addEventListener('DOMContentLoaded', __polytropic_workBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

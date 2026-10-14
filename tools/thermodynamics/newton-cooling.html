@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="newton_coolingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__newton_coolingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="newton_coolingTable"></div>
+    <div id="newton_coolingDiff"></div>
+    <div id="newton_coolingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,43 @@ function resetForm(){document.getElementById('T0').value = '100';
       document.getElementById('t').value = '30';
       calcTool();}
 calcTool();
+
+function __newton_coolingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __newton_coolingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T0=num('T0'),Ti=num('Tinf'),k=num('k'),t=num('t');
+    var T=Ti+(T0-Ti)*Math.exp(-k*t);
+    if (!isFinite(__newton_coolingNum('T0')) || !isFinite(__newton_coolingNum('Tinf')) || !isFinite(__newton_coolingNum('k')) || !isFinite(__newton_coolingNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#newton_coolingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['t 时刻温度 (℃)', T.toFixed(2)],
+            ['当前温差 ΔT (℃)', (T-Ti).toFixed(2)],
+            ['温差减半所需时间 (与 t 同单位)', (Math.log(2)/k).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({T0:__newton_coolingNum('T0'), Tinf:__newton_coolingNum('Tinf'), k:__newton_coolingNum('k'), t:__newton_coolingNum('t'), T:T});
+    TBKit.history.mount('#newton_coolingHist',function(rec){ if(rec.T0!=null)document.getElementById('T0').value=rec.T0; if(rec.Tinf!=null)document.getElementById('Tinf').value=rec.Tinf; if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#newton_coolingDiff',['T']);
+}
+function __newton_coolingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#newton_coolingTable','newton-cooling.csv'); } catch(e){}
+}
+function __newton_coolingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#newton_coolingPresets',[
+        {label:'默认',labelEn:'Default',values:{T0:'100', Tinf:'20', k:'0.05', t:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T0:'200', Tinf:'40', k:'0.1', t:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T0:'50', Tinf:'10', k:'0.025', t:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __newton_coolingExtras(); }catch(e){} };
+function __newton_coolingBoot(){ try{ __newton_coolingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __newton_coolingBoot();
+else document.addEventListener('DOMContentLoaded', __newton_coolingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

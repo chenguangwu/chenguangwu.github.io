@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cp_cv_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cp_cv_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cp_cv_ratioTable"></div>
+    <div id="cp_cv_ratioDiff"></div>
+    <div id="cp_cv_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('cp').value = '1005';
       document.getElementById('Rgas').value = '287';
       calcTool();}
 calcTool();
+
+function __cp_cv_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cp_cv_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var cp=num('cp'),Rg=num('Rgas');
+    var cv=cp-Rg;
+    if (!isFinite(__cp_cv_ratioNum('cp')) || !isFinite(__cp_cv_ratioNum('Rgas'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cp_cv_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['定容比热 c_v (J/(kg·K))', cv.toFixed(1)],
+            ['比热比 γ', (cp/cv).toFixed(3)],
+            ['比热比倒数 1/gamma', (1/((cp/cv)||1)).toFixed(4)],
+            ['c_v/c_p 比', (cv/(cp||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({cp:__cp_cv_ratioNum('cp'), Rgas:__cp_cv_ratioNum('Rgas'), cv:cv});
+    TBKit.history.mount('#cp_cv_ratioHist',function(rec){ if(rec.cp!=null)document.getElementById('cp').value=rec.cp; if(rec.Rgas!=null)document.getElementById('Rgas').value=rec.Rgas; calcTool(); });
+    TBKit.util.diffBox('#cp_cv_ratioDiff',['cv']);
+}
+function __cp_cv_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cp_cv_ratioTable','cp-cv-ratio.csv'); } catch(e){}
+}
+function __cp_cv_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cp_cv_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{cp:'1005', Rgas:'287'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{cp:'2010', Rgas:'574'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{cp:'502.5', Rgas:'143.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cp_cv_ratioExtras(); }catch(e){} };
+function __cp_cv_ratioBoot(){ try{ __cp_cv_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cp_cv_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __cp_cv_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -145,12 +145,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="compressor_isentropic_workPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__compressor_isentropic_workExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="compressor_isentropic_workTable"></div>
+    <div id="compressor_isentropic_workDiff"></div>
+    <div id="compressor_isentropic_workHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -263,6 +269,41 @@ function resetForm(){document.getElementById('T1').value = '300';
       document.getElementById('Rgas').value = '287';
       calcTool();}
 calcTool();
+
+function __compressor_isentropic_workNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __compressor_isentropic_workExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T1=num('T1'),PR=num('PR'),g=num('g'),Rg=num('Rgas');
+    var w=(g/(g-1))*Rg*T1*(Math.pow(PR,(g-1)/g)-1);
+    if (!isFinite(__compressor_isentropic_workNum('T1')) || !isFinite(__compressor_isentropic_workNum('PR')) || !isFinite(__compressor_isentropic_workNum('g')) || !isFinite(__compressor_isentropic_workNum('Rgas'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#compressor_isentropic_workTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['单位质量压缩功 w (J/kg)', w.toFixed(1)],
+        ]
+    });
+    TBKit.history.record({T1:__compressor_isentropic_workNum('T1'), PR:__compressor_isentropic_workNum('PR'), g:__compressor_isentropic_workNum('g'), Rgas:__compressor_isentropic_workNum('Rgas'), w:w});
+    TBKit.history.mount('#compressor_isentropic_workHist',function(rec){ if(rec.T1!=null)document.getElementById('T1').value=rec.T1; if(rec.PR!=null)document.getElementById('PR').value=rec.PR; if(rec.g!=null)document.getElementById('g').value=rec.g; if(rec.Rgas!=null)document.getElementById('Rgas').value=rec.Rgas; calcTool(); });
+    TBKit.util.diffBox('#compressor_isentropic_workDiff',['w']);
+}
+function __compressor_isentropic_workExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#compressor_isentropic_workTable','compressor-isentropic-work.csv'); } catch(e){}
+}
+function __compressor_isentropic_workPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#compressor_isentropic_workPresets',[
+        {label:'默认',labelEn:'Default',values:{T1:'300', PR:'8', g:'1.4', Rgas:'287'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T1:'600', PR:'16', g:'2.8', Rgas:'574'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T1:'150', PR:'4', g:'0.7', Rgas:'143.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __compressor_isentropic_workExtras(); }catch(e){} };
+function __compressor_isentropic_workBoot(){ try{ __compressor_isentropic_workPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __compressor_isentropic_workBoot();
+else document.addEventListener('DOMContentLoaded', __compressor_isentropic_workBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

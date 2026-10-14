@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="humid_air_enthalpyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__humid_air_enthalpyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="humid_air_enthalpyTable"></div>
+    <div id="humid_air_enthalpyDiff"></div>
+    <div id="humid_air_enthalpyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('t').value = '25';
       document.getElementById('w').value = '0.01';
       calcTool();}
 calcTool();
+
+function __humid_air_enthalpyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __humid_air_enthalpyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var t = num('t'), w = num('w');
+    var h = 1.006 * t + w * (2501 + 1.86 * t);
+    if (!isFinite(__humid_air_enthalpyNum('t')) || !isFinite(__humid_air_enthalpyNum('w'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#humid_air_enthalpyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['湿空气焓 h (kJ/kg)', h.toFixed(3)],
+            ['干空气部分 (kJ/kg)', (1.006 * t).toFixed(3)],
+            ['水蒸气部分焓 (kJ/kg)', (w*(2501+1.86*t)).toFixed(3)],
+            ['单位含湿量焓 (kJ/kg 水)', (2501+1.86*t).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({t:__humid_air_enthalpyNum('t'), w:__humid_air_enthalpyNum('w'), h:h});
+    TBKit.history.mount('#humid_air_enthalpyHist',function(rec){ if(rec.t!=null)document.getElementById('t').value=rec.t; if(rec.w!=null)document.getElementById('w').value=rec.w; calcTool(); });
+    TBKit.util.diffBox('#humid_air_enthalpyDiff',['h']);
+}
+function __humid_air_enthalpyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#humid_air_enthalpyTable','humid-air-enthalpy.csv'); } catch(e){}
+}
+function __humid_air_enthalpyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#humid_air_enthalpyPresets',[
+        {label:'默认',labelEn:'Default',values:{t:'25', w:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{t:'50', w:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{t:'12.5', w:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __humid_air_enthalpyExtras(); }catch(e){} };
+function __humid_air_enthalpyBoot(){ try{ __humid_air_enthalpyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __humid_air_enthalpyBoot();
+else document.addEventListener('DOMContentLoaded', __humid_air_enthalpyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

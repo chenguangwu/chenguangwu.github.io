@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="biot_numberPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__biot_numberExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="biot_numberTable"></div>
+    <div id="biot_numberDiff"></div>
+    <div id="biot_numberHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('h').value = '50';
       document.getElementById('k').value = '400';
       calcTool();}
 calcTool();
+
+function __biot_numberNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __biot_numberExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var h=num('h'),L=num('L'),k=num('k');
+    var Bi=h*L/k;
+    var lump = Bi<0.1 ? '可用集总参数法 (Bi<0.1)' : '内部温度梯度不可忽略';
+    if (!isFinite(__biot_numberNum('h')) || !isFinite(__biot_numberNum('L')) || !isFinite(__biot_numberNum('k'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#biot_numberTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['毕渥数 Bi', Bi.toFixed(4)],
+            ['判据', lump],
+        ]
+    });
+    TBKit.history.record({h:__biot_numberNum('h'), L:__biot_numberNum('L'), k:__biot_numberNum('k'), Bi:Bi});
+    TBKit.history.mount('#biot_numberHist',function(rec){ if(rec.h!=null)document.getElementById('h').value=rec.h; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.k!=null)document.getElementById('k').value=rec.k; calcTool(); });
+    TBKit.util.diffBox('#biot_numberDiff',['Bi']);
+}
+function __biot_numberExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#biot_numberTable','biot-number.csv'); } catch(e){}
+}
+function __biot_numberPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#biot_numberPresets',[
+        {label:'默认',labelEn:'Default',values:{h:'50', L:'0.05', k:'400'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{h:'100', L:'0.1', k:'800'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{h:'25', L:'0.025', k:'200'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __biot_numberExtras(); }catch(e){} };
+function __biot_numberBoot(){ try{ __biot_numberPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __biot_numberBoot();
+else document.addEventListener('DOMContentLoaded', __biot_numberBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

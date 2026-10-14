@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="diesel_efficiencyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__diesel_efficiencyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="diesel_efficiencyTable"></div>
+    <div id="diesel_efficiencyDiff"></div>
+    <div id="diesel_efficiencyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('r').value = '18';
       document.getElementById('g').value = '1.4';
       calcTool();}
 calcTool();
+
+function __diesel_efficiencyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __diesel_efficiencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r=num('r'),rho=num('rho'),g=num('g');
+    var eff=1-(1/Math.pow(r,g-1))*(Math.pow(rho,g)-1)/(g*(rho-1));
+    if (!isFinite(__diesel_efficiencyNum('r')) || !isFinite(__diesel_efficiencyNum('rho')) || !isFinite(__diesel_efficiencyNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#diesel_efficiencyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热效率 η (%)', (eff*100).toFixed(2)],
+            ['同压缩比奥托循环效率 (%)', ((1-1/Math.pow(r,g-1))*100).toFixed(2)],
+            ['与奥托循环之差 (百分点)', ((eff-(1-1/Math.pow(r,g-1)))*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({r:__diesel_efficiencyNum('r'), rho:__diesel_efficiencyNum('rho'), g:__diesel_efficiencyNum('g'), eff:eff});
+    TBKit.history.mount('#diesel_efficiencyHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#diesel_efficiencyDiff',['eff']);
+}
+function __diesel_efficiencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#diesel_efficiencyTable','diesel-efficiency.csv'); } catch(e){}
+}
+function __diesel_efficiencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#diesel_efficiencyPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'18', rho:'2', g:'1.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'36', rho:'4', g:'2.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'9', rho:'1', g:'0.7'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __diesel_efficiencyExtras(); }catch(e){} };
+function __diesel_efficiencyBoot(){ try{ __diesel_efficiencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __diesel_efficiencyBoot();
+else document.addEventListener('DOMContentLoaded', __diesel_efficiencyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

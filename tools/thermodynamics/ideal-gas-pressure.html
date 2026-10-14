@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ideal_gas_pressurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ideal_gas_pressureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ideal_gas_pressureTable"></div>
+    <div id="ideal_gas_pressureDiff"></div>
+    <div id="ideal_gas_pressureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('n').value = '1';
       document.getElementById('V').value = '22.414';
       calcTool();}
 calcTool();
+
+function __ideal_gas_pressureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ideal_gas_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n = num('n'), T = num('T'), V = num('V');
+    var R = 8.314;
+    var P = n * R * T / V;
+    if (!isFinite(__ideal_gas_pressureNum('n')) || !isFinite(__ideal_gas_pressureNum('T')) || !isFinite(__ideal_gas_pressureNum('V'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ideal_gas_pressureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['压强 P (kPa)', P.toFixed(3)],
+            ['压强 (Pa)', (P * 1000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({n:__ideal_gas_pressureNum('n'), T:__ideal_gas_pressureNum('T'), V:__ideal_gas_pressureNum('V'), R:R});
+    TBKit.history.mount('#ideal_gas_pressureHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.V!=null)document.getElementById('V').value=rec.V; calcTool(); });
+    TBKit.util.diffBox('#ideal_gas_pressureDiff',['R']);
+}
+function __ideal_gas_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ideal_gas_pressureTable','ideal-gas-pressure.csv'); } catch(e){}
+}
+function __ideal_gas_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ideal_gas_pressurePresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1', T:'273.15', V:'22.414'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2', T:'546.3', V:'44.828'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.5', T:'136.575', V:'11.207'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ideal_gas_pressureExtras(); }catch(e){} };
+function __ideal_gas_pressureBoot(){ try{ __ideal_gas_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ideal_gas_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __ideal_gas_pressureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="linear_expansionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__linear_expansionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="linear_expansionTable"></div>
+    <div id="linear_expansionDiff"></div>
+    <div id="linear_expansionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,42 @@ function resetForm(){document.getElementById('alpha').value = '1.2e-5';
       document.getElementById('dT').value = '50';
       calcTool();}
 calcTool();
+
+function __linear_expansionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __linear_expansionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var alpha = num('alpha'), L0 = num('L0'), dT = num('dT');
+    var dL = alpha * L0 * dT;
+    if (!isFinite(__linear_expansionNum('alpha')) || !isFinite(__linear_expansionNum('L0')) || !isFinite(__linear_expansionNum('dT'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#linear_expansionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['伸长量 ΔL (mm)', dL.toFixed(4)],
+            ['末长 (mm)', ((L0 + dL)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({alpha:__linear_expansionNum('alpha'), L0:__linear_expansionNum('L0'), dT:__linear_expansionNum('dT'), dL:dL});
+    TBKit.history.mount('#linear_expansionHist',function(rec){ if(rec.alpha!=null)document.getElementById('alpha').value=rec.alpha; if(rec.L0!=null)document.getElementById('L0').value=rec.L0; if(rec.dT!=null)document.getElementById('dT').value=rec.dT; calcTool(); });
+    TBKit.util.diffBox('#linear_expansionDiff',['dL']);
+}
+function __linear_expansionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#linear_expansionTable','linear-expansion.csv'); } catch(e){}
+}
+function __linear_expansionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#linear_expansionPresets',[
+        {label:'默认',labelEn:'Default',values:{alpha:'1.2e-5', L0:'1000', dT:'50'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{alpha:'0', L0:'2000', dT:'100'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{alpha:'0', L0:'500', dT:'25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __linear_expansionExtras(); }catch(e){} };
+function __linear_expansionBoot(){ try{ __linear_expansionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __linear_expansionBoot();
+else document.addEventListener('DOMContentLoaded', __linear_expansionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gay_lussac_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gay_lussac_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gay_lussac_lawTable"></div>
+    <div id="gay_lussac_lawDiff"></div>
+    <div id="gay_lussac_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('P1').value = '100';
       document.getElementById('T2').value = '400';
       calcTool();}
 calcTool();
+
+function __gay_lussac_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gay_lussac_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P1 = num('P1'), T1 = num('T1'), T2 = num('T2');
+    var P2 = P1 * T2 / T1;
+    if (!isFinite(__gay_lussac_lawNum('P1')) || !isFinite(__gay_lussac_lawNum('T1')) || !isFinite(__gay_lussac_lawNum('T2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gay_lussac_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末压强 P₂ (kPa)', P2.toFixed(3)],
+            ['压强放大倍数', ((P2 / P1)).toFixed(4)],
+            ['压强变化 ΔP (kPa)', (P2-P1).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({P1:__gay_lussac_lawNum('P1'), T1:__gay_lussac_lawNum('T1'), T2:__gay_lussac_lawNum('T2'), P2:P2});
+    TBKit.history.mount('#gay_lussac_lawHist',function(rec){ if(rec.P1!=null)document.getElementById('P1').value=rec.P1; if(rec.T1!=null)document.getElementById('T1').value=rec.T1; if(rec.T2!=null)document.getElementById('T2').value=rec.T2; calcTool(); });
+    TBKit.util.diffBox('#gay_lussac_lawDiff',['P2']);
+}
+function __gay_lussac_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gay_lussac_lawTable','gay-lussac-law.csv'); } catch(e){}
+}
+function __gay_lussac_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gay_lussac_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{P1:'100', T1:'300', T2:'400'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P1:'200', T1:'600', T2:'800'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P1:'50', T1:'150', T2:'200'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gay_lussac_lawExtras(); }catch(e){} };
+function __gay_lussac_lawBoot(){ try{ __gay_lussac_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gay_lussac_lawBoot();
+else document.addEventListener('DOMContentLoaded', __gay_lussac_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

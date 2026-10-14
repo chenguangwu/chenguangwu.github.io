@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="otto_efficiencyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__otto_efficiencyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="otto_efficiencyTable"></div>
+    <div id="otto_efficiencyDiff"></div>
+    <div id="otto_efficiencyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('r').value = '10';
       document.getElementById('g').value = '1.4';
       calcTool();}
 calcTool();
+
+function __otto_efficiencyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __otto_efficiencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r=num('r'),g=num('g');
+    var eff=1-1/Math.pow(r, g-1);
+    if (!isFinite(__otto_efficiencyNum('r')) || !isFinite(__otto_efficiencyNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#otto_efficiencyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热效率 η (%)', (eff*100).toFixed(2)],
+            ['能量损失比', (1-eff).toFixed(4)],
+            ['损失项 1/r^(γ−1)', (1/Math.pow(r,g-1)).toFixed(5)],
+            ['压缩比', (r).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({r:__otto_efficiencyNum('r'), g:__otto_efficiencyNum('g'), eff:eff});
+    TBKit.history.mount('#otto_efficiencyHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#otto_efficiencyDiff',['eff']);
+}
+function __otto_efficiencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#otto_efficiencyTable','otto-efficiency.csv'); } catch(e){}
+}
+function __otto_efficiencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#otto_efficiencyPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'10', g:'1.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'20', g:'2.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'5', g:'0.7'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __otto_efficiencyExtras(); }catch(e){} };
+function __otto_efficiencyBoot(){ try{ __otto_efficiencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __otto_efficiencyBoot();
+else document.addEventListener('DOMContentLoaded', __otto_efficiencyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
