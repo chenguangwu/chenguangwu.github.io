@@ -340,6 +340,28 @@ def gen_script(name, info):
     # 预设：默认 + 2× + 0.5×（基于输入默认值，需从 HTML 取，这里先留占位，外部补）
     return inputs, compute, matrix_rows, rec, restore, primary
 
+def _strip_js_line_comment(line):
+    """去除 JS 行内 // 注释（引号感知），保留字符串与 :// URL 内的 //。
+
+    extract() 把多行 if/else 拼成单行后，行内 // 注释会吞掉后续代码（含收尾 }），
+    致 Extras 块花括号不闭合（desk-dimensions 真案例）。重放 compute 前剥注释消除该隐患。"""
+    out = []
+    i = 0
+    n = len(line)
+    in_s = in_d = False
+    while i < n:
+        c = line[i]
+        if c == "'" and not in_d:
+            in_s = not in_s
+        elif c == '"' and not in_s:
+            in_d = not in_d
+        elif c == '/' and not in_s and not in_d and i + 1 < n and line[i + 1] == '/' and (i == 0 or line[i - 1] != ':'):
+            break  # 行注释开始，丢弃余下
+        out.append(c)
+        i += 1
+    return "".join(out).rstrip()
+
+
 def gen_classic_extras(p, inputs, compute, rows, primary, num_ids=None, diff_fields=None):
     """生成经典模式 __xExtras 函数文本（行列表）。apply_page() 与历史缺陷修复脚本共用，
     保证「重生成」与「新生成」同源。函数自包含（Raw/Restore 均为局部声明），
@@ -359,6 +381,8 @@ def gen_classic_extras(p, inputs, compute, rows, primary, num_ids=None, diff_fie
             # （dilution-c1v1 真案例：`if(...){ const V=...; }` 致 record 的 V:V
             #  ReferenceError → 整表+记录死）。要求后跟 `标识符=` 防误伤对象属性。
             line = re.sub(r'([{,]\s*)(const|let)\s+(\w+\s*=)', r'\1var \3', line)
+            # 剥行内 // 注释：避免 // 吞掉同行后续代码（含收尾 }）致花括号不闭合
+            line = _strip_js_line_comment(line)
             js.append("    " + line)
     # 守卫：数值输入 NaN 跳过；非数值输入（select/checkbox/列表）空值跳过
     if inputs:
