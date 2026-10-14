@@ -119,8 +119,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>3. 地面障碍物</label><select id="e3" onchange="calc()" style="font-size:16px;"><option value="0">通道畅通 (0分)</option><option value="2">有少量杂物 (2分)</option><option value="3">杂物堆积/电线横穿 (3分)</option></select></div><div><label>4. 地毯/垫子</label><select id="e4" onchange="calc()" style="font-size:16px;"><option value="0">固定平整/无地毯 (0分)</option><option value="2">边缘翘起 (2分)</option><option value="3">松动滑动 (3分)</option></select></div></div>
 <div class="input-row"><div><label>5. 卫生间安全</label><select id="e5" onchange="calc()" style="font-size:16px;"><option value="0">有扶手+防滑垫 (0分)</option><option value="2">有扶手或防滑垫 (2分)</option><option value="3">无安全设施 (3分)</option></select></div><div><label>6. 家具稳定性</label><select id="e6" onchange="calc()" style="font-size:16px;"><option value="0">稳固可靠 (0分)</option><option value="2">个别不稳 (2分)</option><option value="3">多处不稳/带轮无锁 (3分)</option></select></div></div>
 <div class="input-row"><div><label>7. 楼梯/台阶</label><select id="e7" onchange="calc()" style="font-size:16px;"><option value="0">有扶手+照明好/无楼梯 (0分)</option><option value="2">扶手不全/照明不足 (2分)</option><option value="3">无扶手/破损 (3分)</option></select></div><div><label>8. 床高/座椅高度</label><select id="e8" onchange="calc()" style="font-size:16px;"><option value="0">高度合适 (0分)</option><option value="2">偏高或偏低 (2分)</option><option value="3">过高/过低 (3分)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估跌倒风险</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="assessor_risk_1Presets"></div><button type="button" class="btn primary" onclick="calc()">评估跌倒风险</button><button class="btn" type="button" onclick="__assessor_risk_1Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="assessor_risk_1Table"></div> <div id="assessor_risk_1Diff"></div> <div id="assessor_risk_1Chart"></div> <div id="assessor_risk_1Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -248,6 +248,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __assessor_risk_1_last=0,__assessor_risk_1_skip=false;
+function __assessor_risk_1Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_risk_1ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_risk_1Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_risk_1Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_risk_1Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_risk_1Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_risk_1Diff');
+        TBKit.history.mount('#assessor_risk_1Hist',function(rec){
+            __assessor_risk_1_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_risk_1_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_risk_1Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_risk_1Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_risk_1Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_risk_1_skip) return;
+    var snap=__assessor_risk_1Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_risk_1ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_risk_1_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_risk_1_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_risk_1Render(keys,rk,en);
+}
+function __assessor_risk_1Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_risk_1Table','assessor-risk-1.csv'); } catch(e){}
+}
+function __assessor_risk_1Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_risk_1Presets',[{label:'默认参数',labelEn:'Default',values:{'e1':'0', 'e2':'0', 'e3':'0', 'e4':'0', 'e5':'0', 'e6':'0', 'e7':'0', 'e8':'0'}}],function(){ calc(); });
+}
+var __assessor_risk_1_f0=(typeof calc==='function')?calc:null;
+if(__assessor_risk_1_f0){
+    calc=function(){ var __r=__assessor_risk_1_f0.apply(null,arguments); try{ __assessor_risk_1Extras(); }catch(e){} return __r; };
+}
+function __assessor_risk_1Boot(){ try{ __assessor_risk_1Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_risk_1Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_risk_1Boot);
 </script>
 
 </body>

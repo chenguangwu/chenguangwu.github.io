@@ -127,7 +127,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('log', event)">记录数据</button>
+      <div id="bp_trendPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('log', event)">记录数据</button><button class="btn" type="button" onclick="__bp_trendExport()">导出明细 CSV</button>
       <button type="button" class="tab-btn" onclick="switchTab('chart', event)">趋势图表</button>
       <button type="button" class="tab-btn" onclick="switchTab('history', event)">历史记录</button>
     </div>
@@ -179,7 +179,7 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="addLog()">保存记录</button>
       </div>
-      <div class="result-box" id="latestBox" style="display:none;"></div>
+      <div class="result-box" id="latestBox" style="display:none;"></div> <div id="bp_trendTable"></div> <div id="bp_trendDiff"></div> <div id="bp_trendChart"></div> <div id="bp_trendHist"></div>
     </div>
 
     <div id="tab-chart" class="tab-content">
@@ -593,6 +593,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __bp_trend_last=0,__bp_trend_skip=false;
+function __bp_trendSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bp_trendResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bp_trendTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bp_trendRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bp_trendTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bp_trendTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bp_trendDiff');
+        TBKit.history.mount('#bp_trendHist',function(rec){
+            __bp_trend_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __bp_trend_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bp_trendTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bp_trendChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bp_trendExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bp_trend_skip) return;
+    var snap=__bp_trendSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bp_trendResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bp_trend_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bp_trend_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bp_trendRender(keys,rk,en);
+}
+function __bp_trendExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bp_trendTable','bp-trend.csv'); } catch(e){}
+}
+function __bp_trendPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bp_trendPresets',[{label:'默认参数',labelEn:'Default',values:{'logPeriod':'晨起', 'logGluType':'空腹', 'chartMetric':'bp', 'chartRange':'14'}}],function(){ switchTab(); });
+}
+var __bp_trend_f0=(typeof switchTab==='function')?switchTab:null;
+if(__bp_trend_f0){
+    switchTab=function(){ var __r=__bp_trend_f0.apply(null,arguments); try{ __bp_trendExtras(); }catch(e){} return __r; };
+}
+function __bp_trendBoot(){ try{ __bp_trendPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bp_trendBoot();
+else document.addEventListener('DOMContentLoaded', __bp_trendBoot);
 </script>
 
 </body>
