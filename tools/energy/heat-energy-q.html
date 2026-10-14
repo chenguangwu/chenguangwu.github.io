@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="heat_energy_qPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__heat_energy_qExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="heat_energy_qTable"></div>
+    <div id="heat_energy_qDiff"></div>
+    <div id="heat_energy_qHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('m').value = '1';
       document.getElementById('dT').value = '80';
       calcTool();}
 calcTool();
+
+function __heat_energy_qNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __heat_energy_qExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'),c=num('c'),dT=num('dT');
+    var Q=m*c*dT;
+    if (!isFinite(__heat_energy_qNum('m')) || !isFinite(__heat_energy_qNum('c')) || !isFinite(__heat_energy_qNum('dT'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#heat_energy_qTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热量 Q (J)', Q.toFixed(2)],
+            ['热容 C = m*c (J/K)', (m*c).toFixed(3)],
+            ['单位温升热量 (J/K)', (Q/(dT||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m:__heat_energy_qNum('m'), c:__heat_energy_qNum('c'), dT:__heat_energy_qNum('dT'), Q:Q});
+    TBKit.history.mount('#heat_energy_qHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.dT!=null)document.getElementById('dT').value=rec.dT; calcTool(); });
+    TBKit.util.diffBox('#heat_energy_qDiff',['Q']);
+}
+function __heat_energy_qExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#heat_energy_qTable','heat-energy-q.csv'); } catch(e){}
+}
+function __heat_energy_qPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#heat_energy_qPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'1', c:'4186', dT:'80'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'2', c:'8372', dT:'160'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'0.5', c:'2093', dT:'40'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __heat_energy_qExtras(); }catch(e){} };
+function __heat_energy_qBoot(){ try{ __heat_energy_qPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __heat_energy_qBoot();
+else document.addEventListener('DOMContentLoaded', __heat_energy_qBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

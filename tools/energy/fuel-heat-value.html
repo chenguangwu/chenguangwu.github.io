@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fuel_heat_valuePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fuel_heat_valueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fuel_heat_valueTable"></div>
+    <div id="fuel_heat_valueDiff"></div>
+    <div id="fuel_heat_valueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('m').value = '1000';
       document.getElementById('h').value = '42000';
       calcTool();}
 calcTool();
+
+function __fuel_heat_valueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fuel_heat_valueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'),h=num('h');
+    var Q=m*h;
+    if (!isFinite(__fuel_heat_valueNum('m')) || !isFinite(__fuel_heat_valueNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fuel_heat_valueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['能量 (MJ)', (Q/1000).toFixed(1)],
+            ['能量 (kWh)', (Q/3.6e6).toFixed(3)],
+            ['热值复算 (J/kg)', (Q/(m||1)).toExponential(4)],
+            ['折标准煤 (kg)', (Q/2.9307e7).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({m:__fuel_heat_valueNum('m'), h:__fuel_heat_valueNum('h'), Q:Q});
+    TBKit.history.mount('#fuel_heat_valueHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#fuel_heat_valueDiff',['Q']);
+}
+function __fuel_heat_valueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fuel_heat_valueTable','fuel-heat-value.csv'); } catch(e){}
+}
+function __fuel_heat_valuePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fuel_heat_valuePresets',[
+        {label:'默认',labelEn:'Default',values:{m:'1000', h:'42000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'2000', h:'84000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'500', h:'21000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fuel_heat_valueExtras(); }catch(e){} };
+function __fuel_heat_valueBoot(){ try{ __fuel_heat_valuePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fuel_heat_valueBoot();
+else document.addEventListener('DOMContentLoaded', __fuel_heat_valueBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

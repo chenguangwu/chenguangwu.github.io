@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="conductive_heat_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__conductive_heat_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="conductive_heat_rateTable"></div>
+    <div id="conductive_heat_rateDiff"></div>
+    <div id="conductive_heat_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,43 @@ function resetForm(){document.getElementById('k').value = '0.04';
       document.getElementById('d').value = '0.2';
       calcTool();}
 calcTool();
+
+function __conductive_heat_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __conductive_heat_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k=num('k'),A=num('A'),dT=num('dT'),d=num('d');
+    var Qdot=k*A*dT/d;
+    if (!isFinite(__conductive_heat_rateNum('k')) || !isFinite(__conductive_heat_rateNum('A')) || !isFinite(__conductive_heat_rateNum('dT')) || !isFinite(__conductive_heat_rateNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#conductive_heat_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热流率 Q̇ (W)', Qdot.toFixed(2)],
+            ['热流密度 q (W/m²)', (Qdot/A).toFixed(4)],
+            ['单位面积热阻 d/k (m²·K/W)', (d/k).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({k:__conductive_heat_rateNum('k'), A:__conductive_heat_rateNum('A'), dT:__conductive_heat_rateNum('dT'), d:__conductive_heat_rateNum('d'), Qdot:Qdot});
+    TBKit.history.mount('#conductive_heat_rateHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.dT!=null)document.getElementById('dT').value=rec.dT; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#conductive_heat_rateDiff',['Qdot']);
+}
+function __conductive_heat_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#conductive_heat_rateTable','conductive-heat-rate.csv'); } catch(e){}
+}
+function __conductive_heat_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#conductive_heat_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{k:'0.04', A:'10', dT:'20', d:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'0.08', A:'20', dT:'40', d:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'0.02', A:'5', dT:'10', d:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __conductive_heat_rateExtras(); }catch(e){} };
+function __conductive_heat_rateBoot(){ try{ __conductive_heat_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __conductive_heat_rateBoot();
+else document.addEventListener('DOMContentLoaded', __conductive_heat_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

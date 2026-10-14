@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="carnot_efficiencyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__carnot_efficiencyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="carnot_efficiencyTable"></div>
+    <div id="carnot_efficiencyDiff"></div>
+    <div id="carnot_efficiencyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('Tc').value = '300';
       document.getElementById('Th').value = '600';
       calcTool();}
 calcTool();
+
+function __carnot_efficiencyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __carnot_efficiencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Tc=num('Tc'),Th=num('Th');
+    var eta=1-Tc/Th;
+    if (!isFinite(__carnot_efficiencyNum('Tc')) || !isFinite(__carnot_efficiencyNum('Th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#carnot_efficiencyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['卡诺效率 η (%)', (eta*100).toFixed(2)],
+            ['温差 (K)', (Th-Tc).toFixed(3)],
+            ['低温高温比', (Tc/Math.max(Th,1e-9)).toFixed(5)],
+            ['热量排弃比', (1-eta).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({Tc:__carnot_efficiencyNum('Tc'), Th:__carnot_efficiencyNum('Th'), eta:eta});
+    TBKit.history.mount('#carnot_efficiencyHist',function(rec){ if(rec.Tc!=null)document.getElementById('Tc').value=rec.Tc; if(rec.Th!=null)document.getElementById('Th').value=rec.Th; calcTool(); });
+    TBKit.util.diffBox('#carnot_efficiencyDiff',['eta']);
+}
+function __carnot_efficiencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#carnot_efficiencyTable','carnot-efficiency.csv'); } catch(e){}
+}
+function __carnot_efficiencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#carnot_efficiencyPresets',[
+        {label:'默认',labelEn:'Default',values:{Tc:'300', Th:'600'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Tc:'600', Th:'1200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Tc:'150', Th:'300'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __carnot_efficiencyExtras(); }catch(e){} };
+function __carnot_efficiencyBoot(){ try{ __carnot_efficiencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __carnot_efficiencyBoot();
+else document.addEventListener('DOMContentLoaded', __carnot_efficiencyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

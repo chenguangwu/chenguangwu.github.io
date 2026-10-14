@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="solar_panel_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__solar_panel_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="solar_panel_powerTable"></div>
+    <div id="solar_panel_powerDiff"></div>
+    <div id="solar_panel_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,44 @@ function resetForm(){document.getElementById('a').value = '20';
       document.getElementById('eta').value = '0.2';
       calcTool();}
 calcTool();
+
+function __solar_panel_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __solar_panel_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var A=num('a'),G=num('g'),e=num('eta');
+    var P=A*G*e;
+    if (!isFinite(__solar_panel_powerNum('a')) || !isFinite(__solar_panel_powerNum('g')) || !isFinite(__solar_panel_powerNum('eta'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#solar_panel_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['输出功率 (kW)', (P/1000).toFixed(2)],
+            ['输出功率 (W)', P.toFixed(0)],
+            ['入射辐照功率 (W)', (A*G).toFixed(0)],
+            ['按等效 4 小时日照日发电量 (kWh)', (P*4/1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({a:__solar_panel_powerNum('a'), g:__solar_panel_powerNum('g'), eta:__solar_panel_powerNum('eta'), A:A});
+    TBKit.history.mount('#solar_panel_powerHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.g!=null)document.getElementById('g').value=rec.g; if(rec.eta!=null)document.getElementById('eta').value=rec.eta; calcTool(); });
+    TBKit.util.diffBox('#solar_panel_powerDiff',['A']);
+}
+function __solar_panel_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#solar_panel_powerTable','solar-panel-power.csv'); } catch(e){}
+}
+function __solar_panel_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#solar_panel_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'20', g:'1000', eta:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'40', g:'2000', eta:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'10', g:'500', eta:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __solar_panel_powerExtras(); }catch(e){} };
+function __solar_panel_powerBoot(){ try{ __solar_panel_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __solar_panel_powerBoot();
+else document.addEventListener('DOMContentLoaded', __solar_panel_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

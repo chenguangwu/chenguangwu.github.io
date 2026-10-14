@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="three_phase_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__three_phase_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="three_phase_powerTable"></div>
+    <div id="three_phase_powerDiff"></div>
+    <div id="three_phase_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('u').value = '380';
       document.getElementById('pf').value = '0.9';
       calcTool();}
 calcTool();
+
+function __three_phase_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __three_phase_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var u=num('u'),i=num('i'),pf=num('pf');
+    var P=Math.sqrt(3)*u*i*pf;
+    if (!isFinite(__three_phase_powerNum('u')) || !isFinite(__three_phase_powerNum('i')) || !isFinite(__three_phase_powerNum('pf'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#three_phase_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['有功功率 (kW)', (P/1000).toFixed(2)],
+            ['视在功率 S (kVA)', (Math.sqrt(3)*u*i/1000).toFixed(2)],
+            ['无功功率 Q (kvar)', (Math.sqrt(3)*u*i*Math.sqrt(Math.max(0,1-pf*pf))/1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({u:__three_phase_powerNum('u'), i:__three_phase_powerNum('i'), pf:__three_phase_powerNum('pf'), P:P});
+    TBKit.history.mount('#three_phase_powerHist',function(rec){ if(rec.u!=null)document.getElementById('u').value=rec.u; if(rec.i!=null)document.getElementById('i').value=rec.i; if(rec.pf!=null)document.getElementById('pf').value=rec.pf; calcTool(); });
+    TBKit.util.diffBox('#three_phase_powerDiff',['P']);
+}
+function __three_phase_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#three_phase_powerTable','three-phase-power.csv'); } catch(e){}
+}
+function __three_phase_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#three_phase_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{u:'380', i:'100', pf:'0.9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{u:'760', i:'200', pf:'1.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{u:'190', i:'50', pf:'0.45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __three_phase_powerExtras(); }catch(e){} };
+function __three_phase_powerBoot(){ try{ __three_phase_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __three_phase_powerBoot();
+else document.addEventListener('DOMContentLoaded', __three_phase_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

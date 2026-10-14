@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="energy_costPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__energy_costExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="energy_costTable"></div>
+    <div id="energy_costDiff"></div>
+    <div id="energy_costHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('P').value = '1500';
       document.getElementById('rate').value = '0.6';
       calcTool();}
 calcTool();
+
+function __energy_costNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __energy_costExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P=num('P'),h=num('h'),rate=num('rate');
+    var cost=P/1000*h*rate;
+    if (!isFinite(__energy_costNum('P')) || !isFinite(__energy_costNum('h')) || !isFinite(__energy_costNum('rate'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#energy_costTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电费 (元)', cost.toFixed(2)],
+            ['耗电量 (kWh)', (P/1000*h).toFixed(3)],
+            ['单位时间成本 (元/h)', (cost/(h||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({P:__energy_costNum('P'), h:__energy_costNum('h'), rate:__energy_costNum('rate'), cost:cost});
+    TBKit.history.mount('#energy_costHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.h!=null)document.getElementById('h').value=rec.h; if(rec.rate!=null)document.getElementById('rate').value=rec.rate; calcTool(); });
+    TBKit.util.diffBox('#energy_costDiff',['cost']);
+}
+function __energy_costExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_costTable','energy-cost.csv'); } catch(e){}
+}
+function __energy_costPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_costPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'1500', h:'24', rate:'0.6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'3000', h:'48', rate:'1.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'750', h:'12', rate:'0.3'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __energy_costExtras(); }catch(e){} };
+function __energy_costBoot(){ try{ __energy_costPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_costBoot();
+else document.addEventListener('DOMContentLoaded', __energy_costBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

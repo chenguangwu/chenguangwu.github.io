@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="thermal_efficiencyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__thermal_efficiencyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="thermal_efficiencyTable"></div>
+    <div id="thermal_efficiencyDiff"></div>
+    <div id="thermal_efficiencyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('out').value = '300';
       document.getElementById('in').value = '1000';
       calcTool();}
 calcTool();
+
+function __thermal_efficiencyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __thermal_efficiencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var o=num('out'),i=num('in');
+    if (!isFinite(__thermal_efficiencyNum('out')) || !isFinite(__thermal_efficiencyNum('in'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#thermal_efficiencyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热效率 (%)', (o/i*100).toFixed(2)],
+            ['损失率 (%)', ((1-o/i)*100).toFixed(2)],
+            ['损失能量 (同单位)', (i-o).toFixed(2)],
+            ['效率（小数）', (o/(i||1)).toFixed(4)],
+            ['输入/输出 倍数', (i/(o||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({out:__thermal_efficiencyNum('out'), in:__thermal_efficiencyNum('in'), o:o});
+    TBKit.history.mount('#thermal_efficiencyHist',function(rec){ if(rec.out!=null)document.getElementById('out').value=rec.out; if(rec.in!=null)document.getElementById('in').value=rec.in; calcTool(); });
+    TBKit.util.diffBox('#thermal_efficiencyDiff',['o']);
+}
+function __thermal_efficiencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thermal_efficiencyTable','thermal-efficiency.csv'); } catch(e){}
+}
+function __thermal_efficiencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thermal_efficiencyPresets',[
+        {label:'默认',labelEn:'Default',values:{out:'300', in:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{out:'600', in:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{out:'150', in:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __thermal_efficiencyExtras(); }catch(e){} };
+function __thermal_efficiencyBoot(){ try{ __thermal_efficiencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thermal_efficiencyBoot();
+else document.addEventListener('DOMContentLoaded', __thermal_efficiencyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

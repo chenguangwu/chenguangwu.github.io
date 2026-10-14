@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fuel_costPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fuel_costExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fuel_costTable"></div>
+    <div id="fuel_costDiff"></div>
+    <div id="fuel_costHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('q').value = '50';
       document.getElementById('dist').value = '600';
       calcTool();}
 calcTool();
+
+function __fuel_costNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fuel_costExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var q=num('q'),p=num('price'),d=num('dist');
+    var cost=q*p;
+    if (!isFinite(__fuel_costNum('q')) || !isFinite(__fuel_costNum('price')) || !isFinite(__fuel_costNum('dist'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fuel_costTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['燃料费 (元)', cost.toFixed(2)],
+            ['单位里程 (元/km)', (cost/d).toFixed(2)],
+            ['百公里油耗 (L/100km)', (q/d*100).toFixed(3)],
+            ['每升可行驶 (km/L)', (d/(q||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({q:__fuel_costNum('q'), price:__fuel_costNum('price'), dist:__fuel_costNum('dist'), cost:cost});
+    TBKit.history.mount('#fuel_costHist',function(rec){ if(rec.q!=null)document.getElementById('q').value=rec.q; if(rec.price!=null)document.getElementById('price').value=rec.price; if(rec.dist!=null)document.getElementById('dist').value=rec.dist; calcTool(); });
+    TBKit.util.diffBox('#fuel_costDiff',['cost']);
+}
+function __fuel_costExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fuel_costTable','fuel-cost.csv'); } catch(e){}
+}
+function __fuel_costPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fuel_costPresets',[
+        {label:'默认',labelEn:'Default',values:{q:'50', price:'8', dist:'600'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q:'100', price:'16', dist:'1200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q:'25', price:'4', dist:'300'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fuel_costExtras(); }catch(e){} };
+function __fuel_costBoot(){ try{ __fuel_costPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fuel_costBoot();
+else document.addEventListener('DOMContentLoaded', __fuel_costBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

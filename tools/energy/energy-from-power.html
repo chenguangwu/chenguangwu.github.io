@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="energy_from_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__energy_from_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="energy_from_powerTable"></div>
+    <div id="energy_from_powerDiff"></div>
+    <div id="energy_from_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('P').value = '1000';
       document.getElementById('t').value = '2';
       calcTool();}
 calcTool();
+
+function __energy_from_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __energy_from_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P=num('P'),t=num('t');
+    var E=P/1000*t;
+    if (!isFinite(__energy_from_powerNum('P')) || !isFinite(__energy_from_powerNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#energy_from_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电能 E (kWh)', E.toFixed(3)],
+            ['电能 (Wh)', (E*1000).toFixed(3)],
+            ['电能 (MJ)', (E*3.6).toFixed(3)],
+            ['由 E 反推平均功率 (kW)', (E/Math.max(t,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({P:__energy_from_powerNum('P'), t:__energy_from_powerNum('t'), E:E});
+    TBKit.history.mount('#energy_from_powerHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#energy_from_powerDiff',['E']);
+}
+function __energy_from_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_from_powerTable','energy-from-power.csv'); } catch(e){}
+}
+function __energy_from_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_from_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'1000', t:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'2000', t:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'500', t:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __energy_from_powerExtras(); }catch(e){} };
+function __energy_from_powerBoot(){ try{ __energy_from_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_from_powerBoot();
+else document.addEventListener('DOMContentLoaded', __energy_from_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

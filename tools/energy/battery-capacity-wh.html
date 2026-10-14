@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="battery_capacity_whPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__battery_capacity_whExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="battery_capacity_whTable"></div>
+    <div id="battery_capacity_whDiff"></div>
+    <div id="battery_capacity_whHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('ah').value = '50';
       document.getElementById('load').value = '100';
       calcTool();}
 calcTool();
+
+function __battery_capacity_whNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __battery_capacity_whExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ah=num('ah'),v=num('v'),L=num('load');
+    var wh=ah*v;
+    var hrs=wh/L;
+    if (!isFinite(__battery_capacity_whNum('ah')) || !isFinite(__battery_capacity_whNum('v')) || !isFinite(__battery_capacity_whNum('load'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#battery_capacity_whTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['能量 (Wh)', wh.toFixed(0)],
+            ['续航 (h)', hrs.toFixed(2)],
+            ['续航 (min)', (hrs*60).toFixed(0)],
+        ]
+    });
+    TBKit.history.record({ah:__battery_capacity_whNum('ah'), v:__battery_capacity_whNum('v'), load:__battery_capacity_whNum('load'), wh:wh});
+    TBKit.history.mount('#battery_capacity_whHist',function(rec){ if(rec.ah!=null)document.getElementById('ah').value=rec.ah; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.load!=null)document.getElementById('load').value=rec.load; calcTool(); });
+    TBKit.util.diffBox('#battery_capacity_whDiff',['wh']);
+}
+function __battery_capacity_whExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#battery_capacity_whTable','battery-capacity-wh.csv'); } catch(e){}
+}
+function __battery_capacity_whPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#battery_capacity_whPresets',[
+        {label:'默认',labelEn:'Default',values:{ah:'50', v:'12', load:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ah:'100', v:'24', load:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ah:'25', v:'6', load:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __battery_capacity_whExtras(); }catch(e){} };
+function __battery_capacity_whBoot(){ try{ __battery_capacity_whPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __battery_capacity_whBoot();
+else document.addEventListener('DOMContentLoaded', __battery_capacity_whBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

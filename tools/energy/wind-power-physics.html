@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wind_power_physicsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wind_power_physicsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wind_power_physicsTable"></div>
+    <div id="wind_power_physicsDiff"></div>
+    <div id="wind_power_physicsHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('rho').value = '1.225';
       document.getElementById('v').value = '10';
       calcTool();}
 calcTool();
+
+function __wind_power_physicsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wind_power_physicsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho=num('rho'),A=num('A'),v=num('v');
+    var P=0.5*rho*A*v*v*v;
+    if (!isFinite(__wind_power_physicsNum('rho')) || !isFinite(__wind_power_physicsNum('A')) || !isFinite(__wind_power_physicsNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wind_power_physicsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['风能功率 P (W)', P.toFixed(2)],
+            ['动压 0.5*rho*v^2 (Pa)', (0.5*rho*v*v).toFixed(2)],
+            ['功率密度 (W/m2)', (P/(A||1)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rho:__wind_power_physicsNum('rho'), A:__wind_power_physicsNum('A'), v:__wind_power_physicsNum('v'), P:P});
+    TBKit.history.mount('#wind_power_physicsHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#wind_power_physicsDiff',['P']);
+}
+function __wind_power_physicsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wind_power_physicsTable','wind-power-physics.csv'); } catch(e){}
+}
+function __wind_power_physicsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wind_power_physicsPresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1.225', A:'10', v:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'2.45', A:'20', v:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'0.6125', A:'5', v:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wind_power_physicsExtras(); }catch(e){} };
+function __wind_power_physicsBoot(){ try{ __wind_power_physicsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wind_power_physicsBoot();
+else document.addEventListener('DOMContentLoaded', __wind_power_physicsBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

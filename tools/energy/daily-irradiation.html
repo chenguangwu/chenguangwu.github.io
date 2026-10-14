@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="daily_irradiationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__daily_irradiationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="daily_irradiationTable"></div>
+    <div id="daily_irradiationDiff"></div>
+    <div id="daily_irradiationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,42 @@ function resetForm(){document.getElementById('g').value = '1000';
       document.getElementById('t').value = '4.5';
       calcTool();}
 calcTool();
+
+function __daily_irradiationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __daily_irradiationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var g=num('g'),t=num('t');
+    if (!isFinite(__daily_irradiationNum('g')) || !isFinite(__daily_irradiationNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#daily_irradiationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['日辐照量 (kWh/m²)', (g*t/1000).toFixed(2)],
+            ['辐照总量 (Wh/m²)', (g*t).toFixed(2)],
+            ['按 24 小时折算日辐照量 (kWh/m²)', (g*24/1000).toFixed(4)],
+            ['辐照度倒数 (m²/kW)', (1000/Math.max(g,1e-9)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({g:__daily_irradiationNum('g'), t:__daily_irradiationNum('t')});
+    TBKit.history.mount('#daily_irradiationHist',function(rec){ if(rec.g!=null)document.getElementById('g').value=rec.g; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+}
+function __daily_irradiationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#daily_irradiationTable','daily-irradiation.csv'); } catch(e){}
+}
+function __daily_irradiationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#daily_irradiationPresets',[
+        {label:'默认',labelEn:'Default',values:{g:'1000', t:'4.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{g:'2000', t:'9'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{g:'500', t:'2.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __daily_irradiationExtras(); }catch(e){} };
+function __daily_irradiationBoot(){ try{ __daily_irradiationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __daily_irradiationBoot();
+else document.addEventListener('DOMContentLoaded', __daily_irradiationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

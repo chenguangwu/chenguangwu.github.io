@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="energy_paybackPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__energy_paybackExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="energy_paybackTable"></div>
+    <div id="energy_paybackDiff"></div>
+    <div id="energy_paybackHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,42 @@ function resetForm(){document.getElementById('inv').value = '30000';
       document.getElementById('save').value = '6000';
       calcTool();}
 calcTool();
+
+function __energy_paybackNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __energy_paybackExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var inv=num('inv'),s=num('save');
+    if (!isFinite(__energy_paybackNum('inv')) || !isFinite(__energy_paybackNum('save'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#energy_paybackTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['回收期 (年)', (inv/s).toFixed(2)],
+            ['年回报率 (%)', (s/inv*100).toFixed(1)],
+            ['10 年净收益 (元)', (s*10-inv).toFixed(2)],
+            ['10 年累计节省 (元)', (s*10).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({inv:__energy_paybackNum('inv'), save:__energy_paybackNum('save')});
+    TBKit.history.mount('#energy_paybackHist',function(rec){ if(rec.inv!=null)document.getElementById('inv').value=rec.inv; if(rec.save!=null)document.getElementById('save').value=rec.save; calcTool(); });
+}
+function __energy_paybackExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_paybackTable','energy-payback.csv'); } catch(e){}
+}
+function __energy_paybackPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_paybackPresets',[
+        {label:'默认',labelEn:'Default',values:{inv:'30000', save:'6000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{inv:'60000', save:'12000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{inv:'15000', save:'3000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __energy_paybackExtras(); }catch(e){} };
+function __energy_paybackBoot(){ try{ __energy_paybackPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_paybackBoot();
+else document.addEventListener('DOMContentLoaded', __energy_paybackBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

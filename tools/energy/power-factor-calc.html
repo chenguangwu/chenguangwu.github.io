@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="power_factor_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__power_factor_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="power_factor_calcTable"></div>
+    <div id="power_factor_calcDiff"></div>
+    <div id="power_factor_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('p').value = '800';
       document.getElementById('s').value = '1000';
       calcTool();}
 calcTool();
+
+function __power_factor_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __power_factor_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),s=num('s');
+    var pf=p/s;
+    if (!isFinite(__power_factor_calcNum('p')) || !isFinite(__power_factor_calcNum('s'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#power_factor_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['功率因数 PF', pf.toFixed(3)],
+            ['相位角 φ (°)', (Math.acos(pf)*180/Math.PI).toFixed(2)],
+            ['视在与有功差 (kVA-kW)', (s-p).toFixed(3)],
+            ['无功功率 (kvar)', (s*Math.sin(Math.acos(pf))).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({p:__power_factor_calcNum('p'), s:__power_factor_calcNum('s'), pf:pf});
+    TBKit.history.mount('#power_factor_calcHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.s!=null)document.getElementById('s').value=rec.s; calcTool(); });
+    TBKit.util.diffBox('#power_factor_calcDiff',['pf']);
+}
+function __power_factor_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#power_factor_calcTable','power-factor-calc.csv'); } catch(e){}
+}
+function __power_factor_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#power_factor_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'800', s:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'1600', s:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'400', s:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __power_factor_calcExtras(); }catch(e){} };
+function __power_factor_calcBoot(){ try{ __power_factor_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __power_factor_calcBoot();
+else document.addEventListener('DOMContentLoaded', __power_factor_calcBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

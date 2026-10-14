@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="joule_heatingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__joule_heatingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="joule_heatingTable"></div>
+    <div id="joule_heatingDiff"></div>
+    <div id="joule_heatingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,45 @@ function resetForm(){document.getElementById('I').value = '2';
       document.getElementById('R').value = '5';
       calcTool();}
 calcTool();
+
+function __joule_heatingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __joule_heatingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I=num('I'),R=num('R');
+    var P=I*I*R;
+    if (!isFinite(__joule_heatingNum('I')) || !isFinite(__joule_heatingNum('R'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#joule_heatingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['热功率 P (W)', P.toFixed(2)],
+            ['电压降 U (V)', (I*R).toFixed(3)],
+            ['电流平方 I² (A²)', (I*I).toFixed(4)],
+            ['热功率 (kW)', (P/1000).toFixed(6)],
+            ['电阻倒数（mS 毫西门子）', (1000/Math.max(R,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({I:__joule_heatingNum('I'), R:__joule_heatingNum('R'), P:P});
+    TBKit.history.mount('#joule_heatingHist',function(rec){ if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.R!=null)document.getElementById('R').value=rec.R; calcTool(); });
+    TBKit.util.diffBox('#joule_heatingDiff',['P']);
+}
+function __joule_heatingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#joule_heatingTable','joule-heating.csv'); } catch(e){}
+}
+function __joule_heatingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#joule_heatingPresets',[
+        {label:'默认',labelEn:'Default',values:{I:'2', R:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I:'4', R:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'1', R:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __joule_heatingExtras(); }catch(e){} };
+function __joule_heatingBoot(){ try{ __joule_heatingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __joule_heatingBoot();
+else document.addEventListener('DOMContentLoaded', __joule_heatingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

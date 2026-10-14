@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="energy_consumptionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__energy_consumptionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="energy_consumptionTable"></div>
+    <div id="energy_consumptionDiff"></div>
+    <div id="energy_consumptionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,44 @@ function resetForm(){document.getElementById('p').value = '1500';
       document.getElementById('price').value = '0.6';
       calcTool();}
 calcTool();
+
+function __energy_consumptionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __energy_consumptionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),t=num('t'),pr=num('price');
+    var kwh=p*t/1000;
+    if (!isFinite(__energy_consumptionNum('p')) || !isFinite(__energy_consumptionNum('t')) || !isFinite(__energy_consumptionNum('price'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#energy_consumptionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['耗电量 (kWh)', kwh.toFixed(2)],
+            ['电费 (元)', (kwh*pr).toFixed(2)],
+            ['平均每小时耗电 (kWh)', (t>0?kwh/t:0).toFixed(3)],
+            ['按 30 天估算电费 (元)', (kwh*pr*30).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p:__energy_consumptionNum('p'), t:__energy_consumptionNum('t'), price:__energy_consumptionNum('price'), kwh:kwh});
+    TBKit.history.mount('#energy_consumptionHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.t!=null)document.getElementById('t').value=rec.t; if(rec.price!=null)document.getElementById('price').value=rec.price; calcTool(); });
+    TBKit.util.diffBox('#energy_consumptionDiff',['kwh']);
+}
+function __energy_consumptionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#energy_consumptionTable','energy-consumption.csv'); } catch(e){}
+}
+function __energy_consumptionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#energy_consumptionPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'1500', t:'3', price:'0.6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'3000', t:'6', price:'1.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'750', t:'1.5', price:'0.3'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __energy_consumptionExtras(); }catch(e){} };
+function __energy_consumptionBoot(){ try{ __energy_consumptionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __energy_consumptionBoot();
+else document.addEventListener('DOMContentLoaded', __energy_consumptionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
