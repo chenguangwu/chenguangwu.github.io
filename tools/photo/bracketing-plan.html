@@ -116,10 +116,16 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>步进档</label><input type="number" id="step" value="1" step="any" oninput="calc()"></div>
     <div class="input-row"><label>基准 EV</label><input type="number" id="base" value="0" step="any" oninput="calc()"></div>
     <div class="toolbar">
+      <div id="bracketing_planPresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__bracketing_planExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div id="bracketing_planTable"></div>
+    <div id="bracketing_planDiff"></div>
+    <div id="bracketing_planChart"></div>
+    <div id="bracketing_planHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -270,6 +276,111 @@ function copyResult() {
   });
 }
 calc();
+
+var __bracketing_plan_last=0,__bracketing_plan_skip=false;
+function __bracketing_planSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bracketing_planResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bracketing_planTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bracketing_planRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bracketing_planTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bracketing_planTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bracketing_planDiff');
+        TBKit.history.mount('#bracketing_planHist',function(rec){
+            __bracketing_plan_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __bracketing_plan_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bracketing_planTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bracketing_planChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bracketing_planExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bracketing_plan_skip) return;
+    var snap=__bracketing_planSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bracketing_planResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bracketing_plan_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bracketing_plan_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bracketing_planRender(keys,rk,en);
+}
+function __bracketing_planExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bracketing_planTable','bracketing-plan.csv'); } catch(e){}
+}
+function __bracketing_planPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bracketing_planPresets',[{label:'默认参数',labelEn:'Default',values:{range:'3', step:'1', base:'0'}}],function(){ calc(); });
+}
+var __bracketing_plan_f0=(typeof calc==='function')?calc:null;
+if(__bracketing_plan_f0){
+    calc=function(){ __bracketing_plan_f0.apply(null,arguments); try{ __bracketing_planExtras(); }catch(e){} };
+}
+function __bracketing_planBoot(){ try{ __bracketing_planPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bracketing_planBoot();
+else document.addEventListener('DOMContentLoaded', __bracketing_planBoot);
 </script>
 </body>
 </html>

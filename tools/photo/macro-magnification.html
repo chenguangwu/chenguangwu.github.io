@@ -116,10 +116,16 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>物距 mm</label><input type="number" id="s" value="150" step="any" oninput="calc()"></div>
     <div class="input-row"><label>画幅高 mm</label><input type="number" id="frame" value="24" step="any" oninput="calc()"></div>
     <div class="toolbar">
+      <div id="macro_magnificationPresets"></div>
       <button class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__macro_magnificationExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div id="macro_magnificationTable"></div>
+    <div id="macro_magnificationDiff"></div>
+    <div id="macro_magnificationChart"></div>
+    <div id="macro_magnificationHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -281,6 +287,111 @@ function copyResult() {
   });
 }
 calc();
+
+var __macro_magnification_last=0,__macro_magnification_skip=false;
+function __macro_magnificationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __macro_magnificationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __macro_magnificationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __macro_magnificationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__macro_magnificationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#macro_magnificationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#macro_magnificationDiff');
+        TBKit.history.mount('#macro_magnificationHist',function(rec){
+            __macro_magnification_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __macro_magnification_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__macro_magnificationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#macro_magnificationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __macro_magnificationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__macro_magnification_skip) return;
+    var snap=__macro_magnificationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__macro_magnificationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__macro_magnification_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __macro_magnification_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __macro_magnificationRender(keys,rk,en);
+}
+function __macro_magnificationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#macro_magnificationTable','macro-magnification.csv'); } catch(e){}
+}
+function __macro_magnificationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#macro_magnificationPresets',[{label:'默认参数',labelEn:'Default',values:{focal:'100', s:'150', frame:'24'}}],function(){ calc(); });
+}
+var __macro_magnification_f0=(typeof calc==='function')?calc:null;
+if(__macro_magnification_f0){
+    calc=function(){ __macro_magnification_f0.apply(null,arguments); try{ __macro_magnificationExtras(); }catch(e){} };
+}
+function __macro_magnificationBoot(){ try{ __macro_magnificationPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __macro_magnificationBoot();
+else document.addEventListener('DOMContentLoaded', __macro_magnificationBoot);
 </script>
 </body>
 </html>
