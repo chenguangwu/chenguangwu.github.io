@@ -163,7 +163,12 @@ s.parentNode.insertBefore(el, s);
 
 我爱春天，爱它的生机勃勃，爱它的万紫千红。</textarea>
   </div>
-  <div class="result-box" id="result"></div>
+  <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__essay_word_counterExport()">导出明细 CSV</button></div>
+    <div class="result-box" id="result"></div>
+    <div id="essay_word_counterTable"></div>
+    <div id="essay_word_counterDiff"></div>
+    <div id="essay_word_counterChart"></div>
+    <div id="essay_word_counterHist"></div>
   <div style="margin-top:12px;">
     <button type="button" class="btn primary" onclick="saveToHistory()" style="width:100%;">💾 保存这篇作文</button>
   </div>
@@ -438,6 +443,110 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __essay_word_counter_last=0,__essay_word_counter_skip=false;
+function __essay_word_counterSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __essay_word_counterResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __essay_word_counterTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __essay_word_counterRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__essay_word_counterTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#essay_word_counterTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#essay_word_counterDiff');
+        TBKit.history.mount('#essay_word_counterHist',function(rec){
+            __essay_word_counter_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                count();
+            }catch(e2){}
+            __essay_word_counter_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__essay_word_counterTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#essay_word_counterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __essay_word_counterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__essay_word_counter_skip) return;
+    var snap=__essay_word_counterSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__essay_word_counterResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__essay_word_counter_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __essay_word_counter_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __essay_word_counterRender(keys,rk,en);
+}
+function __essay_word_counterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#essay_word_counterTable','essay-word-counter.csv'); } catch(e){}
+}
+function __essay_word_counterPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __essay_word_counter_f0=(typeof count==='function')?count:null;
+if(__essay_word_counter_f0){
+    count=function(){ var __r=__essay_word_counter_f0.apply(null,arguments); try{ __essay_word_counterExtras(); }catch(e){} return __r; };
+}
+function __essay_word_counterBoot(){ try{ __essay_word_counterPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __essay_word_counterBoot();
+else document.addEventListener('DOMContentLoaded', __essay_word_counterBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
