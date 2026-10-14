@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="copyResult()">复制对照表</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__gem_hardnessExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="gem_hardnessTable"></div> <div id="gem_hardnessDiff"></div> <div id="gem_hardnessChart"></div> <div id="gem_hardnessHist"></div>
   </div>
   <div class="card">
     <h2>📋 莫氏硬度等级说明</h2>
@@ -351,6 +351,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __gem_hardness_last=0,__gem_hardness_skip=false;
+function __gem_hardnessSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __gem_hardnessResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __gem_hardnessTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __gem_hardnessRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__gem_hardnessTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#gem_hardnessTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#gem_hardnessDiff');
+        TBKit.history.mount('#gem_hardnessHist',function(rec){
+            __gem_hardness_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                renderTable();
+            }catch(e2){}
+            __gem_hardness_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__gem_hardnessTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#gem_hardnessChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __gem_hardnessExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__gem_hardness_skip) return;
+    var snap=__gem_hardnessSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__gem_hardnessResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__gem_hardness_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __gem_hardness_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __gem_hardnessRender(keys,rk,en);
+}
+function __gem_hardnessExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gem_hardnessTable','gem-hardness.csv'); } catch(e){}
+}
+function __gem_hardnessPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gem_hardnessPresets',[{label:'默认参数',labelEn:'Default',values:{'filter':'all'}}],function(){ renderTable(); });
+}
+var __gem_hardness_f0=(typeof renderTable==='function')?renderTable:null;
+if(__gem_hardness_f0){
+    renderTable=function(){ var __r=__gem_hardness_f0.apply(null,arguments); try{ __gem_hardnessExtras(); }catch(e){} return __r; };
+}
+function __gem_hardnessBoot(){ try{ __gem_hardnessPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gem_hardnessBoot();
+else document.addEventListener('DOMContentLoaded', __gem_hardnessBoot);
 </script>
 
 </body>

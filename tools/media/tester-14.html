@@ -117,8 +117,8 @@ s.parentNode.insertBefore(el, s);
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">封面设计A/B测试效果对比</p>
 <div class="input-row"><div><label>方案A 展示量</label><input type="number" id="aShow" value="5000" style="font-size:16px;"></div><div><label>方案A 点击量</label><input type="number" id="aClick" value="250" style="font-size:16px;"></div></div>
 <div class="input-row"><div><label>方案B 展示量</label><input type="number" id="bShow" value="5000" style="font-size:16px;"></div><div><label>方案B 点击量</label><input type="number" id="bClick" value="380" style="font-size:16px;"></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">对比分析</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res', i18nText('tool.copy_ok', 'tool.copy_ok'))">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="tester_14Presets"></div><button type="button" class="btn primary" onclick="calc()">对比分析</button><button class="btn" type="button" onclick="__tester_14Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res', i18nText('tool.copy_ok', 'tool.copy_ok'))">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="tester_14Table"></div> <div id="tester_14Diff"></div> <div id="tester_14Chart"></div> <div id="tester_14Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -265,6 +265,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __tester_14_last=0,__tester_14_skip=false;
+function __tester_14Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tester_14ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tester_14Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tester_14Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tester_14Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tester_14Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#tester_14Diff');
+        TBKit.history.mount('#tester_14Hist',function(rec){
+            __tester_14_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tester_14_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tester_14Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tester_14Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tester_14Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tester_14_skip) return;
+    var snap=__tester_14Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tester_14ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tester_14_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tester_14_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tester_14Render(keys,rk,en);
+}
+function __tester_14Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tester_14Table','tester-14.csv'); } catch(e){}
+}
+function __tester_14Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tester_14Presets',[{label:'默认参数',labelEn:'Default',values:{'aShow':'5000', 'aClick':'250', 'bShow':'5000', 'bClick':'380'}}],function(){ calc(); });
+}
+var __tester_14_f0=(typeof calc==='function')?calc:null;
+if(__tester_14_f0){
+    calc=function(){ var __r=__tester_14_f0.apply(null,arguments); try{ __tester_14Extras(); }catch(e){} return __r; };
+}
+function __tester_14Boot(){ try{ __tester_14Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tester_14Boot();
+else document.addEventListener('DOMContentLoaded', __tester_14Boot);
 </script>
 
 </body>

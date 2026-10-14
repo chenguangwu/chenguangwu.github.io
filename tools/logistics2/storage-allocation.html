@@ -143,10 +143,10 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="loadSample()">载入示例</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
-      <button type="button" class="btn" onclick="calc()">优化分配</button>
+      <div id="storage_allocationPresets"></div><button type="button" class="btn" onclick="calc()">优化分配</button><button class="btn" type="button" onclick="__storage_allocationExport()">导出明细 CSV</button>
     </div>
 
-    <div class="result-box" id="result" style="display:none;"></div>
+    <div class="result-box" id="result" style="display:none;"></div> <div id="storage_allocationTable"></div> <div id="storage_allocationDiff"></div> <div id="storage_allocationChart"></div> <div id="storage_allocationHist"></div>
   </div>
 
   <div class="card">
@@ -413,6 +413,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __storage_allocation_last=0,__storage_allocation_skip=false;
+function __storage_allocationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __storage_allocationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __storage_allocationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __storage_allocationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__storage_allocationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#storage_allocationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#storage_allocationDiff');
+        TBKit.history.mount('#storage_allocationHist',function(rec){
+            __storage_allocation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __storage_allocation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__storage_allocationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#storage_allocationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __storage_allocationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__storage_allocation_skip) return;
+    var snap=__storage_allocationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__storage_allocationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__storage_allocation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __storage_allocation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __storage_allocationRender(keys,rk,en);
+}
+function __storage_allocationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#storage_allocationTable','storage-allocation.csv'); } catch(e){}
+}
+function __storage_allocationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#storage_allocationPresets',[{label:'默认参数',labelEn:'Default',values:{'doorPos':'front', 'totalRows':'10'}}],function(){ calc(); });
+}
+var __storage_allocation_f0=(typeof calc==='function')?calc:null;
+if(__storage_allocation_f0){
+    calc=function(){ var __r=__storage_allocation_f0.apply(null,arguments); try{ __storage_allocationExtras(); }catch(e){} return __r; };
+}
+function __storage_allocationBoot(){ try{ __storage_allocationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __storage_allocationBoot();
+else document.addEventListener('DOMContentLoaded', __storage_allocationBoot);
 </script>
 
 </body>

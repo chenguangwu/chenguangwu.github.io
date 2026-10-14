@@ -167,12 +167,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">⚖️ 计算 CPK</button>
+      <div id="quality_controlPresets"></div><button type="button" class="btn primary" onclick="calc()">⚖️ 计算 CPK</button><button class="btn" type="button" onclick="__quality_controlExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="text-align:center;color:var(--text-muted);">👆 输入规格与样本数据</p>
-    </div>
+    </div> <div id="quality_controlTable"></div> <div id="quality_controlDiff"></div> <div id="quality_controlChart"></div> <div id="quality_controlHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -328,6 +328,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __quality_control_last=0,__quality_control_skip=false;
+function __quality_controlSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __quality_controlResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __quality_controlTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __quality_controlRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__quality_controlTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#quality_controlTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#quality_controlDiff');
+        TBKit.history.mount('#quality_controlHist',function(rec){
+            __quality_control_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __quality_control_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__quality_controlTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#quality_controlChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __quality_controlExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__quality_control_skip) return;
+    var snap=__quality_controlSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__quality_controlResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__quality_control_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __quality_control_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __quality_controlRender(keys,rk,en);
+}
+function __quality_controlExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#quality_controlTable','quality-control.csv'); } catch(e){}
+}
+function __quality_controlPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#quality_controlPresets',[{label:'默认参数',labelEn:'Default',values:{'usl':'10.5', 'lsl':'9.5', 'mean':'10.0', 'stddev':'0.15', 'n':'30'}}],function(){ calc(); });
+}
+var __quality_control_f0=(typeof calc==='function')?calc:null;
+if(__quality_control_f0){
+    calc=function(){ var __r=__quality_control_f0.apply(null,arguments); try{ __quality_controlExtras(); }catch(e){} return __r; };
+}
+function __quality_controlBoot(){ try{ __quality_controlPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __quality_controlBoot();
+else document.addEventListener('DOMContentLoaded', __quality_controlBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

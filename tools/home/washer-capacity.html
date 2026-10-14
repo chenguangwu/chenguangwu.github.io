@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="washer_capacityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__washer_capacityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="washer_capacityTable"></div>
+    <div id="washer_capacityDiff"></div>
+    <div id="washer_capacityHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -253,6 +259,51 @@ function resetForm(){document.getElementById('people').value='3';
       document.getElementById('type').selectedIndex=0;
       calcTool();}
 calcTool();
+
+function __washer_capacityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __washer_capacityExtras(){
+    function __washer_capacityRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var people=Math.floor(num('people'));
+    var big=document.getElementById('big').value;
+    var type=document.getElementById('type').value;
+    var rec=Math.min(10,Math.max(5,people*2.5));
+    if(big==='yes'&&rec<8) rec=8;
+    if(rec>10) rec=10;
+    var water=type==='drum'?Math.round(rec*9):Math.round(rec*30);
+    if (!isFinite(__washer_capacityNum('people')) || !__washer_capacityRaw('big') || !__washer_capacityRaw('type')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#washer_capacityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['推荐容量', rec+' kg'],
+            ['单次参考用水', water+' L'],
+            ['家庭人口', people+' 人'],
+            ['机型', type==='drum'?'滚筒':'波轮'],
+        ]
+    });
+    TBKit.history.record({people:__washer_capacityRaw('people'), big:__washer_capacityRaw('big'), type:__washer_capacityRaw('type'), rec:rec});
+    function __washer_capacityRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#washer_capacityHist',function(rec){ __washer_capacityRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#washer_capacityDiff',['rec']);
+}
+function __washer_capacityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#washer_capacityTable','washer-capacity.csv'); } catch(e){}
+}
+function __washer_capacityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#washer_capacityPresets',[
+        {label:'默认',labelEn:'Default',values:{people:'3', big:'', type:''}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{people:'6', big:'', type:''}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{people:'1.5', big:'', type:''}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __washer_capacityExtras(); }catch(e){} };
+function __washer_capacityBoot(){ try{ __washer_capacityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __washer_capacityBoot();
+else document.addEventListener('DOMContentLoaded', __washer_capacityBoot);
 </script>
 </body>
 </html>

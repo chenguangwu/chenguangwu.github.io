@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="timer-display" id="timerDisplay">00:00.0</div>
     <div class="timer-controls">
-      <button type="button" class="btn primary" id="startBtn" onclick="startTimer()">▶ 开始</button>
+      <div id="routine_timerPresets"></div><button type="button" class="btn primary" id="startBtn" onclick="startTimer()">▶ 开始</button><button class="btn" type="button" onclick="__routine_timerExport()">导出明细 CSV</button>
       <button type="button" class="btn success" id="stopBtn" onclick="stopTimer()" disabled>⏹ 停止</button>
       <button type="button" class="btn" id="resetBtn" onclick="resetTimer()">🔄 重置</button>
     </div>
@@ -171,7 +171,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="data-grid" id="dataGrid"></div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="routine_timerTable"></div> <div id="routine_timerDiff"></div> <div id="routine_timerChart"></div> <div id="routine_timerHist"></div>
   </div>
 
   <div class="card">
@@ -422,6 +422,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __routine_timer_last=0,__routine_timer_skip=false;
+function __routine_timerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __routine_timerResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __routine_timerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __routine_timerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__routine_timerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#routine_timerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#routine_timerDiff');
+        TBKit.history.mount('#routine_timerHist',function(rec){
+            __routine_timer_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                startTimer();
+            }catch(e2){}
+            __routine_timer_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__routine_timerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#routine_timerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __routine_timerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__routine_timer_skip) return;
+    var snap=__routine_timerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__routine_timerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__routine_timer_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __routine_timer_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __routine_timerRender(keys,rk,en);
+}
+function __routine_timerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#routine_timerTable','routine-timer.csv'); } catch(e){}
+}
+function __routine_timerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#routine_timerPresets',[{label:'默认参数',labelEn:'Default',values:{'routineType':'changquan', 'standardTime':'80', 'tolerance':'2'}}],function(){ startTimer(); });
+}
+var __routine_timer_f0=(typeof startTimer==='function')?startTimer:null;
+if(__routine_timer_f0){
+    startTimer=function(){ var __r=__routine_timer_f0.apply(null,arguments); try{ __routine_timerExtras(); }catch(e){} return __r; };
+}
+function __routine_timerBoot(){ try{ __routine_timerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __routine_timerBoot();
+else document.addEventListener('DOMContentLoaded', __routine_timerBoot);
 </script>
 
 </body>

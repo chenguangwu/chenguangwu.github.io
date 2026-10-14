@@ -179,7 +179,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h3>📖 追悼会流程说明</h3>
-    <div class="result-box">
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__ceremony_timelineExport()">导出明细 CSV</button></div><div class="result-box">
       <p>• <strong>签到迎宾</strong>：来宾签到、佩戴白花黑纱，约 15-30 分钟</p>
       <p>• <strong>告别仪式</strong>：主持人宣布开始、默哀、致悼词，约 15-20 分钟</p>
       <p>• <strong>遗体告别</strong>：来宾绕灵柩一周行礼告别，视人数而定</p>
@@ -187,7 +187,7 @@ s.parentNode.insertBefore(el, s);
       <p>• <strong>出殡火化</strong>：灵车送别，前往火化场</p>
       <p>• 大型告别会需增加来宾代表发言、播放追思视频等环节</p>
       <p>• 各地风俗不同，请根据实际情况调整流程</p>
-    </div>
+    </div> <div id="ceremony_timelineTable"></div> <div id="ceremony_timelineDiff"></div> <div id="ceremony_timelineChart"></div> <div id="ceremony_timelineHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -459,6 +459,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __ceremony_timeline_last=0,__ceremony_timeline_skip=false;
+function __ceremony_timelineSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ceremony_timelineResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ceremony_timelineTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ceremony_timelineRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ceremony_timelineTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ceremony_timelineTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ceremony_timelineDiff');
+        TBKit.history.mount('#ceremony_timelineHist',function(rec){
+            __ceremony_timeline_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __ceremony_timeline_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ceremony_timelineTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ceremony_timelineChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ceremony_timelineExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ceremony_timeline_skip) return;
+    var snap=__ceremony_timelineSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ceremony_timelineResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ceremony_timeline_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ceremony_timeline_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ceremony_timelineRender(keys,rk,en);
+}
+function __ceremony_timelineExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ceremony_timelineTable','ceremony-timeline.csv'); } catch(e){}
+}
+function __ceremony_timelinePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ceremony_timelinePresets',[{label:'默认参数',labelEn:'Default',values:{'startTime':'09:00', 'scale':'small'}}],function(){ calc(); });
+}
+var __ceremony_timeline_f0=(typeof calc==='function')?calc:null;
+if(__ceremony_timeline_f0){
+    calc=function(){ var __r=__ceremony_timeline_f0.apply(null,arguments); try{ __ceremony_timelineExtras(); }catch(e){} return __r; };
+}
+function __ceremony_timelineBoot(){ try{ __ceremony_timelinePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ceremony_timelineBoot();
+else document.addEventListener('DOMContentLoaded', __ceremony_timelineBoot);
 </script>
 
 </body>

@@ -180,11 +180,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">推算窗口</button>
+      <div id="tide_windowPresets"></div><button type="button" class="btn primary" onclick="calc()">推算窗口</button><button class="btn" type="button" onclick="__tide_windowExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="tide_windowTable"></div> <div id="tide_windowDiff"></div> <div id="tide_windowChart"></div> <div id="tide_windowHist"></div>
     <canvas id="tideChart" width="800" height="320" style="width:100%;height:auto;margin-top:12px;border-radius:12px;border:1px solid var(--border);background:var(--card-bg);"></canvas>
   </div>
 
@@ -717,6 +717,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __tide_window_last=0,__tide_window_skip=false;
+function __tide_windowSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tide_windowResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tide_windowTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tide_windowRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tide_windowTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tide_windowTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#tide_windowDiff');
+        TBKit.history.mount('#tide_windowHist',function(rec){
+            __tide_window_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tide_window_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tide_windowTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tide_windowChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tide_windowExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tide_window_skip) return;
+    var snap=__tide_windowSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tide_windowResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tide_window_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tide_window_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tide_windowRender(keys,rk,en);
+}
+function __tide_windowExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tide_windowTable','tide-window.csv'); } catch(e){}
+}
+function __tide_windowPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tide_windowPresets',[{label:'默认参数',labelEn:'Default',values:{'highTideTime':'14:20', 'highTideHeight':'4.5', 'lowTideTime':'08:05', 'lowTideHeight':'0.8', 'nextLowTideTime':'20:15', 'nextLowTideHeight':'1.0', 'chartDepth':'3.0', 'draft':'5.0', 'ukc':'0.5', 'transitTime':'60'}}],function(){ calc(); });
+}
+var __tide_window_f0=(typeof calc==='function')?calc:null;
+if(__tide_window_f0){
+    calc=function(){ var __r=__tide_window_f0.apply(null,arguments); try{ __tide_windowExtras(); }catch(e){} return __r; };
+}
+function __tide_windowBoot(){ try{ __tide_windowPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tide_windowBoot();
+else document.addEventListener('DOMContentLoaded', __tide_windowBoot);
 </script>
 
 </body>

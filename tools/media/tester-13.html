@@ -117,8 +117,8 @@ s.parentNode.insertBefore(el, s);
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">标题吸引力测试（字数/情感/关键词分析）</p>
 <div class="input-row"><div style="flex:2"><label>输入标题</label><input type="text" id="title" value="震惊！这个方法让你轻松月入过万" style="font-size:16px;" placeholder="输入待测试的标题"></div></div>
 <div class="input-row"><div><label>目标平台</label><select id="platform" style="font-size:16px;"><option value="wechat">微信公众号</option><option value="toutiao">今日头条</option><option value="xiaohongshu">小红书</option><option value="douyin">抖音</option></select></div><div><label>目标受众</label><select id="audience" style="font-size:16px;"><option value="young">年轻群体</option><option value="middle">中年群体</option><option value="all">通用</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">测试标题</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res', i18nText('tool.copy_ok', 'tool.copy_ok'))">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="tester_13Presets"></div><button type="button" class="btn primary" onclick="calc()">测试标题</button><button class="btn" type="button" onclick="__tester_13Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res', i18nText('tool.copy_ok', 'tool.copy_ok'))">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="tester_13Table"></div> <div id="tester_13Diff"></div> <div id="tester_13Chart"></div> <div id="tester_13Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -271,6 +271,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __tester_13_last=0,__tester_13_skip=false;
+function __tester_13Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tester_13ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tester_13Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tester_13Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tester_13Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tester_13Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#tester_13Diff');
+        TBKit.history.mount('#tester_13Hist',function(rec){
+            __tester_13_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tester_13_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tester_13Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tester_13Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tester_13Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tester_13_skip) return;
+    var snap=__tester_13Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tester_13ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tester_13_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tester_13_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tester_13Render(keys,rk,en);
+}
+function __tester_13Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tester_13Table','tester-13.csv'); } catch(e){}
+}
+function __tester_13Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tester_13Presets',[{label:'默认参数',labelEn:'Default',values:{'title':'震惊！这个方法让你轻松月入过万', 'platform':'wechat', 'audience':'young'}}],function(){ calc(); });
+}
+var __tester_13_f0=(typeof calc==='function')?calc:null;
+if(__tester_13_f0){
+    calc=function(){ var __r=__tester_13_f0.apply(null,arguments); try{ __tester_13Extras(); }catch(e){} return __r; };
+}
+function __tester_13Boot(){ try{ __tester_13Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tester_13Boot();
+else document.addEventListener('DOMContentLoaded', __tester_13Boot);
 </script>
 
 </body>
