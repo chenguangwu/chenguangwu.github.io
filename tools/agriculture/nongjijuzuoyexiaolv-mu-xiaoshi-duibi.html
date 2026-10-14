@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__nongjijuzuoyexiaolv_mu_xiaoshi_duibiExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="nongjijuzuoyexiaolv_mu_xiaoshi_duibiTable"></div> <div id="nongjijuzuoyexiaolv_mu_xiaoshi_duibiDiff"></div> <div id="nongjijuzuoyexiaolv_mu_xiaoshi_duibiChart"></div> <div id="nongjijuzuoyexiaolv_mu_xiaoshi_duibiHist"></div>
     <div class="info-box">💡 理论面积 = 幅宽 × 速度 × 时长 × 1.5（1 km·m·h = 1000㎡ = 1.5 亩）；理论效率 = 理论面积 ÷ 时长；实际效率 = 实际面积 ÷ 时长；效率比 = 实际 ÷ 理论 × 100%</div>
 <div class="tool-notes" style="--tool-accent:#65A30D;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -247,6 +247,114 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('historyBox').addEventListener('click',function(e){var item=e.target.closest('[data-idx]');if(item)restoreHistory(parseInt(item.getAttribute('data-idx'),10));});
 });
 calc();
+
+var __nongjijuzuoyexiaolv_mu_xiaoshi_duibi_last=0,__nongjijuzuoyexiaolv_mu_xiaoshi_duibi_skip=false;
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__nongjijuzuoyexiaolv_mu_xiaoshi_duibiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiDiff');
+        TBKit.history.mount('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiHist',function(rec){
+            __nongjijuzuoyexiaolv_mu_xiaoshi_duibi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __nongjijuzuoyexiaolv_mu_xiaoshi_duibi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__nongjijuzuoyexiaolv_mu_xiaoshi_duibiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__nongjijuzuoyexiaolv_mu_xiaoshi_duibi_skip) return;
+    var snap=__nongjijuzuoyexiaolv_mu_xiaoshi_duibiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__nongjijuzuoyexiaolv_mu_xiaoshi_duibiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__nongjijuzuoyexiaolv_mu_xiaoshi_duibi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __nongjijuzuoyexiaolv_mu_xiaoshi_duibi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __nongjijuzuoyexiaolv_mu_xiaoshi_duibiRender(keys,rk,en);
+}
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiTable','nongjijuzuoyexiaolv-mu-xiaoshi-duibi.csv'); } catch(e){}
+}
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#nongjijuzuoyexiaolv_mu_xiaoshi_duibiPresets',[{label:'默认参数',labelEn:'Default',values:{'width':'2', 'speed':'5', 'time':'8', 'actualArea':'90'}}],function(){ calc(); });
+}
+var __nongjijuzuoyexiaolv_mu_xiaoshi_duibi_f0=(typeof calc==='function')?calc:null;
+if(__nongjijuzuoyexiaolv_mu_xiaoshi_duibi_f0){
+    calc=function(){ var __r=__nongjijuzuoyexiaolv_mu_xiaoshi_duibi_f0.apply(null,arguments); try{ __nongjijuzuoyexiaolv_mu_xiaoshi_duibiExtras(); }catch(e){} return __r; };
+}
+function __nongjijuzuoyexiaolv_mu_xiaoshi_duibiBoot(){ try{ __nongjijuzuoyexiaolv_mu_xiaoshi_duibiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __nongjijuzuoyexiaolv_mu_xiaoshi_duibiBoot();
+else document.addEventListener('DOMContentLoaded', __nongjijuzuoyexiaolv_mu_xiaoshi_duibiBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

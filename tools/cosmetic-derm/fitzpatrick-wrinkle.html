@@ -161,11 +161,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
-      <button type="button" class="btn primary" onclick="calc()">评估</button>
+      <div id="fitzpatrick_wrinklePresets"></div><button type="button" class="btn primary" onclick="calc()">评估</button><button class="btn" type="button" onclick="__fitzpatrick_wrinkleExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="fitzpatrick_wrinkleTable"></div> <div id="fitzpatrick_wrinkleDiff"></div> <div id="fitzpatrick_wrinkleChart"></div> <div id="fitzpatrick_wrinkleHist"></div>
   </div>
 
   <div class="card">
@@ -347,6 +347,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __fitzpatrick_wrinkle_last=0,__fitzpatrick_wrinkle_skip=false;
+function __fitzpatrick_wrinkleSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __fitzpatrick_wrinkleResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __fitzpatrick_wrinkleTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __fitzpatrick_wrinkleRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__fitzpatrick_wrinkleTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#fitzpatrick_wrinkleTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#fitzpatrick_wrinkleDiff');
+        TBKit.history.mount('#fitzpatrick_wrinkleHist',function(rec){
+            __fitzpatrick_wrinkle_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __fitzpatrick_wrinkle_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__fitzpatrick_wrinkleTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#fitzpatrick_wrinkleChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __fitzpatrick_wrinkleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__fitzpatrick_wrinkle_skip) return;
+    var snap=__fitzpatrick_wrinkleSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__fitzpatrick_wrinkleResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__fitzpatrick_wrinkle_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __fitzpatrick_wrinkle_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __fitzpatrick_wrinkleRender(keys,rk,en);
+}
+function __fitzpatrick_wrinkleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fitzpatrick_wrinkleTable','fitzpatrick-wrinkle.csv'); } catch(e){}
+}
+function __fitzpatrick_wrinklePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fitzpatrick_wrinklePresets',[{label:'默认参数',labelEn:'Default',values:{'wrinkleGrade':'1', 'elastosis':'0', 'laxity':'3', 'pigment':'10'}}],function(){ calc(); });
+}
+var __fitzpatrick_wrinkle_f0=(typeof calc==='function')?calc:null;
+if(__fitzpatrick_wrinkle_f0){
+    calc=function(){ var __r=__fitzpatrick_wrinkle_f0.apply(null,arguments); try{ __fitzpatrick_wrinkleExtras(); }catch(e){} return __r; };
+}
+function __fitzpatrick_wrinkleBoot(){ try{ __fitzpatrick_wrinklePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fitzpatrick_wrinkleBoot();
+else document.addEventListener('DOMContentLoaded', __fitzpatrick_wrinkleBoot);
 </script>
 
 </body>

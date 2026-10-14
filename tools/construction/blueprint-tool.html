@@ -170,7 +170,7 @@ s.parentNode.insertBefore(el, s);
 <div><label>图纸幅面</label><select id="paper"><option value="A0">A0 (841×1189)</option><option value="A1">A1 (594×841)</option><option value="A2" selected>A2 (420×594)</option><option value="A3">A3 (297×420)</option><option value="A4">A4 (210×297)</option></select></div>
 </div>
 <div class="toolbar"><button type="button" class="btn primary" onclick="calc();saveHistory()">📐 换算</button><button type="button" class="btn" onclick="resetForm()">🔄 重置</button></div>
-<div class="result-box" id="result"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__blueprint_toolExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="blueprint_toolTable"></div> <div id="blueprint_toolDiff"></div> <div id="blueprint_toolChart"></div> <div id="blueprint_toolHist"></div>
 </div>
 <div id="tab-guide" class="tab-content">
 <div class="ref-card"><h4>📐 比例概念</h4><p><strong>比例尺</strong> = 图上距离 : 实际距离</p><p><strong>1:100</strong> 表示：图纸上1单位长度 = 实际100单位长度</p><p>图纸量得10mm → 实际 = 10×100 = 1000mm = 1m</p><p>实际距离10m → 图纸 = 10m ÷ 100 = 0.1m = 100mm</p></div>
@@ -280,6 +280,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __blueprint_tool_last=0,__blueprint_tool_skip=false;
+function __blueprint_toolSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __blueprint_toolResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __blueprint_toolTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __blueprint_toolRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__blueprint_toolTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#blueprint_toolTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#blueprint_toolDiff');
+        TBKit.history.mount('#blueprint_toolHist',function(rec){
+            __blueprint_tool_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __blueprint_tool_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__blueprint_toolTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#blueprint_toolChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __blueprint_toolExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__blueprint_tool_skip) return;
+    var snap=__blueprint_toolSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__blueprint_toolResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__blueprint_tool_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __blueprint_tool_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __blueprint_toolRender(keys,rk,en);
+}
+function __blueprint_toolExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#blueprint_toolTable','blueprint-tool.csv'); } catch(e){}
+}
+function __blueprint_toolPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#blueprint_toolPresets',[{label:'默认参数',labelEn:'Default',values:{'direction':'d2r', 'customScale':'100', 'distance':'100', 'unit':'mm', 'cadUnit':'mm', 'paper':'A0'}}],function(){ calc(); });
+}
+var __blueprint_tool_f0=(typeof calc==='function')?calc:null;
+if(__blueprint_tool_f0){
+    calc=function(){ var __r=__blueprint_tool_f0.apply(null,arguments); try{ __blueprint_toolExtras(); }catch(e){} return __r; };
+}
+function __blueprint_toolBoot(){ try{ __blueprint_toolPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __blueprint_toolBoot();
+else document.addEventListener('DOMContentLoaded', __blueprint_toolBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

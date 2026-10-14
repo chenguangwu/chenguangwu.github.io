@@ -153,8 +153,8 @@ s.parentNode.insertBefore(el, s);
           </select>
         </div>
       </div>
-      <div class="toolbar"><button type="button" class="btn primary" onclick="calcBotox()">计算</button></div>
-      <div class="result-box" id="botoxResult"></div>
+      <div class="toolbar"><div id="cosmetic_injectionPresets"></div><button type="button" class="btn primary" onclick="calcBotox()">计算</button><button class="btn" type="button" onclick="__cosmetic_injectionExport()">导出明细 CSV</button></div>
+      <div class="result-box" id="botoxResult"></div> <div id="cosmetic_injectionTable"></div> <div id="cosmetic_injectionDiff"></div> <div id="cosmetic_injectionChart"></div> <div id="cosmetic_injectionHist"></div>
     </div>
 
     <div id="tabFiller" class="tab-content">
@@ -422,6 +422,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __cosmetic_injection_last=0,__cosmetic_injection_skip=false;
+function __cosmetic_injectionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cosmetic_injectionResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cosmetic_injectionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cosmetic_injectionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cosmetic_injectionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cosmetic_injectionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cosmetic_injectionDiff');
+        TBKit.history.mount('#cosmetic_injectionHist',function(rec){
+            __cosmetic_injection_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcBotox();
+            }catch(e2){}
+            __cosmetic_injection_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cosmetic_injectionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cosmetic_injectionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cosmetic_injectionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cosmetic_injection_skip) return;
+    var snap=__cosmetic_injectionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cosmetic_injectionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cosmetic_injection_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cosmetic_injection_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cosmetic_injectionRender(keys,rk,en);
+}
+function __cosmetic_injectionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cosmetic_injectionTable','cosmetic-injection.csv'); } catch(e){}
+}
+function __cosmetic_injectionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cosmetic_injectionPresets',[{label:'默认参数',labelEn:'Default',values:{'muscleStrength':'0.8', 'brand':'1.0'}}],function(){ calcBotox(); });
+}
+var __cosmetic_injection_f0=(typeof calcBotox==='function')?calcBotox:null;
+if(__cosmetic_injection_f0){
+    calcBotox=function(){ var __r=__cosmetic_injection_f0.apply(null,arguments); try{ __cosmetic_injectionExtras(); }catch(e){} return __r; };
+}
+function __cosmetic_injectionBoot(){ try{ __cosmetic_injectionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cosmetic_injectionBoot();
+else document.addEventListener('DOMContentLoaded', __cosmetic_injectionBoot);
 </script>
 
 </body>

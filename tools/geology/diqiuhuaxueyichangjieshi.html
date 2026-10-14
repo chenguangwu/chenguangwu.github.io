@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>标准差 σ (μg/g)</label><input type="number" id="sd" value="10" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="标准差"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__diqiuhuaxueyichangjieshiExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="diqiuhuaxueyichangjieshiTable"></div> <div id="diqiuhuaxueyichangjieshiDiff"></div> <div id="diqiuhuaxueyichangjieshiChart"></div> <div id="diqiuhuaxueyichangjieshiHist"></div>
 <div class="info-box">💡 标准化异常值 Z = (C−B)/σ；衬度系数 Ac = C/B。Z&lt;2 背景，2-3 弱异常，3-4 中异常，&gt;4 强异常。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>Z 值法要求背景服从近似正态分布</li><li>异常强度按标准差倍数分级</li><li>负异常（Z&lt;−2）提示贫化，需另行解释</li><li>解释应结合地质背景与多元素组合</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -182,6 +182,114 @@ function restoreHistory(idx){try{var list=JSON.parse(localStorage.getItem(histor
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __diqiuhuaxueyichangjieshi_last=0,__diqiuhuaxueyichangjieshi_skip=false;
+function __diqiuhuaxueyichangjieshiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __diqiuhuaxueyichangjieshiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __diqiuhuaxueyichangjieshiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __diqiuhuaxueyichangjieshiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__diqiuhuaxueyichangjieshiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#diqiuhuaxueyichangjieshiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#diqiuhuaxueyichangjieshiDiff');
+        TBKit.history.mount('#diqiuhuaxueyichangjieshiHist',function(rec){
+            __diqiuhuaxueyichangjieshi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __diqiuhuaxueyichangjieshi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__diqiuhuaxueyichangjieshiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#diqiuhuaxueyichangjieshiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __diqiuhuaxueyichangjieshiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__diqiuhuaxueyichangjieshi_skip) return;
+    var snap=__diqiuhuaxueyichangjieshiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__diqiuhuaxueyichangjieshiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__diqiuhuaxueyichangjieshi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __diqiuhuaxueyichangjieshi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __diqiuhuaxueyichangjieshiRender(keys,rk,en);
+}
+function __diqiuhuaxueyichangjieshiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#diqiuhuaxueyichangjieshiTable','diqiuhuaxueyichangjieshi.csv'); } catch(e){}
+}
+function __diqiuhuaxueyichangjieshiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#diqiuhuaxueyichangjieshiPresets',[{label:'默认参数',labelEn:'Default',values:{'ename':'铜 Cu', 'c':'80', 'b':'30', 'sd':'10'}}],function(){ calc(); });
+}
+var __diqiuhuaxueyichangjieshi_f0=(typeof calc==='function')?calc:null;
+if(__diqiuhuaxueyichangjieshi_f0){
+    calc=function(){ var __r=__diqiuhuaxueyichangjieshi_f0.apply(null,arguments); try{ __diqiuhuaxueyichangjieshiExtras(); }catch(e){} return __r; };
+}
+function __diqiuhuaxueyichangjieshiBoot(){ try{ __diqiuhuaxueyichangjieshiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __diqiuhuaxueyichangjieshiBoot();
+else document.addEventListener('DOMContentLoaded', __diqiuhuaxueyichangjieshiBoot);
 </script>
 
 </div>

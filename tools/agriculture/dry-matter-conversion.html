@@ -137,7 +137,7 @@ s.parentNode.insertBefore(el, s);
         <label>含水率(%)</label>
         <input type="number" id="moisture1" value="75" min="0" max="100" step="0.1" oninput="calc()">
       </div>
-      <div class="result-box" id="result0"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__dry_matter_conversionExport()">导出明细 CSV</button></div><div class="result-box" id="result0"></div> <div id="dry_matter_conversionTable"></div> <div id="dry_matter_conversionDiff"></div> <div id="dry_matter_conversionChart"></div> <div id="dry_matter_conversionHist"></div>
     </div>
 
     <div class="tab-content" id="tab1">
@@ -373,6 +373,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __dry_matter_conversion_last=0,__dry_matter_conversion_skip=false;
+function __dry_matter_conversionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __dry_matter_conversionResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __dry_matter_conversionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __dry_matter_conversionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__dry_matter_conversionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#dry_matter_conversionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#dry_matter_conversionDiff');
+        TBKit.history.mount('#dry_matter_conversionHist',function(rec){
+            __dry_matter_conversion_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __dry_matter_conversion_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__dry_matter_conversionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#dry_matter_conversionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __dry_matter_conversionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__dry_matter_conversion_skip) return;
+    var snap=__dry_matter_conversionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__dry_matter_conversionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__dry_matter_conversion_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __dry_matter_conversion_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __dry_matter_conversionRender(keys,rk,en);
+}
+function __dry_matter_conversionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dry_matter_conversionTable','dry-matter-conversion.csv'); } catch(e){}
+}
+function __dry_matter_conversionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dry_matter_conversionPresets',[{label:'默认参数',labelEn:'Default',values:{'freshWeight':'100', 'moisture1':'75', 'dryWeight':'25', 'moisture2':'14', 'actualWeight':'1000', 'actualMoisture':'20', 'standardMoisture':'14'}}],function(){ calc(); });
+}
+var __dry_matter_conversion_f0=(typeof calc==='function')?calc:null;
+if(__dry_matter_conversion_f0){
+    calc=function(){ var __r=__dry_matter_conversion_f0.apply(null,arguments); try{ __dry_matter_conversionExtras(); }catch(e){} return __r; };
+}
+function __dry_matter_conversionBoot(){ try{ __dry_matter_conversionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dry_matter_conversionBoot();
+else document.addEventListener('DOMContentLoaded', __dry_matter_conversionBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用农产品干物质含量换算器</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>鲜重(kg)</li><li>含水率(%)</li><li>干重(kg)</li><li>目标含水率(%)</li><li>实际重量(kg)</li><li>实际含水率(%)</li><li>标准含水率(%)</li></ul><h2>适用场景</h2><p>干物质重 = 鲜重 × (1 − 含水率)。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>青贮为什么关心干物质？</dt><dd>青贮发酵要求原料干物质 30%~40% 为宜，过低易酸败、过高发酵慢。按干物质而非鲜重配料才能稳定品质。</dd><dt>含水率测不准怎么校？</dt><dd>烘干法（65℃ 或 105℃ 恒重）为准，近红外/微波速测需标定。高水分样品烘干易喷溅，应预干燥或加砂。</dd></dl></section>

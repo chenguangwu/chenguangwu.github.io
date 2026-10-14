@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>影响半径 R (m)</label><input type="number" id="R" value="200" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="影响半径"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__shuiwendizhishentoushiyanExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="shuiwendizhishentoushiyanTable"></div> <div id="shuiwendizhishentoushiyanDiff"></div> <div id="shuiwendizhishentoushiyanChart"></div> <div id="shuiwendizhishentoushiyanHist"></div>
 <div class="info-box" id="formulaBox">💡 承压完整井：K = Q·ln(R/r₀)/(2π·M·s)；潜水完整井：K = 2Q·ln(R/r₀)/(π·(2H−s)·s)。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>适用于完整井稳定流抽水试验</li><li>影响半径 R 可用经验式 R=2s√(HK) 估算</li><li>潜水含水层降深 s 应小于含水层厚度 H</li><li>非完整井或越流补给需采用其他公式</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -200,6 +200,114 @@ function restoreHistory(idx){try{var list=JSON.parse(localStorage.getItem(histor
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __shuiwendizhishentoushiyan_last=0,__shuiwendizhishentoushiyan_skip=false;
+function __shuiwendizhishentoushiyanSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __shuiwendizhishentoushiyanResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __shuiwendizhishentoushiyanTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __shuiwendizhishentoushiyanRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__shuiwendizhishentoushiyanTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#shuiwendizhishentoushiyanTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#shuiwendizhishentoushiyanDiff');
+        TBKit.history.mount('#shuiwendizhishentoushiyanHist',function(rec){
+            __shuiwendizhishentoushiyan_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __shuiwendizhishentoushiyan_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__shuiwendizhishentoushiyanTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#shuiwendizhishentoushiyanChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __shuiwendizhishentoushiyanExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__shuiwendizhishentoushiyan_skip) return;
+    var snap=__shuiwendizhishentoushiyanSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__shuiwendizhishentoushiyanResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__shuiwendizhishentoushiyan_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __shuiwendizhishentoushiyan_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __shuiwendizhishentoushiyanRender(keys,rk,en);
+}
+function __shuiwendizhishentoushiyanExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#shuiwendizhishentoushiyanTable','shuiwendizhishentoushiyan.csv'); } catch(e){}
+}
+function __shuiwendizhishentoushiyanPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#shuiwendizhishentoushiyanPresets',[{label:'默认参数',labelEn:'Default',values:{'type':'confined', 'Q':'500', 's':'3', 'r0':'0.15', 'M':'20', 'R':'200'}}],function(){ calc(); });
+}
+var __shuiwendizhishentoushiyan_f0=(typeof calc==='function')?calc:null;
+if(__shuiwendizhishentoushiyan_f0){
+    calc=function(){ var __r=__shuiwendizhishentoushiyan_f0.apply(null,arguments); try{ __shuiwendizhishentoushiyanExtras(); }catch(e){} return __r; };
+}
+function __shuiwendizhishentoushiyanBoot(){ try{ __shuiwendizhishentoushiyanPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __shuiwendizhishentoushiyanBoot();
+else document.addEventListener('DOMContentLoaded', __shuiwendizhishentoushiyanBoot);
 </script>
 
 </div>

@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>每点成本(元)</label><input type="number" id="cost" value="80" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="每点成本"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__soil_sampleExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="soil_sampleTable"></div> <div id="soil_sampleDiff"></div> <div id="soil_sampleChart"></div> <div id="soil_sampleHist"></div>
 <div class="info-box">💡 公式：采样点数 N = A × D；网格间距（方格网）L = √(1/D)×1000 (m)；线距=点距=L。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>1:5万化探普查密度常用 1-2 点/km²</li><li>1:2.5万详查密度常取 4-8 点/km²</li><li>网格间距基于方格网布点，矩形网时线距与点距可不同</li><li>实际布点需兼顾交通与地形可达性</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -191,6 +191,114 @@ function restoreHistory(idx){try{var list=JSON.parse(localStorage.getItem(histor
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __soil_sample_last=0,__soil_sample_skip=false;
+function __soil_sampleSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __soil_sampleResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __soil_sampleTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __soil_sampleRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__soil_sampleTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#soil_sampleTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#soil_sampleDiff');
+        TBKit.history.mount('#soil_sampleHist',function(rec){
+            __soil_sample_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __soil_sample_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__soil_sampleTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#soil_sampleChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __soil_sampleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__soil_sample_skip) return;
+    var snap=__soil_sampleSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__soil_sampleResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__soil_sample_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __soil_sample_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __soil_sampleRender(keys,rk,en);
+}
+function __soil_sampleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#soil_sampleTable','soil-sample.csv'); } catch(e){}
+}
+function __soil_samplePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#soil_samplePresets',[{label:'默认参数',labelEn:'Default',values:{'area':'20', 'dens':'4', 'scale':'0', 'cost':'80'}}],function(){ calc(); });
+}
+var __soil_sample_f0=(typeof calc==='function')?calc:null;
+if(__soil_sample_f0){
+    calc=function(){ var __r=__soil_sample_f0.apply(null,arguments); try{ __soil_sampleExtras(); }catch(e){} return __r; };
+}
+function __soil_sampleBoot(){ try{ __soil_samplePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __soil_sampleBoot();
+else document.addEventListener('DOMContentLoaded', __soil_sampleBoot);
 </script>
 
 </div>

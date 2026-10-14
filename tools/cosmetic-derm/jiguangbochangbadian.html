@@ -136,11 +136,11 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 查询</button>
+      <div id="jiguangbochangbadianPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 查询</button><button class="btn" type="button" onclick="__jiguangbochangbadianExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="jiguangbochangbadianTable"></div> <div id="jiguangbochangbadianDiff"></div> <div id="jiguangbochangbadianChart"></div> <div id="jiguangbochangbadianHist"></div>
     <div class="info-box">💡 不同波长激光被不同色基（黑色素/血红蛋白/水）选择性吸收，决定作用靶点与穿透深度。</div>
     <div class="tool-notes" style="--tool-accent:#DB2777;">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -263,6 +263,114 @@ document.addEventListener('DOMContentLoaded', function() {
   renderHistory();
 });
 calc();
+
+var __jiguangbochangbadian_last=0,__jiguangbochangbadian_skip=false;
+function __jiguangbochangbadianSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __jiguangbochangbadianResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __jiguangbochangbadianTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __jiguangbochangbadianRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__jiguangbochangbadianTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#jiguangbochangbadianTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#jiguangbochangbadianDiff');
+        TBKit.history.mount('#jiguangbochangbadianHist',function(rec){
+            __jiguangbochangbadian_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __jiguangbochangbadian_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__jiguangbochangbadianTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#jiguangbochangbadianChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __jiguangbochangbadianExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__jiguangbochangbadian_skip) return;
+    var snap=__jiguangbochangbadianSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__jiguangbochangbadianResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__jiguangbochangbadian_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __jiguangbochangbadian_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __jiguangbochangbadianRender(keys,rk,en);
+}
+function __jiguangbochangbadianExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#jiguangbochangbadianTable','jiguangbochangbadian.csv'); } catch(e){}
+}
+function __jiguangbochangbadianPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#jiguangbochangbadianPresets',[{label:'默认参数',labelEn:'Default',values:{'laser':'532'}}],function(){ calc(); });
+}
+var __jiguangbochangbadian_f0=(typeof calc==='function')?calc:null;
+if(__jiguangbochangbadian_f0){
+    calc=function(){ var __r=__jiguangbochangbadian_f0.apply(null,arguments); try{ __jiguangbochangbadianExtras(); }catch(e){} return __r; };
+}
+function __jiguangbochangbadianBoot(){ try{ __jiguangbochangbadianPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __jiguangbochangbadianBoot();
+else document.addEventListener('DOMContentLoaded', __jiguangbochangbadianBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -152,7 +152,7 @@ s.parentNode.insertBefore(el, s);
         <label>冠层重叠率(%)</label>
         <input type="number" id="overlap" value="5" min="0" max="50" step="1" oninput="calc()">
       </div>
-      <div class="result-box" id="result0"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__canopy_coverageExport()">导出明细 CSV</button></div><div class="result-box" id="result0"></div> <div id="canopy_coverageTable"></div> <div id="canopy_coverageDiff"></div> <div id="canopy_coverageChart"></div> <div id="canopy_coverageHist"></div>
     </div>
 
     <div class="tab-content" id="tab1">
@@ -408,6 +408,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __canopy_coverage_last=0,__canopy_coverage_skip=false;
+function __canopy_coverageSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __canopy_coverageResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __canopy_coverageTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __canopy_coverageRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__canopy_coverageTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#canopy_coverageTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#canopy_coverageDiff');
+        TBKit.history.mount('#canopy_coverageHist',function(rec){
+            __canopy_coverage_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __canopy_coverage_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__canopy_coverageTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#canopy_coverageChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __canopy_coverageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__canopy_coverage_skip) return;
+    var snap=__canopy_coverageSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__canopy_coverageResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__canopy_coverage_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __canopy_coverage_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __canopy_coverageRender(keys,rk,en);
+}
+function __canopy_coverageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#canopy_coverageTable','canopy-coverage.csv'); } catch(e){}
+}
+function __canopy_coveragePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#canopy_coveragePresets',[{label:'默认参数',labelEn:'Default',values:{'rowSpacing':'60', 'plantSpacing':'30', 'canopyDiam':'35', 'canopyShape':'circle', 'overlap':'5', 'totalGrid':'100', 'greenGrid':'65', 'photoArea':'1'}}],function(){ calc(); });
+}
+var __canopy_coverage_f0=(typeof calc==='function')?calc:null;
+if(__canopy_coverage_f0){
+    calc=function(){ var __r=__canopy_coverage_f0.apply(null,arguments); try{ __canopy_coverageExtras(); }catch(e){} return __r; };
+}
+function __canopy_coverageBoot(){ try{ __canopy_coveragePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __canopy_coverageBoot();
+else document.addEventListener('DOMContentLoaded', __canopy_coverageBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用作物冠层覆盖度估算器</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>行距(cm)</li><li>株距(cm)</li><li>平均冠层直径(cm)</li><li>冠层形状</li><li>冠层重叠率(%)</li><li>网格总格数</li><li>绿色(冠层)格数</li><li>照片拍摄面积(m²)</li></ul><h2>适用场景</h2><p>覆盖度 = 冠层垂直投影面积 / 土地面积 × 100%。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>覆盖度越高产量越高吗？</dt><dd>封行前覆盖度上升通常伴随叶面积增加、光截获提高，有利；但过度郁闭会田间通风差、病害升。看『适时封行』而非一味求高。</dd><dt>图像法怎么保证准？</dt><dd>用固定角度垂直拍摄，按绿通道阈值分割植被与土，扣除阴影。多时点同法可比长势，单张需标定参照物。</dd></dl></section>

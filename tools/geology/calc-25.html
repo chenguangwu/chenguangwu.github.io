@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>S波速度 Vs (km/s)</label><input type="number" id="vs" value="3.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="S波速度"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calc_25Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="calc_25Table"></div> <div id="calc_25Diff"></div> <div id="calc_25Chart"></div> <div id="calc_25Hist"></div>
 <div class="info-box">💡 公式：震中距 D = Δt × Vp × Vs / (Vp − Vs)，其中 P 波先于 S 波到达观测点，两者到时差与震中距成正比。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>本公式基于均匀介质假设，实际地层速度会随深度变化</li><li>近震震中距适用（一般 &lt; 1000 km），远震需考虑球面路径</li><li>P-S 波到时差通常取首波到时之差，建议精确到 0.1s</li><li>结果仅供参考，正式速报以地震台网测定为准</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -184,6 +184,114 @@ function restoreHistory(idx){
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __calc_25_last=0,__calc_25_skip=false;
+function __calc_25Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_25ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_25Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_25Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_25Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_25Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_25Diff');
+        TBKit.history.mount('#calc_25Hist',function(rec){
+            __calc_25_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_25_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_25Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_25Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_25Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_25_skip) return;
+    var snap=__calc_25Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_25ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_25_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_25_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_25Render(keys,rk,en);
+}
+function __calc_25Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_25Table','calc-25.csv'); } catch(e){}
+}
+function __calc_25Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_25Presets',[{label:'默认参数',labelEn:'Default',values:{'dt':'20', 'vp':'6.0', 'vs':'3.5'}}],function(){ calc(); });
+}
+var __calc_25_f0=(typeof calc==='function')?calc:null;
+if(__calc_25_f0){
+    calc=function(){ var __r=__calc_25_f0.apply(null,arguments); try{ __calc_25Extras(); }catch(e){} return __r; };
+}
+function __calc_25Boot(){ try{ __calc_25Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_25Boot();
+else document.addEventListener('DOMContentLoaded', __calc_25Boot);
 </script>
 
 </div>

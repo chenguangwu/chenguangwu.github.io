@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>标准差 σ (μg/g)</label><input type="number" id="sd" value="10" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="标准差"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calc_87Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="calc_87Table"></div> <div id="calc_87Diff"></div> <div id="calc_87Chart"></div> <div id="calc_87Hist"></div>
 <div class="info-box">💡 公式：衬度系数 Ac = C/B；异常下限 T = B + 2σ；异常强度 = C/T；富集系数 = C/B（无量纲）。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>背景值通常取统计母体的均值或中位数</li><li>异常下限常取背景 + 2 倍标准差（置信度约 95%）</li><li>衬度系数 &gt; 1 视为正异常，&lt; 1 为负异常</li><li>不同元素地球化学行为差异较大，应分区统计背景</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -176,6 +176,114 @@ function restoreHistory(idx){try{var list=JSON.parse(localStorage.getItem(histor
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __calc_87_last=0,__calc_87_skip=false;
+function __calc_87Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_87ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_87Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_87Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_87Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_87Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_87Diff');
+        TBKit.history.mount('#calc_87Hist',function(rec){
+            __calc_87_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_87_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_87Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_87Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_87Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_87_skip) return;
+    var snap=__calc_87Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_87ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_87_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_87_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_87Render(keys,rk,en);
+}
+function __calc_87Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_87Table','calc-87.csv'); } catch(e){}
+}
+function __calc_87Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_87Presets',[{label:'默认参数',labelEn:'Default',values:{'bg':'40', 'an':'120', 'sd':'10'}}],function(){ calc(); });
+}
+var __calc_87_f0=(typeof calc==='function')?calc:null;
+if(__calc_87_f0){
+    calc=function(){ var __r=__calc_87_f0.apply(null,arguments); try{ __calc_87Extras(); }catch(e){} return __r; };
+}
+function __calc_87Boot(){ try{ __calc_87Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_87Boot();
+else document.addEventListener('DOMContentLoaded', __calc_87Boot);
 </script>
 
 </div>

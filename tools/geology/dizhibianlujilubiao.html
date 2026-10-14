@@ -130,8 +130,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row" style="margin-top:8px;">
   <div style="flex:1;"><label>岩性描述</label><textarea id="desc" rows="3" style="font-size:16px;width:100%;padding:8px;border:1px solid var(--border-color,#e5e7eb);border-radius:8px;background:var(--bg-card,#fff);" aria-label="岩性描述">岩石风化强烈，长石多已高岭土化，石英颗粒松散，可见少量黑云母残留，手捏易碎。</textarea></div>
 </div>
-<div class="toolbar"><button class="btn primary" type="button" onclick="calc()">🧮 生成编录</button><button class="btn" type="button" onclick="addLayer()">➕ 加入层位</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="dizhibianlujilubiaoPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 生成编录</button><button class="btn" type="button" onclick="__dizhibianlujilubiaoExport()">导出明细 CSV</button><button class="btn" type="button" onclick="addLayer()">➕ 加入层位</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
+<div class="result-box" id="res"></div> <div id="dizhibianlujilubiaoTable"></div> <div id="dizhibianlujilubiaoDiff"></div> <div id="dizhibianlujilubiaoChart"></div> <div id="dizhibianlujilubiaoHist"></div>
 <div class="info-box">💡 本层厚度 = 终孔深度 − 起始深度；生成记录含孔号、回次、分层、岩性、描述等标准编录字段。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>分层深度应连续，避免层位重叠或漏编</li><li>岩性描述应包含颜色、矿物成分、结构构造、风化程度</li><li>加入层位后可一键复制完整编录表</li><li>编录数据保存在浏览器本地，不上传服务器</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🗂️ 已编录层位</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearLayers()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无层位记录</div></div></div>
@@ -197,6 +197,114 @@ function delLayer(idx){layers.splice(idx,1);try{localStorage.setItem(historyKey(
 function clearLayers(){layers=[];try{localStorage.removeItem(historyKey());}catch(e){}renderHistory();ToolBox.showToast(i18nText('toast.msg548'),'info');}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __dizhibianlujilubiao_last=0,__dizhibianlujilubiao_skip=false;
+function __dizhibianlujilubiaoSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __dizhibianlujilubiaoResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __dizhibianlujilubiaoTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __dizhibianlujilubiaoRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__dizhibianlujilubiaoTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#dizhibianlujilubiaoTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#dizhibianlujilubiaoDiff');
+        TBKit.history.mount('#dizhibianlujilubiaoHist',function(rec){
+            __dizhibianlujilubiao_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __dizhibianlujilubiao_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__dizhibianlujilubiaoTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#dizhibianlujilubiaoChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __dizhibianlujilubiaoExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__dizhibianlujilubiao_skip) return;
+    var snap=__dizhibianlujilubiaoSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__dizhibianlujilubiaoResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__dizhibianlujilubiao_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __dizhibianlujilubiao_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __dizhibianlujilubiaoRender(keys,rk,en);
+}
+function __dizhibianlujilubiaoExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dizhibianlujilubiaoTable','dizhibianlujilubiao.csv'); } catch(e){}
+}
+function __dizhibianlujilubiaoPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dizhibianlujilubiaoPresets',[{label:'默认参数',labelEn:'Default',values:{'holeId':'ZK101', 'run':'3', 'dFrom':'12.50', 'dTo':'15.80', 'litho':'强风化花岗岩', 'color':'灰黄褐色', 'struct':'中粒结构，块状构造'}}],function(){ calc(); });
+}
+var __dizhibianlujilubiao_f0=(typeof calc==='function')?calc:null;
+if(__dizhibianlujilubiao_f0){
+    calc=function(){ var __r=__dizhibianlujilubiao_f0.apply(null,arguments); try{ __dizhibianlujilubiaoExtras(); }catch(e){} return __r; };
+}
+function __dizhibianlujilubiaoBoot(){ try{ __dizhibianlujilubiaoPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dizhibianlujilubiaoBoot();
+else document.addEventListener('DOMContentLoaded', __dizhibianlujilubiaoBoot);
 </script>
 
 </div>

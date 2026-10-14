@@ -123,11 +123,11 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>体型系数 μs</label><input type="number" id="v3" value="1.3" step="any" style="font-size:16px;" oninput="calc()"><span style="font-size:12px;color:var(--text-muted);display:block;margin-top:2px;">建筑物体型系数，矩形约1.3</span></div></div>
 <div class="input-row"><div><label>地面粗糙度类别</label><select id="v4" style="font-size:16px;" onchange="calc()"><option value="1">A类 海面/沙漠</option><option value="2">B类 田野/乡村</option><option value="3">C类 城市</option><option value="4">D类 大城市中心</option></select><span style="font-size:12px;color:var(--text-muted);display:block;margin-top:2px;">GB 50009 地面粗糙度</span></div></div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估计算</button>
+      <div id="assessor_19Presets"></div><button type="button" class="btn primary" onclick="calc()">评估计算</button><button class="btn" type="button" onclick="__assessor_19Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyReport()">复制结果</button>
       <button type="button" class="btn" onclick="resetForm()">重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_19Table"></div> <div id="assessor_19Diff"></div> <div id="assessor_19Chart"></div> <div id="assessor_19Hist"></div>
   </div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -327,6 +327,114 @@ calc();
 <!-- /SEO 介绍区块 -->
 <script>
 document.addEventListener('DOMContentLoaded',function(){var h=document.querySelectorAll('.tool-intro-header');h.forEach(function(x){x.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});});
+
+var __assessor_19_last=0,__assessor_19_skip=false;
+function __assessor_19Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_19ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_19Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_19Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_19Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_19Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_19Diff');
+        TBKit.history.mount('#assessor_19Hist',function(rec){
+            __assessor_19_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_19_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_19Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_19Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_19Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_19_skip) return;
+    var snap=__assessor_19Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_19ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_19_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_19_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_19Render(keys,rk,en);
+}
+function __assessor_19Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_19Table','assessor-19.csv'); } catch(e){}
+}
+function __assessor_19Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_19Presets',[{label:'默认参数',labelEn:'Default',values:{'v1':'0.45', 'v2':'60', 'v3':'1.3', 'v4':'1'}}],function(){ calc(); });
+}
+var __assessor_19_f0=(typeof calc==='function')?calc:null;
+if(__assessor_19_f0){
+    calc=function(){ var __r=__assessor_19_f0.apply(null,arguments); try{ __assessor_19Extras(); }catch(e){} return __r; };
+}
+function __assessor_19Boot(){ try{ __assessor_19Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_19Boot();
+else document.addEventListener('DOMContentLoaded', __assessor_19Boot);
 </script>
 </body>
 </html>

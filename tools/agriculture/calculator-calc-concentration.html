@@ -130,11 +130,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="calculator_calc_concentrationPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__calculator_calc_concentrationExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="calculator_calc_concentrationTable"></div> <div id="calculator_calc_concentrationDiff"></div> <div id="calculator_calc_concentrationChart"></div> <div id="calculator_calc_concentrationHist"></div>
     <div class="info-box">💡 公式：原药量 = 目标浓度 ÷ 原药浓度 × 稀释体积；加水量 = 稀释体积 − 原药量</div>
     <div class="tool-notes" style="--tool-accent:#65A30D;">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -260,6 +260,114 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   calc();
 });
+
+var __calculator_calc_concentration_last=0,__calculator_calc_concentration_skip=false;
+function __calculator_calc_concentrationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calculator_calc_concentrationResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calculator_calc_concentrationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calculator_calc_concentrationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calculator_calc_concentrationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calculator_calc_concentrationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calculator_calc_concentrationDiff');
+        TBKit.history.mount('#calculator_calc_concentrationHist',function(rec){
+            __calculator_calc_concentration_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calculator_calc_concentration_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calculator_calc_concentrationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calculator_calc_concentrationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calculator_calc_concentrationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calculator_calc_concentration_skip) return;
+    var snap=__calculator_calc_concentrationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calculator_calc_concentrationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calculator_calc_concentration_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calculator_calc_concentration_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calculator_calc_concentrationRender(keys,rk,en);
+}
+function __calculator_calc_concentrationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calculator_calc_concentrationTable','calculator-calc-concentration.csv'); } catch(e){}
+}
+function __calculator_calc_concentrationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calculator_calc_concentrationPresets',[{label:'默认参数',labelEn:'Default',values:{'stock':'40', 'target':'0.1', 'volume':'15'}}],function(){ calc(); });
+}
+var __calculator_calc_concentration_f0=(typeof calc==='function')?calc:null;
+if(__calculator_calc_concentration_f0){
+    calc=function(){ var __r=__calculator_calc_concentration_f0.apply(null,arguments); try{ __calculator_calc_concentrationExtras(); }catch(e){} return __r; };
+}
+function __calculator_calc_concentrationBoot(){ try{ __calculator_calc_concentrationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calculator_calc_concentrationBoot();
+else document.addEventListener('DOMContentLoaded', __calculator_calc_concentrationBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

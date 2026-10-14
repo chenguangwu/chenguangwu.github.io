@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>平均品位 C (%)</label><input type="number" id="grade" value="1.2" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="平均品位"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__estimate_grade_reserveExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="estimate_grade_reserveTable"></div> <div id="estimate_grade_reserveDiff"></div> <div id="estimate_grade_reserveChart"></div> <div id="estimate_grade_reserveHist"></div>
 <div class="info-box">💡 公式：矿石量 Q = S × M × D（吨）；金属量 P = Q × C%（品位以%输入时 P = Q × C/100）。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>品位以质量百分比输入；贵金属以 g/t 时请换算为%</li><li>面积与厚度应为同一矿体真厚度投影值</li><li>体重应为实验室测定的小体重值</li><li>本估算为地质块段法，未考虑开采损失与贫化</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -184,6 +184,114 @@ function restoreHistory(idx){try{var list=JSON.parse(localStorage.getItem(histor
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __estimate_grade_reserve_last=0,__estimate_grade_reserve_skip=false;
+function __estimate_grade_reserveSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __estimate_grade_reserveResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __estimate_grade_reserveTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __estimate_grade_reserveRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__estimate_grade_reserveTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#estimate_grade_reserveTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#estimate_grade_reserveDiff');
+        TBKit.history.mount('#estimate_grade_reserveHist',function(rec){
+            __estimate_grade_reserve_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __estimate_grade_reserve_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__estimate_grade_reserveTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#estimate_grade_reserveChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __estimate_grade_reserveExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__estimate_grade_reserve_skip) return;
+    var snap=__estimate_grade_reserveSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__estimate_grade_reserveResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__estimate_grade_reserve_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __estimate_grade_reserve_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __estimate_grade_reserveRender(keys,rk,en);
+}
+function __estimate_grade_reserveExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#estimate_grade_reserveTable','estimate-grade-reserve.csv'); } catch(e){}
+}
+function __estimate_grade_reservePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#estimate_grade_reservePresets',[{label:'默认参数',labelEn:'Default',values:{'area':'50000', 'thick':'3.5', 'dens':'2.7', 'grade':'1.2'}}],function(){ calc(); });
+}
+var __estimate_grade_reserve_f0=(typeof calc==='function')?calc:null;
+if(__estimate_grade_reserve_f0){
+    calc=function(){ var __r=__estimate_grade_reserve_f0.apply(null,arguments); try{ __estimate_grade_reserveExtras(); }catch(e){} return __r; };
+}
+function __estimate_grade_reserveBoot(){ try{ __estimate_grade_reservePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __estimate_grade_reserveBoot();
+else document.addEventListener('DOMContentLoaded', __estimate_grade_reserveBoot);
 </script>
 
 </div>

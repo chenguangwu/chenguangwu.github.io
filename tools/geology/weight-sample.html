@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>允许相对误差 (%)</label><input type="number" id="tol" value="10" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="允许相对误差"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__weight_sampleExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="weight_sampleTable"></div> <div id="weight_sampleDiff"></div> <div id="weight_sampleChart"></div> <div id="weight_sampleHist"></div>
 <div class="info-box">💡 Gy 公式：采样相对方差 σ²=C·d³·(1/w−1)/m；相对误差 σ_rel=√σ²；最小样重 m_min=C·d³·(1/w−1)/σ²_tol。d 单位 cm，m 单位 g。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>Gy 公式适用于颗粒物料采样代表性评估</li><li>采样常数 C 与矿物密度、品位分布有关，本工具提供典型参考值</li><li>颗粒尺寸 d 取物料中 95% 通过的筛孔尺寸</li><li>品位 w 为目标组分质量分数（%输入，内部换算为小数）</li><li>结果仅供参考，实际采样方案需结合规范与现场条件</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -245,6 +245,114 @@ function restoreHistory(idx){
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __weight_sample_last=0,__weight_sample_skip=false;
+function __weight_sampleSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __weight_sampleResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __weight_sampleTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __weight_sampleRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__weight_sampleTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#weight_sampleTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#weight_sampleDiff');
+        TBKit.history.mount('#weight_sampleHist',function(rec){
+            __weight_sample_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __weight_sample_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__weight_sampleTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#weight_sampleChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __weight_sampleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__weight_sample_skip) return;
+    var snap=__weight_sampleSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__weight_sampleResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__weight_sample_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __weight_sample_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __weight_sampleRender(keys,rk,en);
+}
+function __weight_sampleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#weight_sampleTable','weight-sample.csv'); } catch(e){}
+}
+function __weight_samplePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#weight_samplePresets',[{label:'默认参数',labelEn:'Default',values:{'d':'2', 'm':'5', 'w':'1.5', 'mat':'0.1', 'cval':'0.5', 'tol':'10'}}],function(){ calc(); });
+}
+var __weight_sample_f0=(typeof calc==='function')?calc:null;
+if(__weight_sample_f0){
+    calc=function(){ var __r=__weight_sample_f0.apply(null,arguments); try{ __weight_sampleExtras(); }catch(e){} return __r; };
+}
+function __weight_sampleBoot(){ try{ __weight_samplePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __weight_sampleBoot();
+else document.addEventListener('DOMContentLoaded', __weight_sampleBoot);
 </script>
 
 </div>

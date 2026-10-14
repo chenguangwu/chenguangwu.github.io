@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__estimate_soilExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="estimate_soilTable"></div> <div id="estimate_soilDiff"></div> <div id="estimate_soilChart"></div> <div id="estimate_soilHist"></div>
     <div class="info-box">💡 公式：当前密度 = 初始密度 × (1 + 年增长率)^年限；障碍指数 = 当前密度 ÷ 阈值密度 × 100；&lt;30 安全，30–60 预警，&gt;60 严重</div>
 <div class="tool-notes" style="--tool-accent:#65A30D;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -252,6 +252,114 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('historyBox').addEventListener('click',function(e){var item=e.target.closest('[data-idx]');if(item)restoreHistory(parseInt(item.getAttribute('data-idx'),10));});
 });
 calc();
+
+var __estimate_soil_last=0,__estimate_soil_skip=false;
+function __estimate_soilSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __estimate_soilResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __estimate_soilTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __estimate_soilRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__estimate_soilTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#estimate_soilTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#estimate_soilDiff');
+        TBKit.history.mount('#estimate_soilHist',function(rec){
+            __estimate_soil_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __estimate_soil_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__estimate_soilTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#estimate_soilChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __estimate_soilExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__estimate_soil_skip) return;
+    var snap=__estimate_soilSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__estimate_soilResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__estimate_soil_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __estimate_soil_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __estimate_soilRender(keys,rk,en);
+}
+function __estimate_soilExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#estimate_soilTable','estimate-soil.csv'); } catch(e){}
+}
+function __estimate_soilPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#estimate_soilPresets',[{label:'默认参数',labelEn:'Default',values:{'years':'5', 'init':'500', 'rate':'20', 'threshold':'5000'}}],function(){ calc(); });
+}
+var __estimate_soil_f0=(typeof calc==='function')?calc:null;
+if(__estimate_soil_f0){
+    calc=function(){ var __r=__estimate_soil_f0.apply(null,arguments); try{ __estimate_soilExtras(); }catch(e){} return __r; };
+}
+function __estimate_soilBoot(){ try{ __estimate_soilPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __estimate_soilBoot();
+else document.addEventListener('DOMContentLoaded', __estimate_soilBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

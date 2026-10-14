@@ -183,10 +183,10 @@ s.parentNode.insertBefore(el, s);
         <div><label>每亩用量 (kg/亩)</label><input type="number" id="fert_per_mu" value="25" min="0" step="0.1" oninput="calcFertilizer()"></div>
       </div>
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcFertilizer()">计算配比</button>
+        <div id="agri_calculatorPresets"></div><button type="button" class="btn primary" onclick="calcFertilizer()">计算配比</button><button class="btn" type="button" onclick="__agri_calculatorExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="copyFertResult()">复制结果</button>
       </div>
-      <div class="result-box" id="fertResult"></div>
+      <div class="result-box" id="fertResult"></div> <div id="agri_calculatorTable"></div> <div id="agri_calculatorDiff"></div> <div id="agri_calculatorChart"></div> <div id="agri_calculatorHist"></div>
     </div>
 
     <!-- 2. 种植密度计算器 -->
@@ -683,6 +683,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __agri_calculator_last=0,__agri_calculator_skip=false;
+function __agri_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __agri_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __agri_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __agri_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__agri_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#agri_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#agri_calculatorDiff');
+        TBKit.history.mount('#agri_calculatorHist',function(rec){
+            __agri_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcFertilizer();
+            }catch(e2){}
+            __agri_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__agri_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#agri_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __agri_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__agri_calculator_skip) return;
+    var snap=__agri_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__agri_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__agri_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __agri_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __agri_calculatorRender(keys,rk,en);
+}
+function __agri_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#agri_calculatorTable','agri-calculator.csv'); } catch(e){}
+}
+function __agri_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#agri_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'fert_n':'15', 'fert_p':'15', 'fert_k':'15', 'fert_area':'10', 'fert_per_mu':'25', 'plant_spacing':'30', 'plant_row':'50', 'plant_area':'10', 'plant_unit':'mu', 'pest_content':'40', 'pest_unit':'ppm', 'pest_target':'1000'}}],function(){ calcFertilizer(); });
+}
+var __agri_calculator_f0=(typeof calcFertilizer==='function')?calcFertilizer:null;
+if(__agri_calculator_f0){
+    calcFertilizer=function(){ var __r=__agri_calculator_f0.apply(null,arguments); try{ __agri_calculatorExtras(); }catch(e){} return __r; };
+}
+function __agri_calculatorBoot(){ try{ __agri_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __agri_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __agri_calculatorBoot);
 </script>
 
 <script type="application/ld+json">

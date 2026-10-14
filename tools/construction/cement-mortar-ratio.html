@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cement_mortar_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cement_mortar_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cement_mortar_ratioTable"></div>
+    <div id="cement_mortar_ratioDiff"></div>
+    <div id="cement_mortar_ratioHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -288,6 +294,52 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+function __cement_mortar_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cement_mortar_ratioExtras(){
+    function __cement_mortar_ratioRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var vol=num('vol'), bag=num('bag')||50;
+    var grade=document.getElementById('grade').value;
+    var ratio={'m5':[1,5.0],'m7.5':[1,4.8],'m10':[1,4.5],'m15':[1,4.0]}[grade]||[1,4.8]; // 每 m³ 砂浆约需水泥 300kg 基准（M7.5），按比例微调
+    var cementBase=340;
+    var cement=cementBase*(ratio[1]>=4.8?1:ratio[1]>=4.5?0.95:1.1);
+    var cementKg=Math.round(cement*vol);
+    var sandKg=Math.round(cementKg*ratio[1]);
+    var waterKg=Math.round(cementKg*0.45);
+    var bags=Math.ceil(cementKg/bag);
+    if (!isFinite(__cement_mortar_ratioNum('vol')) || !isFinite(__cement_mortar_ratioNum('bag')) || !__cement_mortar_ratioRaw('grade')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cement_mortar_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['砂', sandKg+' kg'],
+            ['水', waterKg+' kg'],
+            ['水泥吨位', (cementKg/1000).toFixed(2)+' t'],
+        ]
+    });
+    TBKit.history.record({vol:__cement_mortar_ratioRaw('vol'), bag:__cement_mortar_ratioRaw('bag'), grade:__cement_mortar_ratioRaw('grade'), ratio:ratio});
+    function __cement_mortar_ratioRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#cement_mortar_ratioHist',function(rec){ __cement_mortar_ratioRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#cement_mortar_ratioDiff',['ratio']);
+}
+function __cement_mortar_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cement_mortar_ratioTable','cement-mortar-ratio.csv'); } catch(e){}
+}
+function __cement_mortar_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cement_mortar_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{vol:'1', bag:'50', grade:''}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{vol:'2', bag:'100', grade:''}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{vol:'0.5', bag:'25', grade:''}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cement_mortar_ratioExtras(); }catch(e){} };
+function __cement_mortar_ratioBoot(){ try{ __cement_mortar_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cement_mortar_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __cement_mortar_ratioBoot);
 </script>
 </body>
 </html>

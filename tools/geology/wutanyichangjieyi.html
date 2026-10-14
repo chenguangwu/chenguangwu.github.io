@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>最大梯度 G</label><input type="number" id="grad" value="6" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="最大梯度"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 解译</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__wutanyichangjieyiExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="wutanyichangjieyiTable"></div> <div id="wutanyichangjieyiDiff"></div> <div id="wutanyichangjieyiChart"></div> <div id="wutanyichangjieyiHist"></div>
 <div class="info-box">💡 依据幅值强度、范围大小与梯度陡缓推断埋深与地质体规模；梯度 G=ΔA/Δx 反映异常横向变化率。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>解译为定性推断，需结合地质资料验证</li><li>磁异常高幅值多对应磁性矿体或岩体</li><li>重力高常对应致密岩体或金属矿化</li><li>实际解译应进行定量反演计算</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近解译</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无解译记录</div></div></div>
@@ -204,6 +204,114 @@ function restoreHistory(idx){try{var list=JSON.parse(localStorage.getItem(histor
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __wutanyichangjieyi_last=0,__wutanyichangjieyi_skip=false;
+function __wutanyichangjieyiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __wutanyichangjieyiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __wutanyichangjieyiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __wutanyichangjieyiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__wutanyichangjieyiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#wutanyichangjieyiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#wutanyichangjieyiDiff');
+        TBKit.history.mount('#wutanyichangjieyiHist',function(rec){
+            __wutanyichangjieyi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __wutanyichangjieyi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__wutanyichangjieyiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#wutanyichangjieyiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __wutanyichangjieyiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__wutanyichangjieyi_skip) return;
+    var snap=__wutanyichangjieyiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__wutanyichangjieyiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__wutanyichangjieyi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __wutanyichangjieyi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __wutanyichangjieyiRender(keys,rk,en);
+}
+function __wutanyichangjieyiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wutanyichangjieyiTable','wutanyichangjieyi.csv'); } catch(e){}
+}
+function __wutanyichangjieyiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wutanyichangjieyiPresets',[{label:'默认参数',labelEn:'Default',values:{'atype':'mag', 'amp':'500', 'width':'80', 'grad':'6'}}],function(){ calc(); });
+}
+var __wutanyichangjieyi_f0=(typeof calc==='function')?calc:null;
+if(__wutanyichangjieyi_f0){
+    calc=function(){ var __r=__wutanyichangjieyi_f0.apply(null,arguments); try{ __wutanyichangjieyiExtras(); }catch(e){} return __r; };
+}
+function __wutanyichangjieyiBoot(){ try{ __wutanyichangjieyiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wutanyichangjieyiBoot();
+else document.addEventListener('DOMContentLoaded', __wutanyichangjieyiBoot);
 </script>
 
 </div>
