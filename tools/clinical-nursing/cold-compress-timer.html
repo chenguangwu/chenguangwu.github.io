@@ -166,12 +166,12 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn" onclick="resetTimer()">↺ 重置</button>
       </div>
     </div>
-    <div class="result-box" style="margin-top:12px;">
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__cold_compress_timerExport()">导出明细 CSV</button></div><div class="result-box" style="margin-top:12px;">
       <div class="sensitivity-item"><span>建议单次冷敷时间</span><span class="check" id="coldTime">20分钟</span></div>
       <div class="sensitivity-item"><span>间隔休息时间</span><span class="check" id="restTime">30分钟</span></div>
       <div class="sensitivity-item"><span>每日冷敷次数上限</span><span class="check" id="maxTimes">4-6次</span></div>
       <div class="sensitivity-item"><span>皮肤观察频率</span><span class="check" id="checkFreq">每5分钟</span></div>
-    </div>
+    </div> <div id="cold_compress_timerTable"></div> <div id="cold_compress_timerDiff"></div> <div id="cold_compress_timerChart"></div> <div id="cold_compress_timerHist"></div>
     <div class="info-box">
       <strong>冷敷安全参考：</strong><br>
       关节扭伤：15-20分钟/次，间隔30分钟<br>
@@ -419,6 +419,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __cold_compress_timer_last=0,__cold_compress_timer_skip=false;
+function __cold_compress_timerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cold_compress_timerResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cold_compress_timerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cold_compress_timerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cold_compress_timerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cold_compress_timerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cold_compress_timerDiff');
+        TBKit.history.mount('#cold_compress_timerHist',function(rec){
+            __cold_compress_timer_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cold_compress_timer_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cold_compress_timerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cold_compress_timerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cold_compress_timerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cold_compress_timer_skip) return;
+    var snap=__cold_compress_timerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cold_compress_timerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cold_compress_timer_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cold_compress_timer_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cold_compress_timerRender(keys,rk,en);
+}
+function __cold_compress_timerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cold_compress_timerTable','cold-compress-timer.csv'); } catch(e){}
+}
+function __cold_compress_timerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cold_compress_timerPresets',[{label:'默认参数',labelEn:'Default',values:{'sensitivity':'normal'}}],function(){ calc(); });
+}
+var __cold_compress_timer_f0=(typeof calc==='function')?calc:null;
+if(__cold_compress_timer_f0){
+    calc=function(){ var __r=__cold_compress_timer_f0.apply(null,arguments); try{ __cold_compress_timerExtras(); }catch(e){} return __r; };
+}
+function __cold_compress_timerBoot(){ try{ __cold_compress_timerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cold_compress_timerBoot();
+else document.addEventListener('DOMContentLoaded', __cold_compress_timerBoot);
 </script>
 
 </body>

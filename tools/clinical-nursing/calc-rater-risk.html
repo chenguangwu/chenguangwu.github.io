@@ -123,8 +123,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>1. 感觉（对压力不适的反应）</label><select id="b1" onchange="calc()" style="font-size:16px;"><option value="4">完全受限 (4分)</option><option value="3">极度受限 (3分)</option><option value="2">轻度受限 (2分)</option><option value="1">未受损 (1分)</option></select></div><div><label>2. 潮湿（皮肤暴露程度）</label><select id="b2" onchange="calc()" style="font-size:16px;"><option value="4">极少潮湿 (4分)</option><option value="3">偶尔潮湿 (3分)</option><option value="2">经常潮湿 (2分)</option><option value="1">持续潮湿 (1分)</option></select></div></div>
 <div class="input-row"><div><label>3. 活动（身体活动程度）</label><select id="b3" onchange="calc()" style="font-size:16px;"><option value="4">经常步行 (4分)</option><option value="3">偶可步行 (3分)</option><option value="2">局限于椅 (2分)</option><option value="1">卧床不起 (1分)</option></select></div><div><label>4. 移动（改变体位能力）</label><select id="b4" onchange="calc()" style="font-size:16px;"><option value="4">不受限 (4分)</option><option value="3">轻度受限 (3分)</option><option value="2">严重受限 (2分)</option><option value="1">完全不能 (1分)</option></select></div></div>
 <div class="input-row"><div><label>5. 营养（日常摄入）</label><select id="b5" onchange="calc()" style="font-size:16px;"><option value="4">摄入良好 (4分)</option><option value="3">摄入适当 (3分)</option><option value="2">摄入不足 (2分)</option><option value="1">严重不足 (1分)</option></select></div><div><label>6. 摩擦/剪切</label><select id="b6" onchange="calc()" style="font-size:16px;"><option value="3">无问题 (3分)</option><option value="2">潜在问题 (2分)</option><option value="1">有问题 (1分)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算评分</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="calc_rater_riskPresets"></div><button type="button" class="btn primary" onclick="calc()">计算评分</button><button class="btn" type="button" onclick="__calc_rater_riskExport()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="calc_rater_riskTable"></div> <div id="calc_rater_riskDiff"></div> <div id="calc_rater_riskChart"></div> <div id="calc_rater_riskHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -256,6 +256,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __calc_rater_risk_last=0,__calc_rater_risk_skip=false;
+function __calc_rater_riskSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_rater_riskResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_rater_riskTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_rater_riskRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_rater_riskTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_rater_riskTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_rater_riskDiff');
+        TBKit.history.mount('#calc_rater_riskHist',function(rec){
+            __calc_rater_risk_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_rater_risk_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_rater_riskTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_rater_riskChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_rater_riskExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_rater_risk_skip) return;
+    var snap=__calc_rater_riskSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_rater_riskResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_rater_risk_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_rater_risk_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_rater_riskRender(keys,rk,en);
+}
+function __calc_rater_riskExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_rater_riskTable','calc-rater-risk.csv'); } catch(e){}
+}
+function __calc_rater_riskPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_rater_riskPresets',[{label:'默认参数',labelEn:'Default',values:{'b1':'4', 'b2':'4', 'b3':'4', 'b4':'4', 'b5':'4', 'b6':'3'}}],function(){ calc(); });
+}
+var __calc_rater_risk_f0=(typeof calc==='function')?calc:null;
+if(__calc_rater_risk_f0){
+    calc=function(){ var __r=__calc_rater_risk_f0.apply(null,arguments); try{ __calc_rater_riskExtras(); }catch(e){} return __r; };
+}
+function __calc_rater_riskBoot(){ try{ __calc_rater_riskPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_rater_riskBoot();
+else document.addEventListener('DOMContentLoaded', __calc_rater_riskBoot);
 </script>
 
 </body>

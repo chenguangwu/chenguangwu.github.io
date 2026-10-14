@@ -615,9 +615,9 @@ function renderSingle(item){
       '<p>格式：<strong>'+item.origType+'</strong> → <strong>'+fmtLabel(getSettings().format)+'</strong>（'+item.compType+'）</p>' +
       '<p>尺寸：<strong>'+item.origW+' × '+item.origH+'px</strong> → <strong>'+item.compW+' × '+item.compH+'px</strong></p>' +
       '<p>质量参数：<strong>'+document.getElementById('quality').value+'%</strong></p>' +
-    '</div>' +
+    '</div> <div id="image_compressTable"></div> <div id="image_compressDiff"></div> <div id="image_compressChart"></div> <div id="image_compressHist"></div>' +
     '<div class="toolbar" style="margin-top:12px;">' +
-      '<button class="btn primary" onclick="downloadItem('+item.id+')">⬇ 下载压缩图片</button>' +
+      '<div id="image_compressPresets"></div><button class="btn primary" onclick="downloadItem('+item.id+')">⬇ 下载压缩图片</button><button class="btn" type="button" onclick="__image_compressExport()">导出明细 CSV</button>' +
       '<button class="btn" onclick="copyResult('+item.id+')">📋 复制压缩信息</button>' +
     '</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){sv.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sv.innerHTML=__h3;
   initSlider();
@@ -812,6 +812,114 @@ document.querySelectorAll('.tool-intro-header').forEach(function(h){
 });
 
 ToolBox.initToolTheme();
+
+var __image_compress_last=0,__image_compress_skip=false;
+function __image_compressSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __image_compressResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __image_compressTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __image_compressRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__image_compressTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#image_compressTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#image_compressDiff');
+        TBKit.history.mount('#image_compressHist',function(rec){
+            __image_compress_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadItem();
+            }catch(e2){}
+            __image_compress_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__image_compressTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#image_compressChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __image_compressExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__image_compress_skip) return;
+    var snap=__image_compressSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__image_compressResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__image_compress_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __image_compress_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __image_compressRender(keys,rk,en);
+}
+function __image_compressExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#image_compressTable','image-compress.csv'); } catch(e){}
+}
+function __image_compressPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#image_compressPresets',[{label:'默认参数',labelEn:'Default',values:{'fmt':'webp', 'max-size':'0', 'quality':'80'}}],function(){ downloadItem(); });
+}
+var __image_compress_f0=(typeof downloadItem==='function')?downloadItem:null;
+if(__image_compress_f0){
+    downloadItem=function(){ var __r=__image_compress_f0.apply(null,arguments); try{ __image_compressExtras(); }catch(e){} return __r; };
+}
+function __image_compressBoot(){ try{ __image_compressPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __image_compressBoot();
+else document.addEventListener('DOMContentLoaded', __image_compressBoot);
 </script>
 </body>
 </html>

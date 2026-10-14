@@ -144,7 +144,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lifespan_4Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="lifespan_4Table"></div> <div id="lifespan_4Diff"></div> <div id="lifespan_4Chart"></div> <div id="lifespan_4Hist"></div>
     <div class="info-box">💡 Goodman: σa_eq = σa × σb/(σb-σm)；Basquin: σa_eq = σf' × (2Nf)^b → Nf = 0.5 × (σa_eq/σf')^(1/b)</div>
     <div class="tool-notes" style="--tool-accent:#FF6B35;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -234,6 +234,114 @@ function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey(
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __lifespan_4_last=0,__lifespan_4_skip=false;
+function __lifespan_4Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __lifespan_4ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __lifespan_4Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __lifespan_4Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__lifespan_4Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#lifespan_4Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#lifespan_4Diff');
+        TBKit.history.mount('#lifespan_4Hist',function(rec){
+            __lifespan_4_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __lifespan_4_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__lifespan_4Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#lifespan_4Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __lifespan_4Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__lifespan_4_skip) return;
+    var snap=__lifespan_4Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__lifespan_4ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__lifespan_4_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __lifespan_4_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __lifespan_4Render(keys,rk,en);
+}
+function __lifespan_4Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lifespan_4Table','lifespan-4.csv'); } catch(e){}
+}
+function __lifespan_4Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lifespan_4Presets',[{label:'默认参数',labelEn:'Default',values:{'vSa':'200', 'vSm':'100', 'vSb':'800', 'vMat':'steel', 'vSf':'1200', 'vB':'-0.12'}}],function(){ calc(); });
+}
+var __lifespan_4_f0=(typeof calc==='function')?calc:null;
+if(__lifespan_4_f0){
+    calc=function(){ var __r=__lifespan_4_f0.apply(null,arguments); try{ __lifespan_4Extras(); }catch(e){} return __r; };
+}
+function __lifespan_4Boot(){ try{ __lifespan_4Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lifespan_4Boot();
+else document.addEventListener('DOMContentLoaded', __lifespan_4Boot);
 </script>
 
 </div>

@@ -116,8 +116,8 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row full"><label>输入文本</label><textarea id="input" rows="4" placeholder="输入要计算哈希的文本..." oninput="process()"></textarea></div>
 <div class="input-row"><div><label>算法</label><select id="algo" onchange="process()"><option value="MD5">MD5</option><option value="SHA-1">SHA-1</option><option value="SHA-256">SHA-256</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="process()">🔐 计算</button><button type="button" class="btn" onclick="copyRes()">📋 复制</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><button type="button" class="btn primary" onclick="process()">🔐 计算</button><div id="haxijisuanPresets"></div><button type="button" class="btn" onclick="copyRes()">📋 复制</button><button class="btn" type="button" onclick="__haxijisuanExport()">导出明细 CSV</button></div>
+<div class="result-box" id="res"></div> <div id="haxijisuanTable"></div> <div id="haxijisuanDiff"></div> <div id="haxijisuanChart"></div> <div id="haxijisuanHist"></div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -204,6 +204,114 @@ s.parentNode.insertBefore(el, s);
 async function process(){const t=document.getElementById('input').value;const algo=document.getElementById('algo').value;if(!t){const __h0='<p>请输入文本</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;return;}try{const encoder=new TextEncoder();const data=encoder.encode(t);const hashBuffer=await crypto.subtle.digest(algo.replace('-',''),data);const hashArray=Array.from(new Uint8Array(hashBuffer));const hex=hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');const __h1='<p><strong>'+algo+'：</strong></p><p style="font-family:monospace;word-break:break-all;">'+hex+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h1;}catch(e){const __h2='<p style="color:var(--danger);">❌ '+e.message+'</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h2;}}
 function copyRes(){const txt=document.getElementById('res').innerText.split('：')[1];if(txt)ToolBox.copyText(txt.trim());}
 process();
+
+var __haxijisuan_last=0,__haxijisuan_skip=false;
+function __haxijisuanSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __haxijisuanResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __haxijisuanTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __haxijisuanRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__haxijisuanTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#haxijisuanTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#haxijisuanDiff');
+        TBKit.history.mount('#haxijisuanHist',function(rec){
+            __haxijisuan_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                copyRes();
+            }catch(e2){}
+            __haxijisuan_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__haxijisuanTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#haxijisuanChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __haxijisuanExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__haxijisuan_skip) return;
+    var snap=__haxijisuanSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__haxijisuanResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__haxijisuan_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __haxijisuan_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __haxijisuanRender(keys,rk,en);
+}
+function __haxijisuanExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#haxijisuanTable','haxijisuan.csv'); } catch(e){}
+}
+function __haxijisuanPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#haxijisuanPresets',[{label:'默认参数',labelEn:'Default',values:{'algo':'MD5'}}],function(){ copyRes(); });
+}
+var __haxijisuan_f0=(typeof copyRes==='function')?copyRes:null;
+if(__haxijisuan_f0){
+    copyRes=function(){ var __r=__haxijisuan_f0.apply(null,arguments); try{ __haxijisuanExtras(); }catch(e){} return __r; };
+}
+function __haxijisuanBoot(){ try{ __haxijisuanPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __haxijisuanBoot();
+else document.addEventListener('DOMContentLoaded', __haxijisuanBoot);
 </script>
 </body>
 </html>

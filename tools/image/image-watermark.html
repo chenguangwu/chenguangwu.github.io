@@ -408,12 +408,12 @@ s.parentNode.insertBefore(el, s);
       <canvas id="canvas" style="display:none;"></canvas>
     </div>
     <div class="toolbar" style="margin-top:14px;">
-      <button type="button" class="btn primary" onclick="downloadImg('png')"><span>⬇</span> 下载 PNG</button>
+      <div id="image_watermarkPresets"></div><button type="button" class="btn primary" onclick="downloadImg('png')"><span>⬇</span> 下载 PNG</button><button class="btn" type="button" onclick="__image_watermarkExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="downloadImg('jpeg')"><span>⬇</span> 下载 JPEG</button>
       <button type="button" class="btn" onclick="downloadImg('webp')"><span>⬇</span> 下载 WebP</button>
       <button type="button" class="btn" onclick="resetAll()"><span>↺</span> 重新开始</button>
     </div>
-    <div class="result-box" id="resultBox"></div>
+    <div class="result-box" id="resultBox"></div> <div id="image_watermarkTable"></div> <div id="image_watermarkDiff"></div> <div id="image_watermarkChart"></div> <div id="image_watermarkHist"></div>
     <div class="info-box">🔒 所有图片处理均在浏览器本地完成，文件不会被上传到任何服务器。JPEG 格式为有损压缩，水印需要高保真时建议导出 PNG。</div>
   </div>
 
@@ -978,6 +978,114 @@ function formatSize(bytes) {
 function setResult(html) {
   const __h1='<p>' + html + '</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
+
+var __image_watermark_last=0,__image_watermark_skip=false;
+function __image_watermarkSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __image_watermarkResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __image_watermarkTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __image_watermarkRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__image_watermarkTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#image_watermarkTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#image_watermarkDiff');
+        TBKit.history.mount('#image_watermarkHist',function(rec){
+            __image_watermark_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadImg();
+            }catch(e2){}
+            __image_watermark_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__image_watermarkTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#image_watermarkChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __image_watermarkExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__image_watermark_skip) return;
+    var snap=__image_watermarkSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__image_watermarkResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__image_watermark_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __image_watermark_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __image_watermarkRender(keys,rk,en);
+}
+function __image_watermarkExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#image_watermarkTable','image-watermark.csv'); } catch(e){}
+}
+function __image_watermarkPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#image_watermarkPresets',[{label:'默认参数',labelEn:'Default',values:{'wmText':'ToolBox 水印', 'wmFont':'Microsoft YaHei, 微软雅黑, sans-serif', 'wmFontSize':'32', 'wmColor':'#FF6B35', 'wmColorHex':'#FF6B35', 'wmOpacity':'50', 'wmStroke':'0', 'wmImgScale':'30', 'wmImgOpacity':'80'}}],function(){ downloadImg(); });
+}
+var __image_watermark_f0=(typeof downloadImg==='function')?downloadImg:null;
+if(__image_watermark_f0){
+    downloadImg=function(){ var __r=__image_watermark_f0.apply(null,arguments); try{ __image_watermarkExtras(); }catch(e){} return __r; };
+}
+function __image_watermarkBoot(){ try{ __image_watermarkPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __image_watermarkBoot();
+else document.addEventListener('DOMContentLoaded', __image_watermarkBoot);
 </script>
 
 </body>

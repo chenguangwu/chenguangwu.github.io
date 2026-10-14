@@ -267,14 +267,14 @@ s.parentNode.insertBefore(el, s);
           <option value="png">PNG（保留透明）</option>
           <option value="jpeg">JPEG（体积小）</option>
         </select>
-        <button type="button" class="btn primary" onclick="downloadImage()">⬇ 下载旋转后图片</button>
+        <div id="image_rotatePresets"></div><button type="button" class="btn primary" onclick="downloadImage()">⬇ 下载旋转后图片</button><button class="btn" type="button" onclick="__image_rotateExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="loadAnother()">📂 重新选择图片</button>
       </div>
 
       <!-- 图片信息 -->
       <div class="result-box" id="infoBox">
         <div class="info-meta" id="infoMeta"></div>
-      </div>
+      </div> <div id="image_rotateTable"></div> <div id="image_rotateDiff"></div> <div id="image_rotateChart"></div> <div id="image_rotateHist"></div>
       <div class="info-box" id="tipBox">所有处理均在浏览器本地完成，图片不会上传到服务器，请放心使用。</div>
     </div>
   </div>
@@ -634,6 +634,114 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+
+var __image_rotate_last=0,__image_rotate_skip=false;
+function __image_rotateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __image_rotateResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __image_rotateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __image_rotateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__image_rotateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#image_rotateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#image_rotateDiff');
+        TBKit.history.mount('#image_rotateHist',function(rec){
+            __image_rotate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadImage();
+            }catch(e2){}
+            __image_rotate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__image_rotateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#image_rotateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __image_rotateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__image_rotate_skip) return;
+    var snap=__image_rotateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__image_rotateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__image_rotate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __image_rotate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __image_rotateRender(keys,rk,en);
+}
+function __image_rotateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#image_rotateTable','image-rotate.csv'); } catch(e){}
+}
+function __image_rotatePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#image_rotatePresets',[{label:'默认参数',labelEn:'Default',values:{'angleSlider':'0', 'customColor':'#3b82f6', 'formatSelect':'png'}}],function(){ downloadImage(); });
+}
+var __image_rotate_f0=(typeof downloadImage==='function')?downloadImage:null;
+if(__image_rotate_f0){
+    downloadImage=function(){ var __r=__image_rotate_f0.apply(null,arguments); try{ __image_rotateExtras(); }catch(e){} return __r; };
+}
+function __image_rotateBoot(){ try{ __image_rotatePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __image_rotateBoot();
+else document.addEventListener('DOMContentLoaded', __image_rotateBoot);
 </script>
 </body>
 </html>
