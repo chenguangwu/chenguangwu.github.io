@@ -171,12 +171,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="molar_massPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">⚖️ 计算</button>
+      <button class="btn" type="button" onclick="__molar_massExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="text-align:center;color:var(--text-muted);">👆 输入分子式</p>
     </div>
+    <div id="molar_massTable"></div>
+    <div id="molar_massDiff"></div>
+    <div id="molar_massChart"></div>
+    <div id="molar_massHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -400,6 +406,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __molar_mass_last=0,__molar_mass_skip=false;
+function __molar_massSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __molar_massResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __molar_massTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __molar_massRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__molar_massTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#molar_massTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#molar_massDiff');
+        TBKit.history.mount('#molar_massHist',function(rec){
+            __molar_mass_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __molar_mass_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__molar_massTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#molar_massChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __molar_massExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__molar_mass_skip) return;
+    var snap=__molar_massSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__molar_massResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__molar_mass_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __molar_mass_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __molar_massRender(keys,rk,en);
+}
+function __molar_massExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#molar_massTable','molar-mass.csv'); } catch(e){}
+}
+function __molar_massPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#molar_massPresets',[{label:'默认参数',labelEn:'Default',values:{formula:'H2O', mass:'18'}}],function(){ calc(); });
+}
+var __molar_mass_f0=(typeof calc==='function')?calc:null;
+if(__molar_mass_f0){
+    calc=function(){ __molar_mass_f0.apply(null,arguments); try{ __molar_massExtras(); }catch(e){} };
+}
+function __molar_massBoot(){ try{ __molar_massPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __molar_massBoot();
+else document.addEventListener('DOMContentLoaded', __molar_massBoot);
 </script>
 <!-- SEO 介绍区块 -->
 
