@@ -199,12 +199,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="market_valuationPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">重新评估</button>
+      <button class="btn" type="button" onclick="__market_valuationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="resetForm()">重置</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="market_valuationTable"></div>
+    <div id="market_valuationDiff"></div>
+    <div id="market_valuationChart"></div>
+    <div id="market_valuationHist"></div>
   </div>
 
   <div class="card">
@@ -407,6 +413,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __market_valuation_last=0,__market_valuation_skip=false;
+function __market_valuationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __market_valuationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __market_valuationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __market_valuationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__market_valuationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#market_valuationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#market_valuationDiff');
+        TBKit.history.mount('#market_valuationHist',function(rec){
+            __market_valuation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __market_valuation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__market_valuationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#market_valuationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __market_valuationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__market_valuation_skip) return;
+    var snap=__market_valuationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__market_valuationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__market_valuation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __market_valuation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __market_valuationRender(keys,rk,en);
+}
+function __market_valuationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#market_valuationTable','market-valuation.csv'); } catch(e){}
+}
+function __market_valuationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#market_valuationPresets',[{label:'默认参数',labelEn:'Default',values:{area:'89', basePrice:'38000', floor:'1.00', facing:'1.03', deco:'1.05', age:'8', school:'1.08', extra:'0'}}],function(){ calc(); });
+}
+var __market_valuation_f0=(typeof calc==='function')?calc:null;
+if(__market_valuation_f0){
+    calc=function(){ __market_valuation_f0.apply(null,arguments); try{ __market_valuationExtras(); }catch(e){} };
+}
+function __market_valuationBoot(){ try{ __market_valuationPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __market_valuationBoot();
+else document.addEventListener('DOMContentLoaded', __market_valuationBoot);
 </script>
 
 </body>
