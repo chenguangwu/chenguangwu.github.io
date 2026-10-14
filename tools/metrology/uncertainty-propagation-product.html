@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="uncertainty_propagation_productPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__uncertainty_propagation_productExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="uncertainty_propagation_productTable"></div>
+    <div id="uncertainty_propagation_productDiff"></div>
+    <div id="uncertainty_propagation_productHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -260,6 +266,41 @@ function resetForm(){document.getElementById('x1').value = '10';
       document.getElementById('u2').value = '0.1';
       calcTool();}
 calcTool();
+
+function __uncertainty_propagation_productNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __uncertainty_propagation_productExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x1=num('x1'),u1=num('u1'),x2=num('x2'),u2=num('u2');
+    var ur=Math.sqrt(Math.pow(u1/x1,2)+Math.pow(u2/x2,2))*100;
+    if (!isFinite(__uncertainty_propagation_productNum('x1')) || !isFinite(__uncertainty_propagation_productNum('u1')) || !isFinite(__uncertainty_propagation_productNum('x2')) || !isFinite(__uncertainty_propagation_productNum('u2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#uncertainty_propagation_productTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['相对合成不确定度 (%)', ur.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({x1:__uncertainty_propagation_productNum('x1'), u1:__uncertainty_propagation_productNum('u1'), x2:__uncertainty_propagation_productNum('x2'), u2:__uncertainty_propagation_productNum('u2'), ur:ur});
+    TBKit.history.mount('#uncertainty_propagation_productHist',function(rec){ if(rec.x1!=null)document.getElementById('x1').value=rec.x1; if(rec.u1!=null)document.getElementById('u1').value=rec.u1; if(rec.x2!=null)document.getElementById('x2').value=rec.x2; if(rec.u2!=null)document.getElementById('u2').value=rec.u2; calcTool(); });
+    TBKit.util.diffBox('#uncertainty_propagation_productDiff',['ur']);
+}
+function __uncertainty_propagation_productExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#uncertainty_propagation_productTable','uncertainty-propagation-product.csv'); } catch(e){}
+}
+function __uncertainty_propagation_productPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#uncertainty_propagation_productPresets',[
+        {label:'默认',labelEn:'Default',values:{x1:'10', u1:'0.2', x2:'5', u2:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x1:'20', u1:'0.4', x2:'10', u2:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x1:'5', u1:'0.1', x2:'2.5', u2:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __uncertainty_propagation_productExtras(); }catch(e){} };
+function __uncertainty_propagation_productBoot(){ try{ __uncertainty_propagation_productPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __uncertainty_propagation_productBoot();
+else document.addEventListener('DOMContentLoaded', __uncertainty_propagation_productBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="flatness_deviationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__flatness_deviationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="flatness_deviationTable"></div>
+    <div id="flatness_deviationDiff"></div>
+    <div id="flatness_deviationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,42 @@ function resetForm(){document.getElementById('hmax').value = '0.05';
       document.getElementById('hmin').value = '-0.03';
       calcTool();}
 calcTool();
+
+function __flatness_deviationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __flatness_deviationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var hmax=num('hmax'),hmin=num('hmin');
+    if (!isFinite(__flatness_deviationNum('hmax')) || !isFinite(__flatness_deviationNum('hmin'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#flatness_deviationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['平面度误差 (mm)', (hmax-hmin).toFixed(3)],
+            ['平面度误差 (μm)', ((hmax-hmin)*1000).toFixed(1)],
+            ['中位高度 (mm)', ((hmax+hmin)/2).toFixed(3)],
+            ['相对平面度 (ppm)', ((hmax-hmin)/(((hmax+hmin)/2)||1)*1e6).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({hmax:__flatness_deviationNum('hmax'), hmin:__flatness_deviationNum('hmin')});
+    TBKit.history.mount('#flatness_deviationHist',function(rec){ if(rec.hmax!=null)document.getElementById('hmax').value=rec.hmax; if(rec.hmin!=null)document.getElementById('hmin').value=rec.hmin; calcTool(); });
+}
+function __flatness_deviationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#flatness_deviationTable','flatness-deviation.csv'); } catch(e){}
+}
+function __flatness_deviationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#flatness_deviationPresets',[
+        {label:'默认',labelEn:'Default',values:{hmax:'0.05', hmin:'-0.03'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{hmax:'0.1', hmin:'-0.06'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{hmax:'0.025', hmin:'-0.015'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __flatness_deviationExtras(); }catch(e){} };
+function __flatness_deviationBoot(){ try{ __flatness_deviationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __flatness_deviationBoot();
+else document.addEventListener('DOMContentLoaded', __flatness_deviationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

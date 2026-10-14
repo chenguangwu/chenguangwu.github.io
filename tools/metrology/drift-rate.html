@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="drift_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__drift_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="drift_rateTable"></div>
+    <div id="drift_rateDiff"></div>
+    <div id="drift_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('x1').value = '10';
       document.getElementById('dt').value = '30';
       calcTool();}
 calcTool();
+
+function __drift_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __drift_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x1=num('x1'),x2=num('x2'),dt=num('dt');
+    var drift=(x2-x1)/dt;
+    if (!isFinite(__drift_rateNum('x1')) || !isFinite(__drift_rateNum('x2')) || !isFinite(__drift_rateNum('dt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#drift_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['漂移率 (单位/Δt)', drift.toFixed(4)],
+            ['总漂移量', (x2-x1).toFixed(4)],
+            ['单位漂移所需时间', (1/Math.abs(drift||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({x1:__drift_rateNum('x1'), x2:__drift_rateNum('x2'), dt:__drift_rateNum('dt'), drift:drift});
+    TBKit.history.mount('#drift_rateHist',function(rec){ if(rec.x1!=null)document.getElementById('x1').value=rec.x1; if(rec.x2!=null)document.getElementById('x2').value=rec.x2; if(rec.dt!=null)document.getElementById('dt').value=rec.dt; calcTool(); });
+    TBKit.util.diffBox('#drift_rateDiff',['drift']);
+}
+function __drift_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#drift_rateTable','drift-rate.csv'); } catch(e){}
+}
+function __drift_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#drift_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{x1:'10', x2:'10.5', dt:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x1:'20', x2:'21', dt:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x1:'5', x2:'5.25', dt:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __drift_rateExtras(); }catch(e){} };
+function __drift_rateBoot(){ try{ __drift_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __drift_rateBoot();
+else document.addEventListener('DOMContentLoaded', __drift_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

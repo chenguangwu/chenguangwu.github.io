@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="effective_dof_welchPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__effective_dof_welchExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="effective_dof_welchTable"></div>
+    <div id="effective_dof_welchDiff"></div>
+    <div id="effective_dof_welchHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,43 @@ function resetForm(){document.getElementById('u1').value = '1';
       document.getElementById('v2').value = '10';
       calcTool();}
 calcTool();
+
+function __effective_dof_welchNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __effective_dof_welchExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var u1=num('u1'),v1=num('v1'),u2=num('u2'),v2=num('v2');
+    var ucSum=Math.pow(u1*u1+u2*u2,2);
+    var den=u1*u1*u1*u1/v1 + u2*u2*u2*u2/v2;
+    var veff=ucSum/den;
+    if (!isFinite(__effective_dof_welchNum('u1')) || !isFinite(__effective_dof_welchNum('v1')) || !isFinite(__effective_dof_welchNum('u2')) || !isFinite(__effective_dof_welchNum('v2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#effective_dof_welchTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['有效自由度 ν_eff', veff.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({u1:__effective_dof_welchNum('u1'), v1:__effective_dof_welchNum('v1'), u2:__effective_dof_welchNum('u2'), v2:__effective_dof_welchNum('v2'), ucSum:ucSum});
+    TBKit.history.mount('#effective_dof_welchHist',function(rec){ if(rec.u1!=null)document.getElementById('u1').value=rec.u1; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.u2!=null)document.getElementById('u2').value=rec.u2; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; calcTool(); });
+    TBKit.util.diffBox('#effective_dof_welchDiff',['ucSum']);
+}
+function __effective_dof_welchExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#effective_dof_welchTable','effective-dof-welch.csv'); } catch(e){}
+}
+function __effective_dof_welchPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#effective_dof_welchPresets',[
+        {label:'默认',labelEn:'Default',values:{u1:'1', v1:'5', u2:'2', v2:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{u1:'2', v1:'10', u2:'4', v2:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{u1:'0.5', v1:'2.5', u2:'1', v2:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __effective_dof_welchExtras(); }catch(e){} };
+function __effective_dof_welchBoot(){ try{ __effective_dof_welchPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __effective_dof_welchBoot();
+else document.addEventListener('DOMContentLoaded', __effective_dof_welchBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

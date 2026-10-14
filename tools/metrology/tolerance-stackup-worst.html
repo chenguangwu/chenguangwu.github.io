@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tolerance_stackup_worstPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tolerance_stackup_worstExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tolerance_stackup_worstTable"></div>
+    <div id="tolerance_stackup_worstDiff"></div>
+    <div id="tolerance_stackup_worstHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -194,6 +200,43 @@ function calcTool(){
 function resetForm(){document.getElementById('ts').value = '0.1,0.05,0.08,0.02';
       calcTool();}
 calcTool();
+
+function __tolerance_stackup_worstNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tolerance_stackup_worstExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var t=document.getElementById('ts').value.split(',').map(Number);
+    var sum=0; for(let i=0;i<t.length;i++) sum+=Math.abs(t[i]);
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#tolerance_stackup_worstTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['总公差 (最坏) (mm)', sum.toFixed(3)],
+            ['平均单环 (mm)', (sum/t.length).toFixed(3)],
+            ['统计平方根（RSS）总公差 (mm)', Math.sqrt(t.reduce((a,b)=>a+b*b,0)).toFixed(3)],
+            ['极端法与统计法之差 (mm)', (sum-Math.sqrt(t.reduce((a,b)=>a+b*b,0))).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({t:t});
+    TBKit.history.mount('#tolerance_stackup_worstHist',function(rec){  calcTool(); });
+    TBKit.util.diffBox('#tolerance_stackup_worstDiff',['t']);
+}
+function __tolerance_stackup_worstExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tolerance_stackup_worstTable','tolerance-stackup-worst.csv'); } catch(e){}
+}
+function __tolerance_stackup_worstPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tolerance_stackup_worstPresets',[
+        {label:'默认',labelEn:'Default',values:{}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __tolerance_stackup_worstExtras(); }catch(e){} };
+function __tolerance_stackup_worstBoot(){ try{ __tolerance_stackup_worstPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tolerance_stackup_worstBoot();
+else document.addEventListener('DOMContentLoaded', __tolerance_stackup_worstBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

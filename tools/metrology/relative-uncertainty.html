@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="relative_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__relative_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="relative_uncertaintyTable"></div>
+    <div id="relative_uncertaintyDiff"></div>
+    <div id="relative_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('u').value = '0.5';
       document.getElementById('x').value = '10';
       calcTool();}
 calcTool();
+
+function __relative_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __relative_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var u=num('u'),x=num('x');
+    var ur=u/Math.abs(x)*100;
+    if (!isFinite(__relative_uncertaintyNum('u')) || !isFinite(__relative_uncertaintyNum('x'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#relative_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['相对不确定度 u_rel (%)', ur.toFixed(3)],
+            ['相对不确定度倒数', (100/ur).toFixed(3)],
+            ['不确定度与测量值乘积', (u*Math.abs(x)).toExponential(4)],
+            ['相对不确定度（ppm 量级）', (ur*1e4).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({u:__relative_uncertaintyNum('u'), x:__relative_uncertaintyNum('x'), ur:ur});
+    TBKit.history.mount('#relative_uncertaintyHist',function(rec){ if(rec.u!=null)document.getElementById('u').value=rec.u; if(rec.x!=null)document.getElementById('x').value=rec.x; calcTool(); });
+    TBKit.util.diffBox('#relative_uncertaintyDiff',['ur']);
+}
+function __relative_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#relative_uncertaintyTable','relative-uncertainty.csv'); } catch(e){}
+}
+function __relative_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#relative_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{u:'0.5', x:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{u:'1', x:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{u:'0.25', x:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __relative_uncertaintyExtras(); }catch(e){} };
+function __relative_uncertaintyBoot(){ try{ __relative_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __relative_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __relative_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

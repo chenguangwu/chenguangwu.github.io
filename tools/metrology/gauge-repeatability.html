@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gauge_repeatabilityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gauge_repeatabilityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gauge_repeatabilityTable"></div>
+    <div id="gauge_repeatabilityDiff"></div>
+    <div id="gauge_repeatabilityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('r').value = '0.04';
       document.getElementById('m').value = '3';
       calcTool();}
 calcTool();
+
+function __gauge_repeatabilityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gauge_repeatabilityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var R=num('r'),m=num('m');
+    var d2={2:1.128,3:1.693,4:2.059,5:2.326}[m]||1.693;
+    if (!isFinite(__gauge_repeatabilityNum('r')) || !isFinite(__gauge_repeatabilityNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gauge_repeatabilityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['重复性 σ_r', (R/d2).toFixed(4)],
+            ['99% 过程带宽 (5.15σ)', (5.15*R/d2).toFixed(4)],
+            ['95% 重复性区间（±2.576σ_r）', (R/d2*2.576).toFixed(4)],
+            ['6σ 过程变差', (6*R/d2).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__gauge_repeatabilityNum('r'), m:__gauge_repeatabilityNum('m'), R:R});
+    TBKit.history.mount('#gauge_repeatabilityHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#gauge_repeatabilityDiff',['R']);
+}
+function __gauge_repeatabilityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gauge_repeatabilityTable','gauge-repeatability.csv'); } catch(e){}
+}
+function __gauge_repeatabilityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gauge_repeatabilityPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'0.04', m:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'0.08', m:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'0.02', m:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gauge_repeatabilityExtras(); }catch(e){} };
+function __gauge_repeatabilityBoot(){ try{ __gauge_repeatabilityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gauge_repeatabilityBoot();
+else document.addEventListener('DOMContentLoaded', __gauge_repeatabilityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

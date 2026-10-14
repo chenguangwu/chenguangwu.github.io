@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="std_dev_type_aPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__std_dev_type_aExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="std_dev_type_aTable"></div>
+    <div id="std_dev_type_aDiff"></div>
+    <div id="std_dev_type_aHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -264,6 +270,44 @@ function resetForm(){document.getElementById('s').value = '2';
       document.getElementById('n').value = '9';
       calcTool();}
 calcTool();
+
+function __std_dev_type_aNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __std_dev_type_aExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s=num('s'),n=num('n');
+    var uA=s/Math.sqrt(n);
+    if (!isFinite(__std_dev_type_aNum('s')) || !isFinite(__std_dev_type_aNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#std_dev_type_aTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['A 类标准不确定度 u_A', uA.toFixed(4)],
+            ['由 u_A 回算标准差 s', (uA*Math.sqrt(n)).toFixed(4)],
+            ['u_A 占标准差 (%)', (uA/Math.max(s,1e-12)*100).toFixed(4)],
+            ['u_A 倒数', (1/Math.max(uA,1e-12)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({s:__std_dev_type_aNum('s'), n:__std_dev_type_aNum('n'), uA:uA});
+    TBKit.history.mount('#std_dev_type_aHist',function(rec){ if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#std_dev_type_aDiff',['uA']);
+}
+function __std_dev_type_aExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#std_dev_type_aTable','std-dev-type-a.csv'); } catch(e){}
+}
+function __std_dev_type_aPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#std_dev_type_aPresets',[
+        {label:'默认',labelEn:'Default',values:{s:'2', n:'9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{s:'4', n:'18'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{s:'1', n:'4.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __std_dev_type_aExtras(); }catch(e){} };
+function __std_dev_type_aBoot(){ try{ __std_dev_type_aPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __std_dev_type_aBoot();
+else document.addEventListener('DOMContentLoaded', __std_dev_type_aBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

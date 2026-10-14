@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="combined_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__combined_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="combined_uncertaintyTable"></div>
+    <div id="combined_uncertaintyDiff"></div>
+    <div id="combined_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -247,6 +253,45 @@ const u=document.getElementById('us').value.split(',').map(Number);
 function resetForm(){document.getElementById('us').value = '0.02,0.03,0.01';
       calcTool();}
 calcTool();
+
+function __combined_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __combined_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var u=document.getElementById('us').value.split(',').map(Number);
+    var s=0; for(let i=0;i<u.length;i++) s+=u[i]*u[i];
+    var uc=Math.sqrt(s);
+    if (!isFinite(__combined_uncertaintyNum('us'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#combined_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['合成不确定度 u_c', uc.toFixed(5)],
+            ['前两分量合成', Math.sqrt(u[0]*u[0]+u[1]*u[1]).toFixed(5)],
+            ['参与合成的不确定度分量个数', u.length],
+            ['最大分量占比 (%)', (Math.max.apply(null,u)/uc*100).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({us:__combined_uncertaintyNum('us'), u:u});
+    TBKit.history.mount('#combined_uncertaintyHist',function(rec){ if(rec.us!=null)document.getElementById('us').value=rec.us; calcTool(); });
+    TBKit.util.diffBox('#combined_uncertaintyDiff',['u']);
+}
+function __combined_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#combined_uncertaintyTable','combined-uncertainty.csv'); } catch(e){}
+}
+function __combined_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#combined_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{us:'0.02,0.03,0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{us:'0.02,0.03,0.01'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{us:'0.02,0.03,0.01'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __combined_uncertaintyExtras(); }catch(e){} };
+function __combined_uncertaintyBoot(){ try{ __combined_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __combined_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __combined_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

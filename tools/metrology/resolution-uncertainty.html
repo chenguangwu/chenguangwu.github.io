@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="resolution_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__resolution_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="resolution_uncertaintyTable"></div>
+    <div id="resolution_uncertaintyDiff"></div>
+    <div id="resolution_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,45 @@ function calcTool(){
 function resetForm(){document.getElementById('a').value = '0.01';
       calcTool();}
 calcTool();
+
+function __resolution_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __resolution_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a');
+    var u=a/(2*Math.sqrt(3));
+    if (!isFinite(__resolution_uncertaintyNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#resolution_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['分辨率不确定度 u', u.toFixed(6)],
+            ['半宽/√3 (对比)', (u/Math.sqrt(3)).toFixed(6)],
+            ['扩展不确定度 U (k=2)', (a/Math.sqrt(3)).toFixed(6)],
+            ['由 u 回算区间半宽', (u*2*Math.sqrt(3)).toFixed(6)],
+            ['不确定度百分数', (u*100).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({a:__resolution_uncertaintyNum('a'), u:u});
+    TBKit.history.mount('#resolution_uncertaintyHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+    TBKit.util.diffBox('#resolution_uncertaintyDiff',['u']);
+}
+function __resolution_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#resolution_uncertaintyTable','resolution-uncertainty.csv'); } catch(e){}
+}
+function __resolution_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#resolution_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __resolution_uncertaintyExtras(); }catch(e){} };
+function __resolution_uncertaintyBoot(){ try{ __resolution_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __resolution_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __resolution_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

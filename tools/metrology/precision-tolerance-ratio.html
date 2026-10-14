@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="precision_tolerance_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__precision_tolerance_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="precision_tolerance_ratioTable"></div>
+    <div id="precision_tolerance_ratioDiff"></div>
+    <div id="precision_tolerance_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('s').value = '0.5';
       document.getElementById('Tol').value = '10';
       calcTool();}
 calcTool();
+
+function __precision_tolerance_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __precision_tolerance_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s=num('s'),Tol=num('Tol');
+    var PTR=6*s/Tol;
+    if (!isFinite(__precision_tolerance_ratioNum('s')) || !isFinite(__precision_tolerance_ratioNum('Tol'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#precision_tolerance_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['精度公差比 PTR', PTR.toFixed(3)],
+            ['公差与标准差比', (Tol/Math.max(s,1e-12)).toFixed(3)],
+            ['PTR 六分之一（s 除以 Tol）', (PTR/6).toFixed(4)],
+            ['PTR 倒数', (1/Math.max(PTR,1e-12)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({s:__precision_tolerance_ratioNum('s'), Tol:__precision_tolerance_ratioNum('Tol'), PTR:PTR});
+    TBKit.history.mount('#precision_tolerance_ratioHist',function(rec){ if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.Tol!=null)document.getElementById('Tol').value=rec.Tol; calcTool(); });
+    TBKit.util.diffBox('#precision_tolerance_ratioDiff',['PTR']);
+}
+function __precision_tolerance_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#precision_tolerance_ratioTable','precision-tolerance-ratio.csv'); } catch(e){}
+}
+function __precision_tolerance_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#precision_tolerance_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{s:'0.5', Tol:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{s:'1', Tol:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{s:'0.25', Tol:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __precision_tolerance_ratioExtras(); }catch(e){} };
+function __precision_tolerance_ratioBoot(){ try{ __precision_tolerance_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __precision_tolerance_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __precision_tolerance_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

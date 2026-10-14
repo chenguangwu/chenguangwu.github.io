@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="dimensional_tolerancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__dimensional_toleranceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dimensional_toleranceTable"></div>
+    <div id="dimensional_toleranceDiff"></div>
+    <div id="dimensional_toleranceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,44 @@ function resetForm(){document.getElementById('nom').value = '50';
       document.getElementById('ei').value = '0.0';
       calcTool();}
 calcTool();
+
+function __dimensional_toleranceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dimensional_toleranceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n=num('nom'),es=num('es'),ei=num('ei');
+    if (!isFinite(__dimensional_toleranceNum('nom')) || !isFinite(__dimensional_toleranceNum('es')) || !isFinite(__dimensional_toleranceNum('ei'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#dimensional_toleranceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['公差 (mm)', (es-ei).toFixed(3)],
+            ['最大极限尺寸 (mm)', (n+es).toFixed(3)],
+            ['最小极限尺寸 (mm)', (n+ei).toFixed(3)],
+            ['公差带中心偏差 (mm)', ((es+ei)/2).toFixed(3)],
+            ['公差带中值尺寸 (mm)', (n+(es+ei)/2).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({nom:__dimensional_toleranceNum('nom'), es:__dimensional_toleranceNum('es'), ei:__dimensional_toleranceNum('ei'), n:n});
+    TBKit.history.mount('#dimensional_toleranceHist',function(rec){ if(rec.nom!=null)document.getElementById('nom').value=rec.nom; if(rec.es!=null)document.getElementById('es').value=rec.es; if(rec.ei!=null)document.getElementById('ei').value=rec.ei; calcTool(); });
+    TBKit.util.diffBox('#dimensional_toleranceDiff',['n']);
+}
+function __dimensional_toleranceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dimensional_toleranceTable','dimensional-tolerance.csv'); } catch(e){}
+}
+function __dimensional_tolerancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dimensional_tolerancePresets',[
+        {label:'默认',labelEn:'Default',values:{nom:'50', es:'0.025', ei:'0.0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{nom:'100', es:'0.05', ei:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{nom:'25', es:'0.0125', ei:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __dimensional_toleranceExtras(); }catch(e){} };
+function __dimensional_toleranceBoot(){ try{ __dimensional_tolerancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dimensional_toleranceBoot();
+else document.addEventListener('DOMContentLoaded', __dimensional_toleranceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

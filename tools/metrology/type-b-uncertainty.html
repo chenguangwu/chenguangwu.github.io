@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="type_b_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__type_b_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="type_b_uncertaintyTable"></div>
+    <div id="type_b_uncertaintyDiff"></div>
+    <div id="type_b_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,43 @@ function resetForm(){document.getElementById('a').value = '0.05';
       document.getElementById('k').value = '1.732';
       calcTool();}
 calcTool();
+
+function __type_b_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __type_b_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a'),k=num('k');
+    if (!isFinite(__type_b_uncertaintyNum('a')) || !isFinite(__type_b_uncertaintyNum('k'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#type_b_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['B类不确定度 u_B', (a/k).toFixed(5)],
+            ['占比 (%)', ((a/k)/a*100).toFixed(2)],
+            ['扩展不确定度 U (k=2)', (a/k*2).toFixed(5)],
+            ['扩展不确定度 U (95%, k=1.96)', (a/k*1.96).toFixed(5)],
+            ['包含因子倒数', (1/k).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({a:__type_b_uncertaintyNum('a'), k:__type_b_uncertaintyNum('k')});
+    TBKit.history.mount('#type_b_uncertaintyHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.k!=null)document.getElementById('k').value=rec.k; calcTool(); });
+}
+function __type_b_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#type_b_uncertaintyTable','type-b-uncertainty.csv'); } catch(e){}
+}
+function __type_b_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#type_b_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'0.05', k:'1.732'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'0.1', k:'3.464'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'0.025', k:'0.866'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __type_b_uncertaintyExtras(); }catch(e){} };
+function __type_b_uncertaintyBoot(){ try{ __type_b_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __type_b_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __type_b_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

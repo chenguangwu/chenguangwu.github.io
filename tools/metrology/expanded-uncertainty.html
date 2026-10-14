@@ -139,12 +139,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="expanded_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__expanded_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="expanded_uncertaintyTable"></div>
+    <div id="expanded_uncertaintyDiff"></div>
+    <div id="expanded_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -260,6 +266,45 @@ function resetForm(){document.getElementById('uc').value = '0.04';
       document.getElementById('meas').value = '10.00';
       calcTool();}
 calcTool();
+
+function __expanded_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __expanded_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var uc=num('uc'),k=num('k'),m=num('meas');
+    var U=k*uc;
+    if (!isFinite(__expanded_uncertaintyNum('uc')) || !isFinite(__expanded_uncertaintyNum('k')) || !isFinite(__expanded_uncertaintyNum('meas'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#expanded_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['扩展不确定度 U', U.toFixed(4)],
+            ['下限', (m-U).toFixed(4)],
+            ['上限', (m+U).toFixed(4)],
+            ['相对标准不确定度 (%)', (uc/Math.abs(m)*100).toFixed(4)],
+            ['相对扩展不确定度 (%)', (U/Math.abs(m)*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({uc:__expanded_uncertaintyNum('uc'), k:__expanded_uncertaintyNum('k'), meas:__expanded_uncertaintyNum('meas'), U:U});
+    TBKit.history.mount('#expanded_uncertaintyHist',function(rec){ if(rec.uc!=null)document.getElementById('uc').value=rec.uc; if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.meas!=null)document.getElementById('meas').value=rec.meas; calcTool(); });
+    TBKit.util.diffBox('#expanded_uncertaintyDiff',['U']);
+}
+function __expanded_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#expanded_uncertaintyTable','expanded-uncertainty.csv'); } catch(e){}
+}
+function __expanded_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#expanded_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{uc:'0.04', k:'2', meas:'10.00'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{uc:'0.08', k:'4', meas:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{uc:'0.02', k:'1', meas:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __expanded_uncertaintyExtras(); }catch(e){} };
+function __expanded_uncertaintyBoot(){ try{ __expanded_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __expanded_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __expanded_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

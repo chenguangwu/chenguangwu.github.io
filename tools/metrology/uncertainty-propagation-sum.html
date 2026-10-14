@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="uncertainty_propagation_sumPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__uncertainty_propagation_sumExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="uncertainty_propagation_sumTable"></div>
+    <div id="uncertainty_propagation_sumDiff"></div>
+    <div id="uncertainty_propagation_sumHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -206,6 +212,41 @@ function resetForm(){document.getElementById('c1').value = '1';
       document.getElementById('u2').value = '0.4';
       calcTool();}
 calcTool();
+
+function __uncertainty_propagation_sumNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __uncertainty_propagation_sumExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var c1=num('c1'),u1=num('u1'),c2=num('c2'),u2=num('u2');
+    var uc=Math.sqrt(Math.pow(c1*u1,2)+Math.pow(c2*u2,2));
+    if (!isFinite(__uncertainty_propagation_sumNum('c1')) || !isFinite(__uncertainty_propagation_sumNum('u1')) || !isFinite(__uncertainty_propagation_sumNum('c2')) || !isFinite(__uncertainty_propagation_sumNum('u2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#uncertainty_propagation_sumTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['合成标准不确定度 u_c', uc.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({c1:__uncertainty_propagation_sumNum('c1'), u1:__uncertainty_propagation_sumNum('u1'), c2:__uncertainty_propagation_sumNum('c2'), u2:__uncertainty_propagation_sumNum('u2'), uc:uc});
+    TBKit.history.mount('#uncertainty_propagation_sumHist',function(rec){ if(rec.c1!=null)document.getElementById('c1').value=rec.c1; if(rec.u1!=null)document.getElementById('u1').value=rec.u1; if(rec.c2!=null)document.getElementById('c2').value=rec.c2; if(rec.u2!=null)document.getElementById('u2').value=rec.u2; calcTool(); });
+    TBKit.util.diffBox('#uncertainty_propagation_sumDiff',['uc']);
+}
+function __uncertainty_propagation_sumExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#uncertainty_propagation_sumTable','uncertainty-propagation-sum.csv'); } catch(e){}
+}
+function __uncertainty_propagation_sumPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#uncertainty_propagation_sumPresets',[
+        {label:'默认',labelEn:'Default',values:{c1:'1', u1:'0.3', c2:'1', u2:'0.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{c1:'2', u1:'0.6', c2:'2', u2:'0.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{c1:'0.5', u1:'0.15', c2:'0.5', u2:'0.2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __uncertainty_propagation_sumExtras(); }catch(e){} };
+function __uncertainty_propagation_sumBoot(){ try{ __uncertainty_propagation_sumPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __uncertainty_propagation_sumBoot();
+else document.addEventListener('DOMContentLoaded', __uncertainty_propagation_sumBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

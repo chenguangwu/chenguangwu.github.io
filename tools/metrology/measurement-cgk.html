@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="measurement_cgkPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__measurement_cgkExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="measurement_cgkTable"></div>
+    <div id="measurement_cgkDiff"></div>
+    <div id="measurement_cgkHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -260,6 +266,41 @@ function resetForm(){document.getElementById('USL').value = '10';
       document.getElementById('s').value = '1';
       calcTool();}
 calcTool();
+
+function __measurement_cgkNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __measurement_cgkExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var USL=num('USL'),LSL=num('LSL'),xbar=num('xbar'),s=num('s');
+    var Cgk=Math.min(USL-xbar,xbar-LSL)/(3*s);
+    if (!isFinite(__measurement_cgkNum('USL')) || !isFinite(__measurement_cgkNum('LSL')) || !isFinite(__measurement_cgkNum('xbar')) || !isFinite(__measurement_cgkNum('s'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#measurement_cgkTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['偏移修正能力指数 Cgk', Cgk.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({USL:__measurement_cgkNum('USL'), LSL:__measurement_cgkNum('LSL'), xbar:__measurement_cgkNum('xbar'), s:__measurement_cgkNum('s'), Cgk:Cgk});
+    TBKit.history.mount('#measurement_cgkHist',function(rec){ if(rec.USL!=null)document.getElementById('USL').value=rec.USL; if(rec.LSL!=null)document.getElementById('LSL').value=rec.LSL; if(rec.xbar!=null)document.getElementById('xbar').value=rec.xbar; if(rec.s!=null)document.getElementById('s').value=rec.s; calcTool(); });
+    TBKit.util.diffBox('#measurement_cgkDiff',['Cgk']);
+}
+function __measurement_cgkExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#measurement_cgkTable','measurement-cgk.csv'); } catch(e){}
+}
+function __measurement_cgkPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#measurement_cgkPresets',[
+        {label:'默认',labelEn:'Default',values:{USL:'10', LSL:'0', xbar:'5', s:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{USL:'20', LSL:'0', xbar:'10', s:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{USL:'5', LSL:'0', xbar:'2.5', s:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __measurement_cgkExtras(); }catch(e){} };
+function __measurement_cgkBoot(){ try{ __measurement_cgkPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __measurement_cgkBoot();
+else document.addEventListener('DOMContentLoaded', __measurement_cgkBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

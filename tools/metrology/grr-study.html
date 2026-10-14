@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="grr_studyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__grr_studyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="grr_studyTable"></div>
+    <div id="grr_studyDiff"></div>
+    <div id="grr_studyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -257,6 +263,45 @@ function resetForm(){document.getElementById('sr').value = '0.02';
       document.getElementById('tol').value = '1.0';
       calcTool();}
 calcTool();
+
+function __grr_studyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __grr_studyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var sr=num('sr'),so=num('so'),tol=num('tol');
+    var grr=6*Math.sqrt(sr*sr+so*so);
+    var pct=grr/tol*100;
+    var verdict=pct<10?'可接受':(pct<30?'临界':'不可接受');
+    if (!isFinite(__grr_studyNum('sr')) || !isFinite(__grr_studyNum('so')) || !isFinite(__grr_studyNum('tol'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#grr_studyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['%GRR', pct.toFixed(1)],
+            ['R&R 带宽 (6σ)', grr.toFixed(4)],
+            ['判定', verdict],
+        ]
+    });
+    TBKit.history.record({sr:__grr_studyNum('sr'), so:__grr_studyNum('so'), tol:__grr_studyNum('tol'), grr:grr});
+    TBKit.history.mount('#grr_studyHist',function(rec){ if(rec.sr!=null)document.getElementById('sr').value=rec.sr; if(rec.so!=null)document.getElementById('so').value=rec.so; if(rec.tol!=null)document.getElementById('tol').value=rec.tol; calcTool(); });
+    TBKit.util.diffBox('#grr_studyDiff',['grr']);
+}
+function __grr_studyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#grr_studyTable','grr-study.csv'); } catch(e){}
+}
+function __grr_studyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#grr_studyPresets',[
+        {label:'默认',labelEn:'Default',values:{sr:'0.02', so:'0.015', tol:'1.0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{sr:'0.04', so:'0.03', tol:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{sr:'0.01', so:'0.0075', tol:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __grr_studyExtras(); }catch(e){} };
+function __grr_studyBoot(){ try{ __grr_studyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __grr_studyBoot();
+else document.addEventListener('DOMContentLoaded', __grr_studyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

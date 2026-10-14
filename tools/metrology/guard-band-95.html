@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="guard_band_95Presets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__guard_band_95Export()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="guard_band_95Table"></div>
+    <div id="guard_band_95Diff"></div>
+    <div id="guard_band_95Hist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('U').value = '0.5';
       calcTool();}
 calcTool();
+
+function __guard_band_95Num(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __guard_band_95Extras(){
+    if (typeof TBKit === 'undefined') return;
+    var U=num('U');
+    var GB=1.65*U;
+    if (!isFinite(__guard_band_95Num('U'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#guard_band_95Table',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['保护带 GB', GB.toFixed(4)],
+            ['k=1.96 时保护带（95% 双侧）', (U*1.96).toFixed(4)],
+            ['k=2.58 时保护带（99%）', (U*2.58).toFixed(4)],
+            ['扩展不确定度的一半', (U/2).toFixed(4)],
+            ['保护带倒数', (1/Math.max(GB,1e-12)).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({U:__guard_band_95Num('U'), GB:GB});
+    TBKit.history.mount('#guard_band_95Hist',function(rec){ if(rec.U!=null)document.getElementById('U').value=rec.U; calcTool(); });
+    TBKit.util.diffBox('#guard_band_95Diff',['GB']);
+}
+function __guard_band_95Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#guard_band_95Table','guard-band-95.csv'); } catch(e){}
+}
+function __guard_band_95Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#guard_band_95Presets',[
+        {label:'默认',labelEn:'Default',values:{U:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{U:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{U:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __guard_band_95Extras(); }catch(e){} };
+function __guard_band_95Boot(){ try{ __guard_band_95Presets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __guard_band_95Boot();
+else document.addEventListener('DOMContentLoaded', __guard_band_95Boot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

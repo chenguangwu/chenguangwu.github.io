@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="measurement_cgPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__measurement_cgExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="measurement_cgTable"></div>
+    <div id="measurement_cgDiff"></div>
+    <div id="measurement_cgHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('USL').value = '10';
       document.getElementById('s').value = '1';
       calcTool();}
 calcTool();
+
+function __measurement_cgNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __measurement_cgExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var USL=num('USL'),LSL=num('LSL'),s=num('s');
+    var Cg=(USL-LSL)/(6*s);
+    if (!isFinite(__measurement_cgNum('USL')) || !isFinite(__measurement_cgNum('LSL')) || !isFinite(__measurement_cgNum('s'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#measurement_cgTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['测量能力指数 Cg', Cg.toFixed(3)],
+            ['公差带宽度 (USL-LSL)', (USL-LSL).toFixed(4)],
+            ['6 sigma 占公差比', (6*s/((USL-LSL)||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({USL:__measurement_cgNum('USL'), LSL:__measurement_cgNum('LSL'), s:__measurement_cgNum('s'), Cg:Cg});
+    TBKit.history.mount('#measurement_cgHist',function(rec){ if(rec.USL!=null)document.getElementById('USL').value=rec.USL; if(rec.LSL!=null)document.getElementById('LSL').value=rec.LSL; if(rec.s!=null)document.getElementById('s').value=rec.s; calcTool(); });
+    TBKit.util.diffBox('#measurement_cgDiff',['Cg']);
+}
+function __measurement_cgExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#measurement_cgTable','measurement-cg.csv'); } catch(e){}
+}
+function __measurement_cgPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#measurement_cgPresets',[
+        {label:'默认',labelEn:'Default',values:{USL:'10', LSL:'0', s:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{USL:'20', LSL:'0', s:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{USL:'5', LSL:'0', s:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __measurement_cgExtras(); }catch(e){} };
+function __measurement_cgBoot(){ try{ __measurement_cgPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __measurement_cgBoot();
+else document.addEventListener('DOMContentLoaded', __measurement_cgBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

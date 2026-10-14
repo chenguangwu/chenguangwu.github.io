@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="roundness_deviationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__roundness_deviationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="roundness_deviationTable"></div>
+    <div id="roundness_deviationDiff"></div>
+    <div id="roundness_deviationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,42 @@ function resetForm(){document.getElementById('rmax').value = '25.02';
       document.getElementById('rmin').value = '24.98';
       calcTool();}
 calcTool();
+
+function __roundness_deviationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __roundness_deviationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rmax=num('rmax'),rmin=num('rmin');
+    if (!isFinite(__roundness_deviationNum('rmax')) || !isFinite(__roundness_deviationNum('rmin'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#roundness_deviationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['圆度误差 (mm)', (rmax-rmin).toFixed(3)],
+            ['圆度误差 (μm)', ((rmax-rmin)*1000).toFixed(1)],
+            ['平均半径 (mm)', ((rmax+rmin)/2).toFixed(3)],
+            ['相对圆度 (ppm)', ((rmax-rmin)/(((rmax+rmin)/2)||1)*1e6).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rmax:__roundness_deviationNum('rmax'), rmin:__roundness_deviationNum('rmin')});
+    TBKit.history.mount('#roundness_deviationHist',function(rec){ if(rec.rmax!=null)document.getElementById('rmax').value=rec.rmax; if(rec.rmin!=null)document.getElementById('rmin').value=rec.rmin; calcTool(); });
+}
+function __roundness_deviationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#roundness_deviationTable','roundness-deviation.csv'); } catch(e){}
+}
+function __roundness_deviationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#roundness_deviationPresets',[
+        {label:'默认',labelEn:'Default',values:{rmax:'25.02', rmin:'24.98'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rmax:'50.04', rmin:'49.96'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rmax:'12.51', rmin:'12.49'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __roundness_deviationExtras(); }catch(e){} };
+function __roundness_deviationBoot(){ try{ __roundness_deviationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __roundness_deviationBoot();
+else document.addEventListener('DOMContentLoaded', __roundness_deviationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

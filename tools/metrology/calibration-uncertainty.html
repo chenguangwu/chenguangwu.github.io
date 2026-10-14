@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="calibration_uncertaintyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__calibration_uncertaintyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="calibration_uncertaintyTable"></div>
+    <div id="calibration_uncertaintyDiff"></div>
+    <div id="calibration_uncertaintyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('ustd').value = '0.03';
       document.getElementById('urep').value = '0.02';
       calcTool();}
 calcTool();
+
+function __calibration_uncertaintyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __calibration_uncertaintyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s=num('ustd'),r=num('urep');
+    var uc=Math.sqrt(s*s+r*r);
+    if (!isFinite(__calibration_uncertaintyNum('ustd')) || !isFinite(__calibration_uncertaintyNum('urep'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#calibration_uncertaintyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['校准不确定度 u_c', uc.toFixed(5)],
+            ['扩展 U (k=2)', (2*uc).toFixed(5)],
+            ['标准不确定度占比 (%)', (s/(uc||1)*100).toFixed(3)],
+            ['重复性占比 (%)', (r/(uc||1)*100).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({ustd:__calibration_uncertaintyNum('ustd'), urep:__calibration_uncertaintyNum('urep'), s:s});
+    TBKit.history.mount('#calibration_uncertaintyHist',function(rec){ if(rec.ustd!=null)document.getElementById('ustd').value=rec.ustd; if(rec.urep!=null)document.getElementById('urep').value=rec.urep; calcTool(); });
+    TBKit.util.diffBox('#calibration_uncertaintyDiff',['s']);
+}
+function __calibration_uncertaintyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calibration_uncertaintyTable','calibration-uncertainty.csv'); } catch(e){}
+}
+function __calibration_uncertaintyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calibration_uncertaintyPresets',[
+        {label:'默认',labelEn:'Default',values:{ustd:'0.03', urep:'0.02'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ustd:'0.06', urep:'0.04'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ustd:'0.015', urep:'0.01'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __calibration_uncertaintyExtras(); }catch(e){} };
+function __calibration_uncertaintyBoot(){ try{ __calibration_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calibration_uncertaintyBoot();
+else document.addEventListener('DOMContentLoaded', __calibration_uncertaintyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
