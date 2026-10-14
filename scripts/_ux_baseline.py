@@ -91,6 +91,7 @@ def main():
     slug_mode = '--slug' in sys.argv
     gate = '--gate' in sys.argv
     rows = []
+    skipped_redirect = 0   # 排除的 TOOLBOX-REDIRECT 跳转壳数量（非工具页，不计交互深度）
     for ind in sorted(os.listdir(TOOLS)):
         d = os.path.join(TOOLS, ind)
         if not os.path.isdir(d):
@@ -101,6 +102,13 @@ def main():
             if not fn.endswith(".html"):
                 continue
             p = os.path.join(d, fn)
+            # 跳过 URL 迁移跳转壳（<!-- TOOLBOX-REDIRECT -->，meta refresh + noindex）：
+            # 它只有重定向、无工具内容，计「交互深度」会虚报大量 0/9 薄弱页（全站 92 个，
+            # 集中在 fun/pets/niche/misc 等，占薄弱页 62.5%）。非工具页不计分，保持度量真实。
+            with open(p, encoding="utf-8", errors="ignore") as _f:
+                if "TOOLBOX-REDIRECT" in _f.read(4096):
+                    skipped_redirect += 1
+                    continue
             r = scan_one(p)
             r["ind"] = ind
             r["slug"] = fn[:-5]
@@ -186,7 +194,8 @@ def main():
             print(f"  {r['score']}/9  {r['slug']:<44} 缺：{','.join(miss)}")
         return
 
-    print(f"总计 {total} 页，平均交互深度 {out['avg_score']}/9，薄弱页(score<=2) {out['weak_total']} 页")
+    print(f"总计 {total} 页，平均交互深度 {out['avg_score']}/9，薄弱页(score<=2) {out['weak_total']} 页"
+          f"（另排除 {skipped_redirect} 个 TOOLBOX-REDIRECT 跳转壳：非工具页，不计交互深度）")
     print("全站功能覆盖率：", " ".join(f"{k}={v}%" for k, v in allfeat.items()))
     print()
     print(f"{'分类':<18}{'页数':>5}{'均分':>6}{'薄弱':>6}{'薄弱%':>7}{'输入数':>7}")
