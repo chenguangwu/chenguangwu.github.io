@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gravitational_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gravitational_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gravitational_forceTable"></div>
+    <div id="gravitational_forceDiff"></div>
+    <div id="gravitational_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,45 @@ function resetForm(){document.getElementById('m1').value = '5.97e24';
       document.getElementById('r').value = '3.84e8';
       calcTool();}
 calcTool();
+
+function __gravitational_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gravitational_forceExtras(){
+    function __gravitational_forceRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var m1 = num('m1'), m2 = num('m2'), r = num('r');
+    var Gc = 6.674e-11;
+    var F = Gc * m1 * m2 / (r * r);
+    if (!isFinite(__gravitational_forceNum('m1')) || !isFinite(__gravitational_forceNum('m2')) || !isFinite(__gravitational_forceNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gravitational_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['引力 F (N)', F.toExponential(3)],
+            ['F (×10²⁰ N)', (F / 1e20).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m1:__gravitational_forceRaw('m1'), m2:__gravitational_forceRaw('m2'), r:__gravitational_forceRaw('r'), Gc:Gc});
+    function __gravitational_forceRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#gravitational_forceHist',function(rec){ __gravitational_forceRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#gravitational_forceDiff',['Gc']);
+}
+function __gravitational_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gravitational_forceTable','gravitational-force.csv'); } catch(e){}
+}
+function __gravitational_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gravitational_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{m1:'5.97e24', m2:'7.35e22', r:'3.84e8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m1:'1.194e+25', m2:'1.47e+23', r:'768000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m1:'2.985e+24', m2:'3.675e+22', r:'192000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gravitational_forceExtras(); }catch(e){} };
+function __gravitational_forceBoot(){ try{ __gravitational_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gravitational_forceBoot();
+else document.addEventListener('DOMContentLoaded', __gravitational_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

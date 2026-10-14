@@ -168,11 +168,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="recommend()">🧴 推荐壮数</button>
+      <div id="moxibustion_countPresets"></div><button type="button" class="btn primary" onclick="recommend()">🧴 推荐壮数</button><button class="btn" type="button" onclick="__moxibustion_countExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="moxibustion_countTable"></div> <div id="moxibustion_countDiff"></div> <div id="moxibustion_countChart"></div> <div id="moxibustion_countHist"></div>
   </div>
 
   <div class="card">
@@ -435,6 +435,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __moxibustion_count_last=0,__moxibustion_count_skip=false;
+function __moxibustion_countSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __moxibustion_countResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __moxibustion_countTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __moxibustion_countRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__moxibustion_countTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#moxibustion_countTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#moxibustion_countDiff');
+        TBKit.history.mount('#moxibustion_countHist',function(rec){
+            __moxibustion_count_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                recommend();
+            }catch(e2){}
+            __moxibustion_count_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__moxibustion_countTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#moxibustion_countChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __moxibustion_countExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__moxibustion_count_skip) return;
+    var snap=__moxibustion_countSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__moxibustion_countResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__moxibustion_count_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __moxibustion_count_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __moxibustion_countRender(keys,rk,en);
+}
+function __moxibustion_countExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#moxibustion_countTable','moxibustion-count.csv'); } catch(e){}
+}
+function __moxibustion_countPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#moxibustion_countPresets',[{label:'默认参数',labelEn:'Default',values:{'moxaType':'aiZhu', 'size':'small', 'def':'xu', 'tol':'low'}}],function(){ recommend(); });
+}
+var __moxibustion_count_f0=(typeof recommend==='function')?recommend:null;
+if(__moxibustion_count_f0){
+    recommend=function(){ var __r=__moxibustion_count_f0.apply(null,arguments); try{ __moxibustion_countExtras(); }catch(e){} return __r; };
+}
+function __moxibustion_countBoot(){ try{ __moxibustion_countPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __moxibustion_countBoot();
+else document.addEventListener('DOMContentLoaded', __moxibustion_countBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用艾灸壮数(皮肤反应)个体化推荐器</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>灸法</li><li>艾炷大小</li><li>证候虚实</li><li>患者耐受</li></ul><h2>适用场景</h2><p>虚寒胃痛，灸中脘、足三里，壮数适中。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>一「壮」是多久？</dt><dd>传统以一艾炷（如麦粒大）燃尽为一壮；现代多用艾条悬灸计时（每穴 10–15 分钟），二者可折算，以温热舒适为度。</dd><dt>烫伤了怎么办？</dt><dd>立即停灸冷却、勿挑破水疱，重者就医；本工具设安全上限仅供参考。</dd></dl></section>

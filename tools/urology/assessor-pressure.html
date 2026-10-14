@@ -115,8 +115,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>1. 逼尿肌压力@Qmax Pdet (cmH2O)</label><input type="number" id="pdet" value="50" min="0" max="200" oninput="calc()" style="font-size:16px;"></div><div><label>2. 最大尿流率 Qmax (ml/s)</label><input type="number" id="qmax" value="10" min="0" max="50" oninput="calc()" style="font-size:16px;"></div></div>
 <div class="input-row"><div><label>3. 残余尿量 PVR (ml)</label><select id="pvr" onchange="calc()" style="font-size:16px;"><option value="0"><50ml</option><option value="1" selected>50-100ml</option><option value="2">100-200ml</option><option value="3">>200ml</option></select></div><div><label>4. 逼尿肌过度活动</label><select id="doa" onchange="calc()" style="font-size:16px;"><option value="0">无</option><option value="1">有（低压<20cmH2O）</option><option value="2">有（高压>20cmH2O）</option></select></div></div>
 <div class="input-row"><div><label>5. 膀胱顺应性 (ml/cmH2O)</label><select id="comp" onchange="calc()" style="font-size:16px;"><option value="2">正常 (>20)</option><option value="1" selected>降低 (10-20)</option><option value="0">严重降低 (<10)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估结果</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="assessor_pressurePresets"></div><button type="button" class="btn primary" onclick="calc()">评估结果</button><button class="btn" type="button" onclick="__assessor_pressureExport()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="assessor_pressureTable"></div> <div id="assessor_pressureDiff"></div> <div id="assessor_pressureChart"></div> <div id="assessor_pressureHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -291,6 +291,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __assessor_pressure_last=0,__assessor_pressure_skip=false;
+function __assessor_pressureSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __assessor_pressureResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __assessor_pressureTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __assessor_pressureRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__assessor_pressureTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#assessor_pressureTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#assessor_pressureDiff');
+        TBKit.history.mount('#assessor_pressureHist',function(rec){
+            __assessor_pressure_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __assessor_pressure_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__assessor_pressureTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#assessor_pressureChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __assessor_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__assessor_pressure_skip) return;
+    var snap=__assessor_pressureSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__assessor_pressureResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__assessor_pressure_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __assessor_pressure_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __assessor_pressureRender(keys,rk,en);
+}
+function __assessor_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#assessor_pressureTable','assessor-pressure.csv'); } catch(e){}
+}
+function __assessor_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#assessor_pressurePresets',[{label:'默认参数',labelEn:'Default',values:{'pdet':'50', 'qmax':'10', 'pvr':'0', 'doa':'0', 'comp':'2'}}],function(){ calc(); });
+}
+var __assessor_pressure_f0=(typeof calc==='function')?calc:null;
+if(__assessor_pressure_f0){
+    calc=function(){ var __r=__assessor_pressure_f0.apply(null,arguments); try{ __assessor_pressureExtras(); }catch(e){} return __r; };
+}
+function __assessor_pressureBoot(){ try{ __assessor_pressurePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __assessor_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __assessor_pressureBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用尿动力学（逼尿肌压力）评估</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>1. 逼尿肌压力@Qmax Pdet (cmH2O)</li><li>2. 最大尿流率 Qmax (ml/s)</li><li>3. 残余尿量 PVR (ml)</li><li>4. 逼尿肌过度活动</li><li>5. 膀胱顺应性 (ml/cmH2O)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>尿动力学（逼尿肌压力）评估是做什么的？</dt><dd>尿动力学压力-流率分析：输入逼尿肌压力与尿流率，自动计算BOOI梗阻指数与BCI收缩力指数</dd><dt>如何使用尿动力学（逼尿肌压力）评估？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>尿动力学（逼尿肌压力）评估适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

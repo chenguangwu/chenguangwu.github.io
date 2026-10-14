@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="horizon_distancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__horizon_distanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="horizon_distanceTable"></div>
+    <div id="horizon_distanceDiff"></div>
+    <div id="horizon_distanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -259,6 +265,47 @@ const h = num('h');
 function resetForm(){document.getElementById('h').value = '1.7';
       calcTool();}
 calcTool();
+
+function __horizon_distanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __horizon_distanceExtras(){
+    function __horizon_distanceRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var h = num('h');
+    var R = 6371000;
+    var d = Math.sqrt(2 * R * h);
+    if (!isFinite(__horizon_distanceNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#horizon_distanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['地平线距离 d (km)', (d / 1000).toFixed(3)],
+            ['d (m)', (d).toFixed(1)],
+            ['地平线俯角 (度)', (Math.acos(R/(R+h))*180/Math.PI).toFixed(4)],
+            ['高度复算 (m)', (d*d/(2*R)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({h:__horizon_distanceRaw('h'), R:R});
+    function __horizon_distanceRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#horizon_distanceHist',function(rec){ __horizon_distanceRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#horizon_distanceDiff',['R']);
+}
+function __horizon_distanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#horizon_distanceTable','horizon-distance.csv'); } catch(e){}
+}
+function __horizon_distancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#horizon_distancePresets',[
+        {label:'默认',labelEn:'Default',values:{h:'1.7'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{h:'3.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{h:'0.85'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __horizon_distanceExtras(); }catch(e){} };
+function __horizon_distanceBoot(){ try{ __horizon_distancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __horizon_distanceBoot();
+else document.addEventListener('DOMContentLoaded', __horizon_distanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

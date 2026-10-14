@@ -125,11 +125,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>采购单数</label><input type="number" id="v1" value="432" step="any" oninput="calc()" enterkeyhint="done" aria-label="采购"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="erp_dingdan_caigou_duijiePresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__erp_dingdan_caigou_duijieExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="erp_dingdan_caigou_duijieTable"></div> <div id="erp_dingdan_caigou_duijieDiff"></div> <div id="erp_dingdan_caigou_duijieChart"></div> <div id="erp_dingdan_caigou_duijieHist"></div>
     <div class="info-box">💡 单据匹配率 = 采购单 ÷ 订单 × 100%；差异单数 = 订单 − 采购单；每订单采购笔数 = 采购单 ÷ 订单。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -646,6 +646,114 @@ function resetAll(){
   if(a)a.value='480';if(b)b.value='432';calc();
 }
 try{calc();}catch(e){}
+
+var __erp_dingdan_caigou_duijie_last=0,__erp_dingdan_caigou_duijie_skip=false;
+function __erp_dingdan_caigou_duijieSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __erp_dingdan_caigou_duijieResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __erp_dingdan_caigou_duijieTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __erp_dingdan_caigou_duijieRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__erp_dingdan_caigou_duijieTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#erp_dingdan_caigou_duijieTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#erp_dingdan_caigou_duijieDiff');
+        TBKit.history.mount('#erp_dingdan_caigou_duijieHist',function(rec){
+            __erp_dingdan_caigou_duijie_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __erp_dingdan_caigou_duijie_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__erp_dingdan_caigou_duijieTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#erp_dingdan_caigou_duijieChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __erp_dingdan_caigou_duijieExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__erp_dingdan_caigou_duijie_skip) return;
+    var snap=__erp_dingdan_caigou_duijieSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__erp_dingdan_caigou_duijieResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__erp_dingdan_caigou_duijie_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __erp_dingdan_caigou_duijie_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __erp_dingdan_caigou_duijieRender(keys,rk,en);
+}
+function __erp_dingdan_caigou_duijieExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#erp_dingdan_caigou_duijieTable','erp-dingdan-caigou-duijie.csv'); } catch(e){}
+}
+function __erp_dingdan_caigou_duijiePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#erp_dingdan_caigou_duijiePresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'480', 'v1':'432'}}],function(){ calc(); });
+}
+var __erp_dingdan_caigou_duijie_f0=(typeof calc==='function')?calc:null;
+if(__erp_dingdan_caigou_duijie_f0){
+    calc=function(){ var __r=__erp_dingdan_caigou_duijie_f0.apply(null,arguments); try{ __erp_dingdan_caigou_duijieExtras(); }catch(e){} return __r; };
+}
+function __erp_dingdan_caigou_duijieBoot(){ try{ __erp_dingdan_caigou_duijiePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __erp_dingdan_caigou_duijieBoot();
+else document.addEventListener('DOMContentLoaded', __erp_dingdan_caigou_duijieBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

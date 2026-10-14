@@ -152,13 +152,13 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">📐 换算定位</button>
+      <div id="acupoint_locationPresets"></div><button type="button" class="btn primary" onclick="calc()">📐 换算定位</button><button class="btn" type="button" onclick="__acupoint_locationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);">请选择部位并输入实测长度</p>
-    </div>
+    </div> <div id="acupoint_locationTable"></div> <div id="acupoint_locationDiff"></div> <div id="acupoint_locationChart"></div> <div id="acupoint_locationHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:16px;">
       <strong>骨度分寸法要点：</strong>以患者本人体表骨节标志为依据，将一定部位折作若干等分，每一等分为一寸。无论高矮胖瘦，均按自身比例折量，保证取穴个体化。
@@ -454,6 +454,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __acupoint_location_last=0,__acupoint_location_skip=false;
+function __acupoint_locationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __acupoint_locationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __acupoint_locationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __acupoint_locationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__acupoint_locationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#acupoint_locationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#acupoint_locationDiff');
+        TBKit.history.mount('#acupoint_locationHist',function(rec){
+            __acupoint_location_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __acupoint_location_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__acupoint_locationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#acupoint_locationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __acupoint_locationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__acupoint_location_skip) return;
+    var snap=__acupoint_locationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__acupoint_locationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__acupoint_location_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __acupoint_location_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __acupoint_locationRender(keys,rk,en);
+}
+function __acupoint_locationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#acupoint_locationTable','acupoint-location.csv'); } catch(e){}
+}
+function __acupoint_locationPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __acupoint_location_f0=(typeof calc==='function')?calc:null;
+if(__acupoint_location_f0){
+    calc=function(){ var __r=__acupoint_location_f0.apply(null,arguments); try{ __acupoint_locationExtras(); }catch(e){} return __r; };
+}
+function __acupoint_locationBoot(){ try{ __acupoint_locationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __acupoint_locationBoot();
+else document.addEventListener('DOMContentLoaded', __acupoint_locationBoot);
 </script>
 
 <script type="application/ld+json">

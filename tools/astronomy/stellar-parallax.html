@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stellar_parallaxPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stellar_parallaxExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stellar_parallaxTable"></div>
+    <div id="stellar_parallaxDiff"></div>
+    <div id="stellar_parallaxHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -248,6 +254,47 @@ const p = num('p');
 function resetForm(){document.getElementById('p').value = '0.1';
       calcTool();}
 calcTool();
+
+function __stellar_parallaxNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stellar_parallaxExtras(){
+    function __stellar_parallaxRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var p = num('p');
+    var d = 1 / p;
+    if (!isFinite(__stellar_parallaxNum('p'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stellar_parallaxTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['距离 d (pc)', d.toFixed(3)],
+            ['d (光年)', (d * 3.262).toFixed(3)],
+            ['视差 (mas 毫角秒)', (p*1000).toFixed(2)],
+            ['距离 (AU 天文单位)', (d*206265).toFixed(0)],
+            ['距离 (kpc 千秒差距)', (d/1000).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({p:__stellar_parallaxRaw('p'), d:d});
+    function __stellar_parallaxRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#stellar_parallaxHist',function(rec){ __stellar_parallaxRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#stellar_parallaxDiff',['d']);
+}
+function __stellar_parallaxExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stellar_parallaxTable','stellar-parallax.csv'); } catch(e){}
+}
+function __stellar_parallaxPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stellar_parallaxPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stellar_parallaxExtras(); }catch(e){} };
+function __stellar_parallaxBoot(){ try{ __stellar_parallaxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stellar_parallaxBoot();
+else document.addEventListener('DOMContentLoaded', __stellar_parallaxBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

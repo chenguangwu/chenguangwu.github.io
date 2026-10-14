@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="apparent_magnitude_distancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__apparent_magnitude_distanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="apparent_magnitude_distanceTable"></div>
+    <div id="apparent_magnitude_distanceDiff"></div>
+    <div id="apparent_magnitude_distanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,46 @@ function resetForm(){document.getElementById('m').value = '1';
       document.getElementById('M').value = '1';
       calcTool();}
 calcTool();
+
+function __apparent_magnitude_distanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __apparent_magnitude_distanceExtras(){
+    function __apparent_magnitude_distanceRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var m = num('m'), M = num('M');
+    var d = Math.pow(10, 1 + (m - M) / 5);
+    if (!isFinite(__apparent_magnitude_distanceNum('m')) || !isFinite(__apparent_magnitude_distanceNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#apparent_magnitude_distanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['距离 d (pc)', d.toFixed(3)],
+            ['d (光年)', (d * 3.262).toFixed(3)],
+            ['距离模数 m-M', (m-M).toFixed(3)],
+            ['视差 (角秒)', (1/d).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({m:__apparent_magnitude_distanceRaw('m'), M:__apparent_magnitude_distanceRaw('M'), d:d});
+    function __apparent_magnitude_distanceRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#apparent_magnitude_distanceHist',function(rec){ __apparent_magnitude_distanceRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#apparent_magnitude_distanceDiff',['d']);
+}
+function __apparent_magnitude_distanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#apparent_magnitude_distanceTable','apparent-magnitude-distance.csv'); } catch(e){}
+}
+function __apparent_magnitude_distancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#apparent_magnitude_distancePresets',[
+        {label:'默认',labelEn:'Default',values:{m:'1', M:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'2', M:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'0.5', M:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __apparent_magnitude_distanceExtras(); }catch(e){} };
+function __apparent_magnitude_distanceBoot(){ try{ __apparent_magnitude_distancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __apparent_magnitude_distanceBoot();
+else document.addEventListener('DOMContentLoaded', __apparent_magnitude_distanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

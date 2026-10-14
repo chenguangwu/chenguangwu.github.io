@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="solar_declinationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__solar_declinationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="solar_declinationTable"></div>
+    <div id="solar_declinationDiff"></div>
+    <div id="solar_declinationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -194,6 +200,46 @@ function calcTool(){
 function resetForm(){document.getElementById('N').value = '172';
       calcTool();}
 calcTool();
+
+function __solar_declinationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __solar_declinationExtras(){
+    function __solar_declinationRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var N = num('N');
+    var d = 23.44 * Math.sin(360 * (284 + N) / 365 * Math.PI / 180);
+    if (!isFinite(__solar_declinationNum('N'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#solar_declinationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['太阳赤纬 δ (°)', d.toFixed(3)],
+            ['半球', (d > 0 ? '北半球夏半年' : '冬半年')],
+            ['赤纬 (rad)', (d*Math.PI/180).toFixed(4)],
+            ['当日正午太阳高度余量 (度)', (90-Math.abs(d)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({N:__solar_declinationRaw('N'), d:d});
+    function __solar_declinationRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#solar_declinationHist',function(rec){ __solar_declinationRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#solar_declinationDiff',['d']);
+}
+function __solar_declinationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#solar_declinationTable','solar-declination.csv'); } catch(e){}
+}
+function __solar_declinationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#solar_declinationPresets',[
+        {label:'默认',labelEn:'Default',values:{N:'172'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{N:'344'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{N:'86'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __solar_declinationExtras(); }catch(e){} };
+function __solar_declinationBoot(){ try{ __solar_declinationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __solar_declinationBoot();
+else document.addEventListener('DOMContentLoaded', __solar_declinationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

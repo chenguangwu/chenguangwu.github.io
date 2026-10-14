@@ -200,13 +200,13 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="sunrise_sunsetPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__sunrise_sunsetExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="setToday()">今天</button>
       <button type="button" class="btn" onclick="useMyLocation()">🌐 定位当前位置</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="sunrise_sunsetTable"></div> <div id="sunrise_sunsetDiff"></div> <div id="sunrise_sunsetChart"></div> <div id="sunrise_sunsetHist"></div>
   </div>
 
   <!-- 日间时间轴 -->
@@ -820,6 +820,114 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+
+var __sunrise_sunset_last=0,__sunrise_sunset_skip=false;
+function __sunrise_sunsetSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __sunrise_sunsetResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __sunrise_sunsetTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __sunrise_sunsetRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__sunrise_sunsetTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#sunrise_sunsetTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#sunrise_sunsetDiff');
+        TBKit.history.mount('#sunrise_sunsetHist',function(rec){
+            __sunrise_sunset_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __sunrise_sunset_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__sunrise_sunsetTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#sunrise_sunsetChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __sunrise_sunsetExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__sunrise_sunset_skip) return;
+    var snap=__sunrise_sunsetSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__sunrise_sunsetResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__sunrise_sunset_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __sunrise_sunset_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __sunrise_sunsetRender(keys,rk,en);
+}
+function __sunrise_sunsetExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sunrise_sunsetTable','sunrise-sunset.csv'); } catch(e){}
+}
+function __sunrise_sunsetPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sunrise_sunsetPresets',[{label:'默认参数',labelEn:'Default',values:{'inputLat':'39.9', 'inputLon':'116.4', 'inputTz':'8'}}],function(){ calc(); });
+}
+var __sunrise_sunset_f0=(typeof calc==='function')?calc:null;
+if(__sunrise_sunset_f0){
+    calc=function(){ var __r=__sunrise_sunset_f0.apply(null,arguments); try{ __sunrise_sunsetExtras(); }catch(e){} return __r; };
+}
+function __sunrise_sunsetBoot(){ try{ __sunrise_sunsetPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sunrise_sunsetBoot();
+else document.addEventListener('DOMContentLoaded', __sunrise_sunsetBoot);
 </script>
 
 

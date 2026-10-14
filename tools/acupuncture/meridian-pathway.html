@@ -159,7 +159,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h2>📋 循经感传特性参考</h2>
-    <div class="result-box" id="refBox"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__meridian_pathwayExport()">导出明细 CSV</button></div><div class="result-box" id="refBox"></div> <div id="meridian_pathwayTable"></div> <div id="meridian_pathwayDiff"></div> <div id="meridian_pathwayChart"></div> <div id="meridian_pathwayHist"></div>
   </div>
 
   <div class="info-box">
@@ -525,6 +525,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __meridian_pathway_last=0,__meridian_pathway_skip=false;
+function __meridian_pathwaySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __meridian_pathwayResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __meridian_pathwayTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __meridian_pathwayRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__meridian_pathwayTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#meridian_pathwayTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#meridian_pathwayDiff');
+        TBKit.history.mount('#meridian_pathwayHist',function(rec){
+            __meridian_pathway_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                render();
+            }catch(e2){}
+            __meridian_pathway_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__meridian_pathwayTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#meridian_pathwayChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __meridian_pathwayExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__meridian_pathway_skip) return;
+    var snap=__meridian_pathwaySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__meridian_pathwayResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__meridian_pathway_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __meridian_pathway_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __meridian_pathwayRender(keys,rk,en);
+}
+function __meridian_pathwayExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#meridian_pathwayTable','meridian-pathway.csv'); } catch(e){}
+}
+function __meridian_pathwayPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#meridian_pathwayPresets',[{label:'默认参数',labelEn:'Default',values:{'sensType':'typical', 'sensitivity':'low'}}],function(){ render(); });
+}
+var __meridian_pathway_f0=(typeof render==='function')?render:null;
+if(__meridian_pathway_f0){
+    render=function(){ var __r=__meridian_pathway_f0.apply(null,arguments); try{ __meridian_pathwayExtras(); }catch(e){} return __r; };
+}
+function __meridian_pathwayBoot(){ try{ __meridian_pathwayPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __meridian_pathwayBoot();
+else document.addEventListener('DOMContentLoaded', __meridian_pathwayBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用经络传感(循经感传)路径展示器</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>感传类型</li><li>个体感传敏感度</li></ul><h2>适用场景</h2><p>学习手太阴肺经从胸走手循行。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>循经感传是什么？</dt><dd>针刺或按压时酸麻胀感沿经脉路线传导的现象，是经气运行的可感知表现，存在个体差异。</dd><dt>经络有解剖实体吗？</dt><dd>经络是中医对人体联络系统的功能概括，现代研究有多种假说，尚未对应单一解剖结构；本工具为学习参考。</dd></dl></section>

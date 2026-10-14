@@ -200,12 +200,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">生成分级报告</button>
+      <div id="leprosy_gradingPresets"></div><button type="button" class="btn primary" onclick="calc()">生成分级报告</button><button class="btn" type="button" onclick="__leprosy_gradingExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="resetForm()">重置</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="leprosy_gradingTable"></div> <div id="leprosy_gradingDiff"></div> <div id="leprosy_gradingChart"></div> <div id="leprosy_gradingHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">WHO麻风残疾分级标准</h3>
     <table>
@@ -463,6 +463,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __leprosy_grading_last=0,__leprosy_grading_skip=false;
+function __leprosy_gradingSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __leprosy_gradingResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __leprosy_gradingTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __leprosy_gradingRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__leprosy_gradingTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#leprosy_gradingTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#leprosy_gradingDiff');
+        TBKit.history.mount('#leprosy_gradingHist',function(rec){
+            __leprosy_grading_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __leprosy_grading_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__leprosy_gradingTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#leprosy_gradingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __leprosy_gradingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__leprosy_grading_skip) return;
+    var snap=__leprosy_gradingSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__leprosy_gradingResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__leprosy_grading_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __leprosy_grading_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __leprosy_gradingRender(keys,rk,en);
+}
+function __leprosy_gradingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#leprosy_gradingTable','leprosy-grading.csv'); } catch(e){}
+}
+function __leprosy_gradingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#leprosy_gradingPresets',[{label:'默认参数',labelEn:'Default',values:{'leprosyType':'TT'}}],function(){ calc(); });
+}
+var __leprosy_grading_f0=(typeof calc==='function')?calc:null;
+if(__leprosy_grading_f0){
+    calc=function(){ var __r=__leprosy_grading_f0.apply(null,arguments); try{ __leprosy_gradingExtras(); }catch(e){} return __r; };
+}
+function __leprosy_gradingBoot(){ try{ __leprosy_gradingPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __leprosy_gradingBoot();
+else document.addEventListener('DOMContentLoaded', __leprosy_gradingBoot);
 </script>
 
 </body>

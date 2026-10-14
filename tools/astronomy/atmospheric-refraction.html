@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="atmospheric_refractionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__atmospheric_refractionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="atmospheric_refractionTable"></div>
+    <div id="atmospheric_refractionDiff"></div>
+    <div id="atmospheric_refractionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,47 @@ function calcTool(){
 function resetForm(){document.getElementById('h').value = '30';
       calcTool();}
 calcTool();
+
+function __atmospheric_refractionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __atmospheric_refractionExtras(){
+    function __atmospheric_refractionRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var h = num('h');
+    var R = 1.02 / Math.tan((h + 10.3 / (h + 5.11)) * Math.PI / 180);
+    if (!isFinite(__atmospheric_refractionNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#atmospheric_refractionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['大气折射 R (′)', R.toFixed(3)],
+            ['R (°)', (R / 60).toFixed(4)],
+            ['折射（角秒）', (R*60).toFixed(1)],
+            ['修正后视高度 (度)', (h+R/60).toFixed(4)],
+            ['折射（度）', (R/3600).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({h:__atmospheric_refractionRaw('h'), R:R});
+    function __atmospheric_refractionRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#atmospheric_refractionHist',function(rec){ __atmospheric_refractionRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#atmospheric_refractionDiff',['R']);
+}
+function __atmospheric_refractionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#atmospheric_refractionTable','atmospheric-refraction.csv'); } catch(e){}
+}
+function __atmospheric_refractionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#atmospheric_refractionPresets',[
+        {label:'默认',labelEn:'Default',values:{h:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{h:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{h:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __atmospheric_refractionExtras(); }catch(e){} };
+function __atmospheric_refractionBoot(){ try{ __atmospheric_refractionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __atmospheric_refractionBoot();
+else document.addEventListener('DOMContentLoaded', __atmospheric_refractionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

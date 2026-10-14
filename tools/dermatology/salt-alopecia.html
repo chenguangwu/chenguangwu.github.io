@@ -156,11 +156,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算 SALT</button>
+      <div id="salt_alopeciaPresets"></div><button type="button" class="btn primary" onclick="calc()">计算 SALT</button><button class="btn" type="button" onclick="__salt_alopeciaExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="salt_alopeciaTable"></div> <div id="salt_alopeciaDiff"></div> <div id="salt_alopeciaChart"></div> <div id="salt_alopeciaHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">斑秃严重度分级（S 分级）</h3>
     <table>
@@ -321,6 +321,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __salt_alopecia_last=0,__salt_alopecia_skip=false;
+function __salt_alopeciaSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __salt_alopeciaResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __salt_alopeciaTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __salt_alopeciaRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__salt_alopeciaTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#salt_alopeciaTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#salt_alopeciaDiff');
+        TBKit.history.mount('#salt_alopeciaHist',function(rec){
+            __salt_alopecia_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __salt_alopecia_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__salt_alopeciaTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#salt_alopeciaChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __salt_alopeciaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__salt_alopecia_skip) return;
+    var snap=__salt_alopeciaSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__salt_alopeciaResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__salt_alopecia_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __salt_alopecia_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __salt_alopeciaRender(keys,rk,en);
+}
+function __salt_alopeciaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#salt_alopeciaTable','salt-alopecia.csv'); } catch(e){}
+}
+function __salt_alopeciaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#salt_alopeciaPresets',[{label:'默认参数',labelEn:'Default',values:{'top':'50', 'back':'0', 'right':'0', 'left':'0'}}],function(){ calc(); });
+}
+var __salt_alopecia_f0=(typeof calc==='function')?calc:null;
+if(__salt_alopecia_f0){
+    calc=function(){ var __r=__salt_alopecia_f0.apply(null,arguments); try{ __salt_alopeciaExtras(); }catch(e){} return __r; };
+}
+function __salt_alopeciaBoot(){ try{ __salt_alopeciaPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __salt_alopeciaBoot();
+else document.addEventListener('DOMContentLoaded', __salt_alopeciaBoot);
 </script>
 
 </body>

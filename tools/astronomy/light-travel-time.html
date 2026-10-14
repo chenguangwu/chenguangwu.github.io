@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="light_travel_timePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__light_travel_timeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="light_travel_timeTable"></div>
+    <div id="light_travel_timeDiff"></div>
+    <div id="light_travel_timeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,48 @@ function calcTool(){
 function resetForm(){document.getElementById('d').value = '1.496e11';
       calcTool();}
 calcTool();
+
+function __light_travel_timeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __light_travel_timeExtras(){
+    function __light_travel_timeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var d = num('d');
+    var c = 299792458;
+    var t = d / c;
+    if (!isFinite(__light_travel_timeNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#light_travel_timeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['传播时间 t (min)', (t / 60).toFixed(3)],
+            ['t (s)', (t).toFixed(1)],
+            ['距离 (天文单位 AU)', (d/1.495978707e11).toFixed(4)],
+            ['传播时间 (h)', (t/3600).toFixed(4)],
+            ['距离 (光年)', (d/9.4607e15).toExponential(3)],
+        ]
+    });
+    TBKit.history.record({d:__light_travel_timeRaw('d'), c:c});
+    function __light_travel_timeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#light_travel_timeHist',function(rec){ __light_travel_timeRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#light_travel_timeDiff',['c']);
+}
+function __light_travel_timeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#light_travel_timeTable','light-travel-time.csv'); } catch(e){}
+}
+function __light_travel_timePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#light_travel_timePresets',[
+        {label:'默认',labelEn:'Default',values:{d:'1.496e11'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{d:'299200000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{d:'74800000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __light_travel_timeExtras(); }catch(e){} };
+function __light_travel_timeBoot(){ try{ __light_travel_timePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __light_travel_timeBoot();
+else document.addEventListener('DOMContentLoaded', __light_travel_timeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

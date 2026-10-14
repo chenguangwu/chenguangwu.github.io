@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hubble_redshift_distancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hubble_redshift_distanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hubble_redshift_distanceTable"></div>
+    <div id="hubble_redshift_distanceDiff"></div>
+    <div id="hubble_redshift_distanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,48 @@ function calcTool(){
 function resetForm(){document.getElementById('z').value = '0.01';
       calcTool();}
 calcTool();
+
+function __hubble_redshift_distanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hubble_redshift_distanceExtras(){
+    function __hubble_redshift_distanceRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var z = num('z');
+    var c = 299792.458; // km/s
+    var H0 = 70; // km/s/Mpc
+    var d = c * z / H0;
+    if (!isFinite(__hubble_redshift_distanceNum('z'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hubble_redshift_distanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['距离 d (Mpc)', d.toFixed(2)],
+            ['d (百万光年)', (d * 3.262).toFixed(2)],
+            ['退行速度 v = cz (km/s)', (c*z).toFixed(2)],
+            ['d (十亿光年)', (d*3.262/1e6).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({z:__hubble_redshift_distanceRaw('z'), c:c});
+    function __hubble_redshift_distanceRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#hubble_redshift_distanceHist',function(rec){ __hubble_redshift_distanceRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#hubble_redshift_distanceDiff',['c']);
+}
+function __hubble_redshift_distanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hubble_redshift_distanceTable','hubble-redshift-distance.csv'); } catch(e){}
+}
+function __hubble_redshift_distancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hubble_redshift_distancePresets',[
+        {label:'默认',labelEn:'Default',values:{z:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{z:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{z:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hubble_redshift_distanceExtras(); }catch(e){} };
+function __hubble_redshift_distanceBoot(){ try{ __hubble_redshift_distancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hubble_redshift_distanceBoot();
+else document.addEventListener('DOMContentLoaded', __hubble_redshift_distanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

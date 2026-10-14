@@ -164,11 +164,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="recommend()">⏲️ 推荐留针</button>
+      <div id="needle_retentionPresets"></div><button type="button" class="btn primary" onclick="recommend()">⏲️ 推荐留针</button><button class="btn" type="button" onclick="__needle_retentionExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制方案</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="needle_retentionTable"></div> <div id="needle_retentionDiff"></div> <div id="needle_retentionChart"></div> <div id="needle_retentionHist"></div>
   </div>
 
   <div class="card">
@@ -434,6 +434,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __needle_retention_last=0,__needle_retention_skip=false;
+function __needle_retentionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __needle_retentionResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __needle_retentionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __needle_retentionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__needle_retentionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#needle_retentionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#needle_retentionDiff');
+        TBKit.history.mount('#needle_retentionHist',function(rec){
+            __needle_retention_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                recommend();
+            }catch(e2){}
+            __needle_retention_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__needle_retentionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#needle_retentionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __needle_retentionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__needle_retention_skip) return;
+    var snap=__needle_retentionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__needle_retentionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__needle_retention_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __needle_retention_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __needle_retentionRender(keys,rk,en);
+}
+function __needle_retentionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#needle_retentionTable','needle-retention.csv'); } catch(e){}
+}
+function __needle_retentionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#needle_retentionPresets',[{label:'默认参数',labelEn:'Default',values:{'age':'child', 'deficiency':'shi', 'cold':'0', 'purpose':'general'}}],function(){ recommend(); });
+}
+var __needle_retention_f0=(typeof recommend==='function')?recommend:null;
+if(__needle_retention_f0){
+    recommend=function(){ var __r=__needle_retention_f0.apply(null,arguments); try{ __needle_retentionExtras(); }catch(e){} return __r; };
+}
+function __needle_retentionBoot(){ try{ __needle_retentionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __needle_retentionBoot();
+else document.addEventListener('DOMContentLoaded', __needle_retentionBoot);
 </script>
 
 <script type="application/ld+json">

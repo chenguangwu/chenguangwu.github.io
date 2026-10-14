@@ -175,11 +175,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🪡 计算出血量</button>
+      <div id="bloodletting_therapyPresets"></div><button type="button" class="btn primary" onclick="calc()">🪡 计算出血量</button><button class="btn" type="button" onclick="__bloodletting_therapyExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制方案</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="bloodletting_therapyTable"></div> <div id="bloodletting_therapyDiff"></div> <div id="bloodletting_therapyChart"></div> <div id="bloodletting_therapyHist"></div>
   </div>
 
   <div class="card">
@@ -423,6 +423,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __bloodletting_therapy_last=0,__bloodletting_therapy_skip=false;
+function __bloodletting_therapySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bloodletting_therapyResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bloodletting_therapyTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bloodletting_therapyRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bloodletting_therapyTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bloodletting_therapyTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bloodletting_therapyDiff');
+        TBKit.history.mount('#bloodletting_therapyHist',function(rec){
+            __bloodletting_therapy_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __bloodletting_therapy_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bloodletting_therapyTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bloodletting_therapyChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bloodletting_therapyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bloodletting_therapy_skip) return;
+    var snap=__bloodletting_therapySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bloodletting_therapyResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bloodletting_therapy_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bloodletting_therapy_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bloodletting_therapyRender(keys,rk,en);
+}
+function __bloodletting_therapyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bloodletting_therapyTable','bloodletting-therapy.csv'); } catch(e){}
+}
+function __bloodletting_therapyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bloodletting_therapyPresets',[{label:'默认参数',labelEn:'Default',values:{'part':'finger', 'method':'point', 'constitution':'strong', 'disease':'heat', 'points':'3'}}],function(){ calc(); });
+}
+var __bloodletting_therapy_f0=(typeof calc==='function')?calc:null;
+if(__bloodletting_therapy_f0){
+    calc=function(){ var __r=__bloodletting_therapy_f0.apply(null,arguments); try{ __bloodletting_therapyExtras(); }catch(e){} return __r; };
+}
+function __bloodletting_therapyBoot(){ try{ __bloodletting_therapyPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bloodletting_therapyBoot();
+else document.addEventListener('DOMContentLoaded', __bloodletting_therapyBoot);
 </script>
 
 <script type="application/ld+json">

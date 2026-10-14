@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="schwarzschild_radiusPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__schwarzschild_radiusExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="schwarzschild_radiusTable"></div>
+    <div id="schwarzschild_radiusDiff"></div>
+    <div id="schwarzschild_radiusHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -194,6 +200,47 @@ function calcTool(){
 function resetForm(){document.getElementById('M').value = '1.989e30';
       calcTool();}
 calcTool();
+
+function __schwarzschild_radiusNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __schwarzschild_radiusExtras(){
+    function __schwarzschild_radiusRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var M = num('M');
+    var Gc = 6.674e-11, c = 299792458;
+    var rs = 2 * Gc * M / (c * c);
+    if (!isFinite(__schwarzschild_radiusNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#schwarzschild_radiusTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['史瓦西半径 r_s (km)', (rs / 1000).toFixed(3)],
+            ['r_s (m)', (rs).toFixed(1)],
+            ['光子球半径 (km)', (1.5*rs/1000).toFixed(3)],
+            ['视界面积 (m2)', (4*Math.PI*rs*rs).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({M:__schwarzschild_radiusRaw('M'), Gc:Gc});
+    function __schwarzschild_radiusRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#schwarzschild_radiusHist',function(rec){ __schwarzschild_radiusRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#schwarzschild_radiusDiff',['Gc']);
+}
+function __schwarzschild_radiusExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#schwarzschild_radiusTable','schwarzschild-radius.csv'); } catch(e){}
+}
+function __schwarzschild_radiusPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#schwarzschild_radiusPresets',[
+        {label:'默认',labelEn:'Default',values:{M:'1.989e30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{M:'3.978e+3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{M:'9.945e+29'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __schwarzschild_radiusExtras(); }catch(e){} };
+function __schwarzschild_radiusBoot(){ try{ __schwarzschild_radiusPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __schwarzschild_radiusBoot();
+else document.addEventListener('DOMContentLoaded', __schwarzschild_radiusBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

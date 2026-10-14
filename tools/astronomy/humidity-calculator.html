@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">重新计算</button>
+      <div id="humidity_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">重新计算</button><button class="btn" type="button" onclick="__humidity_calculatorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="resetInputs()">重置</button>
     </div>
@@ -218,7 +218,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <!-- 结果详情 -->
-    <div class="result-box" id="resDetail"></div>
+    <div class="result-box" id="resDetail"></div> <div id="humidity_calculatorTable"></div> <div id="humidity_calculatorDiff"></div> <div id="humidity_calculatorChart"></div> <div id="humidity_calculatorHist"></div>
 
     <!-- 公式说明 -->
     <div class="formula-box">
@@ -552,6 +552,114 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+
+var __humidity_calculator_last=0,__humidity_calculator_skip=false;
+function __humidity_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __humidity_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __humidity_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __humidity_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__humidity_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#humidity_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#humidity_calculatorDiff');
+        TBKit.history.mount('#humidity_calculatorHist',function(rec){
+            __humidity_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __humidity_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__humidity_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#humidity_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __humidity_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__humidity_calculator_skip) return;
+    var snap=__humidity_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__humidity_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__humidity_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __humidity_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __humidity_calculatorRender(keys,rk,en);
+}
+function __humidity_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#humidity_calculatorTable','humidity-calculator.csv'); } catch(e){}
+}
+function __humidity_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#humidity_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'tDry':'25', 'tWet':'20', 'pAtm':'1013.25'}}],function(){ calc(); });
+}
+var __humidity_calculator_f0=(typeof calc==='function')?calc:null;
+if(__humidity_calculator_f0){
+    calc=function(){ var __r=__humidity_calculator_f0.apply(null,arguments); try{ __humidity_calculatorExtras(); }catch(e){} return __r; };
+}
+function __humidity_calculatorBoot(){ try{ __humidity_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __humidity_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __humidity_calculatorBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用相对湿度计算器（干湿球温度法）</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>干球温度 t (°C)</li><li>湿球温度 t' (°C)</li><li>大气压 p (hPa)</li></ul><h2>适用场景</h2><p>用干球与湿球温度，依 Magnus 饱和水汽压公式和 Sprung 方程求相对湿度与露点。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>湿球温度为什么比干球低？</dt><dd>湿球纱布蒸发吸热使温度下降，空气越干蒸发越强、差值越大，故干湿球差可反推湿度。</dd><dt>相对湿度 100% 意味着什么？</dt><dd>空气达到饱和，水汽开始凝结；此时露点等于当前温度，进一步降温就会结露。</dd></dl></section>

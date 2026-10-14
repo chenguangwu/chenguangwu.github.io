@@ -152,11 +152,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">诊断评估</button>
+      <div id="uti_diagnosisPresets"></div><button type="button" class="btn primary" onclick="calc()">诊断评估</button><button class="btn" type="button" onclick="__uti_diagnosisExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="uti_diagnosisTable"></div> <div id="uti_diagnosisDiff"></div> <div id="uti_diagnosisChart"></div> <div id="uti_diagnosisHist"></div>
 
     <h3 style="margin-top:18px;">菌落计数临床意义</h3>
     <table>
@@ -361,6 +361,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __uti_diagnosis_last=0,__uti_diagnosis_skip=false;
+function __uti_diagnosisSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __uti_diagnosisResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __uti_diagnosisTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __uti_diagnosisRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__uti_diagnosisTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#uti_diagnosisTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#uti_diagnosisDiff');
+        TBKit.history.mount('#uti_diagnosisHist',function(rec){
+            __uti_diagnosis_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __uti_diagnosis_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__uti_diagnosisTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#uti_diagnosisChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __uti_diagnosisExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__uti_diagnosis_skip) return;
+    var snap=__uti_diagnosisSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__uti_diagnosisResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__uti_diagnosis_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __uti_diagnosis_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __uti_diagnosisRender(keys,rk,en);
+}
+function __uti_diagnosisExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#uti_diagnosisTable','uti-diagnosis.csv'); } catch(e){}
+}
+function __uti_diagnosisPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#uti_diagnosisPresets',[{label:'默认参数',labelEn:'Default',values:{'count':'high', 'pathogen':'ecoli'}}],function(){ calc(); });
+}
+var __uti_diagnosis_f0=(typeof calc==='function')?calc:null;
+if(__uti_diagnosis_f0){
+    calc=function(){ var __r=__uti_diagnosis_f0.apply(null,arguments); try{ __uti_diagnosisExtras(); }catch(e){} return __r; };
+}
+function __uti_diagnosisBoot(){ try{ __uti_diagnosisPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __uti_diagnosisBoot();
+else document.addEventListener('DOMContentLoaded', __uti_diagnosisBoot);
 </script>
 
 </body>

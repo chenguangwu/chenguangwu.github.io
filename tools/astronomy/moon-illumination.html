@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="moon_illuminationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__moon_illuminationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="moon_illuminationTable"></div>
+    <div id="moon_illuminationDiff"></div>
+    <div id="moon_illuminationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,46 @@ function calcTool(){
 function resetForm(){document.getElementById('D').value = '0';
       calcTool();}
 calcTool();
+
+function __moon_illuminationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __moon_illuminationExtras(){
+    function __moon_illuminationRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var D = num('D');
+    var k = (1 - Math.cos(2 * Math.PI * D / 29.53)) / 2;
+    if (!isFinite(__moon_illuminationNum('D'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#moon_illuminationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['照明比例 k (%)', (k * 100).toFixed(1)],
+            ['相位', (k < 0.02 ? '新月' : k > 0.98 ? '满月' : k > 0.48 && k < 0.52 ? '上/下弦' : '过渡')],
+            ['相位角 phi (度)', (Math.acos(1-2*k)*180/Math.PI).toFixed(2)],
+            ['距满月天数', (Math.abs(14.765-(D%29.53))).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({D:__moon_illuminationRaw('D'), k:k});
+    function __moon_illuminationRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#moon_illuminationHist',function(rec){ __moon_illuminationRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#moon_illuminationDiff',['k']);
+}
+function __moon_illuminationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#moon_illuminationTable','moon-illumination.csv'); } catch(e){}
+}
+function __moon_illuminationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#moon_illuminationPresets',[
+        {label:'默认',labelEn:'Default',values:{D:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{D:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{D:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __moon_illuminationExtras(); }catch(e){} };
+function __moon_illuminationBoot(){ try{ __moon_illuminationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __moon_illuminationBoot();
+else document.addEventListener('DOMContentLoaded', __moon_illuminationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

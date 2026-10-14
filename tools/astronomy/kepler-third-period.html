@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="kepler_third_periodPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__kepler_third_periodExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="kepler_third_periodTable"></div>
+    <div id="kepler_third_periodDiff"></div>
+    <div id="kepler_third_periodHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,47 @@ function resetForm(){document.getElementById('a').value = '1.496e11';
       document.getElementById('M').value = '1.989e30';
       calcTool();}
 calcTool();
+
+function __kepler_third_periodNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __kepler_third_periodExtras(){
+    function __kepler_third_periodRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var a = num('a'), M = num('M');
+    var Gc = 6.674e-11;
+    var T = 2 * Math.PI * Math.sqrt(a * a * a / (Gc * M));
+    if (!isFinite(__kepler_third_periodNum('a')) || !isFinite(__kepler_third_periodNum('M'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#kepler_third_periodTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['轨道周期 T (天)', (T / 86400).toFixed(2)],
+            ['T (s)', (T).toExponential(3)],
+            ['平均轨道速度 v (m/s)', (2*Math.PI*a/T).toFixed(0)],
+            ['轨道半长轴 (AU)', (a/1.496e11).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({a:__kepler_third_periodRaw('a'), M:__kepler_third_periodRaw('M'), Gc:Gc});
+    function __kepler_third_periodRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#kepler_third_periodHist',function(rec){ __kepler_third_periodRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#kepler_third_periodDiff',['Gc']);
+}
+function __kepler_third_periodExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#kepler_third_periodTable','kepler-third-period.csv'); } catch(e){}
+}
+function __kepler_third_periodPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#kepler_third_periodPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'1.496e11', M:'1.989e30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'299200000000', M:'3.978e+3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'74800000000', M:'9.945e+29'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __kepler_third_periodExtras(); }catch(e){} };
+function __kepler_third_periodBoot(){ try{ __kepler_third_periodPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __kepler_third_periodBoot();
+else document.addEventListener('DOMContentLoaded', __kepler_third_periodBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

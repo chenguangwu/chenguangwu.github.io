@@ -125,11 +125,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>成交件数</label><input type="number" id="v1" value="3100" step="any" oninput="calc()" enterkeyhint="done" aria-label="连带率"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="kedan_jiandanjia_liandailvPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__kedan_jiandanjia_liandailvExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="kedan_jiandanjia_liandailvTable"></div> <div id="kedan_jiandanjia_liandailvDiff"></div> <div id="kedan_jiandanjia_liandailvChart"></div> <div id="kedan_jiandanjia_liandailvHist"></div>
     <div class="info-box">💡 件单价 = 销售额 ÷ 成交件数；客单价 = 件单价 × 连带率（参考 1.5 件/单）。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -647,6 +647,114 @@ function resetAll(){
   if(a)a.value='186000';if(b)b.value='3100';calc();
 }
 try{calc();}catch(e){}
+
+var __kedan_jiandanjia_liandailv_last=0,__kedan_jiandanjia_liandailv_skip=false;
+function __kedan_jiandanjia_liandailvSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __kedan_jiandanjia_liandailvResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __kedan_jiandanjia_liandailvTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __kedan_jiandanjia_liandailvRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__kedan_jiandanjia_liandailvTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#kedan_jiandanjia_liandailvTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#kedan_jiandanjia_liandailvDiff');
+        TBKit.history.mount('#kedan_jiandanjia_liandailvHist',function(rec){
+            __kedan_jiandanjia_liandailv_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __kedan_jiandanjia_liandailv_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__kedan_jiandanjia_liandailvTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#kedan_jiandanjia_liandailvChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __kedan_jiandanjia_liandailvExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__kedan_jiandanjia_liandailv_skip) return;
+    var snap=__kedan_jiandanjia_liandailvSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__kedan_jiandanjia_liandailvResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__kedan_jiandanjia_liandailv_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __kedan_jiandanjia_liandailv_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __kedan_jiandanjia_liandailvRender(keys,rk,en);
+}
+function __kedan_jiandanjia_liandailvExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#kedan_jiandanjia_liandailvTable','kedan-jiandanjia-liandailv.csv'); } catch(e){}
+}
+function __kedan_jiandanjia_liandailvPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#kedan_jiandanjia_liandailvPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'186000', 'v1':'3100'}}],function(){ calc(); });
+}
+var __kedan_jiandanjia_liandailv_f0=(typeof calc==='function')?calc:null;
+if(__kedan_jiandanjia_liandailv_f0){
+    calc=function(){ var __r=__kedan_jiandanjia_liandailv_f0.apply(null,arguments); try{ __kedan_jiandanjia_liandailvExtras(); }catch(e){} return __r; };
+}
+function __kedan_jiandanjia_liandailvBoot(){ try{ __kedan_jiandanjia_liandailvPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __kedan_jiandanjia_liandailvBoot();
+else document.addEventListener('DOMContentLoaded', __kedan_jiandanjia_liandailvBoot);
 </script>
 
 <!-- SEO 介绍区块 -->

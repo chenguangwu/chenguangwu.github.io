@@ -116,8 +116,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <div class="input-row"><div><label>生成数量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()"></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="gen()">生成</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="recommender_acupointPresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__recommender_acupointExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
+<div class="result-box" id="res"></div> <div id="recommender_acupointTable"></div> <div id="recommender_acupointDiff"></div> <div id="recommender_acupointChart"></div> <div id="recommender_acupointHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -265,6 +265,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __recommender_acupoint_last=0,__recommender_acupoint_skip=false;
+function __recommender_acupointSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __recommender_acupointResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __recommender_acupointTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __recommender_acupointRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__recommender_acupointTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#recommender_acupointTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#recommender_acupointDiff');
+        TBKit.history.mount('#recommender_acupointHist',function(rec){
+            __recommender_acupoint_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                gen();
+            }catch(e2){}
+            __recommender_acupoint_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__recommender_acupointTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#recommender_acupointChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __recommender_acupointExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__recommender_acupoint_skip) return;
+    var snap=__recommender_acupointSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__recommender_acupointResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__recommender_acupoint_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __recommender_acupoint_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __recommender_acupointRender(keys,rk,en);
+}
+function __recommender_acupointExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#recommender_acupointTable','recommender-acupoint.csv'); } catch(e){}
+}
+function __recommender_acupointPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#recommender_acupointPresets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}}],function(){ gen(); });
+}
+var __recommender_acupoint_f0=(typeof gen==='function')?gen:null;
+if(__recommender_acupoint_f0){
+    gen=function(){ var __r=__recommender_acupoint_f0.apply(null,arguments); try{ __recommender_acupointExtras(); }catch(e){} return __r; };
+}
+function __recommender_acupointBoot(){ try{ __recommender_acupointPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __recommender_acupointBoot();
+else document.addEventListener('DOMContentLoaded', __recommender_acupointBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用穴位配伍（开四关）组合推荐</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>生成数量</li></ul><h2>适用场景</h2><p>调理肝郁取合谷、太冲。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>开四关适合所有人吗？</dt><dd>多用于气机郁滞、痛证、神志病；孕妇忌合谷、三阴交，出血倾向者慎用；本工具结果仅供参考，不能替代医师诊断与处方，操作请遵医嘱。</dd><dt>配穴越多越好吗？</dt><dd>不是，主配分明、少而精，避免多穴杂投；针刺请由医师辨证取穴。</dd></dl></section>
