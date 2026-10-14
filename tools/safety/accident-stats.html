@@ -158,11 +158,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="accident_statsPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__accident_statsExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制报表</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="accident_statsTable"></div>
+    <div id="accident_statsDiff"></div>
+    <div id="accident_statsChart"></div>
+    <div id="accident_statsHist"></div>
   </div>
 
   <div class="card">
@@ -361,6 +367,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __accident_stats_last=0,__accident_stats_skip=false;
+function __accident_statsSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __accident_statsResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __accident_statsTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __accident_statsRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__accident_statsTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#accident_statsTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#accident_statsDiff');
+        TBKit.history.mount('#accident_statsHist',function(rec){
+            __accident_stats_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __accident_stats_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__accident_statsTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#accident_statsChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __accident_statsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__accident_stats_skip) return;
+    var snap=__accident_statsSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__accident_statsResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__accident_stats_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __accident_stats_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __accident_statsRender(keys,rk,en);
+}
+function __accident_statsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#accident_statsTable','accident-stats.csv'); } catch(e){}
+}
+function __accident_statsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#accident_statsPresets',[{label:'默认参数',labelEn:'Default',values:{'hours':'500000', 'fatal':'0', 'severe':'1', 'minor':'4', 'lti':'3', 'lostDays':'45'}}],function(){ calc(); });
+}
+var __accident_stats_f0=(typeof calc==='function')?calc:null;
+if(__accident_stats_f0){
+    calc=function(){ var __r=__accident_stats_f0.apply(null,arguments); try{ __accident_statsExtras(); }catch(e){} return __r; };
+}
+function __accident_statsBoot(){ try{ __accident_statsPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __accident_statsBoot();
+else document.addEventListener('DOMContentLoaded', __accident_statsBoot);
 </script>
 
 </body>
