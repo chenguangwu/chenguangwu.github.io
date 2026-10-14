@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="decibel_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__decibel_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="decibel_powerTable"></div>
+    <div id="decibel_powerDiff"></div>
+    <div id="decibel_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "dBW 与 dBm 怎么换算？", "acceptedAnswer": {"@type": "Answer", "text": "dBm 以 1 mW 为基准、dBW 以 1 W 为基准，相差 30 dB：X dBW = (X+30) dBm。"}}, {"@type": "Question", "name": "声功率级和声压级一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一样：声功率级描述源的总发声能力，声压级还依赖距离与房间，二者通过房间常数关联。"}}]}
+
+function __decibel_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __decibel_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('P'), P0 = num('P0');
+    var L = 10 * Math.log10(P / P0);
+    if (!isFinite(__decibel_powerNum('P')) || !isFinite(__decibel_powerNum('P0'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#decibel_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电平 L (dB)', L.toFixed(2)],
+            ['功率比 P/P₀', Math.pow(10, L/10).toFixed(3)],
+            ['奈培 Np', (L/8.6859).toFixed(4)],
+            ['功率比自然对数', (L/10*Math.LN10).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({P:__decibel_powerNum('P'), P0:__decibel_powerNum('P0'), L:L});
+    TBKit.history.mount('#decibel_powerHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.P0!=null)document.getElementById('P0').value=rec.P0; calcTool(); });
+    TBKit.util.diffBox('#decibel_powerDiff',['L']);
+}
+function __decibel_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#decibel_powerTable','decibel-power.csv'); } catch(e){}
+}
+function __decibel_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#decibel_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'10', P0:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'20', P0:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'5', P0:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __decibel_powerExtras(); }catch(e){} };
+function __decibel_powerBoot(){ try{ __decibel_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __decibel_powerBoot();
+else document.addEventListener('DOMContentLoaded', __decibel_powerBoot);
 </script>
 </body>
 </html>

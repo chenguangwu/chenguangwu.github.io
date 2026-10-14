@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="reverberation_timePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__reverberation_timeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="reverberation_timeTable"></div>
+    <div id="reverberation_timeDiff"></div>
+    <div id="reverberation_timeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "赛宾公式的 0.161 是哪来的？", "acceptedAnswer": {"@type": "Answer", "text": "由声速 c≈343 m/s 导出：0.161≈0.163·(V 单位 m³ / c)，是公制下的经验系数。"}}, {"@type": "Question", "name": "混响时间越长越好吗？", "acceptedAnswer": {"@type": "Answer", "text": "音乐厅常偏好 1.5–2.5 s 的丰满混响，而会议室、教室宜短（<1 s）以保证语言清晰。"}}]}
+
+function __reverberation_timeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __reverberation_timeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var V = num('V'), A = num('A');
+    var T = 0.161 * V / A;
+    if (!isFinite(__reverberation_timeNum('V')) || !isFinite(__reverberation_timeNum('A'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#reverberation_timeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['混响时间 T₆₀ (s)', T.toFixed(3)],
+            ['吸声面密度 (1/m)', (A / V).toFixed(4)],
+            ['衰减速率 (dB/s)', (60/(T||1)).toFixed(3)],
+            ['混响时间 (ms)', (T*1000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({V:__reverberation_timeNum('V'), A:__reverberation_timeNum('A'), T:T});
+    TBKit.history.mount('#reverberation_timeHist',function(rec){ if(rec.V!=null)document.getElementById('V').value=rec.V; if(rec.A!=null)document.getElementById('A').value=rec.A; calcTool(); });
+    TBKit.util.diffBox('#reverberation_timeDiff',['T']);
+}
+function __reverberation_timeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#reverberation_timeTable','reverberation-time.csv'); } catch(e){}
+}
+function __reverberation_timePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#reverberation_timePresets',[
+        {label:'默认',labelEn:'Default',values:{V:'100', A:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{V:'200', A:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{V:'50', A:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __reverberation_timeExtras(); }catch(e){} };
+function __reverberation_timeBoot(){ try{ __reverberation_timePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __reverberation_timeBoot();
+else document.addEventListener('DOMContentLoaded', __reverberation_timeBoot);
 </script>
 </body>
 </html>

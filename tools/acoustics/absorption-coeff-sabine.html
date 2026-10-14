@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="absorption_coeff_sabinePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__absorption_coeff_sabineExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="absorption_coeff_sabineTable"></div>
+    <div id="absorption_coeff_sabineDiff"></div>
+    <div id="absorption_coeff_sabineHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -293,6 +299,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "吸声系数会大于 1 吗？", "acceptedAnswer": {"@type": "Answer", "text": "实验室实测常出现 α>1，源于安装方式、边缘效应与测试不确定度；工程取值一般按标准工况给出的单值，不取极端值。"}}, {"@type": "Question", "name": "赛宾与 ISO 354 的关系？", "acceptedAnswer": {"@type": "Answer", "text": "ISO 354 用混响室法测定建筑制品吸声系数，其计算基础就是赛宾公式与吸声量换算，是报告里系数的来源标准。"}}]}
+
+function __absorption_coeff_sabineNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __absorption_coeff_sabineExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var V=num('V'),S=num('S'),rt=num('rt');
+    var aBar=0.161*V/(S*rt);
+    if (!isFinite(__absorption_coeff_sabineNum('V')) || !isFinite(__absorption_coeff_sabineNum('S')) || !isFinite(__absorption_coeff_sabineNum('rt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#absorption_coeff_sabineTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['平均吸声系数 ᾱ', aBar.toFixed(3)],
+            ['总吸声量 A (m²·sab)', (aBar*S).toFixed(2)],
+            ['混响时间减半所需总吸声量 (m²·sab)', (0.161*V/(rt/2)).toFixed(2)],
+            ['需新增吸声量 (m²·sab)', (0.161*V/(rt/2)-(aBar*S)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({V:__absorption_coeff_sabineNum('V'), S:__absorption_coeff_sabineNum('S'), rt:__absorption_coeff_sabineNum('rt'), aBar:aBar});
+    TBKit.history.mount('#absorption_coeff_sabineHist',function(rec){ if(rec.V!=null)document.getElementById('V').value=rec.V; if(rec.S!=null)document.getElementById('S').value=rec.S; if(rec.rt!=null)document.getElementById('rt').value=rec.rt; calcTool(); });
+    TBKit.util.diffBox('#absorption_coeff_sabineDiff',['aBar']);
+}
+function __absorption_coeff_sabineExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#absorption_coeff_sabineTable','absorption-coeff-sabine.csv'); } catch(e){}
+}
+function __absorption_coeff_sabinePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#absorption_coeff_sabinePresets',[
+        {label:'默认',labelEn:'Default',values:{V:'100', S:'130', rt:'0.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{V:'200', S:'260', rt:'1.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{V:'50', S:'65', rt:'0.4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __absorption_coeff_sabineExtras(); }catch(e){} };
+function __absorption_coeff_sabineBoot(){ try{ __absorption_coeff_sabinePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __absorption_coeff_sabineBoot();
+else document.addEventListener('DOMContentLoaded', __absorption_coeff_sabineBoot);
 </script>
 </body>
 </html>

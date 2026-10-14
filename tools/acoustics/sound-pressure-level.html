@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sound_pressure_levelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sound_pressure_levelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="sound_pressure_levelTable"></div>
+    <div id="sound_pressure_levelDiff"></div>
+    <div id="sound_pressure_levelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -299,6 +305,45 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么基准取 20 µPa？", "acceptedAnswer": {"@type": "Answer", "text": "这是年轻人耳在 1 kHz 附近的可听阈声压，定为 0 dB SPL 基准。"}}, {"@type": "Question", "name": "dB 和 dB(A) 一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一样：dB(A) 额外经过 A 计权滤波，模拟人耳对低频不敏感，更贴近主观响度。"}}]}
+
+function __sound_pressure_levelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sound_pressure_levelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'), p0=20e-6;
+    var spl=20*Math.log10(p/p0);
+    if (!isFinite(__sound_pressure_levelNum('p'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#sound_pressure_levelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['声压级 SPL (dB)', spl.toFixed(2)],
+            ['参考声压 p₀ (Pa)', p0],
+            ['由 SPL 反推声压比', (Math.pow(10,spl/20)).toFixed(4)],
+            ['声压平方比', (p*p/Math.max(p0*p0,1e-30)).toExponential(4)],
+            ['SPL 二十分之一', (spl/20).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({p:__sound_pressure_levelNum('p'), spl:spl});
+    TBKit.history.mount('#sound_pressure_levelHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; calcTool(); });
+    TBKit.util.diffBox('#sound_pressure_levelDiff',['spl']);
+}
+function __sound_pressure_levelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sound_pressure_levelTable','sound-pressure-level.csv'); } catch(e){}
+}
+function __sound_pressure_levelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sound_pressure_levelPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'0.632'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'1.264'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'0.316'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __sound_pressure_levelExtras(); }catch(e){} };
+function __sound_pressure_levelBoot(){ try{ __sound_pressure_levelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sound_pressure_levelBoot();
+else document.addEventListener('DOMContentLoaded', __sound_pressure_levelBoot);
 </script>
 </body>
 </html>

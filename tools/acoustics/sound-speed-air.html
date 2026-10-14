@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sound_speed_airPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sound_speed_airExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="sound_speed_airTable"></div>
+    <div id="sound_speed_airDiff"></div>
+    <div id="sound_speed_airHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -232,6 +238,45 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "湿度对声速影响大吗？", "acceptedAnswer": {"@type": "Answer", "text": "常温下湿度影响很小（<1%），工程上多只用温度近似；精确计算可引入湿度修正。"}}, {"@type": "Question", "name": "为什么升温声速变快？", "acceptedAnswer": {"@type": "Answer", "text": "温度升高气体分子运动更剧烈、弹性恢复更快，声速随绝对温度平方根增大。"}}]}
+
+function __sound_speed_airNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sound_speed_airExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var T = num('T');
+    var v = 331.4 + 0.6 * T;
+    if (!isFinite(__sound_speed_airNum('T'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#sound_speed_airTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['声速 v (m/s)', v.toFixed(2)],
+            ['约 (km/h)', (v / 3.6).toFixed(2)],
+            ['绝对温度 (K)', (T+273.15).toFixed(2)],
+            ['与 20 摄氏度声速之比', (v/343).toFixed(4)],
+            ['温度修正项', (0.6*T).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({T:__sound_speed_airNum('T'), v:v});
+    TBKit.history.mount('#sound_speed_airHist',function(rec){ if(rec.T!=null)document.getElementById('T').value=rec.T; calcTool(); });
+    TBKit.util.diffBox('#sound_speed_airDiff',['v']);
+}
+function __sound_speed_airExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sound_speed_airTable','sound-speed-air.csv'); } catch(e){}
+}
+function __sound_speed_airPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sound_speed_airPresets',[
+        {label:'默认',labelEn:'Default',values:{T:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{T:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{T:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __sound_speed_airExtras(); }catch(e){} };
+function __sound_speed_airBoot(){ try{ __sound_speed_airPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sound_speed_airBoot();
+else document.addEventListener('DOMContentLoaded', __sound_speed_airBoot);
 </script>
 </body>
 </html>

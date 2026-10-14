@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="beat_frequencyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__beat_frequencyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="beat_frequencyTable"></div>
+    <div id="beat_frequencyDiff"></div>
+    <div id="beat_frequencyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -303,6 +309,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "拍频是怎么产生的？", "acceptedAnswer": {"@type": "Answer", "text": "两个频率相近的声波叠加，合成振幅按差值频率周期性起伏，人耳听到响度的周期性涨落就是拍。"}}, {"@type": "Question", "name": "拍频能超过两频率吗？", "acceptedAnswer": {"@type": "Answer", "text": "不能，拍频等于两频率之差的绝对值，必然小于其中较高的频率。"}}]}
+
+function __beat_frequencyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __beat_frequencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f1 = num('f1'), f2 = num('f2');
+    var fb = Math.abs(f1 - f2);
+    if (!isFinite(__beat_frequencyNum('f1')) || !isFinite(__beat_frequencyNum('f2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#beat_frequencyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['拍频 f_beat (Hz)', fb.toFixed(2)],
+            ['平均频率 (Hz)', ((f1 + f2) / 2).toFixed(2)],
+            ['拍周期 T = 1/f_beat (s)', (1/fb).toFixed(4)],
+            ['拍频相对偏差 (%)', (fb/(((f1+f2)/2)||1)*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({f1:__beat_frequencyNum('f1'), f2:__beat_frequencyNum('f2'), fb:fb});
+    TBKit.history.mount('#beat_frequencyHist',function(rec){ if(rec.f1!=null)document.getElementById('f1').value=rec.f1; if(rec.f2!=null)document.getElementById('f2').value=rec.f2; calcTool(); });
+    TBKit.util.diffBox('#beat_frequencyDiff',['fb']);
+}
+function __beat_frequencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#beat_frequencyTable','beat-frequency.csv'); } catch(e){}
+}
+function __beat_frequencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#beat_frequencyPresets',[
+        {label:'默认',labelEn:'Default',values:{f1:'440', f2:'444'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f1:'880', f2:'888'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f1:'220', f2:'222'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __beat_frequencyExtras(); }catch(e){} };
+function __beat_frequencyBoot(){ try{ __beat_frequencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __beat_frequencyBoot();
+else document.addEventListener('DOMContentLoaded', __beat_frequencyBoot);
 </script>
 </body>
 </html>

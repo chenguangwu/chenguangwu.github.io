@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="freq_to_notePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__freq_to_noteExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="freq_to_noteTable"></div>
+    <div id="freq_to_noteDiff"></div>
+    <div id="freq_to_noteHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -300,6 +306,48 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "十二平均律怎么定义音？", "acceptedAnswer": {"@type": "Answer", "text": "相邻半音频率比恒为 2^(1/12)≈1.0595，每八度翻倍，A4 约定为 440 Hz。"}}, {"@type": "Question", "name": "为什么同一音名有不同频率？", "acceptedAnswer": {"@type": "Answer", "text": "取决于基准音高（如 A4=432 Hz 与 440 Hz 体系），本工具默认 440 Hz 国际标准。"}}]}
+
+function __freq_to_noteNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __freq_to_noteExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f');
+    var NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    var midi=69+12*Math.log2(f/440);
+    var near=Math.round(midi);
+    var cents=Math.round((midi-near)*100);
+    var octave=Math.floor(near/12)-1;
+    var name=NAMES[((near%12)+12)%12]+octave;
+    if (!isFinite(__freq_to_noteNum('f'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#freq_to_noteTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最接近音名', name],
+            ['MIDI 音高编号', near],
+            ['与标准音分偏差', (cents>=0?'+':'')+cents],
+        ]
+    });
+    TBKit.history.record({f:__freq_to_noteNum('f'), NAMES:NAMES});
+    TBKit.history.mount('#freq_to_noteHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; calcTool(); });
+    TBKit.util.diffBox('#freq_to_noteDiff',['NAMES']);
+}
+function __freq_to_noteExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#freq_to_noteTable','freq-to-note.csv'); } catch(e){}
+}
+function __freq_to_notePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#freq_to_notePresets',[
+        {label:'默认',labelEn:'Default',values:{f:'440'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'880'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'220'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __freq_to_noteExtras(); }catch(e){} };
+function __freq_to_noteBoot(){ try{ __freq_to_notePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __freq_to_noteBoot();
+else document.addEventListener('DOMContentLoaded', __freq_to_noteBoot);
 </script>
 </body>
 </html>

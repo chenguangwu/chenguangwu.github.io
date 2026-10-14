@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="combine_two_splPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__combine_two_splExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="combine_two_splTable"></div>
+    <div id="combine_two_splDiff"></div>
+    <div id="combine_two_splHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -234,6 +240,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么不能把 dB 直接相加？", "acceptedAnswer": {"@type": "Answer", "text": "分贝是对数量级，代表能量比；叠加须把声压/声功率还原成能量（10^(L/10)）求和后再取对数。"}}, {"@type": "Question", "name": "相差很大的两个声级叠加会怎样？", "acceptedAnswer": {"@type": "Answer", "text": "若差 ≥10 dB，较小者几乎不影响总值，总声级约等于较大者（误差 <0.5 dB）。"}}]}
+
+function __combine_two_splNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __combine_two_splExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var l1=num('l1'),l2=num('l2');
+    var L=10*Math.log10(Math.pow(10,l1/10)+Math.pow(10,l2/10));
+    if (!isFinite(__combine_two_splNum('l1')) || !isFinite(__combine_two_splNum('l2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#combine_two_splTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['总声压级 (dB)', L.toFixed(2)],
+            ['比响者高出 (dB)', (L-Math.max(l1,l2)).toFixed(2)],
+            ['两声级差 (dB)', Math.abs(l1-l2).toFixed(2)],
+            ['再叠加同强度声源后 (dB)', (L+3.01).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({l1:__combine_two_splNum('l1'), l2:__combine_two_splNum('l2'), L:L});
+    TBKit.history.mount('#combine_two_splHist',function(rec){ if(rec.l1!=null)document.getElementById('l1').value=rec.l1; if(rec.l2!=null)document.getElementById('l2').value=rec.l2; calcTool(); });
+    TBKit.util.diffBox('#combine_two_splDiff',['L']);
+}
+function __combine_two_splExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#combine_two_splTable','combine-two-spl.csv'); } catch(e){}
+}
+function __combine_two_splPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#combine_two_splPresets',[
+        {label:'默认',labelEn:'Default',values:{l1:'80', l2:'80'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{l1:'160', l2:'160'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{l1:'40', l2:'40'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __combine_two_splExtras(); }catch(e){} };
+function __combine_two_splBoot(){ try{ __combine_two_splPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __combine_two_splBoot();
+else document.addEventListener('DOMContentLoaded', __combine_two_splBoot);
 </script>
 </body>
 </html>

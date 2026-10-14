@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pipe_closedPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pipe_closedExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pipe_closedTable"></div>
+    <div id="pipe_closedDiff"></div>
+    <div id="pipe_closedHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么闭管只有奇次谐波？", "acceptedAnswer": {"@type": "Answer", "text": "闭端必为声压波腹、开端为波节，边界条件只允许 n 取奇数，故缺失偶次泛音。"}}, {"@type": "Question", "name": "和开管有何不同？", "acceptedAnswer": {"@type": "Answer", "text": "开管两端皆波节，f_n=n·c/(2L) 含全部整数谐波，基频比同长闭管高一倍。"}}]}
+
+function __pipe_closedNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pipe_closedExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v = num('v'), L = num('L');
+    var f1 = v / (4 * L);
+    if (!isFinite(__pipe_closedNum('v')) || !isFinite(__pipe_closedNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pipe_closedTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['基频 f₁ (Hz)', f1.toFixed(2)],
+            ['三次谐波 (Hz)', (f1 * 3).toFixed(2)],
+            ['基频波长 = 4L (m)', (4*L).toFixed(4)],
+            ['五次谐波 (Hz)', (f1*5).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({v:__pipe_closedNum('v'), L:__pipe_closedNum('L'), f1:f1});
+    TBKit.history.mount('#pipe_closedHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#pipe_closedDiff',['f1']);
+}
+function __pipe_closedExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pipe_closedTable','pipe-closed.csv'); } catch(e){}
+}
+function __pipe_closedPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pipe_closedPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'343', L:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'686', L:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'171.5', L:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pipe_closedExtras(); }catch(e){} };
+function __pipe_closedBoot(){ try{ __pipe_closedPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pipe_closedBoot();
+else document.addEventListener('DOMContentLoaded', __pipe_closedBoot);
 </script>
 </body>
 </html>

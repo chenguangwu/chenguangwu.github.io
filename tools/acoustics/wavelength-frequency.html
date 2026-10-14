@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wavelength_frequencyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wavelength_frequencyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wavelength_frequencyTable"></div>
+    <div id="wavelength_frequencyDiff"></div>
+    <div id="wavelength_frequencyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -291,6 +297,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么低频难被吸收？", "acceptedAnswer": {"@type": "Answer", "text": "低频波长很长（如 50 Hz 约 6.9 m），常规吸声材料厚度远小于波长，吸收效率低。"}}, {"@type": "Question", "name": "波长与频率成反比吗？", "acceptedAnswer": {"@type": "Answer", "text": "在固定介质中是的：λ=c/f，频率翻倍波长减半。"}}]}
+
+function __wavelength_frequencyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wavelength_frequencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v = num('v'), f = num('f');
+    var lam = v / f;
+    if (!isFinite(__wavelength_frequencyNum('v')) || !isFinite(__wavelength_frequencyNum('f'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wavelength_frequencyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['波长 λ (m)', lam.toFixed(4)],
+            ['波长 (cm)', (lam * 100).toFixed(2)],
+            ['周期 T (s)', (1/f).toFixed(6)],
+            ['波数 k (1/m)', (2*Math.PI/lam).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({v:__wavelength_frequencyNum('v'), f:__wavelength_frequencyNum('f'), lam:lam});
+    TBKit.history.mount('#wavelength_frequencyHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.f!=null)document.getElementById('f').value=rec.f; calcTool(); });
+    TBKit.util.diffBox('#wavelength_frequencyDiff',['lam']);
+}
+function __wavelength_frequencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wavelength_frequencyTable','wavelength-frequency.csv'); } catch(e){}
+}
+function __wavelength_frequencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wavelength_frequencyPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'343', f:'440'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'686', f:'880'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'171.5', f:'220'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wavelength_frequencyExtras(); }catch(e){} };
+function __wavelength_frequencyBoot(){ try{ __wavelength_frequencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wavelength_frequencyBoot();
+else document.addEventListener('DOMContentLoaded', __wavelength_frequencyBoot);
 </script>
 </body>
 </html>

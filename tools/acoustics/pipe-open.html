@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pipe_openPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pipe_openExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pipe_openTable"></div>
+    <div id="pipe_openDiff"></div>
+    <div id="pipe_openHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "开管与闭管音色为何不同？", "acceptedAnswer": {"@type": "Answer", "text": "开管含全部整数谐波、闭管仅奇次，谐波结构不同导致音色差异。"}}, {"@type": "Question", "name": "实际管口需要修正吗？", "acceptedAnswer": {"@type": "Answer", "text": "真实开口端略外延（端部修正），有效长度略大于几何长度，精密计算需加上修正量。"}}]}
+
+function __pipe_openNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pipe_openExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v = num('v'), L = num('L');
+    var f1 = v / (2 * L);
+    if (!isFinite(__pipe_openNum('v')) || !isFinite(__pipe_openNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pipe_openTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['基频 f₁ (Hz)', f1.toFixed(2)],
+            ['二次谐波 (Hz)', (f1 * 2).toFixed(2)],
+            ['基频波长 = 2L (m)', (2*L).toFixed(4)],
+            ['三次谐波 (Hz)', (f1*3).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({v:__pipe_openNum('v'), L:__pipe_openNum('L'), f1:f1});
+    TBKit.history.mount('#pipe_openHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#pipe_openDiff',['f1']);
+}
+function __pipe_openExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pipe_openTable','pipe-open.csv'); } catch(e){}
+}
+function __pipe_openPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pipe_openPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'343', L:'0.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'686', L:'1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'171.5', L:'0.25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pipe_openExtras(); }catch(e){} };
+function __pipe_openBoot(){ try{ __pipe_openPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pipe_openBoot();
+else document.addEventListener('DOMContentLoaded', __pipe_openBoot);
 </script>
 </body>
 </html>

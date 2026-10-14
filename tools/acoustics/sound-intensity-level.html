@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sound_intensity_levelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sound_intensity_levelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="sound_intensity_levelTable"></div>
+    <div id="sound_intensity_levelDiff"></div>
+    <div id="sound_intensity_levelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -300,6 +306,45 @@ calcTool();
 </div></section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "声强和声压的关系？", "acceptedAnswer": {"@type": "Answer", "text": "平面波自由场下 I=p_rms²/(ρc)，声强是单位面积的声功率流。"}}, {"@type": "Question", "name": "何时声强级≠声压级？", "acceptedAnswer": {"@type": "Answer", "text": "存在反射或近场、扩散场时二者不等；自由场平面波时相等。"}}]}
+
+function __sound_intensity_levelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sound_intensity_levelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I = num('I');
+    var I0 = 1e-12;
+    var L = 10 * Math.log10(I / I0);
+    if (!isFinite(__sound_intensity_levelNum('I'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#sound_intensity_levelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['声强级 L_I (dB)', L.toFixed(2)],
+            ['回算声强 (W/m²)', (Math.pow(10, L/10) * I0).toExponential(3)],
+            ['声压 p (Pa, rho*c=400)', (Math.sqrt(I*400)).toExponential(4)],
+            ['声强比 I/I0', (Math.pow(10, L/10)).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({I:__sound_intensity_levelNum('I'), I0:I0});
+    TBKit.history.mount('#sound_intensity_levelHist',function(rec){ if(rec.I!=null)document.getElementById('I').value=rec.I; calcTool(); });
+    TBKit.util.diffBox('#sound_intensity_levelDiff',['I0']);
+}
+function __sound_intensity_levelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sound_intensity_levelTable','sound-intensity-level.csv'); } catch(e){}
+}
+function __sound_intensity_levelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sound_intensity_levelPresets',[
+        {label:'默认',labelEn:'Default',values:{I:'1e-6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __sound_intensity_levelExtras(); }catch(e){} };
+function __sound_intensity_levelBoot(){ try{ __sound_intensity_levelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sound_intensity_levelBoot();
+else document.addEventListener('DOMContentLoaded', __sound_intensity_levelBoot);
 </script>
 </body>
 </html>

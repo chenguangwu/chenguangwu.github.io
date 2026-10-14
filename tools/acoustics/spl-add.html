@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="spl_addPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__spl_addExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="spl_addTable"></div>
+    <div id="spl_addDiff"></div>
+    <div id="spl_addHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -236,6 +242,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "等声源叠加规律？", "acceptedAnswer": {"@type": "Answer", "text": "N 个相同声级叠加升高 10·log10(N) dB：2 个 +3、4 个 +6、10 个 +10 dB。"}}, {"@type": "Question", "name": "各声级相差大时要逐项加吗？", "acceptedAnswer": {"@type": "Answer", "text": "是，须逐条 10^(Li/10) 求和再取对数，不能简单取最大。"}}]}
+
+function __spl_addNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spl_addExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L1 = num('L1'), L2 = num('L2');
+    var Lt = 10 * Math.log10(Math.pow(10, L1/10) + Math.pow(10, L2/10));
+    if (!isFinite(__spl_addNum('L1')) || !isFinite(__spl_addNum('L2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#spl_addTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['总声压级 L (dB)', Lt.toFixed(2)],
+            ['增量 (dB)', (Lt - Math.max(L1, L2)).toFixed(2)],
+            ['两声级差 (dB)', Math.abs(L1-L2).toFixed(2)],
+            ['再叠加一个同强度声源后 (dB)', (Lt+3.01).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({L1:__spl_addNum('L1'), L2:__spl_addNum('L2'), Lt:Lt});
+    TBKit.history.mount('#spl_addHist',function(rec){ if(rec.L1!=null)document.getElementById('L1').value=rec.L1; if(rec.L2!=null)document.getElementById('L2').value=rec.L2; calcTool(); });
+    TBKit.util.diffBox('#spl_addDiff',['Lt']);
+}
+function __spl_addExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spl_addTable','spl-add.csv'); } catch(e){}
+}
+function __spl_addPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#spl_addPresets',[
+        {label:'默认',labelEn:'Default',values:{L1:'80', L2:'80'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L1:'160', L2:'160'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L1:'40', L2:'40'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __spl_addExtras(); }catch(e){} };
+function __spl_addBoot(){ try{ __spl_addPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __spl_addBoot();
+else document.addEventListener('DOMContentLoaded', __spl_addBoot);
 </script>
 </body>
 </html>

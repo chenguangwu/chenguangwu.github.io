@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mass_law_tlPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mass_law_tlExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mass_law_tlTable"></div>
+    <div id="mass_law_tlDiff"></div>
+    <div id="mass_law_tlHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -288,6 +294,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么加倍质量只加约 6 dB？", "acceptedAnswer": {"@type": "Answer", "text": "TL 与质量成 20·log10 关系，质量翻倍对应 +6 dB，故单纯加厚墙体收益有限。"}}, {"@type": "Question", "name": "质量定律的局限？", "acceptedAnswer": {"@type": "Answer", "text": "忽略吻合效应与刚度、阻尼；在临界频率附近实际隔声会明显低于估算值。"}}]}
+
+function __mass_law_tlNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mass_law_tlExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f'),m=num('m');
+    var TL=20*Math.log10(f*m)-48;
+    if (!isFinite(__mass_law_tlNum('f')) || !isFinite(__mass_law_tlNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mass_law_tlTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['隔声量 TL (dB)', TL.toFixed(2)],
+            ['面密度频率积', (f*m).toFixed(3)],
+            ['质量定律分量 (dB)', (20*Math.log10(f*m)).toFixed(3)],
+            ['反推 f×m 积', (Math.pow(10,(TL+48)/20)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({f:__mass_law_tlNum('f'), m:__mass_law_tlNum('m'), TL:TL});
+    TBKit.history.mount('#mass_law_tlHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#mass_law_tlDiff',['TL']);
+}
+function __mass_law_tlExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mass_law_tlTable','mass-law-tl.csv'); } catch(e){}
+}
+function __mass_law_tlPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mass_law_tlPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'500', m:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'1000', m:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'250', m:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mass_law_tlExtras(); }catch(e){} };
+function __mass_law_tlBoot(){ try{ __mass_law_tlPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mass_law_tlBoot();
+else document.addEventListener('DOMContentLoaded', __mass_law_tlBoot);
 </script>
 </body>
 </html>

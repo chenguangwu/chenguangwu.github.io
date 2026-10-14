@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="decibel_voltagePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__decibel_voltageExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="decibel_voltageTable"></div>
+    <div id="decibel_voltageDiff"></div>
+    <div id="decibel_voltageHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "dBu 和 dBV 怎么换算？", "acceptedAnswer": {"@type": "Answer", "text": "dBu 基准 0.775 V、dBV 基准 1 V，差约 2.21 dB：X dBV = (X+2.21) dBu。"}}, {"@type": "Question", "name": "麦克风电平常用哪种？", "acceptedAnswer": {"@type": "Answer", "text": "专业音频常用 dBu；消费设备常用 dBV，注意基准不同不可直接相加。"}}]}
+
+function __decibel_voltageNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __decibel_voltageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var V = num('V'), V0 = num('V0');
+    var L = 20 * Math.log10(V / V0);
+    if (!isFinite(__decibel_voltageNum('V')) || !isFinite(__decibel_voltageNum('V0'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#decibel_voltageTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电平 L (dB)', L.toFixed(2)],
+            ['电压比 V/V₀', Math.pow(10, L/20).toFixed(3)],
+            ['奈培 Np', (L/8.6859).toFixed(4)],
+            ['幅度比自然对数', (L/20*Math.LN10).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({V:__decibel_voltageNum('V'), V0:__decibel_voltageNum('V0'), L:L});
+    TBKit.history.mount('#decibel_voltageHist',function(rec){ if(rec.V!=null)document.getElementById('V').value=rec.V; if(rec.V0!=null)document.getElementById('V0').value=rec.V0; calcTool(); });
+    TBKit.util.diffBox('#decibel_voltageDiff',['L']);
+}
+function __decibel_voltageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#decibel_voltageTable','decibel-voltage.csv'); } catch(e){}
+}
+function __decibel_voltagePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#decibel_voltagePresets',[
+        {label:'默认',labelEn:'Default',values:{V:'10', V0:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{V:'20', V0:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{V:'5', V0:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __decibel_voltageExtras(); }catch(e){} };
+function __decibel_voltageBoot(){ try{ __decibel_voltagePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __decibel_voltageBoot();
+else document.addEventListener('DOMContentLoaded', __decibel_voltageBoot);
 </script>
 </body>
 </html>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="decibel_power_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__decibel_power_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="decibel_power_ratioTable"></div>
+    <div id="decibel_power_ratioDiff"></div>
+    <div id="decibel_power_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -287,6 +293,42 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "功率为什么用 10 倍对数？", "acceptedAnswer": {"@type": "Answer", "text": "分贝本质是功率比的对数（贝尔的 10 倍），声功率、电功率等能量量都用 10·log10。"}}, {"@type": "Question", "name": "和电压 dB 有何不同？", "acceptedAnswer": {"@type": "Answer", "text": "电压/声压与功率的平方根相关，故用 20·log10；同一比值下电压 dB 是功率 dB 的两倍。"}}]}
+
+function __decibel_power_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __decibel_power_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p1=num('p1'),p2=num('p2');
+    if (!isFinite(__decibel_power_ratioNum('p1')) || !isFinite(__decibel_power_ratioNum('p2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#decibel_power_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['功率比 (dB)', (10*Math.log10(p2/p1)).toFixed(2)],
+            ['线性比 P₂/P₁', (p2/p1).toFixed(3)],
+            ['倍频数 (oct)', (10*Math.log10(p2/p1)/3.0103).toFixed(3)],
+            ['等效电压级 (dB)', (20*Math.log10(p2/p1)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p1:__decibel_power_ratioNum('p1'), p2:__decibel_power_ratioNum('p2')});
+    TBKit.history.mount('#decibel_power_ratioHist',function(rec){ if(rec.p1!=null)document.getElementById('p1').value=rec.p1; if(rec.p2!=null)document.getElementById('p2').value=rec.p2; calcTool(); });
+}
+function __decibel_power_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#decibel_power_ratioTable','decibel-power-ratio.csv'); } catch(e){}
+}
+function __decibel_power_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#decibel_power_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{p1:'1', p2:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p1:'2', p2:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p1:'0.5', p2:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __decibel_power_ratioExtras(); }catch(e){} };
+function __decibel_power_ratioBoot(){ try{ __decibel_power_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __decibel_power_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __decibel_power_ratioBoot);
 </script>
 </body>
 </html>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="room_axial_modePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__room_axial_modeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="room_axial_modeTable"></div>
+    <div id="room_axial_modeDiff"></div>
+    <div id="room_axial_modeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -292,6 +298,42 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "轴向模态和斜向/切向模态区别？", "acceptedAnswer": {"@type": "Answer", "text": "轴向只沿一个维度（n 取一维），切向沿二维、斜向沿三维；轴向通常能量最强、最需关注。"}}, {"@type": "Question", "name": "小房间为什么低频难处理？", "acceptedAnswer": {"@type": "Answer", "text": "模态频率稀疏且集中在可听低频，相邻模态间出现声染色（某些频率过强或过弱）。"}}]}
+
+function __room_axial_modeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __room_axial_modeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L=num('L'),n=num('n'),c=num('c');
+    if (!isFinite(__room_axial_modeNum('L')) || !isFinite(__room_axial_modeNum('n')) || !isFinite(__room_axial_modeNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#room_axial_modeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['轴向共振频率 (Hz)', (n*c/(2*L)).toFixed(2)],
+            ['对应波长 (m)', (2*L/(n||1)).toFixed(4)],
+            ['基模频率 (Hz)', (c/(2*L)).toFixed(2)],
+            ['二次轴向频率 (Hz)', (n*c/L).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({L:__room_axial_modeNum('L'), n:__room_axial_modeNum('n'), c:__room_axial_modeNum('c')});
+    TBKit.history.mount('#room_axial_modeHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+}
+function __room_axial_modeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#room_axial_modeTable','room-axial-mode.csv'); } catch(e){}
+}
+function __room_axial_modePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#room_axial_modePresets',[
+        {label:'默认',labelEn:'Default',values:{L:'5', n:'1', c:'343'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'10', n:'2', c:'686'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'2.5', n:'0.5', c:'171.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __room_axial_modeExtras(); }catch(e){} };
+function __room_axial_modeBoot(){ try{ __room_axial_modePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __room_axial_modeBoot();
+else document.addEventListener('DOMContentLoaded', __room_axial_modeBoot);
 </script>
 </body>
 </html>

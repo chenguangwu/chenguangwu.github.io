@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="decibel_voltage_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__decibel_voltage_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="decibel_voltage_ratioTable"></div>
+    <div id="decibel_voltage_ratioDiff"></div>
+    <div id="decibel_voltage_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -287,6 +293,42 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么电压用 20 而不是 10？", "acceptedAnswer": {"@type": "Answer", "text": "功率∝电压²，功率 dB 用 10·log10，展开后即 20·log10(电压比)，故电压/声压量用 20 倍系数。"}}, {"@type": "Question", "name": "负 dB 代表什么？", "acceptedAnswer": {"@type": "Answer", "text": "负值表示比值小于 1，即衰减或电平低于基准。"}}]}
+
+function __decibel_voltage_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __decibel_voltage_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v1=num('v1'),v2=num('v2');
+    if (!isFinite(__decibel_voltage_ratioNum('v1')) || !isFinite(__decibel_voltage_ratioNum('v2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#decibel_voltage_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电压比 (dB)', (20*Math.log10(v2/v1)).toFixed(2)],
+            ['线性比 V₂/V₁', (v2/v1).toFixed(3)],
+            ['倍频数 (oct)', (20*Math.log10(v2/v1)/6.0206).toFixed(3)],
+            ['等效功率级 (dB)', (10*Math.log10(v2/v1)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({v1:__decibel_voltage_ratioNum('v1'), v2:__decibel_voltage_ratioNum('v2')});
+    TBKit.history.mount('#decibel_voltage_ratioHist',function(rec){ if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; calcTool(); });
+}
+function __decibel_voltage_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#decibel_voltage_ratioTable','decibel-voltage-ratio.csv'); } catch(e){}
+}
+function __decibel_voltage_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#decibel_voltage_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{v1:'1', v2:'3.16'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v1:'2', v2:'6.32'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v1:'0.5', v2:'1.58'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __decibel_voltage_ratioExtras(); }catch(e){} };
+function __decibel_voltage_ratioBoot(){ try{ __decibel_voltage_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __decibel_voltage_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __decibel_voltage_ratioBoot);
 </script>
 </body>
 </html>

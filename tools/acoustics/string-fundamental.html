@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="string_fundamentalPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__string_fundamentalExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="string_fundamentalTable"></div>
+    <div id="string_fundamentalDiff"></div>
+    <div id="string_fundamentalHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -291,6 +297,42 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么拧紧弦音变高？", "acceptedAnswer": {"@type": "Answer", "text": "张力 T 增大使 √(T/μ) 增大，基频升高，故调音靠拧弦轴改变张力。"}}, {"@type": "Question", "name": "线密度如何影响？", "acceptedAnswer": {"@type": "Answer", "text": "μ 越大基频越低，粗弦或高密度材料音更低，常与张力配合定音。"}}]}
+
+function __string_fundamentalNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __string_fundamentalExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L = num('L'), T = num('T'), mu = num('mu');
+    var f1 = (1 / (2 * L)) * Math.sqrt(T / mu);
+    if (!isFinite(__string_fundamentalNum('L')) || !isFinite(__string_fundamentalNum('T')) || !isFinite(__string_fundamentalNum('mu'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#string_fundamentalTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['基频 f₁ (Hz)', f1.toFixed(2)],
+            ['二次谐波 (Hz)', (f1 * 2).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({L:__string_fundamentalNum('L'), T:__string_fundamentalNum('T'), mu:__string_fundamentalNum('mu'), f1:f1});
+    TBKit.history.mount('#string_fundamentalHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.T!=null)document.getElementById('T').value=rec.T; if(rec.mu!=null)document.getElementById('mu').value=rec.mu; calcTool(); });
+    TBKit.util.diffBox('#string_fundamentalDiff',['f1']);
+}
+function __string_fundamentalExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#string_fundamentalTable','string-fundamental.csv'); } catch(e){}
+}
+function __string_fundamentalPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#string_fundamentalPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'0.65', T:'80', mu:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'1.3', T:'160', mu:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'0.325', T:'40', mu:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __string_fundamentalExtras(); }catch(e){} };
+function __string_fundamentalBoot(){ try{ __string_fundamentalPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __string_fundamentalBoot();
+else document.addEventListener('DOMContentLoaded', __string_fundamentalBoot);
 </script>
 </body>
 </html>

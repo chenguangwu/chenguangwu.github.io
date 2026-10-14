@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="intensity_levelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__intensity_levelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="intensity_levelTable"></div>
+    <div id="intensity_levelDiff"></div>
+    <div id="intensity_levelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -300,6 +306,45 @@ calcTool();
 </div></section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "声强级和声压级有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "声强级由声强定义，声压级由声压定义；自由场且平面波时二者数值相等。"}}, {"@type": "Question", "name": "I0=10⁻¹² 是怎么来的？", "acceptedAnswer": {"@type": "Answer", "text": "这是人耳在 1 kHz 附近可听阈的近似声强，被定为声强级基准。"}}]}
+
+function __intensity_levelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __intensity_levelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I=num('I'), I0=1e-12;
+    var LI=10*Math.log10(I/I0);
+    if (!isFinite(__intensity_levelNum('I'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#intensity_levelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['声强级 L_I (dB)', LI.toFixed(2)],
+            ['参考声强 I₀ (W/m²)', I0],
+            ['由声强级反推声强比', (Math.pow(10,LI/10)).toExponential(4)],
+            ['声强比（线性）', (I/Math.max(I0,1e-30)).toExponential(4)],
+            ['声强级十分之一', (LI/10).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({I:__intensity_levelNum('I'), LI:LI});
+    TBKit.history.mount('#intensity_levelHist',function(rec){ if(rec.I!=null)document.getElementById('I').value=rec.I; calcTool(); });
+    TBKit.util.diffBox('#intensity_levelDiff',['LI']);
+}
+function __intensity_levelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#intensity_levelTable','intensity-level.csv'); } catch(e){}
+}
+function __intensity_levelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#intensity_levelPresets',[
+        {label:'默认',labelEn:'Default',values:{I:'1e-6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __intensity_levelExtras(); }catch(e){} };
+function __intensity_levelBoot(){ try{ __intensity_levelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __intensity_levelBoot();
+else document.addEventListener('DOMContentLoaded', __intensity_levelBoot);
 </script>
 </body>
 </html>

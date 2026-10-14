@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="intensity_inverse_squarePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__intensity_inverse_squareExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="intensity_inverse_squareTable"></div>
+    <div id="intensity_inverse_squareDiff"></div>
+    <div id="intensity_inverse_squareHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -304,6 +310,42 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么距离加倍降 6 dB？", "acceptedAnswer": {"@type": "Answer", "text": "声强与距离平方成反比，能量扩散到 4 倍面积，10·log10(1/4)≈−6 dB。"}}, {"@type": "Question", "name": "反平方定律何时不成立？", "acceptedAnswer": {"@type": "Answer", "text": "仅在自由场、点源、无反射吸收时成立；室内混响场中衰减更慢。"}}]}
+
+function __intensity_inverse_squareNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __intensity_inverse_squareExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var I1 = num('I1'), r1 = num('r1'), r2 = num('r2');
+    var I2 = I1 * Math.pow(r1 / r2, 2);
+    if (!isFinite(__intensity_inverse_squareNum('I1')) || !isFinite(__intensity_inverse_squareNum('r1')) || !isFinite(__intensity_inverse_squareNum('r2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#intensity_inverse_squareTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['目标声强 I₂ (W/m²)', I2.toFixed(2)],
+            ['声强级 (dB)', (10 * Math.log10(I2 / 1e-12)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({I1:__intensity_inverse_squareNum('I1'), r1:__intensity_inverse_squareNum('r1'), r2:__intensity_inverse_squareNum('r2'), I2:I2});
+    TBKit.history.mount('#intensity_inverse_squareHist',function(rec){ if(rec.I1!=null)document.getElementById('I1').value=rec.I1; if(rec.r1!=null)document.getElementById('r1').value=rec.r1; if(rec.r2!=null)document.getElementById('r2').value=rec.r2; calcTool(); });
+    TBKit.util.diffBox('#intensity_inverse_squareDiff',['I2']);
+}
+function __intensity_inverse_squareExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#intensity_inverse_squareTable','intensity-inverse-square.csv'); } catch(e){}
+}
+function __intensity_inverse_squarePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#intensity_inverse_squarePresets',[
+        {label:'默认',labelEn:'Default',values:{I1:'100', r1:'1', r2:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I1:'200', r1:'2', r2:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I1:'50', r1:'0.5', r2:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __intensity_inverse_squareExtras(); }catch(e){} };
+function __intensity_inverse_squareBoot(){ try{ __intensity_inverse_squarePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __intensity_inverse_squareBoot();
+else document.addEventListener('DOMContentLoaded', __intensity_inverse_squareBoot);
 </script>
 </body>
 </html>

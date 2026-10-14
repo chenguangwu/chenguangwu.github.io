@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="spring_natural_freqPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__spring_natural_freqExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="spring_natural_freqTable"></div>
+    <div id="spring_natural_freqDiff"></div>
+    <div id="spring_natural_freqHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "固有频率低代表什么？", "acceptedAnswer": {"@type": "Answer", "text": "质量大或刚度小则固有频率低，越容易隔离高频扰动（隔振比更高）。"}}, {"@type": "Question", "name": "和音频声学有什么关系？", "acceptedAnswer": {"@type": "Answer", "text": "结构振动会辐射声波，固有频率决定结构噪声的主要频段，是声学设计的耦合点。"}}]}
+
+function __spring_natural_freqNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spring_natural_freqExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k = num('k'), m = num('m');
+    var f = (1 / (2 * Math.PI)) * Math.sqrt(k / m);
+    if (!isFinite(__spring_natural_freqNum('k')) || !isFinite(__spring_natural_freqNum('m'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#spring_natural_freqTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['固有频率 f (Hz)', f.toFixed(4)],
+            ['角频率 ω (rad/s)', (2 * Math.PI * f).toFixed(4)],
+            ['固有周期 T (s)', (1/f).toFixed(4)],
+            ['每分钟振动次数 (cpm)', (f*60).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({k:__spring_natural_freqNum('k'), m:__spring_natural_freqNum('m'), f:f});
+    TBKit.history.mount('#spring_natural_freqHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.m!=null)document.getElementById('m').value=rec.m; calcTool(); });
+    TBKit.util.diffBox('#spring_natural_freqDiff',['f']);
+}
+function __spring_natural_freqExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spring_natural_freqTable','spring-natural-freq.csv'); } catch(e){}
+}
+function __spring_natural_freqPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#spring_natural_freqPresets',[
+        {label:'默认',labelEn:'Default',values:{k:'100', m:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'200', m:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'50', m:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __spring_natural_freqExtras(); }catch(e){} };
+function __spring_natural_freqBoot(){ try{ __spring_natural_freqPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __spring_natural_freqBoot();
+else document.addEventListener('DOMContentLoaded', __spring_natural_freqBoot);
 </script>
 </body>
 </html>

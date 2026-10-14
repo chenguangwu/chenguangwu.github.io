@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wavelength_from_freqPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wavelength_from_freqExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wavelength_from_freqTable"></div>
+    <div id="wavelength_from_freqDiff"></div>
+    <div id="wavelength_from_freqHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -288,6 +294,43 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "同频声波在不同介质波长一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一样：波长取决于介质声速，水中声速约为空气 4.3 倍，同频波长也约 4.3 倍。"}}, {"@type": "Question", "name": "为什么超声成像看分辨率看波长？", "acceptedAnswer": {"@type": "Answer", "text": "分辨率约为一个波长量级，波长越短（频率越高）分辨细节越细。"}}]}
+
+function __wavelength_from_freqNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wavelength_from_freqExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f'),c=num('c');
+    if (!isFinite(__wavelength_from_freqNum('f')) || !isFinite(__wavelength_from_freqNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wavelength_from_freqTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['波长 λ (m)', (c/f).toFixed(4)],
+            ['波长 (cm)', ((c/f)*100).toFixed(2)],
+            ['周期 (ms)', (1000/f).toFixed(4)],
+            ['波长 (mm)', (c/f*1000).toFixed(3)],
+            ['波数 (1/m)', (f/c).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({f:__wavelength_from_freqNum('f'), c:__wavelength_from_freqNum('c')});
+    TBKit.history.mount('#wavelength_from_freqHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+}
+function __wavelength_from_freqExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wavelength_from_freqTable','wavelength-from-freq.csv'); } catch(e){}
+}
+function __wavelength_from_freqPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wavelength_from_freqPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'1000', c:'343'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'2000', c:'686'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'500', c:'171.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wavelength_from_freqExtras(); }catch(e){} };
+function __wavelength_from_freqBoot(){ try{ __wavelength_from_freqPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wavelength_from_freqBoot();
+else document.addEventListener('DOMContentLoaded', __wavelength_from_freqBoot);
 </script>
 </body>
 </html>

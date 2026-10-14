@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="doppler_acousticPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__doppler_acousticExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="doppler_acousticTable"></div>
+    <div id="doppler_acousticDiff"></div>
+    <div id="doppler_acousticHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -306,6 +312,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么靠近时音调变高？", "acceptedAnswer": {"@type": "Answer", "text": "声源朝听者运动时波前被压缩，到达频率升高；远离时波前拉伸，频率降低。"}}, {"@type": "Question", "name": "听者运动与声源运动对称吗？", "acceptedAnswer": {"@type": "Answer", "text": "公式不对称：听者运动改分母（接收率），声源运动改分子（波间距），但极限结果相近。"}}]}
+
+function __doppler_acousticNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __doppler_acousticExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f = num('f'), v = num('v'), vs = num('vs');
+    var fp = f * v / (v - vs);
+    if (!isFinite(__doppler_acousticNum('f')) || !isFinite(__doppler_acousticNum('v')) || !isFinite(__doppler_acousticNum('vs'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#doppler_acousticTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['观测频率 f′ (Hz)', fp.toFixed(2)],
+            ['频率偏移 (Hz)', (fp - f).toFixed(2)],
+            ['声源速度比 v_s/v', (vs/v).toFixed(4)],
+            ['声源远离时观测频率 (Hz)', (f*v/(v+vs)).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({f:__doppler_acousticNum('f'), v:__doppler_acousticNum('v'), vs:__doppler_acousticNum('vs'), fp:fp});
+    TBKit.history.mount('#doppler_acousticHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.vs!=null)document.getElementById('vs').value=rec.vs; calcTool(); });
+    TBKit.util.diffBox('#doppler_acousticDiff',['fp']);
+}
+function __doppler_acousticExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#doppler_acousticTable','doppler-acoustic.csv'); } catch(e){}
+}
+function __doppler_acousticPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#doppler_acousticPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'440', v:'343', vs:'34.3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'880', v:'686', vs:'68.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'220', v:'171.5', vs:'17.15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __doppler_acousticExtras(); }catch(e){} };
+function __doppler_acousticBoot(){ try{ __doppler_acousticPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __doppler_acousticBoot();
+else document.addEventListener('DOMContentLoaded', __doppler_acousticBoot);
 </script>
 </body>
 </html>
