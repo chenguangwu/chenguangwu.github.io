@@ -192,7 +192,9 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="fish_tank_volumePresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算水量</button>
+      <button class="btn" type="button" onclick="__fish_tank_volumeExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
@@ -220,6 +222,10 @@ s.parentNode.insertBefore(el, s);
       <p>• 实际水量约为满水量的80-85%（扣除底砂、装饰、水位留空）</p>
       <li>换水建议每次换1/4至1/3，每周或每两周一次</p>
     </div>
+    <div id="fish_tank_volumeTable"></div>
+    <div id="fish_tank_volumeDiff"></div>
+    <div id="fish_tank_volumeChart"></div>
+    <div id="fish_tank_volumeHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -458,6 +464,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __fish_tank_volume_last=0,__fish_tank_volume_skip=false;
+function __fish_tank_volumeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __fish_tank_volumeResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __fish_tank_volumeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __fish_tank_volumeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__fish_tank_volumeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#fish_tank_volumeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#fish_tank_volumeDiff');
+        TBKit.history.mount('#fish_tank_volumeHist',function(rec){
+            __fish_tank_volume_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __fish_tank_volume_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__fish_tank_volumeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#fish_tank_volumeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __fish_tank_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__fish_tank_volume_skip) return;
+    var snap=__fish_tank_volumeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__fish_tank_volumeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__fish_tank_volume_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __fish_tank_volume_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __fish_tank_volumeRender(keys,rk,en);
+}
+function __fish_tank_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fish_tank_volumeTable','fish-tank-volume.csv'); } catch(e){}
+}
+function __fish_tank_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fish_tank_volumePresets',[{label:'默认参数',labelEn:'Default',values:{'length':'60', 'width':'30', 'diameter':'40', 'frontLen':'60', 'backLen':'50', 'bowWidth':'30', 'height':'35', 'substrate':'5'}}],function(){ calc(); });
+}
+var __fish_tank_volume_f0=(typeof calc==='function')?calc:null;
+if(__fish_tank_volume_f0){
+    calc=function(){ var __r=__fish_tank_volume_f0.apply(null,arguments); try{ __fish_tank_volumeExtras(); }catch(e){} return __r; };
+}
+function __fish_tank_volumeBoot(){ try{ __fish_tank_volumePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fish_tank_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __fish_tank_volumeBoot);
 </script>
 
 </body>

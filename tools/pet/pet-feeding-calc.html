@@ -176,7 +176,9 @@ s.parentNode.insertBefore(el, s);
     <div class="opt-list" id="activityList"></div>
 
     <div class="toolbar">
+      <div id="pet_feeding_calcPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__pet_feeding_calcExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
@@ -197,6 +199,10 @@ s.parentNode.insertBefore(el, s);
       <p>• 建议参考狗粮/猫粮包装上的喂食指南，结合实际情况调整</p>
       <p>• 孕期/哺乳期宠物需增加 25-50% 喂食量</p>
     </div>
+    <div id="pet_feeding_calcTable"></div>
+    <div id="pet_feeding_calcDiff"></div>
+    <div id="pet_feeding_calcChart"></div>
+    <div id="pet_feeding_calcHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -448,6 +454,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __pet_feeding_calc_last=0,__pet_feeding_calc_skip=false;
+function __pet_feeding_calcSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pet_feeding_calcResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pet_feeding_calcTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pet_feeding_calcRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pet_feeding_calcTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pet_feeding_calcTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pet_feeding_calcDiff');
+        TBKit.history.mount('#pet_feeding_calcHist',function(rec){
+            __pet_feeding_calc_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __pet_feeding_calc_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pet_feeding_calcTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pet_feeding_calcChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pet_feeding_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pet_feeding_calc_skip) return;
+    var snap=__pet_feeding_calcSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pet_feeding_calcResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pet_feeding_calc_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pet_feeding_calc_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pet_feeding_calcRender(keys,rk,en);
+}
+function __pet_feeding_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pet_feeding_calcTable','pet-feeding-calc.csv'); } catch(e){}
+}
+function __pet_feeding_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pet_feeding_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'weight':'10', 'calDensity':'3.5'}}],function(){ calc(); });
+}
+var __pet_feeding_calc_f0=(typeof calc==='function')?calc:null;
+if(__pet_feeding_calc_f0){
+    calc=function(){ var __r=__pet_feeding_calc_f0.apply(null,arguments); try{ __pet_feeding_calcExtras(); }catch(e){} return __r; };
+}
+function __pet_feeding_calcBoot(){ try{ __pet_feeding_calcPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pet_feeding_calcBoot();
+else document.addEventListener('DOMContentLoaded', __pet_feeding_calcBoot);
 </script>
 
 </body>
