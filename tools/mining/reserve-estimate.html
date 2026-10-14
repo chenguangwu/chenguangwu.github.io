@@ -158,11 +158,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="reserve_estimatePresets"></div>
       <button type="button" class="btn primary" onclick="calc()">估算储量</button>
+      <button class="btn" type="button" onclick="__reserve_estimateExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="reserve_estimateTable"></div>
+    <div id="reserve_estimateDiff"></div>
+    <div id="reserve_estimateChart"></div>
+    <div id="reserve_estimateHist"></div>
   </div>
 
   <div class="card">
@@ -384,6 +390,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __reserve_estimate_last=0,__reserve_estimate_skip=false;
+function __reserve_estimateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __reserve_estimateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __reserve_estimateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __reserve_estimateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__reserve_estimateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#reserve_estimateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#reserve_estimateDiff');
+        TBKit.history.mount('#reserve_estimateHist',function(rec){
+            __reserve_estimate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __reserve_estimate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__reserve_estimateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#reserve_estimateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __reserve_estimateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__reserve_estimate_skip) return;
+    var snap=__reserve_estimateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__reserve_estimateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__reserve_estimate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __reserve_estimate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __reserve_estimateRender(keys,rk,en);
+}
+function __reserve_estimateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#reserve_estimateTable','reserve-estimate.csv'); } catch(e){}
+}
+function __reserve_estimatePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#reserve_estimatePresets',[{label:'默认参数',labelEn:'Default',values:{areaInput:'50000', thickInput:'12.5', densityInput:'2.8', gradeInput:'3.2', gradeUnit:'gt', recoveryInput:'85'}}],function(){ calc(); });
+}
+var __reserve_estimate_f0=(typeof calc==='function')?calc:null;
+if(__reserve_estimate_f0){
+    calc=function(){ __reserve_estimate_f0.apply(null,arguments); try{ __reserve_estimateExtras(); }catch(e){} };
+}
+function __reserve_estimateBoot(){ try{ __reserve_estimatePresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __reserve_estimateBoot();
+else document.addEventListener('DOMContentLoaded', __reserve_estimateBoot);
 </script>
 
 </body>
