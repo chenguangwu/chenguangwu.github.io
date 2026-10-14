@@ -146,11 +146,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="fermentation_brixPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__fermentation_brixExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fermentation_brixTable"></div>
+    <div id="fermentation_brixDiff"></div>
+    <div id="fermentation_brixChart"></div>
+    <div id="fermentation_brixHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:12px;">
       糖度差 ΔBrix 反映可发酵糖消耗量。糖消耗 ≈ ΔBrix × 10 × 体积(L)（g，按密度≈1kg/L近似）。酒精生成 = 糖消耗 × 0.511 × 发酵效率。ABV = 酒精质量÷0.789÷体积×100%。注意：Brix 受酒精影响，终了 Brix 偏低，结果为近似推算。
@@ -329,6 +335,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __fermentation_brix_last=0,__fermentation_brix_skip=false;
+function __fermentation_brixSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __fermentation_brixResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __fermentation_brixTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __fermentation_brixRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__fermentation_brixTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#fermentation_brixTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#fermentation_brixDiff');
+        TBKit.history.mount('#fermentation_brixHist',function(rec){
+            __fermentation_brix_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __fermentation_brix_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__fermentation_brixTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#fermentation_brixChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __fermentation_brixExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__fermentation_brix_skip) return;
+    var snap=__fermentation_brixSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__fermentation_brixResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__fermentation_brix_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __fermentation_brix_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __fermentation_brixRender(keys,rk,en);
+}
+function __fermentation_brixExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fermentation_brixTable','fermentation-brix.csv'); } catch(e){}
+}
+function __fermentation_brixPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fermentation_brixPresets',[{label:'默认参数',labelEn:'Default',values:{'vol':'100', 'b0':'20', 'b1':'6', 'theoYield':'0.511', 'eff':'92'}}],function(){ calc(); });
+}
+var __fermentation_brix_f0=(typeof calc==='function')?calc:null;
+if(__fermentation_brix_f0){
+    calc=function(){ var __r=__fermentation_brix_f0.apply(null,arguments); try{ __fermentation_brixExtras(); }catch(e){} return __r; };
+}
+function __fermentation_brixBoot(){ try{ __fermentation_brixPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fermentation_brixBoot();
+else document.addEventListener('DOMContentLoaded', __fermentation_brixBoot);
 </script>
 
 </body>

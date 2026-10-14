@@ -150,11 +150,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="residual_oxygenPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">估算</button>
+      <button class="btn" type="button" onclick="__residual_oxygenExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="residual_oxygenTable"></div>
+    <div id="residual_oxygenDiff"></div>
+    <div id="residual_oxygenChart"></div>
+    <div id="residual_oxygenHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:12px;">
       顶空气积 = 包装总容积 − 产品体积。初始残氧量 = 顶空气积 × 初始氧浓度%。储存期由包装透氧率（OTR）按 Fick 定律近似渗入氧量 = OTR × 面积(m²) × 天数 × (21% − 内部氧浓度)。残氧过高会引发油脂氧化、好氧菌生长。
@@ -332,6 +338,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __residual_oxygen_last=0,__residual_oxygen_skip=false;
+function __residual_oxygenSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __residual_oxygenResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __residual_oxygenTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __residual_oxygenRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__residual_oxygenTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#residual_oxygenTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#residual_oxygenDiff');
+        TBKit.history.mount('#residual_oxygenHist',function(rec){
+            __residual_oxygen_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __residual_oxygen_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__residual_oxygenTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#residual_oxygenChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __residual_oxygenExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__residual_oxygen_skip) return;
+    var snap=__residual_oxygenSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__residual_oxygenResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__residual_oxygen_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __residual_oxygen_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __residual_oxygenRender(keys,rk,en);
+}
+function __residual_oxygenExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#residual_oxygenTable','residual-oxygen.csv'); } catch(e){}
+}
+function __residual_oxygenPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#residual_oxygenPresets',[{label:'默认参数',labelEn:'Default',values:{'vol':'500', 'pvol':'400', 'o2init':'2', 'otr':'20', 'area':'300', 'days':'180'}}],function(){ calc(); });
+}
+var __residual_oxygen_f0=(typeof calc==='function')?calc:null;
+if(__residual_oxygen_f0){
+    calc=function(){ var __r=__residual_oxygen_f0.apply(null,arguments); try{ __residual_oxygenExtras(); }catch(e){} return __r; };
+}
+function __residual_oxygenBoot(){ try{ __residual_oxygenPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __residual_oxygenBoot();
+else document.addEventListener('DOMContentLoaded', __residual_oxygenBoot);
 </script>
 
 </body>

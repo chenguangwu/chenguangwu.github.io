@@ -150,11 +150,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="dough_absorptionPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__dough_absorptionExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dough_absorptionTable"></div>
+    <div id="dough_absorptionDiff"></div>
+    <div id="dough_absorptionChart"></div>
+    <div id="dough_absorptionHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:12px;">
       吸水率（烘焙百分比）= 总加水量 ÷ 面粉重量 × 100%。面团最终水分含量 = 面团总水分 ÷ 面团总重 × 100%。一般主食面包面团水分约 60-65%，欧包 65-75%，吐司 62-68%。
@@ -344,6 +350,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __dough_absorption_last=0,__dough_absorption_skip=false;
+function __dough_absorptionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __dough_absorptionResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __dough_absorptionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __dough_absorptionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__dough_absorptionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#dough_absorptionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#dough_absorptionDiff');
+        TBKit.history.mount('#dough_absorptionHist',function(rec){
+            __dough_absorption_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __dough_absorption_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__dough_absorptionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#dough_absorptionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __dough_absorptionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__dough_absorption_skip) return;
+    var snap=__dough_absorptionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__dough_absorptionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__dough_absorption_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __dough_absorption_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __dough_absorptionRender(keys,rk,en);
+}
+function __dough_absorptionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dough_absorptionTable','dough-absorption.csv'); } catch(e){}
+}
+function __dough_absorptionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dough_absorptionPresets',[{label:'默认参数',labelEn:'Default',values:{'flour':'1000', 'flourMoist':'13.5', 'water':'620', 'otherLiquid':'0', 'dryAdd':'20', 'dryMoist':'2'}}],function(){ calc(); });
+}
+var __dough_absorption_f0=(typeof calc==='function')?calc:null;
+if(__dough_absorption_f0){
+    calc=function(){ var __r=__dough_absorption_f0.apply(null,arguments); try{ __dough_absorptionExtras(); }catch(e){} return __r; };
+}
+function __dough_absorptionBoot(){ try{ __dough_absorptionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dough_absorptionBoot();
+else document.addEventListener('DOMContentLoaded', __dough_absorptionBoot);
 </script>
 
 </body>

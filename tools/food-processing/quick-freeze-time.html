@@ -164,11 +164,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="quick_freeze_timePresets"></div>
       <button type="button" class="btn primary" onclick="calc()">估算</button>
+      <button class="btn" type="button" onclick="__quick_freeze_timeExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="quick_freeze_timeTable"></div>
+    <div id="quick_freeze_timeDiff"></div>
+    <div id="quick_freeze_timeChart"></div>
+    <div id="quick_freeze_timeHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:12px;">
       Plank 方程：t = (ρ λ / (T_f − T∞)) × (P·d / h + R·d² / k)。形状因子：平板 P=1/2,R=1/8；圆柱 P=1/4,R=1/16；球体 P=1/6,R=1/24。仅计算相变冻结时间，未含预冷与过冷。速冻要求通过 −1~−5℃ 最大冰晶带不超过 30min。
@@ -351,6 +357,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __quick_freeze_time_last=0,__quick_freeze_time_skip=false;
+function __quick_freeze_timeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __quick_freeze_timeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __quick_freeze_timeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __quick_freeze_timeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__quick_freeze_timeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#quick_freeze_timeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#quick_freeze_timeDiff');
+        TBKit.history.mount('#quick_freeze_timeHist',function(rec){
+            __quick_freeze_time_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __quick_freeze_time_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__quick_freeze_timeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#quick_freeze_timeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __quick_freeze_timeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__quick_freeze_time_skip) return;
+    var snap=__quick_freeze_timeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__quick_freeze_timeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__quick_freeze_time_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __quick_freeze_time_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __quick_freeze_timeRender(keys,rk,en);
+}
+function __quick_freeze_timeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#quick_freeze_timeTable','quick-freeze-time.csv'); } catch(e){}
+}
+function __quick_freeze_timePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#quick_freeze_timePresets',[{label:'默认参数',labelEn:'Default',values:{'shape':'slab', 'd':'50', 'Tf':'-1.5', 'Tinf':'-35', 'h':'50', 'L':'230', 'rho':'1000', 'k':'1.5'}}],function(){ calc(); });
+}
+var __quick_freeze_time_f0=(typeof calc==='function')?calc:null;
+if(__quick_freeze_time_f0){
+    calc=function(){ var __r=__quick_freeze_time_f0.apply(null,arguments); try{ __quick_freeze_timeExtras(); }catch(e){} return __r; };
+}
+function __quick_freeze_timeBoot(){ try{ __quick_freeze_timePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __quick_freeze_timeBoot();
+else document.addEventListener('DOMContentLoaded', __quick_freeze_timeBoot);
 </script>
 
 </body>

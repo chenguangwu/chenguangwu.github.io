@@ -149,11 +149,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="smoking_concentrationPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">模拟</button>
+      <button class="btn" type="button" onclick="__smoking_concentrationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="smoking_concentrationTable"></div>
+    <div id="smoking_concentrationDiff"></div>
+    <div id="smoking_concentrationChart"></div>
+    <div id="smoking_concentrationHist"></div>
 
     <div class="tip-box tip-warning" style="margin-top:12px;">
       本工具基于经验模型粗略估算，结果仅供工艺参考。苯并芘（BaP）为致癌物，GB 2762 规定熏烤肉制品 BaP 限量 ≤5 μg/kg。降低 BaP 的措施：使用液熏剂替代、控温低于 200℃、避免油脂滴落明火、缩短熏制时间、增加过滤。
@@ -394,6 +400,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __smoking_concentration_last=0,__smoking_concentration_skip=false;
+function __smoking_concentrationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __smoking_concentrationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __smoking_concentrationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __smoking_concentrationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__smoking_concentrationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#smoking_concentrationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#smoking_concentrationDiff');
+        TBKit.history.mount('#smoking_concentrationHist',function(rec){
+            __smoking_concentration_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __smoking_concentration_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__smoking_concentrationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#smoking_concentrationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __smoking_concentrationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__smoking_concentration_skip) return;
+    var snap=__smoking_concentrationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__smoking_concentrationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__smoking_concentration_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __smoking_concentration_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __smoking_concentrationRender(keys,rk,en);
+}
+function __smoking_concentrationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#smoking_concentrationTable','smoking-concentration.csv'); } catch(e){}
+}
+function __smoking_concentrationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#smoking_concentrationPresets',[{label:'默认参数',labelEn:'Default',values:{'vol':'2', 'wood':'300', 'smokeRate':'5', 'phenolRatio':'8', 't':'120', 'vent':'3', 'temp':'60'}}],function(){ calc(); });
+}
+var __smoking_concentration_f0=(typeof calc==='function')?calc:null;
+if(__smoking_concentration_f0){
+    calc=function(){ var __r=__smoking_concentration_f0.apply(null,arguments); try{ __smoking_concentrationExtras(); }catch(e){} return __r; };
+}
+function __smoking_concentrationBoot(){ try{ __smoking_concentrationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __smoking_concentrationBoot();
+else document.addEventListener('DOMContentLoaded', __smoking_concentrationBoot);
 </script>
 
 </body>
