@@ -169,12 +169,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="convert()">转换</button>
+      <div id="timezone_converter_advancedPresets"></div><button type="button" class="btn primary" onclick="convert()">转换</button><button class="btn" type="button" onclick="__timezone_converter_advancedExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="setNow()">使用当前时间</button>
       <button type="button" class="btn" onclick="swapTz()">交换单位</button>
     </div>
 
-    <div class="result-box" id="resultBox">请选择时区进行转换</div>
+    <div class="result-box" id="resultBox">请选择时区进行转换</div> <div id="timezone_converter_advancedTable"></div> <div id="timezone_converter_advancedDiff"></div> <div id="timezone_converter_advancedChart"></div> <div id="timezone_converter_advancedHist"></div>
   </div>
 
   <div class="card">
@@ -365,6 +365,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __timezone_converter_advanced_last=0,__timezone_converter_advanced_skip=false;
+function __timezone_converter_advancedSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __timezone_converter_advancedResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __timezone_converter_advancedTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __timezone_converter_advancedRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__timezone_converter_advancedTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#timezone_converter_advancedTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#timezone_converter_advancedDiff');
+        TBKit.history.mount('#timezone_converter_advancedHist',function(rec){
+            __timezone_converter_advanced_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                convert();
+            }catch(e2){}
+            __timezone_converter_advanced_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__timezone_converter_advancedTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#timezone_converter_advancedChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __timezone_converter_advancedExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__timezone_converter_advanced_skip) return;
+    var snap=__timezone_converter_advancedSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__timezone_converter_advancedResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__timezone_converter_advanced_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __timezone_converter_advanced_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __timezone_converter_advancedRender(keys,rk,en);
+}
+function __timezone_converter_advancedExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#timezone_converter_advancedTable','timezone-converter-advanced.csv'); } catch(e){}
+}
+function __timezone_converter_advancedPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __timezone_converter_advanced_f0=(typeof convert==='function')?convert:null;
+if(__timezone_converter_advanced_f0){
+    convert=function(){ var __r=__timezone_converter_advanced_f0.apply(null,arguments); try{ __timezone_converter_advancedExtras(); }catch(e){} return __r; };
+}
+function __timezone_converter_advancedBoot(){ try{ __timezone_converter_advancedPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __timezone_converter_advancedBoot();
+else document.addEventListener('DOMContentLoaded', __timezone_converter_advancedBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

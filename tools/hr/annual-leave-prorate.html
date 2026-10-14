@@ -129,12 +129,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="annual_leave_proratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__annual_leave_prorateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="annual_leave_prorateTable"></div>
+    <div id="annual_leave_prorateDiff"></div>
+    <div id="annual_leave_prorateHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -262,6 +268,56 @@ function resetForm(){document.getElementById('start').value='2026-03-15';
       document.getElementById('end').value='2026-12-31';
       calcTool();}
 calcTool();
+
+function __annual_leave_prorateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __annual_leave_prorateExtras(){
+    function __annual_leave_prorateRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var sRaw=document.getElementById('start').value;
+    var eRaw=document.getElementById('end').value;
+    var years=Math.floor(num('years'));
+    var s=new Date(sRaw), e=new Date(eRaw);
+    var annual = years<1?0 : years<10?5 : years<20?10 : 15;
+    var yearStart=new Date(e.getFullYear(),0,1);
+    var startEff= s>yearStart ? s : yearStart;   // 当年实际在职起点
+    var totalDays=(new Date(e.getFullYear(),11,31)-yearStart)/86400000+1;
+    var worked=(e-startEff)/86400000+1;
+    var days=annual*worked/totalDays;
+    var rounded=days<0.5?0:Math.ceil(days);
+    if (!isFinite(__annual_leave_prorateNum('years')) || !__annual_leave_prorateRaw('start') || !__annual_leave_prorateRaw('end')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#annual_leave_prorateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['应享年假基数', annual+' 天'],
+            ['当年在职天数', Math.round(worked)+' 天'],
+            ['当年总天数', totalDays+' 天'],
+            ['折算应休年假', rounded+' 天'],
+            ['折算精确值', days.toFixed(2)+' 天'],
+        ]
+    });
+    TBKit.history.record({years:__annual_leave_prorateRaw('years'), start:__annual_leave_prorateRaw('start'), end:__annual_leave_prorateRaw('end'), sRaw:sRaw});
+    function __annual_leave_prorateRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#annual_leave_prorateHist',function(rec){ __annual_leave_prorateRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#annual_leave_prorateDiff',['sRaw']);
+}
+function __annual_leave_prorateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#annual_leave_prorateTable','annual-leave-prorate.csv'); } catch(e){}
+}
+function __annual_leave_proratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#annual_leave_proratePresets',[
+        {label:'默认',labelEn:'Default',values:{years:'5', start:'2026-03-15', end:'2026-12-31'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{years:'10', start:'2026-03-15', end:'2026-12-31'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{years:'2.5', start:'2026-03-15', end:'2026-12-31'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __annual_leave_prorateExtras(); }catch(e){} };
+function __annual_leave_prorateBoot(){ try{ __annual_leave_proratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __annual_leave_prorateBoot();
+else document.addEventListener('DOMContentLoaded', __annual_leave_prorateBoot);
 </script>
 </body>
 </html>

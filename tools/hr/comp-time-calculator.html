@@ -131,12 +131,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="comp_time_calculatorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__comp_time_calculatorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="comp_time_calculatorTable"></div>
+    <div id="comp_time_calculatorDiff"></div>
+    <div id="comp_time_calculatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -256,6 +262,49 @@ function resetForm(){document.getElementById('hours').value='12';
       document.getElementById('workday').value='8';
       calcTool();}
 calcTool();
+
+function __comp_time_calculatorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __comp_time_calculatorExtras(){
+    function __comp_time_calculatorRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var hours=num('hours'), workday=num('workday')||8;
+    var dayType=document.getElementById('dayType').value;
+    var mult={weekday:1.5,weekend:2,holiday:3}[dayType]||2;
+    var typeName={weekday:'工作日延时',weekend:'休息日',holiday:'法定节假日'}[dayType]||'休息日';
+    var compDays=hours*mult/workday;
+    var payHours=hours*mult;
+    if (!isFinite(__comp_time_calculatorNum('hours')) || !isFinite(__comp_time_calculatorNum('workday')) || !__comp_time_calculatorRaw('dayType')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#comp_time_calculatorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['折算补休/工时', compDays.toFixed(1)+' 天'],
+            ['折算工时', payHours.toFixed(1)+' h'],
+            ['原始加班', hours.toFixed(1)+' h'],
+        ]
+    });
+    TBKit.history.record({hours:__comp_time_calculatorRaw('hours'), workday:__comp_time_calculatorRaw('workday'), dayType:__comp_time_calculatorRaw('dayType'), mult:mult});
+    function __comp_time_calculatorRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#comp_time_calculatorHist',function(rec){ __comp_time_calculatorRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#comp_time_calculatorDiff',['mult']);
+}
+function __comp_time_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#comp_time_calculatorTable','comp-time-calculator.csv'); } catch(e){}
+}
+function __comp_time_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#comp_time_calculatorPresets',[
+        {label:'默认',labelEn:'Default',values:{hours:'12', workday:'8', dayType:''}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{hours:'24', workday:'16', dayType:''}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{hours:'6', workday:'4', dayType:''}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __comp_time_calculatorExtras(); }catch(e){} };
+function __comp_time_calculatorBoot(){ try{ __comp_time_calculatorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __comp_time_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __comp_time_calculatorBoot);
 </script>
 </body>
 </html>

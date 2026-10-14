@@ -140,13 +140,13 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="generate()">生成问诊记录</button>
       <button type="button" class="btn" onclick="copyRecord()">复制记录</button>
-      <button type="button" class="btn" onclick="downloadRecord()">下载记录</button>
+      <div id="ten_questionsPresets"></div><button type="button" class="btn" onclick="downloadRecord()">下载记录</button><button class="btn" type="button" onclick="__ten_questionsExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="resetForm()">重置</button>
     </div>
 
     <div class="result-box" id="result" style="white-space:pre-wrap;font-size:13px;line-height:1.8;">
       <p style="color:var(--text-muted);white-space:normal;text-align:center;">填写问诊内容后点击「生成问诊记录」</p>
-    </div>
+    </div> <div id="ten_questionsTable"></div> <div id="ten_questionsDiff"></div> <div id="ten_questionsChart"></div> <div id="ten_questionsHist"></div>
 
     <div class="info-box" style="margin-top:16px;">
       💡 完整十问歌："再兼服药参机变，妇女尤必问经期，迟速闭崩皆可见，再添片语告儿科，天花麻疹全占验。"
@@ -414,6 +414,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __ten_questions_last=0,__ten_questions_skip=false;
+function __ten_questionsSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ten_questionsResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ten_questionsTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ten_questionsRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ten_questionsTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ten_questionsTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ten_questionsDiff');
+        TBKit.history.mount('#ten_questionsHist',function(rec){
+            __ten_questions_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadRecord();
+            }catch(e2){}
+            __ten_questions_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ten_questionsTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ten_questionsChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ten_questionsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ten_questions_skip) return;
+    var snap=__ten_questionsSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ten_questionsResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ten_questions_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ten_questions_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ten_questionsRender(keys,rk,en);
+}
+function __ten_questionsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ten_questionsTable','ten-questions.csv'); } catch(e){}
+}
+function __ten_questionsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ten_questionsPresets',[{label:'默认参数',labelEn:'Default',values:{'pGender':'男'}}],function(){ downloadRecord(); });
+}
+var __ten_questions_f0=(typeof downloadRecord==='function')?downloadRecord:null;
+if(__ten_questions_f0){
+    downloadRecord=function(){ var __r=__ten_questions_f0.apply(null,arguments); try{ __ten_questionsExtras(); }catch(e){} return __r; };
+}
+function __ten_questionsBoot(){ try{ __ten_questionsPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ten_questionsBoot();
+else document.addEventListener('DOMContentLoaded', __ten_questionsBoot);
 </script>
 
 </body>

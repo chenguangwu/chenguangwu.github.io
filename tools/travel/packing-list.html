@@ -268,7 +268,7 @@ s.parentNode.insertBefore(el, s);
   
   <div class="card">
     <h3>💡 打包小贴士</h3>
-    <div class="result-box">
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__packing_listExport()">导出明细 CSV</button></div><div class="result-box">
       <p><strong>行李原则：</strong>列出清单 → 全部摊开 → 去掉一半 → 打包出发</p>
       <p style="margin-top:6px;"><strong>折叠技巧：</strong>卷衣法比折叠法更省空间，减少褶皱</p>
       <p style="margin-top:6px;"><strong>分类收纳：</strong>使用收纳袋分类存放衣物，方便查找</p>
@@ -277,7 +277,7 @@ s.parentNode.insertBefore(el, s);
       <p style="margin-top:6px;"><strong>应急准备：</strong>随身放一套换洗衣物，防止托运行李延误</p>
       <p style="margin-top:6px;"><strong>电子产品：</strong>充电宝必须随身携带，不能托运，额定能量不超过100Wh</p>
       <p style="margin-top:6px;"><strong>药箱必备：</strong>感冒药、肠胃药、创可贴、晕车药、过敏药</p>
-    </div>
+    </div> <div id="packing_listTable"></div> <div id="packing_listDiff"></div> <div id="packing_listChart"></div> <div id="packing_listHist"></div>
   </div>
   
   <div class="card">
@@ -781,6 +781,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __packing_list_last=0,__packing_list_skip=false;
+function __packing_listSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __packing_listResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __packing_listTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __packing_listRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__packing_listTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#packing_listTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#packing_listDiff');
+        TBKit.history.mount('#packing_listHist',function(rec){
+            __packing_list_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                saveList();
+            }catch(e2){}
+            __packing_list_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__packing_listTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#packing_listChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __packing_listExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__packing_list_skip) return;
+    var snap=__packing_listSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__packing_listResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__packing_list_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __packing_list_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __packing_listRender(keys,rk,en);
+}
+function __packing_listExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#packing_listTable','packing-list.csv'); } catch(e){}
+}
+function __packing_listPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#packing_listPresets',[{label:'默认参数',labelEn:'Default',values:{'tripName':'我的旅行'}}],function(){ saveList(); });
+}
+var __packing_list_f0=(typeof saveList==='function')?saveList:null;
+if(__packing_list_f0){
+    saveList=function(){ var __r=__packing_list_f0.apply(null,arguments); try{ __packing_listExtras(); }catch(e){} return __r; };
+}
+function __packing_listBoot(){ try{ __packing_listPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __packing_listBoot();
+else document.addEventListener('DOMContentLoaded', __packing_listBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

@@ -125,11 +125,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>AI 成熟度 (0-100)</label><input type="number" id="v1" value="85" step="any" oninput="calc()" enterkeyhint="done" aria-label="自助"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <div id="hris_zizhuyuaiduibijisuanqiPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__hris_zizhuyuaiduibijisuanqiExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="hris_zizhuyuaiduibijisuanqiTable"></div> <div id="hris_zizhuyuaiduibijisuanqiDiff"></div> <div id="hris_zizhuyuaiduibijisuanqiChart"></div> <div id="hris_zizhuyuaiduibijisuanqiHist"></div>
     <div class="info-box">💡 综合差距 = |HRIS − AI|；HRIS 权重比 = HRIS ÷ (HRIS + AI)。</div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -645,6 +645,114 @@ function resetAll(){
   if(a)a.value='70';if(b)b.value='85';calc();
 }
 try{calc();}catch(e){}
+
+var __hris_zizhuyuaiduibijisuanqi_last=0,__hris_zizhuyuaiduibijisuanqi_skip=false;
+function __hris_zizhuyuaiduibijisuanqiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __hris_zizhuyuaiduibijisuanqiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __hris_zizhuyuaiduibijisuanqiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __hris_zizhuyuaiduibijisuanqiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__hris_zizhuyuaiduibijisuanqiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#hris_zizhuyuaiduibijisuanqiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#hris_zizhuyuaiduibijisuanqiDiff');
+        TBKit.history.mount('#hris_zizhuyuaiduibijisuanqiHist',function(rec){
+            __hris_zizhuyuaiduibijisuanqi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __hris_zizhuyuaiduibijisuanqi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__hris_zizhuyuaiduibijisuanqiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#hris_zizhuyuaiduibijisuanqiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __hris_zizhuyuaiduibijisuanqiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__hris_zizhuyuaiduibijisuanqi_skip) return;
+    var snap=__hris_zizhuyuaiduibijisuanqiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__hris_zizhuyuaiduibijisuanqiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__hris_zizhuyuaiduibijisuanqi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __hris_zizhuyuaiduibijisuanqi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __hris_zizhuyuaiduibijisuanqiRender(keys,rk,en);
+}
+function __hris_zizhuyuaiduibijisuanqiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hris_zizhuyuaiduibijisuanqiTable','hris-zizhuyuaiduibijisuanqi.csv'); } catch(e){}
+}
+function __hris_zizhuyuaiduibijisuanqiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hris_zizhuyuaiduibijisuanqiPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'70', 'v1':'85'}}],function(){ calc(); });
+}
+var __hris_zizhuyuaiduibijisuanqi_f0=(typeof calc==='function')?calc:null;
+if(__hris_zizhuyuaiduibijisuanqi_f0){
+    calc=function(){ var __r=__hris_zizhuyuaiduibijisuanqi_f0.apply(null,arguments); try{ __hris_zizhuyuaiduibijisuanqiExtras(); }catch(e){} return __r; };
+}
+function __hris_zizhuyuaiduibijisuanqiBoot(){ try{ __hris_zizhuyuaiduibijisuanqiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hris_zizhuyuaiduibijisuanqiBoot();
+else document.addEventListener('DOMContentLoaded', __hris_zizhuyuaiduibijisuanqiBoot);
 </script>
 
 <!-- SEO 介绍区块 -->
