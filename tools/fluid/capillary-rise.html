@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="capillary_risePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__capillary_riseExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="capillary_riseTable"></div>
+    <div id="capillary_riseDiff"></div>
+    <div id="capillary_riseHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,41 @@ function resetForm(){document.getElementById('gamma').value = '0.0728';
       document.getElementById('g').value = '9.8';
       calcTool();}
 calcTool();
+
+function __capillary_riseNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __capillary_riseExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var gamma = num('gamma'), th = num('th') * Math.PI / 180, rho = num('rho'), r = num('r'), g = num('g');
+    var h = 2 * gamma * Math.cos(th) / (rho * g * r);
+    if (!isFinite(__capillary_riseNum('gamma')) || !isFinite(__capillary_riseNum('th')) || !isFinite(__capillary_riseNum('rho')) || !isFinite(__capillary_riseNum('r')) || !isFinite(__capillary_riseNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#capillary_riseTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['上升高度 h (mm)', (h * 1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({gamma:__capillary_riseNum('gamma'), th:__capillary_riseNum('th'), rho:__capillary_riseNum('rho'), r:__capillary_riseNum('r'), g:__capillary_riseNum('g'), h:h});
+    TBKit.history.mount('#capillary_riseHist',function(rec){ if(rec.gamma!=null)document.getElementById('gamma').value=rec.gamma; if(rec.th!=null)document.getElementById('th').value=rec.th; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#capillary_riseDiff',['h']);
+}
+function __capillary_riseExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#capillary_riseTable','capillary-rise.csv'); } catch(e){}
+}
+function __capillary_risePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#capillary_risePresets',[
+        {label:'默认',labelEn:'Default',values:{gamma:'0.0728', th:'0', rho:'1000', r:'0.0005', g:'9.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{gamma:'0.1456', th:'0', rho:'2000', r:'0.001', g:'19.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{gamma:'0.0364', th:'0', rho:'500', r:'0.0003', g:'4.9'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __capillary_riseExtras(); }catch(e){} };
+function __capillary_riseBoot(){ try{ __capillary_risePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __capillary_riseBoot();
+else document.addEventListener('DOMContentLoaded', __capillary_riseBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

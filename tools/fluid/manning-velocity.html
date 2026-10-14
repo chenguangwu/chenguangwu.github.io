@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="manning_velocityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__manning_velocityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="manning_velocityTable"></div>
+    <div id="manning_velocityDiff"></div>
+    <div id="manning_velocityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -268,6 +274,43 @@ function resetForm(){document.getElementById('n').value = '0.013';
       document.getElementById('S').value = '0.001';
       calcTool();}
 calcTool();
+
+function __manning_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __manning_velocityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n = num('n'), R = num('R'), S = num('S');
+    var v = (1 / n) * Math.pow(R, 2/3) * Math.sqrt(S);
+    if (!isFinite(__manning_velocityNum('n')) || !isFinite(__manning_velocityNum('R')) || !isFinite(__manning_velocityNum('S'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#manning_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['流速 v (m/s)', v.toFixed(4)],
+            ['Chezy 系数 C = R^(1/6)/n', (Math.pow(R,1/6)/n).toFixed(3)],
+            ['流速水头 v²/2g (m)', (v*v/(2*9.80665)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__manning_velocityNum('n'), R:__manning_velocityNum('R'), S:__manning_velocityNum('S'), v:v});
+    TBKit.history.mount('#manning_velocityHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.R!=null)document.getElementById('R').value=rec.R; if(rec.S!=null)document.getElementById('S').value=rec.S; calcTool(); });
+    TBKit.util.diffBox('#manning_velocityDiff',['v']);
+}
+function __manning_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#manning_velocityTable','manning-velocity.csv'); } catch(e){}
+}
+function __manning_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#manning_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'0.013', R:'0.5', S:'0.001'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'0.026', R:'1', S:'0.002'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.0065', R:'0.25', S:'0.0005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __manning_velocityExtras(); }catch(e){} };
+function __manning_velocityBoot(){ try{ __manning_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __manning_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __manning_velocityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

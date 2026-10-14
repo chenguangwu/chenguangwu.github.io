@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pressure_drop_darcyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pressure_drop_darcyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pressure_drop_darcyTable"></div>
+    <div id="pressure_drop_darcyDiff"></div>
+    <div id="pressure_drop_darcyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -265,6 +271,41 @@ function resetForm(){document.getElementById('f').value = '0.02';
       document.getElementById('v').value = '2';
       calcTool();}
 calcTool();
+
+function __pressure_drop_darcyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pressure_drop_darcyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f'),L=num('L'),D=num('D'),rho=num('rho'),v=num('v');
+    var dP=f*(L/D)*(rho*v*v/2);
+    if (!isFinite(__pressure_drop_darcyNum('f')) || !isFinite(__pressure_drop_darcyNum('L')) || !isFinite(__pressure_drop_darcyNum('D')) || !isFinite(__pressure_drop_darcyNum('rho')) || !isFinite(__pressure_drop_darcyNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pressure_drop_darcyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['压降 ΔP (Pa)', dP.toFixed(1)],
+        ]
+    });
+    TBKit.history.record({f:__pressure_drop_darcyNum('f'), L:__pressure_drop_darcyNum('L'), D:__pressure_drop_darcyNum('D'), rho:__pressure_drop_darcyNum('rho'), v:__pressure_drop_darcyNum('v'), dP:dP});
+    TBKit.history.mount('#pressure_drop_darcyHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.D!=null)document.getElementById('D').value=rec.D; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#pressure_drop_darcyDiff',['dP']);
+}
+function __pressure_drop_darcyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pressure_drop_darcyTable','pressure-drop-darcy.csv'); } catch(e){}
+}
+function __pressure_drop_darcyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pressure_drop_darcyPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'0.02', L:'10', D:'0.1', rho:'1000', v:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'0.04', L:'20', D:'0.2', rho:'2000', v:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'0.01', L:'5', D:'0.05', rho:'500', v:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pressure_drop_darcyExtras(); }catch(e){} };
+function __pressure_drop_darcyBoot(){ try{ __pressure_drop_darcyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pressure_drop_darcyBoot();
+else document.addEventListener('DOMContentLoaded', __pressure_drop_darcyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

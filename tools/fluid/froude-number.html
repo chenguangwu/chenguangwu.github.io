@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="froude_numberPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__froude_numberExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="froude_numberTable"></div>
+    <div id="froude_numberDiff"></div>
+    <div id="froude_numberHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('v').value = '3';
       document.getElementById('g').value = '9.81';
       calcTool();}
 calcTool();
+
+function __froude_numberNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __froude_numberExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),L=num('L'),g=num('g');
+    var Fr=v/Math.sqrt(g*L);
+    if (!isFinite(__froude_numberNum('v')) || !isFinite(__froude_numberNum('L')) || !isFinite(__froude_numberNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#froude_numberTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['弗劳德数 Fr', Fr.toFixed(3)],
+            ['临界流速 sqrt(gL) (m/s)', (Math.sqrt(g*L)).toFixed(3)],
+            ['流态', (Fr<1?'缓流 (亚临界)':(Fr>1?'急流 (超临界)':'临界流'))],
+        ]
+    });
+    TBKit.history.record({v:__froude_numberNum('v'), L:__froude_numberNum('L'), g:__froude_numberNum('g'), Fr:Fr});
+    TBKit.history.mount('#froude_numberHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#froude_numberDiff',['Fr']);
+}
+function __froude_numberExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#froude_numberTable','froude-number.csv'); } catch(e){}
+}
+function __froude_numberPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#froude_numberPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'3', L:'1', g:'9.81'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'6', L:'2', g:'19.62'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'1.5', L:'0.5', g:'4.905'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __froude_numberExtras(); }catch(e){} };
+function __froude_numberBoot(){ try{ __froude_numberPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __froude_numberBoot();
+else document.addEventListener('DOMContentLoaded', __froude_numberBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

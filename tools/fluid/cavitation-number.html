@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cavitation_numberPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cavitation_numberExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cavitation_numberTable"></div>
+    <div id="cavitation_numberDiff"></div>
+    <div id="cavitation_numberHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,43 @@ function resetForm(){document.getElementById('p').value = '101325';
       document.getElementById('v').value = '10';
       calcTool();}
 calcTool();
+
+function __cavitation_numberNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cavitation_numberExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),pv=num('pv'),rho=num('rho'),v=num('v');
+    var sig=(p-pv)/(0.5*rho*v*v);
+    if (!isFinite(__cavitation_numberNum('p')) || !isFinite(__cavitation_numberNum('pv')) || !isFinite(__cavitation_numberNum('rho')) || !isFinite(__cavitation_numberNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cavitation_numberTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['空化数 σ', sig.toFixed(3)],
+            ['空化余压 p − p_v (Pa)', (p-pv).toFixed(1)],
+            ['动压 ½ρv² (Pa)', (0.5*rho*v*v).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({p:__cavitation_numberNum('p'), pv:__cavitation_numberNum('pv'), rho:__cavitation_numberNum('rho'), v:__cavitation_numberNum('v'), sig:sig});
+    TBKit.history.mount('#cavitation_numberHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.pv!=null)document.getElementById('pv').value=rec.pv; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#cavitation_numberDiff',['sig']);
+}
+function __cavitation_numberExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cavitation_numberTable','cavitation-number.csv'); } catch(e){}
+}
+function __cavitation_numberPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cavitation_numberPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'101325', pv:'2339', rho:'1000', v:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'202650', pv:'4678', rho:'2000', v:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'50662.5', pv:'1169.5', rho:'500', v:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cavitation_numberExtras(); }catch(e){} };
+function __cavitation_numberBoot(){ try{ __cavitation_numberPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cavitation_numberBoot();
+else document.addEventListener('DOMContentLoaded', __cavitation_numberBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stokes_settlingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stokes_settlingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stokes_settlingTable"></div>
+    <div id="stokes_settlingDiff"></div>
+    <div id="stokes_settlingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,41 @@ function resetForm(){document.getElementById('r').value = '1e-4';
       document.getElementById('g').value = '9.8';
       calcTool();}
 calcTool();
+
+function __stokes_settlingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stokes_settlingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r'), rhop = num('rhop'), rhof = num('rhof'), mu = num('mu'), g = num('g');
+    var v = 2 * r * r * (rhop - rhof) * g / (9 * mu);
+    if (!isFinite(__stokes_settlingNum('r')) || !isFinite(__stokes_settlingNum('rhop')) || !isFinite(__stokes_settlingNum('rhof')) || !isFinite(__stokes_settlingNum('mu')) || !isFinite(__stokes_settlingNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stokes_settlingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['沉降速度 v (m/s)', v.toFixed(6)],
+        ]
+    });
+    TBKit.history.record({r:__stokes_settlingNum('r'), rhop:__stokes_settlingNum('rhop'), rhof:__stokes_settlingNum('rhof'), mu:__stokes_settlingNum('mu'), g:__stokes_settlingNum('g'), v:v});
+    TBKit.history.mount('#stokes_settlingHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.rhop!=null)document.getElementById('rhop').value=rec.rhop; if(rec.rhof!=null)document.getElementById('rhof').value=rec.rhof; if(rec.mu!=null)document.getElementById('mu').value=rec.mu; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#stokes_settlingDiff',['v']);
+}
+function __stokes_settlingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stokes_settlingTable','stokes-settling.csv'); } catch(e){}
+}
+function __stokes_settlingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stokes_settlingPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'1e-4', rhop:'2500', rhof:'1000', mu:'0.001', g:'9.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'0.0002', rhop:'5000', rhof:'2000', mu:'0.002', g:'19.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'0.0001', rhop:'1250', rhof:'500', mu:'0.0005', g:'4.9'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stokes_settlingExtras(); }catch(e){} };
+function __stokes_settlingBoot(){ try{ __stokes_settlingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stokes_settlingBoot();
+else document.addEventListener('DOMContentLoaded', __stokes_settlingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

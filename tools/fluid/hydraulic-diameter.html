@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hydraulic_diameterPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hydraulic_diameterExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hydraulic_diameterTable"></div>
+    <div id="hydraulic_diameterDiff"></div>
+    <div id="hydraulic_diameterHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('A').value = '0.01';
       document.getElementById('P').value = '0.4';
       calcTool();}
 calcTool();
+
+function __hydraulic_diameterNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hydraulic_diameterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var A=num('A'),P=num('P');
+    var Dh=4*A/P;
+    if (!isFinite(__hydraulic_diameterNum('A')) || !isFinite(__hydraulic_diameterNum('P'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hydraulic_diameterTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['水力直径 D_h (m)', Dh.toFixed(4)],
+            ['湿周与面积比', (P/Math.max(A,1e-12)).toFixed(4)],
+            ['水力直径倒数', (1/Math.max(Dh,1e-12)).toFixed(4)],
+            ['水力半径的四倍', (Dh*4).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({A:__hydraulic_diameterNum('A'), P:__hydraulic_diameterNum('P'), Dh:Dh});
+    TBKit.history.mount('#hydraulic_diameterHist',function(rec){ if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.P!=null)document.getElementById('P').value=rec.P; calcTool(); });
+    TBKit.util.diffBox('#hydraulic_diameterDiff',['Dh']);
+}
+function __hydraulic_diameterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hydraulic_diameterTable','hydraulic-diameter.csv'); } catch(e){}
+}
+function __hydraulic_diameterPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hydraulic_diameterPresets',[
+        {label:'默认',labelEn:'Default',values:{A:'0.01', P:'0.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{A:'0.02', P:'0.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{A:'0.005', P:'0.2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hydraulic_diameterExtras(); }catch(e){} };
+function __hydraulic_diameterBoot(){ try{ __hydraulic_diameterPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hydraulic_diameterBoot();
+else document.addEventListener('DOMContentLoaded', __hydraulic_diameterBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

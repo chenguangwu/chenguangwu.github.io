@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="buoyancy_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__buoyancy_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="buoyancy_forceTable"></div>
+    <div id="buoyancy_forceDiff"></div>
+    <div id="buoyancy_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,41 @@ function resetForm(){document.getElementById('rho').value = '1000';
       document.getElementById('g').value = '9.8';
       calcTool();}
 calcTool();
+
+function __buoyancy_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __buoyancy_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho = num('rho'), V = num('V'), g = num('g');
+    if (!isFinite(__buoyancy_forceNum('rho')) || !isFinite(__buoyancy_forceNum('V')) || !isFinite(__buoyancy_forceNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#buoyancy_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['浮力 F_b (N)', (rho * V * g).toFixed(2)],
+            ['排开液体质量 (kg)', (rho*V).toFixed(4)],
+            ['排开液体质量 (g)', (rho*V*1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rho:__buoyancy_forceNum('rho'), V:__buoyancy_forceNum('V'), g:__buoyancy_forceNum('g')});
+    TBKit.history.mount('#buoyancy_forceHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.V!=null)document.getElementById('V').value=rec.V; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+}
+function __buoyancy_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#buoyancy_forceTable','buoyancy-force.csv'); } catch(e){}
+}
+function __buoyancy_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#buoyancy_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1000', V:'0.05', g:'9.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'2000', V:'0.1', g:'19.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'500', V:'0.025', g:'4.9'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __buoyancy_forceExtras(); }catch(e){} };
+function __buoyancy_forceBoot(){ try{ __buoyancy_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __buoyancy_forceBoot();
+else document.addEventListener('DOMContentLoaded', __buoyancy_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

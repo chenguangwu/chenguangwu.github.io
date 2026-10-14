@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="kinematic_viscosityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__kinematic_viscosityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="kinematic_viscosityTable"></div>
+    <div id="kinematic_viscosityDiff"></div>
+    <div id="kinematic_viscosityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('mu').value = '0.001';
       document.getElementById('rho').value = '1000';
       calcTool();}
 calcTool();
+
+function __kinematic_viscosityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __kinematic_viscosityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var mu=num('mu'),rho=num('rho');
+    var nu=mu/rho;
+    if (!isFinite(__kinematic_viscosityNum('mu')) || !isFinite(__kinematic_viscosityNum('rho'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#kinematic_viscosityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['运动黏度 ν (m²/s)', nu.toExponential(3)],
+            ['运动黏度 (mm²/s)', (nu*1e6).toExponential(4)],
+            ['动力黏度 (Pa·s)', (mu).toExponential(3)],
+            ['密度 (kg/m³)', (rho).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({mu:__kinematic_viscosityNum('mu'), rho:__kinematic_viscosityNum('rho'), nu:nu});
+    TBKit.history.mount('#kinematic_viscosityHist',function(rec){ if(rec.mu!=null)document.getElementById('mu').value=rec.mu; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; calcTool(); });
+    TBKit.util.diffBox('#kinematic_viscosityDiff',['nu']);
+}
+function __kinematic_viscosityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#kinematic_viscosityTable','kinematic-viscosity.csv'); } catch(e){}
+}
+function __kinematic_viscosityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#kinematic_viscosityPresets',[
+        {label:'默认',labelEn:'Default',values:{mu:'0.001', rho:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{mu:'0.002', rho:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mu:'0.0005', rho:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __kinematic_viscosityExtras(); }catch(e){} };
+function __kinematic_viscosityBoot(){ try{ __kinematic_viscosityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __kinematic_viscosityBoot();
+else document.addEventListener('DOMContentLoaded', __kinematic_viscosityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

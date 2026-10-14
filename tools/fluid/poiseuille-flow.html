@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="poiseuille_flowPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__poiseuille_flowExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="poiseuille_flowTable"></div>
+    <div id="poiseuille_flowDiff"></div>
+    <div id="poiseuille_flowHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -261,6 +267,42 @@ function resetForm(){document.getElementById('dp').value = '1000';
       document.getElementById('L').value = '1';
       calcTool();}
 calcTool();
+
+function __poiseuille_flowNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __poiseuille_flowExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dp = num('dp'), r = num('r'), mu = num('mu'), L = num('L');
+    var Q = Math.PI * dp * Math.pow(r, 4) / (8 * mu * L);
+    if (!isFinite(__poiseuille_flowNum('dp')) || !isFinite(__poiseuille_flowNum('r')) || !isFinite(__poiseuille_flowNum('mu')) || !isFinite(__poiseuille_flowNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#poiseuille_flowTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['流量 Q (m³/s)', Q.toExponential(3)],
+            ['Q (mL/s)', (Q * 1e6).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({dp:__poiseuille_flowNum('dp'), r:__poiseuille_flowNum('r'), mu:__poiseuille_flowNum('mu'), L:__poiseuille_flowNum('L'), Q:Q});
+    TBKit.history.mount('#poiseuille_flowHist',function(rec){ if(rec.dp!=null)document.getElementById('dp').value=rec.dp; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.mu!=null)document.getElementById('mu').value=rec.mu; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#poiseuille_flowDiff',['Q']);
+}
+function __poiseuille_flowExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#poiseuille_flowTable','poiseuille-flow.csv'); } catch(e){}
+}
+function __poiseuille_flowPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#poiseuille_flowPresets',[
+        {label:'默认',labelEn:'Default',values:{dp:'1000', r:'0.01', mu:'0.001', L:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dp:'2000', r:'0.02', mu:'0.002', L:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dp:'500', r:'0.005', mu:'0.0005', L:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __poiseuille_flowExtras(); }catch(e){} };
+function __poiseuille_flowBoot(){ try{ __poiseuille_flowPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __poiseuille_flowBoot();
+else document.addEventListener('DOMContentLoaded', __poiseuille_flowBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

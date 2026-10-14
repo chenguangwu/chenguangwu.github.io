@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="weber_numberPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__weber_numberExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="weber_numberTable"></div>
+    <div id="weber_numberDiff"></div>
+    <div id="weber_numberHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,43 @@ function resetForm(){document.getElementById('rho').value = '1000';
       document.getElementById('sig').value = '0.072';
       calcTool();}
 calcTool();
+
+function __weber_numberNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __weber_numberExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho=num('rho'),v=num('v'),L=num('L'),sig=num('sig');
+    var We=rho*v*v*L/sig;
+    if (!isFinite(__weber_numberNum('rho')) || !isFinite(__weber_numberNum('v')) || !isFinite(__weber_numberNum('L')) || !isFinite(__weber_numberNum('sig'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#weber_numberTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['韦伯数 We', We.toFixed(1)],
+            ['惯性力项 ρv²L (N/m)', (rho*v*v*L).toFixed(4)],
+            ['毛细长度 √(σ/ρg) (m)', Math.sqrt(sig/(rho*9.80665)).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({rho:__weber_numberNum('rho'), v:__weber_numberNum('v'), L:__weber_numberNum('L'), sig:__weber_numberNum('sig'), We:We});
+    TBKit.history.mount('#weber_numberHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.sig!=null)document.getElementById('sig').value=rec.sig; calcTool(); });
+    TBKit.util.diffBox('#weber_numberDiff',['We']);
+}
+function __weber_numberExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#weber_numberTable','weber-number.csv'); } catch(e){}
+}
+function __weber_numberPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#weber_numberPresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1000', v:'2', L:'0.1', sig:'0.072'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'2000', v:'4', L:'0.2', sig:'0.144'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'500', v:'1', L:'0.05', sig:'0.036'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __weber_numberExtras(); }catch(e){} };
+function __weber_numberBoot(){ try{ __weber_numberPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __weber_numberBoot();
+else document.addEventListener('DOMContentLoaded', __weber_numberBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

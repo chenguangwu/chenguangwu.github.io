@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pitot_velocityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pitot_velocityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pitot_velocityTable"></div>
+    <div id="pitot_velocityDiff"></div>
+    <div id="pitot_velocityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('dP').value = '500';
       document.getElementById('rho').value = '1.2';
       calcTool();}
 calcTool();
+
+function __pitot_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pitot_velocityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dP=num('dP'),rho=num('rho');
+    var v=Math.sqrt(2*dP/rho);
+    if (!isFinite(__pitot_velocityNum('dP')) || !isFinite(__pitot_velocityNum('rho'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pitot_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['流速 v (m/s)', v.toFixed(2)],
+            ['流速 (km/h)', (v*3.6).toFixed(3)],
+            ['动压 (Pa)', (v*v*rho/2).toFixed(3)],
+            ['马赫数（海平面基准）', (v/340.29).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({dP:__pitot_velocityNum('dP'), rho:__pitot_velocityNum('rho'), v:v});
+    TBKit.history.mount('#pitot_velocityHist',function(rec){ if(rec.dP!=null)document.getElementById('dP').value=rec.dP; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; calcTool(); });
+    TBKit.util.diffBox('#pitot_velocityDiff',['v']);
+}
+function __pitot_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pitot_velocityTable','pitot-velocity.csv'); } catch(e){}
+}
+function __pitot_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pitot_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{dP:'500', rho:'1.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dP:'1000', rho:'2.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dP:'250', rho:'0.6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pitot_velocityExtras(); }catch(e){} };
+function __pitot_velocityBoot(){ try{ __pitot_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pitot_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __pitot_velocityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hydrostatic_pressurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hydrostatic_pressureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hydrostatic_pressureTable"></div>
+    <div id="hydrostatic_pressureDiff"></div>
+    <div id="hydrostatic_pressureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,42 @@ function resetForm(){document.getElementById('rho').value = '1000';
       document.getElementById('g').value = '9.8';
       calcTool();}
 calcTool();
+
+function __hydrostatic_pressureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hydrostatic_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho = num('rho'), h = num('h'), g = num('g');
+    if (!isFinite(__hydrostatic_pressureNum('rho')) || !isFinite(__hydrostatic_pressureNum('h')) || !isFinite(__hydrostatic_pressureNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hydrostatic_pressureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['压强 P (Pa)', (rho * g * h).toFixed(1)],
+            ['P (kPa)', (rho * g * h / 1000).toFixed(2)],
+            ['压强 P (bar)', (rho*g*h/1e5).toFixed(5)],
+            ['质量水头 ρh (kg/m²)', (rho*h).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({rho:__hydrostatic_pressureNum('rho'), h:__hydrostatic_pressureNum('h'), g:__hydrostatic_pressureNum('g')});
+    TBKit.history.mount('#hydrostatic_pressureHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.h!=null)document.getElementById('h').value=rec.h; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+}
+function __hydrostatic_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hydrostatic_pressureTable','hydrostatic-pressure.csv'); } catch(e){}
+}
+function __hydrostatic_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hydrostatic_pressurePresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1000', h:'10', g:'9.8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'2000', h:'20', g:'19.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'500', h:'5', g:'4.9'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hydrostatic_pressureExtras(); }catch(e){} };
+function __hydrostatic_pressureBoot(){ try{ __hydrostatic_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hydrostatic_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __hydrostatic_pressureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

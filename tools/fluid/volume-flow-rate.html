@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="volume_flow_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__volume_flow_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="volume_flow_rateTable"></div>
+    <div id="volume_flow_rateDiff"></div>
+    <div id="volume_flow_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('a').value = '0.2';
       document.getElementById('v').value = '3';
       calcTool();}
 calcTool();
+
+function __volume_flow_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __volume_flow_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a = num('a'), v = num('v');
+    var Q = a * v;
+    if (!isFinite(__volume_flow_rateNum('a')) || !isFinite(__volume_flow_rateNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#volume_flow_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['流量 Q (m³/s)', Q.toFixed(3)],
+            ['Q (L/s)', (Q * 1000).toFixed(1)],
+            ['断面面积复算 (m2)', (Q/(v||1)).toFixed(4)],
+            ['Q (m3/h)', (Q*3600).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({a:__volume_flow_rateNum('a'), v:__volume_flow_rateNum('v'), Q:Q});
+    TBKit.history.mount('#volume_flow_rateHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#volume_flow_rateDiff',['Q']);
+}
+function __volume_flow_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#volume_flow_rateTable','volume-flow-rate.csv'); } catch(e){}
+}
+function __volume_flow_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#volume_flow_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{a:'0.2', v:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'0.4', v:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'0.1', v:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __volume_flow_rateExtras(); }catch(e){} };
+function __volume_flow_rateBoot(){ try{ __volume_flow_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __volume_flow_rateBoot();
+else document.addEventListener('DOMContentLoaded', __volume_flow_rateBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

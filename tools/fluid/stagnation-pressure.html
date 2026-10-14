@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stagnation_pressurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stagnation_pressureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stagnation_pressureTable"></div>
+    <div id="stagnation_pressureDiff"></div>
+    <div id="stagnation_pressureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,43 @@ function resetForm(){document.getElementById('p').value = '101325';
       document.getElementById('v').value = '28.87';
       calcTool();}
 calcTool();
+
+function __stagnation_pressureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stagnation_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),rho=num('rho'),v=num('v');
+    var p0=p+0.5*rho*v*v;
+    if (!isFinite(__stagnation_pressureNum('p')) || !isFinite(__stagnation_pressureNum('rho')) || !isFinite(__stagnation_pressureNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stagnation_pressureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['驻点压力 p₀ (Pa)', p0.toFixed(1)],
+            ['动压 q (Pa)', (0.5*rho*v*v).toFixed(1)],
+            ['驻点压比 p0/p', (p0/(p||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({p:__stagnation_pressureNum('p'), rho:__stagnation_pressureNum('rho'), v:__stagnation_pressureNum('v'), p0:p0});
+    TBKit.history.mount('#stagnation_pressureHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#stagnation_pressureDiff',['p0']);
+}
+function __stagnation_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stagnation_pressureTable','stagnation-pressure.csv'); } catch(e){}
+}
+function __stagnation_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stagnation_pressurePresets',[
+        {label:'默认',labelEn:'Default',values:{p:'101325', rho:'1.2', v:'28.87'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'202650', rho:'2.4', v:'57.74'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'50662.5', rho:'0.6', v:'14.435'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stagnation_pressureExtras(); }catch(e){} };
+function __stagnation_pressureBoot(){ try{ __stagnation_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stagnation_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __stagnation_pressureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

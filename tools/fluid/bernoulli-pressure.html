@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bernoulli_pressurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bernoulli_pressureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bernoulli_pressureTable"></div>
+    <div id="bernoulli_pressureDiff"></div>
+    <div id="bernoulli_pressureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -207,6 +213,42 @@ function resetForm(){document.getElementById('p1').value = '101325';
       document.getElementById('rho').value = '1000';
       calcTool();}
 calcTool();
+
+function __bernoulli_pressureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bernoulli_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p1 = num('p1'), v1 = num('v1'), v2 = num('v2'), rho = num('rho');
+    var p2 = p1 + 0.5 * rho * (v1 * v1 - v2 * v2);
+    if (!isFinite(__bernoulli_pressureNum('p1')) || !isFinite(__bernoulli_pressureNum('v1')) || !isFinite(__bernoulli_pressureNum('v2')) || !isFinite(__bernoulli_pressureNum('rho'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bernoulli_pressureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['压力 P₂ (Pa)', p2.toFixed(1)],
+            ['压差 (kPa)', ((p1 - p2) / 1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p1:__bernoulli_pressureNum('p1'), v1:__bernoulli_pressureNum('v1'), v2:__bernoulli_pressureNum('v2'), rho:__bernoulli_pressureNum('rho'), p2:p2});
+    TBKit.history.mount('#bernoulli_pressureHist',function(rec){ if(rec.p1!=null)document.getElementById('p1').value=rec.p1; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; calcTool(); });
+    TBKit.util.diffBox('#bernoulli_pressureDiff',['p2']);
+}
+function __bernoulli_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bernoulli_pressureTable','bernoulli-pressure.csv'); } catch(e){}
+}
+function __bernoulli_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bernoulli_pressurePresets',[
+        {label:'默认',labelEn:'Default',values:{p1:'101325', v1:'1', v2:'3', rho:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p1:'202650', v1:'2', v2:'6', rho:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p1:'50662.5', v1:'0.5', v2:'1.5', rho:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bernoulli_pressureExtras(); }catch(e){} };
+function __bernoulli_pressureBoot(){ try{ __bernoulli_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bernoulli_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __bernoulli_pressureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
