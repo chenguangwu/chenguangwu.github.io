@@ -115,8 +115,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>3. 水果（每日份数）</label><select id="d3" onchange="calc()" style="font-size:16px;"><option value="5">4-5份 (5分)</option><option value="3">2-3份 (3分)</option><option value="1">1份 (1分)</option><option value="0">几乎不吃 (0分)</option></select></div><div><label>4. 低脂乳制品</label><select id="d4" onchange="calc()" style="font-size:16px;"><option value="5">2-3份 (5分)</option><option value="3">1份 (3分)</option><option value="1">偶尔 (1分)</option><option value="0">不吃 (0分)</option></select></div></div>
 <div class="input-row"><div><label>5. 钠摄入（每日mg）</label><select id="d5" onchange="calc()" style="font-size:16px;"><option value="5">低于1500mg (5分)</option><option value="3">1500-2300mg (3分)</option><option value="1">2300-3500mg (1分)</option><option value="0">高于3500mg (0分)</option></select></div><div><label>6. 坚果/豆类（每周）</label><select id="d6" onchange="calc()" style="font-size:16px;"><option value="5">4-5次 (5分)</option><option value="3">2-3次 (3分)</option><option value="1">1次 (1分)</option><option value="0">不吃 (0分)</option></select></div></div>
 <div class="input-row"><div><label>7. 红肉（每周次数）</label><select id="d7" onchange="calc()" style="font-size:16px;"><option value="5">少于2次 (5分)</option><option value="3">3-4次 (3分)</option><option value="1">5-6次 (1分)</option><option value="0">每天吃 (0分)</option></select></div><div><label>8. 甜食/含糖饮料</label><select id="d8" onchange="calc()" style="font-size:16px;"><option value="5">每周少于1次 (5分)</option><option value="3">每周1-3次 (3分)</option><option value="1">每周4-6次 (1分)</option><option value="0">每天 (0分)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">计算DASH评分</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res', i18nText('toast.msg544'))">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="rater_32Presets"></div><button type="button" class="btn primary" onclick="calc()">计算DASH评分</button><button class="btn" type="button" onclick="__rater_32Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res', i18nText('toast.msg544'))">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="rater_32Table"></div> <div id="rater_32Diff"></div> <div id="rater_32Chart"></div> <div id="rater_32Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -257,6 +257,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __rater_32_last=0,__rater_32_skip=false;
+function __rater_32Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __rater_32ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __rater_32Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __rater_32Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__rater_32Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#rater_32Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#rater_32Diff');
+        TBKit.history.mount('#rater_32Hist',function(rec){
+            __rater_32_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __rater_32_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__rater_32Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#rater_32Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __rater_32Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__rater_32_skip) return;
+    var snap=__rater_32Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__rater_32ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__rater_32_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __rater_32_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __rater_32Render(keys,rk,en);
+}
+function __rater_32Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rater_32Table','rater-32.csv'); } catch(e){}
+}
+function __rater_32Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rater_32Presets',[{label:'默认参数',labelEn:'Default',values:{'d1':'5', 'd2':'5', 'd3':'5', 'd4':'5', 'd5':'5', 'd6':'5', 'd7':'5', 'd8':'5'}}],function(){ calc(); });
+}
+var __rater_32_f0=(typeof calc==='function')?calc:null;
+if(__rater_32_f0){
+    calc=function(){ var __r=__rater_32_f0.apply(null,arguments); try{ __rater_32Extras(); }catch(e){} return __r; };
+}
+function __rater_32Boot(){ try{ __rater_32Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rater_32Boot();
+else document.addEventListener('DOMContentLoaded', __rater_32Boot);
 </script>
 
 </body>
