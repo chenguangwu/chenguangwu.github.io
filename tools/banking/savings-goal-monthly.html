@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="savings_goal_monthlyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__savings_goal_monthlyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="savings_goal_monthlyTable"></div>
+    <div id="savings_goal_monthlyDiff"></div>
+    <div id="savings_goal_monthlyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,42 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "收益率设高了会怎样？", "acceptedAnswer": {"@type": "Answer", "text": "设定收益越高，所需月存越低，但实现更难。保守起见按无风险利率（货基/定存）测算，避免目标落空。"}}, {"@type": "Question", "name": "能中途暂停或追加吗？", "acceptedAnswer": {"@type": "Answer", "text": "能。公式给的是「恒定月存」基准，实际可用不定额（如年终奖追加）更快达成，用现金流折现逐期核对即可。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "收益率设高了会怎样？", "acceptedAnswer": {"@type": "Answer", "text": "设定收益越高，所需月存越低，但实现更难。保守起见按无风险利率（货基/定存）测算，避免目标落空。"}}, {"@type": "Question", "name": "能中途暂停或追加吗？", "acceptedAnswer": {"@type": "Answer", "text": "能。公式给的是「恒定月存」基准，实际可用不定额（如年终奖追加）更快达成，用现金流折现逐期核对即可。"}}]}
+function __savings_goal_monthlyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __savings_goal_monthlyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fv = num('fv'), i = num('r') / 100 / 12, N = num('y') * 12;
+    var pmt = fv * i / (Math.pow(1 + i, N) - 1);
+    if (!isFinite(__savings_goal_monthlyNum('fv')) || !isFinite(__savings_goal_monthlyNum('r')) || !isFinite(__savings_goal_monthlyNum('y'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#savings_goal_monthlyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['每月应存 PMT', pmt.toFixed(2)],
+            ['累计存入', (pmt * N).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({fv:__savings_goal_monthlyNum('fv'), r:__savings_goal_monthlyNum('r'), y:__savings_goal_monthlyNum('y'), pmt:pmt});
+    TBKit.history.mount('#savings_goal_monthlyHist',function(rec){ if(rec.fv!=null)document.getElementById('fv').value=rec.fv; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.y!=null)document.getElementById('y').value=rec.y; calcTool(); });
+    TBKit.util.diffBox('#savings_goal_monthlyDiff',['pmt']);
+}
+function __savings_goal_monthlyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#savings_goal_monthlyTable','savings-goal-monthly.csv'); } catch(e){}
+}
+function __savings_goal_monthlyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#savings_goal_monthlyPresets',[
+        {label:'默认',labelEn:'Default',values:{fv:'200000', r:'4', y:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fv:'400000', r:'8', y:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fv:'100000', r:'2', y:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __savings_goal_monthlyExtras(); }catch(e){} };
+function __savings_goal_monthlyBoot(){ try{ __savings_goal_monthlyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __savings_goal_monthlyBoot();
+else document.addEventListener('DOMContentLoaded', __savings_goal_monthlyBoot);
+</script>
 </body>
 </html>

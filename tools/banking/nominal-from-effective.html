@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="nominal_from_effectivePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__nominal_from_effectiveExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="nominal_from_effectiveTable"></div>
+    <div id="nominal_from_effectiveDiff"></div>
+    <div id="nominal_from_effectiveHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -300,6 +306,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么名义利率低于实际年化？", "acceptedAnswer": {"@type": "Answer", "text": "因为复利频率放大了收益。名义 6% 按月复利后真实拿到 6.18%，名义是「挂牌口径」、EAR 是「到手口径」。"}}, {"@type": "Question", "name": "这个换算对贷款也适用吗？", "acceptedAnswer": {"@type": "Answer", "text": "适用同一数学关系，只是语义相反：贷款的 EAR 是真实成本，名义是合同标注值，比较成本同样看 EAR。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么名义利率低于实际年化？", "acceptedAnswer": {"@type": "Answer", "text": "因为复利频率放大了收益。名义 6% 按月复利后真实拿到 6.18%，名义是「挂牌口径」、EAR 是「到手口径」。"}}, {"@type": "Question", "name": "这个换算对贷款也适用吗？", "acceptedAnswer": {"@type": "Answer", "text": "适用同一数学关系，只是语义相反：贷款的 EAR 是真实成本，名义是合同标注值，比较成本同样看 EAR。"}}]}
+function __nominal_from_effectiveNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __nominal_from_effectiveExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var EAR=num('EAR'),n=num('n');
+    var r=n*(Math.pow(1+EAR,1/n)-1);
+    if (!isFinite(__nominal_from_effectiveNum('EAR')) || !isFinite(__nominal_from_effectiveNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#nominal_from_effectiveTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['名义年利率 r (%)', (r*100).toFixed(3)],
+            ['实际年利率 EAR (%)', (EAR*100).toFixed(3)],
+            ['等效月利率 (%)', ((Math.pow(1+EAR,1/12)-1)*100).toFixed(4)],
+            ['等效日利率 (%)', ((Math.pow(1+EAR,1/365)-1)*100).toFixed(5)],
+        ]
+    });
+    TBKit.history.record({EAR:__nominal_from_effectiveNum('EAR'), n:__nominal_from_effectiveNum('n'), r:r});
+    TBKit.history.mount('#nominal_from_effectiveHist',function(rec){ if(rec.EAR!=null)document.getElementById('EAR').value=rec.EAR; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#nominal_from_effectiveDiff',['r']);
+}
+function __nominal_from_effectiveExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#nominal_from_effectiveTable','nominal-from-effective.csv'); } catch(e){}
+}
+function __nominal_from_effectivePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#nominal_from_effectivePresets',[
+        {label:'默认',labelEn:'Default',values:{EAR:'0.05116', n:'12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{EAR:'0.1023', n:'24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{EAR:'0.0256', n:'6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __nominal_from_effectiveExtras(); }catch(e){} };
+function __nominal_from_effectiveBoot(){ try{ __nominal_from_effectivePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __nominal_from_effectiveBoot();
+else document.addEventListener('DOMContentLoaded', __nominal_from_effectiveBoot);
+</script>
 </body>
 </html>

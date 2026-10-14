@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="credit_card_interest_monthlyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__credit_card_interest_monthlyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="credit_card_interest_monthlyTable"></div>
+    <div id="credit_card_interest_monthlyDiff"></div>
+    <div id="credit_card_interest_monthlyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -291,6 +297,43 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么只还最低还款额利息很高？", "acceptedAnswer": {"@type": "Answer", "text": "未还部分从每笔消费记账日起按日利率计息（多数银行不再享受免息期），且下月对剩余本金继续滚息，长期成本远高于分期。"}}, {"@type": "Question", "name": "免息期内还款要利息吗？", "acceptedAnswer": {"@type": "Answer", "text": "在账单日到还款日之间的免息期内全额还清，通常不产生循环利息。一旦选择最低还款或逾期，免息待遇即失效。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么只还最低还款额利息很高？", "acceptedAnswer": {"@type": "Answer", "text": "未还部分从每笔消费记账日起按日利率计息（多数银行不再享受免息期），且下月对剩余本金继续滚息，长期成本远高于分期。"}}, {"@type": "Question", "name": "免息期内还款要利息吗？", "acceptedAnswer": {"@type": "Answer", "text": "在账单日到还款日之间的免息期内全额还清，通常不产生循环利息。一旦选择最低还款或逾期，免息待遇即失效。"}}]}
+function __credit_card_interest_monthlyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __credit_card_interest_monthlyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var bal=num('bal'),dr=num('dr'),days=num('days');
+    var I=bal*dr*days;
+    if (!isFinite(__credit_card_interest_monthlyNum('bal')) || !isFinite(__credit_card_interest_monthlyNum('dr')) || !isFinite(__credit_card_interest_monthlyNum('days'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#credit_card_interest_monthlyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['利息 I (元)', I.toFixed(2)],
+            ['期间利率 (%)', (I/bal*100).toFixed(4)],
+            ['年化利率 (%)', (dr*365*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({bal:__credit_card_interest_monthlyNum('bal'), dr:__credit_card_interest_monthlyNum('dr'), days:__credit_card_interest_monthlyNum('days'), I:I});
+    TBKit.history.mount('#credit_card_interest_monthlyHist',function(rec){ if(rec.bal!=null)document.getElementById('bal').value=rec.bal; if(rec.dr!=null)document.getElementById('dr').value=rec.dr; if(rec.days!=null)document.getElementById('days').value=rec.days; calcTool(); });
+    TBKit.util.diffBox('#credit_card_interest_monthlyDiff',['I']);
+}
+function __credit_card_interest_monthlyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#credit_card_interest_monthlyTable','credit-card-interest-monthly.csv'); } catch(e){}
+}
+function __credit_card_interest_monthlyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#credit_card_interest_monthlyPresets',[
+        {label:'默认',labelEn:'Default',values:{bal:'1000', dr:'0.0005', days:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{bal:'2000', dr:'0.001', days:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{bal:'500', dr:'0.0003', days:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __credit_card_interest_monthlyExtras(); }catch(e){} };
+function __credit_card_interest_monthlyBoot(){ try{ __credit_card_interest_monthlyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __credit_card_interest_monthlyBoot();
+else document.addEventListener('DOMContentLoaded', __credit_card_interest_monthlyBoot);
+</script>
 </body>
 </html>

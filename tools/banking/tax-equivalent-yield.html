@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="tax_equivalent_yieldPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__tax_equivalent_yieldExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tax_equivalent_yieldTable"></div>
+    <div id="tax_equivalent_yieldDiff"></div>
+    <div id="tax_equivalent_yieldHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -233,6 +239,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "所有免税品种都更优吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一定。低税率时 TEY 提升有限，若应税品种票面远高于免税品种仍可能更优。应代入自身边际税率比较。"}}, {"@type": "Question", "name": "资本利得税算进去吗？", "acceptedAnswer": {"@type": "Answer", "text": "TEY 通常只处理「利息税」口径。若涉及买卖价差资本利得税，需另行折算，模型会更复杂。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "所有免税品种都更优吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一定。低税率时 TEY 提升有限，若应税品种票面远高于免税品种仍可能更优。应代入自身边际税率比较。"}}, {"@type": "Question", "name": "资本利得税算进去吗？", "acceptedAnswer": {"@type": "Answer", "text": "TEY 通常只处理「利息税」口径。若涉及买卖价差资本利得税，需另行折算，模型会更复杂。"}}]}
+function __tax_equivalent_yieldNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tax_equivalent_yieldExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var muni=num('muni'),tax=num('tax');
+    var TEY=muni/(1-tax);
+    if (!isFinite(__tax_equivalent_yieldNum('muni')) || !isFinite(__tax_equivalent_yieldNum('tax'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#tax_equivalent_yieldTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['税后等效收益率 TEY (%)', (TEY*100).toFixed(3)],
+            ['应税需高出的百分点', (TEY*100-muni*100).toFixed(3)],
+            ['边际税率 (%)', (tax*100).toFixed(1)],
+            ['免税溢价系数减一', (1/(1-tax)-1).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({muni:__tax_equivalent_yieldNum('muni'), tax:__tax_equivalent_yieldNum('tax'), TEY:TEY});
+    TBKit.history.mount('#tax_equivalent_yieldHist',function(rec){ if(rec.muni!=null)document.getElementById('muni').value=rec.muni; if(rec.tax!=null)document.getElementById('tax').value=rec.tax; calcTool(); });
+    TBKit.util.diffBox('#tax_equivalent_yieldDiff',['TEY']);
+}
+function __tax_equivalent_yieldExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tax_equivalent_yieldTable','tax-equivalent-yield.csv'); } catch(e){}
+}
+function __tax_equivalent_yieldPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tax_equivalent_yieldPresets',[
+        {label:'默认',labelEn:'Default',values:{muni:'0.03', tax:'0.25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{muni:'0.06', tax:'0.5'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{muni:'0.015', tax:'0.125'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __tax_equivalent_yieldExtras(); }catch(e){} };
+function __tax_equivalent_yieldBoot(){ try{ __tax_equivalent_yieldPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tax_equivalent_yieldBoot();
+else document.addEventListener('DOMContentLoaded', __tax_equivalent_yieldBoot);
+</script>
 </body>
 </html>

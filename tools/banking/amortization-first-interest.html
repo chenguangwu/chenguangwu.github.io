@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="amortization_first_interestPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__amortization_first_interestExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="amortization_first_interestTable"></div>
+    <div id="amortization_first_interestDiff"></div>
+    <div id="amortization_first_interestHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -235,6 +241,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么等额本息前期还的利息多？", "acceptedAnswer": {"@type": "Answer", "text": "等额本息每月月供固定，但利息按「剩余本金×月利率」计。还款初期剩余本金最高，利息占比最大；随本金被逐步摊还，利息占比逐月下降、本金占比上升。"}}, {"@type": "Question", "name": "首月利息和次月利息差多少？", "acceptedAnswer": {"@type": "Answer", "text": "次月利息=次月剩余本金×月利率。次月剩余本金=首月本金−首月偿还的本金部分，因此次月利息略低于首月，差额等于首月本金偿还额×月利率。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么等额本息前期还的利息多？", "acceptedAnswer": {"@type": "Answer", "text": "等额本息每月月供固定，但利息按「剩余本金×月利率」计。还款初期剩余本金最高，利息占比最大；随本金被逐步摊还，利息占比逐月下降、本金占比上升。"}}, {"@type": "Question", "name": "首月利息和次月利息差多少？", "acceptedAnswer": {"@type": "Answer", "text": "次月利息=次月剩余本金×月利率。次月剩余本金=首月本金−首月偿还的本金部分，因此次月利息略低于首月，差额等于首月本金偿还额×月利率。"}}]}
+function __amortization_first_interestNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __amortization_first_interestExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('p'), r = num('r') / 100 / 12;
+    var I1 = P * r;
+    if (!isFinite(__amortization_first_interestNum('p')) || !isFinite(__amortization_first_interestNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#amortization_first_interestTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['首月利息 I₁', I1.toFixed(2)],
+            ['首月还本金', (P - I1).toFixed(2)],
+            ['年利率 (%)', (r*12*100).toFixed(3)],
+            ['首月利息占本金比 (%)', (I1/(P||1)*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({p:__amortization_first_interestNum('p'), r:__amortization_first_interestNum('r'), P:P});
+    TBKit.history.mount('#amortization_first_interestHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#amortization_first_interestDiff',['P']);
+}
+function __amortization_first_interestExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#amortization_first_interestTable','amortization-first-interest.csv'); } catch(e){}
+}
+function __amortization_first_interestPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#amortization_first_interestPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'500000', r:'4.9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'1000000', r:'9.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'250000', r:'2.45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __amortization_first_interestExtras(); }catch(e){} };
+function __amortization_first_interestBoot(){ try{ __amortization_first_interestPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __amortization_first_interestBoot();
+else document.addEventListener('DOMContentLoaded', __amortization_first_interestBoot);
+</script>
 </body>
 </html>

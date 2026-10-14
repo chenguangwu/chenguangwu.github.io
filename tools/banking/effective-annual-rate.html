@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="effective_annual_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__effective_annual_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="effective_annual_rateTable"></div>
+    <div id="effective_annual_rateDiff"></div>
+    <div id="effective_annual_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -235,6 +241,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "EAR 和 APR 一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一样。APR（年百分率）通常只体现名义利率、不反映复利频率；EAR 把复利频率纳入，才是真实年化成本。比较贷款应以 EAR 为准。"}}, {"@type": "Question", "name": "为什么信用卡用 EAR 表述？", "acceptedAnswer": {"@type": "Answer", "text": "信用卡日利率（如 0.05%/天）若直接×365 会低估，因为存在每日滚复。折算成 EAR 后才能与年化产品公平对比，约 19.56%。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "EAR 和 APR 一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一样。APR（年百分率）通常只体现名义利率、不反映复利频率；EAR 把复利频率纳入，才是真实年化成本。比较贷款应以 EAR 为准。"}}, {"@type": "Question", "name": "为什么信用卡用 EAR 表述？", "acceptedAnswer": {"@type": "Answer", "text": "信用卡日利率（如 0.05%/天）若直接×365 会低估，因为存在每日滚复。折算成 EAR 后才能与年化产品公平对比，约 19.56%。"}}]}
+function __effective_annual_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __effective_annual_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r') / 100, n = num('n');
+    var ear = Math.pow(1 + r / n, n) - 1;
+    if (!isFinite(__effective_annual_rateNum('r')) || !isFinite(__effective_annual_rateNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#effective_annual_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['有效年利率 EAR (%)', (ear * 100).toFixed(3)],
+            ['EAR (小数)', ear.toFixed(5)],
+            ['EAR 高于名义利率 (百分点)', ((ear*100)-(r*100)).toFixed(4)],
+            ['与连续复利之差 (百分点)', ((ear-(Math.exp(r)-1))*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__effective_annual_rateNum('r'), n:__effective_annual_rateNum('n'), ear:ear});
+    TBKit.history.mount('#effective_annual_rateHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#effective_annual_rateDiff',['ear']);
+}
+function __effective_annual_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#effective_annual_rateTable','effective-annual-rate.csv'); } catch(e){}
+}
+function __effective_annual_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#effective_annual_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{r:'6', n:'12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'12', n:'24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'3', n:'6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __effective_annual_rateExtras(); }catch(e){} };
+function __effective_annual_rateBoot(){ try{ __effective_annual_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __effective_annual_rateBoot();
+else document.addEventListener('DOMContentLoaded', __effective_annual_rateBoot);
+</script>
 </body>
 </html>

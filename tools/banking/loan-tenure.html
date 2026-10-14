@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="loan_tenurePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__loan_tenureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="loan_tenureTable"></div>
+    <div id="loan_tenureDiff"></div>
+    <div id="loan_tenureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -291,6 +297,43 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "月供低于利息会怎样？", "acceptedAnswer": {"@type": "Answer", "text": "若 PMT≤P·r（月息），分母 PMT−P·r≤0，公式无解——本金永远还不清、越欠越多，即「利滚利」恶性循环，须提高月供。"}}, {"@type": "Question", "name": "n 不是整数怎么办？", "acceptedAnswer": {"@type": "Answer", "text": "最后一期按剩余本金单独结算。通常前 n−1 期按整额月供，末期用剩余本金+利息凑平，金额略异。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "月供低于利息会怎样？", "acceptedAnswer": {"@type": "Answer", "text": "若 PMT≤P·r（月息），分母 PMT−P·r≤0，公式无解——本金永远还不清、越欠越多，即「利滚利」恶性循环，须提高月供。"}}, {"@type": "Question", "name": "n 不是整数怎么办？", "acceptedAnswer": {"@type": "Answer", "text": "最后一期按剩余本金单独结算。通常前 n−1 期按整额月供，末期用剩余本金+利息凑平，金额略异。"}}]}
+function __loan_tenureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __loan_tenureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P=num('P'),r=num('r'),PMT=num('PMT');
+    var n=-Math.log(1-P*r/PMT)/Math.log(1+r);
+    if (!isFinite(__loan_tenureNum('P')) || !isFinite(__loan_tenureNum('r')) || !isFinite(__loan_tenureNum('PMT'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#loan_tenureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['还款期数 n (期)', n.toFixed(1)],
+            ['还款年限 (年)', (n/12).toFixed(2)],
+            ['合计还款额', (PMT*n).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({P:__loan_tenureNum('P'), r:__loan_tenureNum('r'), PMT:__loan_tenureNum('PMT'), n:n});
+    TBKit.history.mount('#loan_tenureHist',function(rec){ if(rec.P!=null)document.getElementById('P').value=rec.P; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.PMT!=null)document.getElementById('PMT').value=rec.PMT; calcTool(); });
+    TBKit.util.diffBox('#loan_tenureDiff',['n']);
+}
+function __loan_tenureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#loan_tenureTable','loan-tenure.csv'); } catch(e){}
+}
+function __loan_tenurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#loan_tenurePresets',[
+        {label:'默认',labelEn:'Default',values:{P:'10000', r:'0.005', PMT:'200'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'20000', r:'0.01', PMT:'400'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'5000', r:'0.0025', PMT:'100'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __loan_tenureExtras(); }catch(e){} };
+function __loan_tenureBoot(){ try{ __loan_tenurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __loan_tenureBoot();
+else document.addEventListener('DOMContentLoaded', __loan_tenureBoot);
+</script>
 </body>
 </html>

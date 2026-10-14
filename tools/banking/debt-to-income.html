@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="debt_to_incomePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__debt_to_incomeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="debt_to_incomeTable"></div>
+    <div id="debt_to_incomeDiff"></div>
+    <div id="debt_to_incomeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -287,6 +293,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "DTI 多少算安全？", "acceptedAnswer": {"@type": "Answer", "text": "常见警戒线为 43%~50%。DTI 越高，发生逾期的风险越大；低于 36% 通常被认为偿债压力较轻。"}}, {"@type": "Question", "name": "DTI 算不算生活开销？", "acceptedAnswer": {"@type": "Answer", "text": "标准 DTI 只算「债务性支出」（房贷、车贷、信用卡最低还款等），不计入吃饭、交通等日常消费。部分机构另有「含生活支出的 DTI」口径。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "DTI 多少算安全？", "acceptedAnswer": {"@type": "Answer", "text": "常见警戒线为 43%~50%。DTI 越高，发生逾期的风险越大；低于 36% 通常被认为偿债压力较轻。"}}, {"@type": "Question", "name": "DTI 算不算生活开销？", "acceptedAnswer": {"@type": "Answer", "text": "标准 DTI 只算「债务性支出」（房贷、车贷、信用卡最低还款等），不计入吃饭、交通等日常消费。部分机构另有「含生活支出的 DTI」口径。"}}]}
+function __debt_to_incomeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __debt_to_incomeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var debt=num('debt'),inc=num('inc');
+    var DTI=debt/inc*100;
+    if (!isFinite(__debt_to_incomeNum('debt')) || !isFinite(__debt_to_incomeNum('inc'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#debt_to_incomeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['债务收入比 DTI (%)', DTI.toFixed(1)],
+            ['剩余可支配收入 (元)', (inc-debt).toFixed(2)],
+            ['收入债务倍数', (inc/Math.max(debt,1)).toFixed(3)],
+            ['DTI 小数形式', (debt/inc).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({debt:__debt_to_incomeNum('debt'), inc:__debt_to_incomeNum('inc'), DTI:DTI});
+    TBKit.history.mount('#debt_to_incomeHist',function(rec){ if(rec.debt!=null)document.getElementById('debt').value=rec.debt; if(rec.inc!=null)document.getElementById('inc').value=rec.inc; calcTool(); });
+    TBKit.util.diffBox('#debt_to_incomeDiff',['DTI']);
+}
+function __debt_to_incomeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#debt_to_incomeTable','debt-to-income.csv'); } catch(e){}
+}
+function __debt_to_incomePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#debt_to_incomePresets',[
+        {label:'默认',labelEn:'Default',values:{debt:'3000', inc:'10000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{debt:'6000', inc:'20000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{debt:'1500', inc:'5000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __debt_to_incomeExtras(); }catch(e){} };
+function __debt_to_incomeBoot(){ try{ __debt_to_incomePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __debt_to_incomeBoot();
+else document.addEventListener('DOMContentLoaded', __debt_to_incomeBoot);
+</script>
 </body>
 </html>

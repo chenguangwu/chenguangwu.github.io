@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="apy_calculatorPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__apy_calculatorExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="apy_calculatorTable"></div>
+    <div id="apy_calculatorDiff"></div>
+    <div id="apy_calculatorHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -233,6 +239,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "APY 和 EAR 有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "数值上两者是同一公式 (1+r/n)^n−1。APY 多指存款/货基的「实际收益率」口径，EAR 多指贷款的「有效年利率」口径，计算方式一致。"}}, {"@type": "Question", "name": "复利频率越高收益越高吗？", "acceptedAnswer": {"@type": "Answer", "text": "在名义利率固定时，复利越频繁（日利>月利>年利）实际年化越高，但存在上限——连续复利 A=P·e^(rt)，再高频也不会超过 e^r−1。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "APY 和 EAR 有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "数值上两者是同一公式 (1+r/n)^n−1。APY 多指存款/货基的「实际收益率」口径，EAR 多指贷款的「有效年利率」口径，计算方式一致。"}}, {"@type": "Question", "name": "复利频率越高收益越高吗？", "acceptedAnswer": {"@type": "Answer", "text": "在名义利率固定时，复利越频繁（日利>月利>年利）实际年化越高，但存在上限——连续复利 A=P·e^(rt)，再高频也不会超过 e^r−1。"}}]}
+function __apy_calculatorNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __apy_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r=num('r'),n=num('n');
+    var APY=Math.pow(1+r/n,n)-1;
+    if (!isFinite(__apy_calculatorNum('r')) || !isFinite(__apy_calculatorNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#apy_calculatorTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年化收益率 APY (%)', (APY*100).toFixed(3)],
+            ['名义年利率 (%)', (r*100).toFixed(3)],
+            ['连续复利年化 (%)', (Math.exp(r)-1).toFixed(5)],
+            ['APY 与名义利率之比', (APY/Math.max(r,1e-9)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({r:__apy_calculatorNum('r'), n:__apy_calculatorNum('n'), APY:APY});
+    TBKit.history.mount('#apy_calculatorHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#apy_calculatorDiff',['APY']);
+}
+function __apy_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#apy_calculatorTable','apy-calculator.csv'); } catch(e){}
+}
+function __apy_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#apy_calculatorPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'0.05', n:'12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'0.1', n:'24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'0.025', n:'6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __apy_calculatorExtras(); }catch(e){} };
+function __apy_calculatorBoot(){ try{ __apy_calculatorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __apy_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __apy_calculatorBoot);
+</script>
 </body>
 </html>

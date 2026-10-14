@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fisher_real_ratePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fisher_real_rateExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fisher_real_rateTable"></div>
+    <div id="fisher_real_rateDiff"></div>
+    <div id="fisher_real_rateHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -246,6 +252,44 @@ calcTool();
 <h3>用法</h3><p>名义利率 5%、通胀 2% 时实际约 2.94%（精确）或 3%（近似）。实际利率为负表示购买力下降。</p>
 </div></section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "精确费雪和近似 i≈n−π 差在哪？", "acceptedAnswer": {"@type": "Answer", "text": "近似忽略交叉项（实际×通胀），只在低利率低通胀时接近。高通胀下交叉项不可忽略，必须用 (1+n)/(1+π)−1 精确计算。"}}, {"@type": "Question", "name": "实际利率为负意味着什么？", "acceptedAnswer": {"@type": "Answer", "text": "当名义利率低于通胀率，实际利率为负，存款购买力随时间下降，钱「越存越少」。此时实物资产或抗通胀品种更受青睐。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "精确费雪和近似 i≈n−π 差在哪？", "acceptedAnswer": {"@type": "Answer", "text": "近似忽略交叉项（实际×通胀），只在低利率低通胀时接近。高通胀下交叉项不可忽略，必须用 (1+n)/(1+π)−1 精确计算。"}}, {"@type": "Question", "name": "实际利率为负意味着什么？", "acceptedAnswer": {"@type": "Answer", "text": "当名义利率低于通胀率，实际利率为负，存款购买力随时间下降，钱「越存越少」。此时实物资产或抗通胀品种更受青睐。"}}]}
+function __fisher_real_rateNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fisher_real_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var nom = num('nom') / 100, infl = num('infl') / 100;
+    var real = (1 + nom) / (1 + infl) - 1;
+    if (!isFinite(__fisher_real_rateNum('nom')) || !isFinite(__fisher_real_rateNum('infl'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fisher_real_rateTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['实际利率 (%)', (real * 100).toFixed(3)],
+            ['近似 (名义−通胀)', ((nom - infl) * 100).toFixed(3)],
+            ['精确值与近似值之差 (百分点)', (real*100-(nom-infl)*100).toFixed(3)],
+            ['实际购买力系数', (1+real).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({nom:__fisher_real_rateNum('nom'), infl:__fisher_real_rateNum('infl'), real:real});
+    TBKit.history.mount('#fisher_real_rateHist',function(rec){ if(rec.nom!=null)document.getElementById('nom').value=rec.nom; if(rec.infl!=null)document.getElementById('infl').value=rec.infl; calcTool(); });
+    TBKit.util.diffBox('#fisher_real_rateDiff',['real']);
+}
+function __fisher_real_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fisher_real_rateTable','fisher-real-rate.csv'); } catch(e){}
+}
+function __fisher_real_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fisher_real_ratePresets',[
+        {label:'默认',labelEn:'Default',values:{nom:'6', infl:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{nom:'12', infl:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{nom:'3', infl:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fisher_real_rateExtras(); }catch(e){} };
+function __fisher_real_rateBoot(){ try{ __fisher_real_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fisher_real_rateBoot();
+else document.addEventListener('DOMContentLoaded', __fisher_real_rateBoot);
+</script>
 </body>
 </html>

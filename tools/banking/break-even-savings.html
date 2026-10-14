@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="break_even_savingsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__break_even_savingsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="break_even_savingsTable"></div>
+    <div id="break_even_savingsDiff"></div>
+    <div id="break_even_savingsHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -287,6 +293,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "这个平衡点考虑了风险吗？", "acceptedAnswer": {"@type": "Answer", "text": "没有。模型只比较利率差，未计入流动性需求、提前还款违约金、税负与投资机会。实际决策应保留应急现金后再考虑还贷。"}}, {"@type": "Question", "name": "税率会影响平衡点吗？", "acceptedAnswer": {"@type": "Answer", "text": "会。存款利息可能免税或应税，贷款利息部分情形可抵税。用税后口径 r_d(1−t_d) 与 r_l(1−t_l) 代入，平衡点会右移或左移。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "这个平衡点考虑了风险吗？", "acceptedAnswer": {"@type": "Answer", "text": "没有。模型只比较利率差，未计入流动性需求、提前还款违约金、税负与投资机会。实际决策应保留应急现金后再考虑还贷。"}}, {"@type": "Question", "name": "税率会影响平衡点吗？", "acceptedAnswer": {"@type": "Answer", "text": "会。存款利息可能免税或应税，贷款利息部分情形可抵税。用税后口径 r_d(1−t_d) 与 r_l(1−t_l) 代入，平衡点会右移或左移。"}}]}
+function __break_even_savingsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __break_even_savingsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rd = num('rd'), rl = num('rl');
+    var x = rl / (rd + rl);
+    if (!isFinite(__break_even_savingsNum('rd')) || !isFinite(__break_even_savingsNum('rl'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#break_even_savingsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['存款占比 X (%)', (x * 100).toFixed(2)],
+            ['贷款占比 (1−X) (%)', ((1 - x) * 100).toFixed(2)],
+            ['两利率之和 rd+rl (%)', (rd+rl).toFixed(4)],
+            ['利率差 |rd-rl| (%)', Math.abs(rd-rl).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({rd:__break_even_savingsNum('rd'), rl:__break_even_savingsNum('rl'), x:x});
+    TBKit.history.mount('#break_even_savingsHist',function(rec){ if(rec.rd!=null)document.getElementById('rd').value=rec.rd; if(rec.rl!=null)document.getElementById('rl').value=rec.rl; calcTool(); });
+    TBKit.util.diffBox('#break_even_savingsDiff',['x']);
+}
+function __break_even_savingsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#break_even_savingsTable','break-even-savings.csv'); } catch(e){}
+}
+function __break_even_savingsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#break_even_savingsPresets',[
+        {label:'默认',labelEn:'Default',values:{rd:'2', rl:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rd:'4', rl:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rd:'1', rl:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __break_even_savingsExtras(); }catch(e){} };
+function __break_even_savingsBoot(){ try{ __break_even_savingsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __break_even_savingsBoot();
+else document.addEventListener('DOMContentLoaded', __break_even_savingsBoot);
+</script>
 </body>
 </html>

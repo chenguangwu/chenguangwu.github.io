@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rd_maturityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rd_maturityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rd_maturityTable"></div>
+    <div id="rd_maturityDiff"></div>
+    <div id="rd_maturityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -290,6 +296,42 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "零存整取和中途漏存怎么办？", "acceptedAnswer": {"@type": "Answer", "text": "多数银行允许次月补存（限次数），超过则按活期计息或转为活期账户，会损失约定利息。"}}, {"@type": "Question", "name": "收益为什么比整存整取低？", "acceptedAnswer": {"@type": "Answer", "text": "零存整取资金是逐月投入、平均占用时间短，整存整取一次性占用全年，故同等利率下零存利息更少。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "零存整取和中途漏存怎么办？", "acceptedAnswer": {"@type": "Answer", "text": "多数银行允许次月补存（限次数），超过则按活期计息或转为活期账户，会损失约定利息。"}}, {"@type": "Question", "name": "收益为什么比整存整取低？", "acceptedAnswer": {"@type": "Answer", "text": "零存整取资金是逐月投入、平均占用时间短，整存整取一次性占用全年，故同等利率下零存利息更少。"}}]}
+function __rd_maturityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rd_maturityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('p'), i = num('r') / 4 / 100, n = num('t') * 4;
+    var M = P * (Math.pow(1 + i, n) - 1) / (1 - Math.pow(1 + i, -1 / 3));
+    if (!isFinite(__rd_maturityNum('p')) || !isFinite(__rd_maturityNum('r')) || !isFinite(__rd_maturityNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rd_maturityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['到期金额 M', M.toFixed(2)],
+            ['利息总额', (M - P * n * 3).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p:__rd_maturityNum('p'), r:__rd_maturityNum('r'), t:__rd_maturityNum('t'), P:P});
+    TBKit.history.mount('#rd_maturityHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#rd_maturityDiff',['P']);
+}
+function __rd_maturityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rd_maturityTable','rd-maturity.csv'); } catch(e){}
+}
+function __rd_maturityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rd_maturityPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'1000', r:'8', t:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'2000', r:'16', t:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'500', r:'4', t:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rd_maturityExtras(); }catch(e){} };
+function __rd_maturityBoot(){ try{ __rd_maturityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rd_maturityBoot();
+else document.addEventListener('DOMContentLoaded', __rd_maturityBoot);
+</script>
 </body>
 </html>

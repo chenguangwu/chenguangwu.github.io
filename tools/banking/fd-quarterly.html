@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="fd_quarterlyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__fd_quarterlyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="fd_quarterlyTable"></div>
+    <div id="fd_quarterlyDiff"></div>
+    <div id="fd_quarterlyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -292,6 +298,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "定期存款到期前支取怎么算息？", "acceptedAnswer": {"@type": "Answer", "text": "提前支取通常按支取日活期利率计息，已结的季度利息是否保留视银行规定。急用钱会损失大部分定期利息。"}}, {"@type": "Question", "name": "自动转存按什么利率？", "acceptedAnswer": {"@type": "Answer", "text": "到期自动转存一般按转存日银行挂牌的同期限利率，而非原利率。市场降息时转存利率可能低于当初。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "定期存款到期前支取怎么算息？", "acceptedAnswer": {"@type": "Answer", "text": "提前支取通常按支取日活期利率计息，已结的季度利息是否保留视银行规定。急用钱会损失大部分定期利息。"}}, {"@type": "Question", "name": "自动转存按什么利率？", "acceptedAnswer": {"@type": "Answer", "text": "到期自动转存一般按转存日银行挂牌的同期限利率，而非原利率。市场降息时转存利率可能低于当初。"}}]}
+function __fd_quarterlyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __fd_quarterlyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('p'), r = num('r'), t = num('t');
+    var A = P * Math.pow(1 + r / 4 / 100, 4 * t);
+    if (!isFinite(__fd_quarterlyNum('p')) || !isFinite(__fd_quarterlyNum('r')) || !isFinite(__fd_quarterlyNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#fd_quarterlyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['到期金额 A', A.toFixed(2)],
+            ['利息总额', (A - P).toFixed(2)],
+            ['本息倍数 A/P', (A/P).toFixed(4)],
+            ['年实际利率 EAR (%)', ((Math.pow(1+r/4/100,4)-1)*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({p:__fd_quarterlyNum('p'), r:__fd_quarterlyNum('r'), t:__fd_quarterlyNum('t'), P:P});
+    TBKit.history.mount('#fd_quarterlyHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#fd_quarterlyDiff',['P']);
+}
+function __fd_quarterlyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fd_quarterlyTable','fd-quarterly.csv'); } catch(e){}
+}
+function __fd_quarterlyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#fd_quarterlyPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'100000', r:'3', t:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'200000', r:'6', t:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'50000', r:'1.5', t:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __fd_quarterlyExtras(); }catch(e){} };
+function __fd_quarterlyBoot(){ try{ __fd_quarterlyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __fd_quarterlyBoot();
+else document.addEventListener('DOMContentLoaded', __fd_quarterlyBoot);
+</script>
 </body>
 </html>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="loan_total_interestPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__loan_total_interestExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="loan_total_interestTable"></div>
+    <div id="loan_total_interestDiff"></div>
+    <div id="loan_total_interestHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -291,6 +297,43 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么总利息常接近甚至超过本金？", "acceptedAnswer": {"@type": "Answer", "text": "长期低月供下，前期大部分月供用于付息，本金摊还慢，累计利息巨大。缩短期限或提高月供可显著压降总利息。"}}, {"@type": "Question", "name": "等额本金的总利息怎么算？", "acceptedAnswer": {"@type": "Answer", "text": "等额本金每月本金固定、利息递减，总利息=Σ(剩余本金×月利率)，比等额本息少，但前期月供更高。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么总利息常接近甚至超过本金？", "acceptedAnswer": {"@type": "Answer", "text": "长期低月供下，前期大部分月供用于付息，本金摊还慢，累计利息巨大。缩短期限或提高月供可显著压降总利息。"}}, {"@type": "Question", "name": "等额本金的总利息怎么算？", "acceptedAnswer": {"@type": "Answer", "text": "等额本金每月本金固定、利息递减，总利息=Σ(剩余本金×月利率)，比等额本息少，但前期月供更高。"}}]}
+function __loan_total_interestNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __loan_total_interestExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('p'), r = num('r') / 100 / 12, N = num('y') * 12;
+    var emi = P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1);
+    var total = emi * N - P;
+    if (!isFinite(__loan_total_interestNum('p')) || !isFinite(__loan_total_interestNum('r')) || !isFinite(__loan_total_interestNum('y'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#loan_total_interestTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['贷款总利息', total.toFixed(2)],
+            ['月供 EMI', emi.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p:__loan_total_interestNum('p'), r:__loan_total_interestNum('r'), y:__loan_total_interestNum('y'), P:P});
+    TBKit.history.mount('#loan_total_interestHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.y!=null)document.getElementById('y').value=rec.y; calcTool(); });
+    TBKit.util.diffBox('#loan_total_interestDiff',['P']);
+}
+function __loan_total_interestExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#loan_total_interestTable','loan-total-interest.csv'); } catch(e){}
+}
+function __loan_total_interestPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#loan_total_interestPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'500000', r:'4.9', y:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'1000000', r:'9.8', y:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'250000', r:'2.45', y:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __loan_total_interestExtras(); }catch(e){} };
+function __loan_total_interestBoot(){ try{ __loan_total_interestPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __loan_total_interestBoot();
+else document.addEventListener('DOMContentLoaded', __loan_total_interestBoot);
+</script>
 </body>
 </html>

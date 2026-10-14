@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="net_worthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__net_worthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="net_worthTable"></div>
+    <div id="net_worthDiff"></div>
+    <div id="net_worthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -233,6 +239,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "自住房算资产吗？", "acceptedAnswer": {"@type": "Answer", "text": "算。净资产=所有资产（含房产、存款、投资）减所有负债（房贷、车贷、信用贷）。但自住房流动性差，分析偿债力时常单列「可投资净资产」。"}}, {"@type": "Question", "name": "净资产能为负吗？", "acceptedAnswer": {"@type": "Answer", "text": "能。当负债超过资产（如房价大跌且高杠杆）即为负净资产，俗称「资不抵债」，需警惕流动性与违约风险。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "自住房算资产吗？", "acceptedAnswer": {"@type": "Answer", "text": "算。净资产=所有资产（含房产、存款、投资）减所有负债（房贷、车贷、信用贷）。但自住房流动性差，分析偿债力时常单列「可投资净资产」。"}}, {"@type": "Question", "name": "净资产能为负吗？", "acceptedAnswer": {"@type": "Answer", "text": "能。当负债超过资产（如房价大跌且高杠杆）即为负净资产，俗称「资不抵债」，需警惕流动性与违约风险。"}}]}
+function __net_worthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __net_worthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var assets=num('assets'),liab=num('liab');
+    var NW=assets-liab;
+    if (!isFinite(__net_worthNum('assets')) || !isFinite(__net_worthNum('liab'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#net_worthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['净资产 NW (元)', NW.toFixed(0)],
+            ['负债率 (%)', (liab/Math.max(assets,1)*100).toFixed(2)],
+            ['资产覆盖倍数', (assets/Math.max(liab,1)).toFixed(3)],
+            ['净资产占资产 (%)', (NW/Math.max(assets,1)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({assets:__net_worthNum('assets'), liab:__net_worthNum('liab'), NW:NW});
+    TBKit.history.mount('#net_worthHist',function(rec){ if(rec.assets!=null)document.getElementById('assets').value=rec.assets; if(rec.liab!=null)document.getElementById('liab').value=rec.liab; calcTool(); });
+    TBKit.util.diffBox('#net_worthDiff',['NW']);
+}
+function __net_worthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#net_worthTable','net-worth.csv'); } catch(e){}
+}
+function __net_worthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#net_worthPresets',[
+        {label:'默认',labelEn:'Default',values:{assets:'500000', liab:'200000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{assets:'1000000', liab:'400000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{assets:'250000', liab:'100000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __net_worthExtras(); }catch(e){} };
+function __net_worthBoot(){ try{ __net_worthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __net_worthBoot();
+else document.addEventListener('DOMContentLoaded', __net_worthBoot);
+</script>
 </body>
 </html>

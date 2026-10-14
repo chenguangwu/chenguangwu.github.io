@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="continuous_compoundingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__continuous_compoundingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="continuous_compoundingTable"></div>
+    <div id="continuous_compoundingDiff"></div>
+    <div id="continuous_compoundingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -238,6 +244,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "连续复利在现实中存在吗？", "acceptedAnswer": {"@type": "Answer", "text": "银行不会真按瞬时复利计息，但它是对「复利频率趋于无穷」的理论抽象，广泛用于连续时间金融模型（如 Black-Scholes）的贴现与增长。"}}, {"@type": "Question", "name": "连续复利和普通复利公式怎么换算？", "acceptedAnswer": {"@type": "Answer", "text": "令 e^r = (1+i/n)^n 的极限。已知年化 r，任何普通复利频率都严格小于 e^r−1 这个连续上限。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "连续复利在现实中存在吗？", "acceptedAnswer": {"@type": "Answer", "text": "银行不会真按瞬时复利计息，但它是对「复利频率趋于无穷」的理论抽象，广泛用于连续时间金融模型（如 Black-Scholes）的贴现与增长。"}}, {"@type": "Question", "name": "连续复利和普通复利公式怎么换算？", "acceptedAnswer": {"@type": "Answer", "text": "令 e^r = (1+i/n)^n 的极限。已知年化 r，任何普通复利频率都严格小于 e^r−1 这个连续上限。"}}]}
+function __continuous_compoundingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __continuous_compoundingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('p'), r = num('r') / 100, t = num('t');
+    var A = P * Math.exp(r * t);
+    if (!isFinite(__continuous_compoundingNum('p')) || !isFinite(__continuous_compoundingNum('r')) || !isFinite(__continuous_compoundingNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#continuous_compoundingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['连续复利终值 A', A.toFixed(2)],
+            ['利息总额', (A - P).toFixed(2)],
+            ['年实际收益率 (%)', ((Math.exp(r)-1)*100).toFixed(4)],
+            ['较年复利增益 (%)', ((Math.exp(r*t)-Math.pow(1+r,t))/Math.pow(1+r,t)*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({p:__continuous_compoundingNum('p'), r:__continuous_compoundingNum('r'), t:__continuous_compoundingNum('t'), P:P});
+    TBKit.history.mount('#continuous_compoundingHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#continuous_compoundingDiff',['P']);
+}
+function __continuous_compoundingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#continuous_compoundingTable','continuous-compounding.csv'); } catch(e){}
+}
+function __continuous_compoundingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#continuous_compoundingPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'10000', r:'5', t:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'20000', r:'10', t:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'5000', r:'2.5', t:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __continuous_compoundingExtras(); }catch(e){} };
+function __continuous_compoundingBoot(){ try{ __continuous_compoundingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __continuous_compoundingBoot();
+else document.addEventListener('DOMContentLoaded', __continuous_compoundingBoot);
+</script>
 </body>
 </html>

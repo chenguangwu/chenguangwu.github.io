@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="loan_remaining_balancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__loan_remaining_balanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="loan_remaining_balanceTable"></div>
+    <div id="loan_remaining_balanceDiff"></div>
+    <div id="loan_remaining_balanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -298,6 +304,43 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "剩余本金和已还本金是一回事吗？", "acceptedAnswer": {"@type": "Answer", "text": "不是。已还本金=总还款−已付利息，剩余本金=原贷款−已还本金。等额本息前期已付利息多，剩余本金下降慢。"}}, {"@type": "Question", "name": "提前还款能省多少利息？", "acceptedAnswer": {"@type": "Answer", "text": "省下的是剩余本金在未来各期本应付的利息。提前还本金越多、越早，节省越多；部分银行对提前还款收违约金，需抵扣后比较。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "剩余本金和已还本金是一回事吗？", "acceptedAnswer": {"@type": "Answer", "text": "不是。已还本金=总还款−已付利息，剩余本金=原贷款−已还本金。等额本息前期已付利息多，剩余本金下降慢。"}}, {"@type": "Question", "name": "提前还款能省多少利息？", "acceptedAnswer": {"@type": "Answer", "text": "省下的是剩余本金在未来各期本应付的利息。提前还本金越多、越早，节省越多；部分银行对提前还款收违约金，需抵扣后比较。"}}]}
+function __loan_remaining_balanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __loan_remaining_balanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P = num('p'), r = num('r') / 100 / 12, N = num('y') * 12, k = num('k');
+    var emi = P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1);
+    var B = P * Math.pow(1 + r, k) - emi * (Math.pow(1 + r, k) - 1) / r;
+    if (!isFinite(__loan_remaining_balanceNum('p')) || !isFinite(__loan_remaining_balanceNum('r')) || !isFinite(__loan_remaining_balanceNum('y')) || !isFinite(__loan_remaining_balanceNum('k'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#loan_remaining_balanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['剩余本金 B', B.toFixed(2)],
+            ['已还本金', (P - B).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p:__loan_remaining_balanceNum('p'), r:__loan_remaining_balanceNum('r'), y:__loan_remaining_balanceNum('y'), k:__loan_remaining_balanceNum('k'), P:P});
+    TBKit.history.mount('#loan_remaining_balanceHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.y!=null)document.getElementById('y').value=rec.y; if(rec.k!=null)document.getElementById('k').value=rec.k; calcTool(); });
+    TBKit.util.diffBox('#loan_remaining_balanceDiff',['P']);
+}
+function __loan_remaining_balanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#loan_remaining_balanceTable','loan-remaining-balance.csv'); } catch(e){}
+}
+function __loan_remaining_balancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#loan_remaining_balancePresets',[
+        {label:'默认',labelEn:'Default',values:{p:'500000', r:'4.9', y:'30', k:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'1000000', r:'9.8', y:'60', k:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'250000', r:'2.45', y:'15', k:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __loan_remaining_balanceExtras(); }catch(e){} };
+function __loan_remaining_balanceBoot(){ try{ __loan_remaining_balancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __loan_remaining_balanceBoot();
+else document.addEventListener('DOMContentLoaded', __loan_remaining_balanceBoot);
+</script>
 </body>
 </html>

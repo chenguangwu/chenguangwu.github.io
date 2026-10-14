@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="present_value_annuity_duePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__present_value_annuity_dueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="present_value_annuity_dueTable"></div>
+    <div id="present_value_annuity_dueDiff"></div>
+    <div id="present_value_annuity_dueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -291,6 +297,43 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "期初年金现值为什么高于期末？", "acceptedAnswer": {"@type": "Answer", "text": "每笔付款提前一期发生，折现期数少一期，故现值更高。差额约为一期利息的现值。"}}, {"@type": "Question", "name": "和房贷月供现值的关系？", "acceptedAnswer": {"@type": "Answer", "text": "房贷月供是期末年金（月初放款、月末首次还款），用普通年金现值；房租是典型期初年金，两者公式差一个 (1+r) 因子。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "期初年金现值为什么高于期末？", "acceptedAnswer": {"@type": "Answer", "text": "每笔付款提前一期发生，折现期数少一期，故现值更高。差额约为一期利息的现值。"}}, {"@type": "Question", "name": "和房贷月供现值的关系？", "acceptedAnswer": {"@type": "Answer", "text": "房贷月供是期末年金（月初放款、月末首次还款），用普通年金现值；房租是典型期初年金，两者公式差一个 (1+r) 因子。"}}]}
+function __present_value_annuity_dueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __present_value_annuity_dueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var PMT=num('PMT'),r=num('r'),n=num('n');
+    var PV=PMT*(1-Math.pow(1+r,-n))/r*(1+r);
+    if (!isFinite(__present_value_annuity_dueNum('PMT')) || !isFinite(__present_value_annuity_dueNum('r')) || !isFinite(__present_value_annuity_dueNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#present_value_annuity_dueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['现值 PV (元)', PV.toFixed(2)],
+            ['期末年金现值（对比）(元)', (PMT*(1-Math.pow(1+r,-n))/r).toFixed(2)],
+            ['名义付款合计 (元)', (PMT*n).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({PMT:__present_value_annuity_dueNum('PMT'), r:__present_value_annuity_dueNum('r'), n:__present_value_annuity_dueNum('n'), PV:PV});
+    TBKit.history.mount('#present_value_annuity_dueHist',function(rec){ if(rec.PMT!=null)document.getElementById('PMT').value=rec.PMT; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#present_value_annuity_dueDiff',['PV']);
+}
+function __present_value_annuity_dueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#present_value_annuity_dueTable','present-value-annuity-due.csv'); } catch(e){}
+}
+function __present_value_annuity_duePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#present_value_annuity_duePresets',[
+        {label:'默认',labelEn:'Default',values:{PMT:'100', r:'0.005', n:'12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{PMT:'200', r:'0.01', n:'24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{PMT:'50', r:'0.0025', n:'6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __present_value_annuity_dueExtras(); }catch(e){} };
+function __present_value_annuity_dueBoot(){ try{ __present_value_annuity_duePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __present_value_annuity_dueBoot();
+else document.addEventListener('DOMContentLoaded', __present_value_annuity_dueBoot);
+</script>
 </body>
 </html>

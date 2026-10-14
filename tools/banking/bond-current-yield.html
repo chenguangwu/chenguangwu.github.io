@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bond_current_yieldPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bond_current_yieldExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bond_current_yieldTable"></div>
+    <div id="bond_current_yieldDiff"></div>
+    <div id="bond_current_yieldHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -287,6 +293,44 @@ calcTool();
 </div>
 </section>
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "当前收益率和到期收益率 YTM 一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一样。当前收益率只算「年息÷市价」，忽略了资本利得/折价摊销与剩余期限；YTM 才把持有至到期的价格差和现金流折现都纳入，更全面。"}}, {"@type": "Question", "name": "为什么溢价买入时当前收益率低于票息？", "acceptedAnswer": {"@type": "Answer", "text": "市价高于面值，分母变大，年息不变，故 CY 低于票息率。反之折价买入 CY 高于票息率。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "当前收益率和到期收益率 YTM 一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一样。当前收益率只算「年息÷市价」，忽略了资本利得/折价摊销与剩余期限；YTM 才把持有至到期的价格差和现金流折现都纳入，更全面。"}}, {"@type": "Question", "name": "为什么溢价买入时当前收益率低于票息？", "acceptedAnswer": {"@type": "Answer", "text": "市价高于面值，分母变大，年息不变，故 CY 低于票息率。反之折价买入 CY 高于票息率。"}}]}
+function __bond_current_yieldNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bond_current_yieldExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var c=num('c'),p=num('p');
+    var CY=c/p;
+    if (!isFinite(__bond_current_yieldNum('c')) || !isFinite(__bond_current_yieldNum('p'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bond_current_yieldTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['当前收益率 CY (%)', (CY*100).toFixed(3)],
+            ['价格与票息比', (p/Math.max(c,1e-12)).toFixed(3)],
+            ['收益率 (bps)', (CY*10000).toFixed(0)],
+            ['价格与票息之差', (p-c).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({c:__bond_current_yieldNum('c'), p:__bond_current_yieldNum('p'), CY:CY});
+    TBKit.history.mount('#bond_current_yieldHist',function(rec){ if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.p!=null)document.getElementById('p').value=rec.p; calcTool(); });
+    TBKit.util.diffBox('#bond_current_yieldDiff',['CY']);
+}
+function __bond_current_yieldExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bond_current_yieldTable','bond-current-yield.csv'); } catch(e){}
+}
+function __bond_current_yieldPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bond_current_yieldPresets',[
+        {label:'默认',labelEn:'Default',values:{c:'50', p:'980'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{c:'100', p:'1960'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{c:'25', p:'490'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bond_current_yieldExtras(); }catch(e){} };
+function __bond_current_yieldBoot(){ try{ __bond_current_yieldPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bond_current_yieldBoot();
+else document.addEventListener('DOMContentLoaded', __bond_current_yieldBoot);
+</script>
 </body>
 </html>
