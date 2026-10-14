@@ -360,6 +360,136 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 else setTimeout(__tbCdTable, 0);
 """,
     },
+    {
+        "path": "tools/music/music-player.html",
+        "csv": "music-player-history.csv",
+        "title_zh": "📈 播放记录与历史",
+        "title_en": "📈 Playback Records & History",
+        "inject": "block",
+        "no_chart": True,
+        "wrap": ("playTrack",
+                 "(function(){var t=playlist[i];if(!t)return null;"
+                 "return {时间:__tbTime(),曲目:t.name,歌手:t.artist,列表:playlist.length+' 首',__v:playlist.length};})()"),
+    },
+    {
+        "path": "tools/music/rhythm-trainer.html",
+        "csv": "rhythm-trainer-history.csv",
+        "title_zh": "📈 节奏训练成绩与历史",
+        "title_en": "📈 Rhythm Training Scores & History",
+        "hook_anchor": "})();",
+        "hook": (
+            "  /* 训练结束自动落一条本机记录 */\n"
+            "  var __tbF_endTraining = (typeof endTraining === 'function') ? endTraining : null;\n"
+            "  if (__tbF_endTraining) {\n"
+            "    endTraining = function () {\n"
+            "      var __r = __tbF_endTraining.apply(null, arguments);\n"
+            "      try {\n"
+            "        var el = document.getElementById('scoreDisplay');\n"
+            "        var v = el && el.querySelector ? el.querySelector('.score-value') : null;\n"
+            "        var acc = v ? parseInt(v.textContent, 10) : NaN;\n"
+            "        if (isFinite(acc)) window.__tbHistSave({ 时间: window.__tbTime(), 难度: difficulty,\n"
+            "          BPM: bpm, 准确率: acc + '%', 敲击: userTaps.length, __v: acc });\n"
+            "      } catch (e) {}\n"
+            "      return __r;\n"
+            "    };\n"
+            "  }\n"),
+    },
+    {
+        "path": "tools/music/piano-keyboard.html",
+        "csv": "piano-keyboard-history.csv",
+        "title_zh": "📈 演奏录制记录与历史",
+        "title_en": "📈 Recording Records & History",
+        "hook_anchor": "})();",
+        "hook": (
+            "  /* 每次录制结束自动落一条本机记录 */\n"
+            "  var __tbF_stopRecording = (typeof stopRecording === 'function') ? stopRecording : null;\n"
+            "  if (__tbF_stopRecording) {\n"
+            "    stopRecording = function () {\n"
+            "      var __r = __tbF_stopRecording.apply(null, arguments);\n"
+            "      try {\n"
+            "        var last = recordings[recordings.length - 1];\n"
+            "        if (last) window.__tbHistSave({ 时间: window.__tbTime(), 名称: last.name,\n"
+            "          音符: (last.notes || []).length, 时长: Math.round((last.duration || 0) / 1000) + 's',\n"
+            "          __v: (last.notes || []).length });\n"
+            "      } catch (e) {}\n"
+            "      return __r;\n"
+            "    };\n"
+            "  }\n"),
+    },
+    {
+        "path": "tools/kids/stroke-order.html",
+        "csv": "stroke-order-history.csv",
+        "title_zh": "📈 练字记录与历史",
+        "title_en": "📈 Practice Records & History",
+        "inject": "block",
+        "wrap": ("loadChar",
+                 "(function(){var l=getStrokes();if(!l)return null;"
+                 "return {时间:__tbTime(),字符:curChar,笔画:l.length,__v:l.length};})()"),
+    },
+    {
+        "path": "tools/language/idiom-solitaire.html",
+        "csv": "idiom-solitaire-history.csv",
+        "title_zh": "📈 成语接龙战绩与历史",
+        "title_en": "📈 Idiom Chain Scores & History",
+        "inject": "block",
+        "wrap": ("endGame",
+                 "(function(){return {时间:__tbTime(),得分:score,接龙:chain.length,模式:gameMode,__v:score};})()"),
+    },
+    {
+        "path": "tools/beauty/face-hair-match.html",
+        "csv": "face-hair-match-history.csv",
+        "title_zh": "📈 脸型测算记录与历史",
+        "title_en": "📈 Face Shape Records & History",
+        "inject": "block",
+        "wrap": ("renderResult",
+                 "(function(){var f=null;for(var i=0;i<faceShapes.length;i++){if(faceShapes[i].key===currentFace)f=faceShapes[i];}"
+                 "if(!f)return null;return {时间:__tbTime(),脸型:f.name,"
+                 "推荐:(f.recommend||[]).length+' 款',禁忌:(f.avoid||[]).length+' 款',"
+                 "__v:(f.recommend||[]).length};})()"),
+    },
+    {
+        "path": "tools/life/holiday-calendar.html",
+        "csv": "holiday-calendar.csv",
+        "title_zh": "📈 节假日总表与记录",
+        "title_en": "📈 Holiday Table & Records",
+        "extra_div": True,
+        "extra_btns": [("tbSaveBtn", "__tbHdSave", "保存本年度清单")],
+        "hook_anchor": "})();",
+        "hook": (
+            "  /* 本年度节假日总表（表格 + 导出 + 保存快照） */\n"
+            "  window.__tbHdRows = function () {\n"
+            "    var rows = [], pre = String(currentYear) + '-';\n"
+            "    for (var k in holidayData) {\n"
+            "      if (!Object.prototype.hasOwnProperty.call(holidayData, k)) continue;\n"
+            "      if (String(k).indexOf(pre) !== 0) continue;\n"
+            "      var it = holidayData[k] || {}, d = parseDateKey(k);\n"
+            "      rows.push([it.name || '', k, ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()], it.type || '']);\n"
+            "    }\n"
+            "    rows.sort(function (a, b) { return a[1] < b[1] ? -1 : 1; });\n"
+            "    return rows;\n"
+            "  };\n"
+            "  window.__tbHdTable = function () {\n"
+            "    if (typeof TBKit === 'undefined') return;\n"
+            "    try { TBKit.matrix.table('#tbExtra', { head: ['节日','日期','星期','类型'], rows: window.__tbHdRows() }); } catch (e) {}\n"
+            "  };\n"
+            "  window.__tbHdSave = function () {\n"
+            "    window.__tbArmed = true;\n"
+            "    var r = window.__tbHdRows();\n"
+            "    window.__tbHistSave({ 时间: window.__tbTime(), 年份: String(currentYear), 节假日数: r.length + ' 个', __v: r.length });\n"
+            "  };\n"
+            "  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', window.__tbHdTable);\n"
+            "  else setTimeout(window.__tbHdTable, 0);\n"),
+        "extra_js": r"""
+window.__tbHdTr = {节日:'Holiday', 日期:'Date', 星期:'Weekday', 类型:'Type'};
+window.__tbHistExport = function(){
+  if (typeof TBKit === 'undefined') return;
+  var ok = false;
+  try { ok = TBKit.util.exportTable('#tbExtra', window.__tbCsvName || 'holiday-calendar.csv'); } catch (e) {}
+  if (!ok) { try { ok = TBKit.util.exportTable('#tbHistTable', window.__tbCsvName); } catch (e) {} }
+};
+window.__tbExtraLabels = {tbSaveBtn:["Save this year's list",'保存本年度清单']};
+""",
+    },
 ]
 
 
