@@ -155,12 +155,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
+      <div id="copy_durationPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">⚡ 计算时长</button>
+      <button class="btn" type="button" onclick="__copy_durationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="document.getElementById('content').value='';calc()">清空</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="copy_durationTable"></div>
+    <div id="copy_durationDiff"></div>
+    <div id="copy_durationChart"></div>
+    <div id="copy_durationHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:16px;">
       <strong>语速参考：</strong> 中文慢速约180字/分（新闻播报），正常约240字/分（标准朗读），快速约300字/分（广告口播）。英文约130-150词/分。
@@ -416,6 +422,111 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   ]
 }
+
+var __copy_duration_last=0,__copy_duration_skip=false;
+function __copy_durationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __copy_durationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __copy_durationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __copy_durationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__copy_durationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#copy_durationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#copy_durationDiff');
+        TBKit.history.mount('#copy_durationHist',function(rec){
+            __copy_duration_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __copy_duration_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__copy_durationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#copy_durationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __copy_durationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__copy_duration_skip) return;
+    var snap=__copy_durationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__copy_durationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__copy_duration_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __copy_duration_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __copy_durationRender(keys,rk,en);
+}
+function __copy_durationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#copy_durationTable','copy-duration.csv'); } catch(e){}
+}
+function __copy_durationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#copy_durationPresets',[{label:'默认参数',labelEn:'Default',values:{'speedType':'slow', 'customSpeed':'250', 'lang':'zh', 'pauseTime':'0.5'}}],function(){ calc(); });
+}
+var __copy_duration_f0=(typeof calc==='function')?calc:null;
+if(__copy_duration_f0){
+    calc=function(){ var __r=__copy_duration_f0.apply(null,arguments); try{ __copy_durationExtras(); }catch(e){} return __r; };
+}
+function __copy_durationBoot(){ try{ __copy_durationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __copy_durationBoot();
+else document.addEventListener('DOMContentLoaded', __copy_durationBoot);
 </script>
 </body>
 </html>

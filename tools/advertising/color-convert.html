@@ -170,7 +170,12 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="randomColor()">随机颜色</button>
     </div>
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__color_convertExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result"></div>
+    <div id="color_convertTable"></div>
+    <div id="color_convertDiff"></div>
+    <div id="color_convertChart"></div>
+    <div id="color_convertHist"></div>
 
     <h3 style="margin-top:16px;">常见专色（Pantone）参考</h3>
     <div id="pantoneArea"></div>
@@ -484,6 +489,111 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   ]
 }
+
+var __color_convert_last=0,__color_convert_skip=false;
+function __color_convertSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __color_convertResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __color_convertTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __color_convertRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__color_convertTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#color_convertTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#color_convertDiff');
+        TBKit.history.mount('#color_convertHist',function(rec){
+            __color_convert_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                fromRGB();
+            }catch(e2){}
+            __color_convert_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__color_convertTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#color_convertChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __color_convertExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__color_convert_skip) return;
+    var snap=__color_convertSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__color_convertResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__color_convert_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __color_convert_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __color_convertRender(keys,rk,en);
+}
+function __color_convertExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#color_convertTable','color-convert.csv'); } catch(e){}
+}
+function __color_convertPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#color_convertPresets',[{label:'默认参数',labelEn:'Default',values:{'r':'255', 'g':'107', 'b':'53', 'hex':'#FF6B35'}}],function(){ fromRGB(); });
+}
+var __color_convert_f0=(typeof fromRGB==='function')?fromRGB:null;
+if(__color_convert_f0){
+    fromRGB=function(){ var __r=__color_convert_f0.apply(null,arguments); try{ __color_convertExtras(); }catch(e){} return __r; };
+}
+function __color_convertBoot(){ try{ __color_convertPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __color_convertBoot();
+else document.addEventListener('DOMContentLoaded', __color_convertBoot);
 </script>
 </body>
 </html>
