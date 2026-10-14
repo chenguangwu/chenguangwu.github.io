@@ -177,7 +177,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>轮胎规格（如 205/55R16）</label><input type="text" id="tire" value="205/55R16" oninput="calc()"></div>
       <div><label>荷载系数（干沥青 6.5 / 湿滑 4.5）</label><input type="number" id="mu" value="6.5" oninput="calc()" min="1" step="0.1"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__transport_calculatorExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="transport_calculatorTable"></div> <div id="transport_calculatorDiff"></div> <div id="transport_calculatorChart"></div> <div id="transport_calculatorHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -336,6 +336,114 @@ function calc(){
   const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __transport_calculator_last=0,__transport_calculator_skip=false;
+function __transport_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __transport_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __transport_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __transport_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__transport_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#transport_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#transport_calculatorDiff');
+        TBKit.history.mount('#transport_calculatorHist',function(rec){
+            __transport_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __transport_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__transport_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#transport_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __transport_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__transport_calculator_skip) return;
+    var snap=__transport_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__transport_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__transport_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __transport_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __transport_calculatorRender(keys,rk,en);
+}
+function __transport_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#transport_calculatorTable','transport-calculator.csv'); } catch(e){}
+}
+function __transport_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#transport_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'km':'300', 'fc':'20', 'price':'7.5', 'speed':'60', 'load':'5', 'rate':'60', 'v0':'60', 'rt':'1', 'vol':'10', 'wt':'6', 'tire':'205/55R16', 'mu':'6.5'}}],function(){ calc(); });
+}
+var __transport_calculator_f0=(typeof calc==='function')?calc:null;
+if(__transport_calculator_f0){
+    calc=function(){ var __r=__transport_calculator_f0.apply(null,arguments); try{ __transport_calculatorExtras(); }catch(e){} return __r; };
+}
+function __transport_calculatorBoot(){ try{ __transport_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __transport_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __transport_calculatorBoot);
 </script>
 </body>
 </html>

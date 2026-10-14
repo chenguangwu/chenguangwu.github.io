@@ -193,7 +193,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>对比线路发车间隔 (分钟)</label><input type="number" id="iv2" value="15" oninput="calc()" min="1" step="1"></div>
       <div><label>对比线路上一班离站</label><input type="time" id="last2" value="09:02" oninput="calc()"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__bus_arrival_estimatorExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="bus_arrival_estimatorTable"></div> <div id="bus_arrival_estimatorDiff"></div> <div id="bus_arrival_estimatorChart"></div> <div id="bus_arrival_estimatorHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -438,6 +438,114 @@ var R=document.getElementById('result'),G=document.getElementById('distGrid'),
   const __g5=ad;A.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __bus_arrival_estimator_last=0,__bus_arrival_estimator_skip=false;
+function __bus_arrival_estimatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bus_arrival_estimatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bus_arrival_estimatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bus_arrival_estimatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bus_arrival_estimatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bus_arrival_estimatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bus_arrival_estimatorDiff');
+        TBKit.history.mount('#bus_arrival_estimatorHist',function(rec){
+            __bus_arrival_estimator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __bus_arrival_estimator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bus_arrival_estimatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bus_arrival_estimatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bus_arrival_estimatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bus_arrival_estimator_skip) return;
+    var snap=__bus_arrival_estimatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bus_arrival_estimatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bus_arrival_estimator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bus_arrival_estimator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bus_arrival_estimatorRender(keys,rk,en);
+}
+function __bus_arrival_estimatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bus_arrival_estimatorTable','bus-arrival-estimator.csv'); } catch(e){}
+}
+function __bus_arrival_estimatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bus_arrival_estimatorPresets',[{label:'默认参数',labelEn:'Default',values:{'interval':'10', 'last':'09:05', 'now':'09:12', 'ride':'0', 'err':'2', 'line':'1', 'iv2':'15', 'last2':'09:02'}}],function(){ calc(); });
+}
+var __bus_arrival_estimator_f0=(typeof calc==='function')?calc:null;
+if(__bus_arrival_estimator_f0){
+    calc=function(){ var __r=__bus_arrival_estimator_f0.apply(null,arguments); try{ __bus_arrival_estimatorExtras(); }catch(e){} return __r; };
+}
+function __bus_arrival_estimatorBoot(){ try{ __bus_arrival_estimatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bus_arrival_estimatorBoot();
+else document.addEventListener('DOMContentLoaded', __bus_arrival_estimatorBoot);
 </script>
 </body>
 </html>

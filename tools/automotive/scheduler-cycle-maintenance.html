@@ -179,7 +179,7 @@ s.parentNode.insertBefore(el, s);
         </select>
       </div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__scheduler_cycle_maintenanceExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="scheduler_cycle_maintenanceTable"></div> <div id="scheduler_cycle_maintenanceDiff"></div> <div id="scheduler_cycle_maintenanceChart"></div> <div id="scheduler_cycle_maintenanceHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -413,6 +413,114 @@ function calc(){
   scRender();
 }
 calc();
+
+var __scheduler_cycle_maintenance_last=0,__scheduler_cycle_maintenance_skip=false;
+function __scheduler_cycle_maintenanceSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __scheduler_cycle_maintenanceResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __scheduler_cycle_maintenanceTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __scheduler_cycle_maintenanceRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__scheduler_cycle_maintenanceTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#scheduler_cycle_maintenanceTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#scheduler_cycle_maintenanceDiff');
+        TBKit.history.mount('#scheduler_cycle_maintenanceHist',function(rec){
+            __scheduler_cycle_maintenance_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __scheduler_cycle_maintenance_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__scheduler_cycle_maintenanceTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#scheduler_cycle_maintenanceChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __scheduler_cycle_maintenanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__scheduler_cycle_maintenance_skip) return;
+    var snap=__scheduler_cycle_maintenanceSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__scheduler_cycle_maintenanceResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__scheduler_cycle_maintenance_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __scheduler_cycle_maintenance_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __scheduler_cycle_maintenanceRender(keys,rk,en);
+}
+function __scheduler_cycle_maintenanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#scheduler_cycle_maintenanceTable','scheduler-cycle-maintenance.csv'); } catch(e){}
+}
+function __scheduler_cycle_maintenancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#scheduler_cycle_maintenancePresets',[{label:'默认参数',labelEn:'Default',values:{'km':'52000', 'last':'45000', 'kmM':'1500', 'ahead':'1000', 'oil':'5000', 'cond':'1.0'}}],function(){ calc(); });
+}
+var __scheduler_cycle_maintenance_f0=(typeof calc==='function')?calc:null;
+if(__scheduler_cycle_maintenance_f0){
+    calc=function(){ var __r=__scheduler_cycle_maintenance_f0.apply(null,arguments); try{ __scheduler_cycle_maintenanceExtras(); }catch(e){} return __r; };
+}
+function __scheduler_cycle_maintenanceBoot(){ try{ __scheduler_cycle_maintenancePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __scheduler_cycle_maintenanceBoot();
+else document.addEventListener('DOMContentLoaded', __scheduler_cycle_maintenanceBoot);
 </script>
 </body>
 </html>

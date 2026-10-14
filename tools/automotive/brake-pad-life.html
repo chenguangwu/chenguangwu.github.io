@@ -171,14 +171,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🚗 预测寿命</button>
+      <div id="brake_pad_lifePresets"></div><button type="button" class="btn primary" onclick="calc()">🚗 预测寿命</button><button class="btn" type="button" onclick="__brake_pad_lifeExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制</button>
     </div>
   </div>
 
   <div class="card">
     <h2>📊 寿命预测</h2>
-    <div id="result"></div>
+    <div id="result"></div> <div id="brake_pad_lifeTable"></div> <div id="brake_pad_lifeDiff"></div> <div id="brake_pad_lifeChart"></div> <div id="brake_pad_lifeHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -397,6 +397,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __brake_pad_life_last=0,__brake_pad_life_skip=false;
+function __brake_pad_lifeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __brake_pad_lifeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __brake_pad_lifeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __brake_pad_lifeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__brake_pad_lifeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#brake_pad_lifeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#brake_pad_lifeDiff');
+        TBKit.history.mount('#brake_pad_lifeHist',function(rec){
+            __brake_pad_life_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __brake_pad_life_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__brake_pad_lifeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#brake_pad_lifeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __brake_pad_lifeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__brake_pad_life_skip) return;
+    var snap=__brake_pad_lifeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__brake_pad_lifeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__brake_pad_life_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __brake_pad_life_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __brake_pad_lifeRender(keys,rk,en);
+}
+function __brake_pad_lifeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#brake_pad_lifeTable','brake-pad-life.csv'); } catch(e){}
+}
+function __brake_pad_lifePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#brake_pad_lifePresets',[{label:'默认参数',labelEn:'Default',values:{'newThickness':'12', 'currentThickness':'6', 'mileage':'30000', 'yearlyKm':'15000', 'padType':'0.08', 'env':'0.8', 'position':'front', 'habit':'0.85'}}],function(){ calc(); });
+}
+var __brake_pad_life_f0=(typeof calc==='function')?calc:null;
+if(__brake_pad_life_f0){
+    calc=function(){ var __r=__brake_pad_life_f0.apply(null,arguments); try{ __brake_pad_lifeExtras(); }catch(e){} return __r; };
+}
+function __brake_pad_lifeBoot(){ try{ __brake_pad_lifePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __brake_pad_lifeBoot();
+else document.addEventListener('DOMContentLoaded', __brake_pad_lifeBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用刹车片寿命预测</h2><p>输入新片厚度、当前厚度、已行驶里程与年均里程，选择刹车片类型、驾驶环境与位置，点击计算即可得到剩余可用里程与建议更换时点。</p><h2>参数说明</h2><ul class="param-list"><li>新刹车片厚度（mm）</li><li>当前刹车片厚度（mm）</li><li>已行驶里程（km）</li><li>年均行驶里程（km）</li><li>刹车片类型</li><li>驾驶环境</li><li>位置</li><li>驾驶习惯</li></ul><h2>适用场景</h2>

@@ -175,7 +175,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>免费时长 (分钟，仅首段抵扣)</label><input type="number" id="freeMin" value="0" oninput="calc()" min="0" step="1"></div>
       <div><label>跨天数 (天)</label><input type="number" id="days" value="1" oninput="calc()" min="1" step="1"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__parking_fee_calculatorExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="parking_fee_calculatorTable"></div> <div id="parking_fee_calculatorDiff"></div> <div id="parking_fee_calculatorChart"></div> <div id="parking_fee_calculatorHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"><div class="formula-eq">停车费 = 首段费 + 超时费；超时分钟 = max(0, 停车时长 − 首段时长 − 免费时长)；超时费 = ⌈超时分钟 ÷ 计费单位⌉ × 单位费率；单日封顶 cap；多天按天数累加。</div></div>
     <div id="adviceBox"></div>
@@ -323,6 +323,114 @@ function calc(){
   const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __parking_fee_calculator_last=0,__parking_fee_calculator_skip=false;
+function __parking_fee_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __parking_fee_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __parking_fee_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __parking_fee_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__parking_fee_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#parking_fee_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#parking_fee_calculatorDiff');
+        TBKit.history.mount('#parking_fee_calculatorHist',function(rec){
+            __parking_fee_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __parking_fee_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__parking_fee_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#parking_fee_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __parking_fee_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__parking_fee_calculator_skip) return;
+    var snap=__parking_fee_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__parking_fee_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__parking_fee_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __parking_fee_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __parking_fee_calculatorRender(keys,rk,en);
+}
+function __parking_fee_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#parking_fee_calculatorTable','parking-fee-calculator.csv'); } catch(e){}
+}
+function __parking_fee_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#parking_fee_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'firstMin':'60', 'firstFee':'10', 'unitMin':'30', 'unitFee':'5', 'parkMin':'180', 'cap':'60', 'freeMin':'0', 'days':'1'}}],function(){ calc(); });
+}
+var __parking_fee_calculator_f0=(typeof calc==='function')?calc:null;
+if(__parking_fee_calculator_f0){
+    calc=function(){ var __r=__parking_fee_calculator_f0.apply(null,arguments); try{ __parking_fee_calculatorExtras(); }catch(e){} return __r; };
+}
+function __parking_fee_calculatorBoot(){ try{ __parking_fee_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __parking_fee_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __parking_fee_calculatorBoot);
 </script>
 </body>
 </html>

@@ -147,7 +147,7 @@ s.parentNode.insertBefore(el, s);
       </select></div>
       <div><label>月均行驶里程 (km)</label><input type="number" id="kmM" value="1200" oninput="calc()" min="1" step="any"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lifespan_brakeExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="lifespan_brakeTable"></div> <div id="lifespan_brakeDiff"></div> <div id="lifespan_brakeChart"></div> <div id="lifespan_brakeHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"><div class="formula-eq">刹车片剩余寿命：可用厚度 = 当前厚度 − 极限厚度；月均磨损 = 基础磨损 × 工况系数；剩余月数 = 可用厚度 ÷ 月均磨损；预计里程 = 剩余月数 × 月均里程。</div></div>
     <div id="adviceBox"></div>
@@ -291,6 +291,114 @@ function calc(){
   const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __lifespan_brake_last=0,__lifespan_brake_skip=false;
+function __lifespan_brakeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __lifespan_brakeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __lifespan_brakeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __lifespan_brakeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__lifespan_brakeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#lifespan_brakeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#lifespan_brakeDiff');
+        TBKit.history.mount('#lifespan_brakeHist',function(rec){
+            __lifespan_brake_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __lifespan_brake_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__lifespan_brakeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#lifespan_brakeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __lifespan_brakeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__lifespan_brake_skip) return;
+    var snap=__lifespan_brakeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__lifespan_brakeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__lifespan_brake_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __lifespan_brake_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __lifespan_brakeRender(keys,rk,en);
+}
+function __lifespan_brakeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lifespan_brakeTable','lifespan-brake.csv'); } catch(e){}
+}
+function __lifespan_brakePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lifespan_brakePresets',[{label:'默认参数',labelEn:'Default',values:{'newT':'12', 'curT':'6', 'rateM':'0.5', 'minT':'2', 'cond':'1.0', 'kmM':'1200'}}],function(){ calc(); });
+}
+var __lifespan_brake_f0=(typeof calc==='function')?calc:null;
+if(__lifespan_brake_f0){
+    calc=function(){ var __r=__lifespan_brake_f0.apply(null,arguments); try{ __lifespan_brakeExtras(); }catch(e){} return __r; };
+}
+function __lifespan_brakeBoot(){ try{ __lifespan_brakePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lifespan_brakeBoot();
+else document.addEventListener('DOMContentLoaded', __lifespan_brakeBoot);
 </script>
 </body>
 </html>

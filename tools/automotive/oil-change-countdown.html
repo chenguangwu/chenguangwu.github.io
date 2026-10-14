@@ -167,7 +167,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div><label>提醒阈值 (km)</label><input type="number" id="warn" value="500" oninput="calc()" min="0" step="100"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__oil_change_countdownExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="oil_change_countdownTable"></div> <div id="oil_change_countdownDiff"></div> <div id="oil_change_countdownChart"></div> <div id="oil_change_countdownHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -354,6 +354,114 @@ function calc(){
   const __g4=ad;A.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __oil_change_countdown_last=0,__oil_change_countdown_skip=false;
+function __oil_change_countdownSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __oil_change_countdownResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __oil_change_countdownTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __oil_change_countdownRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__oil_change_countdownTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#oil_change_countdownTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#oil_change_countdownDiff');
+        TBKit.history.mount('#oil_change_countdownHist',function(rec){
+            __oil_change_countdown_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __oil_change_countdown_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__oil_change_countdownTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#oil_change_countdownChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __oil_change_countdownExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__oil_change_countdown_skip) return;
+    var snap=__oil_change_countdownSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__oil_change_countdownResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__oil_change_countdown_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __oil_change_countdown_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __oil_change_countdownRender(keys,rk,en);
+}
+function __oil_change_countdownExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#oil_change_countdownTable','oil-change-countdown.csv'); } catch(e){}
+}
+function __oil_change_countdownPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#oil_change_countdownPresets',[{label:'默认参数',labelEn:'Default',values:{'ldate':'2026-01-15', 'last':'80000', 'cur':'87000', 'iv':'10000', 'ivm':'12', 'k':'1.15', 'warn':'500'}}],function(){ calc(); });
+}
+var __oil_change_countdown_f0=(typeof calc==='function')?calc:null;
+if(__oil_change_countdown_f0){
+    calc=function(){ var __r=__oil_change_countdown_f0.apply(null,arguments); try{ __oil_change_countdownExtras(); }catch(e){} return __r; };
+}
+function __oil_change_countdownBoot(){ try{ __oil_change_countdownPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __oil_change_countdownBoot();
+else document.addEventListener('DOMContentLoaded', __oil_change_countdownBoot);
 </script>
 </body>
 </html>

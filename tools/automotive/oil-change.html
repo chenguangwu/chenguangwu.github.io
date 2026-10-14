@@ -177,7 +177,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>当前里程 (km)</label><input type="number" id="curKm" value="30000" oninput="calc()" min="0" step="any"></div>
       <div><label>距上次换油已行驶 (km)</label><input type="number" id="doneKm" value="3000" oninput="calc()" min="0" step="any"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__oil_changeExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="oil_changeTable"></div> <div id="oil_changeDiff"></div> <div id="oil_changeChart"></div> <div id="oil_changeHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"><div class="formula-eq">换油周期 = 基础里程 × 工况系数 × 涡轮系数：高速 ×1.15、拥堵 ×0.75、涡轮增压 ×0.85；建议下次换油里程 = 当前里程 + 周期。</div></div>
     <div id="adviceBox"></div>
@@ -345,6 +345,114 @@ function calc(){
   const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __oil_change_last=0,__oil_change_skip=false;
+function __oil_changeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __oil_changeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __oil_changeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __oil_changeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__oil_changeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#oil_changeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#oil_changeDiff');
+        TBKit.history.mount('#oil_changeHist',function(rec){
+            __oil_change_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __oil_change_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__oil_changeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#oil_changeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __oil_changeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__oil_change_skip) return;
+    var snap=__oil_changeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__oil_changeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__oil_change_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __oil_change_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __oil_changeRender(keys,rk,en);
+}
+function __oil_changeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#oil_changeTable','oil-change.csv'); } catch(e){}
+}
+function __oil_changePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#oil_changePresets',[{label:'默认参数',labelEn:'Default',values:{'oType':'mineral', 'yearKm':'15000', 'cond':'highway', 'turbo':'no', 'curKm':'30000', 'doneKm':'3000'}}],function(){ calc(); });
+}
+var __oil_change_f0=(typeof calc==='function')?calc:null;
+if(__oil_change_f0){
+    calc=function(){ var __r=__oil_change_f0.apply(null,arguments); try{ __oil_changeExtras(); }catch(e){} return __r; };
+}
+function __oil_changeBoot(){ try{ __oil_changePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __oil_changeBoot();
+else document.addEventListener('DOMContentLoaded', __oil_changeBoot);
 </script>
 </body>
 </html>

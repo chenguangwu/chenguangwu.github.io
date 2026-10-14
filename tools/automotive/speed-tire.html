@@ -146,7 +146,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>原厂轮辋直径 (英寸)</label><input type="number" id="rim0" value="17" oninput="calc()" min="12" max="24" step="0.5"></div>
       <div><label>允许直径偏差 (%)</label><input type="number" id="tol" value="3" oninput="calc()" min="1" max="10" step="0.5"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__speed_tireExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="speed_tireTable"></div> <div id="speed_tireDiff"></div> <div id="speed_tireChart"></div> <div id="speed_tireHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -319,6 +319,114 @@ function calc(){
   const __g4=ad;A.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __speed_tire_last=0,__speed_tire_skip=false;
+function __speed_tireSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __speed_tireResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __speed_tireTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __speed_tireRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__speed_tireTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#speed_tireTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#speed_tireDiff');
+        TBKit.history.mount('#speed_tireHist',function(rec){
+            __speed_tire_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __speed_tire_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__speed_tireTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#speed_tireChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __speed_tireExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__speed_tire_skip) return;
+    var snap=__speed_tireSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__speed_tireResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__speed_tire_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __speed_tire_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __speed_tireRender(keys,rk,en);
+}
+function __speed_tireExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#speed_tireTable','speed-tire.csv'); } catch(e){}
+}
+function __speed_tirePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#speed_tirePresets',[{label:'默认参数',labelEn:'Default',values:{'w':'225', 'ar':'55', 'rim':'17', 'vmax':'230', 'w0':'215', 'ar0':'55', 'rim0':'17', 'tol':'3'}}],function(){ calc(); });
+}
+var __speed_tire_f0=(typeof calc==='function')?calc:null;
+if(__speed_tire_f0){
+    calc=function(){ var __r=__speed_tire_f0.apply(null,arguments); try{ __speed_tireExtras(); }catch(e){} return __r; };
+}
+function __speed_tireBoot(){ try{ __speed_tirePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __speed_tireBoot();
+else document.addEventListener('DOMContentLoaded', __speed_tireBoot);
 </script>
 </body>
 </html>

@@ -184,7 +184,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div><label>年均行驶里程 (km)</label><input type="number" id="kmY" value="15000" oninput="calc()" min="0" step="1000"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__countdown_engine_oilExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="countdown_engine_oilTable"></div> <div id="countdown_engine_oilDiff"></div> <div id="countdown_engine_oilChart"></div> <div id="countdown_engine_oilHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -397,6 +397,114 @@ function calc(){
   renderGarage();
 }
 calc();
+
+var __countdown_engine_oil_last=0,__countdown_engine_oil_skip=false;
+function __countdown_engine_oilSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __countdown_engine_oilResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __countdown_engine_oilTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __countdown_engine_oilRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__countdown_engine_oilTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#countdown_engine_oilTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#countdown_engine_oilDiff');
+        TBKit.history.mount('#countdown_engine_oilHist',function(rec){
+            __countdown_engine_oil_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __countdown_engine_oil_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__countdown_engine_oilTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#countdown_engine_oilChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __countdown_engine_oilExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__countdown_engine_oil_skip) return;
+    var snap=__countdown_engine_oilSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__countdown_engine_oilResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__countdown_engine_oil_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __countdown_engine_oil_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __countdown_engine_oilRender(keys,rk,en);
+}
+function __countdown_engine_oilExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#countdown_engine_oilTable','countdown-engine-oil.csv'); } catch(e){}
+}
+function __countdown_engine_oilPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#countdown_engine_oilPresets',[{label:'默认参数',labelEn:'Default',values:{'car':'我的爱车', 'last':'50000', 'cur':'54000', 'oil':'5000|6|矿物油', 'habit':'1.15', 'turbo':'1.0', 'kmY':'15000'}}],function(){ calc(); });
+}
+var __countdown_engine_oil_f0=(typeof calc==='function')?calc:null;
+if(__countdown_engine_oil_f0){
+    calc=function(){ var __r=__countdown_engine_oil_f0.apply(null,arguments); try{ __countdown_engine_oilExtras(); }catch(e){} return __r; };
+}
+function __countdown_engine_oilBoot(){ try{ __countdown_engine_oilPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __countdown_engine_oilBoot();
+else document.addEventListener('DOMContentLoaded', __countdown_engine_oilBoot);
 </script>
 </body>
 </html>

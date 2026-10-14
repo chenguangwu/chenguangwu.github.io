@@ -165,14 +165,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">🚗 估算磨损</button>
+      <div id="tire_wearPresets"></div><button type="button" class="btn primary" onclick="calc()">🚗 估算磨损</button><button class="btn" type="button" onclick="__tire_wearExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制</button>
     </div>
   </div>
 
   <div class="card">
     <h2>📊 磨损分析</h2>
-    <div id="result"></div>
+    <div id="result"></div> <div id="tire_wearTable"></div> <div id="tire_wearDiff"></div> <div id="tire_wearChart"></div> <div id="tire_wearHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -382,6 +382,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __tire_wear_last=0,__tire_wear_skip=false;
+function __tire_wearSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tire_wearResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tire_wearTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tire_wearRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tire_wearTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tire_wearTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#tire_wearDiff');
+        TBKit.history.mount('#tire_wearHist',function(rec){
+            __tire_wear_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tire_wear_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tire_wearTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tire_wearChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tire_wearExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tire_wear_skip) return;
+    var snap=__tire_wearSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tire_wearResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tire_wear_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tire_wear_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tire_wearRender(keys,rk,en);
+}
+function __tire_wearExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tire_wearTable','tire-wear.csv'); } catch(e){}
+}
+function __tire_wearPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tire_wearPresets',[{label:'默认参数',labelEn:'Default',values:{'newDepth':'8', 'mileage':'35000', 'tier':'0.15', 'alignment':'1', 'road':'0.9', 'driving':'0.9'}}],function(){ calc(); });
+}
+var __tire_wear_f0=(typeof calc==='function')?calc:null;
+if(__tire_wear_f0){
+    calc=function(){ var __r=__tire_wear_f0.apply(null,arguments); try{ __tire_wearExtras(); }catch(e){} return __r; };
+}
+function __tire_wearBoot(){ try{ __tire_wearPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tire_wearBoot();
+else document.addEventListener('DOMContentLoaded', __tire_wearBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用轮胎磨损估算</h2><p>输入新胎花纹深度与已行驶里程，选择轮胎档次、四轮定位状况、路况与驾驶习惯，点击计算即可估算磨损速率与剩余寿命。</p><h2>参数说明</h2><ul class="param-list"><li>新胎花纹深度（mm）</li><li>已行驶里程（km）</li><li>轮胎品牌档次</li><li>四轮定位状况</li><li>主要路况</li><li>驾驶习惯</li></ul><h2>适用场景</h2>

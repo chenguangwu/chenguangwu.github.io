@@ -167,7 +167,7 @@ s.parentNode.insertBefore(el, s);
       </select></div>
       <div><label>额外手续费 (元)</label><input type="number" id="fee" value="0" oninput="calc()" min="0" step="1"></div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__loan_calculatorExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="loan_calculatorTable"></div> <div id="loan_calculatorDiff"></div> <div id="loan_calculatorChart"></div> <div id="loan_calculatorHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -329,6 +329,114 @@ function calc(){
   const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __loan_calculator_last=0,__loan_calculator_skip=false;
+function __loan_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __loan_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __loan_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __loan_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__loan_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#loan_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#loan_calculatorDiff');
+        TBKit.history.mount('#loan_calculatorHist',function(rec){
+            __loan_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __loan_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__loan_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#loan_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __loan_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__loan_calculator_skip) return;
+    var snap=__loan_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__loan_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__loan_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __loan_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __loan_calculatorRender(keys,rk,en);
+}
+function __loan_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#loan_calculatorTable','loan-calculator.csv'); } catch(e){}
+}
+function __loan_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#loan_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'price':'15', 'tax':'8.85', 'extra':'0.8', 'dp':'30', 'years':'3', 'rate':'4.8', 'mode':'equal', 'fee':'0'}}],function(){ calc(); });
+}
+var __loan_calculator_f0=(typeof calc==='function')?calc:null;
+if(__loan_calculator_f0){
+    calc=function(){ var __r=__loan_calculator_f0.apply(null,arguments); try{ __loan_calculatorExtras(); }catch(e){} return __r; };
+}
+function __loan_calculatorBoot(){ try{ __loan_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __loan_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __loan_calculatorBoot);
 </script>
 </body>
 </html>

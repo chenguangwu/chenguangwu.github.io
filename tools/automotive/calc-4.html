@@ -151,7 +151,7 @@ s.parentNode.insertBefore(el, s);
         </select>
       </div>
     </div>
-    <div class="safe-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calc_4Export()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="calc_4Table"></div> <div id="calc_4Diff"></div> <div id="calc_4Chart"></div> <div id="calc_4Hist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -318,6 +318,114 @@ function calc(){
   const __g4=ad;A.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+var __calc_4_last=0,__calc_4_skip=false;
+function __calc_4Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_4ResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_4Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_4Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_4Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_4Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_4Diff');
+        TBKit.history.mount('#calc_4Hist',function(rec){
+            __calc_4_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_4_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_4Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_4Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_4Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_4_skip) return;
+    var snap=__calc_4Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_4ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_4_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_4_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_4Render(keys,rk,en);
+}
+function __calc_4Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_4Table','calc-4.csv'); } catch(e){}
+}
+function __calc_4Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_4Presets',[{label:'默认参数',labelEn:'Default',values:{'gw':'1500', 'cap':'250', 'lo':'10', 'hi':'15', 'real':'260', 'pos':'front'}}],function(){ calc(); });
+}
+var __calc_4_f0=(typeof calc==='function')?calc:null;
+if(__calc_4_f0){
+    calc=function(){ var __r=__calc_4_f0.apply(null,arguments); try{ __calc_4Extras(); }catch(e){} return __r; };
+}
+function __calc_4Boot(){ try{ __calc_4Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_4Boot();
+else document.addEventListener('DOMContentLoaded', __calc_4Boot);
 </script>
 </body>
 </html>
