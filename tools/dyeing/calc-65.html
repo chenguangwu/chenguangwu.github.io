@@ -125,11 +125,17 @@ s.parentNode.insertBefore(el, s);
       <div><label>皂洗残液浓度 Cw (g/L)</label><input type="number" id="cw" value="0.15" step="any" min="0" oninput="calc()" enterkeyhint="done" aria-label="皂洗残液浓度"></div>
     </div>
     <div class="toolbar">
+      <div id="calc_65Presets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
+      <button class="btn" type="button" onclick="__calc_65Export()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="calc_65Table"></div>
+    <div id="calc_65Diff"></div>
+    <div id="calc_65Chart"></div>
+    <div id="calc_65Hist"></div>
     <div class="info-box">💡 公式：上染率 E% = (C₀−C₁)/C₀×100%；固色率 F% = (C₀−C₁−Cw)/C₀×100%</div>
     <div class="tool-notes" style="--tool-accent:#9333EA;">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -239,6 +245,111 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 calc();
+
+var __calc_65_last=0,__calc_65_skip=false;
+function __calc_65Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_65ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_65Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_65Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_65Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_65Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_65Diff');
+        TBKit.history.mount('#calc_65Hist',function(rec){
+            __calc_65_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __calc_65_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_65Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_65Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_65Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_65_skip) return;
+    var snap=__calc_65Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_65ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_65_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_65_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_65Render(keys,rk,en);
+}
+function __calc_65Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_65Table','calc-65.csv'); } catch(e){}
+}
+function __calc_65Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_65Presets',[{label:'默认参数',labelEn:'Default',values:{'c0':'2.50', 'c1':'0.75', 'cw':'0.15'}}],function(){ calc(); });
+}
+var __calc_65_f0=(typeof calc==='function')?calc:null;
+if(__calc_65_f0){
+    calc=function(){ var __r=__calc_65_f0.apply(null,arguments); try{ __calc_65Extras(); }catch(e){} return __r; };
+}
+function __calc_65Boot(){ try{ __calc_65Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_65Boot();
+else document.addEventListener('DOMContentLoaded', __calc_65Boot);
 </script>
 
 <!-- SEO 介绍区块 -->
