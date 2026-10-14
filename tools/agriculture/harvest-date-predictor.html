@@ -149,11 +149,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
+      <div id="harvest_date_predictorPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">预测</button>
+      <button class="btn" type="button" onclick="__harvest_date_predictorExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="harvest_date_predictorTable"></div>
+    <div id="harvest_date_predictorDiff"></div>
+    <div id="harvest_date_predictorChart"></div>
+    <div id="harvest_date_predictorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -406,6 +412,111 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   ]
 }
+
+var __harvest_date_predictor_last=0,__harvest_date_predictor_skip=false;
+function __harvest_date_predictorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __harvest_date_predictorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __harvest_date_predictorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __harvest_date_predictorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__harvest_date_predictorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#harvest_date_predictorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#harvest_date_predictorDiff');
+        TBKit.history.mount('#harvest_date_predictorHist',function(rec){
+            __harvest_date_predictor_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __harvest_date_predictor_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__harvest_date_predictorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#harvest_date_predictorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __harvest_date_predictorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__harvest_date_predictor_skip) return;
+    var snap=__harvest_date_predictorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__harvest_date_predictorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__harvest_date_predictor_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __harvest_date_predictor_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __harvest_date_predictorRender(keys,rk,en);
+}
+function __harvest_date_predictorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#harvest_date_predictorTable','harvest-date-predictor.csv'); } catch(e){}
+}
+function __harvest_date_predictorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#harvest_date_predictorPresets',[{label:'默认参数',labelEn:'Default',values:{cropSel:'wheat', moisture:'28', dryRate:'0.5', gdd:'1500'}}],function(){ calc(); });
+}
+var __harvest_date_predictor_f0=(typeof calc==='function')?calc:null;
+if(__harvest_date_predictor_f0){
+    calc=function(){ __harvest_date_predictor_f0.apply(null,arguments); try{ __harvest_date_predictorExtras(); }catch(e){} };
+}
+function __harvest_date_predictorBoot(){ try{ __harvest_date_predictorPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __harvest_date_predictorBoot();
+else document.addEventListener('DOMContentLoaded', __harvest_date_predictorBoot);
 </script>
 </body>
 </html>

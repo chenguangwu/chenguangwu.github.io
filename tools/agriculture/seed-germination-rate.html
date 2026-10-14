@@ -149,12 +149,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
+      <div id="seed_germination_ratePresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" type="button" onclick="__seed_germination_rateExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
       <button type="button" class="btn" onclick="resetData()">重置</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="seed_germination_rateTable"></div>
+    <div id="seed_germination_rateDiff"></div>
+    <div id="seed_germination_rateChart"></div>
+    <div id="seed_germination_rateHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -381,6 +387,111 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   ]
 }
+
+var __seed_germination_rate_last=0,__seed_germination_rate_skip=false;
+function __seed_germination_rateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __seed_germination_rateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __seed_germination_rateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __seed_germination_rateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__seed_germination_rateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#seed_germination_rateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#seed_germination_rateDiff');
+        TBKit.history.mount('#seed_germination_rateHist',function(rec){
+            __seed_germination_rate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __seed_germination_rate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__seed_germination_rateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#seed_germination_rateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __seed_germination_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__seed_germination_rate_skip) return;
+    var snap=__seed_germination_rateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__seed_germination_rateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__seed_germination_rate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __seed_germination_rate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __seed_germination_rateRender(keys,rk,en);
+}
+function __seed_germination_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#seed_germination_rateTable','seed-germination-rate.csv'); } catch(e){}
+}
+function __seed_germination_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#seed_germination_ratePresets',[{label:'默认参数',labelEn:'Default',values:{totalSeeds:'100', energyDay:'3', seedlingLen:'5'}}],function(){ calc(); });
+}
+var __seed_germination_rate_f0=(typeof calc==='function')?calc:null;
+if(__seed_germination_rate_f0){
+    calc=function(){ __seed_germination_rate_f0.apply(null,arguments); try{ __seed_germination_rateExtras(); }catch(e){} };
+}
+function __seed_germination_rateBoot(){ try{ __seed_germination_ratePresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __seed_germination_rateBoot();
+else document.addEventListener('DOMContentLoaded', __seed_germination_rateBoot);
 </script>
 </body>
 </html>

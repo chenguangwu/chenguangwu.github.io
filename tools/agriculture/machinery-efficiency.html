@@ -137,11 +137,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
+      <div id="machinery_efficiencyPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算对比</button>
+      <button class="btn" type="button" onclick="__machinery_efficiencyExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="machinery_efficiencyTable"></div>
+    <div id="machinery_efficiencyDiff"></div>
+    <div id="machinery_efficiencyChart"></div>
+    <div id="machinery_efficiencyHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -403,6 +409,111 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   ]
 }
+
+var __machinery_efficiency_last=0,__machinery_efficiency_skip=false;
+function __machinery_efficiencySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __machinery_efficiencyResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __machinery_efficiencyTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __machinery_efficiencyRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__machinery_efficiencyTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#machinery_efficiencyTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#machinery_efficiencyDiff');
+        TBKit.history.mount('#machinery_efficiencyHist',function(rec){
+            __machinery_efficiency_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __machinery_efficiency_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__machinery_efficiencyTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#machinery_efficiencyChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __machinery_efficiencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__machinery_efficiency_skip) return;
+    var snap=__machinery_efficiencySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__machinery_efficiencyResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__machinery_efficiency_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __machinery_efficiency_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __machinery_efficiencyRender(keys,rk,en);
+}
+function __machinery_efficiencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#machinery_efficiencyTable','machinery-efficiency.csv'); } catch(e){}
+}
+function __machinery_efficiencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#machinery_efficiencyPresets',[{label:'默认参数',labelEn:'Default',values:{totalArea:'200', laborCost:'50'}}],function(){ calc(); });
+}
+var __machinery_efficiency_f0=(typeof calc==='function')?calc:null;
+if(__machinery_efficiency_f0){
+    calc=function(){ __machinery_efficiency_f0.apply(null,arguments); try{ __machinery_efficiencyExtras(); }catch(e){} };
+}
+function __machinery_efficiencyBoot(){ try{ __machinery_efficiencyPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __machinery_efficiencyBoot();
+else document.addEventListener('DOMContentLoaded', __machinery_efficiencyBoot);
 </script>
 </body>
 </html>

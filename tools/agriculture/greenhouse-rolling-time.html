@@ -163,11 +163,17 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
+      <div id="greenhouse_rolling_timePresets"></div>
       <button type="button" class="btn primary" onclick="calc()">建议</button>
+      <button class="btn" type="button" onclick="__greenhouse_rolling_timeExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制建议</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="greenhouse_rolling_timeTable"></div>
+    <div id="greenhouse_rolling_timeDiff"></div>
+    <div id="greenhouse_rolling_timeChart"></div>
+    <div id="greenhouse_rolling_timeHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -458,6 +464,111 @@ document.addEventListener('DOMContentLoaded',function(){
     }
   ]
 }
+
+var __greenhouse_rolling_time_last=0,__greenhouse_rolling_time_skip=false;
+function __greenhouse_rolling_timeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __greenhouse_rolling_timeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __greenhouse_rolling_timeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __greenhouse_rolling_timeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__greenhouse_rolling_timeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#greenhouse_rolling_timeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#greenhouse_rolling_timeDiff');
+        TBKit.history.mount('#greenhouse_rolling_timeHist',function(rec){
+            __greenhouse_rolling_time_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __greenhouse_rolling_time_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__greenhouse_rolling_timeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#greenhouse_rolling_timeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __greenhouse_rolling_timeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__greenhouse_rolling_time_skip) return;
+    var snap=__greenhouse_rolling_timeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__greenhouse_rolling_timeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__greenhouse_rolling_time_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __greenhouse_rolling_time_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __greenhouse_rolling_timeRender(keys,rk,en);
+}
+function __greenhouse_rolling_timeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#greenhouse_rolling_timeTable','greenhouse-rolling-time.csv'); } catch(e){}
+}
+function __greenhouse_rolling_timePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#greenhouse_rolling_timePresets',[{label:'默认参数',labelEn:'Default',values:{inTemp:'28', outTemp:'18', targetTemp:'25', timePeriod:'morning', windLevel:'0', humidity:'75', cropMaxTemp:'32'}}],function(){ calc(); });
+}
+var __greenhouse_rolling_time_f0=(typeof calc==='function')?calc:null;
+if(__greenhouse_rolling_time_f0){
+    calc=function(){ __greenhouse_rolling_time_f0.apply(null,arguments); try{ __greenhouse_rolling_timeExtras(); }catch(e){} };
+}
+function __greenhouse_rolling_timeBoot(){ try{ __greenhouse_rolling_timePresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __greenhouse_rolling_timeBoot();
+else document.addEventListener('DOMContentLoaded', __greenhouse_rolling_timeBoot);
 </script>
 </body>
 </html>
