@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="credit_card_grace_periodPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__credit_card_grace_periodExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="credit_card_grace_periodTable"></div>
+    <div id="credit_card_grace_periodDiff"></div>
+    <div id="credit_card_grace_periodHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -271,6 +277,54 @@ function resetForm(){document.getElementById('bill').selectedIndex=0;
       document.getElementById('yield').value='2.0';
       calcTool();}
 calcTool();
+
+function __credit_card_grace_periodNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __credit_card_grace_periodExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var bill=parseInt(document.getElementById('bill').value)||10;
+    var due=parseInt(document.getElementById('due').value)||25;
+    var amt=num('amt'), yld=num('yield')/100; // 最长免息期：账单日次日消费 → 下期还款日
+    var maxGrace; // 消费于 bill+1，本期账单日 bill+1 天后到期还款日 due // 简化：最长免息期 = 账单日次日 → 下下期还款日 的天数 // 账单日次日消费，本期账单（bill+1 后）计入下下期？——按行业惯例：账单日次日消费享受最长免息期 // 计算：bill 日消费 → 本账单周期（30 天）→ 到期还款日 due（若 due>bill 则当月，否则次月）
+    var graceForBillDay = due>bill ? (due-bill) : (30-bill+due); // 账单日当天消费
+    var bestGrace = due>bill ? (due-bill-1)+30+1 : (30-bill+due-1)+30+1; // 账单日次日消费→下下期还款
+    var minGrace = 0; // 还款日当天消费最短（≈0）
+    var bestDate = bill===31?1:(bill%28)+1; // 最佳消费日 = 账单日次日 // 免息期理财价值：大额消费若延后还款，资金可放货币基金吃息
+    var interestBest = amt*yld/365*maxGrace;
+    var interestBill = amt*yld/365*graceForBillDay;
+    var gap = interestBest-interestBill;
+    if (!isFinite(__credit_card_grace_periodNum('amt')) || !isFinite(__credit_card_grace_periodNum('yield'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#credit_card_grace_periodTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最长免息期（账单日次日消费）', maxGrace+' 天'],
+            ['账单日当天消费免息期', graceForBillDay+' 天'],
+            ['最佳消费日（账单日次日）', bestDate+' 日'],
+            ['最短免息期（还款日当天消费）', '≈0 天'],
+            ['账单日次日 vs 当天消费收益差', '¥'+gap.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({amt:__credit_card_grace_periodNum('amt'), yield:__credit_card_grace_periodNum('yield'), bill:bill});
+    TBKit.history.mount('#credit_card_grace_periodHist',function(rec){ if(rec.amt!=null)document.getElementById('amt').value=rec.amt; if(rec.yield!=null)document.getElementById('yield').value=rec.yield; calcTool(); });
+    TBKit.util.diffBox('#credit_card_grace_periodDiff',['bill']);
+}
+function __credit_card_grace_periodExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#credit_card_grace_periodTable','credit-card-grace-period.csv'); } catch(e){}
+}
+function __credit_card_grace_periodPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#credit_card_grace_periodPresets',[
+        {label:'默认',labelEn:'Default',values:{amt:'10000', yield:'2.0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{amt:'20000', yield:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{amt:'5000', yield:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __credit_card_grace_periodExtras(); }catch(e){} };
+function __credit_card_grace_periodBoot(){ try{ __credit_card_grace_periodPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __credit_card_grace_periodBoot();
+else document.addEventListener('DOMContentLoaded', __credit_card_grace_periodBoot);
 </script>
 </body>
 </html>

@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="points_redemption_valuePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__points_redemption_valueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="points_redemption_valueTable"></div>
+    <div id="points_redemption_valueDiff"></div>
+    <div id="points_redemption_valueHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -248,6 +254,48 @@ function resetForm(){document.getElementById('pts').value='10000';
       document.getElementById('fee').value='0';
       calcTool();}
 calcTool();
+
+function __points_redemption_valueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __points_redemption_valueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var pts=num('pts'), val=num('val'), fee=num('fee');
+    var netVal=val-fee;
+    var per10k=netVal/pts*10000;
+    var per100=netVal/pts*100;
+    var level=per10k>=30?'很划算':(per10k>=15?'较划算':(per10k>=5?'一般':'偏亏'));
+    if (!isFinite(__points_redemption_valueNum('pts')) || !isFinite(__points_redemption_valueNum('val')) || !isFinite(__points_redemption_valueNum('fee'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#points_redemption_valueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['每万分兑换价值（元）', fmtMoney(per10k)],
+            ['每 100 分兑换价值（元）', fmtMoney(per100)],
+            ['划算程度', level],
+            ['净得价值（扣除加钱）', fmtMoney(netVal)],
+            ['需加钱换购（元）', fmtMoney(fee)],
+        ]
+    });
+    TBKit.history.record({pts:__points_redemption_valueNum('pts'), val:__points_redemption_valueNum('val'), fee:__points_redemption_valueNum('fee'), netVal:netVal});
+    TBKit.history.mount('#points_redemption_valueHist',function(rec){ if(rec.pts!=null)document.getElementById('pts').value=rec.pts; if(rec.val!=null)document.getElementById('val').value=rec.val; if(rec.fee!=null)document.getElementById('fee').value=rec.fee; calcTool(); });
+    TBKit.util.diffBox('#points_redemption_valueDiff',['netVal']);
+}
+function __points_redemption_valueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#points_redemption_valueTable','points-redemption-value.csv'); } catch(e){}
+}
+function __points_redemption_valuePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#points_redemption_valuePresets',[
+        {label:'默认',labelEn:'Default',values:{pts:'10000', val:'20', fee:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{pts:'20000', val:'40', fee:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{pts:'5000', val:'10', fee:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __points_redemption_valueExtras(); }catch(e){} };
+function __points_redemption_valueBoot(){ try{ __points_redemption_valuePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __points_redemption_valueBoot();
+else document.addEventListener('DOMContentLoaded', __points_redemption_valueBoot);
 </script>
 </body>
 </html>
