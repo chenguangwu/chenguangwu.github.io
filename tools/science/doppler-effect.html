@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="doppler_effectPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__doppler_effectExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="doppler_effectTable"></div>
+    <div id="doppler_effectDiff"></div>
+    <div id="doppler_effectHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -269,6 +275,43 @@ function resetForm(){document.getElementById('f').value = 1000;
       document.getElementById('vs').value = 20;
       calcTool();}
 calcTool();
+
+function __doppler_effectNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __doppler_effectExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f'), v=num('v'), vo=num('vo'), vs=num('vs');
+    var fp = f*(v+vo)/(v-vs);
+    if (!isFinite(__doppler_effectNum('f')) || !isFinite(__doppler_effectNum('v')) || !isFinite(__doppler_effectNum('vo')) || !isFinite(__doppler_effectNum('vs'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#doppler_effectTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ["观测频率 f' = f(v+v₀)/(v-v_s)", fp.toFixed(1)+' Hz'],
+            ['声源远离时观测频率', (f*(v+vo)/(v+vs)).toFixed(1)+' Hz'],
+            ['频率偏移 Δf', (fp-f).toFixed(1)+' Hz'],
+        ]
+    });
+    TBKit.history.record({f:__doppler_effectNum('f'), v:__doppler_effectNum('v'), vo:__doppler_effectNum('vo'), vs:__doppler_effectNum('vs'), fp:fp});
+    TBKit.history.mount('#doppler_effectHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.vo!=null)document.getElementById('vo').value=rec.vo; if(rec.vs!=null)document.getElementById('vs').value=rec.vs; calcTool(); });
+    TBKit.util.diffBox('#doppler_effectDiff',['fp']);
+}
+function __doppler_effectExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#doppler_effectTable','doppler-effect.csv'); } catch(e){}
+}
+function __doppler_effectPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#doppler_effectPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'1000', v:'343', vo:'0', vs:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'2000', v:'686', vo:'0', vs:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'500', v:'171.5', vo:'0', vs:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __doppler_effectExtras(); }catch(e){} };
+function __doppler_effectBoot(){ try{ __doppler_effectPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __doppler_effectBoot();
+else document.addEventListener('DOMContentLoaded', __doppler_effectBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

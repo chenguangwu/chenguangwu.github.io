@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gravitational_potentialPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gravitational_potentialExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gravitational_potentialTable"></div>
+    <div id="gravitational_potentialDiff"></div>
+    <div id="gravitational_potentialHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,43 @@ function resetForm(){document.getElementById('m').value = 10;
       document.getElementById('h').value = 5;
       calcTool();}
 calcTool();
+
+function __gravitational_potentialNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gravitational_potentialExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'), g=num('g'), h=num('h');
+    var U = m*g*h;
+    if (!isFinite(__gravitational_potentialNum('m')) || !isFinite(__gravitational_potentialNum('g')) || !isFinite(__gravitational_potentialNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gravitational_potentialTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['重力势能 E_p = mgh', U.toFixed(1)+' J'],
+            ['重力势能 (MJ)', (U/1e6).toFixed(4)],
+            ['高度复算 (m)', (U/((m*g)||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m:__gravitational_potentialNum('m'), g:__gravitational_potentialNum('g'), h:__gravitational_potentialNum('h'), U:U});
+    TBKit.history.mount('#gravitational_potentialHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.g!=null)document.getElementById('g').value=rec.g; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#gravitational_potentialDiff',['U']);
+}
+function __gravitational_potentialExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gravitational_potentialTable','gravitational-potential.csv'); } catch(e){}
+}
+function __gravitational_potentialPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gravitational_potentialPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'10', g:'9.81', h:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'20', g:'19.62', h:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'5', g:'4.905', h:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gravitational_potentialExtras(); }catch(e){} };
+function __gravitational_potentialBoot(){ try{ __gravitational_potentialPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gravitational_potentialBoot();
+else document.addEventListener('DOMContentLoaded', __gravitational_potentialBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

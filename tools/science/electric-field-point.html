@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="electric_field_pointPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__electric_field_pointExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="electric_field_pointTable"></div>
+    <div id="electric_field_pointDiff"></div>
+    <div id="electric_field_pointHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -245,6 +251,44 @@ function resetForm(){document.getElementById('q').value = 1;
       document.getElementById('r').value = 0.1;
       calcTool();}
 calcTool();
+
+function __electric_field_pointNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __electric_field_pointExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k=8.988e9, q=num('q')*1e-6, r=num('r');
+    var E = k*q/(r*r);
+    if (!isFinite(__electric_field_pointNum('q')) || !isFinite(__electric_field_pointNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#electric_field_pointTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['电场强度 E = k·q/r²', E.toFixed(1)+' N/C'],
+            ['电势 V (V)', (8.988e9*q/r).toFixed(1)],
+            ['库仑常数乘电荷', (8.988e9*q).toExponential(4)],
+            ['电场强度与半径乘积', (E*Math.max(r,1e-9)).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({q:__electric_field_pointNum('q'), r:__electric_field_pointNum('r'), k:k});
+    TBKit.history.mount('#electric_field_pointHist',function(rec){ if(rec.q!=null)document.getElementById('q').value=rec.q; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#electric_field_pointDiff',['k']);
+}
+function __electric_field_pointExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#electric_field_pointTable','electric-field-point.csv'); } catch(e){}
+}
+function __electric_field_pointPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#electric_field_pointPresets',[
+        {label:'默认',labelEn:'Default',values:{q:'1', r:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q:'2', r:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q:'0.5', r:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __electric_field_pointExtras(); }catch(e){} };
+function __electric_field_pointBoot(){ try{ __electric_field_pointPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __electric_field_pointBoot();
+else document.addEventListener('DOMContentLoaded', __electric_field_pointBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

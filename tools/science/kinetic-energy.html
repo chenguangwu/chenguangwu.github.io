@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="kinetic_energyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__kinetic_energyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="kinetic_energyTable"></div>
+    <div id="kinetic_energyDiff"></div>
+    <div id="kinetic_energyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,44 @@ function resetForm(){document.getElementById('m').value = 10;
       document.getElementById('v').value = 5;
       calcTool();}
 calcTool();
+
+function __kinetic_energyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __kinetic_energyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'), v=num('v');
+    var E = 0.5*m*v*v;
+    if (!isFinite(__kinetic_energyNum('m')) || !isFinite(__kinetic_energyNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#kinetic_energyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['动能 E_k = ½mv²', E.toFixed(1)+' J'],
+            ['速度平方 v² (m²/s²)', (2*E/Math.max(m,1e-9)).toFixed(4)],
+            ['动能 (kJ)', (E/1000).toFixed(6)],
+            ['质量与动能之积', (m*E).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m:__kinetic_energyNum('m'), v:__kinetic_energyNum('v'), E:E});
+    TBKit.history.mount('#kinetic_energyHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#kinetic_energyDiff',['E']);
+}
+function __kinetic_energyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#kinetic_energyTable','kinetic-energy.csv'); } catch(e){}
+}
+function __kinetic_energyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#kinetic_energyPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'10', v:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'20', v:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'5', v:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __kinetic_energyExtras(); }catch(e){} };
+function __kinetic_energyBoot(){ try{ __kinetic_energyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __kinetic_energyBoot();
+else document.addEventListener('DOMContentLoaded', __kinetic_energyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="projectile_rangePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__projectile_rangeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="projectile_rangeTable"></div>
+    <div id="projectile_rangeDiff"></div>
+    <div id="projectile_rangeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,43 @@ function resetForm(){document.getElementById('v').value = 20;
       document.getElementById('g').value = 9.81;
       calcTool();}
 calcTool();
+
+function __projectile_rangeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __projectile_rangeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'), th=num('theta')*Math.PI/180, g=num('g');
+    var R = v*v*Math.sin(2*th)/g;
+    var H = v*v*Math.sin(th)*Math.sin(th)/(2*g);
+    if (!isFinite(__projectile_rangeNum('v')) || !isFinite(__projectile_rangeNum('theta')) || !isFinite(__projectile_rangeNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#projectile_rangeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['水平射程 R = v²sin(2θ)/g', R.toFixed(2)+' m'],
+            ['最大高度 H = v²sin²θ/(2g)', H.toFixed(2)+' m'],
+        ]
+    });
+    TBKit.history.record({v:__projectile_rangeNum('v'), theta:__projectile_rangeNum('theta'), g:__projectile_rangeNum('g'), R:R});
+    TBKit.history.mount('#projectile_rangeHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.theta!=null)document.getElementById('theta').value=rec.theta; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#projectile_rangeDiff',['R']);
+}
+function __projectile_rangeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#projectile_rangeTable','projectile-range.csv'); } catch(e){}
+}
+function __projectile_rangePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#projectile_rangePresets',[
+        {label:'默认',labelEn:'Default',values:{v:'20', theta:'45', g:'9.81'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'40', theta:'90', g:'19.62'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'10', theta:'22.5', g:'4.905'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __projectile_rangeExtras(); }catch(e){} };
+function __projectile_rangeBoot(){ try{ __projectile_rangePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __projectile_rangeBoot();
+else document.addEventListener('DOMContentLoaded', __projectile_rangeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="newtons_secondPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__newtons_secondExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="newtons_secondTable"></div>
+    <div id="newtons_secondDiff"></div>
+    <div id="newtons_secondHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,44 @@ function resetForm(){document.getElementById('m').value = 10;
       document.getElementById('a').value = 3;
       calcTool();}
 calcTool();
+
+function __newtons_secondNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __newtons_secondExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'), a=num('a');
+    var F = m*a;
+    if (!isFinite(__newtons_secondNum('m')) || !isFinite(__newtons_secondNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#newtons_secondTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['合外力 F = m·a', F.toFixed(1)+' N'],
+            ['合外力 (kN)', (F/1000).toFixed(6)],
+            ['加速度换算 (km/h/s)', (a*3.6).toFixed(4)],
+            ['合外力 (kgf 千克力)', (m*a/9.80665).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({m:__newtons_secondNum('m'), a:__newtons_secondNum('a'), F:F});
+    TBKit.history.mount('#newtons_secondHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+    TBKit.util.diffBox('#newtons_secondDiff',['F']);
+}
+function __newtons_secondExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#newtons_secondTable','newtons-second.csv'); } catch(e){}
+}
+function __newtons_secondPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#newtons_secondPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'10', a:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'20', a:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'5', a:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __newtons_secondExtras(); }catch(e){} };
+function __newtons_secondBoot(){ try{ __newtons_secondPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __newtons_secondBoot();
+else document.addEventListener('DOMContentLoaded', __newtons_secondBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

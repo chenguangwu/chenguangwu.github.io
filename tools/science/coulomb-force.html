@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="coulomb_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__coulomb_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="coulomb_forceTable"></div>
+    <div id="coulomb_forceDiff"></div>
+    <div id="coulomb_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -249,6 +255,43 @@ function resetForm(){document.getElementById('q1').value = 1;
       document.getElementById('r').value = 0.1;
       calcTool();}
 calcTool();
+
+function __coulomb_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __coulomb_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k=8.988e9, q1=num('q1')*1e-6, q2=num('q2')*1e-6, r=num('r');
+    var F = k*q1*q2/(r*r);
+    if (!isFinite(__coulomb_forceNum('q1')) || !isFinite(__coulomb_forceNum('q2')) || !isFinite(__coulomb_forceNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#coulomb_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['静电力 F = k·q₁q₂/r²', F.toFixed(4)+' N'],
+            ['q1 在 r 处场强 E (N/C)', (k*q1/(r*r)).toFixed(4)],
+            ['电势能 U (J)', (k*q1*q2/r).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({q1:__coulomb_forceNum('q1'), q2:__coulomb_forceNum('q2'), r:__coulomb_forceNum('r'), k:k});
+    TBKit.history.mount('#coulomb_forceHist',function(rec){ if(rec.q1!=null)document.getElementById('q1').value=rec.q1; if(rec.q2!=null)document.getElementById('q2').value=rec.q2; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#coulomb_forceDiff',['k']);
+}
+function __coulomb_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#coulomb_forceTable','coulomb-force.csv'); } catch(e){}
+}
+function __coulomb_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#coulomb_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{q1:'1', q2:'1', r:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q1:'2', q2:'2', r:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q1:'0.5', q2:'0.5', r:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __coulomb_forceExtras(); }catch(e){} };
+function __coulomb_forceBoot(){ try{ __coulomb_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __coulomb_forceBoot();
+else document.addEventListener('DOMContentLoaded', __coulomb_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

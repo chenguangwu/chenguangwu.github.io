@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="work_donePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__work_doneExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="work_doneTable"></div>
+    <div id="work_doneDiff"></div>
+    <div id="work_doneHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,43 @@ function resetForm(){document.getElementById('F').value = 50;
       document.getElementById('theta').value = 0;
       calcTool();}
 calcTool();
+
+function __work_doneNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __work_doneExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F=num('F'), d=num('d'), th=num('theta')*Math.PI/180;
+    var W = F*d*Math.cos(th);
+    if (!isFinite(__work_doneNum('F')) || !isFinite(__work_doneNum('d')) || !isFinite(__work_doneNum('theta'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#work_doneTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['功 W = F·d·cosθ', W.toFixed(1)+' J'],
+            ['沿位移分力 (N)', (F*Math.cos(th)).toFixed(3)],
+            ['垂直分力 (N)', (F*Math.sin(th)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({F:__work_doneNum('F'), d:__work_doneNum('d'), theta:__work_doneNum('theta'), W:W});
+    TBKit.history.mount('#work_doneHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.d!=null)document.getElementById('d').value=rec.d; if(rec.theta!=null)document.getElementById('theta').value=rec.theta; calcTool(); });
+    TBKit.util.diffBox('#work_doneDiff',['W']);
+}
+function __work_doneExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#work_doneTable','work-done.csv'); } catch(e){}
+}
+function __work_donePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#work_donePresets',[
+        {label:'默认',labelEn:'Default',values:{F:'50', d:'10', theta:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'100', d:'20', theta:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'25', d:'5', theta:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __work_doneExtras(); }catch(e){} };
+function __work_doneBoot(){ try{ __work_donePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __work_doneBoot();
+else document.addEventListener('DOMContentLoaded', __work_doneBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

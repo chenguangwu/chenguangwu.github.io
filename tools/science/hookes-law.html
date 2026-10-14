@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hookes_lawPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hookes_lawExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hookes_lawTable"></div>
+    <div id="hookes_lawDiff"></div>
+    <div id="hookes_lawHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,44 @@ function resetForm(){document.getElementById('k').value = 100;
       document.getElementById('x').value = 0.2;
       calcTool();}
 calcTool();
+
+function __hookes_lawNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hookes_lawExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var k=num('k'), x=num('x');
+    var F = k*x;
+    if (!isFinite(__hookes_lawNum('k')) || !isFinite(__hookes_lawNum('x'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hookes_lawTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['弹簧力 F = k·x', F.toFixed(1)+' N'],
+            ['弹性势能 U (J)', (0.5*k*x*x).toFixed(4)],
+            ['劲度系数倒数 (m/N)', (1/Math.max(k,1e-9)).toFixed(6)],
+            ['劲度与位移平方之积 (J)', (k*x*x).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({k:__hookes_lawNum('k'), x:__hookes_lawNum('x'), F:F});
+    TBKit.history.mount('#hookes_lawHist',function(rec){ if(rec.k!=null)document.getElementById('k').value=rec.k; if(rec.x!=null)document.getElementById('x').value=rec.x; calcTool(); });
+    TBKit.util.diffBox('#hookes_lawDiff',['F']);
+}
+function __hookes_lawExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hookes_lawTable','hookes-law.csv'); } catch(e){}
+}
+function __hookes_lawPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hookes_lawPresets',[
+        {label:'默认',labelEn:'Default',values:{k:'100', x:'0.2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{k:'200', x:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{k:'50', x:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hookes_lawExtras(); }catch(e){} };
+function __hookes_lawBoot(){ try{ __hookes_lawPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hookes_lawBoot();
+else document.addEventListener('DOMContentLoaded', __hookes_lawBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

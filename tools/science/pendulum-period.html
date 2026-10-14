@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pendulum_periodPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pendulum_periodExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pendulum_periodTable"></div>
+    <div id="pendulum_periodDiff"></div>
+    <div id="pendulum_periodHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -262,6 +268,44 @@ function resetForm(){document.getElementById('L').value = 1;
       document.getElementById('g').value = 9.81;
       calcTool();}
 calcTool();
+
+function __pendulum_periodNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pendulum_periodExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L=num('L'), g=num('g');
+    var T = 2*Math.PI*Math.sqrt(L/g);
+    if (!isFinite(__pendulum_periodNum('L')) || !isFinite(__pendulum_periodNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pendulum_periodTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['周期 T = 2π√(L/g)', T.toFixed(3)+' s'],
+            ['频率 f (Hz)', (1/T).toFixed(4)],
+            ['周期 (ms)', (T*1000).toFixed(3)],
+            ['角频率 ω (rad/s)', (Math.sqrt(g/Math.max(L,1e-12))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({L:__pendulum_periodNum('L'), g:__pendulum_periodNum('g'), T:T});
+    TBKit.history.mount('#pendulum_periodHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#pendulum_periodDiff',['T']);
+}
+function __pendulum_periodExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pendulum_periodTable','pendulum-period.csv'); } catch(e){}
+}
+function __pendulum_periodPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pendulum_periodPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'1', g:'9.81'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'2', g:'19.62'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'0.5', g:'4.905'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pendulum_periodExtras(); }catch(e){} };
+function __pendulum_periodBoot(){ try{ __pendulum_periodPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pendulum_periodBoot();
+else document.addEventListener('DOMContentLoaded', __pendulum_periodBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

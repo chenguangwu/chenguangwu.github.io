@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="spring_oscillation_periodPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__spring_oscillation_periodExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="spring_oscillation_periodTable"></div>
+    <div id="spring_oscillation_periodDiff"></div>
+    <div id="spring_oscillation_periodHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -258,6 +264,44 @@ function resetForm(){document.getElementById('m').value = 0.5;
       document.getElementById('k').value = 50;
       calcTool();}
 calcTool();
+
+function __spring_oscillation_periodNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spring_oscillation_periodExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'), k=num('k');
+    var T = 2*Math.PI*Math.sqrt(m/k);
+    if (!isFinite(__spring_oscillation_periodNum('m')) || !isFinite(__spring_oscillation_periodNum('k'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#spring_oscillation_periodTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['周期 T = 2π√(m/k)', T.toFixed(3)+' s'],
+            ['频率 f (Hz)', (1/T).toFixed(4)],
+            ['周期 (ms)', (T*1000).toFixed(3)],
+            ['角频率 ω (rad/s)', (Math.sqrt(k/Math.max(m,1e-12))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({m:__spring_oscillation_periodNum('m'), k:__spring_oscillation_periodNum('k'), T:T});
+    TBKit.history.mount('#spring_oscillation_periodHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.k!=null)document.getElementById('k').value=rec.k; calcTool(); });
+    TBKit.util.diffBox('#spring_oscillation_periodDiff',['T']);
+}
+function __spring_oscillation_periodExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spring_oscillation_periodTable','spring-oscillation-period.csv'); } catch(e){}
+}
+function __spring_oscillation_periodPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#spring_oscillation_periodPresets',[
+        {label:'默认',labelEn:'Default',values:{m:'0.5', k:'50'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'1', k:'100'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'0.25', k:'25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __spring_oscillation_periodExtras(); }catch(e){} };
+function __spring_oscillation_periodBoot(){ try{ __spring_oscillation_periodPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __spring_oscillation_periodBoot();
+else document.addEventListener('DOMContentLoaded', __spring_oscillation_periodBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

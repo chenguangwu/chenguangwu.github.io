@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="centripetal_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__centripetal_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="centripetal_forceTable"></div>
+    <div id="centripetal_forceDiff"></div>
+    <div id="centripetal_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,44 @@ function resetForm(){document.getElementById('m').value = 2;
       document.getElementById('r').value = 5;
       calcTool();}
 calcTool();
+
+function __centripetal_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __centripetal_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var m=num('m'), v=num('v'), r=num('r');
+    var F = m*v*v/r;
+    if (!isFinite(__centripetal_forceNum('m')) || !isFinite(__centripetal_forceNum('v')) || !isFinite(__centripetal_forceNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#centripetal_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['向心力 F = mv²/r', F.toFixed(1)+' N'],
+            ['向心力 (kgf)', (m*v*v/r/9.80665).toFixed(4)],
+            ['向心加速度 v²/r (m/s²)', (v*v/r).toFixed(4)],
+            ['圆周运动周期 T (s)', (2*Math.PI*r/v).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({m:__centripetal_forceNum('m'), v:__centripetal_forceNum('v'), r:__centripetal_forceNum('r'), F:F});
+    TBKit.history.mount('#centripetal_forceHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#centripetal_forceDiff',['F']);
+}
+function __centripetal_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#centripetal_forceTable','centripetal-force.csv'); } catch(e){}
+}
+function __centripetal_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#centripetal_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{m:'2', v:'10', r:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'4', v:'20', r:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'1', v:'5', r:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __centripetal_forceExtras(); }catch(e){} };
+function __centripetal_forceBoot(){ try{ __centripetal_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __centripetal_forceBoot();
+else document.addEventListener('DOMContentLoaded', __centripetal_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

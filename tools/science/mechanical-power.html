@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mechanical_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mechanical_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mechanical_powerTable"></div>
+    <div id="mechanical_powerDiff"></div>
+    <div id="mechanical_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,44 @@ function resetForm(){document.getElementById('F').value = 100;
       document.getElementById('v').value = 5;
       calcTool();}
 calcTool();
+
+function __mechanical_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mechanical_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var F=num('F'), v=num('v');
+    var P = F*v;
+    if (!isFinite(__mechanical_powerNum('F')) || !isFinite(__mechanical_powerNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mechanical_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['功率 P = F·v', P.toFixed(0)+' W'],
+            ['功率 (kW)', (P/1000).toFixed(6)],
+            ['功率 (hp 英制马力)', (P/745.6999).toFixed(6)],
+            ['功率 (kgf·m/s)', (F*v/9.80665).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({F:__mechanical_powerNum('F'), v:__mechanical_powerNum('v'), P:P});
+    TBKit.history.mount('#mechanical_powerHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#mechanical_powerDiff',['P']);
+}
+function __mechanical_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mechanical_powerTable','mechanical-power.csv'); } catch(e){}
+}
+function __mechanical_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mechanical_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{F:'100', v:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'200', v:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'50', v:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mechanical_powerExtras(); }catch(e){} };
+function __mechanical_powerBoot(){ try{ __mechanical_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mechanical_powerBoot();
+else document.addEventListener('DOMContentLoaded', __mechanical_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
