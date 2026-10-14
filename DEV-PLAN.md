@@ -100,9 +100,9 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 
 ### 1.7 当前分类（进行中）
 
-（surveying/legal/robotics/electromagnetism/process/geometry/fluid/metrology 已收口，见下方存档；下一分类从 §1.8 最弱候选起，按「最弱优先」开：当前最弱 `kinematics` 2.23/77% → `quantum` 2.32/75% → `acoustics` 2.31/69% → `insurance` 2.50/53% → `chemistry` 2.89/47% → `optical` 3.12/38% 等）
+（surveying/legal/robotics/electromagnetism/process/geometry/fluid/metrology/kinematics 已收口，见下方存档；下一分类从 §1.8 最弱候选起，按「最弱优先」开：当前最弱 `quantum` 2.32/75% → `acoustics` 2.31/69% → `insurance` 2.50/53% → `chemistry` 2.89/47% → `optical` 3.12/38% 等）
 
-**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）；**`surveying` 45 页 1.89→7.78、薄弱 31→1（仅 `distance-4` 重定向存根不可改造、`index` 导航页不动；SV-1~SV-5 五批；图表范式 line 31.1%/bar 35.6% 合规；calc-1 EN 态动态标签时序 bug + convert-46 字典遗漏已修；4 个 `type="number"` 逗号输入框待修见 §2 P1）**；`legal` 53 页 1.96→6.19、薄弱 37→5（图表+速查表+历史+预设+导出+i18n 双语全量收口；剩余 5 页为模板/检索型无计算内核，留最后单独一档）；**`robotics` 29 页 1.07→6.86、薄弱 29→0（28 页用 `scripts/_ux_wire.py` 批量补线 table+history+presets+export+i18n 双语；1 页重定向/导航存根不可改造；harness 56/56 全过）**；**`electromagnetism` 27 页 1.15→（均分待基线刷新）薄弱 23→0（25 页用 `_ux_wire.py` 补线，ohms-law 为 tool-page-runtime 三模式计算器无 calcTool 跳过；harness 51/51 全过；生成器修复空输入页语法错误）**；**`process` 15 页 1.27→（均分待基线刷新）薄弱 14→2（12 页用 `_ux_wire.py` 补线，harness 14/14 全过；`defect-probability`/`sigma-level` 含嵌套函数 erf/invNorm，生成器跳过留手动 A 档精做；生成器新增「嵌套函数 skip + const/let→var」防重复声明）**；**`geometry` 29 页 1.17→（均分待基线刷新）薄弱 29→0（28 页用 `_ux_wire.py` 补线，harness 62/62 全过；生成器改为括号匹配提取完整 calcTool 体（支持带参 `calcTool(force)` 与早现行首 `}` 页），原误跳 6 页全部解锁）**；**`fluid` 24 页 1.21→（均分待基线刷新）薄弱 24→0（23 页用 `_ux_wire.py` 补线，harness 46/46 全过）**；**`metrology` 30 页 1.3→（均分待基线刷新）薄弱 29→1（`detector-139` 无 calcTool 跳过；28 页用 `_ux_wire.py` 补线，harness 56/56 全过）**。
+**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）；**`surveying` 45 页 1.89→7.78、薄弱 31→1（仅 `distance-4` 重定向存根不可改造、`index` 导航页不动；SV-1~SV-5 五批；图表范式 line 31.1%/bar 35.6% 合规；calc-1 EN 态动态标签时序 bug + convert-46 字典遗漏已修；4 个 `type="number"` 逗号输入框待修见 §2 P1）**；`legal` 53 页 1.96→6.19、薄弱 37→5（图表+速查表+历史+预设+导出+i18n 双语全量收口；剩余 5 页为模板/检索型无计算内核，留最后单独一档）；**`robotics` 29 页 1.07→6.86、薄弱 29→0（28 页用 `scripts/_ux_wire.py` 批量补线 table+history+presets+export+i18n 双语；1 页重定向/导航存根不可改造；harness 56/56 全过）**；**`electromagnetism` 27 页 1.15→（均分待基线刷新）薄弱 23→0（25 页用 `_ux_wire.py` 补线，ohms-law 为 tool-page-runtime 三模式计算器无 calcTool 跳过；harness 51/51 全过；生成器修复空输入页语法错误）**；**`process` 15 页 1.27→（均分待基线刷新）薄弱 14→2（12 页用 `_ux_wire.py` 补线，harness 14/14 全过；`defect-probability`/`sigma-level` 含嵌套函数 erf/invNorm，生成器跳过留手动 A 档精做；生成器新增「嵌套函数 skip + const/let→var」防重复声明）**；**`geometry` 29 页 1.17→（均分待基线刷新）薄弱 29→0（28 页用 `_ux_wire.py` 补线，harness 62/62 全过；生成器改为括号匹配提取完整 calcTool 体（支持带参 `calcTool(force)` 与早现行首 `}` 页），原误跳 6 页全部解锁）**；**`fluid` 24 页 1.21→（均分待基线刷新）薄弱 24→0（23 页用 `_ux_wire.py` 补线，harness 46/46 全过）**；**`metrology` 30 页 1.3→（均分待基线刷新）薄弱 29→1（`detector-139` 无 calcTool 跳过；28 页用 `_ux_wire.py` 补线，harness 56/56 全过）**；**`kinematics` 26 页 1.23→（均分待基线刷新）薄弱 26→0（25 页用 `_ux_wire.py` 补线，harness 50/50 全过）**。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 
@@ -141,7 +141,6 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 - `chemistry` 38/1.89/26
 - `quantum` 28/1.32/26
 - `signal` 28/1.75/26
-- `kinematics` 26/1.23/26
 - `banking` 26/1.77/25
 - `investment` 26/1.58/25
 - `optical` 42/2.14/24

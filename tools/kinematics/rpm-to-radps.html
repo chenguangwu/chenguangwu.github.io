@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rpm_to_radpsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rpm_to_radpsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rpm_to_radpsTable"></div>
+    <div id="rpm_to_radpsDiff"></div>
+    <div id="rpm_to_radpsHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('n').value = '3000';
       calcTool();}
 calcTool();
+
+function __rpm_to_radpsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rpm_to_radpsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n=num('n');
+    var w=2*Math.PI*n/60;
+    if (!isFinite(__rpm_to_radpsNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rpm_to_radpsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角速度 ω (rad/s)', w.toFixed(3)],
+            ['转速 (转/秒)', (n/60).toFixed(4)],
+            ['角速度 (rad/min)', (n*2*Math.PI).toFixed(3)],
+            ['频率 f (Hz)', (w/(2*Math.PI)).toFixed(4)],
+            ['角速度平方 (rad²/s²)', (w*w).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__rpm_to_radpsNum('n'), w:w});
+    TBKit.history.mount('#rpm_to_radpsHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#rpm_to_radpsDiff',['w']);
+}
+function __rpm_to_radpsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rpm_to_radpsTable','rpm-to-radps.csv'); } catch(e){}
+}
+function __rpm_to_radpsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rpm_to_radpsPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'3000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'6000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'1500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rpm_to_radpsExtras(); }catch(e){} };
+function __rpm_to_radpsBoot(){ try{ __rpm_to_radpsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rpm_to_radpsBoot();
+else document.addEventListener('DOMContentLoaded', __rpm_to_radpsBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="displacement_vaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__displacement_vaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="displacement_vaTable"></div>
+    <div id="displacement_vaDiff"></div>
+    <div id="displacement_vaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('v').value = '20';
       document.getElementById('a').value = '5';
       calcTool();}
 calcTool();
+
+function __displacement_vaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __displacement_vaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),v0=num('v0'),a=num('a');
+    var s=(v*v-v0*v0)/(2*a);
+    if (!isFinite(__displacement_vaNum('v')) || !isFinite(__displacement_vaNum('v0')) || !isFinite(__displacement_vaNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#displacement_vaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['位移 s (m)', s.toFixed(3)],
+            ['平均速度 (m/s)', ((v+v0)/2).toFixed(3)],
+            ['历时 t (s)', ((v-v0)/(a||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({v:__displacement_vaNum('v'), v0:__displacement_vaNum('v0'), a:__displacement_vaNum('a'), s:s});
+    TBKit.history.mount('#displacement_vaHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.v0!=null)document.getElementById('v0').value=rec.v0; if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+    TBKit.util.diffBox('#displacement_vaDiff',['s']);
+}
+function __displacement_vaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#displacement_vaTable','displacement-va.csv'); } catch(e){}
+}
+function __displacement_vaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#displacement_vaPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'20', v0:'10', a:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'40', v0:'20', a:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'10', v0:'5', a:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __displacement_vaExtras(); }catch(e){} };
+function __displacement_vaBoot(){ try{ __displacement_vaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __displacement_vaBoot();
+else document.addEventListener('DOMContentLoaded', __displacement_vaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="angular_displacementPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__angular_displacementExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="angular_displacementTable"></div>
+    <div id="angular_displacementDiff"></div>
+    <div id="angular_displacementHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('w0').value = '2';
       document.getElementById('t').value = '3';
       calcTool();}
 calcTool();
+
+function __angular_displacementNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __angular_displacementExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var w0=num('w0'),a=num('a'),t=num('t');
+    var th=w0*t+0.5*a*t*t;
+    if (!isFinite(__angular_displacementNum('w0')) || !isFinite(__angular_displacementNum('a')) || !isFinite(__angular_displacementNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#angular_displacementTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角位移 θ (rad)', th.toFixed(3)],
+            ['末角速度 (rad/s)', (w0+a*t).toFixed(3)],
+            ['平均角速度 (rad/s)', (th/(t||1)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({w0:__angular_displacementNum('w0'), a:__angular_displacementNum('a'), t:__angular_displacementNum('t'), th:th});
+    TBKit.history.mount('#angular_displacementHist',function(rec){ if(rec.w0!=null)document.getElementById('w0').value=rec.w0; if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#angular_displacementDiff',['th']);
+}
+function __angular_displacementExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#angular_displacementTable','angular-displacement.csv'); } catch(e){}
+}
+function __angular_displacementPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#angular_displacementPresets',[
+        {label:'默认',labelEn:'Default',values:{w0:'2', a:'1', t:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{w0:'4', a:'2', t:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{w0:'1', a:'0.5', t:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __angular_displacementExtras(); }catch(e){} };
+function __angular_displacementBoot(){ try{ __angular_displacementPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __angular_displacementBoot();
+else document.addEventListener('DOMContentLoaded', __angular_displacementBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

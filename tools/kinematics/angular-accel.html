@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="angular_accelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__angular_accelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="angular_accelTable"></div>
+    <div id="angular_accelDiff"></div>
+    <div id="angular_accelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,44 @@ function resetForm(){document.getElementById('dw').value = '10';
       document.getElementById('dt').value = '2';
       calcTool();}
 calcTool();
+
+function __angular_accelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __angular_accelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dw = num('dw'), dt = num('dt');
+    var a = dw / dt;
+    if (!isFinite(__angular_accelNum('dw')) || !isFinite(__angular_accelNum('dt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#angular_accelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角加速度 α (rad/s²)', a.toFixed(3)],
+            ['角速度变化 (°/s)', (dw*180/Math.PI).toFixed(3)],
+            ['角加速度 (°/s²)', (a*180/Math.PI).toFixed(4)],
+            ['角加速度倒数 (s²/rad)', (1/Math.max(a,1e-12)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({dw:__angular_accelNum('dw'), dt:__angular_accelNum('dt'), a:a});
+    TBKit.history.mount('#angular_accelHist',function(rec){ if(rec.dw!=null)document.getElementById('dw').value=rec.dw; if(rec.dt!=null)document.getElementById('dt').value=rec.dt; calcTool(); });
+    TBKit.util.diffBox('#angular_accelDiff',['a']);
+}
+function __angular_accelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#angular_accelTable','angular-accel.csv'); } catch(e){}
+}
+function __angular_accelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#angular_accelPresets',[
+        {label:'默认',labelEn:'Default',values:{dw:'10', dt:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dw:'20', dt:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dw:'5', dt:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __angular_accelExtras(); }catch(e){} };
+function __angular_accelBoot(){ try{ __angular_accelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __angular_accelBoot();
+else document.addEventListener('DOMContentLoaded', __angular_accelBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

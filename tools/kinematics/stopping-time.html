@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stopping_timePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stopping_timeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stopping_timeTable"></div>
+    <div id="stopping_timeDiff"></div>
+    <div id="stopping_timeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,44 @@ function resetForm(){document.getElementById('v0').value = '20';
       document.getElementById('a').value = '5';
       calcTool();}
 calcTool();
+
+function __stopping_timeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stopping_timeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v0=num('v0'),a=num('a');
+    var t=v0/a;
+    if (!isFinite(__stopping_timeNum('v0')) || !isFinite(__stopping_timeNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stopping_timeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['制动时间 t (s)', t.toFixed(3)],
+            ['初速度复核 (m/s)', (a*t).toFixed(3)],
+            ['制动距离 (m)', (v0*v0/(2*Math.max(a,1e-9))).toFixed(3)],
+            ['制动距离（平均速度法, m）', (0.5*v0*t).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v0:__stopping_timeNum('v0'), a:__stopping_timeNum('a'), t:t});
+    TBKit.history.mount('#stopping_timeHist',function(rec){ if(rec.v0!=null)document.getElementById('v0').value=rec.v0; if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+    TBKit.util.diffBox('#stopping_timeDiff',['t']);
+}
+function __stopping_timeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stopping_timeTable','stopping-time.csv'); } catch(e){}
+}
+function __stopping_timePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stopping_timePresets',[
+        {label:'默认',labelEn:'Default',values:{v0:'20', a:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v0:'40', a:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v0:'10', a:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stopping_timeExtras(); }catch(e){} };
+function __stopping_timeBoot(){ try{ __stopping_timePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stopping_timeBoot();
+else document.addEventListener('DOMContentLoaded', __stopping_timeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

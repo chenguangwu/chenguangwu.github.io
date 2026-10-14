@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="height_fall_distancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__height_fall_distanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="height_fall_distanceTable"></div>
+    <div id="height_fall_distanceDiff"></div>
+    <div id="height_fall_distanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,44 @@ function resetForm(){document.getElementById('t').value = '2';
       document.getElementById('g').value = '9.81';
       calcTool();}
 calcTool();
+
+function __height_fall_distanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __height_fall_distanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var t=num('t'),g=num('g');
+    var h=0.5*g*t*t;
+    if (!isFinite(__height_fall_distanceNum('t')) || !isFinite(__height_fall_distanceNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#height_fall_distanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['下落距离 h (m)', h.toFixed(3)],
+            ['落地速度 v (m/s)', (g*t).toFixed(3)],
+            ['落地速度 (km/h)', (g*t*3.6).toFixed(3)],
+            ['由高度反推时间平方', (2*h/Math.max(g,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({t:__height_fall_distanceNum('t'), g:__height_fall_distanceNum('g'), h:h});
+    TBKit.history.mount('#height_fall_distanceHist',function(rec){ if(rec.t!=null)document.getElementById('t').value=rec.t; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#height_fall_distanceDiff',['h']);
+}
+function __height_fall_distanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#height_fall_distanceTable','height-fall-distance.csv'); } catch(e){}
+}
+function __height_fall_distancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#height_fall_distancePresets',[
+        {label:'默认',labelEn:'Default',values:{t:'2', g:'9.81'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{t:'4', g:'19.62'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{t:'1', g:'4.905'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __height_fall_distanceExtras(); }catch(e){} };
+function __height_fall_distanceBoot(){ try{ __height_fall_distancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __height_fall_distanceBoot();
+else document.addEventListener('DOMContentLoaded', __height_fall_distanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

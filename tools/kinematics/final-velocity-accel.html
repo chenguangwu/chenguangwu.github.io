@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="final_velocity_accelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__final_velocity_accelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="final_velocity_accelTable"></div>
+    <div id="final_velocity_accelDiff"></div>
+    <div id="final_velocity_accelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,44 @@ function resetForm(){document.getElementById('v0').value = '0';
       document.getElementById('t').value = '5';
       calcTool();}
 calcTool();
+
+function __final_velocity_accelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __final_velocity_accelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v0 = num('v0'), a = num('a'), t = num('t');
+    var v = v0 + a * t;
+    if (!isFinite(__final_velocity_accelNum('v0')) || !isFinite(__final_velocity_accelNum('a')) || !isFinite(__final_velocity_accelNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#final_velocity_accelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末速度 v (m/s)', v.toFixed(3)],
+            ['v (km/h)', (v * 3.6).toFixed(3)],
+            ['位移 s (m)', (v0*t+0.5*a*t*t).toFixed(3)],
+            ['速度增量 (m/s)', (Math.abs(v-v0)).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v0:__final_velocity_accelNum('v0'), a:__final_velocity_accelNum('a'), t:__final_velocity_accelNum('t'), v:v});
+    TBKit.history.mount('#final_velocity_accelHist',function(rec){ if(rec.v0!=null)document.getElementById('v0').value=rec.v0; if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#final_velocity_accelDiff',['v']);
+}
+function __final_velocity_accelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#final_velocity_accelTable','final-velocity-accel.csv'); } catch(e){}
+}
+function __final_velocity_accelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#final_velocity_accelPresets',[
+        {label:'默认',labelEn:'Default',values:{v0:'0', a:'9.8', t:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v0:'0', a:'19.6', t:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v0:'0', a:'4.9', t:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __final_velocity_accelExtras(); }catch(e){} };
+function __final_velocity_accelBoot(){ try{ __final_velocity_accelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __final_velocity_accelBoot();
+else document.addEventListener('DOMContentLoaded', __final_velocity_accelBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

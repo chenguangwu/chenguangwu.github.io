@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="velocity_squaredPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__velocity_squaredExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="velocity_squaredTable"></div>
+    <div id="velocity_squaredDiff"></div>
+    <div id="velocity_squaredHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('v0').value = '0';
       document.getElementById('dx').value = '100';
       calcTool();}
 calcTool();
+
+function __velocity_squaredNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __velocity_squaredExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v0 = num('v0'), a = num('a'), dx = num('dx');
+    var v = Math.sqrt(v0 * v0 + 2 * a * dx);
+    if (!isFinite(__velocity_squaredNum('v0')) || !isFinite(__velocity_squaredNum('a')) || !isFinite(__velocity_squaredNum('dx'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#velocity_squaredTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末速度 v (m/s)', v.toFixed(3)],
+            ['速度平方增量 v²−v₀²', (v*v-v0*v0).toFixed(3)],
+            ['速度增量 Δv (m/s)', (v-v0).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v0:__velocity_squaredNum('v0'), a:__velocity_squaredNum('a'), dx:__velocity_squaredNum('dx'), v:v});
+    TBKit.history.mount('#velocity_squaredHist',function(rec){ if(rec.v0!=null)document.getElementById('v0').value=rec.v0; if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.dx!=null)document.getElementById('dx').value=rec.dx; calcTool(); });
+    TBKit.util.diffBox('#velocity_squaredDiff',['v']);
+}
+function __velocity_squaredExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#velocity_squaredTable','velocity-squared.csv'); } catch(e){}
+}
+function __velocity_squaredPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#velocity_squaredPresets',[
+        {label:'默认',labelEn:'Default',values:{v0:'0', a:'9.8', dx:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v0:'0', a:'19.6', dx:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v0:'0', a:'4.9', dx:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __velocity_squaredExtras(); }catch(e){} };
+function __velocity_squaredBoot(){ try{ __velocity_squaredPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __velocity_squaredBoot();
+else document.addEventListener('DOMContentLoaded', __velocity_squaredBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="avg_velocityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__avg_velocityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="avg_velocityTable"></div>
+    <div id="avg_velocityDiff"></div>
+    <div id="avg_velocityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,44 @@ function resetForm(){document.getElementById('dx').value = '100';
       document.getElementById('dt').value = '10';
       calcTool();}
 calcTool();
+
+function __avg_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __avg_velocityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var dx = num('dx'), dt = num('dt');
+    var v = dx / dt;
+    if (!isFinite(__avg_velocityNum('dx')) || !isFinite(__avg_velocityNum('dt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#avg_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['平均速度 v̄ (m/s)', v.toFixed(3)],
+            ['v̄ (km/h)', (v * 3.6).toFixed(3)],
+            ['每米耗时 (s/m)', (Math.abs(dt/(dx||1))).toFixed(4)],
+            ['速度平方 (m2/s2)', (v*v).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({dx:__avg_velocityNum('dx'), dt:__avg_velocityNum('dt'), v:v});
+    TBKit.history.mount('#avg_velocityHist',function(rec){ if(rec.dx!=null)document.getElementById('dx').value=rec.dx; if(rec.dt!=null)document.getElementById('dt').value=rec.dt; calcTool(); });
+    TBKit.util.diffBox('#avg_velocityDiff',['v']);
+}
+function __avg_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#avg_velocityTable','avg-velocity.csv'); } catch(e){}
+}
+function __avg_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#avg_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{dx:'100', dt:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dx:'200', dt:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dx:'50', dt:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __avg_velocityExtras(); }catch(e){} };
+function __avg_velocityBoot(){ try{ __avg_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __avg_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __avg_velocityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

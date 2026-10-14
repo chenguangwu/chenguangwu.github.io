@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="freq_from_omegaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__freq_from_omegaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="freq_from_omegaTable"></div>
+    <div id="freq_from_omegaDiff"></div>
+    <div id="freq_from_omegaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,45 @@ function calcTool(){
 function resetForm(){document.getElementById('w').value = '6.283';
       calcTool();}
 calcTool();
+
+function __freq_from_omegaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __freq_from_omegaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var w=num('w');
+    var f=w/(2*Math.PI);
+    if (!isFinite(__freq_from_omegaNum('w'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#freq_from_omegaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['频率 f (Hz)', f.toFixed(4)],
+            ['周期 T (s)', (2*Math.PI/Math.max(w,1e-9)).toFixed(4)],
+            ['转速 (rpm)', (w*60/(2*Math.PI)).toFixed(4)],
+            ['角速度平方 (rad²/s²)', (w*w).toFixed(4)],
+            ['频率平方 (Hz²)', (f*f).toFixed(6)],
+        ]
+    });
+    TBKit.history.record({w:__freq_from_omegaNum('w'), f:f});
+    TBKit.history.mount('#freq_from_omegaHist',function(rec){ if(rec.w!=null)document.getElementById('w').value=rec.w; calcTool(); });
+    TBKit.util.diffBox('#freq_from_omegaDiff',['f']);
+}
+function __freq_from_omegaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#freq_from_omegaTable','freq-from-omega.csv'); } catch(e){}
+}
+function __freq_from_omegaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#freq_from_omegaPresets',[
+        {label:'默认',labelEn:'Default',values:{w:'6.283'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{w:'12.566'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{w:'3.1415'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __freq_from_omegaExtras(); }catch(e){} };
+function __freq_from_omegaBoot(){ try{ __freq_from_omegaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __freq_from_omegaBoot();
+else document.addEventListener('DOMContentLoaded', __freq_from_omegaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

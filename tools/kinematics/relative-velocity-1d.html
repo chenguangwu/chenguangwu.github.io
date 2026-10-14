@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="relative_velocity_1dPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__relative_velocity_1dExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="relative_velocity_1dTable"></div>
+    <div id="relative_velocity_1dDiff"></div>
+    <div id="relative_velocity_1dHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,44 @@ function resetForm(){document.getElementById('v1').value = '30';
       document.getElementById('v2').value = '20';
       calcTool();}
 calcTool();
+
+function __relative_velocity_1dNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __relative_velocity_1dExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v1=num('v1'),v2=num('v2');
+    var vr=v1-v2;
+    if (!isFinite(__relative_velocity_1dNum('v1')) || !isFinite(__relative_velocity_1dNum('v2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#relative_velocity_1dTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['相对速度 v_rel (m/s)', vr.toFixed(3)],
+            ['相对速度 (km/h)', (vr*3.6).toFixed(3)],
+            ['速度比 v1 除以 v2', (v1/Math.max(v2,1e-9)).toFixed(4)],
+            ['相对速度一半（质心系）', (vr/2).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v1:__relative_velocity_1dNum('v1'), v2:__relative_velocity_1dNum('v2'), vr:vr});
+    TBKit.history.mount('#relative_velocity_1dHist',function(rec){ if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.v2!=null)document.getElementById('v2').value=rec.v2; calcTool(); });
+    TBKit.util.diffBox('#relative_velocity_1dDiff',['vr']);
+}
+function __relative_velocity_1dExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#relative_velocity_1dTable','relative-velocity-1d.csv'); } catch(e){}
+}
+function __relative_velocity_1dPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#relative_velocity_1dPresets',[
+        {label:'默认',labelEn:'Default',values:{v1:'30', v2:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v1:'60', v2:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v1:'15', v2:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __relative_velocity_1dExtras(); }catch(e){} };
+function __relative_velocity_1dBoot(){ try{ __relative_velocity_1dPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __relative_velocity_1dBoot();
+else document.addEventListener('DOMContentLoaded', __relative_velocity_1dBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

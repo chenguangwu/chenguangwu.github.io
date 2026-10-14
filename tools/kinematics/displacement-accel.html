@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="displacement_accelPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__displacement_accelExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="displacement_accelTable"></div>
+    <div id="displacement_accelDiff"></div>
+    <div id="displacement_accelHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -255,6 +261,43 @@ function resetForm(){document.getElementById('v0').value = '10';
       document.getElementById('t').value = '5';
       calcTool();}
 calcTool();
+
+function __displacement_accelNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __displacement_accelExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v0 = num('v0'), a = num('a'), t = num('t');
+    var x = v0 * t + 0.5 * a * t * t;
+    if (!isFinite(__displacement_accelNum('v0')) || !isFinite(__displacement_accelNum('a')) || !isFinite(__displacement_accelNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#displacement_accelTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['位移 x (m)', x.toFixed(3)],
+            ['末速度 v (m/s)', (v0+a*t).toFixed(4)],
+            ['平均速度 (m/s)', (x/t).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({v0:__displacement_accelNum('v0'), a:__displacement_accelNum('a'), t:__displacement_accelNum('t'), x:x});
+    TBKit.history.mount('#displacement_accelHist',function(rec){ if(rec.v0!=null)document.getElementById('v0').value=rec.v0; if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#displacement_accelDiff',['x']);
+}
+function __displacement_accelExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#displacement_accelTable','displacement-accel.csv'); } catch(e){}
+}
+function __displacement_accelPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#displacement_accelPresets',[
+        {label:'默认',labelEn:'Default',values:{v0:'10', a:'2', t:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v0:'20', a:'4', t:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v0:'5', a:'1', t:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __displacement_accelExtras(); }catch(e){} };
+function __displacement_accelBoot(){ try{ __displacement_accelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __displacement_accelBoot();
+else document.addEventListener('DOMContentLoaded', __displacement_accelBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

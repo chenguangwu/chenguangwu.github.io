@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="projectile_velocity_componentsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__projectile_velocity_componentsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="projectile_velocity_componentsTable"></div>
+    <div id="projectile_velocity_componentsDiff"></div>
+    <div id="projectile_velocity_componentsHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,44 @@ function resetForm(){document.getElementById('v').value = '20';
       document.getElementById('th').value = '30';
       calcTool();}
 calcTool();
+
+function __projectile_velocity_componentsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __projectile_velocity_componentsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),th=num('th');
+    var vx=v*Math.cos(th*Math.PI/180), vy=v*Math.sin(th*Math.PI/180);
+    if (!isFinite(__projectile_velocity_componentsNum('v')) || !isFinite(__projectile_velocity_componentsNum('th'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#projectile_velocity_componentsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['水平分量 vₓ (m/s)', vx.toFixed(3)],
+            ['竖直分量 vᵧ (m/s)', vy.toFixed(3)],
+            ['合矢量方向 (°)', (Math.atan2(vy,vx)*180/Math.PI).toFixed(2)],
+            ['水平/竖直分量比 vx/vy', (vx/(vy||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({v:__projectile_velocity_componentsNum('v'), th:__projectile_velocity_componentsNum('th'), vx:vx});
+    TBKit.history.mount('#projectile_velocity_componentsHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.th!=null)document.getElementById('th').value=rec.th; calcTool(); });
+    TBKit.util.diffBox('#projectile_velocity_componentsDiff',['vx']);
+}
+function __projectile_velocity_componentsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#projectile_velocity_componentsTable','projectile-velocity-components.csv'); } catch(e){}
+}
+function __projectile_velocity_componentsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#projectile_velocity_componentsPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'20', th:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'40', th:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'10', th:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __projectile_velocity_componentsExtras(); }catch(e){} };
+function __projectile_velocity_componentsBoot(){ try{ __projectile_velocity_componentsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __projectile_velocity_componentsBoot();
+else document.addEventListener('DOMContentLoaded', __projectile_velocity_componentsBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
