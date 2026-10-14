@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="stereo_depthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__stereo_depthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="stereo_depthTable"></div>
+    <div id="stereo_depthDiff"></div>
+    <div id="stereo_depthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,41 @@ function resetForm(){document.getElementById('f').value = '500';
       document.getElementById('d').value = '25';
       calcTool();}
 calcTool();
+
+function __stereo_depthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __stereo_depthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const f=num('f'),B=num('B'),d=num('d');
+    const Z=f*B/d;
+    if (!isFinite(__stereo_depthNum('f')) || !isFinite(__stereo_depthNum('B')) || !isFinite(__stereo_depthNum('d'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#stereo_depthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['深度 Z (m)', Z.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({f:__stereo_depthNum('f'), B:__stereo_depthNum('B'), d:__stereo_depthNum('d'), Z:Z});
+    TBKit.history.mount('#stereo_depthHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.B!=null)document.getElementById('B').value=rec.B; if(rec.d!=null)document.getElementById('d').value=rec.d; calcTool(); });
+    TBKit.util.diffBox('#stereo_depthDiff',['Z']);
+}
+function __stereo_depthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#stereo_depthTable','stereo-depth.csv'); } catch(e){}
+}
+function __stereo_depthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#stereo_depthPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'500', B:'0.1', d:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'1000', B:'0.2', d:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'250', B:'0.05', d:'12.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __stereo_depthExtras(); }catch(e){} };
+function __stereo_depthBoot(){ try{ __stereo_depthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __stereo_depthBoot();
+else document.addEventListener('DOMContentLoaded', __stereo_depthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

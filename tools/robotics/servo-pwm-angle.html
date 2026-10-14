@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="servo_pwm_anglePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__servo_pwm_angleExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="servo_pwm_angleTable"></div>
+    <div id="servo_pwm_angleDiff"></div>
+    <div id="servo_pwm_angleHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,41 @@ function resetForm(){document.getElementById('pwm').value = '1500';
       document.getElementById('pmax').value = '2500';
       calcTool();}
 calcTool();
+
+function __servo_pwm_angleNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __servo_pwm_angleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const pwm = num('pwm'), pmin = num('pmin'), pmax = num('pmax');
+    const ang = (pwm - pmin) / (pmax - pmin) * 180;
+    if (!isFinite(__servo_pwm_angleNum('pwm')) || !isFinite(__servo_pwm_angleNum('pmin')) || !isFinite(__servo_pwm_angleNum('pmax'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#servo_pwm_angleTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['转角 (°)', ang.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({pwm:__servo_pwm_angleNum('pwm'), pmin:__servo_pwm_angleNum('pmin'), pmax:__servo_pwm_angleNum('pmax'), ang:ang});
+    TBKit.history.mount('#servo_pwm_angleHist',function(rec){ if(rec.pwm!=null)document.getElementById('pwm').value=rec.pwm; if(rec.pmin!=null)document.getElementById('pmin').value=rec.pmin; if(rec.pmax!=null)document.getElementById('pmax').value=rec.pmax; calcTool(); });
+    TBKit.util.diffBox('#servo_pwm_angleDiff',['ang']);
+}
+function __servo_pwm_angleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#servo_pwm_angleTable','servo-pwm-angle.csv'); } catch(e){}
+}
+function __servo_pwm_anglePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#servo_pwm_anglePresets',[
+        {label:'默认',labelEn:'Default',values:{pwm:'1500', pmin:'500', pmax:'2500'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{pwm:'3000', pmin:'1000', pmax:'5000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{pwm:'750', pmin:'250', pmax:'1250'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __servo_pwm_angleExtras(); }catch(e){} };
+function __servo_pwm_angleBoot(){ try{ __servo_pwm_anglePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __servo_pwm_angleBoot();
+else document.addEventListener('DOMContentLoaded', __servo_pwm_angleBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

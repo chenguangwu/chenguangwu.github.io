@@ -100,9 +100,9 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 
 ### 1.7 当前分类（进行中）
 
-（surveying 已收口，见下方存档；下一分类从 §1.8 最弱候选起，建议 `legal` 1.96 / `metrology` / `hotel` 等，待老板定或按「最弱优先」开）
+（surveying/legal/robotics 已收口，见下方存档；下一分类从 §1.8 最弱候选起，按「最弱优先」开：当前最弱 `electromagnetism` 2.15/85% → `process`/`geometry`/`fluid`/`metrology`/`kinematics`/`quantum`/`acoustics` 等）
 
-**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）；**`surveying` 45 页 1.89→7.78、薄弱 31→1（仅 `distance-4` 重定向存根不可改造、`index` 导航页不动；SV-1~SV-5 五批；图表范式 line 31.1%/bar 35.6% 合规；calc-1 EN 态动态标签时序 bug + convert-46 字典遗漏已修；4 个 `type="number"` 逗号输入框待修见 §2 P1）**。
+**已完成分类存档**（批次细节见当日 memory）：`statistics` 52 页 1.67→7.58、薄弱 46→0（⚠️ 8 组功能重复工具待老板决策：`p`↔z-score-calc、`t`↔t-score、`z`↔z-score-calc、`statistics`↔normal-cdf、`statistics-16`↔linear-regression、`statistics-10`↔coefficient-of-variation、`statistics-13`↔stddev-list/variance-list、`statistics-5`↔sample-size-mean；清理需下线 URL 走 `sitemap-deadlinks.xml`，不擅自执行）；`ai` 65 页 2.31→7.77、薄弱 47→0（AI-1~AI-7 七批；数值页全部 8/9，文本/文件页 6–7/9 为其实时上限）；**`surveying` 45 页 1.89→7.78、薄弱 31→1（仅 `distance-4` 重定向存根不可改造、`index` 导航页不动；SV-1~SV-5 五批；图表范式 line 31.1%/bar 35.6% 合规；calc-1 EN 态动态标签时序 bug + convert-46 字典遗漏已修；4 个 `type="number"` 逗号输入框待修见 §2 P1）**；`legal` 53 页 1.96→6.19、薄弱 37→5（图表+速查表+历史+预设+导出+i18n 双语全量收口；剩余 5 页为模板/检索型无计算内核，留最后单独一档）；**`robotics` 29 页 1.07→6.86、薄弱 29→0（28 页用 `scripts/_ux_wire.py` 批量补线 table+history+presets+export+i18n 双语；1 页重定向/导航存根不可改造；harness 56/56 全过）**。
 
 ### 1.8 分类队列（未开工；干完一个删一行）
 
@@ -124,7 +124,7 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 - `general` 57/3.4/4
 - `hydraulic` 56/3.0/11
 - `realestate` 55/4.07/0
-- `legal` 19/1.96/37（批次1 六页 overtime-pay/severance-pay/child-support/labor-compensation-n1/inheritance-share/late-payment-interest + 批次2 六页 arbitration-fee/court-fee/notarization-fee/trademark-fee/stamp-duty-legal/rent-deposit + 批次3 六页 work-injury-compensation/traffic-accident-compensation/personal-injury/divorce-property/ipr-damages/lawyer-fee-reference + 批次4 六页 marriage-property-agreement/patent-fee-calculator/consumer-protection/food-safety/double-wage-no-contract/will-witness-requirements + 批次5 四页 loan-statute-limitations/debt-statute-limitations/statute-limitations/patent-term-calculator（日期时效类，timeline+gauge，补默认日期使默认态可算）+ 批次6 六页 legal-age/social-security-base/estimate-salary/labor-compensation/legal-aid-eligibility/calc-interest（timeline+bar×2+line×2+gauge 形态去同构，结果区/FAQ/表格全量双语化）已收口：图表+速查表+历史+预设+导出+i18n 双语；剩余 9 页待续（批次7 五页 calc-16/17/96/calculator-calc-6/jicheng 已收口：动态标签/单位/类型名全 xxL 包裹，空态+filled 态 EN 零中文），其中 contract-templates/will-template-generator/trademark-class-search/legal-reference 等 7 个模板/检索型留最后单独一档）
+- `legal` 53/6.19/5（已收口：图表+速查表+历史+预设+导出+i18n 双语全量；剩余 5 页为模板/检索型无计算内核，留最后单独一档，见上方存档）
 - `edu` 48/4.65/5
 - `marketing` 47/3.98/11
 
@@ -135,7 +135,6 @@ UX-Q4 所有新增/改动的动态文案（图表标题/序列/labels、表格�
 - `metrology` 30/1.3/29
 - `acoustics` 29/1.31/29
 - `geometry` 29/1.17/29
-- `robotics` 29/1.07/29
 - `materials` 42/2.05/28
 - `healthcare` 36/2.42/28
 - `insurance` 34/1.71/28

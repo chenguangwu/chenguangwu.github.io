@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="motor_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__motor_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="motor_powerTable"></div>
+    <div id="motor_powerDiff"></div>
+    <div id="motor_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,43 @@ function resetForm(){document.getElementById('tau').value = '2';
       document.getElementById('w').value = '10';
       calcTool();}
 calcTool();
+
+function __motor_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __motor_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const tau=num('tau'),w=num('w');
+    const P=tau*w;
+    if (!isFinite(__motor_powerNum('tau')) || !isFinite(__motor_powerNum('w'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#motor_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['机械功率 P (W)', P.toFixed(2)],
+            ['转速 (r/min)', (w*60/(2*Math.PI)).toFixed(1)],
+            ['机械功率 (hp)', (P/745.7).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({tau:__motor_powerNum('tau'), w:__motor_powerNum('w'), P:P});
+    TBKit.history.mount('#motor_powerHist',function(rec){ if(rec.tau!=null)document.getElementById('tau').value=rec.tau; if(rec.w!=null)document.getElementById('w').value=rec.w; calcTool(); });
+    TBKit.util.diffBox('#motor_powerDiff',['P']);
+}
+function __motor_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#motor_powerTable','motor-power.csv'); } catch(e){}
+}
+function __motor_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#motor_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{tau:'2', w:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{tau:'4', w:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{tau:'1', w:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __motor_powerExtras(); }catch(e){} };
+function __motor_powerBoot(){ try{ __motor_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __motor_powerBoot();
+else document.addEventListener('DOMContentLoaded', __motor_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

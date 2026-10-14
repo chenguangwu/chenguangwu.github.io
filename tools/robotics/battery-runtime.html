@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="battery_runtimePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__battery_runtimeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="battery_runtimeTable"></div>
+    <div id="battery_runtimeDiff"></div>
+    <div id="battery_runtimeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,41 @@ function resetForm(){document.getElementById('ah').value = '2';
       document.getElementById('P').value = '24';
       calcTool();}
 calcTool();
+
+function __battery_runtimeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __battery_runtimeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const ah=num('ah'),V=num('V'),P=num('P');
+    const t=ah*V/P;
+    if (!isFinite(__battery_runtimeNum('ah')) || !isFinite(__battery_runtimeNum('V')) || !isFinite(__battery_runtimeNum('P'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#battery_runtimeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['续航时间 t (h)', t.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({ah:__battery_runtimeNum('ah'), V:__battery_runtimeNum('V'), P:__battery_runtimeNum('P'), t:t});
+    TBKit.history.mount('#battery_runtimeHist',function(rec){ if(rec.ah!=null)document.getElementById('ah').value=rec.ah; if(rec.V!=null)document.getElementById('V').value=rec.V; if(rec.P!=null)document.getElementById('P').value=rec.P; calcTool(); });
+    TBKit.util.diffBox('#battery_runtimeDiff',['t']);
+}
+function __battery_runtimeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#battery_runtimeTable','battery-runtime.csv'); } catch(e){}
+}
+function __battery_runtimePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#battery_runtimePresets',[
+        {label:'默认',labelEn:'Default',values:{ah:'2', V:'12', P:'24'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ah:'4', V:'24', P:'48'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ah:'1', V:'6', P:'12'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __battery_runtimeExtras(); }catch(e){} };
+function __battery_runtimeBoot(){ try{ __battery_runtimePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __battery_runtimeBoot();
+else document.addEventListener('DOMContentLoaded', __battery_runtimeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

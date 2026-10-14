@@ -156,12 +156,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pid_controllerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pid_controllerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pid_controllerTable"></div>
+    <div id="pid_controllerDiff"></div>
+    <div id="pid_controllerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -281,6 +287,44 @@ function resetForm(){document.getElementById('kp').value = '1.0';
       document.getElementById('dt').value = '0.1';
       calcTool();}
 calcTool();
+
+function __pid_controllerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pid_controllerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const kp = num('kp'), ki = num('ki'), kd = num('kd'), e = num('e'), ei = num('ei'), ep = num('ep'), dt = num('dt');
+    const u = kp * e + ki * ei + kd * (e - ep) / dt;
+    if (!isFinite(__pid_controllerNum('kp')) || !isFinite(__pid_controllerNum('ki')) || !isFinite(__pid_controllerNum('kd')) || !isFinite(__pid_controllerNum('e')) || !isFinite(__pid_controllerNum('ei')) || !isFinite(__pid_controllerNum('ep')) || !isFinite(__pid_controllerNum('dt'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pid_controllerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['比例项 Kp·e', (kp * e).toFixed(4)],
+            ['积分项 Ki·∫e', (ki * ei).toFixed(4)],
+            ['微分项 Kd·ė', (kd * (e - ep) / dt).toFixed(4)],
+            ['总输出 u', u.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({kp:__pid_controllerNum('kp'), ki:__pid_controllerNum('ki'), kd:__pid_controllerNum('kd'), e:__pid_controllerNum('e'), ei:__pid_controllerNum('ei'), ep:__pid_controllerNum('ep'), dt:__pid_controllerNum('dt'), u:u});
+    TBKit.history.mount('#pid_controllerHist',function(rec){ if(rec.kp!=null)document.getElementById('kp').value=rec.kp; if(rec.ki!=null)document.getElementById('ki').value=rec.ki; if(rec.kd!=null)document.getElementById('kd').value=rec.kd; if(rec.e!=null)document.getElementById('e').value=rec.e; if(rec.ei!=null)document.getElementById('ei').value=rec.ei; if(rec.ep!=null)document.getElementById('ep').value=rec.ep; if(rec.dt!=null)document.getElementById('dt').value=rec.dt; calcTool(); });
+    TBKit.util.diffBox('#pid_controllerDiff',['u']);
+}
+function __pid_controllerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pid_controllerTable','pid-controller.csv'); } catch(e){}
+}
+function __pid_controllerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pid_controllerPresets',[
+        {label:'默认',labelEn:'Default',values:{kp:'1.0', ki:'0.1', kd:'0.05', e:'2', ei:'1', ep:'0.5', dt:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{kp:'2', ki:'0.2', kd:'0.1', e:'4', ei:'2', ep:'1', dt:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{kp:'0.5', ki:'0.05', kd:'0.025', e:'1', ei:'0.5', ep:'0.25', dt:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pid_controllerExtras(); }catch(e){} };
+function __pid_controllerBoot(){ try{ __pid_controllerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pid_controllerBoot();
+else document.addEventListener('DOMContentLoaded', __pid_controllerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

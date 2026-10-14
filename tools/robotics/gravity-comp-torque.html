@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gravity_comp_torquePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gravity_comp_torqueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gravity_comp_torqueTable"></div>
+    <div id="gravity_comp_torqueDiff"></div>
+    <div id="gravity_comp_torqueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -206,6 +212,41 @@ function resetForm(){document.getElementById('m').value = '5';
       document.getElementById('g').value = '9.81';
       calcTool();}
 calcTool();
+
+function __gravity_comp_torqueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gravity_comp_torqueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const m=num('m'),L=num('L'),th=num('th'),g=num('g');
+    const tau=m*g*L*Math.cos(th*Math.PI/180);
+    if (!isFinite(__gravity_comp_torqueNum('m')) || !isFinite(__gravity_comp_torqueNum('L')) || !isFinite(__gravity_comp_torqueNum('th')) || !isFinite(__gravity_comp_torqueNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gravity_comp_torqueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['重力扭矩 τ (N·m)', tau.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({m:__gravity_comp_torqueNum('m'), L:__gravity_comp_torqueNum('L'), th:__gravity_comp_torqueNum('th'), g:__gravity_comp_torqueNum('g'), tau:tau});
+    TBKit.history.mount('#gravity_comp_torqueHist',function(rec){ if(rec.m!=null)document.getElementById('m').value=rec.m; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.th!=null)document.getElementById('th').value=rec.th; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#gravity_comp_torqueDiff',['tau']);
+}
+function __gravity_comp_torqueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gravity_comp_torqueTable','gravity-comp-torque.csv'); } catch(e){}
+}
+function __gravity_comp_torquePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gravity_comp_torquePresets',[
+        {label:'默认',labelEn:'Default',values:{m:'5', L:'0.3', th:'0', g:'9.81'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{m:'10', L:'0.6', th:'0', g:'19.62'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{m:'2.5', L:'0.15', th:'0', g:'4.905'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gravity_comp_torqueExtras(); }catch(e){} };
+function __gravity_comp_torqueBoot(){ try{ __gravity_comp_torquePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gravity_comp_torqueBoot();
+else document.addEventListener('DOMContentLoaded', __gravity_comp_torqueBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

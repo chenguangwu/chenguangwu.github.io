@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="forward_kinematics_2rPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__forward_kinematics_2rExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="forward_kinematics_2rTable"></div>
+    <div id="forward_kinematics_2rDiff"></div>
+    <div id="forward_kinematics_2rHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -209,6 +215,43 @@ function resetForm(){document.getElementById('t1').value = '30';
       document.getElementById('L2').value = '1';
       calcTool();}
 calcTool();
+
+function __forward_kinematics_2rNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __forward_kinematics_2rExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const t1 = num('t1') * Math.PI / 180, t2 = num('t2') * Math.PI / 180, L1 = num('L1'), L2 = num('L2');
+    const x = L1 * Math.cos(t1) + L2 * Math.cos(t1 + t2);
+    const y = L1 * Math.sin(t1) + L2 * Math.sin(t1 + t2);
+    if (!isFinite(__forward_kinematics_2rNum('t1')) || !isFinite(__forward_kinematics_2rNum('t2')) || !isFinite(__forward_kinematics_2rNum('L1')) || !isFinite(__forward_kinematics_2rNum('L2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#forward_kinematics_2rTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['末端 x (m)', x.toFixed(4)],
+            ['末端 y (m)', y.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({t1:__forward_kinematics_2rNum('t1'), t2:__forward_kinematics_2rNum('t2'), L1:__forward_kinematics_2rNum('L1'), L2:__forward_kinematics_2rNum('L2'), x:x});
+    TBKit.history.mount('#forward_kinematics_2rHist',function(rec){ if(rec.t1!=null)document.getElementById('t1').value=rec.t1; if(rec.t2!=null)document.getElementById('t2').value=rec.t2; if(rec.L1!=null)document.getElementById('L1').value=rec.L1; if(rec.L2!=null)document.getElementById('L2').value=rec.L2; calcTool(); });
+    TBKit.util.diffBox('#forward_kinematics_2rDiff',['x']);
+}
+function __forward_kinematics_2rExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#forward_kinematics_2rTable','forward-kinematics-2r.csv'); } catch(e){}
+}
+function __forward_kinematics_2rPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#forward_kinematics_2rPresets',[
+        {label:'默认',labelEn:'Default',values:{t1:'30', t2:'45', L1:'1', L2:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{t1:'60', t2:'90', L1:'2', L2:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{t1:'15', t2:'22.5', L1:'0.5', L2:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __forward_kinematics_2rExtras(); }catch(e){} };
+function __forward_kinematics_2rBoot(){ try{ __forward_kinematics_2rPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __forward_kinematics_2rBoot();
+else document.addEventListener('DOMContentLoaded', __forward_kinematics_2rBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

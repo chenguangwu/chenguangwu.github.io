@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rotational_inertia_torquePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rotational_inertia_torqueExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rotational_inertia_torqueTable"></div>
+    <div id="rotational_inertia_torqueDiff"></div>
+    <div id="rotational_inertia_torqueHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,43 @@ function resetForm(){document.getElementById('I').value = '0.5';
       document.getElementById('a').value = '4';
       calcTool();}
 calcTool();
+
+function __rotational_inertia_torqueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rotational_inertia_torqueExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const I=num('I'),a=num('a');
+    const tau=I*a;
+    if (!isFinite(__rotational_inertia_torqueNum('I')) || !isFinite(__rotational_inertia_torqueNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rotational_inertia_torqueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['所需扭矩 τ (N·m)', tau.toFixed(2)],
+            ['角加速度 (°/s²)', (a*180/Math.PI).toFixed(2)],
+            ['所需扭矩 (kgf·m)', (tau/9.80665).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({I:__rotational_inertia_torqueNum('I'), a:__rotational_inertia_torqueNum('a'), tau:tau});
+    TBKit.history.mount('#rotational_inertia_torqueHist',function(rec){ if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+    TBKit.util.diffBox('#rotational_inertia_torqueDiff',['tau']);
+}
+function __rotational_inertia_torqueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rotational_inertia_torqueTable','rotational-inertia-torque.csv'); } catch(e){}
+}
+function __rotational_inertia_torquePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rotational_inertia_torquePresets',[
+        {label:'默认',labelEn:'Default',values:{I:'0.5', a:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{I:'1', a:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{I:'0.25', a:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rotational_inertia_torqueExtras(); }catch(e){} };
+function __rotational_inertia_torqueBoot(){ try{ __rotational_inertia_torquePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rotational_inertia_torqueBoot();
+else document.addEventListener('DOMContentLoaded', __rotational_inertia_torqueBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

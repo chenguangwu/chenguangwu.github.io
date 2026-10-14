@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="accel_distancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__accel_distanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="accel_distanceTable"></div>
+    <div id="accel_distanceDiff"></div>
+    <div id="accel_distanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,43 @@ function resetForm(){document.getElementById('v').value = '2';
       document.getElementById('a').value = '1';
       calcTool();}
 calcTool();
+
+function __accel_distanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __accel_distanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const v=num('v'),a=num('a');
+    const d=v*v/(2*a);
+    if (!isFinite(__accel_distanceNum('v')) || !isFinite(__accel_distanceNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#accel_distanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['加速距离 d (m)', d.toFixed(3)],
+            ['加速时间 t = v/a (s)', (v/a).toFixed(3)],
+            ['末速度 (km/h)', (v*3.6).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({v:__accel_distanceNum('v'), a:__accel_distanceNum('a'), d:d});
+    TBKit.history.mount('#accel_distanceHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+    TBKit.util.diffBox('#accel_distanceDiff',['d']);
+}
+function __accel_distanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#accel_distanceTable','accel-distance.csv'); } catch(e){}
+}
+function __accel_distancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#accel_distancePresets',[
+        {label:'默认',labelEn:'Default',values:{v:'2', a:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'4', a:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'1', a:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __accel_distanceExtras(); }catch(e){} };
+function __accel_distanceBoot(){ try{ __accel_distancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __accel_distanceBoot();
+else document.addEventListener('DOMContentLoaded', __accel_distanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

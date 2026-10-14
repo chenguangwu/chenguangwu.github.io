@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="belt_linear_speedPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__belt_linear_speedExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="belt_linear_speedTable"></div>
+    <div id="belt_linear_speedDiff"></div>
+    <div id="belt_linear_speedHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,41 @@ function resetForm(){document.getElementById('D').value = '0.06';
       document.getElementById('n').value = '300';
       calcTool();}
 calcTool();
+
+function __belt_linear_speedNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __belt_linear_speedExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const D = num('D'), n = num('n');
+    const v = Math.PI * D * n / 60;
+    if (!isFinite(__belt_linear_speedNum('D')) || !isFinite(__belt_linear_speedNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#belt_linear_speedTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['带速 v (m/s)', v.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({D:__belt_linear_speedNum('D'), n:__belt_linear_speedNum('n'), v:v});
+    TBKit.history.mount('#belt_linear_speedHist',function(rec){ if(rec.D!=null)document.getElementById('D').value=rec.D; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#belt_linear_speedDiff',['v']);
+}
+function __belt_linear_speedExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#belt_linear_speedTable','belt-linear-speed.csv'); } catch(e){}
+}
+function __belt_linear_speedPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#belt_linear_speedPresets',[
+        {label:'默认',labelEn:'Default',values:{D:'0.06', n:'300'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{D:'0.12', n:'600'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{D:'0.03', n:'150'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __belt_linear_speedExtras(); }catch(e){} };
+function __belt_linear_speedBoot(){ try{ __belt_linear_speedPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __belt_linear_speedBoot();
+else document.addEventListener('DOMContentLoaded', __belt_linear_speedBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

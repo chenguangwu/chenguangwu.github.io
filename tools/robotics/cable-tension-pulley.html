@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cable_tension_pulleyPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cable_tension_pulleyExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cable_tension_pulleyTable"></div>
+    <div id="cable_tension_pulleyDiff"></div>
+    <div id="cable_tension_pulleyHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -191,6 +197,43 @@ function calcTool(){
 function resetForm(){document.getElementById('F').value = '100';
       calcTool();}
 calcTool();
+
+function __cable_tension_pulleyNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cable_tension_pulleyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const F=num('F');
+    const T=F/2;
+    if (!isFinite(__cable_tension_pulleyNum('F'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cable_tension_pulleyTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['绳张力 T (N)', T.toFixed(2)],
+            ['机械效益 F/T', (F/(T||1)).toFixed(3)],
+            ['三绳组单绳张力 (N)', (F/3).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({F:__cable_tension_pulleyNum('F'), T:T});
+    TBKit.history.mount('#cable_tension_pulleyHist',function(rec){ if(rec.F!=null)document.getElementById('F').value=rec.F; calcTool(); });
+    TBKit.util.diffBox('#cable_tension_pulleyDiff',['T']);
+}
+function __cable_tension_pulleyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cable_tension_pulleyTable','cable-tension-pulley.csv'); } catch(e){}
+}
+function __cable_tension_pulleyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cable_tension_pulleyPresets',[
+        {label:'默认',labelEn:'Default',values:{F:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{F:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{F:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cable_tension_pulleyExtras(); }catch(e){} };
+function __cable_tension_pulleyBoot(){ try{ __cable_tension_pulleyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cable_tension_pulleyBoot();
+else document.addEventListener('DOMContentLoaded', __cable_tension_pulleyBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

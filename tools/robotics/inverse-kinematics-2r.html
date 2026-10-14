@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="inverse_kinematics_2rPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__inverse_kinematics_2rExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="inverse_kinematics_2rTable"></div>
+    <div id="inverse_kinematics_2rDiff"></div>
+    <div id="inverse_kinematics_2rHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -268,6 +274,42 @@ function resetForm(){document.getElementById('x').value = '1.3';
       document.getElementById('L2').value = '1';
       calcTool();}
 calcTool();
+
+function __inverse_kinematics_2rNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __inverse_kinematics_2rExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const x = num('x'), y = num('y'), L1 = num('L1'), L2 = num('L2');
+    const r2 = x * x + y * y, sum = L1 * L1 + L2 * L2;
+    const c2 = (r2 - sum) / (2 * L1 * L2);
+    if (!isFinite(__inverse_kinematics_2rNum('x')) || !isFinite(__inverse_kinematics_2rNum('y')) || !isFinite(__inverse_kinematics_2rNum('L1')) || !isFinite(__inverse_kinematics_2rNum('L2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#inverse_kinematics_2rTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['不可达', '目标超出工作空间'],
+        ]
+    });
+    TBKit.history.record({x:__inverse_kinematics_2rNum('x'), y:__inverse_kinematics_2rNum('y'), L1:__inverse_kinematics_2rNum('L1'), L2:__inverse_kinematics_2rNum('L2'), r2:r2});
+    TBKit.history.mount('#inverse_kinematics_2rHist',function(rec){ if(rec.x!=null)document.getElementById('x').value=rec.x; if(rec.y!=null)document.getElementById('y').value=rec.y; if(rec.L1!=null)document.getElementById('L1').value=rec.L1; if(rec.L2!=null)document.getElementById('L2').value=rec.L2; calcTool(); });
+    TBKit.util.diffBox('#inverse_kinematics_2rDiff',['r2']);
+}
+function __inverse_kinematics_2rExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#inverse_kinematics_2rTable','inverse-kinematics-2r.csv'); } catch(e){}
+}
+function __inverse_kinematics_2rPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#inverse_kinematics_2rPresets',[
+        {label:'默认',labelEn:'Default',values:{x:'1.3', y:'1.2', L1:'1', L2:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x:'2.6', y:'2.4', L1:'2', L2:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x:'0.65', y:'0.6', L1:'0.5', L2:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __inverse_kinematics_2rExtras(); }catch(e){} };
+function __inverse_kinematics_2rBoot(){ try{ __inverse_kinematics_2rPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __inverse_kinematics_2rBoot();
+else document.addEventListener('DOMContentLoaded', __inverse_kinematics_2rBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="motor_torque_currentPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__motor_torque_currentExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="motor_torque_currentTable"></div>
+    <div id="motor_torque_currentDiff"></div>
+    <div id="motor_torque_currentHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,42 @@ function resetForm(){document.getElementById('kt').value = '0.05';
       document.getElementById('I').value = '10';
       calcTool();}
 calcTool();
+
+function __motor_torque_currentNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __motor_torque_currentExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const kt = num('kt'), I = num('I');
+    const t = kt * I;
+    if (!isFinite(__motor_torque_currentNum('kt')) || !isFinite(__motor_torque_currentNum('I'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#motor_torque_currentTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['转矩 τ (N·m)', t.toFixed(4)],
+            ['τ (mN·m)', (t * 1000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({kt:__motor_torque_currentNum('kt'), I:__motor_torque_currentNum('I'), t:t});
+    TBKit.history.mount('#motor_torque_currentHist',function(rec){ if(rec.kt!=null)document.getElementById('kt').value=rec.kt; if(rec.I!=null)document.getElementById('I').value=rec.I; calcTool(); });
+    TBKit.util.diffBox('#motor_torque_currentDiff',['t']);
+}
+function __motor_torque_currentExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#motor_torque_currentTable','motor-torque-current.csv'); } catch(e){}
+}
+function __motor_torque_currentPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#motor_torque_currentPresets',[
+        {label:'默认',labelEn:'Default',values:{kt:'0.05', I:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{kt:'0.1', I:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{kt:'0.025', I:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __motor_torque_currentExtras(); }catch(e){} };
+function __motor_torque_currentBoot(){ try{ __motor_torque_currentPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __motor_torque_currentBoot();
+else document.addEventListener('DOMContentLoaded', __motor_torque_currentBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

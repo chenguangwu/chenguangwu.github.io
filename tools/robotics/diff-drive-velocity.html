@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="diff_drive_velocityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__diff_drive_velocityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="diff_drive_velocityTable"></div>
+    <div id="diff_drive_velocityDiff"></div>
+    <div id="diff_drive_velocityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,42 @@ function resetForm(){document.getElementById('vl').value = '0.5';
       document.getElementById('L').value = '0.4';
       calcTool();}
 calcTool();
+
+function __diff_drive_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __diff_drive_velocityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const vl = num('vl'), vr = num('vr'), L = num('L');
+    const v = (vr + vl) / 2, w = (vr - vl) / L;
+    if (!isFinite(__diff_drive_velocityNum('vl')) || !isFinite(__diff_drive_velocityNum('vr')) || !isFinite(__diff_drive_velocityNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#diff_drive_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['线速度 v (m/s)', v.toFixed(4)],
+            ['角速度 ω (rad/s)', w.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({vl:__diff_drive_velocityNum('vl'), vr:__diff_drive_velocityNum('vr'), L:__diff_drive_velocityNum('L'), v:v});
+    TBKit.history.mount('#diff_drive_velocityHist',function(rec){ if(rec.vl!=null)document.getElementById('vl').value=rec.vl; if(rec.vr!=null)document.getElementById('vr').value=rec.vr; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#diff_drive_velocityDiff',['v']);
+}
+function __diff_drive_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#diff_drive_velocityTable','diff-drive-velocity.csv'); } catch(e){}
+}
+function __diff_drive_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#diff_drive_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{vl:'0.5', vr:'1.0', L:'0.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{vl:'1', vr:'2', L:'0.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{vl:'0.25', vr:'0.5', L:'0.2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __diff_drive_velocityExtras(); }catch(e){} };
+function __diff_drive_velocityBoot(){ try{ __diff_drive_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __diff_drive_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __diff_drive_velocityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

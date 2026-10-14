@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="dc_motor_back_emfPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__dc_motor_back_emfExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="dc_motor_back_emfTable"></div>
+    <div id="dc_motor_back_emfDiff"></div>
+    <div id="dc_motor_back_emfHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,42 @@ function resetForm(){document.getElementById('ke').value = '0.05';
       document.getElementById('w').value = '100';
       calcTool();}
 calcTool();
+
+function __dc_motor_back_emfNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __dc_motor_back_emfExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const ke=num('ke'),w=num('w');
+    const E=ke*w;
+    if (!isFinite(__dc_motor_back_emfNum('ke')) || !isFinite(__dc_motor_back_emfNum('w'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#dc_motor_back_emfTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['反电动势 E (V)', E.toFixed(2)],
+            ['转速 (r/min)', (w*60/(2*Math.PI)).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({ke:__dc_motor_back_emfNum('ke'), w:__dc_motor_back_emfNum('w'), E:E});
+    TBKit.history.mount('#dc_motor_back_emfHist',function(rec){ if(rec.ke!=null)document.getElementById('ke').value=rec.ke; if(rec.w!=null)document.getElementById('w').value=rec.w; calcTool(); });
+    TBKit.util.diffBox('#dc_motor_back_emfDiff',['E']);
+}
+function __dc_motor_back_emfExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#dc_motor_back_emfTable','dc-motor-back-emf.csv'); } catch(e){}
+}
+function __dc_motor_back_emfPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#dc_motor_back_emfPresets',[
+        {label:'默认',labelEn:'Default',values:{ke:'0.05', w:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ke:'0.1', w:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ke:'0.025', w:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __dc_motor_back_emfExtras(); }catch(e){} };
+function __dc_motor_back_emfBoot(){ try{ __dc_motor_back_emfPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __dc_motor_back_emfBoot();
+else document.addEventListener('DOMContentLoaded', __dc_motor_back_emfBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

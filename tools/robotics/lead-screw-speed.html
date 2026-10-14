@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="lead_screw_speedPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__lead_screw_speedExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="lead_screw_speedTable"></div>
+    <div id="lead_screw_speedDiff"></div>
+    <div id="lead_screw_speedHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,42 @@ function resetForm(){document.getElementById('n').value = '300';
       document.getElementById('p').value = '0.005';
       calcTool();}
 calcTool();
+
+function __lead_screw_speedNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __lead_screw_speedExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const n = num('n'), p = num('p');
+    const v = n * p / 60;
+    if (!isFinite(__lead_screw_speedNum('n')) || !isFinite(__lead_screw_speedNum('p'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#lead_screw_speedTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['线速度 v (m/s)', v.toFixed(5)],
+            ['v (mm/s)', (v * 1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({n:__lead_screw_speedNum('n'), p:__lead_screw_speedNum('p'), v:v});
+    TBKit.history.mount('#lead_screw_speedHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.p!=null)document.getElementById('p').value=rec.p; calcTool(); });
+    TBKit.util.diffBox('#lead_screw_speedDiff',['v']);
+}
+function __lead_screw_speedExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#lead_screw_speedTable','lead-screw-speed.csv'); } catch(e){}
+}
+function __lead_screw_speedPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#lead_screw_speedPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'300', p:'0.005'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'600', p:'0.01'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'150', p:'0.0025'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __lead_screw_speedExtras(); }catch(e){} };
+function __lead_screw_speedBoot(){ try{ __lead_screw_speedPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __lead_screw_speedBoot();
+else document.addEventListener('DOMContentLoaded', __lead_screw_speedBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

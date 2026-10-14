@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="centripetal_speed_limitPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__centripetal_speed_limitExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="centripetal_speed_limitTable"></div>
+    <div id="centripetal_speed_limitDiff"></div>
+    <div id="centripetal_speed_limitHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -194,6 +200,41 @@ function resetForm(){document.getElementById('amax').value = '2';
       document.getElementById('R').value = '1';
       calcTool();}
 calcTool();
+
+function __centripetal_speed_limitNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __centripetal_speed_limitExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const amax = num('amax'), R = num('R');
+    const v = Math.sqrt(amax * R);
+    if (!isFinite(__centripetal_speed_limitNum('amax')) || !isFinite(__centripetal_speed_limitNum('R'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#centripetal_speed_limitTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最大速度 v_max (m/s)', v.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({amax:__centripetal_speed_limitNum('amax'), R:__centripetal_speed_limitNum('R'), v:v});
+    TBKit.history.mount('#centripetal_speed_limitHist',function(rec){ if(rec.amax!=null)document.getElementById('amax').value=rec.amax; if(rec.R!=null)document.getElementById('R').value=rec.R; calcTool(); });
+    TBKit.util.diffBox('#centripetal_speed_limitDiff',['v']);
+}
+function __centripetal_speed_limitExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#centripetal_speed_limitTable','centripetal-speed-limit.csv'); } catch(e){}
+}
+function __centripetal_speed_limitPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#centripetal_speed_limitPresets',[
+        {label:'默认',labelEn:'Default',values:{amax:'2', R:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{amax:'4', R:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{amax:'1', R:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __centripetal_speed_limitExtras(); }catch(e){} };
+function __centripetal_speed_limitBoot(){ try{ __centripetal_speed_limitPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __centripetal_speed_limitBoot();
+else document.addEventListener('DOMContentLoaded', __centripetal_speed_limitBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

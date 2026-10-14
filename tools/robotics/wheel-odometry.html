@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wheel_odometryPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wheel_odometryExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wheel_odometryTable"></div>
+    <div id="wheel_odometryDiff"></div>
+    <div id="wheel_odometryHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,42 @@ function resetForm(){document.getElementById('dl').value = '1.0';
       document.getElementById('L').value = '0.4';
       calcTool();}
 calcTool();
+
+function __wheel_odometryNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wheel_odometryExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const dl = num('dl'), dr = num('dr'), L = num('L');
+    const ds = (dr + dl) / 2, dth = (dr - dl) / L;
+    if (!isFinite(__wheel_odometryNum('dl')) || !isFinite(__wheel_odometryNum('dr')) || !isFinite(__wheel_odometryNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wheel_odometryTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['位移 Δs (m)', ds.toFixed(4)],
+            ['航向变化 (°)', (dth * 180 / Math.PI).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({dl:__wheel_odometryNum('dl'), dr:__wheel_odometryNum('dr'), L:__wheel_odometryNum('L'), ds:ds});
+    TBKit.history.mount('#wheel_odometryHist',function(rec){ if(rec.dl!=null)document.getElementById('dl').value=rec.dl; if(rec.dr!=null)document.getElementById('dr').value=rec.dr; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#wheel_odometryDiff',['ds']);
+}
+function __wheel_odometryExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wheel_odometryTable','wheel-odometry.csv'); } catch(e){}
+}
+function __wheel_odometryPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wheel_odometryPresets',[
+        {label:'默认',labelEn:'Default',values:{dl:'1.0', dr:'1.2', L:'0.4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dl:'2', dr:'2.4', L:'0.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dl:'0.5', dr:'0.6', L:'0.2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wheel_odometryExtras(); }catch(e){} };
+function __wheel_odometryBoot(){ try{ __wheel_odometryPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wheel_odometryBoot();
+else document.addEventListener('DOMContentLoaded', __wheel_odometryBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

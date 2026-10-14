@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gripper_forcePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gripper_forceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gripper_forceTable"></div>
+    <div id="gripper_forceDiff"></div>
+    <div id="gripper_forceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -251,6 +257,42 @@ function resetForm(){document.getElementById('tau').value = '5';
       document.getElementById('L').value = '0.05';
       calcTool();}
 calcTool();
+
+function __gripper_forceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gripper_forceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const tau = num('tau'), L = num('L');
+    const F = 2 * tau / L;
+    if (!isFinite(__gripper_forceNum('tau')) || !isFinite(__gripper_forceNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gripper_forceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['夹持力 F (N)', F.toFixed(2)],
+            ['F (kgf)', (F / 9.81).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({tau:__gripper_forceNum('tau'), L:__gripper_forceNum('L'), F:F});
+    TBKit.history.mount('#gripper_forceHist',function(rec){ if(rec.tau!=null)document.getElementById('tau').value=rec.tau; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#gripper_forceDiff',['F']);
+}
+function __gripper_forceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gripper_forceTable','gripper-force.csv'); } catch(e){}
+}
+function __gripper_forcePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gripper_forcePresets',[
+        {label:'默认',labelEn:'Default',values:{tau:'5', L:'0.05'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{tau:'10', L:'0.1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{tau:'2.5', L:'0.025'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gripper_forceExtras(); }catch(e){} };
+function __gripper_forceBoot(){ try{ __gripper_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gripper_forceBoot();
+else document.addEventListener('DOMContentLoaded', __gripper_forceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

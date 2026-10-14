@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="joint_angular_velocityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__joint_angular_velocityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="joint_angular_velocityTable"></div>
+    <div id="joint_angular_velocityDiff"></div>
+    <div id="joint_angular_velocityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,43 @@ function resetForm(){document.getElementById('v').value = '0.5';
       document.getElementById('L').value = '0.3';
       calcTool();}
 calcTool();
+
+function __joint_angular_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __joint_angular_velocityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    const v=num('v'),L=num('L');
+    const w=v/L;
+    if (!isFinite(__joint_angular_velocityNum('v')) || !isFinite(__joint_angular_velocityNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#joint_angular_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角速度 ω (rad/s)', w.toFixed(3)],
+            ['转速 (r/min)', (w*60/(2*Math.PI)).toFixed(2)],
+            ['转过 1 rad 所需时间 (s)', (1/w).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v:__joint_angular_velocityNum('v'), L:__joint_angular_velocityNum('L'), w:w});
+    TBKit.history.mount('#joint_angular_velocityHist',function(rec){ if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.L!=null)document.getElementById('L').value=rec.L; calcTool(); });
+    TBKit.util.diffBox('#joint_angular_velocityDiff',['w']);
+}
+function __joint_angular_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#joint_angular_velocityTable','joint-angular-velocity.csv'); } catch(e){}
+}
+function __joint_angular_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#joint_angular_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'0.5', L:'0.3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'1', L:'0.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'0.25', L:'0.15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __joint_angular_velocityExtras(); }catch(e){} };
+function __joint_angular_velocityBoot(){ try{ __joint_angular_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __joint_angular_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __joint_angular_velocityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
