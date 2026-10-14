@@ -140,12 +140,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="drinking_water_planPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__drinking_water_planExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="drinking_water_planTable"></div>
+    <div id="drinking_water_planDiff"></div>
+    <div id="drinking_water_planHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -266,6 +272,49 @@ function resetForm(){document.getElementById('w').value='60';
       document.getElementById('stage').selectedIndex=0;
       calcTool();}
 calcTool();
+
+function __drinking_water_planNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __drinking_water_planExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var w=num('w'), act=document.getElementById('act').value, temp=num('temp'), stage=document.getElementById('stage').value; // 基础：30ml/kg（WHO 一般成人建议区间 30-35ml/kg）
+    var base=w*30;
+    var actAdd={none:0,light:200,mid:500,high:800}[act]||0;
+    var tempAdd=0;
+    var stageAdd={normal:0,preg:300,lact:700}[stage]||0;
+    var total=base+actAdd+tempAdd+stageAdd;
+    var cups=total/250; // 分段计划：7:00-22:00 每段 1.5h，按比例分配
+    if (!isFinite(__drinking_water_planNum('w')) || !isFinite(__drinking_water_planNum('temp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#drinking_water_planTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['每日饮水目标', fmtMoney(total)+' ml'],
+            ['约（250ml/杯）', cups.toFixed(1)+' 杯'],
+            ['增量（运动/高温/特殊）', '+'+(actAdd+tempAdd+stageAdd)+' ml'],
+            ['基础量（体重×30ml）', base+' ml'],
+        ]
+    });
+    TBKit.history.record({w:__drinking_water_planNum('w'), temp:__drinking_water_planNum('temp'), base:base});
+    TBKit.history.mount('#drinking_water_planHist',function(rec){ if(rec.w!=null)document.getElementById('w').value=rec.w; if(rec.temp!=null)document.getElementById('temp').value=rec.temp; calcTool(); });
+    TBKit.util.diffBox('#drinking_water_planDiff',['base']);
+}
+function __drinking_water_planExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#drinking_water_planTable','drinking-water-plan.csv'); } catch(e){}
+}
+function __drinking_water_planPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#drinking_water_planPresets',[
+        {label:'默认',labelEn:'Default',values:{w:'60', temp:'26'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{w:'120', temp:'52'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{w:'30', temp:'13'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __drinking_water_planExtras(); }catch(e){} };
+function __drinking_water_planBoot(){ try{ __drinking_water_planPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __drinking_water_planBoot();
+else document.addEventListener('DOMContentLoaded', __drinking_water_planBoot);
 </script>
 </body>
 </html>
