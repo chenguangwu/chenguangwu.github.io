@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="darcy_head_lossPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__darcy_head_lossExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="darcy_head_lossTable"></div>
+    <div id="darcy_head_lossDiff"></div>
+    <div id="darcy_head_lossHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -266,6 +272,43 @@ function resetForm(){document.getElementById('f').value = 0.02;
       document.getElementById('v').value = 1;
       calcTool();}
 calcTool();
+
+function __darcy_head_lossNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __darcy_head_lossExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f'), L=num('L'), D=num('D'), rho=num('rho'), v=num('v');
+    var dP = f*(L/D)*(rho*v*v/2);
+    var h = dP/(rho*9.81);
+    if (!isFinite(__darcy_head_lossNum('f')) || !isFinite(__darcy_head_lossNum('L')) || !isFinite(__darcy_head_lossNum('D')) || !isFinite(__darcy_head_lossNum('rho')) || !isFinite(__darcy_head_lossNum('v'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#darcy_head_lossTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['沿程压降 ΔP = f(L/D)(ρv²/2)', dP.toFixed(0)+' Pa'],
+            ['折合水头损失 h = ΔP/(ρg)', h.toFixed(3)+' m'],
+        ]
+    });
+    TBKit.history.record({f:__darcy_head_lossNum('f'), L:__darcy_head_lossNum('L'), D:__darcy_head_lossNum('D'), rho:__darcy_head_lossNum('rho'), v:__darcy_head_lossNum('v'), dP:dP});
+    TBKit.history.mount('#darcy_head_lossHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.D!=null)document.getElementById('D').value=rec.D; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.v!=null)document.getElementById('v').value=rec.v; calcTool(); });
+    TBKit.util.diffBox('#darcy_head_lossDiff',['dP']);
+}
+function __darcy_head_lossExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#darcy_head_lossTable','darcy-head-loss.csv'); } catch(e){}
+}
+function __darcy_head_lossPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#darcy_head_lossPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'0.02', L:'100', D:'0.1', rho:'1000', v:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'0.04', L:'200', D:'0.2', rho:'2000', v:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'0.01', L:'50', D:'0.05', rho:'500', v:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __darcy_head_lossExtras(); }catch(e){} };
+function __darcy_head_lossBoot(){ try{ __darcy_head_lossPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __darcy_head_lossBoot();
+else document.addEventListener('DOMContentLoaded', __darcy_head_lossBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

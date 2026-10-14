@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="manning_flowPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__manning_flowExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="manning_flowTable"></div>
+    <div id="manning_flowDiff"></div>
+    <div id="manning_flowHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -274,6 +280,43 @@ function resetForm(){document.getElementById('n').value = 0.013;
       document.getElementById('S').value = 0.001;
       calcTool();}
 calcTool();
+
+function __manning_flowNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __manning_flowExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n=num('n'), A=num('A'), R=num('R'), S=num('S');
+    var Q = (1/n)*A*Math.pow(R,2/3)*Math.sqrt(S);
+    if (!isFinite(__manning_flowNum('n')) || !isFinite(__manning_flowNum('A')) || !isFinite(__manning_flowNum('R')) || !isFinite(__manning_flowNum('S'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#manning_flowTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['明渠流量 Q = (1/n)A·R^(2/3)·√S', Q.toFixed(3)+' m³/s'],
+            ['平均流速 v = Q/A (m/s)', (Q/A).toFixed(4)],
+            ['Chezy 系数 C = R^(1/6)/n', (Math.pow(R,1/6)/n).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({n:__manning_flowNum('n'), A:__manning_flowNum('A'), R:__manning_flowNum('R'), S:__manning_flowNum('S'), Q:Q});
+    TBKit.history.mount('#manning_flowHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.R!=null)document.getElementById('R').value=rec.R; if(rec.S!=null)document.getElementById('S').value=rec.S; calcTool(); });
+    TBKit.util.diffBox('#manning_flowDiff',['Q']);
+}
+function __manning_flowExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#manning_flowTable','manning-flow.csv'); } catch(e){}
+}
+function __manning_flowPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#manning_flowPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'0.013', A:'1', R:'0.5', S:'0.001'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'0.026', A:'2', R:'1', S:'0.002'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.0065', A:'0.5', R:'0.25', S:'0.0005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __manning_flowExtras(); }catch(e){} };
+function __manning_flowBoot(){ try{ __manning_flowPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __manning_flowBoot();
+else document.addEventListener('DOMContentLoaded', __manning_flowBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

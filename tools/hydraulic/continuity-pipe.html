@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="continuity_pipePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__continuity_pipeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="continuity_pipeTable"></div>
+    <div id="continuity_pipeDiff"></div>
+    <div id="continuity_pipeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,43 @@ function resetForm(){document.getElementById('A1').value = 0.1;
       document.getElementById('A2').value = 0.05;
       calcTool();}
 calcTool();
+
+function __continuity_pipeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __continuity_pipeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var A1=num('A1'), v1=num('v1'), A2=num('A2');
+    var v2 = A1*v1/A2;
+    if (!isFinite(__continuity_pipeNum('A1')) || !isFinite(__continuity_pipeNum('v1')) || !isFinite(__continuity_pipeNum('A2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#continuity_pipeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['出口流速 v₂ = A₁v₁/A₂', v2.toFixed(2)+' m/s'],
+            ['流量 Q (m3/s)', (A1*v1).toFixed(4)],
+            ['面积比 A1/A2', (A1/(A2||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({A1:__continuity_pipeNum('A1'), v1:__continuity_pipeNum('v1'), A2:__continuity_pipeNum('A2'), v2:v2});
+    TBKit.history.mount('#continuity_pipeHist',function(rec){ if(rec.A1!=null)document.getElementById('A1').value=rec.A1; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.A2!=null)document.getElementById('A2').value=rec.A2; calcTool(); });
+    TBKit.util.diffBox('#continuity_pipeDiff',['v2']);
+}
+function __continuity_pipeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#continuity_pipeTable','continuity-pipe.csv'); } catch(e){}
+}
+function __continuity_pipePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#continuity_pipePresets',[
+        {label:'默认',labelEn:'Default',values:{A1:'0.1', v1:'2', A2:'0.05'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{A1:'0.2', v1:'4', A2:'0.1'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{A1:'0.05', v1:'1', A2:'0.025'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __continuity_pipeExtras(); }catch(e){} };
+function __continuity_pipeBoot(){ try{ __continuity_pipePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __continuity_pipeBoot();
+else document.addEventListener('DOMContentLoaded', __continuity_pipeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

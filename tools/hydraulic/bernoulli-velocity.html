@@ -156,12 +156,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bernoulli_velocityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bernoulli_velocityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bernoulli_velocityTable"></div>
+    <div id="bernoulli_velocityDiff"></div>
+    <div id="bernoulli_velocityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -278,6 +284,41 @@ function resetForm(){document.getElementById('P1').value = 200000;
       document.getElementById('g').value = 9.81;
       calcTool();}
 calcTool();
+
+function __bernoulli_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bernoulli_velocityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var P1=num('P1'), v1=num('v1'), z1=num('z1'), P2=num('P2'), z2=num('z2'), rho=num('rho'), g=num('g');
+    var v2sq = v1*v1 + 2*(P1-P2)/rho + 2*g*(z1-z2);
+    if (!isFinite(__bernoulli_velocityNum('P1')) || !isFinite(__bernoulli_velocityNum('v1')) || !isFinite(__bernoulli_velocityNum('z1')) || !isFinite(__bernoulli_velocityNum('P2')) || !isFinite(__bernoulli_velocityNum('z2')) || !isFinite(__bernoulli_velocityNum('rho')) || !isFinite(__bernoulli_velocityNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bernoulli_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['提示', '给定条件下无解（能量不足）'],
+        ]
+    });
+    TBKit.history.record({P1:__bernoulli_velocityNum('P1'), v1:__bernoulli_velocityNum('v1'), z1:__bernoulli_velocityNum('z1'), P2:__bernoulli_velocityNum('P2'), z2:__bernoulli_velocityNum('z2'), rho:__bernoulli_velocityNum('rho'), g:__bernoulli_velocityNum('g'), v2sq:v2sq});
+    TBKit.history.mount('#bernoulli_velocityHist',function(rec){ if(rec.P1!=null)document.getElementById('P1').value=rec.P1; if(rec.v1!=null)document.getElementById('v1').value=rec.v1; if(rec.z1!=null)document.getElementById('z1').value=rec.z1; if(rec.P2!=null)document.getElementById('P2').value=rec.P2; if(rec.z2!=null)document.getElementById('z2').value=rec.z2; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#bernoulli_velocityDiff',['v2sq']);
+}
+function __bernoulli_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bernoulli_velocityTable','bernoulli-velocity.csv'); } catch(e){}
+}
+function __bernoulli_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bernoulli_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{P1:'200000', v1:'1', z1:'0', P2:'100000', z2:'5', rho:'1000', g:'9.81'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P1:'400000', v1:'2', z1:'0', P2:'200000', z2:'10', rho:'2000', g:'19.62'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P1:'100000', v1:'0.5', z1:'0', P2:'50000', z2:'2.5', rho:'500', g:'4.905'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bernoulli_velocityExtras(); }catch(e){} };
+function __bernoulli_velocityBoot(){ try{ __bernoulli_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bernoulli_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __bernoulli_velocityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

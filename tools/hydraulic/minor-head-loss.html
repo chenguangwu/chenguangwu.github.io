@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="minor_head_lossPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__minor_head_lossExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="minor_head_lossTable"></div>
+    <div id="minor_head_lossDiff"></div>
+    <div id="minor_head_lossHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,43 @@ function resetForm(){document.getElementById('K').value = 0.5;
       document.getElementById('g').value = 9.81;
       calcTool();}
 calcTool();
+
+function __minor_head_lossNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __minor_head_lossExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var K=num('K'), v=num('v'), g=num('g');
+    var hL = K*v*v/(2*g);
+    if (!isFinite(__minor_head_lossNum('K')) || !isFinite(__minor_head_lossNum('v')) || !isFinite(__minor_head_lossNum('g'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#minor_head_lossTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['局部水头损失 h_L = K·v²/(2g)', hL.toFixed(3)+' m'],
+            ['速度水头 (m)', (v*v/(2*g)).toFixed(3)],
+            ['压力换算 (kPa, 水)', (hL*9.81).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({K:__minor_head_lossNum('K'), v:__minor_head_lossNum('v'), g:__minor_head_lossNum('g'), hL:hL});
+    TBKit.history.mount('#minor_head_lossHist',function(rec){ if(rec.K!=null)document.getElementById('K').value=rec.K; if(rec.v!=null)document.getElementById('v').value=rec.v; if(rec.g!=null)document.getElementById('g').value=rec.g; calcTool(); });
+    TBKit.util.diffBox('#minor_head_lossDiff',['hL']);
+}
+function __minor_head_lossExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#minor_head_lossTable','minor-head-loss.csv'); } catch(e){}
+}
+function __minor_head_lossPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#minor_head_lossPresets',[
+        {label:'默认',labelEn:'Default',values:{K:'0.5', v:'3', g:'9.81'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{K:'1', v:'6', g:'19.62'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{K:'0.25', v:'1.5', g:'4.905'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __minor_head_lossExtras(); }catch(e){} };
+function __minor_head_lossBoot(){ try{ __minor_head_lossPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __minor_head_lossBoot();
+else document.addEventListener('DOMContentLoaded', __minor_head_lossBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

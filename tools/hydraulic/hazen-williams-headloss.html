@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="hazen_williams_headlossPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__hazen_williams_headlossExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="hazen_williams_headlossTable"></div>
+    <div id="hazen_williams_headlossDiff"></div>
+    <div id="hazen_williams_headlossHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -271,6 +277,41 @@ function resetForm(){document.getElementById('Q').value = 0.01;
       document.getElementById('D').value = 0.1;
       calcTool();}
 calcTool();
+
+function __hazen_williams_headlossNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __hazen_williams_headlossExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Q=num('Q'), L=num('L'), C=num('C'), D=num('D');
+    var hf = 10.67 * L * Math.pow(Q,1.852) / (Math.pow(C,1.852) * Math.pow(D,4.87));
+    if (!isFinite(__hazen_williams_headlossNum('Q')) || !isFinite(__hazen_williams_headlossNum('L')) || !isFinite(__hazen_williams_headlossNum('C')) || !isFinite(__hazen_williams_headlossNum('D'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#hazen_williams_headlossTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['水头损失 h_f (Hazen-Williams)', hf.toFixed(3)+' m'],
+        ]
+    });
+    TBKit.history.record({Q:__hazen_williams_headlossNum('Q'), L:__hazen_williams_headlossNum('L'), C:__hazen_williams_headlossNum('C'), D:__hazen_williams_headlossNum('D'), hf:hf});
+    TBKit.history.mount('#hazen_williams_headlossHist',function(rec){ if(rec.Q!=null)document.getElementById('Q').value=rec.Q; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.C!=null)document.getElementById('C').value=rec.C; if(rec.D!=null)document.getElementById('D').value=rec.D; calcTool(); });
+    TBKit.util.diffBox('#hazen_williams_headlossDiff',['hf']);
+}
+function __hazen_williams_headlossExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hazen_williams_headlossTable','hazen-williams-headloss.csv'); } catch(e){}
+}
+function __hazen_williams_headlossPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hazen_williams_headlossPresets',[
+        {label:'默认',labelEn:'Default',values:{Q:'0.01', L:'100', C:'120', D:'0.1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Q:'0.02', L:'200', C:'240', D:'0.2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Q:'0.005', L:'50', C:'60', D:'0.05'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __hazen_williams_headlossExtras(); }catch(e){} };
+function __hazen_williams_headlossBoot(){ try{ __hazen_williams_headlossPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hazen_williams_headlossBoot();
+else document.addEventListener('DOMContentLoaded', __hazen_williams_headlossBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

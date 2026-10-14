@@ -149,12 +149,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pump_powerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pump_powerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pump_powerTable"></div>
+    <div id="pump_powerDiff"></div>
+    <div id="pump_powerHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -268,6 +274,42 @@ function resetForm(){document.getElementById('rho').value = 1000;
       document.getElementById('eta').value = 0.75;
       calcTool();}
 calcTool();
+
+function __pump_powerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pump_powerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rho=num('rho'), g=num('g'), Q=num('Q'), H=num('H'), eta=num('eta');
+    var P = rho*g*Q*H/eta;
+    if (!isFinite(__pump_powerNum('rho')) || !isFinite(__pump_powerNum('g')) || !isFinite(__pump_powerNum('Q')) || !isFinite(__pump_powerNum('H')) || !isFinite(__pump_powerNum('eta'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pump_powerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['轴功率 P = ρgQH/η', (P/1000).toFixed(2)+' kW'],
+            ['有效功率（水力功率）', (rho*g*Q*H/1000).toFixed(2)+' kW'],
+        ]
+    });
+    TBKit.history.record({rho:__pump_powerNum('rho'), g:__pump_powerNum('g'), Q:__pump_powerNum('Q'), H:__pump_powerNum('H'), eta:__pump_powerNum('eta'), P:P});
+    TBKit.history.mount('#pump_powerHist',function(rec){ if(rec.rho!=null)document.getElementById('rho').value=rec.rho; if(rec.g!=null)document.getElementById('g').value=rec.g; if(rec.Q!=null)document.getElementById('Q').value=rec.Q; if(rec.H!=null)document.getElementById('H').value=rec.H; if(rec.eta!=null)document.getElementById('eta').value=rec.eta; calcTool(); });
+    TBKit.util.diffBox('#pump_powerDiff',['P']);
+}
+function __pump_powerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pump_powerTable','pump-power.csv'); } catch(e){}
+}
+function __pump_powerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pump_powerPresets',[
+        {label:'默认',labelEn:'Default',values:{rho:'1000', g:'9.81', Q:'0.05', H:'20', eta:'0.75'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rho:'2000', g:'19.62', Q:'0.1', H:'40', eta:'1.5'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rho:'500', g:'4.905', Q:'0.025', H:'10', eta:'0.375'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pump_powerExtras(); }catch(e){} };
+function __pump_powerBoot(){ try{ __pump_powerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pump_powerBoot();
+else document.addEventListener('DOMContentLoaded', __pump_powerBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
