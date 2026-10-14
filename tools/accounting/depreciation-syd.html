@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="depreciation_sydPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__depreciation_sydExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="depreciation_sydTable"></div>
+    <div id="depreciation_sydDiff"></div>
+    <div id="depreciation_sydHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -312,6 +318,42 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "年数总和法与双倍余额递减法有何区别？", "acceptedAnswer": {"@type": "Answer", "text": "前者折旧率=剩余年数/年数总和、基数固定为(原值−残值)，递减线性；后者以率乘账面净值、前期更快，且早期不扣残值。"}}, {"@type": "Question", "name": "年数总和法的基数含残值吗？", "acceptedAnswer": {"@type": "Answer", "text": "含。年数总和法以(原值−预计净残值)为折旧基数，按逐年下降的权重分摊，到期净值恰好等于残值。"}}]}
+
+function __depreciation_sydNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __depreciation_sydExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var c=num('c'),s=num('s'),n=num('n'),yr=num('yr');
+    var syd=n*(n+1)/2;
+    var d=(n-yr+1)/syd*(c-s);
+    if (!isFinite(__depreciation_sydNum('c')) || !isFinite(__depreciation_sydNum('s')) || !isFinite(__depreciation_sydNum('n')) || !isFinite(__depreciation_sydNum('yr'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#depreciation_sydTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['占原值比 (%)', (d/c*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({c:__depreciation_sydNum('c'), s:__depreciation_sydNum('s'), n:__depreciation_sydNum('n'), yr:__depreciation_sydNum('yr'), syd:syd});
+    TBKit.history.mount('#depreciation_sydHist',function(rec){ if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.yr!=null)document.getElementById('yr').value=rec.yr; calcTool(); });
+    TBKit.util.diffBox('#depreciation_sydDiff',['syd']);
+}
+function __depreciation_sydExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#depreciation_sydTable','depreciation-syd.csv'); } catch(e){}
+}
+function __depreciation_sydPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#depreciation_sydPresets',[
+        {label:'默认',labelEn:'Default',values:{c:'100000', s:'10000', n:'10', yr:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{c:'200000', s:'20000', n:'20', yr:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{c:'50000', s:'5000', n:'5', yr:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __depreciation_sydExtras(); }catch(e){} };
+function __depreciation_sydBoot(){ try{ __depreciation_sydPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __depreciation_sydBoot();
+else document.addEventListener('DOMContentLoaded', __depreciation_sydBoot);
 </script>
 </body>
 </html>

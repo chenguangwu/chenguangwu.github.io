@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="contribution_marginPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__contribution_marginExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="contribution_marginTable"></div>
+    <div id="contribution_marginDiff"></div>
+    <div id="contribution_marginHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -292,6 +298,43 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "单位边际贡献和毛利有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "单位边际贡献=单价−单位变动成本，用于本量利与短期决策；毛利=收入−营业成本，含固定制造费用分摊，口径更宽。"}}, {"@type": "Question", "name": "边际贡献为负为什么要停产？", "acceptedAnswer": {"@type": "Answer", "text": "边际贡献为负意味着每卖一件多亏一件的变动成本，停产可止损；但若能覆盖部分固定成本，短期继续生产仍比停产少亏。"}}]}
+
+function __contribution_marginNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __contribution_marginExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var p=num('p'),vc=num('vc'),q=num('q');
+    var cm=(p-vc)*q;
+    var rev=p*q;
+    if (!isFinite(__contribution_marginNum('p')) || !isFinite(__contribution_marginNum('vc')) || !isFinite(__contribution_marginNum('q'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#contribution_marginTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['边际贡献总额 (元)', cm.toFixed(0)],
+            ['边际贡献率 (%)', (cm/rev*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({p:__contribution_marginNum('p'), vc:__contribution_marginNum('vc'), q:__contribution_marginNum('q'), cm:cm});
+    TBKit.history.mount('#contribution_marginHist',function(rec){ if(rec.p!=null)document.getElementById('p').value=rec.p; if(rec.vc!=null)document.getElementById('vc').value=rec.vc; if(rec.q!=null)document.getElementById('q').value=rec.q; calcTool(); });
+    TBKit.util.diffBox('#contribution_marginDiff',['cm']);
+}
+function __contribution_marginExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#contribution_marginTable','contribution-margin.csv'); } catch(e){}
+}
+function __contribution_marginPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#contribution_marginPresets',[
+        {label:'默认',labelEn:'Default',values:{p:'100', vc:'60', q:'10000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{p:'200', vc:'120', q:'20000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{p:'50', vc:'30', q:'5000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __contribution_marginExtras(); }catch(e){} };
+function __contribution_marginBoot(){ try{ __contribution_marginPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __contribution_marginBoot();
+else document.addEventListener('DOMContentLoaded', __contribution_marginBoot);
 </script>
 </body>
 </html>

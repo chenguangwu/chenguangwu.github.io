@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gross_profitPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gross_profitExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gross_profitTable"></div>
+    <div id="gross_profitDiff"></div>
+    <div id="gross_profitHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -234,6 +240,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "毛利和营业利润的区别？", "acceptedAnswer": {"@type": "Answer", "text": "毛利=收入−营业成本；营业利润还需扣除税金及附加、销售/管理/研发费用与资产减值等，更接近日常经营的最终利润。"}}, {"@type": "Question", "name": "如何提高毛利？", "acceptedAnswer": {"@type": "Answer", "text": "要么提升售价（品牌/差异化），要么降低营业成本（供应链优化、规模采购、工艺改进），同时警惕降价换量对毛利的侵蚀。"}}]}
+
+function __gross_profitNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gross_profitExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rev=num('rev'),cogs=num('cogs');
+    var gp=rev-cogs;
+    if (!isFinite(__gross_profitNum('rev')) || !isFinite(__gross_profitNum('cogs'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gross_profitTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['毛利 (万元)', gp.toFixed(2)],
+            ['毛利率 (%)', (gp/Math.max(rev,1e-9)*100).toFixed(2)],
+            ['收入成本倍数', (rev/Math.max(cogs,1e-9)).toFixed(3)],
+            ['成本毛利比', (cogs/Math.max(gp,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({rev:__gross_profitNum('rev'), cogs:__gross_profitNum('cogs'), gp:gp});
+    TBKit.history.mount('#gross_profitHist',function(rec){ if(rec.rev!=null)document.getElementById('rev').value=rec.rev; if(rec.cogs!=null)document.getElementById('cogs').value=rec.cogs; calcTool(); });
+    TBKit.util.diffBox('#gross_profitDiff',['gp']);
+}
+function __gross_profitExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gross_profitTable','gross-profit.csv'); } catch(e){}
+}
+function __gross_profitPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gross_profitPresets',[
+        {label:'默认',labelEn:'Default',values:{rev:'1000', cogs:'600'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rev:'2000', cogs:'1200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rev:'500', cogs:'300'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gross_profitExtras(); }catch(e){} };
+function __gross_profitBoot(){ try{ __gross_profitPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gross_profitBoot();
+else document.addEventListener('DOMContentLoaded', __gross_profitBoot);
 </script>
 </body>
 </html>

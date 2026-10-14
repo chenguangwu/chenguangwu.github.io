@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="days_sales_outstandingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__days_sales_outstandingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="days_sales_outstandingTable"></div>
+    <div id="days_sales_outstandingDiff"></div>
+    <div id="days_sales_outstandingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -288,6 +294,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "DSO 越低越好吗？", "acceptedAnswer": {"@type": "Answer", "text": "通常越低回款越快、坏账风险越小，但过严的信用政策可能流失客户；应结合行业惯例与销售增长目标平衡。"}}, {"@type": "Question", "name": "为什么用营业收入而不是赊销额？", "acceptedAnswer": {"@type": "Answer", "text": "对外财报通常只有营业收入，故用其近似；若赊销占比低，DSO 会被低估，内部分析应尽量用赊销净额。"}}]}
+
+function __days_sales_outstandingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __days_sales_outstandingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var AR=num('AR'),rev=num('rev');
+    var DSO=AR/rev*365;
+    if (!isFinite(__days_sales_outstandingNum('AR')) || !isFinite(__days_sales_outstandingNum('rev'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#days_sales_outstandingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['应收账款天数 DSO (天)', DSO.toFixed(1)],
+            ['应收账款周转率 (次/年)', (rev/Math.max(AR,1)).toFixed(3)],
+            ['应收占收入比', (AR/Math.max(rev,1)).toFixed(4)],
+            ['DSO (月)', (AR/Math.max(rev,1)*365/30).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({AR:__days_sales_outstandingNum('AR'), rev:__days_sales_outstandingNum('rev'), DSO:DSO});
+    TBKit.history.mount('#days_sales_outstandingHist',function(rec){ if(rec.AR!=null)document.getElementById('AR').value=rec.AR; if(rec.rev!=null)document.getElementById('rev').value=rec.rev; calcTool(); });
+    TBKit.util.diffBox('#days_sales_outstandingDiff',['DSO']);
+}
+function __days_sales_outstandingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#days_sales_outstandingTable','days-sales-outstanding.csv'); } catch(e){}
+}
+function __days_sales_outstandingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#days_sales_outstandingPresets',[
+        {label:'默认',labelEn:'Default',values:{AR:'100', rev:'1000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{AR:'200', rev:'2000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{AR:'50', rev:'500'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __days_sales_outstandingExtras(); }catch(e){} };
+function __days_sales_outstandingBoot(){ try{ __days_sales_outstandingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __days_sales_outstandingBoot();
+else document.addEventListener('DOMContentLoaded', __days_sales_outstandingBoot);
 </script>
 </body>
 </html>

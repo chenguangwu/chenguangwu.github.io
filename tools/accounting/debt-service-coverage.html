@@ -133,12 +133,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="debt_service_coveragePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__debt_service_coverageExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="debt_service_coverageTable"></div>
+    <div id="debt_service_coverageDiff"></div>
+    <div id="debt_service_coverageHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -302,6 +308,44 @@ calcTool();
 </div></section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "DSCR 小于 1 意味着什么？", "acceptedAnswer": {"@type": "Answer", "text": "DSCR<1 表示经营现金流不足以覆盖当期债务本息，需动用现金储备或再融资，长期如此将面临违约风险。"}}, {"@type": "Question", "name": "分子为什么用经营现金流而非净利润？", "acceptedAnswer": {"@type": "Answer", "text": "经营现金流是真实可用来还债的现金，净利润含折旧等非付现项目且可被应计项目操纵；用现金流更稳健。"}}]}
+
+function __debt_service_coverageNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __debt_service_coverageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var OCF=num('OCF'),ds=num('ds');
+    var DSCR=OCF/ds;
+    if (!isFinite(__debt_service_coverageNum('OCF')) || !isFinite(__debt_service_coverageNum('ds'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#debt_service_coverageTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['偿债保障倍数 DSCR', DSCR.toFixed(2)],
+            ['盈余现金 (万元)', (OCF-ds).toFixed(2)],
+            ['偿债负担率', (1/Math.max(DSCR,1e-9)).toFixed(4)],
+            ['覆盖率百分数', (OCF/Math.max(ds,1e-9)*100).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({OCF:__debt_service_coverageNum('OCF'), ds:__debt_service_coverageNum('ds'), DSCR:DSCR});
+    TBKit.history.mount('#debt_service_coverageHist',function(rec){ if(rec.OCF!=null)document.getElementById('OCF').value=rec.OCF; if(rec.ds!=null)document.getElementById('ds').value=rec.ds; calcTool(); });
+    TBKit.util.diffBox('#debt_service_coverageDiff',['DSCR']);
+}
+function __debt_service_coverageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#debt_service_coverageTable','debt-service-coverage.csv'); } catch(e){}
+}
+function __debt_service_coveragePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#debt_service_coveragePresets',[
+        {label:'默认',labelEn:'Default',values:{OCF:'150', ds:'60'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{OCF:'300', ds:'120'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{OCF:'75', ds:'30'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __debt_service_coverageExtras(); }catch(e){} };
+function __debt_service_coverageBoot(){ try{ __debt_service_coveragePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __debt_service_coverageBoot();
+else document.addEventListener('DOMContentLoaded', __debt_service_coverageBoot);
 </script>
 </body>
 </html>

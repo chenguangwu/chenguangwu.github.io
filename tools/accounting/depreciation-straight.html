@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="depreciation_straightPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__depreciation_straightExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="depreciation_straightTable"></div>
+    <div id="depreciation_straightDiff"></div>
+    <div id="depreciation_straightHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -292,6 +298,43 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "直线法为什么最常用？", "acceptedAnswer": {"@type": "Answer", "text": "计算简单、各期费用均衡、利润平滑，适合效用稳定、技术更新慢的资产，也便于与外部报表和税务衔接。"}}, {"@type": "Question", "name": "预计净残值为 0 或负数怎么办？", "acceptedAnswer": {"@type": "Answer", "text": "净残值一般取预计处置收入减处置费用后的净额，通常≥0；若预计处置费用高于收入，实务中仍按 0 处理，不得提为负。"}}]}
+
+function __depreciation_straightNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __depreciation_straightExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var c=num('c'),s=num('s'),n=num('n');
+    var d=(c-s)/n;
+    if (!isFinite(__depreciation_straightNum('c')) || !isFinite(__depreciation_straightNum('s')) || !isFinite(__depreciation_straightNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#depreciation_straightTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['年折旧额 (元)', d.toFixed(2)],
+            ['年折旧率 (%)', (d/c*100).toFixed(2)],
+            ['首年末账面值 (元)', (c-d).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({c:__depreciation_straightNum('c'), s:__depreciation_straightNum('s'), n:__depreciation_straightNum('n'), d:d});
+    TBKit.history.mount('#depreciation_straightHist',function(rec){ if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.s!=null)document.getElementById('s').value=rec.s; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#depreciation_straightDiff',['d']);
+}
+function __depreciation_straightExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#depreciation_straightTable','depreciation-straight.csv'); } catch(e){}
+}
+function __depreciation_straightPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#depreciation_straightPresets',[
+        {label:'默认',labelEn:'Default',values:{c:'100000', s:'10000', n:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{c:'200000', s:'20000', n:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{c:'50000', s:'5000', n:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __depreciation_straightExtras(); }catch(e){} };
+function __depreciation_straightBoot(){ try{ __depreciation_straightPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __depreciation_straightBoot();
+else document.addEventListener('DOMContentLoaded', __depreciation_straightBoot);
 </script>
 </body>
 </html>

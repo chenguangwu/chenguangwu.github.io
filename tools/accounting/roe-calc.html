@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="roe_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__roe_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="roe_calcTable"></div>
+    <div id="roe_calcDiff"></div>
+    <div id="roe_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -287,6 +293,42 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "ROE 高一定好吗？", "acceptedAnswer": {"@type": "Answer", "text": "高 ROE 可能来自高盈利，也可能来自高杠杆（高风险）。应拆解其驱动来源，区分是经营优秀还是债务堆出来的回报。"}}, {"@type": "Question", "name": "ROE 与每股收益(EPS)的关系？", "acceptedAnswer": {"@type": "Answer", "text": "ROE=EPS÷每股净资产，同等 ROE 下净资产越小 EPS 越高；但过度依赖负债抬高 ROE 会牺牲财务安全。"}}]}
+
+function __roe_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __roe_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var np=num('np'),eq=num('eq');
+    if (!isFinite(__roe_calcNum('np')) || !isFinite(__roe_calcNum('eq'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#roe_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['ROE (%)', (np/eq*100).toFixed(2)],
+            ['权益收益率（小数）', (np/Math.max(eq,1e-9)).toFixed(6)],
+            ['权益倍数', (eq/Math.max(np,1e-9)).toFixed(4)],
+            ['权益收益率（万分比）', (np/Math.max(eq,1e-9)*10000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({np:__roe_calcNum('np'), eq:__roe_calcNum('eq')});
+    TBKit.history.mount('#roe_calcHist',function(rec){ if(rec.np!=null)document.getElementById('np').value=rec.np; if(rec.eq!=null)document.getElementById('eq').value=rec.eq; calcTool(); });
+}
+function __roe_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#roe_calcTable','roe-calc.csv'); } catch(e){}
+}
+function __roe_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#roe_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{np:'200000', eq:'2000000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{np:'400000', eq:'4000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{np:'100000', eq:'1000000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __roe_calcExtras(); }catch(e){} };
+function __roe_calcBoot(){ try{ __roe_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __roe_calcBoot();
+else document.addEventListener('DOMContentLoaded', __roe_calcBoot);
 </script>
 </body>
 </html>

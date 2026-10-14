@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="inventory_daysPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__inventory_daysExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="inventory_daysTable"></div>
+    <div id="inventory_daysDiff"></div>
+    <div id="inventory_daysHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -288,6 +294,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "存货天数越短越好吗？", "acceptedAnswer": {"@type": "Answer", "text": "通常越短资金占用越少、跌价风险越低，但过短可能频繁断货、丧失销售；需结合安全库存与补货周期。"}}, {"@type": "Question", "name": "用营业成本还是营业收入？", "acceptedAnswer": {"@type": "Answer", "text": "存货对应已售商品的成本，故用营业成本（COGS）更匹配；用收入会混入毛利，高估周转效率。"}}]}
+
+function __inventory_daysNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __inventory_daysExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var inv=num('inv'),cogs=num('cogs');
+    var DIO=inv/cogs*365;
+    if (!isFinite(__inventory_daysNum('inv')) || !isFinite(__inventory_daysNum('cogs'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#inventory_daysTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['存货天数 DIO (天)', DIO.toFixed(1)],
+            ['存货周转率 (次/年)', (cogs/Math.max(inv,1)).toFixed(3)],
+            ['存货占销货成本比', (inv/Math.max(cogs,1)).toFixed(4)],
+            ['存货天数 (月)', (inv/Math.max(cogs,1)*365/30).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({inv:__inventory_daysNum('inv'), cogs:__inventory_daysNum('cogs'), DIO:DIO});
+    TBKit.history.mount('#inventory_daysHist',function(rec){ if(rec.inv!=null)document.getElementById('inv').value=rec.inv; if(rec.cogs!=null)document.getElementById('cogs').value=rec.cogs; calcTool(); });
+    TBKit.util.diffBox('#inventory_daysDiff',['DIO']);
+}
+function __inventory_daysExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#inventory_daysTable','inventory-days.csv'); } catch(e){}
+}
+function __inventory_daysPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#inventory_daysPresets',[
+        {label:'默认',labelEn:'Default',values:{inv:'150', cogs:'600'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{inv:'300', cogs:'1200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{inv:'75', cogs:'300'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __inventory_daysExtras(); }catch(e){} };
+function __inventory_daysBoot(){ try{ __inventory_daysPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __inventory_daysBoot();
+else document.addEventListener('DOMContentLoaded', __inventory_daysBoot);
 </script>
 </body>
 </html>

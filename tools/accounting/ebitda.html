@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ebitdaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ebitdaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ebitdaTable"></div>
+    <div id="ebitdaDiff"></div>
+    <div id="ebitdaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -234,6 +240,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "EBITDA 能代替现金流吗？", "acceptedAnswer": {"@type": "Answer", "text": "不能。它未扣除资本性支出、营运资本变动与税费，会高估真实可自由支配现金；应结合自由现金流一起看。"}}, {"@type": "Question", "name": "为什么资本市场常用 EBITDA 倍数？", "acceptedAnswer": {"@type": "Answer", "text": "它剔除了折旧政策、资本结构与税率差异，便于跨公司横向比较；但重资产行业折旧大，易被滥用掩盖真实盈利质量。"}}]}
+
+function __ebitdaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ebitdaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var EBIT=num('EBIT'),DA=num('DA');
+    var ebitda=EBIT+DA;
+    if (!isFinite(__ebitdaNum('EBIT')) || !isFinite(__ebitdaNum('DA'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ebitdaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['EBITDA (万元)', ebitda.toFixed(2)],
+            ['EBIT 占 EBITDA (%)', (EBIT/Math.max(ebitda,1)*100).toFixed(2)],
+            ['折旧摊销占比 (%)', (DA/Math.max(ebitda,1)*100).toFixed(2)],
+            ['折旧与摊销 (万元)', (ebitda-EBIT).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({EBIT:__ebitdaNum('EBIT'), DA:__ebitdaNum('DA'), ebitda:ebitda});
+    TBKit.history.mount('#ebitdaHist',function(rec){ if(rec.EBIT!=null)document.getElementById('EBIT').value=rec.EBIT; if(rec.DA!=null)document.getElementById('DA').value=rec.DA; calcTool(); });
+    TBKit.util.diffBox('#ebitdaDiff',['ebitda']);
+}
+function __ebitdaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ebitdaTable','ebitda.csv'); } catch(e){}
+}
+function __ebitdaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ebitdaPresets',[
+        {label:'默认',labelEn:'Default',values:{EBIT:'200', DA:'50'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{EBIT:'400', DA:'100'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{EBIT:'100', DA:'25'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ebitdaExtras(); }catch(e){} };
+function __ebitdaBoot(){ try{ __ebitdaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ebitdaBoot();
+else document.addEventListener('DOMContentLoaded', __ebitdaBoot);
 </script>
 </body>
 </html>

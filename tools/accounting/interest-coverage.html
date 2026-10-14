@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="interest_coveragePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__interest_coverageExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="interest_coverageTable"></div>
+    <div id="interest_coverageDiff"></div>
+    <div id="interest_coverageHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -288,6 +294,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "利息保障倍数低于多少算危险？", "acceptedAnswer": {"@type": "Answer", "text": "一般认为低于 1.5 倍风险明显上升，低于 1 倍则经营利润已不足以付息；但周期行业波动大，应看长期均值。"}}, {"@type": "Question", "name": "分子用 EBIT 还是 EBITDA？", "acceptedAnswer": {"@type": "Answer", "text": "用 EBIT 更保守（已含折旧摊销的付现压力）；部分行业用 EBITDA 覆盖（因折旧非付现），但会高估付息能力。"}}]}
+
+function __interest_coverageNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __interest_coverageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var EBIT=num('EBIT'),int=num('int');
+    var ic=EBIT/int;
+    if (!isFinite(__interest_coverageNum('EBIT')) || !isFinite(__interest_coverageNum('int'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#interest_coverageTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['利息保障倍数', ic.toFixed(2)],
+            ['EBIT 减利息 (万元)', (EBIT-int).toFixed(2)],
+            ['利息占 EBIT 比', (1/Math.max(ic,1e-9)).toFixed(4)],
+            ['保障倍数百分数', (ic*100).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({EBIT:__interest_coverageNum('EBIT'), int:__interest_coverageNum('int'), ic:ic});
+    TBKit.history.mount('#interest_coverageHist',function(rec){ if(rec.EBIT!=null)document.getElementById('EBIT').value=rec.EBIT; if(rec.int!=null)document.getElementById('int').value=rec.int; calcTool(); });
+    TBKit.util.diffBox('#interest_coverageDiff',['ic']);
+}
+function __interest_coverageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#interest_coverageTable','interest-coverage.csv'); } catch(e){}
+}
+function __interest_coveragePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#interest_coveragePresets',[
+        {label:'默认',labelEn:'Default',values:{EBIT:'200', int:'40'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{EBIT:'400', int:'80'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{EBIT:'100', int:'20'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __interest_coverageExtras(); }catch(e){} };
+function __interest_coverageBoot(){ try{ __interest_coveragePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __interest_coverageBoot();
+else document.addEventListener('DOMContentLoaded', __interest_coverageBoot);
 </script>
 </body>
 </html>

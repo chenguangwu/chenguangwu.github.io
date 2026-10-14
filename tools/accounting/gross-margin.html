@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gross_marginPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gross_marginExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gross_marginTable"></div>
+    <div id="gross_marginDiff"></div>
+    <div id="gross_marginHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -287,6 +293,43 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "毛利率和净利率有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "毛利率只扣直接营业成本，反映产品本身的盈利空间；净利率再扣除费用、利息、税后得到最终盈利，口径更全。"}}, {"@type": "Question", "name": "毛利率下降一定不好吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一定。为抢占市场主动降价会降毛利率，但若带来销量与规模效应提升，长期净利可能反而改善，需结合量价策略看。"}}]}
+
+function __gross_marginNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gross_marginExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r=num('rev'),c=num('cost');
+    if (!isFinite(__gross_marginNum('rev')) || !isFinite(__gross_marginNum('cost'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gross_marginTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['毛利率 (%)', ((r-c)/r*100).toFixed(2)],
+            ['毛利额 (元)', (r-c).toFixed(0)],
+            ['成本率 (%)', (c/(r||1)*100).toFixed(2)],
+            ['收入/成本 倍数', (r/(c||1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({rev:__gross_marginNum('rev'), cost:__gross_marginNum('cost'), r:r});
+    TBKit.history.mount('#gross_marginHist',function(rec){ if(rec.rev!=null)document.getElementById('rev').value=rec.rev; if(rec.cost!=null)document.getElementById('cost').value=rec.cost; calcTool(); });
+    TBKit.util.diffBox('#gross_marginDiff',['r']);
+}
+function __gross_marginExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gross_marginTable','gross-margin.csv'); } catch(e){}
+}
+function __gross_marginPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gross_marginPresets',[
+        {label:'默认',labelEn:'Default',values:{rev:'1000000', cost:'600000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rev:'2000000', cost:'1200000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rev:'500000', cost:'300000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gross_marginExtras(); }catch(e){} };
+function __gross_marginBoot(){ try{ __gross_marginPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gross_marginBoot();
+else document.addEventListener('DOMContentLoaded', __gross_marginBoot);
 </script>
 </body>
 </html>

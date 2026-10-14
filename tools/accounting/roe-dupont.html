@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="roe_dupontPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__roe_dupontExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="roe_dupontTable"></div>
+    <div id="roe_dupontDiff"></div>
+    <div id="roe_dupontHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -238,6 +244,43 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "杜邦分析的三个因子分别反映什么？", "acceptedAnswer": {"@type": "Answer", "text": "净利率反映盈利能力，资产周转率反映运营效率，权益乘数反映财务杠杆；ROE=三者的乘积，便于逐层归因。"}}, {"@type": "Question", "name": "权益乘数怎么算？", "acceptedAnswer": {"@type": "Answer", "text": "权益乘数=总资产÷净资产=1÷(1−资产负债率)，杠杆越高乘数越大，对 ROE 的放大也越明显，同时放大风险。"}}]}
+
+function __roe_dupontNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __roe_dupontExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var nm=num('nm')/100,at=num('at'),em=num('em');
+    var roe=nm*at*em*100;
+    if (!isFinite(__roe_dupontNum('nm')) || !isFinite(__roe_dupontNum('at')) || !isFinite(__roe_dupontNum('em'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#roe_dupontTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['净资产收益率 ROE (%)', roe.toFixed(2)],
+            ['净利率 NM (%)', (nm*100).toFixed(3)],
+            ['资产收益率 ROA (%)', (nm*at*100).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({nm:__roe_dupontNum('nm'), at:__roe_dupontNum('at'), em:__roe_dupontNum('em'), roe:roe});
+    TBKit.history.mount('#roe_dupontHist',function(rec){ if(rec.nm!=null)document.getElementById('nm').value=rec.nm; if(rec.at!=null)document.getElementById('at').value=rec.at; if(rec.em!=null)document.getElementById('em').value=rec.em; calcTool(); });
+    TBKit.util.diffBox('#roe_dupontDiff',['roe']);
+}
+function __roe_dupontExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#roe_dupontTable','roe-dupont.csv'); } catch(e){}
+}
+function __roe_dupontPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#roe_dupontPresets',[
+        {label:'默认',labelEn:'Default',values:{nm:'12', at:'1.5', em:'2.0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{nm:'24', at:'3', em:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{nm:'6', at:'0.75', em:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __roe_dupontExtras(); }catch(e){} };
+function __roe_dupontBoot(){ try{ __roe_dupontPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __roe_dupontBoot();
+else document.addEventListener('DOMContentLoaded', __roe_dupontBoot);
 </script>
 </body>
 </html>

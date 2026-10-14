@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="free_cash_flowPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__free_cash_flowExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="free_cash_flowTable"></div>
+    <div id="free_cash_flowDiff"></div>
+    <div id="free_cash_flowHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -234,6 +240,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么 FCF 比净利润更真实？", "acceptedAnswer": {"@type": "Answer", "text": "净利润含应计项目与非付现折旧，可能盈利却缺现金；FCF 扣除维持资产所需的资本支出，反映真正可分红或还债的现金。"}}, {"@type": "Question", "name": "资本支出包含哪些？", "acceptedAnswer": {"@type": "Answer", "text": "指购建固定资产、无形资产及其他长期资产的现金流出，是维持与扩大产能的必要投入；研发资本化部分也可能计入。"}}]}
+
+function __free_cash_flowNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __free_cash_flowExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var OCF=num('OCF'),capex=num('capex');
+    var FCF=OCF-capex;
+    if (!isFinite(__free_cash_flowNum('OCF')) || !isFinite(__free_cash_flowNum('capex'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#free_cash_flowTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['自由现金流 FCF (万元)', FCF.toFixed(2)],
+            ['资本支出占经营现金流 (%)', (capex/Math.max(OCF,1)*100).toFixed(2)],
+            ['经营现金流覆盖资本支出倍数', (OCF/Math.max(capex,1)).toFixed(3)],
+            ['经营活动现金流净额 (万元)', (OCF).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({OCF:__free_cash_flowNum('OCF'), capex:__free_cash_flowNum('capex'), FCF:FCF});
+    TBKit.history.mount('#free_cash_flowHist',function(rec){ if(rec.OCF!=null)document.getElementById('OCF').value=rec.OCF; if(rec.capex!=null)document.getElementById('capex').value=rec.capex; calcTool(); });
+    TBKit.util.diffBox('#free_cash_flowDiff',['FCF']);
+}
+function __free_cash_flowExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#free_cash_flowTable','free-cash-flow.csv'); } catch(e){}
+}
+function __free_cash_flowPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#free_cash_flowPresets',[
+        {label:'默认',labelEn:'Default',values:{OCF:'150', capex:'80'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{OCF:'300', capex:'160'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{OCF:'75', capex:'40'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __free_cash_flowExtras(); }catch(e){} };
+function __free_cash_flowBoot(){ try{ __free_cash_flowPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __free_cash_flowBoot();
+else document.addEventListener('DOMContentLoaded', __free_cash_flowBoot);
 </script>
 </body>
 </html>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ebitPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ebitExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ebitTable"></div>
+    <div id="ebitDiff"></div>
+    <div id="ebitHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -238,6 +244,43 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "EBIT 与净利润的关系？", "acceptedAnswer": {"@type": "Answer", "text": "EBIT=净利润+利息费用+所得税；它排除了融资方式（利息）与税务安排的影响，专注经营层面的盈利能力。"}}, {"@type": "Question", "name": "EBIT 和营业利润一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "口径接近但不完全相同：营业利润通常已扣公允价值变动、资产减值等，EBIT 更聚焦经营现金性收支，具体以报表列示为准。"}}]}
+
+function __ebitNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ebitExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rev=num('rev'),cogs=num('cogs'),opex=num('opex');
+    var ebit=rev-cogs-opex;
+    if (!isFinite(__ebitNum('rev')) || !isFinite(__ebitNum('cogs')) || !isFinite(__ebitNum('opex'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ebitTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['EBIT (万元)', ebit.toFixed(2)],
+            ['毛利 (万元)', (rev-cogs).toFixed(2)],
+            ['营业利润率 (%)', (ebit/(rev||1)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rev:__ebitNum('rev'), cogs:__ebitNum('cogs'), opex:__ebitNum('opex'), ebit:ebit});
+    TBKit.history.mount('#ebitHist',function(rec){ if(rec.rev!=null)document.getElementById('rev').value=rec.rev; if(rec.cogs!=null)document.getElementById('cogs').value=rec.cogs; if(rec.opex!=null)document.getElementById('opex').value=rec.opex; calcTool(); });
+    TBKit.util.diffBox('#ebitDiff',['ebit']);
+}
+function __ebitExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ebitTable','ebit.csv'); } catch(e){}
+}
+function __ebitPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ebitPresets',[
+        {label:'默认',labelEn:'Default',values:{rev:'1000', cogs:'600', opex:'200'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rev:'2000', cogs:'1200', opex:'400'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rev:'500', cogs:'300', opex:'100'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ebitExtras(); }catch(e){} };
+function __ebitBoot(){ try{ __ebitPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ebitBoot();
+else document.addEventListener('DOMContentLoaded', __ebitBoot);
 </script>
 </body>
 </html>

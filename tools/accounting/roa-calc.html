@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="roa_calcPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__roa_calcExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="roa_calcTable"></div>
+    <div id="roa_calcDiff"></div>
+    <div id="roa_calcHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -287,6 +293,42 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "ROA 和 ROE 的区别？", "acceptedAnswer": {"@type": "Answer", "text": "ROA 看全部资产（含负债形成）的回报，ROE 只看股东投入的回报；ROE 因杠杆会被放大，ROA 更反映资产本身的盈利能力。"}}, {"@type": "Question", "name": "ROA 偏低但 ROE 高说明什么？", "acceptedAnswer": {"@type": "Answer", "text": "说明企业大量运用负债放大了股东回报，但同时也累积了财务风险，需警惕杠杆不可持续。"}}]}
+
+function __roa_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __roa_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var np=num('np'),ta=num('ta');
+    if (!isFinite(__roa_calcNum('np')) || !isFinite(__roa_calcNum('ta'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#roa_calcTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['ROA (%)', (np/ta*100).toFixed(2)],
+            ['资产收益率（小数）', (np/Math.max(ta,1e-9)).toFixed(6)],
+            ['资产与净利之比', (ta/Math.max(np,1e-9)).toFixed(4)],
+            ['资产收益率（万分比）', (np/Math.max(ta,1e-9)*10000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({np:__roa_calcNum('np'), ta:__roa_calcNum('ta')});
+    TBKit.history.mount('#roa_calcHist',function(rec){ if(rec.np!=null)document.getElementById('np').value=rec.np; if(rec.ta!=null)document.getElementById('ta').value=rec.ta; calcTool(); });
+}
+function __roa_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#roa_calcTable','roa-calc.csv'); } catch(e){}
+}
+function __roa_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#roa_calcPresets',[
+        {label:'默认',labelEn:'Default',values:{np:'200000', ta:'5000000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{np:'400000', ta:'10000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{np:'100000', ta:'2500000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __roa_calcExtras(); }catch(e){} };
+function __roa_calcBoot(){ try{ __roa_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __roa_calcBoot();
+else document.addEventListener('DOMContentLoaded', __roa_calcBoot);
 </script>
 </body>
 </html>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="asset_turnoverPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__asset_turnoverExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="asset_turnoverTable"></div>
+    <div id="asset_turnoverDiff"></div>
+    <div id="asset_turnoverHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -288,6 +294,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "资产周转率用期末还是平均总资产？", "acceptedAnswer": {"@type": "Answer", "text": "通常用（期初+期末）/2 的平均总资产，平滑季节性波动；公式为营业收入÷平均总资产，比率越高说明资产利用效率越好。"}}, {"@type": "Question", "name": "周转率低一定是坏事吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一定。零售业周转率高，公用事业、地产等重资产行业天然偏低；应结合行业特性与历史趋势判断。"}}]}
+
+function __asset_turnoverNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __asset_turnoverExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var rev=num('rev'),assets=num('assets');
+    var at=rev/assets;
+    if (!isFinite(__asset_turnoverNum('rev')) || !isFinite(__asset_turnoverNum('assets'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#asset_turnoverTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['资产周转率', at.toFixed(2)],
+            ['资产收入比（倒数）', (assets/Math.max(rev,1)).toFixed(4)],
+            ['资产周转天数 (天)', (365/at).toFixed(1)],
+            ['周转率百分数', (at*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({rev:__asset_turnoverNum('rev'), assets:__asset_turnoverNum('assets'), at:at});
+    TBKit.history.mount('#asset_turnoverHist',function(rec){ if(rec.rev!=null)document.getElementById('rev').value=rec.rev; if(rec.assets!=null)document.getElementById('assets').value=rec.assets; calcTool(); });
+    TBKit.util.diffBox('#asset_turnoverDiff',['at']);
+}
+function __asset_turnoverExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#asset_turnoverTable','asset-turnover.csv'); } catch(e){}
+}
+function __asset_turnoverPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#asset_turnoverPresets',[
+        {label:'默认',labelEn:'Default',values:{rev:'1000', assets:'500'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{rev:'2000', assets:'1000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{rev:'500', assets:'250'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __asset_turnoverExtras(); }catch(e){} };
+function __asset_turnoverBoot(){ try{ __asset_turnoverPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __asset_turnoverBoot();
+else document.addEventListener('DOMContentLoaded', __asset_turnoverBoot);
 </script>
 </body>
 </html>

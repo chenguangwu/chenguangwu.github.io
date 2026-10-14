@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="current_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__current_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="current_ratioTable"></div>
+    <div id="current_ratioDiff"></div>
+    <div id="current_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -288,6 +294,43 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "流动比率越高越好吗？", "acceptedAnswer": {"@type": "Answer", "text": "并非越高越好。过高可能存货积压或现金闲置、资产收益低；通常 ≥2 较稳健，但需结合速动比率与行业特性。"}}, {"@type": "Question", "name": "流动比率和速动比率有何不同？", "acceptedAnswer": {"@type": "Answer", "text": "速动比率剔除变现慢的存货，=(流动资产−存货)/流动负债，更能反映即时偿债能力。"}}]}
+
+function __current_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __current_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ca=num('ca'),cl=num('cl');
+    if (!isFinite(__current_ratioNum('ca')) || !isFinite(__current_ratioNum('cl'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#current_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['流动比率', (ca/cl).toFixed(2)],
+            ['流动负债占比 (%)', (cl/ca*100).toFixed(1)],
+            ['净营运资本 (元)', (ca-cl).toFixed(2)],
+            ['流动比率倒数', (1/((ca/cl)||1)).toFixed(4)],
+            ['流动比率百分数', (ca/cl*100).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({ca:__current_ratioNum('ca'), cl:__current_ratioNum('cl')});
+    TBKit.history.mount('#current_ratioHist',function(rec){ if(rec.ca!=null)document.getElementById('ca').value=rec.ca; if(rec.cl!=null)document.getElementById('cl').value=rec.cl; calcTool(); });
+}
+function __current_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#current_ratioTable','current-ratio.csv'); } catch(e){}
+}
+function __current_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#current_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{ca:'3000000', cl:'1500000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ca:'6000000', cl:'3000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ca:'1500000', cl:'750000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __current_ratioExtras(); }catch(e){} };
+function __current_ratioBoot(){ try{ __current_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __current_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __current_ratioBoot);
 </script>
 </body>
 </html>

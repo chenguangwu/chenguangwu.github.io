@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="days_payable_outstandingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__days_payable_outstandingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="days_payable_outstandingTable"></div>
+    <div id="days_payable_outstandingDiff"></div>
+    <div id="days_payable_outstandingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -288,6 +294,44 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "DPO 越长越好吗？", "acceptedAnswer": {"@type": "Answer", "text": "适当长可占用无息资金、改善现金周期，但过长会损害供应商关系、可能影响供货与折扣，需在谈判力与信用之间平衡。"}}, {"@type": "Question", "name": "DPO 与现金周期的关系？", "acceptedAnswer": {"@type": "Answer", "text": "现金周期=DSO+DIH−DPO，DPO 是其中唯一减项，延长付款天数能缩短企业自身现金被占用的时间。"}}]}
+
+function __days_payable_outstandingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __days_payable_outstandingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var AP=num('AP'),cogs=num('cogs');
+    var DPO=AP/cogs*365;
+    if (!isFinite(__days_payable_outstandingNum('AP')) || !isFinite(__days_payable_outstandingNum('cogs'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#days_payable_outstandingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['应付账款天数 DPO (天)', DPO.toFixed(1)],
+            ['应付账款周转率 (次/年)', (cogs/Math.max(AP,1)).toFixed(3)],
+            ['应付占销货成本比', (AP/Math.max(cogs,1)).toFixed(4)],
+            ['应付账款天数 (月)', (AP/Math.max(cogs,1)*365/30).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({AP:__days_payable_outstandingNum('AP'), cogs:__days_payable_outstandingNum('cogs'), DPO:DPO});
+    TBKit.history.mount('#days_payable_outstandingHist',function(rec){ if(rec.AP!=null)document.getElementById('AP').value=rec.AP; if(rec.cogs!=null)document.getElementById('cogs').value=rec.cogs; calcTool(); });
+    TBKit.util.diffBox('#days_payable_outstandingDiff',['DPO']);
+}
+function __days_payable_outstandingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#days_payable_outstandingTable','days-payable-outstanding.csv'); } catch(e){}
+}
+function __days_payable_outstandingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#days_payable_outstandingPresets',[
+        {label:'默认',labelEn:'Default',values:{AP:'80', cogs:'600'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{AP:'160', cogs:'1200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{AP:'40', cogs:'300'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __days_payable_outstandingExtras(); }catch(e){} };
+function __days_payable_outstandingBoot(){ try{ __days_payable_outstandingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __days_payable_outstandingBoot();
+else document.addEventListener('DOMContentLoaded', __days_payable_outstandingBoot);
 </script>
 </body>
 </html>

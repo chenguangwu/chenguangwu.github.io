@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cash_conversion_cyclePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cash_conversion_cycleExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cash_conversion_cycleTable"></div>
+    <div id="cash_conversion_cycleDiff"></div>
+    <div id="cash_conversion_cycleHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -238,6 +244,43 @@ calcTool();
 </section>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "现金周期的公式是什么？", "acceptedAnswer": {"@type": "Answer", "text": "CCC=应收账款周转天数(DSO)+存货周转天数(DIH)−应付账款周转天数(DPO)；DPO 越大周期越短，但不能无限压供应商账期。"}}, {"@type": "Question", "name": "现金周期为负说明什么？", "acceptedAnswer": {"@type": "Answer", "text": "当 DPO 大于 DSO+DIH 时周期为负，说明企业可无偿占用供应商资金覆盖经营占用，是强势供应链地位的体现（如部分零售巨头）。"}}]}
+
+function __cash_conversion_cycleNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cash_conversion_cycleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var DSO=num('DSO'),DIO=num('DIO'),DPO=num('DPO');
+    var CCC=DSO+DIO-DPO;
+    if (!isFinite(__cash_conversion_cycleNum('DSO')) || !isFinite(__cash_conversion_cycleNum('DIO')) || !isFinite(__cash_conversion_cycleNum('DPO'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cash_conversion_cycleTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['现金转换周期 CCC (天)', CCC.toFixed(2)],
+            ['营业周期（存货 + 应收）(天)', (DSO+DIO).toFixed(2)],
+            ['应付占营业周期比 (%)', (DPO/ (DSO+DIO||1) *100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({DSO:__cash_conversion_cycleNum('DSO'), DIO:__cash_conversion_cycleNum('DIO'), DPO:__cash_conversion_cycleNum('DPO'), CCC:CCC});
+    TBKit.history.mount('#cash_conversion_cycleHist',function(rec){ if(rec.DSO!=null)document.getElementById('DSO').value=rec.DSO; if(rec.DIO!=null)document.getElementById('DIO').value=rec.DIO; if(rec.DPO!=null)document.getElementById('DPO').value=rec.DPO; calcTool(); });
+    TBKit.util.diffBox('#cash_conversion_cycleDiff',['CCC']);
+}
+function __cash_conversion_cycleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cash_conversion_cycleTable','cash-conversion-cycle.csv'); } catch(e){}
+}
+function __cash_conversion_cyclePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cash_conversion_cyclePresets',[
+        {label:'默认',labelEn:'Default',values:{DSO:'36.5', DIO:'91.25', DPO:'48.67'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{DSO:'73', DIO:'182.5', DPO:'97.34'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{DSO:'18.25', DIO:'45.625', DPO:'24.335'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cash_conversion_cycleExtras(); }catch(e){} };
+function __cash_conversion_cycleBoot(){ try{ __cash_conversion_cyclePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cash_conversion_cycleBoot();
+else document.addEventListener('DOMContentLoaded', __cash_conversion_cycleBoot);
 </script>
 </body>
 </html>
