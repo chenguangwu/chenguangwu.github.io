@@ -143,7 +143,7 @@ s.parentNode.insertBefore(el, s);
           <input type="number" id="hardValue" value="50" oninput="calcConvert()" min="0" max="100">
         </div>
       </div>
-      <div class="result-box" id="convertResult"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__hardness_calcExport()">导出明细 CSV</button></div><div class="result-box" id="convertResult"></div> <div id="hardness_calcTable"></div> <div id="hardness_calcDiff"></div> <div id="hardness_calcChart"></div> <div id="hardness_calcHist"></div>
     </div>
 
     <div class="tab-content" id="tab-modulus">
@@ -397,6 +397,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __hardness_calc_last=0,__hardness_calc_skip=false;
+function __hardness_calcSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __hardness_calcResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __hardness_calcTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __hardness_calcRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__hardness_calcTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#hardness_calcTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#hardness_calcDiff');
+        TBKit.history.mount('#hardness_calcHist',function(rec){
+            __hardness_calc_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcConvert();
+            }catch(e2){}
+            __hardness_calc_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__hardness_calcTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#hardness_calcChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __hardness_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__hardness_calc_skip) return;
+    var snap=__hardness_calcSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__hardness_calcResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__hardness_calc_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __hardness_calc_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __hardness_calcRender(keys,rk,en);
+}
+function __hardness_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hardness_calcTable','hardness-calc.csv'); } catch(e){}
+}
+function __hardness_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#hardness_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'hardType':'A', 'hardValue':'50', 'shoreA':'50'}}],function(){ calcConvert(); });
+}
+var __hardness_calc_f0=(typeof calcConvert==='function')?calcConvert:null;
+if(__hardness_calc_f0){
+    calcConvert=function(){ var __r=__hardness_calc_f0.apply(null,arguments); try{ __hardness_calcExtras(); }catch(e){} return __r; };
+}
+function __hardness_calcBoot(){ try{ __hardness_calcPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __hardness_calcBoot();
+else document.addEventListener('DOMContentLoaded', __hardness_calcBoot);
 </script>
 
 </body>

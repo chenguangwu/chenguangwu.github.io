@@ -156,11 +156,11 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <button type="button" class="btn" onclick="addLoad()">+ 添加灯具</button>
-      <button type="button" class="btn primary" onclick="calc()">计算负载</button>
+      <div id="power_loadPresets"></div><button type="button" class="btn primary" onclick="calc()">计算负载</button><button class="btn" type="button" onclick="__power_loadExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="power_loadTable"></div> <div id="power_loadDiff"></div> <div id="power_loadChart"></div> <div id="power_loadHist"></div>
 
     <div class="info-box">
       <strong>负载说明：</strong>总电流 = 总功率 / (电压 × 功率因数)。三相负载应尽量均匀分配，每相不平衡度不超过 15%。建议总负载不超过断路器额定值的 80%。
@@ -422,6 +422,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __power_load_last=0,__power_load_skip=false;
+function __power_loadSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __power_loadResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __power_loadTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __power_loadRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__power_loadTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#power_loadTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#power_loadDiff');
+        TBKit.history.mount('#power_loadHist',function(rec){
+            __power_load_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __power_load_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__power_loadTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#power_loadChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __power_loadExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__power_load_skip) return;
+    var snap=__power_loadSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__power_loadResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__power_load_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __power_load_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __power_loadRender(keys,rk,en);
+}
+function __power_loadExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#power_loadTable','power-load.csv'); } catch(e){}
+}
+function __power_loadPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#power_loadPresets',[{label:'默认参数',labelEn:'Default',values:{'voltage':'220', 'powerFactor':'0.9', 'safetyMargin':'20'}}],function(){ calc(); });
+}
+var __power_load_f0=(typeof calc==='function')?calc:null;
+if(__power_load_f0){
+    calc=function(){ var __r=__power_load_f0.apply(null,arguments); try{ __power_loadExtras(); }catch(e){} return __r; };
+}
+function __power_loadBoot(){ try{ __power_loadPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __power_loadBoot();
+else document.addEventListener('DOMContentLoaded', __power_loadBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用灯光总功率与负载计算</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>供电电压（V）</li><li>功率因数</li><li>安全裕度（%）</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>灯光总功率与负载计算是做什么的？</dt><dd>添加多个灯具及其功率，计算舞台灯光总功率、总电流与三相负载分配，用于配电容量规划、空开选型与用电安全核查。</dd><dt>如何使用灯光总功率与负载计算？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>灯光总功率与负载计算适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

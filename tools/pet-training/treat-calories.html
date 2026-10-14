@@ -179,7 +179,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <div class="cal-main" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__treat_caloriesExport()">导出明细 CSV</button></div><div class="cal-main" id="result"></div> <div id="treat_caloriesTable"></div> <div id="treat_caloriesDiff"></div> <div id="treat_caloriesChart"></div> <div id="treat_caloriesHist"></div>
     <div class="daily-grid" id="dailyGrid"></div>
     <div id="advice"></div>
   </div>
@@ -378,6 +378,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __treat_calories_last=0,__treat_calories_skip=false;
+function __treat_caloriesSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __treat_caloriesResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __treat_caloriesTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __treat_caloriesRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__treat_caloriesTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#treat_caloriesTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#treat_caloriesDiff');
+        TBKit.history.mount('#treat_caloriesHist',function(rec){
+            __treat_calories_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __treat_calories_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__treat_caloriesTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#treat_caloriesChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __treat_caloriesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__treat_calories_skip) return;
+    var snap=__treat_caloriesSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__treat_caloriesResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__treat_calories_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __treat_calories_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __treat_caloriesRender(keys,rk,en);
+}
+function __treat_caloriesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#treat_caloriesTable','treat-calories.csv'); } catch(e){}
+}
+function __treat_caloriesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#treat_caloriesPresets',[{label:'默认参数',labelEn:'Default',values:{'petType':'dog', 'weight':'10', 'treatCal':'15', 'treatCount':'5', 'activity':'low', 'neutered':'no'}}],function(){ calc(); });
+}
+var __treat_calories_f0=(typeof calc==='function')?calc:null;
+if(__treat_calories_f0){
+    calc=function(){ var __r=__treat_calories_f0.apply(null,arguments); try{ __treat_caloriesExtras(); }catch(e){} return __r; };
+}
+function __treat_caloriesBoot(){ try{ __treat_caloriesPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __treat_caloriesBoot();
+else document.addEventListener('DOMContentLoaded', __treat_caloriesBoot);
 </script>
 
 </body>

@@ -219,7 +219,7 @@ s.parentNode.insertBefore(el, s);
 
 <div id="layerViz"></div>
 
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="pavement_designTable"></div> <div id="pavement_designDiff"></div> <div id="pavement_designChart"></div> <div id="pavement_designHist"></div>
 
 <div class="formula-box">
   <strong>📐 AASHTO 设计公式</strong>
@@ -232,7 +232,7 @@ s.parentNode.insertBefore(el, s);
 <div class="tip-box tip-info">💡 本工具采用 AASHTO 1993 设计指南，结果供参考。实际工程应结合 JTG D40-2011 公路沥青路面设计规范综合确定。</div>
 
 <div class="toolbar">
-  <button type="button" class="btn primary" onclick="calc()">🧮 计算</button>
+  <div id="pavement_designPresets"></div><button type="button" class="btn primary" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__pavement_designExport()">导出明细 CSV</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
 </div>
@@ -457,6 +457,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __pavement_design_last=0,__pavement_design_skip=false;
+function __pavement_designSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pavement_designResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pavement_designTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pavement_designRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pavement_designTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pavement_designTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pavement_designDiff');
+        TBKit.history.mount('#pavement_designHist',function(rec){
+            __pavement_design_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __pavement_design_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pavement_designTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pavement_designChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pavement_designExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pavement_design_skip) return;
+    var snap=__pavement_designSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pavement_designResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pavement_design_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pavement_design_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pavement_designRender(keys,rk,en);
+}
+function __pavement_designExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pavement_designTable','pavement-design.csv'); } catch(e){}
+}
+function __pavement_designPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pavement_designPresets',[{label:'默认参数',labelEn:'Default',values:{'inW18':'500', 'inR':'85', 'inS0':'0.45', 'inMR':'35', 'inP0':'4.2', 'inPt':'2.0', 'inD1':'15', 'inA1':'0.44', 'inA2':'0.14', 'inA3':'0.11'}}],function(){ calc(); });
+}
+var __pavement_design_f0=(typeof calc==='function')?calc:null;
+if(__pavement_design_f0){
+    calc=function(){ var __r=__pavement_design_f0.apply(null,arguments); try{ __pavement_designExtras(); }catch(e){} return __r; };
+}
+function __pavement_designBoot(){ try{ __pavement_designPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pavement_designBoot();
+else document.addEventListener('DOMContentLoaded', __pavement_designBoot);
 </script>
 
 </body>

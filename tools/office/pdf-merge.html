@@ -301,7 +301,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <!-- 结果 -->
-    <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__pdf_mergeExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="pdf_mergeTable"></div> <div id="pdf_mergeDiff"></div> <div id="pdf_mergeChart"></div> <div id="pdf_mergeHist"></div>
 
     <div class="info-box">
       所有 PDF 文件均在浏览器本地读取与合并，不会上传到任何服务器，请放心使用。
@@ -740,6 +740,113 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+
+var __pdf_merge_last=0,__pdf_merge_skip=false;
+function __pdf_mergeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pdf_mergeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pdf_mergeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pdf_mergeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pdf_mergeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pdf_mergeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pdf_mergeDiff');
+        TBKit.history.mount('#pdf_mergeHist',function(rec){
+            __pdf_merge_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                onFilePicked();
+            }catch(e2){}
+            __pdf_merge_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pdf_mergeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pdf_mergeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pdf_mergeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pdf_merge_skip) return;
+    var snap=__pdf_mergeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pdf_mergeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pdf_merge_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pdf_merge_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pdf_mergeRender(keys,rk,en);
+}
+function __pdf_mergeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pdf_mergeTable','pdf-merge.csv'); } catch(e){}
+}
+function __pdf_mergePresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __pdf_merge_f0=(typeof onFilePicked==='function')?onFilePicked:null;
+if(__pdf_merge_f0){
+    onFilePicked=function(){ var __r=__pdf_merge_f0.apply(null,arguments); try{ __pdf_mergeExtras(); }catch(e){} return __r; };
+}
+function __pdf_mergeBoot(){ try{ __pdf_mergePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pdf_mergeBoot();
+else document.addEventListener('DOMContentLoaded', __pdf_mergeBoot);
 </script>
 </body>
 </html>

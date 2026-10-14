@@ -119,8 +119,8 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>5. 合同与变更管理</label><select id="c5" onchange="calc()" style="font-size:16px;"><option value="2">符合 (2分)</option><option value="1">部分符合 (1分)</option><option value="0">不符合 (0分)</option></select></div><div><label>6. 监理日志与月报</label><select id="c6" onchange="calc()" style="font-size:16px;"><option value="2">符合 (2分)</option><option value="1">部分符合 (1分)</option><option value="0">不符合 (0分)</option></select></div></div>
 <div class="input-row"><div><label>7. 隐蔽工程验收</label><select id="c7" onchange="calc()" style="font-size:16px;"><option value="2">符合 (2分)</option><option value="1">部分符合 (1分)</option><option value="0">不符合 (0分)</option></select></div><div><label>8. 旁站监理记录</label><select id="c8" onchange="calc()" style="font-size:16px;"><option value="2">符合 (2分)</option><option value="1">部分符合 (1分)</option><option value="0">不符合 (0分)</option></select></div></div>
 <div class="input-row"><div><label>9. 协调沟通机制</label><select id="c9" onchange="calc()" style="font-size:16px;"><option value="2">符合 (2分)</option><option value="1">部分符合 (1分)</option><option value="0">不符合 (0分)</option></select></div><div><label>10. 竣工验收准备</label><select id="c10" onchange="calc()" style="font-size:16px;"><option value="2">符合 (2分)</option><option value="1">部分符合 (1分)</option><option value="0">不符合 (0分)</option></select></div></div>
-<div class="toolbar"><button type="button" class="btn primary" onclick="calc()">评估得分</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<div class="result-box" id="res"></div>
+<div class="toolbar"><div id="checker_12Presets"></div><button type="button" class="btn primary" onclick="calc()">评估得分</button><button class="btn" type="button" onclick="__checker_12Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
+<div class="result-box" id="res"></div> <div id="checker_12Table"></div> <div id="checker_12Diff"></div> <div id="checker_12Chart"></div> <div id="checker_12Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -258,6 +258,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __checker_12_last=0,__checker_12_skip=false;
+function __checker_12Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __checker_12ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __checker_12Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __checker_12Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__checker_12Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#checker_12Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#checker_12Diff');
+        TBKit.history.mount('#checker_12Hist',function(rec){
+            __checker_12_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __checker_12_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__checker_12Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#checker_12Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __checker_12Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__checker_12_skip) return;
+    var snap=__checker_12Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__checker_12ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__checker_12_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __checker_12_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __checker_12Render(keys,rk,en);
+}
+function __checker_12Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#checker_12Table','checker-12.csv'); } catch(e){}
+}
+function __checker_12Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#checker_12Presets',[{label:'默认参数',labelEn:'Default',values:{'c1':'2', 'c2':'2', 'c3':'2', 'c4':'2', 'c5':'2', 'c6':'2', 'c7':'2', 'c8':'2', 'c9':'2', 'c10':'2'}}],function(){ calc(); });
+}
+var __checker_12_f0=(typeof calc==='function')?calc:null;
+if(__checker_12_f0){
+    calc=function(){ var __r=__checker_12_f0.apply(null,arguments); try{ __checker_12Extras(); }catch(e){} return __r; };
+}
+function __checker_12Boot(){ try{ __checker_12Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __checker_12Boot();
+else document.addEventListener('DOMContentLoaded', __checker_12Boot);
 </script>
 
 </body>

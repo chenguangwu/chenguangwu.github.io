@@ -154,7 +154,7 @@ s.parentNode.insertBefore(el, s);
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="单样本/双样本 t 检验、配对 t 检验、卡方拟合优度检验">Statistics Inspection</p>
 
 <div class="tab-row">
- <button type="button" class="tab-btn active" data-t="one-t" onclick="switchTab('one-t')">单样本 t</button>
+ <div id="statistical_testsPresets"></div><button type="button" class="tab-btn active" data-t="one-t" onclick="switchTab('one-t')">单样本 t</button><button class="btn" type="button" onclick="__statistical_testsExport()">导出明细 CSV</button>
  <button type="button" class="tab-btn" data-t="two-t" onclick="switchTab('two-t')">独立样本 t</button>
  <button type="button" class="tab-btn" data-t="paired-t" onclick="switchTab('paired-t')">配对 t</button>
  <button type="button" class="tab-btn" data-t="chi" onclick="switchTab('chi')">卡方拟合</button>
@@ -240,7 +240,7 @@ s.parentNode.insertBefore(el, s);
 
 <div class="result-card" id="result">
  <div style="color:var(--text-muted);text-align:center;">点击"检验"按钮查看结果</div>
-</div>
+</div> <div id="statistical_testsTable"></div> <div id="statistical_testsDiff"></div> <div id="statistical_testsChart"></div> <div id="statistical_testsHist"></div>
 
 <div class="info-box" style="margin-top:12px;">
  💡 t 检验用于比较均值差异;卡方检验用于比较频数分布。<br>
@@ -547,6 +547,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __statistical_tests_last=0,__statistical_tests_skip=false;
+function __statistical_testsSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __statistical_testsResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __statistical_testsTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __statistical_testsRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__statistical_testsTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#statistical_testsTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#statistical_testsDiff');
+        TBKit.history.mount('#statistical_testsHist',function(rec){
+            __statistical_tests_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                switchTab();
+            }catch(e2){}
+            __statistical_tests_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__statistical_testsTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#statistical_testsChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __statistical_testsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__statistical_tests_skip) return;
+    var snap=__statistical_testsSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__statistical_testsResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__statistical_tests_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __statistical_tests_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __statistical_testsRender(keys,rk,en);
+}
+function __statistical_testsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#statistical_testsTable','statistical-tests.csv'); } catch(e){}
+}
+function __statistical_testsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#statistical_testsPresets',[{label:'默认参数',labelEn:'Default',values:{'one-mu':'20', 'one-alpha':'0.1', 'one-type':'two', 'two-alpha':'0.1', 'two-var':'equal', 'paired-alpha':'0.05'}}],function(){ switchTab(); });
+}
+var __statistical_tests_f0=(typeof switchTab==='function')?switchTab:null;
+if(__statistical_tests_f0){
+    switchTab=function(){ var __r=__statistical_tests_f0.apply(null,arguments); try{ __statistical_testsExtras(); }catch(e){} return __r; };
+}
+function __statistical_testsBoot(){ try{ __statistical_testsPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __statistical_testsBoot();
+else document.addEventListener('DOMContentLoaded', __statistical_testsBoot);
 </script>
 <!-- SEO 介绍区块 -->
 

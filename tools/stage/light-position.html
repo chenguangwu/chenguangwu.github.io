@@ -137,7 +137,7 @@ s.parentNode.insertBefore(el, s);
           <input type="number" id="hDistance" value="5" oninput="calcAngle()" min="0" step="0.1">
         </div>
       </div>
-      <div class="result-box" id="angleResult"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__light_positionExport()">导出明细 CSV</button></div><div class="result-box" id="angleResult"></div> <div id="light_positionTable"></div> <div id="light_positionDiff"></div> <div id="light_positionChart"></div> <div id="light_positionHist"></div>
     </div>
 
     <div class="tab-content" id="tab-pos">
@@ -382,6 +382,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __light_position_last=0,__light_position_skip=false;
+function __light_positionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __light_positionResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __light_positionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __light_positionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__light_positionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#light_positionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#light_positionDiff');
+        TBKit.history.mount('#light_positionHist',function(rec){
+            __light_position_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcAngle();
+            }catch(e2){}
+            __light_position_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__light_positionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#light_positionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __light_positionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__light_position_skip) return;
+    var snap=__light_positionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__light_positionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__light_position_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __light_position_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __light_positionRender(keys,rk,en);
+}
+function __light_positionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#light_positionTable','light-position.csv'); } catch(e){}
+}
+function __light_positionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#light_positionPresets',[{label:'默认参数',labelEn:'Default',values:{'height':'6', 'hDistance':'5', 'projAngle':'45', 'height2':'6', 'beamAngle2':'25'}}],function(){ calcAngle(); });
+}
+var __light_position_f0=(typeof calcAngle==='function')?calcAngle:null;
+if(__light_position_f0){
+    calcAngle=function(){ var __r=__light_position_f0.apply(null,arguments); try{ __light_positionExtras(); }catch(e){} return __r; };
+}
+function __light_positionBoot(){ try{ __light_positionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __light_positionBoot();
+else document.addEventListener('DOMContentLoaded', __light_positionBoot);
 </script>
 
 </body>
