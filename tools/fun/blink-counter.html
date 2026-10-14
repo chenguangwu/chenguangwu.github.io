@@ -173,9 +173,14 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetTest()">重置</button>
     </div>
 
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__blink_counterExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);">点击「开始测试」后开始计时与计数。</p>
     </div>
+    <div id="blink_counterTable"></div>
+    <div id="blink_counterDiff"></div>
+    <div id="blink_counterChart"></div>
+    <div id="blink_counterHist"></div>
   </div>
 
   <div class="card">
@@ -406,6 +411,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __blink_counter_last=0,__blink_counter_skip=false;
+function __blink_counterSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __blink_counterResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __blink_counterTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __blink_counterRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__blink_counterTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#blink_counterTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#blink_counterDiff');
+        TBKit.history.mount('#blink_counterHist',function(rec){
+            __blink_counter_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                updateRing();
+            }catch(e2){}
+            __blink_counter_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__blink_counterTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#blink_counterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __blink_counterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__blink_counter_skip) return;
+    var snap=__blink_counterSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__blink_counterResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__blink_counter_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __blink_counter_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __blink_counterRender(keys,rk,en);
+}
+function __blink_counterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#blink_counterTable','blink-counter.csv'); } catch(e){}
+}
+function __blink_counterPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#blink_counterPresets',[{label:'默认参数',labelEn:'Default',values:{'duration':'30'}}],function(){ updateRing(); });
+}
+var __blink_counter_f0=(typeof updateRing==='function')?updateRing:null;
+if(__blink_counter_f0){
+    updateRing=function(){ var __r=__blink_counter_f0.apply(null,arguments); try{ __blink_counterExtras(); }catch(e){} return __r; };
+}
+function __blink_counterBoot(){ try{ __blink_counterPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __blink_counterBoot();
+else document.addEventListener('DOMContentLoaded', __blink_counterBoot);
 </script>
 
 </body>

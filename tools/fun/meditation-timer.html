@@ -139,12 +139,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="meditation_timerPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__meditation_timerExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="meditation_timerTable"></div>
+    <div id="meditation_timerDiff"></div>
+    <div id="meditation_timerHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -274,6 +280,49 @@ function resetForm(){document.getElementById('dur').value='10';
       document.getElementById('style').selectedIndex=0;
       calcTool();}
 calcTool();
+
+function __meditation_timerNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __meditation_timerExtras(){
+    function __meditation_timerRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var dur=Math.floor(num('dur')), seg=Math.floor(num('seg')), style=document.getElementById('style').value;
+    var nSeg=Math.max(1,Math.round(dur/seg));
+    var styleName={breath:'呼吸觉察',body:'身体扫描',mantra:'咒语默念',free:'自由冥想'}[style]||'呼吸觉察';
+    var now=new Date();
+    var end=new Date(now.getTime()+dur*60000);
+    var pad=function(x){return x<10?'0'+x:''+x;};
+    var fmtTime=function(d){return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());};
+    if (!isFinite(__meditation_timerNum('dur')) || !isFinite(__meditation_timerNum('seg')) || !__meditation_timerRaw('style')) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#meditation_timerTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['冥想总时长', dur+' 分钟'],
+            ['冥想方式', styleName],
+        ]
+    });
+    TBKit.history.record({dur:__meditation_timerRaw('dur'), seg:__meditation_timerRaw('seg'), style:__meditation_timerRaw('style'), nSeg:nSeg});
+    function __meditation_timerRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#meditation_timerHist',function(rec){ __meditation_timerRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#meditation_timerDiff',['nSeg']);
+}
+function __meditation_timerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#meditation_timerTable','meditation-timer.csv'); } catch(e){}
+}
+function __meditation_timerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#meditation_timerPresets',[
+        {label:'默认',labelEn:'Default',values:{dur:'10', seg:'2', style:''}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{dur:'20', seg:'4', style:''}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{dur:'5', seg:'1', style:''}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __meditation_timerExtras(); }catch(e){} };
+function __meditation_timerBoot(){ try{ __meditation_timerPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __meditation_timerBoot();
+else document.addEventListener('DOMContentLoaded', __meditation_timerBoot);
 </script>
 </body>
 </html>

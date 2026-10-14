@@ -148,7 +148,9 @@ s.parentNode.insertBefore(el, s);
     <textarea class="typing-area" id="typeArea" placeholder="点击此处开始打字，按键分布会实时显示在下方键盘热力图上…" onkeydown="onKey(event)"></textarea>
 
     <div class="toolbar" style="margin-top:12px;">
+      <div id="keyboard_heatmapPresets"></div>
       <button type="button" class="btn" onclick="loadSample()">载入示例文本</button>
+      <button class="btn" type="button" onclick="__keyboard_heatmapExport()">导出明细 CSV</button>
       <button type="button" class="btn danger" onclick="resetHeat()">清空统计</button>
       <button type="button" class="btn" onclick="exportData()">导出数据</button>
     </div>
@@ -165,6 +167,10 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);">开始打字后，这里会显示按键排行。</p>
     </div>
+    <div id="keyboard_heatmapTable"></div>
+    <div id="keyboard_heatmapDiff"></div>
+    <div id="keyboard_heatmapChart"></div>
+    <div id="keyboard_heatmapHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -416,6 +422,113 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __keyboard_heatmap_last=0,__keyboard_heatmap_skip=false;
+function __keyboard_heatmapSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __keyboard_heatmapResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __keyboard_heatmapTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __keyboard_heatmapRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__keyboard_heatmapTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#keyboard_heatmapTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#keyboard_heatmapDiff');
+        TBKit.history.mount('#keyboard_heatmapHist',function(rec){
+            __keyboard_heatmap_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                loadSample();
+            }catch(e2){}
+            __keyboard_heatmap_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__keyboard_heatmapTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#keyboard_heatmapChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __keyboard_heatmapExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__keyboard_heatmap_skip) return;
+    var snap=__keyboard_heatmapSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__keyboard_heatmapResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__keyboard_heatmap_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __keyboard_heatmap_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __keyboard_heatmapRender(keys,rk,en);
+}
+function __keyboard_heatmapExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#keyboard_heatmapTable','keyboard-heatmap.csv'); } catch(e){}
+}
+function __keyboard_heatmapPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __keyboard_heatmap_f0=(typeof loadSample==='function')?loadSample:null;
+if(__keyboard_heatmap_f0){
+    loadSample=function(){ var __r=__keyboard_heatmap_f0.apply(null,arguments); try{ __keyboard_heatmapExtras(); }catch(e){} return __r; };
+}
+function __keyboard_heatmapBoot(){ try{ __keyboard_heatmapPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __keyboard_heatmapBoot();
+else document.addEventListener('DOMContentLoaded', __keyboard_heatmapBoot);
 </script>
 
 </body>
