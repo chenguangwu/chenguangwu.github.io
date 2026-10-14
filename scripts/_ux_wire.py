@@ -26,6 +26,32 @@ import os, re, sys, json, argparse
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS = os.path.join(ROOT, "tools")
 
+# 非 JS 脚本块（JSON-LD 等）：浏览器不执行，注入其中=死代码+污染结构化数据
+def _is_nonjs_type(attrs):
+    tm = re.search(r'type\s*=\s*["\']([^"\']*)["\']', attrs, re.I)
+    if not tm:
+        return False
+    v = tm.group(1).strip().lower()
+    return v != '' and 'javascript' not in v
+
+def last_js_script_close(s):
+    """返回最后一个「真 JS 内联块」的 </script> 索引；跳过 src 外链与
+    application/ld+json 等非 JS 块（曾因注入进 FAQ JSON-LD 致 141 页接线成
+    死代码 + JSON-LD 污染，2026-10-14 修复）。无则返回 -1。"""
+    best = -1
+    for m in re.finditer(r'<script\b([^>]*)>', s, re.I):
+        attrs = m.group(1)
+        if re.search(r'\bsrc\s*=', attrs, re.I):
+            continue
+        if _is_nonjs_type(attrs):
+            continue
+        close = s.find('</script>', m.end())
+        if close == -1:
+            continue
+        if close > best:
+            best = close
+    return best
+
 def bracket_match(s, start):
     """从 s[start]（应为 '['）起，匹配最外层 [...] 返回 (内容, 结束索引)"""
     assert s[start] == '['
@@ -351,9 +377,11 @@ def apply_page(page, dry=False):
     # 3) 结果容器：在 result-box 后
     s = s.replace('<div class="result-box" id="result"></div>',
                   '<div class="result-box" id="result"></div>\n    <div id="%sTable"></div>\n    <div id="%sDiff"></div>\n    <div id="%sHist"></div>' % (p, p, p), 1)
-    # 4) 脚本注入：在含 calcTool 的 <script> 末尾 </script> 前
-    # 找最后一个 </script>（页面内联脚本）
-    pos = s.rfind('</script>')
+    # 4) 脚本注入：在最后一个「真 JS 内联块」的 </script> 前
+    #    必须跳过 application/ld+json 等非 JS 块（注进去浏览器不执行=死代码）
+    pos = last_js_script_close(s)
+    if pos == -1:
+        return "skip:no-js-script"
     s = s[:pos] + "\n" + js_code + "\n" + s[pos:]
 
     if dry:
@@ -532,10 +560,11 @@ def apply_custom(page, dry=False):
         return "skip:custom-result-tag-unmatched"
     containers = '<div id="%sTable"></div>\n    <div id="%sDiff"></div>\n    <div id="%sChart"></div>\n    <div id="%sHist"></div>' % (p, p, p, p)
     s = s[:close_idx] + '\n    ' + containers + s[close_idx:]
-    # 4) 脚本注入：最后一个 </script> 前
-    pos = s.rfind('</script>')
+    # 4) 脚本注入：在最后一个「真 JS 内联块」的 </script> 前
+    #    必须跳过 application/ld+json 等非 JS 块（注进去浏览器不执行=死代码）
+    pos = last_js_script_close(s)
     if pos == -1:
-        return "skip:custom-no-script"
+        return "skip:custom-no-js-script"
     s = s[:pos] + "\n" + js_code + "\n" + s[pos:]
 
     open(page, 'w', encoding='utf-8').write(s)
