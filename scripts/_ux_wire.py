@@ -42,6 +42,11 @@ def bracket_match(s, start):
         i += 1
     return None, i
 
+def bracket_depth(s):
+    """粗略括号深度：{[+( 计数减 }]) 计数（不考虑字符串，全角括号不影响）。
+    用于判断一行续行归属：>0 表示该行括号未闭合，后续闭合行必须拼回。"""
+    return s.count('{') + s.count('[') + s.count('(') - s.count('}') - s.count(']') - s.count(')')
+
 def find_datagrid_array(body):
     idx = body.find('dataGrid(')
     if idx < 0:
@@ -126,7 +131,12 @@ def extract(page):
             continue
         if re.match(r"^(const|var|let)\b", st) and "setResult" not in st and "__tbInputGuard" not in st and "__ig" not in st:
             keep.append(st)
-        elif keep and not re.match(r"^(const|var|let|if|for|while|switch|function|return|else|do|try|catch|throw|break|continue|})", st):
+        elif keep and not re.match(r"^(const|var|let|if|for|while|switch|function|return|else|do|try|catch|throw|break|continue)\b", st):
+            # 续行拼接：以 } ] ) 开头的闭合行，在上一行括号未闭合时（多行对象/数组字面量）必须拼回，
+            # 否则会丢闭合括号产生语法错（如 const info={...} 跨行、闭合行独立成 `};`）。
+            # 上一行已闭合（函数体闭合等）才丢弃。
+            if st[0] in '}])' and bracket_depth(keep[-1]) <= 0:
+                continue
             keep[-1] += " " + st
         # 其余（控制流/孤立续行）丢弃
     pre = "\n".join(keep)

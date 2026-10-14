@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="phone_screen_sizesPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__phone_screen_sizesExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="phone_screen_sizesTable"></div>
+    <div id="phone_screen_sizesDiff"></div>
+    <div id="phone_screen_sizesHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -265,6 +271,45 @@ function resetForm(){document.getElementById('diag').value='6.1';
       document.getElementById('resh').value='1170';
       calcTool();}
 calcTool();
+
+function __phone_screen_sizesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __phone_screen_sizesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var diag=num('diag'), rw=num('resw'), rh=num('resh');
+    var ppi=Math.sqrt(rw*rw+rh*rh)/diag; // 常见机型
+    var phones=[ ['iPhone 15 Pro','6.1 英寸','2556×1179',460], ['iPhone 15','6.1 英寸','2556×1179',460], ['iPhone 14 Pro Max','6.7 英寸','2796×1290',460], ['iPhone SE (2022)','4.7 英寸','1334×750',326], ['三星 Galaxy S24','6.2 英寸','2340×1080',416], ['小米 14','6.36 英寸','2670×1200',460], ['华为 Mate 60 Pro','6.82 英寸','2720×1260',440], ['OPPO Find X7','6.78 英寸','2780×1264',450], ['vivo X100 Pro','6.78 英寸','2800×1260',452], ['一加 12','6.82 英寸','3168×1440',510], ];
+    if (!isFinite(__phone_screen_sizesNum('diag')) || !isFinite(__phone_screen_sizesNum('resw')) || !isFinite(__phone_screen_sizesNum('resh'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#phone_screen_sizesTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['输入参数反算 PPI', ppi.toFixed(0)+' PPI'],
+            ['屏幕尺寸', diag.toFixed(1)+' 英寸'],
+            ['分辨率', rw+'×'+rh],
+            ['对角线像素', Math.sqrt(rw*rw+rh*rh).toFixed(0)+' px'],
+        ]
+    });
+    TBKit.history.record({diag:__phone_screen_sizesNum('diag'), resw:__phone_screen_sizesNum('resw'), resh:__phone_screen_sizesNum('resh'), ppi:ppi});
+    TBKit.history.mount('#phone_screen_sizesHist',function(rec){ if(rec.diag!=null)document.getElementById('diag').value=rec.diag; if(rec.resw!=null)document.getElementById('resw').value=rec.resw; if(rec.resh!=null)document.getElementById('resh').value=rec.resh; calcTool(); });
+    TBKit.util.diffBox('#phone_screen_sizesDiff',['ppi']);
+}
+function __phone_screen_sizesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#phone_screen_sizesTable','phone-screen-sizes.csv'); } catch(e){}
+}
+function __phone_screen_sizesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#phone_screen_sizesPresets',[
+        {label:'默认',labelEn:'Default',values:{diag:'6.1', resw:'2532', resh:'1170'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{diag:'12.2', resw:'5064', resh:'2340'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{diag:'3.05', resw:'1266', resh:'585'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __phone_screen_sizesExtras(); }catch(e){} };
+function __phone_screen_sizesBoot(){ try{ __phone_screen_sizesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __phone_screen_sizesBoot();
+else document.addEventListener('DOMContentLoaded', __phone_screen_sizesBoot);
 </script>
 </body>
 </html>

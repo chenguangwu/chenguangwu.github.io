@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="bluetooth_versionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__bluetooth_versionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="bluetooth_versionTable"></div>
+    <div id="bluetooth_versionDiff"></div>
+    <div id="bluetooth_versionHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -268,6 +274,49 @@ function resetForm(){document.getElementById('v').selectedIndex=0;
       document.getElementById('scene').selectedIndex=0;
       calcTool();}
 calcTool();
+
+function __bluetooth_versionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __bluetooth_versionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=document.getElementById('v').value||'5.3';
+    var v2=document.getElementById('v2').value||'5.0';
+    var scene=document.getElementById('scene').value||'audio';
+    var info={ '4.2':['1 Mbps','约 10-100m','低功耗改进、IP 支持','BLE 普及'], '5.0':['2 Mbps','约 10-100m（LE 240m）','2倍速率、4倍距离、8倍广播容量','BLE 大升级'], '5.1':['2 Mbps','约 10-100m','方向定位（AoA/AoD）','室内定位'], '5.2':['2 Mbps','约 10-100m','LE 音频（LC3 编码）','音频新标准'], '5.3':['2 Mbps','约 10-100m','连接子评级、周期广播改进','稳定省电'], '5.4':['2 Mbps','约 10-100m','广播加密、PAwR 广告响应','工业 IoT'], };
+    var row=info[v]||info['5.3'], row2=info[v2]||info['5.0'];
+    var sceneAdv={audio:v>='5.2'?'支持 LE Audio（LC3）':'仅经典音频（SBC/AAC）',iot:v>='5.0'?'广播容量大、mesh 稳定':'BLE 基础功能',peripheral:v>='5.0'?'速率/距离更优':'够用'}[scene]||'';
+    var adv=parseFloat(v)>=parseFloat(v2)?'较新，特性更全':'旧版，兼容性更广';
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#bluetooth_versionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['版本对比', 'Bluetooth '+v+' vs '+v2],
+            ['最大速率', row[0]+' / '+row2[0]],
+            ['有效距离', row[1]+' / '+row2[1]],
+            ['所选版本核心特性', row[2]],
+            ['建议', adv+' · '+sceneAdv],
+        ]
+    });
+    TBKit.history.record({v:v});
+    TBKit.history.mount('#bluetooth_versionHist',function(rec){  calcTool(); });
+    TBKit.util.diffBox('#bluetooth_versionDiff',['v']);
+}
+function __bluetooth_versionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bluetooth_versionTable','bluetooth-version.csv'); } catch(e){}
+}
+function __bluetooth_versionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bluetooth_versionPresets',[
+        {label:'默认',labelEn:'Default',values:{}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __bluetooth_versionExtras(); }catch(e){} };
+function __bluetooth_versionBoot(){ try{ __bluetooth_versionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bluetooth_versionBoot();
+else document.addEventListener('DOMContentLoaded', __bluetooth_versionBoot);
 </script>
 </body>
 </html>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="regex_commonPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__regex_commonExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="regex_commonTable"></div>
+    <div id="regex_commonDiff"></div>
+    <div id="regex_commonHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -264,6 +270,47 @@ function resetForm(){document.getElementById('cat').selectedIndex=0;
       document.getElementById('limit').value='8';
       calcTool();}
 calcTool();
+
+function __regex_commonNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __regex_commonExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var cat=document.getElementById('cat').value||'email', txt=document.getElementById('txt').value||'';
+    var lim=Math.max(1,Math.floor(num('limit')));
+    var regs={ email:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, phone:/1[3-9]\d{9}/g, idcard:/\d{17}[\dXx]/g, url:/https?:\/\/[^\s<>"']+/g, ipv4:/(?:\d{1,3}\.){3}\d{1,3}/g, date:/\d{4}-\d{2}-\d{2}/g, chinese:/[\u4e00-\u9fff]+/g, username:/[A-Za-z0-9_]{3,16}/g, };
+    var names={email:'邮箱地址',phone:'中国大陆手机号',idcard:'身份证号',url:'URL 链接',ipv4:'IPv4 地址',date:'日期 YYYY-MM-DD',chinese:'中文字符',username:'用户名(字母数字_3-16)'};
+    var re=regs[cat]||regs.email;
+    var found=txt.match(re)||[];
+    var name=names[cat]||'';
+    if (!isFinite(__regex_commonNum('limit'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#regex_commonTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['正则类别', name],
+            ['匹配数量', found.length+' 个'],
+        ]
+    });
+    TBKit.history.record({limit:__regex_commonNum('limit'), cat:cat});
+    TBKit.history.mount('#regex_commonHist',function(rec){ if(rec.limit!=null)document.getElementById('limit').value=rec.limit; calcTool(); });
+    TBKit.util.diffBox('#regex_commonDiff',['cat']);
+}
+function __regex_commonExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#regex_commonTable','regex-common.csv'); } catch(e){}
+}
+function __regex_commonPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#regex_commonPresets',[
+        {label:'默认',labelEn:'Default',values:{limit:'8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{limit:'16'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{limit:'4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __regex_commonExtras(); }catch(e){} };
+function __regex_commonBoot(){ try{ __regex_commonPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __regex_commonBoot();
+else document.addEventListener('DOMContentLoaded', __regex_commonBoot);
 </script>
 
 </body>

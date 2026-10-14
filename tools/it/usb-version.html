@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="usb_versionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__usb_versionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="usb_versionTable"></div>
+    <div id="usb_versionDiff"></div>
+    <div id="usb_versionHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -267,6 +273,49 @@ function resetForm(){document.getElementById('v').selectedIndex=0;
       document.getElementById('conn').selectedIndex=0;
       calcTool();}
 calcTool();
+
+function __usb_versionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __usb_versionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var v=document.getElementById('v').value||'3.2';
+    var v2=document.getElementById('v2').value||'2.0';
+    var conn=document.getElementById('conn').value||'usbc';
+    var info={ '2.0':['480 Mbps','USB-A/B/Mini/Micro','5V / 0.5A','普及型'], '3.0':['5 Gbps','USB-A（蓝芯）/C','5V / 0.9A','SuperSpeed'], '3.1':['10 Gbps','USB-C 为主','5V / 0.9A','SuperSpeed+'], '3.2':['20 Gbps','USB-C','5V / 1.5A','双通道'], '4.0':['40 Gbps','USB-C','最高 240W（PD 3.1）','雷电兼容'], };
+    var row=info[v]||info['3.2'], row2=info[v2]||info['2.0'];
+    var connNote={usbc:parseFloat(v)>=3.1?'USB-C 支持全速率':'USB-C 仅承载较低速率',typea:parseFloat(v)<=3.0?'Type-A 常见':'Type-A 少见（需 C）',micro:parseFloat(v)<=2.0?'Micro 常见':'Micro 已淘汰'}[conn]||'';
+    var adv=parseFloat(v)>=parseFloat(v2)?'较新，速率更高':'旧版，兼容更广';
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#usb_versionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['版本对比', 'USB '+v+' vs '+v2],
+            ['最大速率', row[0]+' / '+row2[0]],
+            ['接口形态', row[1]+' / '+row2[1]],
+            ['供电能力', row[2]+' / '+row2[2]],
+            ['建议', adv+' · '+connNote],
+        ]
+    });
+    TBKit.history.record({v:v});
+    TBKit.history.mount('#usb_versionHist',function(rec){  calcTool(); });
+    TBKit.util.diffBox('#usb_versionDiff',['v']);
+}
+function __usb_versionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#usb_versionTable','usb-version.csv'); } catch(e){}
+}
+function __usb_versionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#usb_versionPresets',[
+        {label:'默认',labelEn:'Default',values:{}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __usb_versionExtras(); }catch(e){} };
+function __usb_versionBoot(){ try{ __usb_versionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __usb_versionBoot();
+else document.addEventListener('DOMContentLoaded', __usb_versionBoot);
 </script>
 
 </body>
