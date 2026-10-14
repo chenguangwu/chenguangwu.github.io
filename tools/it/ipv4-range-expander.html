@@ -119,10 +119,10 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div
     <div class="toolbar">
-      <button class="btn primary" onclick="calcTool()">计算</button>
+      <div id="ipv4_range_expanderPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__ipv4_range_expanderExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="ipv4_range_expanderTable"></div> <div id="ipv4_range_expanderDiff"></div> <div id="ipv4_range_expanderChart"></div> <div id="ipv4_range_expanderHist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#3B82F6;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -206,6 +206,114 @@ const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='numb
 function resetForm(){document.getElementById('cidr').value='192.168.1.0/24';
       calcTool();}
 calcTool();
+
+var __ipv4_range_expander_last=0,__ipv4_range_expander_skip=false;
+function __ipv4_range_expanderSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ipv4_range_expanderResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ipv4_range_expanderTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ipv4_range_expanderRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ipv4_range_expanderTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ipv4_range_expanderTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ipv4_range_expanderDiff');
+        TBKit.history.mount('#ipv4_range_expanderHist',function(rec){
+            __ipv4_range_expander_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcTool();
+            }catch(e2){}
+            __ipv4_range_expander_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ipv4_range_expanderTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ipv4_range_expanderChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ipv4_range_expanderExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ipv4_range_expander_skip) return;
+    var snap=__ipv4_range_expanderSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ipv4_range_expanderResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ipv4_range_expander_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ipv4_range_expander_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ipv4_range_expanderRender(keys,rk,en);
+}
+function __ipv4_range_expanderExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ipv4_range_expanderTable','ipv4-range-expander.csv'); } catch(e){}
+}
+function __ipv4_range_expanderPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ipv4_range_expanderPresets',[{label:'默认参数',labelEn:'Default',values:{'cidr':'192.168.1.0/24'}}],function(){ calcTool(); });
+}
+var __ipv4_range_expander_f0=(typeof calcTool==='function')?calcTool:null;
+if(__ipv4_range_expander_f0){
+    calcTool=function(){ var __r=__ipv4_range_expander_f0.apply(null,arguments); try{ __ipv4_range_expanderExtras(); }catch(e){} return __r; };
+}
+function __ipv4_range_expanderBoot(){ try{ __ipv4_range_expanderPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ipv4_range_expanderBoot();
+else document.addEventListener('DOMContentLoaded', __ipv4_range_expanderBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

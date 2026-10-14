@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="uw_profitPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__uw_profitExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="uw_profitTable"></div>
+    <div id="uw_profitDiff"></div>
+    <div id="uw_profitHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -254,6 +260,45 @@ function resetForm(){document.getElementById('premium').value = '10000000';
       document.getElementById('exp').value = '2500000';
       calcTool();}
 calcTool();
+
+function __uw_profitNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __uw_profitExtras(){
+    function __uw_profitRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
+    var p=num('premium'),c=num('claims'),e=num('exp');
+    var profit=p-c-e;
+    if (!isFinite(__uw_profitNum('premium')) || !isFinite(__uw_profitNum('claims')) || !isFinite(__uw_profitNum('exp'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#uw_profitTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['承保利润 (元)', fmt(profit)],
+            ['承保利润率 (%)', (profit/p*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({premium:__uw_profitRaw('premium'), claims:__uw_profitRaw('claims'), exp:__uw_profitRaw('exp'), p:p});
+    function __uw_profitRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#uw_profitHist',function(rec){ __uw_profitRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#uw_profitDiff',['p']);
+}
+function __uw_profitExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#uw_profitTable','uw-profit.csv'); } catch(e){}
+}
+function __uw_profitPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#uw_profitPresets',[
+        {label:'默认',labelEn:'Default',values:{premium:'10000000', claims:'6500000', exp:'2500000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{premium:'20000000', claims:'13000000', exp:'5000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{premium:'5000000', claims:'3250000', exp:'1250000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __uw_profitExtras(); }catch(e){} };
+function __uw_profitBoot(){ try{ __uw_profitPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __uw_profitBoot();
+else document.addEventListener('DOMContentLoaded', __uw_profitBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="black_scholes_putPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__black_scholes_putExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="black_scholes_putTable"></div>
+    <div id="black_scholes_putDiff"></div>
+    <div id="black_scholes_putHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -286,6 +292,51 @@ function resetForm(){document.getElementById('s').value = '100';
       document.getElementById('t').value = '1';
       calcTool();}
 calcTool();
+
+function __black_scholes_putNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __black_scholes_putExtras(){
+    function __black_scholes_putRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    function erf(x){var s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
+    var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
+    return s*y;}
+    function N(x){return 0.5*(1+erf(x/Math.SQRT2));}
+    var S=num('s'),K=num('k'),r=num('r'),sig=num('v'),T=num('t');
+    var d1=(Math.log(S/K)+(r+sig*sig/2)*T)/(sig*Math.sqrt(T));
+    var d2=d1-sig*Math.sqrt(T);
+    var p=K*Math.exp(-r*T)*N(-d2)-S*N(-d1);
+    if (!isFinite(__black_scholes_putNum('s')) || !isFinite(__black_scholes_putNum('k')) || !isFinite(__black_scholes_putNum('r')) || !isFinite(__black_scholes_putNum('v')) || !isFinite(__black_scholes_putNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#black_scholes_putTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['看跌期权价格 P', p.toFixed(4)],
+            ['d1', d1.toFixed(4)],
+            ['d2', d2.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({s:__black_scholes_putRaw('s'), k:__black_scholes_putRaw('k'), r:__black_scholes_putRaw('r'), v:__black_scholes_putRaw('v'), t:__black_scholes_putRaw('t'), S:S});
+    function __black_scholes_putRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#black_scholes_putHist',function(rec){ __black_scholes_putRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#black_scholes_putDiff',['S']);
+}
+function __black_scholes_putExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#black_scholes_putTable','black-scholes-put.csv'); } catch(e){}
+}
+function __black_scholes_putPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#black_scholes_putPresets',[
+        {label:'默认',labelEn:'Default',values:{s:'100', k:'100', r:'0.05', v:'0.2', t:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{s:'200', k:'200', r:'0.1', v:'0.4', t:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{s:'50', k:'50', r:'0.025', v:'0.1', t:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __black_scholes_putExtras(); }catch(e){} };
+function __black_scholes_putBoot(){ try{ __black_scholes_putPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __black_scholes_putBoot();
+else document.addEventListener('DOMContentLoaded', __black_scholes_putBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

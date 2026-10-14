@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="annuity_certain_pvPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__annuity_certain_pvExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="annuity_certain_pvTable"></div>
+    <div id="annuity_certain_pvDiff"></div>
+    <div id="annuity_certain_pvHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -257,6 +263,48 @@ function resetForm(){document.getElementById('P').value = '12000';
       document.getElementById('n').value = '15';
       calcTool();}
 calcTool();
+
+function __annuity_certain_pvNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __annuity_certain_pvExtras(){
+    function __annuity_certain_pvRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
+    var P=num('P'),i=num('i'),n=num('n');
+    var v=1/(1+i);
+    var aEnd=(1-Math.pow(v,n))/i;
+    var aBeg=aEnd*(1+i);
+    if (!isFinite(__annuity_certain_pvNum('P')) || !isFinite(__annuity_certain_pvNum('i')) || !isFinite(__annuity_certain_pvNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#annuity_certain_pvTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['期末付现值 (元)', fmt(P*aEnd)],
+            ['期初付现值 (元)', fmt(P*aBeg)],
+            ['年金现值系数 a_n|', fmt(aEnd)],
+        ]
+    });
+    TBKit.history.record({P:__annuity_certain_pvRaw('P'), i:__annuity_certain_pvRaw('i'), n:__annuity_certain_pvRaw('n'), v:v});
+    function __annuity_certain_pvRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#annuity_certain_pvHist',function(rec){ __annuity_certain_pvRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#annuity_certain_pvDiff',['v']);
+}
+function __annuity_certain_pvExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#annuity_certain_pvTable','annuity-certain-pv.csv'); } catch(e){}
+}
+function __annuity_certain_pvPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#annuity_certain_pvPresets',[
+        {label:'默认',labelEn:'Default',values:{P:'12000', i:'0.03', n:'15'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{P:'24000', i:'0.06', n:'30'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{P:'6000', i:'0.015', n:'7.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __annuity_certain_pvExtras(); }catch(e){} };
+function __annuity_certain_pvBoot(){ try{ __annuity_certain_pvPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __annuity_certain_pvBoot();
+else document.addEventListener('DOMContentLoaded', __annuity_certain_pvBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

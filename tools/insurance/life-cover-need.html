@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="life_cover_needPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__life_cover_needExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="life_cover_needTable"></div>
+    <div id="life_cover_needDiff"></div>
+    <div id="life_cover_needHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -208,6 +214,46 @@ function resetForm(){document.getElementById('income').value = '300000';
       document.getElementById('asset').value = '500000';
       calcTool();}
 calcTool();
+
+function __life_cover_needNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __life_cover_needExtras(){
+    function __life_cover_needRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
+    var inc=num('income'),y=num('years'),d=num('debt'),a=num('asset');
+    var cover=inc*y + d - a;
+    if (!isFinite(__life_cover_needNum('income')) || !isFinite(__life_cover_needNum('years')) || !isFinite(__life_cover_needNum('debt')) || !isFinite(__life_cover_needNum('asset'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#life_cover_needTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['建议保额 (元)', fmt(cover)],
+            ['收入替代部分 (元)', fmt(inc*y)],
+            ['保额下限 (元)', fmt(Math.max(cover,0))],
+        ]
+    });
+    TBKit.history.record({income:__life_cover_needRaw('income'), years:__life_cover_needRaw('years'), debt:__life_cover_needRaw('debt'), asset:__life_cover_needRaw('asset'), inc:inc});
+    function __life_cover_needRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#life_cover_needHist',function(rec){ __life_cover_needRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#life_cover_needDiff',['inc']);
+}
+function __life_cover_needExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#life_cover_needTable','life-cover-need.csv'); } catch(e){}
+}
+function __life_cover_needPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#life_cover_needPresets',[
+        {label:'默认',labelEn:'Default',values:{income:'300000', years:'10', debt:'1000000', asset:'500000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{income:'600000', years:'20', debt:'2000000', asset:'1000000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{income:'150000', years:'5', debt:'500000', asset:'250000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __life_cover_needExtras(); }catch(e){} };
+function __life_cover_needBoot(){ try{ __life_cover_needPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __life_cover_needBoot();
+else document.addEventListener('DOMContentLoaded', __life_cover_needBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

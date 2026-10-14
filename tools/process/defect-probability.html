@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="defect_probabilityPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__defect_probabilityExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="defect_probabilityTable"></div>
+    <div id="defect_probabilityDiff"></div>
+    <div id="defect_probabilityHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -258,6 +264,48 @@ function resetForm(){document.getElementById('usl').value = '10.05';
       document.getElementById('sigma').value = '0.01';
       calcTool();}
 calcTool();
+
+function __defect_probabilityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __defect_probabilityExtras(){
+    function __defect_probabilityRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    function erf(x){var s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
+    var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
+    return s*y;}
+    var usl=num('usl'),m=num('mu'),s=num('sigma');
+    var z=(usl-m)/s;
+    var p=1-0.5*(1+erf(z/Math.SQRT2));
+    if (!isFinite(__defect_probabilityNum('usl')) || !isFinite(__defect_probabilityNum('mu')) || !isFinite(__defect_probabilityNum('sigma'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#defect_probabilityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['超上规格概率 (%)', (p*100).toFixed(4)],
+            ['对应 DPMO', (p*1e6).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({usl:__defect_probabilityRaw('usl'), mu:__defect_probabilityRaw('mu'), sigma:__defect_probabilityRaw('sigma'), z:z});
+    function __defect_probabilityRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#defect_probabilityHist',function(rec){ __defect_probabilityRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#defect_probabilityDiff',['z']);
+}
+function __defect_probabilityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#defect_probabilityTable','defect-probability.csv'); } catch(e){}
+}
+function __defect_probabilityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#defect_probabilityPresets',[
+        {label:'默认',labelEn:'Default',values:{usl:'10.05', mu:'10.0', sigma:'0.01'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{usl:'20.1', mu:'20', sigma:'0.02'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{usl:'5.025', mu:'5', sigma:'0.005'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __defect_probabilityExtras(); }catch(e){} };
+function __defect_probabilityBoot(){ try{ __defect_probabilityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __defect_probabilityBoot();
+else document.addEventListener('DOMContentLoaded', __defect_probabilityBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

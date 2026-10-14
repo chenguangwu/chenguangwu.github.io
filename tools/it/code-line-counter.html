@@ -149,7 +149,7 @@ function add(a, b) {
 // 空行上方是一个空行
 console.log(add(1, 2));</textarea>
     </div>
-    <div style="margin-top:12px;" id="result"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__code_line_counterExport()">导出明细 CSV</button></div><div style="margin-top:12px;" id="result"></div> <div id="code_line_counterTable"></div> <div id="code_line_counterDiff"></div> <div id="code_line_counterChart"></div> <div id="code_line_counterHist"></div>
     <style>
     .code-stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:4px;}
     .code-stat .cs{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
@@ -313,6 +313,114 @@ document.getElementById('codeFile').addEventListener('change',function(){
   r.readAsText(f);
 });
 calcTool();
+
+var __code_line_counter_last=0,__code_line_counter_skip=false;
+function __code_line_counterSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __code_line_counterResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __code_line_counterTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __code_line_counterRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__code_line_counterTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#code_line_counterTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#code_line_counterDiff');
+        TBKit.history.mount('#code_line_counterHist',function(rec){
+            __code_line_counter_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcTool();
+            }catch(e2){}
+            __code_line_counter_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__code_line_counterTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#code_line_counterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __code_line_counterExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__code_line_counter_skip) return;
+    var snap=__code_line_counterSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__code_line_counterResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__code_line_counter_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __code_line_counter_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __code_line_counterRender(keys,rk,en);
+}
+function __code_line_counterExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#code_line_counterTable','code-line-counter.csv'); } catch(e){}
+}
+function __code_line_counterPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#code_line_counterPresets',[{label:'默认参数',labelEn:'Default',values:{'langSel':'auto'}}],function(){ calcTool(); });
+}
+var __code_line_counter_f0=(typeof calcTool==='function')?calcTool:null;
+if(__code_line_counter_f0){
+    calcTool=function(){ var __r=__code_line_counter_f0.apply(null,arguments); try{ __code_line_counterExtras(); }catch(e){} return __r; };
+}
+function __code_line_counterBoot(){ try{ __code_line_counterPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __code_line_counterBoot();
+else document.addEventListener('DOMContentLoaded', __code_line_counterBoot);
 </script>
 
 </body>

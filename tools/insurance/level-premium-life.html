@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="level_premium_lifePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__level_premium_lifeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="level_premium_lifeTable"></div>
+    <div id="level_premium_lifeDiff"></div>
+    <div id="level_premium_lifeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -257,6 +263,48 @@ function resetForm(){document.getElementById('nsp').value = '85000';
       document.getElementById('n').value = '20';
       calcTool();}
 calcTool();
+
+function __level_premium_lifeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __level_premium_lifeExtras(){
+    function __level_premium_lifeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
+    var nsp=num('nsp'),i=num('i'),n=num('n');
+    var v=1/(1+i);
+    var a=(1-Math.pow(v,n))/i;
+    var P=nsp/a;
+    if (!isFinite(__level_premium_lifeNum('nsp')) || !isFinite(__level_premium_lifeNum('i')) || !isFinite(__level_premium_lifeNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#level_premium_lifeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['均衡年保费 (元)', fmt(P)],
+            ['年金现值系数 a_n|', fmt(a)],
+            ['总缴费 (元)', fmt(P*n)],
+        ]
+    });
+    TBKit.history.record({nsp:__level_premium_lifeRaw('nsp'), i:__level_premium_lifeRaw('i'), n:__level_premium_lifeRaw('n'), v:v});
+    function __level_premium_lifeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#level_premium_lifeHist',function(rec){ __level_premium_lifeRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#level_premium_lifeDiff',['v']);
+}
+function __level_premium_lifeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#level_premium_lifeTable','level-premium-life.csv'); } catch(e){}
+}
+function __level_premium_lifePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#level_premium_lifePresets',[
+        {label:'默认',labelEn:'Default',values:{nsp:'85000', i:'0.03', n:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{nsp:'170000', i:'0.06', n:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{nsp:'42500', i:'0.015', n:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __level_premium_lifeExtras(); }catch(e){} };
+function __level_premium_lifeBoot(){ try{ __level_premium_lifePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __level_premium_lifeBoot();
+else document.addEventListener('DOMContentLoaded', __level_premium_lifeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

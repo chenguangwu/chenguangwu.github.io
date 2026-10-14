@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ibnr_reservePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ibnr_reserveExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ibnr_reserveTable"></div>
+    <div id="ibnr_reserveDiff"></div>
+    <div id="ibnr_reserveHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,45 @@ function resetForm(){document.getElementById('reported').value = '4000000';
       document.getElementById('factor').value = '1.25';
       calcTool();}
 calcTool();
+
+function __ibnr_reserveNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ibnr_reserveExtras(){
+    function __ibnr_reserveRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
+    var r=num('reported'),f=num('factor');
+    var ibnr=r*(f-1);
+    if (!isFinite(__ibnr_reserveNum('reported')) || !isFinite(__ibnr_reserveNum('factor'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ibnr_reserveTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['IBNR 准备金 (元)', fmt(ibnr)],
+            ['最终赔款估计 (元)', fmt(r*f)],
+        ]
+    });
+    TBKit.history.record({reported:__ibnr_reserveRaw('reported'), factor:__ibnr_reserveRaw('factor'), r:r});
+    function __ibnr_reserveRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#ibnr_reserveHist',function(rec){ __ibnr_reserveRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#ibnr_reserveDiff',['r']);
+}
+function __ibnr_reserveExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ibnr_reserveTable','ibnr-reserve.csv'); } catch(e){}
+}
+function __ibnr_reservePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ibnr_reservePresets',[
+        {label:'默认',labelEn:'Default',values:{reported:'4000000', factor:'1.25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{reported:'8000000', factor:'2.5'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{reported:'2000000', factor:'0.625'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ibnr_reserveExtras(); }catch(e){} };
+function __ibnr_reserveBoot(){ try{ __ibnr_reservePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ibnr_reserveBoot();
+else document.addEventListener('DOMContentLoaded', __ibnr_reserveBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pure_premiumPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pure_premiumExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pure_premiumTable"></div>
+    <div id="pure_premiumDiff"></div>
+    <div id="pure_premiumHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,45 @@ function resetForm(){document.getElementById('freq').value = '0.12';
       document.getElementById('sev').value = '30000';
       calcTool();}
 calcTool();
+
+function __pure_premiumNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pure_premiumExtras(){
+    function __pure_premiumRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
+    var f=num('freq'),s=num('sev');
+    var pp=f*s;
+    if (!isFinite(__pure_premiumNum('freq')) || !isFinite(__pure_premiumNum('sev'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pure_premiumTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['纯保费 (元/单位)', fmt(pp)],
+            ['含10%安全边际 (元)', fmt(pp*1.1)],
+        ]
+    });
+    TBKit.history.record({freq:__pure_premiumRaw('freq'), sev:__pure_premiumRaw('sev'), f:f});
+    function __pure_premiumRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#pure_premiumHist',function(rec){ __pure_premiumRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#pure_premiumDiff',['f']);
+}
+function __pure_premiumExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pure_premiumTable','pure-premium.csv'); } catch(e){}
+}
+function __pure_premiumPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pure_premiumPresets',[
+        {label:'默认',labelEn:'Default',values:{freq:'0.12', sev:'30000'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{freq:'0.24', sev:'60000'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{freq:'0.06', sev:'15000'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pure_premiumExtras(); }catch(e){} };
+function __pure_premiumBoot(){ try{ __pure_premiumPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pure_premiumBoot();
+else document.addEventListener('DOMContentLoaded', __pure_premiumBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
