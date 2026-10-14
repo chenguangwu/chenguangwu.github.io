@@ -210,8 +210,8 @@ s.parentNode.insertBefore(el, s);
         <input type="number" id="loan-months" value="12" min="1" step="1" oninput="calcLoan()">
       </div>
       <div class="checkbox-row">
-        <label><input type="radio" name="loan-type" value="simple" checked onchange="calcLoan()"> 单利</label>
-        <label><input type="radio" name="loan-type" value="compound" onchange="calcLoan()"> 复利</label>
+        <label><input type="radio" id="loan-type-simple" name="loan-type" value="simple" checked onchange="calcLoan()"> 单利</label>
+        <label><input type="radio" id="loan-type-compound" name="loan-type" value="compound" onchange="calcLoan()"> 复利</label>
       </div>
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="calcLoan()">计算</button>
@@ -231,9 +231,9 @@ s.parentNode.insertBefore(el, s);
         <input type="number" id="lit-amount" value="100000" min="0" step="1000" oninput="calcLit()">
       </div>
       <div class="checkbox-row">
-        <label><input type="radio" name="lit-type" value="property" checked onchange="calcLit()"> 财产案件</label>
-        <label><input type="radio" name="lit-type" value="labor"> 劳动争议（10元）</label>
-        <label><input type="radio" name="lit-type" value="ip"> 知识产权（无固定）</label>
+        <label><input type="radio" id="lit-type-property" name="lit-type" value="property" checked onchange="calcLit()"> 财产案件</label>
+        <label><input type="radio" id="lit-type-labor" name="lit-type" value="labor"> 劳动争议（10元）</label>
+        <label><input type="radio" id="lit-type-ip" name="lit-type" value="ip"> 知识产权（无固定）</label>
       </div>
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="calcLit()">计算</button>
@@ -375,6 +375,26 @@ s.parentNode.insertBefore(el, s);
 </dl>
 </div>
 </section>
+
+<!-- ========== UX-Q4 能力卡：可视化 / 速查 / 历史 / 预设 ========== -->
+<section class="tool-cards">
+  <div class="card">
+    <h3 class="card-title">📊 可视化分析</h3>
+    <div id="lcChart"></div>
+  </div>
+  <div class="card">
+    <h3 class="card-title">📋 计算结果速查</h3>
+    <div id="lcTable"></div>
+  </div>
+  <div class="card">
+    <h3 class="card-title">🕑 历史记录</h3>
+    <div id="lcHist"></div>
+  </div>
+  <div class="card">
+    <h3 class="card-title">⚡ 预设场景</h3>
+    <div id="lcPresets"></div>
+  </div>
+</section>
 <!-- 注意事项区块 -->
 <div class="tool-notes" style="--tool-accent:#6366F1;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -404,6 +424,7 @@ function switchTab(id) {
   else if (id === 'litigation') calcLit();
   else if (id === 'breach') calcBreach();
   else if (id === 'bonus') calcBonus();
+  try{ lcRender(); lcPresets(); }catch(e){}
 }
 
 function copyResult(id) {
@@ -421,7 +442,7 @@ function calcComp() {
   var isN1 = document.getElementById('comp-n').checked;
 
   if (years <= 0 || salary <= 0) {
-    const __h0='<p style="color:var(--text-muted);">请输入有效的工作年限和月工资</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('comp-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('comp-result').innerHTML=__h0;
+    const __h0='<p style="color:var(--text-muted);">'+lcL('请输入有效的工作年限和月工资','Enter valid years and monthly salary')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('comp-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('comp-result').innerHTML=__h0;
     return;
   }
 
@@ -460,17 +481,17 @@ function calcComp() {
   var totalAmount = compAmount + n1Amount;
 
   var html = '';
-  html += '<p>计算基数（月工资）：<strong>' + ToolBox.formatNumber(salary, 2) + ' 元</strong></p>';
+  html += '<p>' + lcL('计算基数（月工资）：','Base (monthly salary):') + '<strong>' + ToolBox.formatNumber(salary, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
   if (capped) {
-    html += '<p style="color:var(--warning);">适用3倍社平工资封顶，基数调整为：<strong>' + ToolBox.formatNumber(capSalary, 2) + ' 元</strong>，年限封顶12年</p>';
+    html += '<p style="color:var(--warning);">' + lcL('适用3倍社平工资封顶，基数调整为：','3x local avg wage cap, base adjusted to:') + '<strong>' + ToolBox.formatNumber(capSalary, 2) + ' ' + lcL('元','CNY') + '</strong>,' + lcL('年限封顶12年','capped at 12 years') + '</p>';
   }
-  html += '<p>经济补偿月数：<strong>' + compMonths + ' 个月</strong>' +
-    '（' + fullYears + '年' + (remainMonths >= 0.5 ? '+半年' : (remainMonths > 0 ? '+半月' : '')) + '）</p>';
+  html += '<p>' + lcL('经济补偿月数：','Severance months:') + '<strong>' + compMonths + ' ' + lcL('个月','months') + '</strong>' +
+    '(' + fullYears + lcL('年','yr') + (remainMonths >= 0.5 ? '+' + lcL('半年','half-year') : (remainMonths > 0 ? '+' + lcL('半月','half-month') : '')) + ')</p>';
   if (isN1) {
-    html += '<p>代通知金（N+1）：<strong>1个月 x ' + ToolBox.formatNumber(salary, 2) + ' = ' + ToolBox.formatNumber(n1Amount, 2) + ' 元</strong></p>';
+    html += '<p>' + lcL('代通知金（N+1）：','Notice pay (N+1):') + '<strong>1' + lcL('个月','month') + ' x ' + ToolBox.formatNumber(salary, 2) + ' = ' + ToolBox.formatNumber(n1Amount, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
   }
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-size:16px;">经济补偿金合计：<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(totalAmount, 2) + ' 元</strong></p>';
+  html += '<p style="font-size:16px;">' + lcL('经济补偿金合计：','Total severance:') + '<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(totalAmount, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
 
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('comp-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('comp-result').innerHTML=__h1;
 }
@@ -492,13 +513,13 @@ function calcOT() {
   var days = parseFloat(document.getElementById('ot-days').value) || 21.75;
 
   if (salary <= 0 || hours <= 0) {
-    const __h3='<p style="color:var(--text-muted);">请输入有效的月工资和加班小时数</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('ot-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('ot-result').innerHTML=__h3;
+    const __h3='<p style="color:var(--text-muted);">'+lcL('请输入有效的月工资和加班小时数','Enter valid monthly salary and OT hours')+'</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('ot-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('ot-result').innerHTML=__h3;
     return;
   }
 
   var hourlyRate = salary / (days * 8);
   var multipliers = { workday: 1.5, restday: 2, holiday: 3 };
-  var labels = { workday: '工作日加班', restday: '休息日加班', holiday: '法定节假日加班' };
+  var labels = { workday: lcL('工作日加班','Workday OT'), restday: lcL('休息日加班','Rest day OT'), holiday: lcL('法定节假日加班','Holiday OT') };
   var multi = multipliers[type] || 1.5;
   var label = labels[type] || '加班';
 
@@ -506,12 +527,12 @@ function calcOT() {
   var totalOT = otPerHour * hours;
 
   var html = '';
-  html += '<p>加班类型：<strong>' + label + '</strong>（' + multi + '倍工资）</p>';
-  html += '<p>小时工资率：' + ToolBox.formatNumber(salary, 2) + ' / (' + days + '天 x 8小时) = <strong>' + ToolBox.formatNumber(hourlyRate, 2) + ' 元/小时</strong></p>';
-  html += '<p>加班小时工资：' + ToolBox.formatNumber(hourlyRate, 2) + ' x ' + multi + ' = <strong>' + ToolBox.formatNumber(otPerHour, 2) + ' 元/小时</strong></p>';
+  html += '<p>' + lcL('加班类型：','OT type:') + '<strong>' + label + '</strong>(' + multi + lcL('倍工资','x wage') + ')</p>';
+  html += '<p>' + lcL('小时工资率：','Hourly rate:') + ToolBox.formatNumber(salary, 2) + ' / (' + days + lcL('天','days') + ' x 8' + lcL('小时','hr') + ') = <strong>' + ToolBox.formatNumber(hourlyRate, 2) + ' ' + lcL('元/小时','CNY/hr') + '</strong></p>';
+  html += '<p>' + lcL('加班小时工资：','OT hourly wage:') + ToolBox.formatNumber(hourlyRate, 2) + ' x ' + multi + ' = <strong>' + ToolBox.formatNumber(otPerHour, 2) + ' ' + lcL('元/小时','CNY/hr') + '</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-size:16px;">加班费合计：<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(totalOT, 2) + ' 元</strong></p>';
-  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">（' + hours + '小时 x ' + ToolBox.formatNumber(otPerHour, 2) + '元/小时）</p>';
+  html += '<p style="font-size:16px;">' + lcL('加班费合计：','Total OT pay:') + '<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(totalOT, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">(' + hours + lcL('小时','hr') + ' x ' + ToolBox.formatNumber(otPerHour, 2) + lcL('元/小时','CNY/hr') + ')</p>';
 
   const __h4=html;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('ot-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('ot-result').innerHTML=__h4;
 }
@@ -534,7 +555,7 @@ function calcLoan() {
   var type = typeEl ? typeEl.value : 'simple';
 
   if (principal <= 0 || months <= 0) {
-    const __h6='<p style="color:var(--text-muted);">请输入有效的本金和期限</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('loan-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('loan-result').innerHTML=__h6;
+    const __h6='<p style="color:var(--text-muted);">'+lcL('请输入有效的本金和期限','Enter valid principal and term')+'</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('loan-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('loan-result').innerHTML=__h6;
     return;
   }
 
@@ -556,17 +577,17 @@ function calcLoan() {
   }
 
   var html = '';
-  html += '<p>计息方式：<strong>' + (type === 'simple' ? '单利' : '复利（利滚利）') + '</strong></p>';
-  html += '<p>本金：<strong>' + ToolBox.formatNumber(principal, 2) + ' 元</strong></p>';
-  html += '<p>年利率：<strong>' + rate + '%</strong> | 期限：<strong>' + months + ' 个月</strong>（' + (months / 12).toFixed(1) + '年）</p>';
+  html += '<p>' + lcL('计息方式：','Interest method:') + '<strong>' + (type === 'simple' ? lcL('单利','Simple') : lcL('复利（利滚利）','Compound (interest on interest)')) + '</strong></p>';
+  html += '<p>' + lcL('本金：','Principal:') + '<strong>' + ToolBox.formatNumber(principal, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p>' + lcL('年利率：','Annual rate:') + '<strong>' + rate + '%</strong> | ' + lcL('期限：','Term:') + '<strong>' + months + ' ' + lcL('个月','months') + '</strong>(' + (months / 12).toFixed(1) + lcL('年','yr') + ')</p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p>利息总额：<strong style="color:var(--secondary);">' + ToolBox.formatNumber(totalInterest, 2) + ' 元</strong></p>';
-  html += '<p style="font-size:16px;">本息合计：<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(totalAmount, 2) + ' 元</strong></p>';
+  html += '<p>' + lcL('利息总额：','Total interest:') + '<strong style="color:var(--secondary);">' + ToolBox.formatNumber(totalInterest, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p style="font-size:16px;">' + lcL('本息合计：','Principal + interest:') + '<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(totalAmount, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
 
   if (isOverLimit) {
-    html += '<p style="color:var(--danger);margin-top:8px;font-weight:500;">注意：年利率 ' + rate + '% 超过了一年期LPR的4倍（约' + LPR_LIMIT + '%），超出部分可能不受司法保护！</p>';
+    html += '<p style="color:var(--danger);margin-top:8px;font-weight:500;">' + lcL('注意：年利率 %RATE%% 超过了一年期LPR的4倍（约%LIMIT%%），超出部分可能不受司法保护！','Note: annual rate %RATE%% exceeds 4x the 1-year LPR (~%LIMIT%%), excess may not be legally protected!').replace('%RATE%', rate).replace('%LIMIT%', LPR_LIMIT) + '</p>';
   } else if (rate > 0) {
-    html += '<p style="color:var(--success);margin-top:8px;">年利率在司法保护上限（约' + LPR_LIMIT + '%）以内</p>';
+    html += '<p style="color:var(--success);margin-top:8px;">' + lcL('年利率在司法保护上限（约%LIMIT%%）以内','Annual rate within judicial protection cap (~%LIMIT%%)').replace('%LIMIT%', LPR_LIMIT) + '</p>';
   }
 
   const __h7=html;if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('loan-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('loan-result').innerHTML=__h7;
@@ -590,20 +611,20 @@ function calcLit() {
   var html = '';
 
   if (type === 'labor') {
-    html += '<p>劳动争议案件</p>';
+    html += '<p>' + lcL('劳动争议案件','Labor dispute case') + '</p>';
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-    html += '<p style="font-size:16px;">案件受理费：<strong style="color:var(--primary);font-size:20px;">10 元</strong></p>';
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">劳动争议案件每件交纳10元</p>';
+    html += '<p style="font-size:16px;">' + lcL('案件受理费：','Case acceptance fee:') + '<strong style="color:var(--primary);font-size:20px;">10 ' + lcL('元','CNY') + '</strong></p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + lcL('劳动争议案件每件交纳10元','Labor cases: 10 CNY each') + '</p>';
     const __h9=html;if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){document.getElementById('lit-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('lit-result').innerHTML=__h9;
     return;
   }
 
   if (type === 'ip') {
-    html += '<p>知识产权案件收费标准较为复杂，通常为：</p>';
+    html += '<p>' + lcL('知识产权案件收费标准较为复杂，通常为：','IP case fees are complex; generally:') + '</p>';
     html += '<ul style="padding-left:20px;margin:8px 0;font-size:13px;">';
-    html += '<li>没有争议金额或价额的：每件 500-1000 元</li>';
-    html += '<li>有争议金额的：按财产案件标准交纳</li>';
-    html += '<li>专利案件：每件 500-1000 元（有争议金额的另计）</li>';
+    html += '<li>' + lcL('没有争议金额或价额的：每件 500-1000 元','No disputed amount/value: 500-1000 CNY each') + '</li>';
+    html += '<li>' + lcL('有争议金额的：按财产案件标准交纳','With disputed amount: per property case standard') + '</li>';
+    html += '<li>' + lcL('专利案件：每件 500-1000 元（有争议金额的另计）','Patent case: 500-1000 CNY each (extra if disputed)') + '</li>';
     html += '</ul>';
     const __h10=html;if((typeof __h10==='number'&&!isFinite(__h10))||/Infinity/.test(String(__h10))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h10)){document.getElementById('lit-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('lit-result').innerHTML=__h10;
     return;
@@ -611,7 +632,7 @@ function calcLit() {
 
   // 财产案件
   if (amount <= 0) {
-    html = '<p style="color:var(--text-muted);">请输入有效的标的额</p>';
+    html = '<p style="color:var(--text-muted);">'+lcL('请输入有效的标的额','Enter valid subject amount')+'</p>';
     const __h11=html;if((typeof __h11==='number'&&!isFinite(__h11))||/Infinity/.test(String(__h11))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h11)){document.getElementById('lit-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('lit-result').innerHTML=__h11;
     return;
   }
@@ -621,31 +642,31 @@ function calcLit() {
 
   if (amount <= 10000) {
     fee = 50;
-    bracketDesc = '1万元以下：50元';
+    bracketDesc = lcL('1万元以下：50元','<=10k: 50');
   } else if (amount <= 100000) {
     fee = amount * 0.025 - 200;
-    bracketDesc = '1万-10万：标的额 x 2.5% - 200';
+    bracketDesc = lcL('1万-10万：标的额 x 2.5% - 200','10k-100k: amount x 2.5% - 200');
   } else if (amount <= 200000) {
     fee = amount * 0.02 + 300;
-    bracketDesc = '10万-20万：标的额 x 2% + 300';
+    bracketDesc = lcL('10万-20万：标的额 x 2% + 300','100k-200k: amount x 2% + 300');
   } else if (amount <= 500000) {
     fee = amount * 0.015 + 1300;
-    bracketDesc = '20万-50万：标的额 x 1.5% + 1300';
+    bracketDesc = lcL('20万-50万：标的额 x 1.5% + 1300','200k-500k: amount x 1.5% + 1300');
   } else if (amount <= 1000000) {
     fee = amount * 0.01 + 3800;
-    bracketDesc = '50万-100万：标的额 x 1% + 3800';
+    bracketDesc = lcL('50万-100万：标的额 x 1% + 3800','500k-1M: amount x 1% + 3800');
   } else if (amount <= 2000000) {
     fee = amount * 0.009 + 4800;
-    bracketDesc = '100万-200万：标的额 x 0.9% + 4800';
+    bracketDesc = lcL('100万-200万：标的额 x 0.9% + 4800','1M-2M: amount x 0.9% + 4800');
   } else if (amount <= 5000000) {
     fee = amount * 0.008 + 6800;
-    bracketDesc = '200万-500万：标的额 x 0.8% + 6800';
+    bracketDesc = lcL('200万-500万：标的额 x 0.8% + 6800','2M-5M: amount x 0.8% + 6800');
   } else if (amount <= 10000000) {
     fee = amount * 0.007 + 11800;
-    bracketDesc = '500万-1000万：标的额 x 0.7% + 11800';
+    bracketDesc = lcL('500万-1000万：标的额 x 0.7% + 11800','5M-10M: amount x 0.7% + 11800');
   } else {
     fee = amount * 0.006 + 21800;
-    bracketDesc = '1000万以上：标的额 x 0.6% + 21800';
+    bracketDesc = lcL('1000万以上：标的额 x 0.6% + 21800','>10M: amount x 0.6% + 21800');
   }
 
   fee = Math.max(50, Math.round(fee));
@@ -653,12 +674,12 @@ function calcLit() {
   // 半减
   var halfFee = Math.ceil(fee / 2);
 
-  html += '<p>标的额：<strong>' + ToolBox.formatNumber(amount, 2) + ' 元</strong></p>';
-  html += '<p>适用档位：<strong>' + bracketDesc + '</strong></p>';
+  html += '<p>' + lcL('标的额：','Subject amount:') + '<strong>' + ToolBox.formatNumber(amount, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p>' + lcL('适用档位：','Applicable bracket:') + '<strong>' + bracketDesc + '</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p>案件受理费（全额）：<strong style="color:var(--secondary);">' + ToolBox.formatNumber(fee, 2) + ' 元</strong></p>';
-  html += '<p style="font-size:16px;">简易程序减半收取：<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(halfFee, 2) + ' 元</strong></p>';
-  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">适用简易程序审理的案件，受理费减半交纳</p>';
+  html += '<p>' + lcL('案件受理费（全额）：','Case fee (full):') + '<strong style="color:var(--secondary);">' + ToolBox.formatNumber(fee, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p style="font-size:16px;">' + lcL('简易程序减半收取：','Summary procedure half fee:') + '<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(halfFee, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + lcL('适用简易程序审理的案件，受理费减半交纳','Cases under summary procedure pay half the fee') + '</p>';
 
   const __h12=html;if((typeof __h12==='number'&&!isFinite(__h12))||/Infinity/.test(String(__h12))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h12)){document.getElementById('lit-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('lit-result').innerHTML=__h12;
 }
@@ -683,7 +704,7 @@ function calcBreach() {
   var days = parseInt(document.getElementById('breach-days').value) || 0;
 
   if (amount <= 0 || days <= 0) {
-    const __h14='<p style="color:var(--text-muted);">请输入有效的合同金额和逾期天数</p>';if((typeof __h14==='number'&&!isFinite(__h14))||/Infinity/.test(String(__h14))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h14)){document.getElementById('breach-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('breach-result').innerHTML=__h14;
+    const __h14='<p style="color:var(--text-muted);">'+lcL('请输入有效的合同金额和逾期天数','Enter valid contract amount and overdue days')+'</p>';if((typeof __h14==='number'&&!isFinite(__h14))||/Infinity/.test(String(__h14))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h14)){document.getElementById('breach-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('breach-result').innerHTML=__h14;
     return;
   }
 
@@ -691,27 +712,27 @@ function calcBreach() {
   if (mode === 'percent') {
     var rate = parseFloat(document.getElementById('breach-rate').value) || 0;
     dailyBreach = amount * rate / 100;
-    formula = amount + ' x ' + rate + '% = ' + ToolBox.formatNumber(dailyBreach, 2) + ' 元/天';
+    formula = amount + ' x ' + rate + '% = ' + ToolBox.formatNumber(dailyBreach, 2) + ' ' + lcL('元/天','CNY/day');
   } else {
     dailyBreach = parseFloat(document.getElementById('breach-fixed').value) || 0;
-    formula = ToolBox.formatNumber(dailyBreach, 2) + ' 元/天（固定金额）';
+    formula = ToolBox.formatNumber(dailyBreach, 2) + ' ' + lcL('元/天（固定金额）','CNY/day (fixed amount)');
   }
 
   var totalBreach = dailyBreach * days;
   var ratio = totalBreach / amount * 100;
 
   var html = '';
-  html += '<p>合同金额：<strong>' + ToolBox.formatNumber(amount, 2) + ' 元</strong></p>';
-  html += '<p>每日违约金：' + formula + '</p>';
-  html += '<p>逾期天数：<strong>' + days + ' 天</strong></p>';
+  html += '<p>' + lcL('合同金额：','Contract amount:') + '<strong>' + ToolBox.formatNumber(amount, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p>' + lcL('每日违约金：','Daily penalty:') + formula + '</p>';
+  html += '<p>' + lcL('逾期天数：','Overdue days:') + '<strong>' + days + ' ' + lcL('天','days') + '</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-size:16px;">违约金合计：<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(totalBreach, 2) + ' 元</strong></p>';
-  html += '<p>占合同金额比例：<strong>' + ratio.toFixed(2) + '%</strong></p>';
+  html += '<p style="font-size:16px;">' + lcL('违约金合计：','Total penalty:') + '<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(totalBreach, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p>' + lcL('占合同金额比例：','Ratio to contract amount:') + '<strong>' + ratio.toFixed(2) + '%</strong></p>';
 
   if (ratio > 30) {
-    html += '<p style="color:var(--danger);margin-top:8px;font-weight:500;">注意：违约金占合同金额超过30%，对方可能请求法院予以减少！</p>';
+    html += '<p style="color:var(--danger);margin-top:8px;font-weight:500;">' + lcL('注意：违约金占合同金额超过30%，对方可能请求法院予以减少！','Note: penalty >30% of contract may be reduced by court!') + '</p>';
   } else if (ratio > 10) {
-    html += '<p style="color:var(--warning);margin-top:8px;">违约金占比较高，需关注合理性</p>';
+    html += '<p style="color:var(--warning);margin-top:8px;">' + lcL('违约金占比较高，需关注合理性','High penalty ratio; review reasonableness') + '</p>';
   }
 
   const __h15=html;if((typeof __h15==='number'&&!isFinite(__h15))||/Infinity/.test(String(__h15))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h15)){document.getElementById('breach-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('breach-result').innerHTML=__h15;
@@ -733,7 +754,7 @@ function calcBonus() {
   var amount = parseFloat(document.getElementById('bonus-amount').value) || 0;
 
   if (amount <= 0) {
-    const __h17='<p style="color:var(--text-muted);">请输入有效的年终奖金额</p>';if((typeof __h17==='number'&&!isFinite(__h17))||/Infinity/.test(String(__h17))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h17)){document.getElementById('bonus-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bonus-result').innerHTML=__h17;
+    const __h17='<p style="color:var(--text-muted);">'+lcL('请输入有效的年终奖金额','Enter valid annual bonus amount')+'</p>';if((typeof __h17==='number'&&!isFinite(__h17))||/Infinity/.test(String(__h17))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h17)){document.getElementById('bonus-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bonus-result').innerHTML=__h17;
     return;
   }
 
@@ -763,13 +784,13 @@ function calcBonus() {
   var effectiveRate = amount > 0 ? (tax / amount * 100) : 0;
 
   var html = '';
-  html += '<p>年终奖金额：<strong>' + ToolBox.formatNumber(amount, 2) + ' 元</strong></p>';
-  html += '<p>月均金额：' + ToolBox.formatNumber(amount, 2) + ' / 12 = <strong>' + ToolBox.formatNumber(monthly, 2) + ' 元</strong></p>';
-  html += '<p>适用税率：<strong>' + (bracket.rate * 100) + '%</strong> | 速算扣除数：<strong>' + ToolBox.formatNumber(bracket.deduct, 2) + ' 元</strong></p>';
+  html += '<p>' + lcL('年终奖金额：','Annual bonus amount:') + '<strong>' + ToolBox.formatNumber(amount, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p>' + lcL('月均金额：','Monthly avg:') + ToolBox.formatNumber(amount, 2) + ' / 12 = <strong>' + ToolBox.formatNumber(monthly, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p>' + lcL('适用税率：','Applicable rate:') + '<strong>' + (bracket.rate * 100) + '%</strong> | ' + lcL('速算扣除数：','Quick deduction:') + '<strong>' + ToolBox.formatNumber(bracket.deduct, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p>应扣个税：<strong style="color:var(--danger);">' + ToolBox.formatNumber(tax, 2) + ' 元</strong></p>';
-  html += '<p style="font-size:16px;">税后到手：<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(afterTax, 2) + ' 元</strong></p>';
-  html += '<p>实际税负率：<strong>' + effectiveRate.toFixed(2) + '%</strong></p>';
+  html += '<p>' + lcL('应扣个税：','Tax due:') + '<strong style="color:var(--danger);">' + ToolBox.formatNumber(tax, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p style="font-size:16px;">' + lcL('税后到手：','Net received:') + '<strong style="color:var(--primary);font-size:20px;">' + ToolBox.formatNumber(afterTax, 2) + ' ' + lcL('元','CNY') + '</strong></p>';
+  html += '<p>' + lcL('实际税负率：','Effective tax rate:') + '<strong>' + effectiveRate.toFixed(2) + '%</strong></p>';
 
   const __h18=html;if((typeof __h18==='number'&&!isFinite(__h18))||/Infinity/.test(String(__h18))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h18)){document.getElementById('bonus-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bonus-result').innerHTML=__h18;
 }
@@ -783,6 +804,7 @@ function resetBonus() {
 // ==================== 页面初始化 ====================
 document.addEventListener('DOMContentLoaded', function() {
   calcComp();
+  try{ lcBoot(); }catch(e){}
 });
 </script>
 
@@ -861,5 +883,222 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+
+<script>
+// ==================== UX-Q4 能力层（legal-calculator） ====================
+function lcL(zh,en){
+  try{
+    if(/[?&]lang=en-US/.test(location.search)) return en;
+    if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) return en;
+  }catch(e){}
+  return zh;
+}
+function lcActive(){ var el=document.querySelector('.tab-content.active'); return (el && typeof el.id==='string')?el.id.replace('tab-',''):'comp'; }
+
+function lcData(tab){
+  var S={tab:tab, items:[], chart:null, values:{}, title:''};
+  try{
+    if(tab==='comp'){
+      var years=parseFloat(document.getElementById('comp-years').value)||0;
+      var salary=parseFloat(document.getElementById('comp-salary').value)||0;
+      var avg3=parseFloat(document.getElementById('comp-avg3').value)||0;
+      var isN1=document.getElementById('comp-n').checked;
+      var cap=salary,my=years;
+      if(avg3>0&&salary>avg3){cap=avg3;my=Math.min(years,12);}
+      var fy=Math.floor(years),rm=years-fy,cm=fy;
+      if(cap===salary){ if(rm>=0.5)cm+=1; else if(rm>0)cm+=0.5; }
+      var n1=isN1?1:0;
+      var compAmt=cm*cap, n1Amt=n1*salary, total=compAmt+n1Amt;
+      S.title='经济补偿金';
+      S.items=[[lcL('经济补偿月数','Severance months'),cm+' '+lcL('个月','months')],[lcL('经济补偿金','Severance'),compAmt],[lcL('代通知金(N+1)','Notice pay (N+1)'),n1Amt],[lcL('合计','Total'),total]];
+      S.chart={labels:[lcL('经济补偿金','Severance'),lcL('代通知金','Notice'),lcL('合计','Total')],series:[{name:lcL('金额(元)','Amount'),data:[compAmt,n1Amt,total],color:'#6366F1'}]};
+      S.values={years:years,salary:salary,avg3:avg3,n:isN1};
+    } else if(tab==='overtime'){
+      var salary=parseFloat(document.getElementById('ot-salary').value)||0;
+      var type=document.getElementById('ot-type').value;
+      var hours=parseFloat(document.getElementById('ot-hours').value)||0;
+      var days=parseFloat(document.getElementById('ot-days').value)||21.75;
+      var mult={workday:1.5,restday:2,holiday:3}[type]||1.5;
+      var rate=salary/(days*8), per=rate*mult, total=per*hours;
+      S.title='加班费';
+      S.items=[[lcL('小时工资率','Hourly rate'),rate],[lcL('倍数','Multiplier'),mult],[lcL('加班费','OT pay'),total]];
+      S.chart={labels:[lcL('小时工资','Hourly'),lcL('加班费','OT pay')],series:[{name:lcL('金额(元)','Amount'),data:[rate,total],color:'#0EA5E9'}]};
+      S.values={salary:salary,type:type,hours:hours,days:days};
+    } else if(tab==='loan'){
+      var p=parseFloat(document.getElementById('loan-principal').value)||0;
+      var rate=parseFloat(document.getElementById('loan-rate').value)||0;
+      var months=parseInt(document.getElementById('loan-months').value)||0;
+      var tEl=document.querySelector('input[name="loan-type"]:checked');
+      var type=tEl?tEl.value:'simple';
+      var ar=rate/100, mr=ar/12, ti, ta;
+      if(type==='simple'){ti=p*ar*(months/12);ta=p+ti;}else{ta=p*Math.pow(1+mr,months);ti=ta-p;}
+      S.title='民间借贷利息';
+      S.items=[[lcL('本金','Principal'),p],[lcL('利息','Interest'),ti],[lcL('本息合计','Principal+interest'),ta]];
+      S.chart={labels:[lcL('本金','Principal'),lcL('利息','Interest'),lcL('本息合计','Total')],series:[{name:lcL('金额(元)','Amount'),data:[p,ti,ta],color:'#10B981'}]};
+      S.values={principal:p,rate:rate,months:months,type:type};
+    } else if(tab==='litigation'){
+      var tEl2=document.querySelector('input[name="lit-type"]:checked');
+      var type=tEl2?tEl2.value:'property';
+      var amount=parseFloat(document.getElementById('lit-amount').value)||0;
+      if(type==='labor'){ S.title='诉讼费'; S.items=[[lcL('案件受理费','Case fee'),10]]; S.values={type:'labor'}; }
+      else if(type==='ip'){ S.title='诉讼费'; S.items=[[lcL('说明','Note'),lcL('按财产案件标准或500-1000元','Per property std or 500-1000')]]; S.values={type:'ip'}; }
+      else {
+        var fee;
+        if(amount<=10000)fee=50;
+        else if(amount<=100000)fee=amount*0.025-200;
+        else if(amount<=200000)fee=amount*0.02+300;
+        else if(amount<=500000)fee=amount*0.015+1300;
+        else if(amount<=1000000)fee=amount*0.01+3800;
+        else if(amount<=2000000)fee=amount*0.009+4800;
+        else if(amount<=5000000)fee=amount*0.008+6800;
+        else if(amount<=10000000)fee=amount*0.007+11800;
+        else fee=amount*0.006+21800;
+        fee=Math.max(50,Math.round(fee)); var hf=Math.ceil(fee/2);
+        S.title='诉讼费';
+        S.items=[[lcL('标的额','Subject amount'),amount],[lcL('案件受理费','Case fee'),fee],[lcL('简易程序减半','Summary half fee'),hf]];
+        S.chart={labels:[lcL('案件受理费','Full fee'),lcL('减半','Half')],series:[{name:lcL('金额(元)','Amount'),data:[fee,hf],color:'#F59E0B'}]};
+        S.values={type:'property',amount:amount};
+      }
+    } else if(tab==='breach'){
+      var amount=parseFloat(document.getElementById('breach-amount').value)||0;
+      var mode=document.getElementById('breach-mode').value;
+      var days=parseInt(document.getElementById('breach-days').value)||0;
+      var db;
+      if(mode==='percent'){var r=parseFloat(document.getElementById('breach-rate').value)||0;db=amount*r/100;}
+      else db=parseFloat(document.getElementById('breach-fixed').value)||0;
+      var total=db*days, ratio=amount>0?total/amount*100:0;
+      S.title='违约金';
+      S.items=[[lcL('每日违约金','Daily penalty'),db],[lcL('逾期天数','Overdue days'),days],[lcL('违约金合计','Total penalty'),total],[lcL('占合同比例','Ratio to contract'),ratio.toFixed(2)+'%']];
+      S.chart={labels:[lcL('每日违约金','Daily'),lcL('违约金合计','Total')],series:[{name:lcL('金额(元)','Amount'),data:[db,total],color:'#EF4444'}]};
+      S.values={amount:amount,mode:mode,days:days,rate:(mode==='percent'?parseFloat(document.getElementById('breach-rate').value)||0:0),fixed:(mode==='fixed'?parseFloat(document.getElementById('breach-fixed').value)||0:0)};
+    } else if(tab==='bonus'){
+      var amount=parseFloat(document.getElementById('bonus-amount').value)||0;
+      var brackets=[{limit:3000,rate:0.03,deduct:0},{limit:12000,rate:0.10,deduct:210},{limit:25000,rate:0.20,deduct:1410},{limit:35000,rate:0.25,deduct:2660},{limit:55000,rate:0.30,deduct:4410},{limit:80000,rate:0.35,deduct:7160},{limit:Infinity,rate:0.45,deduct:15160}];
+      var monthly=amount/12, b=brackets[brackets.length-1];
+      for(var i=0;i<brackets.length;i++){if(monthly<=brackets[i].limit){b=brackets[i];break;}}
+      var tax=Math.max(0,Math.round(amount*b.rate-b.deduct)), after=amount-tax, er=amount>0?tax/amount*100:0;
+      S.title='年终奖个税';
+      S.items=[[lcL('年终奖','Annual bonus'),amount],[lcL('适用税率','Applicable tax rate'),(b.rate*100)+'%'],[lcL('应扣个税','Tax due'),tax],[lcL('税后到手','Net received'),after]];
+      S.chart={labels:[lcL('应扣个税','Tax'),lcL('税后到手','Net')],series:[{name:lcL('金额(元)','Amount'),data:[tax,after],color:'#8B5CF6'}]};
+      S.values={amount:amount};
+    }
+  }catch(e){}
+  return S;
+}
+
+function lcRender(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var tab=lcActive();
+    var S=lcData(tab);
+    var ch=document.getElementById('lcChart');
+    if(S.chart&&ch){ ch.innerHTML=''; TBKit.chart.bar(ch,{height:170,labels:S.chart.labels,series:S.chart.series,title:S.title}); }
+    else if(ch){ ch.innerHTML=''; }
+    var tb=document.getElementById('lcTable');
+    if(tb){
+      if(S.items&&S.items.length){
+        TBKit.matrix.table(tb,{head:[lcL('项目','Item'),lcL('数值','Value')],rows:S.items.map(function(it){return [it[0],(typeof it[1]==='number'?TBKit.util.fmt(it[1]):it[1])];})});
+      } else tb.innerHTML='';
+    }
+    if(S.values&&S.tab){
+      var rec={}; rec[lcL('类型','Type')]=S.title; rec[lcL('参数','Params')]=tab+'|'+JSON.stringify(S.values);
+      rec[lcL('结果','Result')]=(S.items||[]).map(function(it){return it[0]+':'+(typeof it[1]==='number'?TBKit.util.fmt(it[1]):it[1]);}).join('; ');
+      TBKit.history.record(rec);
+    }
+  }catch(e){}
+}
+
+function lcApplyPreset(p){
+  try{
+    for(var k in p.values){ if(!Object.prototype.hasOwnProperty.call(p.values,k))continue;
+      var el=document.getElementById(k);
+      if(!el){ if(k==='loan-type'){el=document.getElementById('loan-type-'+p.values[k]);}
+               else if(k==='lit-type'){el=document.getElementById('lit-type-'+p.values[k]);}
+               if(!el)continue; }
+      if(el.type==='checkbox') el.checked=!!p.values[k];
+      else if(el.type==='radio') el.checked=true;
+      else el.value=p.values[k];
+      el.dispatchEvent(new Event('input',{bubbles:true}));
+      el.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  }catch(e){}
+}
+
+function lcPresets(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var tab=lcActive();
+    var list=(LC_PRESETS[tab]||[]);
+    var host=document.getElementById('lcPresets');
+    if(host&&list.length){
+      TBKit.preset.bar(host, list, function(){ try{ LC_TAB_CALC[lcActive()](); }catch(e){} });
+    }
+  }catch(e){}
+}
+
+function lcMount(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var h=document.getElementById('lcHist');
+    if(h) TBKit.history.mount(h, function(rec){ try{
+      var raw=rec[lcL('参数','Params')]||'';
+      var sep=raw.indexOf('|'); if(sep<0)return;
+      var tab=raw.slice(0,sep), vals={};
+      try{ vals=JSON.parse(raw.slice(sep+1)); }catch(e){}
+      if(LC_TAB_CALC[tab]){ LC_TAB_CALC[tab](); }
+      for(var k in vals){ if(!Object.prototype.hasOwnProperty.call(vals,k))continue;
+        var el=document.getElementById(k);
+        if(!el){ if(k==='loan-type')el=document.getElementById('loan-type-'+vals[k]); else if(k==='lit-type')el=document.getElementById('lit-type-'+vals[k]); if(!el)continue; }
+        if(el.type==='checkbox') el.checked=!!vals[k];
+        else if(el.type==='radio') el.checked=true;
+        else el.value=vals[k];
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      if(LC_TAB_CALC[tab]){ LC_TAB_CALC[tab](); }
+    }catch(e){} });
+  }catch(e){}
+}
+
+function lcBoot(){
+  lcMount();
+  lcRender();
+  lcPresets();
+}
+
+var LC_TAB_CALC={comp:calcComp,overtime:calcOT,loan:calcLoan,litigation:calcLit,breach:calcBreach,bonus:calcBonus};
+var LC_PRESETS={
+  comp:[
+    {label:'5年·月薪1万',labelEn:'5yr·10k',values:{years:5,salary:10000,avg3:0,n:false},calc:calcComp},
+    {label:'15年·月薪3万(封顶)',labelEn:'15yr·30k(cap)',values:{years:15,salary:30000,avg3:8000,n:false},calc:calcComp},
+    {label:'8年·N+1',labelEn:'8yr·N+1',values:{years:8,salary:15000,avg3:0,n:true},calc:calcComp}
+  ],
+  overtime:[
+    {label:'工作日·8小时',labelEn:'Workday·8h',values:{salary:10000,type:'workday',hours:8,days:21.75},calc:calcOT},
+    {label:'休息日·10小时',labelEn:'Restday·10h',values:{salary:10000,type:'restday',hours:10,days:21.75},calc:calcOT},
+    {label:'法定节假日·12小时',labelEn:'Holiday·12h',values:{salary:10000,type:'holiday',hours:12,days:21.75},calc:calcOT}
+  ],
+  loan:[
+    {label:'10万·年利率10%·单利12月',labelEn:'100k·10%·simple',values:{principal:100000,rate:10,months:12,type:'simple'},calc:calcLoan},
+    {label:'50万·年利率6%·复利24月',labelEn:'500k·6%·compound',values:{principal:500000,rate:6,months:24,type:'compound'},calc:calcLoan},
+    {label:'20万·年利率20%(超限)',labelEn:'200k·20%(over)',values:{principal:200000,rate:20,months:12,type:'simple'},calc:calcLoan}
+  ],
+  litigation:[
+    {label:'财产案·标的10万',labelEn:'Property·100k',values:{type:'property',amount:100000},calc:calcLit},
+    {label:'财产案·标的500万',labelEn:'Property·5M',values:{type:'property',amount:5000000},calc:calcLit},
+    {label:'劳动争议案',labelEn:'Labor case',values:{type:'labor'},calc:calcLit}
+  ],
+  breach:[
+    {label:'10万·日0.05%·30天',labelEn:'100k·0.05%·30d',values:{amount:100000,mode:'percent',rate:0.05,days:30},calc:calcBreach},
+    {label:'50万·固定500/天·60天',labelEn:'500k·fixed500·60d',values:{amount:500000,mode:'fixed',fixed:500,days:60},calc:calcBreach},
+    {label:'200万·日0.1%·90天',labelEn:'2M·0.1%·90d',values:{amount:2000000,mode:'percent',rate:0.1,days:90},calc:calcBreach}
+  ],
+  bonus:[
+    {label:'年终奖3.6万',labelEn:'36k bonus',values:{amount:36000},calc:calcBonus},
+    {label:'年终奖10万',labelEn:'100k bonus',values:{amount:100000},calc:calcBonus},
+    {label:'年终奖50万',labelEn:'500k bonus',values:{amount:500000},calc:calcBonus}
+  ]
+};
+</script>
 </body>
 </html>
