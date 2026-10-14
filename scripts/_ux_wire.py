@@ -155,6 +155,9 @@ def extract(page):
     # 去掉 __ig 守卫整体
     pre = re.sub(r"var __ig=.*?return;\s*\}", "", pre, flags=re.S)
     # 去掉悬挂 const __gN=
+    # 同行函数声明（前一段以 } 或 ; 结尾）拆到独立行：否则 st 不以 function 开头，
+    # 会被当成上一行的续行拼接进 keep，产出坏块（convert-power 真案例）。
+    pre = re.sub(r'([;}])\s*(function\s+\w+\s*\()', r'\\1\n\\2', pre)
     pre = re.sub(r"const\s+__g\d*\s*=\s*$", "", pre)
     # 语句级过滤：保留 ① const/var/let 赋值 ② 完整括号平衡的 if/else 链（花括号/无花括号均可）
     # 整块丢弃 for/while/switch/try/function（花括号须平衡，防悬挂）；含 for/while/dataGrid 的
@@ -293,8 +296,12 @@ RESULT_IDS = ("result", "res", "output")
 # 次级容器：搜索/筛选型「可检索参考列表」页（rock-identify / cloud-identify /
 # pottery-typology / 64-gua / plant-care 等）用 render()/filterList() 渲染到列表容器，
 # 无 result/res/output。仅在无主容器时退化使用，避免误伤导航列表页。
+# 只放**已核验**的结果列表容器。曾用通配 `(?:List|Grid|Results)$` 兜底，实测把
+# historyList / statGrid / presetsGrid / slidesList / recList 等控件面板当成结果区，
+# 表格插错位置 → 改为显式名单，宁可少接也不错接。
 RESULT_IDS2 = ("resultList", "result-list", "countryList", "guaList", "plantList",
-               "cardList", "itemList", "listBox", "list", "detail")
+               "cardList", "itemList", "listBox", "list", "listDiv", "rodList",
+               "formulaList", "herbList", "recipeList", "results", "detail")
 RESULT_CLASSES = ("result-box", "result-display")
 # 末级兜底：按 id 名的**词边界**猜结果容器（resultBox / cssOutput / breakdown / …）。
 # 必须词边界而非子串——"res" 是 "presets" 的子串、"list" 会命中 "presetGrid"/"hiveList"
@@ -343,7 +350,7 @@ def extract_custom(page):
     fn = None
     for c in cands:
         if re.match(FN_OK, c, re.I) and \
-                re.search(r'^[ \t]*function\s+%s\s*\(' % re.escape(c), s, re.M):
+                re.search(r'(?:^|[;}])\s*function\s+%s\s*\(' % re.escape(c), s, re.M):
             fn = c
             break
     if fn is None:
@@ -352,7 +359,14 @@ def extract_custom(page):
     ids = []
     for mm in re.finditer(r'<(?:input|select|textarea)\b[^>]*\bid="([\w-]+)"', s):
         iid = mm.group(1)
-        if re.search(r'\b(?:search|token|csrf|nonce)\b', iid, re.I):
+        # 只排除站点搜索/安全字段。旧规则排除任何含 search 的 id → 把工具自身的
+        # 关键词过滤框（travel-adapter-guide / herb-processing 的 id="search"）误杀，
+        # 输入集合为空 → 该页直接放弃接线。
+        if re.search(r'(?:token|csrf|nonce)', iid, re.I):
+            continue
+        if re.match(r'(?:q|query)$', iid, re.I):
+            continue
+        if re.search(r'(?:site|nav|header|global|top)[-_]?search', iid, re.I):
             continue
         if iid not in ids:
             ids.append(iid)
