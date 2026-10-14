@@ -165,6 +165,7 @@ def extract(page):
     def _brace_delta(t):
         return t.count('{') - t.count('}')
     keep = []
+    fn_blocks = []   # 原样保留的嵌套辅助函数（primary 提取需跳过，防取到函数体内局部变量）
     lines = pre.splitlines()
     i = 0
     while i < len(lines):
@@ -192,7 +193,29 @@ def extract(page):
             if "setResult" in text or re.search(r'\breturn\b', text):
                 continue  # Extras 重跑段不能 setResult（覆写结果区/双弹提示）也不能提前 return（跳过记录与挂载）
             keep.append(text)
-        elif re.match(r"^(for|while|switch|try|function)\b", st):
+        elif re.match(r"^function\s+\w+\s*\(", st):
+            # 嵌套辅助函数（fmt/erf/isPrime 等）：原样整块保留（多行也原样，不用空格拼接）。
+            # 旧逻辑整块丢弃 → compute 内调用该函数时 ReferenceError 被 try/catch 吞掉，
+            # 明细表/历史/预设静默全死（比不接线更隐蔽）。原样保留即与页面内语义等价
+            # （函数声明提升、同一声明顺序）。
+            blk = [st]
+            depth = _brace_delta(st)
+            while depth > 0 and i < len(lines):
+                nxt = lines[i]
+                if not nxt.strip().startswith('//'):
+                    blk.append(nxt)   # 纯注释行跳过：拼块会把后续代码吞进注释
+                depth += _brace_delta(nxt)
+                i += 1
+            if depth > 0:
+                return None          # 括号无法闭合 → 放弃该页，防产出坏块
+            text = "\n".join(blk)
+            # 会二次渲染结果区 / 直接写 DOM 的辅助函数不可保留 → 放弃该页（保守）
+            if re.search(r'dataGrid\(|setResult|innerHTML|getElementById\(\s*[\'"]res', text):
+                return None
+            fn_blocks.append(text)
+            keep.append(text)
+            continue
+        elif re.match(r"^(for|while|switch|try)\b", st):
             # 整块丢弃（消费到花括号平衡）
             depth = _brace_delta(st)
             while depth > 0 and i < len(lines):
@@ -226,11 +249,17 @@ def extract(page):
     # primary 结果变量：第一个非输入的 const/var 赋值（compute 内联时块级 const/let
     # 已全部提升为 var——函数作用域，Extras 顶层可达；dilution-c1v1 真案例：
     # `if(...){ const V=...; }` 曾致 record 的 V:V ReferenceError）
+    # 逐条 keep 扫描（跳过嵌套函数块内部），顺序与旧版在 "\n".join(keep) 上搜索一致
     primary = None
-    for mm in re.finditer(r"(?:const|var|let)\s+(\w+)\s*=", pre):
-        v = mm.group(1)
-        if v not in inputs and v not in ('__g1','__g2','__ig'):
-            primary = v
+    for stmt in keep:
+        if re.match(r"^function\b", stmt):
+            continue
+        for mm in re.finditer(r"(?:const|var|let)\s+(\w+)\s*=", stmt):
+            v = mm.group(1)
+            if v not in inputs and v not in ('__g1','__g2','__ig'):
+                primary = v
+                break
+        if primary:
             break
     return {"inputs": inputs, "num_ids": num_ids, "compute": pre, "dg_rows": rows, "primary": primary}
 
@@ -420,12 +449,42 @@ def gen_classic_extras(p, inputs, compute, rows, primary, num_ids=None, diff_fie
     js.append("}")
     return js
 
+def _unsafe_nested_fn(cb):
+    """compute 段（dataGrid 之前的赋值段）内的嵌套函数是否不可接线。
+
+    旧规则对整个 calc 体做 `function \\w+(` 存在性检查 → 两处误杀：
+      ① dataGrid 之后才定义函数的页（circular-permutation / multinomial-coefficient）
+         本可安全接线却被跳过；
+      ② 纯计算辅助函数（fmt / isPrime / npv / erf / 格式解析器）被一刀切跳过，
+         页内 compute 调用它们 → 若丢弃则 ReferenceError 被 try/catch 吞掉、表静默死。
+    新规则：只检查 compute 段，且只有会二次渲染结果区的函数（dataGrid/setResult/
+    innerHTML/写 #res）才判不安全；其余由 extract() 原样保留。"""
+    gi = cb.find('dataGrid(')
+    region = cb[:cb.rfind('\n', 0, gi) + 1] if gi >= 0 else cb
+    for m in re.finditer(r'^function\s+\w+\s*\(', region, re.M):
+        i = region.find('{', m.start())
+        if i < 0:
+            return True
+        depth, j = 1, i + 1
+        while j < len(region) and depth > 0:
+            if region[j] == '{':
+                depth += 1
+            elif region[j] == '}':
+                depth -= 1
+            j += 1
+        if depth > 0:
+            return True          # 括号无法闭合 → 放弃
+        blk = region[m.start():j]
+        if re.search(r'dataGrid\(|setResult|innerHTML|getElementById\(\s*[\'"]res', blk):
+            return True
+    return False
+
+
 def apply_page(page, dry=False):
-    # 含嵌套函数定义（erf/invNorm 等）的页：提取会打碎函数体、把局部 const 展平到同一作用域，
-    # 导致「already been declared」或表格静默失效 → 跳过，留待手动 A 档精做（不破坏核心计算）。
+    # 含嵌套函数定义的页：仅当该函数会二次渲染结果区才跳过（见 _unsafe_nested_fn）
     s0 = open(page, encoding='utf-8').read()
     cb = calc_body(s0)
-    if cb and re.search(r'function\s+\w+\s*\(', cb):
+    if cb and _unsafe_nested_fn(cb):
         return "skip:complex-nested-functions"
     info = extract(page)
     if info is None:
