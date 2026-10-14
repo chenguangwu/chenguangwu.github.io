@@ -485,8 +485,8 @@ def apply_custom(page, dry=False):
     js.append("    if (typeof TBKit === 'undefined') return;")
     js.append("    try { TBKit.util.exportTable('#%sTable','%s.csv'); } catch(e){}" % (p, name))
     js.append("}")
-    # 预设（默认参数回填）
-    pv = ", ".join("%s:'%s'" % (k, str(v).replace("'", "").replace("\\", "")[:40]) for k, v in defaults.items() if v != '')
+    # 预设（默认参数回填；键一律加引号——输入 id 可含连字符如 temp-slider，裸键会语法错）
+    pv = ", ".join("'%s':'%s'" % (k, str(v).replace("'", "").replace("\\", "")[:40]) for k, v in defaults.items() if v != '')
     js.append("function __%sPresets(){" % p)
     js.append("    if (typeof TBKit === 'undefined') return;")
     if pv:
