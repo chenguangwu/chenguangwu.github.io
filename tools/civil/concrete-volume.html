@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="concrete_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__concrete_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="concrete_volumeTable"></div>
+    <div id="concrete_volumeDiff"></div>
+    <div id="concrete_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -207,6 +213,43 @@ function resetForm(){document.getElementById('a').value = '4';
       document.getElementById('rho').value = '2400';
       calcTool();}
 calcTool();
+
+function __concrete_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __concrete_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a'), b=num('b'), c=num('c'), rho=num('rho');
+    var V=a*b*c;
+    if (!isFinite(__concrete_volumeNum('a')) || !isFinite(__concrete_volumeNum('b')) || !isFinite(__concrete_volumeNum('c')) || !isFinite(__concrete_volumeNum('rho'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#concrete_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['混凝土体积 (m³)', V.toFixed(3)],
+            ['重量 (t)', (V*rho/1000).toFixed(2)],
+            ['重量 (kg)', (V*rho).toFixed(0)],
+        ]
+    });
+    TBKit.history.record({a:__concrete_volumeNum('a'), b:__concrete_volumeNum('b'), c:__concrete_volumeNum('c'), rho:__concrete_volumeNum('rho'), V:V});
+    TBKit.history.mount('#concrete_volumeHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.c!=null)document.getElementById('c').value=rec.c; if(rec.rho!=null)document.getElementById('rho').value=rec.rho; calcTool(); });
+    TBKit.util.diffBox('#concrete_volumeDiff',['V']);
+}
+function __concrete_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#concrete_volumeTable','concrete-volume.csv'); } catch(e){}
+}
+function __concrete_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#concrete_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{a:'4', b:'0.4', c:'0.5', rho:'2400'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'8', b:'0.8', c:'1', rho:'4800'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'2', b:'0.2', c:'0.25', rho:'1200'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __concrete_volumeExtras(); }catch(e){} };
+function __concrete_volumeBoot(){ try{ __concrete_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __concrete_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __concrete_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

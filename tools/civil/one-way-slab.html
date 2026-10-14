@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="one_way_slabPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__one_way_slabExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="one_way_slabTable"></div>
+    <div id="one_way_slabDiff"></div>
+    <div id="one_way_slabHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -215,6 +221,46 @@ function resetForm(){document.getElementById('M').value = '8';
       document.getElementById('as').value = '20';
       calcTool();}
 calcTool();
+
+function __one_way_slabNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __one_way_slabExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var M=num('M')*1e6, b=1000, h=num('h'), fc=num('fc'), fy=num('fy'), as_=num('as');
+    var a1=1.0, h0=h-as_;
+    var aS=M/(a1*fc*b*h0*h0);
+    var xi=1-Math.sqrt(1-2*aS);
+    var As=xi*a1*fc*b*h0/fy;
+    if (!isFinite(__one_way_slabNum('M')) || !isFinite(__one_way_slabNum('h')) || !isFinite(__one_way_slabNum('fc')) || !isFinite(__one_way_slabNum('fy')) || !isFinite(__one_way_slabNum('as'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#one_way_slabTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['α_s', aS.toFixed(4)],
+            ['ξ', xi.toFixed(4)],
+            ['每米配筋 A_s (mm²/m)', As.toFixed(0)],
+        ]
+    });
+    TBKit.history.record({M:__one_way_slabNum('M'), h:__one_way_slabNum('h'), fc:__one_way_slabNum('fc'), fy:__one_way_slabNum('fy'), as:__one_way_slabNum('as'), a1:a1});
+    TBKit.history.mount('#one_way_slabHist',function(rec){ if(rec.M!=null)document.getElementById('M').value=rec.M; if(rec.h!=null)document.getElementById('h').value=rec.h; if(rec.fc!=null)document.getElementById('fc').value=rec.fc; if(rec.fy!=null)document.getElementById('fy').value=rec.fy; if(rec.as!=null)document.getElementById('as').value=rec.as; calcTool(); });
+    TBKit.util.diffBox('#one_way_slabDiff',['a1']);
+}
+function __one_way_slabExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#one_way_slabTable','one-way-slab.csv'); } catch(e){}
+}
+function __one_way_slabPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#one_way_slabPresets',[
+        {label:'默认',labelEn:'Default',values:{M:'8', h:'120', fc:'14.3', fy:'360', as:'20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{M:'16', h:'240', fc:'28.6', fy:'720', as:'40'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{M:'4', h:'60', fc:'7.15', fy:'180', as:'10'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __one_way_slabExtras(); }catch(e){} };
+function __one_way_slabBoot(){ try{ __one_way_slabPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __one_way_slabBoot();
+else document.addEventListener('DOMContentLoaded', __one_way_slabBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="beam_udlPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__beam_udlExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="beam_udlTable"></div>
+    <div id="beam_udlDiff"></div>
+    <div id="beam_udlHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -223,6 +229,48 @@ function resetForm(){document.getElementById('L').value = '6';
       document.getElementById('h').value = '400';
       calcTool();}
 calcTool();
+
+function __beam_udlNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __beam_udlExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var L=num('L'), q=num('q'), E=num('E')*1e9, I=num('I')*1e-8, b=num('b'), h=num('h');
+    var Mmax = q*L*L/8;               // kN·m
+    var Vmax = q*L/2;                 // kN
+    var delta = 5*q*1000*Math.pow(L,4)/(384*E*I)*1000; // m -> mm (q 转 N/m)
+    var W = b*Math.pow(h,2)/6;        // mm^3 截面模量 W = bh²/6
+    var sigma = Mmax*1e6/W;           // MPa (M:kN·m -> N·mm = ×1e6)
+    if (!isFinite(__beam_udlNum('L')) || !isFinite(__beam_udlNum('q')) || !isFinite(__beam_udlNum('E')) || !isFinite(__beam_udlNum('I')) || !isFinite(__beam_udlNum('b')) || !isFinite(__beam_udlNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#beam_udlTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最大弯矩 (kN·m)', Mmax.toFixed(2)],
+            ['最大剪力 (kN)', Vmax.toFixed(2)],
+            ['跨中挠度 (mm)', delta.toFixed(2)],
+            ['跨中弯曲应力 (MPa)', sigma.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({L:__beam_udlNum('L'), q:__beam_udlNum('q'), E:__beam_udlNum('E'), I:__beam_udlNum('I'), b:__beam_udlNum('b'), h:__beam_udlNum('h'), Mmax:Mmax});
+    TBKit.history.mount('#beam_udlHist',function(rec){ if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.q!=null)document.getElementById('q').value=rec.q; if(rec.E!=null)document.getElementById('E').value=rec.E; if(rec.I!=null)document.getElementById('I').value=rec.I; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#beam_udlDiff',['Mmax']);
+}
+function __beam_udlExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#beam_udlTable','beam-udl.csv'); } catch(e){}
+}
+function __beam_udlPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#beam_udlPresets',[
+        {label:'默认',labelEn:'Default',values:{L:'6', q:'20', E:'30', I:'8000', b:'200', h:'400'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'12', q:'40', E:'60', I:'16000', b:'400', h:'800'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'3', q:'10', E:'15', I:'4000', b:'100', h:'200'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __beam_udlExtras(); }catch(e){} };
+function __beam_udlBoot(){ try{ __beam_udlPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __beam_udlBoot();
+else document.addEventListener('DOMContentLoaded', __beam_udlBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

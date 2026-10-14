@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="two_way_slabPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__two_way_slabExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="two_way_slabTable"></div>
+    <div id="two_way_slabDiff"></div>
+    <div id="two_way_slabHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,45 @@ function resetForm(){document.getElementById('q').value = '10';
       document.getElementById('ly').value = '5';
       calcTool();}
 calcTool();
+
+function __two_way_slabNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __two_way_slabExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var q=num('q'), lx=num('lx'), ly=num('ly');
+    var ax = lx<=ly ? 0.10 : 0.08;
+    var ay = 0.06;
+    var Mx=ax*q*lx*lx, My=ay*q*ly*ly;
+    if (!isFinite(__two_way_slabNum('q')) || !isFinite(__two_way_slabNum('lx')) || !isFinite(__two_way_slabNum('ly'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#two_way_slabTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['短跨方向弯矩 M_x (kN·m/m)', Mx.toFixed(2)],
+            ['长跨方向弯矩 M_y (kN·m/m)', My.toFixed(2)],
+            ['M_x / M_y 比值', (Mx/My).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({q:__two_way_slabNum('q'), lx:__two_way_slabNum('lx'), ly:__two_way_slabNum('ly'), ax:ax});
+    TBKit.history.mount('#two_way_slabHist',function(rec){ if(rec.q!=null)document.getElementById('q').value=rec.q; if(rec.lx!=null)document.getElementById('lx').value=rec.lx; if(rec.ly!=null)document.getElementById('ly').value=rec.ly; calcTool(); });
+    TBKit.util.diffBox('#two_way_slabDiff',['ax']);
+}
+function __two_way_slabExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#two_way_slabTable','two-way-slab.csv'); } catch(e){}
+}
+function __two_way_slabPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#two_way_slabPresets',[
+        {label:'默认',labelEn:'Default',values:{q:'10', lx:'4', ly:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{q:'20', lx:'8', ly:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{q:'5', lx:'2', ly:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __two_way_slabExtras(); }catch(e){} };
+function __two_way_slabBoot(){ try{ __two_way_slabPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __two_way_slabBoot();
+else document.addEventListener('DOMContentLoaded', __two_way_slabBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="load_combinationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__load_combinationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="load_combinationTable"></div>
+    <div id="load_combinationDiff"></div>
+    <div id="load_combinationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -205,6 +211,43 @@ function resetForm(){document.getElementById('Sg').value = '50';
       document.getElementById('gQ').value = '1.5';
       calcTool();}
 calcTool();
+
+function __load_combinationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __load_combinationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var Sg=num('Sg'), Sq=num('Sq'), gG=num('gG'), gQ=num('gQ');
+    var S=gG*Sg+gQ*Sq;
+    if (!isFinite(__load_combinationNum('Sg')) || !isFinite(__load_combinationNum('Sq')) || !isFinite(__load_combinationNum('gG')) || !isFinite(__load_combinationNum('gQ'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#load_combinationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['γ_G·S_Gk', (gG*Sg).toFixed(1)],
+            ['γ_Q·S_Qk', (gQ*Sq).toFixed(1)],
+            ['组合效应 S (kN·m)', S.toFixed(1)],
+        ]
+    });
+    TBKit.history.record({Sg:__load_combinationNum('Sg'), Sq:__load_combinationNum('Sq'), gG:__load_combinationNum('gG'), gQ:__load_combinationNum('gQ'), S:S});
+    TBKit.history.mount('#load_combinationHist',function(rec){ if(rec.Sg!=null)document.getElementById('Sg').value=rec.Sg; if(rec.Sq!=null)document.getElementById('Sq').value=rec.Sq; if(rec.gG!=null)document.getElementById('gG').value=rec.gG; if(rec.gQ!=null)document.getElementById('gQ').value=rec.gQ; calcTool(); });
+    TBKit.util.diffBox('#load_combinationDiff',['S']);
+}
+function __load_combinationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#load_combinationTable','load-combination.csv'); } catch(e){}
+}
+function __load_combinationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#load_combinationPresets',[
+        {label:'默认',labelEn:'Default',values:{Sg:'50', Sq:'30', gG:'1.3', gQ:'1.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{Sg:'100', Sq:'60', gG:'2.6', gQ:'3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{Sg:'25', Sq:'15', gG:'0.65', gQ:'0.75'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __load_combinationExtras(); }catch(e){} };
+function __load_combinationBoot(){ try{ __load_combinationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __load_combinationBoot();
+else document.addEventListener('DOMContentLoaded', __load_combinationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

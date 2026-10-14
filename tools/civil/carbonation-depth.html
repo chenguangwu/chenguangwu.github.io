@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="carbonation_depthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__carbonation_depthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="carbonation_depthTable"></div>
+    <div id="carbonation_depthDiff"></div>
+    <div id="carbonation_depthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,42 @@ function resetForm(){document.getElementById('K').value = '2.0';
       document.getElementById('t').value = '30';
       calcTool();}
 calcTool();
+
+function __carbonation_depthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __carbonation_depthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var K=num('K'), t=num('t');
+    var x=2.56*K*Math.sqrt(t);
+    if (!isFinite(__carbonation_depthNum('K')) || !isFinite(__carbonation_depthNum('t'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#carbonation_depthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['碳化深度 x (mm)', x.toFixed(1)],
+            ['碳化深度 (cm)', (x/10).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({K:__carbonation_depthNum('K'), t:__carbonation_depthNum('t'), x:x});
+    TBKit.history.mount('#carbonation_depthHist',function(rec){ if(rec.K!=null)document.getElementById('K').value=rec.K; if(rec.t!=null)document.getElementById('t').value=rec.t; calcTool(); });
+    TBKit.util.diffBox('#carbonation_depthDiff',['x']);
+}
+function __carbonation_depthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#carbonation_depthTable','carbonation-depth.csv'); } catch(e){}
+}
+function __carbonation_depthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#carbonation_depthPresets',[
+        {label:'默认',labelEn:'Default',values:{K:'2.0', t:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{K:'4', t:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{K:'1', t:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __carbonation_depthExtras(); }catch(e){} };
+function __carbonation_depthBoot(){ try{ __carbonation_depthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __carbonation_depthBoot();
+else document.addEventListener('DOMContentLoaded', __carbonation_depthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

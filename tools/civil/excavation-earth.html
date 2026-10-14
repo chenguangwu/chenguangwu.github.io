@@ -141,12 +141,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="excavation_earthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__excavation_earthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="excavation_earthTable"></div>
+    <div id="excavation_earthDiff"></div>
+    <div id="excavation_earthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -210,6 +216,44 @@ function resetForm(){document.getElementById('gamma').value = '19';
       document.getElementById('q').value = '10';
       calcTool();}
 calcTool();
+
+function __excavation_earthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __excavation_earthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var g=num('gamma'), H=num('H'), phi=num('phi')*Math.PI/180, q=num('q');
+    var Ka=Math.pow(Math.tan(Math.PI/4-phi/2),2);
+    var Ea=0.5*g*H*H*Ka + q*H*Ka;
+    if (!isFinite(__excavation_earthNum('gamma')) || !isFinite(__excavation_earthNum('H')) || !isFinite(__excavation_earthNum('phi')) || !isFinite(__excavation_earthNum('q'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#excavation_earthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['主动土压力系数 K_a', Ka.toFixed(3)],
+            ['墙顶土压力 (kPa)', (g*H*Ka+q*Ka).toFixed(1)],
+            ['主动土压力合力 E_a (kN/m)', Ea.toFixed(1)],
+        ]
+    });
+    TBKit.history.record({gamma:__excavation_earthNum('gamma'), H:__excavation_earthNum('H'), phi:__excavation_earthNum('phi'), q:__excavation_earthNum('q'), g:g});
+    TBKit.history.mount('#excavation_earthHist',function(rec){ if(rec.gamma!=null)document.getElementById('gamma').value=rec.gamma; if(rec.H!=null)document.getElementById('H').value=rec.H; if(rec.phi!=null)document.getElementById('phi').value=rec.phi; if(rec.q!=null)document.getElementById('q').value=rec.q; calcTool(); });
+    TBKit.util.diffBox('#excavation_earthDiff',['g']);
+}
+function __excavation_earthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#excavation_earthTable','excavation-earth.csv'); } catch(e){}
+}
+function __excavation_earthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#excavation_earthPresets',[
+        {label:'默认',labelEn:'Default',values:{gamma:'19', H:'8', phi:'30', q:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{gamma:'38', H:'16', phi:'60', q:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{gamma:'9.5', H:'4', phi:'15', q:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __excavation_earthExtras(); }catch(e){} };
+function __excavation_earthBoot(){ try{ __excavation_earthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __excavation_earthBoot();
+else document.addEventListener('DOMContentLoaded', __excavation_earthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

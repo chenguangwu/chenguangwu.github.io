@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="active_earth_rankinePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__active_earth_rankineExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="active_earth_rankineTable"></div>
+    <div id="active_earth_rankineDiff"></div>
+    <div id="active_earth_rankineHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -215,6 +221,47 @@ function resetForm(){document.getElementById('gamma').value = '18';
       document.getElementById('c').value = '0';
       calcTool();}
 calcTool();
+
+function __active_earth_rankineNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __active_earth_rankineExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var g=num('gamma'), H=num('H'), phi=num('phi')*Math.PI/180, c=num('c');
+    var Ka = Math.pow(Math.tan(Math.PI/4 - phi/2),2);
+    var z0 = 0;
+    var Ea;
+    var pa_bottom = g*H*Ka - 2*c*Math.sqrt(Ka);
+    if (!isFinite(__active_earth_rankineNum('gamma')) || !isFinite(__active_earth_rankineNum('H')) || !isFinite(__active_earth_rankineNum('phi')) || !isFinite(__active_earth_rankineNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#active_earth_rankineTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['主动土压力系数 K_a', Ka.toFixed(3)],
+            ['临界深度 z_0 (m)', z0.toFixed(2)],
+            ['墙底土压力 (kPa)', Math.max(pa_bottom,0).toFixed(1)],
+            ['主动土压力合力 E_a (kN/m)', Ea.toFixed(1)],
+        ]
+    });
+    TBKit.history.record({gamma:__active_earth_rankineNum('gamma'), H:__active_earth_rankineNum('H'), phi:__active_earth_rankineNum('phi'), c:__active_earth_rankineNum('c'), g:g});
+    TBKit.history.mount('#active_earth_rankineHist',function(rec){ if(rec.gamma!=null)document.getElementById('gamma').value=rec.gamma; if(rec.H!=null)document.getElementById('H').value=rec.H; if(rec.phi!=null)document.getElementById('phi').value=rec.phi; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+    TBKit.util.diffBox('#active_earth_rankineDiff',['g']);
+}
+function __active_earth_rankineExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#active_earth_rankineTable','active-earth-rankine.csv'); } catch(e){}
+}
+function __active_earth_rankinePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#active_earth_rankinePresets',[
+        {label:'默认',labelEn:'Default',values:{gamma:'18', H:'5', phi:'30', c:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{gamma:'36', H:'10', phi:'60', c:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{gamma:'9', H:'2.5', phi:'15', c:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __active_earth_rankineExtras(); }catch(e){} };
+function __active_earth_rankineBoot(){ try{ __active_earth_rankinePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __active_earth_rankineBoot();
+else document.addEventListener('DOMContentLoaded', __active_earth_rankineBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

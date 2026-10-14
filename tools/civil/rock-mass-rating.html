@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rock_mass_ratingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rock_mass_ratingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rock_mass_ratingTable"></div>
+    <div id="rock_mass_ratingDiff"></div>
+    <div id="rock_mass_ratingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -210,6 +216,43 @@ function resetForm(){document.getElementById('s1').value = '12';
       document.getElementById('s5').value = '10';
       calcTool();}
 calcTool();
+
+function __rock_mass_ratingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rock_mass_ratingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var s1=num('s1'),s2=num('s2'),s3=num('s3'),s4=num('s4'),s5=num('s5');
+    var RMR=s1+s2+s3+s4+s5;
+    var grade = RMR>=81?'I 级（极好）':RMR>=61?'II 级（好）':RMR>=41?'III 级（中等）':RMR>=21?'IV 级（差）':'V 级（极差）';
+    if (!isFinite(__rock_mass_ratingNum('s1')) || !isFinite(__rock_mass_ratingNum('s2')) || !isFinite(__rock_mass_ratingNum('s3')) || !isFinite(__rock_mass_ratingNum('s4')) || !isFinite(__rock_mass_ratingNum('s5'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rock_mass_ratingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['RMR 总分', RMR.toFixed(0)],
+            ['围岩级别', grade],
+        ]
+    });
+    TBKit.history.record({s1:__rock_mass_ratingNum('s1'), s2:__rock_mass_ratingNum('s2'), s3:__rock_mass_ratingNum('s3'), s4:__rock_mass_ratingNum('s4'), s5:__rock_mass_ratingNum('s5'), RMR:RMR});
+    TBKit.history.mount('#rock_mass_ratingHist',function(rec){ if(rec.s1!=null)document.getElementById('s1').value=rec.s1; if(rec.s2!=null)document.getElementById('s2').value=rec.s2; if(rec.s3!=null)document.getElementById('s3').value=rec.s3; if(rec.s4!=null)document.getElementById('s4').value=rec.s4; if(rec.s5!=null)document.getElementById('s5').value=rec.s5; calcTool(); });
+    TBKit.util.diffBox('#rock_mass_ratingDiff',['RMR']);
+}
+function __rock_mass_ratingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rock_mass_ratingTable','rock-mass-rating.csv'); } catch(e){}
+}
+function __rock_mass_ratingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rock_mass_ratingPresets',[
+        {label:'默认',labelEn:'Default',values:{s1:'12', s2:'13', s3:'10', s4:'20', s5:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{s1:'24', s2:'26', s3:'20', s4:'40', s5:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{s1:'6', s2:'6.5', s3:'5', s4:'10', s5:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rock_mass_ratingExtras(); }catch(e){} };
+function __rock_mass_ratingBoot(){ try{ __rock_mass_ratingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rock_mass_ratingBoot();
+else document.addEventListener('DOMContentLoaded', __rock_mass_ratingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

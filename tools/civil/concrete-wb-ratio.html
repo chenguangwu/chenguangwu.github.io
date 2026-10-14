@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="concrete_wb_ratioPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__concrete_wb_ratioExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="concrete_wb_ratioTable"></div>
+    <div id="concrete_wb_ratioDiff"></div>
+    <div id="concrete_wb_ratioHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -205,6 +211,42 @@ function resetForm(){document.getElementById('fcu').value = '38.2';
       document.getElementById('ab').value = '0.20';
       calcTool();}
 calcTool();
+
+function __concrete_wb_ratioNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __concrete_wb_ratioExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fcu=num('fcu'), fb=num('fb'), aa=num('aa'), ab=num('ab');
+    var wb = aa*fb/(fcu + aa*ab*fb);
+    if (!isFinite(__concrete_wb_ratioNum('fcu')) || !isFinite(__concrete_wb_ratioNum('fb')) || !isFinite(__concrete_wb_ratioNum('aa')) || !isFinite(__concrete_wb_ratioNum('ab'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#concrete_wb_ratioTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['水胶比 W/B', wb.toFixed(3)],
+            ['胶水比 B/W', (1/wb).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({fcu:__concrete_wb_ratioNum('fcu'), fb:__concrete_wb_ratioNum('fb'), aa:__concrete_wb_ratioNum('aa'), ab:__concrete_wb_ratioNum('ab'), wb:wb});
+    TBKit.history.mount('#concrete_wb_ratioHist',function(rec){ if(rec.fcu!=null)document.getElementById('fcu').value=rec.fcu; if(rec.fb!=null)document.getElementById('fb').value=rec.fb; if(rec.aa!=null)document.getElementById('aa').value=rec.aa; if(rec.ab!=null)document.getElementById('ab').value=rec.ab; calcTool(); });
+    TBKit.util.diffBox('#concrete_wb_ratioDiff',['wb']);
+}
+function __concrete_wb_ratioExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#concrete_wb_ratioTable','concrete-wb-ratio.csv'); } catch(e){}
+}
+function __concrete_wb_ratioPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#concrete_wb_ratioPresets',[
+        {label:'默认',labelEn:'Default',values:{fcu:'38.2', fb:'45', aa:'0.53', ab:'0.20'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fcu:'76.4', fb:'90', aa:'1.06', ab:'0.4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fcu:'19.1', fb:'22.5', aa:'0.265', ab:'0.1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __concrete_wb_ratioExtras(); }catch(e){} };
+function __concrete_wb_ratioBoot(){ try{ __concrete_wb_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __concrete_wb_ratioBoot();
+else document.addEventListener('DOMContentLoaded', __concrete_wb_ratioBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

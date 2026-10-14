@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="wind_loadPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__wind_loadExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="wind_loadTable"></div>
+    <div id="wind_loadDiff"></div>
+    <div id="wind_loadHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -204,6 +210,41 @@ function resetForm(){document.getElementById('w0').value = '0.5';
       document.getElementById('bz').value = '1.5';
       calcTool();}
 calcTool();
+
+function __wind_loadNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __wind_loadExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var w0=num('w0'), mz=num('mz'), ms=num('ms'), bz=num('bz');
+    var wk=bz*mz*ms*w0;
+    if (!isFinite(__wind_loadNum('w0')) || !isFinite(__wind_loadNum('mz')) || !isFinite(__wind_loadNum('ms')) || !isFinite(__wind_loadNum('bz'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#wind_loadTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['风荷载标准值 w_k (kN/m²)', wk.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({w0:__wind_loadNum('w0'), mz:__wind_loadNum('mz'), ms:__wind_loadNum('ms'), bz:__wind_loadNum('bz'), wk:wk});
+    TBKit.history.mount('#wind_loadHist',function(rec){ if(rec.w0!=null)document.getElementById('w0').value=rec.w0; if(rec.mz!=null)document.getElementById('mz').value=rec.mz; if(rec.ms!=null)document.getElementById('ms').value=rec.ms; if(rec.bz!=null)document.getElementById('bz').value=rec.bz; calcTool(); });
+    TBKit.util.diffBox('#wind_loadDiff',['wk']);
+}
+function __wind_loadExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wind_loadTable','wind-load.csv'); } catch(e){}
+}
+function __wind_loadPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wind_loadPresets',[
+        {label:'默认',labelEn:'Default',values:{w0:'0.5', mz:'1.0', ms:'1.3', bz:'1.5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{w0:'1', mz:'2', ms:'2.6', bz:'3'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{w0:'0.25', mz:'0.5', ms:'0.65', bz:'0.75'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __wind_loadExtras(); }catch(e){} };
+function __wind_loadBoot(){ try{ __wind_loadPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wind_loadBoot();
+else document.addEventListener('DOMContentLoaded', __wind_loadBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

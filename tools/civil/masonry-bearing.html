@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="masonry_bearingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__masonry_bearingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="masonry_bearingTable"></div>
+    <div id="masonry_bearingDiff"></div>
+    <div id="masonry_bearingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -206,6 +212,44 @@ function resetForm(){document.getElementById('f').value = '2.5';
       document.getElementById('phi').value = '1.0';
       calcTool();}
 calcTool();
+
+function __masonry_bearingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __masonry_bearingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f'), b=num('b'), L=num('L'), phi=num('phi');
+    var A=b*L;            // mm²
+    var N=phi*f*A/1000;   // kN (f MPa=N/mm²)
+    if (!isFinite(__masonry_bearingNum('f')) || !isFinite(__masonry_bearingNum('b')) || !isFinite(__masonry_bearingNum('L')) || !isFinite(__masonry_bearingNum('phi'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#masonry_bearingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['截面面积 A (m²)', (A/1e6).toFixed(3)],
+            ['承载力 N (kN)', N.toFixed(0)],
+            ['材料抗力 (kN, φ=1)', (f*A/1000).toFixed(0)],
+        ]
+    });
+    TBKit.history.record({f:__masonry_bearingNum('f'), b:__masonry_bearingNum('b'), L:__masonry_bearingNum('L'), phi:__masonry_bearingNum('phi'), A:A});
+    TBKit.history.mount('#masonry_bearingHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.phi!=null)document.getElementById('phi').value=rec.phi; calcTool(); });
+    TBKit.util.diffBox('#masonry_bearingDiff',['A']);
+}
+function __masonry_bearingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#masonry_bearingTable','masonry-bearing.csv'); } catch(e){}
+}
+function __masonry_bearingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#masonry_bearingPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'2.5', b:'240', L:'3000', phi:'1.0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'5', b:'480', L:'6000', phi:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'1.25', b:'120', L:'1500', phi:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __masonry_bearingExtras(); }catch(e){} };
+function __masonry_bearingBoot(){ try{ __masonry_bearingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __masonry_bearingBoot();
+else document.addEventListener('DOMContentLoaded', __masonry_bearingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

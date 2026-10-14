@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rebar_weightPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rebar_weightExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rebar_weightTable"></div>
+    <div id="rebar_weightDiff"></div>
+    <div id="rebar_weightHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,44 @@ function resetForm(){document.getElementById('d').value = '20';
       document.getElementById('n').value = '10';
       calcTool();}
 calcTool();
+
+function __rebar_weightNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rebar_weightExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var d=num('d'), L=num('L'), n=num('n');
+    var perM = 0.00617*d*d;     // kg/m 经验式 = π/4*d²*7.85e-6*1000
+    var total = perM*L*n;
+    if (!isFinite(__rebar_weightNum('d')) || !isFinite(__rebar_weightNum('L')) || !isFinite(__rebar_weightNum('n'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rebar_weightTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['每米理论重 (kg/m)', perM.toFixed(3)],
+            ['单根重量 (kg)', (perM*L).toFixed(2)],
+            ['总重 (kg)', total.toFixed(1)],
+        ]
+    });
+    TBKit.history.record({d:__rebar_weightNum('d'), L:__rebar_weightNum('L'), n:__rebar_weightNum('n'), perM:perM});
+    TBKit.history.mount('#rebar_weightHist',function(rec){ if(rec.d!=null)document.getElementById('d').value=rec.d; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.n!=null)document.getElementById('n').value=rec.n; calcTool(); });
+    TBKit.util.diffBox('#rebar_weightDiff',['perM']);
+}
+function __rebar_weightExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rebar_weightTable','rebar-weight.csv'); } catch(e){}
+}
+function __rebar_weightPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rebar_weightPresets',[
+        {label:'默认',labelEn:'Default',values:{d:'20', L:'9', n:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{d:'40', L:'18', n:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{d:'10', L:'4.5', n:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rebar_weightExtras(); }catch(e){} };
+function __rebar_weightBoot(){ try{ __rebar_weightPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rebar_weightBoot();
+else document.addEventListener('DOMContentLoaded', __rebar_weightBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

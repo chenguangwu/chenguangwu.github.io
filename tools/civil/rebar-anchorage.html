@@ -138,12 +138,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rebar_anchoragePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rebar_anchorageExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rebar_anchorageTable"></div>
+    <div id="rebar_anchorageDiff"></div>
+    <div id="rebar_anchorageHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -205,6 +211,42 @@ function resetForm(){document.getElementById('fy').value = '360';
       document.getElementById('za').value = '1.0';
       calcTool();}
 calcTool();
+
+function __rebar_anchorageNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rebar_anchorageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fy=num('fy'), ft=num('ft'), d=num('d'), za=num('za');
+    var lab = 0.14*za*(fy/ft)*d; // mm (α=0.14 带肋钢筋锚固外形系数)
+    if (!isFinite(__rebar_anchorageNum('fy')) || !isFinite(__rebar_anchorageNum('ft')) || !isFinite(__rebar_anchorageNum('d')) || !isFinite(__rebar_anchorageNum('za'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rebar_anchorageTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['基本锚固长度 l_ab (mm)', lab.toFixed(0)],
+            ['l_ab (m)', (lab/1000).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({fy:__rebar_anchorageNum('fy'), ft:__rebar_anchorageNum('ft'), d:__rebar_anchorageNum('d'), za:__rebar_anchorageNum('za'), lab:lab});
+    TBKit.history.mount('#rebar_anchorageHist',function(rec){ if(rec.fy!=null)document.getElementById('fy').value=rec.fy; if(rec.ft!=null)document.getElementById('ft').value=rec.ft; if(rec.d!=null)document.getElementById('d').value=rec.d; if(rec.za!=null)document.getElementById('za').value=rec.za; calcTool(); });
+    TBKit.util.diffBox('#rebar_anchorageDiff',['lab']);
+}
+function __rebar_anchorageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rebar_anchorageTable','rebar-anchorage.csv'); } catch(e){}
+}
+function __rebar_anchoragePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rebar_anchoragePresets',[
+        {label:'默认',labelEn:'Default',values:{fy:'360', ft:'1.43', d:'20', za:'1.0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fy:'720', ft:'2.86', d:'40', za:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fy:'180', ft:'0.715', d:'10', za:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rebar_anchorageExtras(); }catch(e){} };
+function __rebar_anchorageBoot(){ try{ __rebar_anchoragePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rebar_anchorageBoot();
+else document.addEventListener('DOMContentLoaded', __rebar_anchorageBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rc_beam_rebarPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rc_beam_rebarExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rc_beam_rebarTable"></div>
+    <div id="rc_beam_rebarDiff"></div>
+    <div id="rc_beam_rebarHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -223,6 +229,47 @@ function resetForm(){document.getElementById('M').value = '150';
       document.getElementById('as').value = '40';
       calcTool();}
 calcTool();
+
+function __rc_beam_rebarNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rc_beam_rebarExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var M=num('M')*1e6, b=num('b'), h=num('h'), fc=num('fc'), fy=num('fy'), as_=num('as');
+    var a1=1.0; const h0=h-as_;
+    var alphaS = M/(a1*fc*b*h0*h0);
+    var xi = 1-Math.sqrt(1-2*alphaS);
+    var As = xi*a1*fc*b*h0/fy;
+    if (!isFinite(__rc_beam_rebarNum('M')) || !isFinite(__rc_beam_rebarNum('b')) || !isFinite(__rc_beam_rebarNum('h')) || !isFinite(__rc_beam_rebarNum('fc')) || !isFinite(__rc_beam_rebarNum('fy')) || !isFinite(__rc_beam_rebarNum('as'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rc_beam_rebarTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['α_s', alphaS.toFixed(4)],
+            ['相对受压区高度 ξ', xi.toFixed(4)],
+            ['受拉钢筋面积 A_s (mm²)', As.toFixed(0)],
+            ['配筋率 ρ (%)', (As/(b*h0)*100).toFixed(2)],
+        ]
+    });
+    TBKit.history.record({M:__rc_beam_rebarNum('M'), b:__rc_beam_rebarNum('b'), h:__rc_beam_rebarNum('h'), fc:__rc_beam_rebarNum('fc'), fy:__rc_beam_rebarNum('fy'), as:__rc_beam_rebarNum('as'), a1:a1});
+    TBKit.history.mount('#rc_beam_rebarHist',function(rec){ if(rec.M!=null)document.getElementById('M').value=rec.M; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.h!=null)document.getElementById('h').value=rec.h; if(rec.fc!=null)document.getElementById('fc').value=rec.fc; if(rec.fy!=null)document.getElementById('fy').value=rec.fy; if(rec.as!=null)document.getElementById('as').value=rec.as; calcTool(); });
+    TBKit.util.diffBox('#rc_beam_rebarDiff',['a1']);
+}
+function __rc_beam_rebarExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rc_beam_rebarTable','rc-beam-rebar.csv'); } catch(e){}
+}
+function __rc_beam_rebarPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rc_beam_rebarPresets',[
+        {label:'默认',labelEn:'Default',values:{M:'150', b:'250', h:'500', fc:'14.3', fy:'360', as:'40'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{M:'300', b:'500', h:'1000', fc:'28.6', fy:'720', as:'80'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{M:'75', b:'125', h:'250', fc:'7.15', fy:'180', as:'20'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rc_beam_rebarExtras(); }catch(e){} };
+function __rc_beam_rebarBoot(){ try{ __rc_beam_rebarPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rc_beam_rebarBoot();
+else document.addEventListener('DOMContentLoaded', __rc_beam_rebarBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
