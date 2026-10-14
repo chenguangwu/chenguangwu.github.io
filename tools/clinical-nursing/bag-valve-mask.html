@@ -156,6 +156,7 @@ s.parentNode.insertBefore(el, s);
         </select>
       </div>
     </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__bag_valve_maskExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result">
       <div class="calc-result">
         <div class="big-num" id="rate">10</div>
@@ -169,6 +170,10 @@ s.parentNode.insertBefore(el, s);
         <div class="result-card"><div class="num" id="ratio">30:2</div><div class="lbl">按压通气比</div></div>
       </div>
     </div>
+    <div id="bag_valve_maskTable"></div>
+    <div id="bag_valve_maskDiff"></div>
+    <div id="bag_valve_maskChart"></div>
+    <div id="bag_valve_maskHist"></div>
     <div class="rhythm-guide">
       <div style="font-size:13px;color:var(--text-light);">按压节拍引导（点击下方按钮启动/停止）</div>
       <div class="rhythm-bar" id="rhythmBar"></div>
@@ -410,6 +415,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __bag_valve_mask_last=0,__bag_valve_mask_skip=false;
+function __bag_valve_maskSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bag_valve_maskResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bag_valve_maskTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bag_valve_maskRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bag_valve_maskTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bag_valve_maskTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bag_valve_maskDiff');
+        TBKit.history.mount('#bag_valve_maskHist',function(rec){
+            __bag_valve_mask_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __bag_valve_mask_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bag_valve_maskTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bag_valve_maskChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bag_valve_maskExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bag_valve_mask_skip) return;
+    var snap=__bag_valve_maskSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bag_valve_maskResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bag_valve_mask_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bag_valve_mask_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bag_valve_maskRender(keys,rk,en);
+}
+function __bag_valve_maskExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bag_valve_maskTable','bag-valve-mask.csv'); } catch(e){}
+}
+function __bag_valve_maskPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bag_valve_maskPresets',[{label:'默认参数',labelEn:'Default',values:{ageGroup:'adult', bagSize:'adult'}}],function(){ calc(); });
+}
+var __bag_valve_mask_f0=(typeof calc==='function')?calc:null;
+if(__bag_valve_mask_f0){
+    calc=function(){ __bag_valve_mask_f0.apply(null,arguments); try{ __bag_valve_maskExtras(); }catch(e){} };
+}
+function __bag_valve_maskBoot(){ try{ __bag_valve_maskPresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bag_valve_maskBoot();
+else document.addEventListener('DOMContentLoaded', __bag_valve_maskBoot);
 </script>
 
 </body>

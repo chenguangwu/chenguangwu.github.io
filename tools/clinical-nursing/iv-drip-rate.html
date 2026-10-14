@@ -160,6 +160,7 @@ s.parentNode.insertBefore(el, s);
         </select>
       </div>
     </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__iv_drip_rateExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result">
       <div class="calc-result">
         <div class="big-num" id="dripRate">42</div>
@@ -173,6 +174,10 @@ s.parentNode.insertBefore(el, s);
         <div class="result-card"><div class="num" id="perSecond">0.7</div><div class="lbl">每秒滴数</div></div>
       </div>
     </div>
+    <div id="iv_drip_rateTable"></div>
+    <div id="iv_drip_rateDiff"></div>
+    <div id="iv_drip_rateChart"></div>
+    <div id="iv_drip_rateHist"></div>
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="copyResult()">复制计算结果</button>
     </div>
@@ -341,6 +346,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __iv_drip_rate_last=0,__iv_drip_rate_skip=false;
+function __iv_drip_rateSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __iv_drip_rateResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __iv_drip_rateTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __iv_drip_rateRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__iv_drip_rateTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#iv_drip_rateTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#iv_drip_rateDiff');
+        TBKit.history.mount('#iv_drip_rateHist',function(rec){
+            __iv_drip_rate_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                calc();
+            }catch(e2){}
+            __iv_drip_rate_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__iv_drip_rateTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#iv_drip_rateChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __iv_drip_rateExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__iv_drip_rate_skip) return;
+    var snap=__iv_drip_rateSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__iv_drip_rateResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__iv_drip_rate_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __iv_drip_rate_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __iv_drip_rateRender(keys,rk,en);
+}
+function __iv_drip_rateExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#iv_drip_rateTable','iv-drip-rate.csv'); } catch(e){}
+}
+function __iv_drip_ratePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#iv_drip_ratePresets',[{label:'默认参数',labelEn:'Default',values:{volume:'500', hours:'4', minutes:'0', dropFactor:'20'}}],function(){ calc(); });
+}
+var __iv_drip_rate_f0=(typeof calc==='function')?calc:null;
+if(__iv_drip_rate_f0){
+    calc=function(){ __iv_drip_rate_f0.apply(null,arguments); try{ __iv_drip_rateExtras(); }catch(e){} };
+}
+function __iv_drip_rateBoot(){ try{ __iv_drip_ratePresets(); }catch(e){} try{ calc(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __iv_drip_rateBoot();
+else document.addEventListener('DOMContentLoaded', __iv_drip_rateBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用静脉输液滴速(微泵)换算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>输液总量 (mL)</li><li>输液时间 (小时)</li><li>输液时间 (分钟，可单独输入)</li><li>滴系数 (滴/mL)</li></ul><h2>适用场景</h2><p>适用于住院输液患者的滴速设定与控速核对，结合医嘱与微泵参数执行。。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>静脉输液滴速(微泵)换算器是做什么的？</dt><dd>输入输液总量、时间与滴系数，计算滴速（滴/分）并换算输液泵流速（mL/h），支持多种滴系数，便于精准给药。</dd><dt>如何使用静脉输液滴速(微泵)换算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>静脉输液滴速(微泵)换算器适合哪些场景？</dt><dd>适用于住院输液患者的滴速设定与控速核对，结合医嘱与微泵参数执行。。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

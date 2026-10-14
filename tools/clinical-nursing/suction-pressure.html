@@ -135,7 +135,9 @@ s.parentNode.insertBefore(el, s);
 </div>
 
     <div class="age-tab">
+      <div id="suction_pressurePresets"></div>
       <button class="active" onclick="selectAge('adult',this)">👤 成人</button>
+      <button class="btn" type="button" onclick="__suction_pressureExport()">导出明细 CSV</button>
       <button onclick="selectAge('child',this)">👦 儿童</button>
       <button onclick="selectAge('infant',this)">👶 婴幼儿</button>
       <button onclick="selectAge('newborn',this)">🍼 新生儿</button>
@@ -157,6 +159,10 @@ s.parentNode.insertBefore(el, s);
         <div class="range-desc" id="rangeDesc">成人吸痰负压安全范围：150-200 mmHg (20.0-26.7 kPa)</div>
       </div>
     </div>
+    <div id="suction_pressureTable"></div>
+    <div id="suction_pressureDiff"></div>
+    <div id="suction_pressureChart"></div>
+    <div id="suction_pressureHist"></div>
     <div class="result-box" style="margin-top:12px;">
       <p class="check-input" id="checkResult">当前压力 150 mmHg 在安全范围内 ✓</p>
     </div>
@@ -357,6 +363,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __suction_pressure_last=0,__suction_pressure_skip=false;
+function __suction_pressureSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __suction_pressureResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __suction_pressureTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __suction_pressureRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__suction_pressureTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#suction_pressureTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#suction_pressureDiff');
+        TBKit.history.mount('#suction_pressureHist',function(rec){
+            __suction_pressure_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                selectAge();
+            }catch(e2){}
+            __suction_pressure_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__suction_pressureTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#suction_pressureChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __suction_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__suction_pressure_skip) return;
+    var snap=__suction_pressureSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__suction_pressureResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__suction_pressure_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __suction_pressure_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __suction_pressureRender(keys,rk,en);
+}
+function __suction_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#suction_pressureTable','suction-pressure.csv'); } catch(e){}
+}
+function __suction_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#suction_pressurePresets',[{label:'默认参数',labelEn:'Default',values:{currentPressure:'150', currentKpa:'20'}}],function(){ selectAge(); });
+}
+var __suction_pressure_f0=(typeof selectAge==='function')?selectAge:null;
+if(__suction_pressure_f0){
+    selectAge=function(){ __suction_pressure_f0.apply(null,arguments); try{ __suction_pressureExtras(); }catch(e){} };
+}
+function __suction_pressureBoot(){ try{ __suction_pressurePresets(); }catch(e){} try{ selectAge(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __suction_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __suction_pressureBoot);
 </script>
 
 </body>

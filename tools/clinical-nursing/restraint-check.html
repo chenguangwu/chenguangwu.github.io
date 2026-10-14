@@ -154,12 +154,17 @@ s.parentNode.insertBefore(el, s);
     </div>
     <h3 style="margin:14px 0 8px;">检验清单（逐项确认）</h3>
     <div id="checkList"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__restraint_checkExport()">导出明细 CSV</button></div>
     <div class="result-box" id="result">
       <div class="pass-box pass-no" id="passBox">
         <div class="pass-icon" id="passIcon">⏳</div>
         <div class="pass-text" id="passText">请完成所有检查项</div>
       </div>
     </div>
+    <div id="restraint_checkTable"></div>
+    <div id="restraint_checkDiff"></div>
+    <div id="restraint_checkChart"></div>
+    <div id="restraint_checkHist"></div>
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="copyResult()">复制检查结果</button>
       <button type="button" class="btn" onclick="resetChecks()">重置检查</button>
@@ -415,6 +420,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __restraint_check_last=0,__restraint_check_skip=false;
+function __restraint_checkSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __restraint_checkResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __restraint_checkTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __restraint_checkRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__restraint_checkTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#restraint_checkTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#restraint_checkDiff');
+        TBKit.history.mount('#restraint_checkHist',function(rec){
+            __restraint_check_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                updateChecks();
+            }catch(e2){}
+            __restraint_check_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__restraint_checkTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#restraint_checkChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __restraint_checkExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__restraint_check_skip) return;
+    var snap=__restraint_checkSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__restraint_checkResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__restraint_check_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __restraint_check_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __restraint_checkRender(keys,rk,en);
+}
+function __restraint_checkExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#restraint_checkTable','restraint-check.csv'); } catch(e){}
+}
+function __restraint_checkPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#restraint_checkPresets',[{label:'默认参数',labelEn:'Default',values:{restraintSite:'wrist'}}],function(){ updateChecks(); });
+}
+var __restraint_check_f0=(typeof updateChecks==='function')?updateChecks:null;
+if(__restraint_check_f0){
+    updateChecks=function(){ __restraint_check_f0.apply(null,arguments); try{ __restraint_checkExtras(); }catch(e){} };
+}
+function __restraint_checkBoot(){ try{ __restraint_checkPresets(); }catch(e){} try{ updateChecks(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __restraint_checkBoot();
+else document.addEventListener('DOMContentLoaded', __restraint_checkBoot);
 </script>
 
 </body>

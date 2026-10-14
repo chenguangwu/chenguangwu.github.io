@@ -135,7 +135,9 @@ s.parentNode.insertBefore(el, s);
     </div>
     <h3 style="margin-bottom:8px;">选择分期</h3>
     <div class="stage-tab" id="stageTab">
+      <div id="pressure_injury_descriptionPresets"></div>
       <button class="active" onclick="selectStage('1',this)">1期</button>
+      <button class="btn" type="button" onclick="__pressure_injury_descriptionExport()">导出明细 CSV</button>
       <button onclick="selectStage('2',this)">2期</button>
       <button onclick="selectStage('3',this)">3期</button>
       <button onclick="selectStage('4',this)">4期</button>
@@ -192,6 +194,10 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result">
       <div class="desc-output" id="descOutput"></div>
     </div>
+    <div id="pressure_injury_descriptionTable"></div>
+    <div id="pressure_injury_descriptionDiff"></div>
+    <div id="pressure_injury_descriptionChart"></div>
+    <div id="pressure_injury_descriptionHist"></div>
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="copyDesc()">复制护理记录</button>
     </div>
@@ -420,6 +426,111 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __pressure_injury_description_last=0,__pressure_injury_description_skip=false;
+function __pressure_injury_descriptionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pressure_injury_descriptionResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pressure_injury_descriptionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pressure_injury_descriptionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pressure_injury_descriptionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pressure_injury_descriptionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pressure_injury_descriptionDiff');
+        TBKit.history.mount('#pressure_injury_descriptionHist',function(rec){
+            __pressure_injury_description_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                selectStage();
+            }catch(e2){}
+            __pressure_injury_description_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pressure_injury_descriptionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pressure_injury_descriptionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pressure_injury_descriptionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pressure_injury_description_skip) return;
+    var snap=__pressure_injury_descriptionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pressure_injury_descriptionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pressure_injury_description_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pressure_injury_description_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pressure_injury_descriptionRender(keys,rk,en);
+}
+function __pressure_injury_descriptionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pressure_injury_descriptionTable','pressure-injury-description.csv'); } catch(e){}
+}
+function __pressure_injury_descriptionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pressure_injury_descriptionPresets',[{label:'默认参数',labelEn:'Default',values:{woundL:'3', woundW:'2', woundD:'0', exudate:'无', surrounding:'完好'}}],function(){ selectStage(); });
+}
+var __pressure_injury_description_f0=(typeof selectStage==='function')?selectStage:null;
+if(__pressure_injury_description_f0){
+    selectStage=function(){ __pressure_injury_description_f0.apply(null,arguments); try{ __pressure_injury_descriptionExtras(); }catch(e){} };
+}
+function __pressure_injury_descriptionBoot(){ try{ __pressure_injury_descriptionPresets(); }catch(e){} try{ selectStage(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pressure_injury_descriptionBoot();
+else document.addEventListener('DOMContentLoaded', __pressure_injury_descriptionBoot);
 </script>
 
 </body>
