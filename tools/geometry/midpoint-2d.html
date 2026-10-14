@@ -145,12 +145,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="midpoint_2dPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__midpoint_2dExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="midpoint_2dTable"></div>
+    <div id="midpoint_2dDiff"></div>
+    <div id="midpoint_2dHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -209,6 +215,40 @@ function resetForm(){document.getElementById('x1').value = '1';
       document.getElementById('y2').value = '8';
       calcTool();}
 calcTool();
+
+function __midpoint_2dNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __midpoint_2dExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x1=num('x1'),y1=num('y1'),x2=num('x2'),y2=num('y2');
+    if (!isFinite(__midpoint_2dNum('x1')) || !isFinite(__midpoint_2dNum('y1')) || !isFinite(__midpoint_2dNum('x2')) || !isFinite(__midpoint_2dNum('y2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#midpoint_2dTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['中点 x_M', ((x1+x2)/2).toFixed(3)],
+            ['中点 y_M', ((y1+y2)/2).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({x1:__midpoint_2dNum('x1'), y1:__midpoint_2dNum('y1'), x2:__midpoint_2dNum('x2'), y2:__midpoint_2dNum('y2')});
+    TBKit.history.mount('#midpoint_2dHist',function(rec){ if(rec.x1!=null)document.getElementById('x1').value=rec.x1; if(rec.y1!=null)document.getElementById('y1').value=rec.y1; if(rec.x2!=null)document.getElementById('x2').value=rec.x2; if(rec.y2!=null)document.getElementById('y2').value=rec.y2; calcTool(); });
+}
+function __midpoint_2dExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#midpoint_2dTable','midpoint-2d.csv'); } catch(e){}
+}
+function __midpoint_2dPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#midpoint_2dPresets',[
+        {label:'默认',labelEn:'Default',values:{x1:'1', y1:'2', x2:'5', y2:'8'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x1:'2', y1:'4', x2:'10', y2:'16'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x1:'0.5', y1:'1', x2:'2.5', y2:'4'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __midpoint_2dExtras(); }catch(e){} };
+function __midpoint_2dBoot(){ try{ __midpoint_2dPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __midpoint_2dBoot();
+else document.addEventListener('DOMContentLoaded', __midpoint_2dBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

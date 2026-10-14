@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cylinder_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cylinder_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cylinder_volumeTable"></div>
+    <div id="cylinder_volumeDiff"></div>
+    <div id="cylinder_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('r').value = '2';
       document.getElementById('h').value = '5';
       calcTool();}
 calcTool();
+
+function __cylinder_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cylinder_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r'), h = num('h');
+    var V = Math.PI * r * r * h;
+    if (!isFinite(__cylinder_volumeNum('r')) || !isFinite(__cylinder_volumeNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cylinder_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['体积 V (m³)', V.toFixed(4)],
+            ['侧面积 (m²)', (2 * Math.PI * r * h).toFixed(4)],
+            ['底面积 (m2)', (Math.PI*r*r).toFixed(4)],
+            ['总表面积 (m2)', (2*Math.PI*r*(r+h)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__cylinder_volumeNum('r'), h:__cylinder_volumeNum('h'), V:V});
+    TBKit.history.mount('#cylinder_volumeHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#cylinder_volumeDiff',['V']);
+}
+function __cylinder_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cylinder_volumeTable','cylinder-volume.csv'); } catch(e){}
+}
+function __cylinder_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cylinder_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{r:'2', h:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'4', h:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'1', h:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cylinder_volumeExtras(); }catch(e){} };
+function __cylinder_volumeBoot(){ try{ __cylinder_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cylinder_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __cylinder_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

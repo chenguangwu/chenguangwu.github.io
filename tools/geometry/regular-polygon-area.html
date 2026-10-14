@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="regular_polygon_areaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__regular_polygon_areaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="regular_polygon_areaTable"></div>
+    <div id="regular_polygon_areaDiff"></div>
+    <div id="regular_polygon_areaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -203,6 +209,44 @@ function resetForm(){document.getElementById('n').value = '6';
       document.getElementById('s').value = '1';
       calcTool();}
 calcTool();
+
+function __regular_polygon_areaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __regular_polygon_areaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n = num('n'), s = num('s');
+    var A = n * s * s / (4 * Math.tan(Math.PI / n));
+    if (!isFinite(__regular_polygon_areaNum('n')) || !isFinite(__regular_polygon_areaNum('s'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#regular_polygon_areaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['正多边形面积 A (m²)', A.toFixed(4)],
+            ['内切圆半径 (m)', (s / (2 * Math.tan(Math.PI / n))).toFixed(4)],
+            ['周长 P (m)', (n*s).toFixed(4)],
+            ['外接圆半径 R (m)', (s/(2*Math.sin(Math.PI/n))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__regular_polygon_areaNum('n'), s:__regular_polygon_areaNum('s'), A:A});
+    TBKit.history.mount('#regular_polygon_areaHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.s!=null)document.getElementById('s').value=rec.s; calcTool(); });
+    TBKit.util.diffBox('#regular_polygon_areaDiff',['A']);
+}
+function __regular_polygon_areaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#regular_polygon_areaTable','regular-polygon-area.csv'); } catch(e){}
+}
+function __regular_polygon_areaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#regular_polygon_areaPresets',[
+        {label:'默认',labelEn:'Default',values:{n:'6', s:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'12', s:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'3', s:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __regular_polygon_areaExtras(); }catch(e){} };
+function __regular_polygon_areaBoot(){ try{ __regular_polygon_areaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __regular_polygon_areaBoot();
+else document.addEventListener('DOMContentLoaded', __regular_polygon_areaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="trapezoid_areaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__trapezoid_areaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="trapezoid_areaTable"></div>
+    <div id="trapezoid_areaDiff"></div>
+    <div id="trapezoid_areaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -202,6 +208,44 @@ function resetForm(){document.getElementById('a').value = '3';
       document.getElementById('h').value = '4';
       calcTool();}
 calcTool();
+
+function __trapezoid_areaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __trapezoid_areaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a = num('a'), b = num('b'), h = num('h');
+    var A = (a + b) * h / 2;
+    if (!isFinite(__trapezoid_areaNum('a')) || !isFinite(__trapezoid_areaNum('b')) || !isFinite(__trapezoid_areaNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#trapezoid_areaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['梯形面积 A (m²)', A.toFixed(4)],
+            ['上下底之和 = 中位线×2 (m)', (a + b).toFixed(4)],
+            ['中位线 (m)', ((a+b)/2).toFixed(4)],
+            ['上下底差之半 (m)', ((b-a)/2).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({a:__trapezoid_areaNum('a'), b:__trapezoid_areaNum('b'), h:__trapezoid_areaNum('h'), A:A});
+    TBKit.history.mount('#trapezoid_areaHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#trapezoid_areaDiff',['A']);
+}
+function __trapezoid_areaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#trapezoid_areaTable','trapezoid-area.csv'); } catch(e){}
+}
+function __trapezoid_areaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#trapezoid_areaPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'3', b:'5', h:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'6', b:'10', h:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'1.5', b:'2.5', h:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __trapezoid_areaExtras(); }catch(e){} };
+function __trapezoid_areaBoot(){ try{ __trapezoid_areaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __trapezoid_areaBoot();
+else document.addEventListener('DOMContentLoaded', __trapezoid_areaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

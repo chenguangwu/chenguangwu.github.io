@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="circle_areaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__circle_areaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="circle_areaTable"></div>
+    <div id="circle_areaDiff"></div>
+    <div id="circle_areaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -195,6 +201,45 @@ function calcTool(){
 function resetForm(){document.getElementById('r').value = '5';
       calcTool();}
 calcTool();
+
+function __circle_areaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __circle_areaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r');
+    var A = Math.PI * r * r;
+    if (!isFinite(__circle_areaNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#circle_areaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['圆面积 A (m²)', A.toFixed(4)],
+            ['圆周长 (m)', (2 * Math.PI * r).toFixed(4)],
+            ['球体积 (m³)', (Math.PI*r*r*r*4/3).toFixed(4)],
+            ['直径 (m)', (2*r).toFixed(4)],
+            ['半圆面积 (m²)', (Math.PI*r*r/2).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__circle_areaNum('r'), A:A});
+    TBKit.history.mount('#circle_areaHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#circle_areaDiff',['A']);
+}
+function __circle_areaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#circle_areaTable','circle-area.csv'); } catch(e){}
+}
+function __circle_areaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#circle_areaPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __circle_areaExtras(); }catch(e){} };
+function __circle_areaBoot(){ try{ __circle_areaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __circle_areaBoot();
+else document.addEventListener('DOMContentLoaded', __circle_areaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

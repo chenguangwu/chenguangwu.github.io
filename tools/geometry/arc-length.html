@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="arc_lengthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__arc_lengthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="arc_lengthTable"></div>
+    <div id="arc_lengthDiff"></div>
+    <div id="arc_lengthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,45 @@ function resetForm(){document.getElementById('r').value = '10';
       document.getElementById('deg').value = '90';
       calcTool();}
 calcTool();
+
+function __arc_lengthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __arc_lengthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r'), deg = num('deg');
+    var th = deg * Math.PI / 180;
+    var L = r * th;
+    if (!isFinite(__arc_lengthNum('r')) || !isFinite(__arc_lengthNum('deg'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#arc_lengthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['弧长 L (m)', L.toFixed(4)],
+            ['圆心角 (rad)', (th.toFixed(4))],
+            ['占整圆比例 (%)', (deg/360*100).toFixed(3)],
+            ['对应扇形面积 (m²)', (Math.PI*r*r*deg/360).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__arc_lengthNum('r'), deg:__arc_lengthNum('deg'), th:th});
+    TBKit.history.mount('#arc_lengthHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.deg!=null)document.getElementById('deg').value=rec.deg; calcTool(); });
+    TBKit.util.diffBox('#arc_lengthDiff',['th']);
+}
+function __arc_lengthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#arc_lengthTable','arc-length.csv'); } catch(e){}
+}
+function __arc_lengthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#arc_lengthPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'10', deg:'90'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'20', deg:'180'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'5', deg:'45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __arc_lengthExtras(); }catch(e){} };
+function __arc_lengthBoot(){ try{ __arc_lengthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __arc_lengthBoot();
+else document.addEventListener('DOMContentLoaded', __arc_lengthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -52,13 +52,32 @@ def find_datagrid_array(body):
     arr, _ = bracket_match(body, j)
     return arr
 
+def calc_body(s):
+    """括号匹配提取完整 calcTool 函数体（支持 calcTool() / calcTool(force) / 含嵌套块）。
+    返回函数体字符串；找不到返回 None。"""
+    m = re.search(r'function calcTool\s*\([^)]*\)\s*\{', s)
+    if not m:
+        return None
+    start = m.end() - 1  # 指向 '{'
+    depth = 0
+    i = start
+    while i < len(s):
+        c = s[i]
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                return s[start+1:i]
+        i += 1
+    return None
+
 def extract(page):
     """返回 dict: inputs, compute(赋值段), dg_rows([ [valExpr, label], ... ]), primary(var)"""
     s = open(page, encoding='utf-8').read()
-    m = re.search(r'function calcTool\(\)\s*\{(.*?)\n\s*\}', s, re.S)
-    if not m:
+    body = calc_body(s)
+    if body is None:
         return None
-    body = m.group(1)
     # 输入 id：优先从 num('x')；再补 __tbInputGuard(['x',...])
     inputs = re.findall(r"num\('([^']+)'\)", body)
     if not inputs:
@@ -135,8 +154,8 @@ def apply_page(page, dry=False):
     # 含嵌套函数定义（erf/invNorm 等）的页：提取会打碎函数体、把局部 const 展平到同一作用域，
     # 导致「already been declared」或表格静默失效 → 跳过，留待手动 A 档精做（不破坏核心计算）。
     s0 = open(page, encoding='utf-8').read()
-    m = re.search(r'function calcTool\(\)\s*\{(.*?)\n\s*\}', s0, re.S)
-    if m and re.search(r'function\s+\w+\s*\(', m.group(1)):
+    cb = calc_body(s0)
+    if cb and re.search(r'function\s+\w+\s*\(', cb):
         return "skip:complex-nested-functions"
     info = extract(page)
     if info is None:

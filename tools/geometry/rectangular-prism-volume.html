@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rectangular_prism_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rectangular_prism_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rectangular_prism_volumeTable"></div>
+    <div id="rectangular_prism_volumeDiff"></div>
+    <div id="rectangular_prism_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,42 @@ function resetForm(){document.getElementById('l').value = '4';
       document.getElementById('h').value = '2';
       calcTool();}
 calcTool();
+
+function __rectangular_prism_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rectangular_prism_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var l=num('l'),w=num('w'),h=num('h');
+    if (!isFinite(__rectangular_prism_volumeNum('l')) || !isFinite(__rectangular_prism_volumeNum('w')) || !isFinite(__rectangular_prism_volumeNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rectangular_prism_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['体积 V (m³)', (l*w*h).toFixed(3)],
+            ['表面积 A (m²)', (2*(l*w+w*h+h*l)).toFixed(3)],
+            ['棱长总和 4(l+w+h) (m)', (4*(l+w+h)).toFixed(3)],
+            ['体对角线 (m)', Math.sqrt(l*l+w*w+h*h).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({l:__rectangular_prism_volumeNum('l'), w:__rectangular_prism_volumeNum('w'), h:__rectangular_prism_volumeNum('h')});
+    TBKit.history.mount('#rectangular_prism_volumeHist',function(rec){ if(rec.l!=null)document.getElementById('l').value=rec.l; if(rec.w!=null)document.getElementById('w').value=rec.w; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+}
+function __rectangular_prism_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rectangular_prism_volumeTable','rectangular-prism-volume.csv'); } catch(e){}
+}
+function __rectangular_prism_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rectangular_prism_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{l:'4', w:'3', h:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{l:'8', w:'6', h:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{l:'2', w:'1.5', h:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rectangular_prism_volumeExtras(); }catch(e){} };
+function __rectangular_prism_volumeBoot(){ try{ __rectangular_prism_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rectangular_prism_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __rectangular_prism_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

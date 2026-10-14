@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rectangle_diagonalPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rectangle_diagonalExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rectangle_diagonalTable"></div>
+    <div id="rectangle_diagonalDiff"></div>
+    <div id="rectangle_diagonalHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,44 @@ function resetForm(){document.getElementById('w').value = '3';
       document.getElementById('h').value = '4';
       calcTool();}
 calcTool();
+
+function __rectangle_diagonalNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rectangle_diagonalExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var w = num('w'), h = num('h');
+    var d = Math.sqrt(w * w + h * h);
+    if (!isFinite(__rectangle_diagonalNum('w')) || !isFinite(__rectangle_diagonalNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rectangle_diagonalTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['对角线 d (m)', d.toFixed(4)],
+            ['矩形面积 (m²)', (w * h).toFixed(4)],
+            ['周长 (m)', (2*(w+h)).toFixed(4)],
+            ['对角线夹角 (°)', (2*Math.atan(Math.min(w,h)/Math.max(w,h))*180/Math.PI).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({w:__rectangle_diagonalNum('w'), h:__rectangle_diagonalNum('h'), d:d});
+    TBKit.history.mount('#rectangle_diagonalHist',function(rec){ if(rec.w!=null)document.getElementById('w').value=rec.w; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#rectangle_diagonalDiff',['d']);
+}
+function __rectangle_diagonalExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rectangle_diagonalTable','rectangle-diagonal.csv'); } catch(e){}
+}
+function __rectangle_diagonalPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rectangle_diagonalPresets',[
+        {label:'默认',labelEn:'Default',values:{w:'3', h:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{w:'6', h:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{w:'1.5', h:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rectangle_diagonalExtras(); }catch(e){} };
+function __rectangle_diagonalBoot(){ try{ __rectangle_diagonalPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rectangle_diagonalBoot();
+else document.addEventListener('DOMContentLoaded', __rectangle_diagonalBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

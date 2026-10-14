@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="sphere_surface_areaPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__sphere_surface_areaExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="sphere_surface_areaTable"></div>
+    <div id="sphere_surface_areaDiff"></div>
+    <div id="sphere_surface_areaHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -192,6 +198,43 @@ function calcTool(){
 function resetForm(){document.getElementById('r').value = '3';
       calcTool();}
 calcTool();
+
+function __sphere_surface_areaNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __sphere_surface_areaExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r=num('r');
+    if (!isFinite(__sphere_surface_areaNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#sphere_surface_areaTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['表面积 A (m²)', (4*Math.PI*r*r).toFixed(3)],
+            ['球体积 (m³)', (4/3*Math.PI*r*r*r).toFixed(3)],
+            ['大圆周长 (m)', (2*Math.PI*r).toFixed(3)],
+            ['表面积与体积之比 (1/m)', (4*Math.PI*r*r/Math.max(4/3*Math.PI*r*r*r,1e-9)).toFixed(6)],
+            ['表面积 (cm²)', (4*Math.PI*r*r*1e4).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({r:__sphere_surface_areaNum('r')});
+    TBKit.history.mount('#sphere_surface_areaHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+}
+function __sphere_surface_areaExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sphere_surface_areaTable','sphere-surface-area.csv'); } catch(e){}
+}
+function __sphere_surface_areaPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#sphere_surface_areaPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'1.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __sphere_surface_areaExtras(); }catch(e){} };
+function __sphere_surface_areaBoot(){ try{ __sphere_surface_areaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __sphere_surface_areaBoot();
+else document.addEventListener('DOMContentLoaded', __sphere_surface_areaBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

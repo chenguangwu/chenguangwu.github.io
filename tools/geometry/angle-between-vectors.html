@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="angle_between_vectorsPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__angle_between_vectorsExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="angle_between_vectorsTable"></div>
+    <div id="angle_between_vectorsDiff"></div>
+    <div id="angle_between_vectorsHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -213,6 +219,43 @@ function resetForm(){document.getElementById('ax').value = '1';
       document.getElementById('by').value = '1';
       calcTool();}
 calcTool();
+
+function __angle_between_vectorsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __angle_between_vectorsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var ax=num('ax'),ay=num('ay'),bx=num('bx'),by=num('by');
+    var dot=ax*bx+ay*by, na=Math.hypot(ax,ay), nb=Math.hypot(bx,by); // 浮点误差可能让 dot/(na·nb) 略超出 [−1,1]，直接 acos 会得 NaN
+    var th=Math.acos(Math.max(-1,Math.min(1,dot/(na*nb))))*180/Math.PI;
+    if (!isFinite(__angle_between_vectorsNum('ax')) || !isFinite(__angle_between_vectorsNum('ay')) || !isFinite(__angle_between_vectorsNum('bx')) || !isFinite(__angle_between_vectorsNum('by'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#angle_between_vectorsTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['夹角 θ (°)', th.toFixed(3)],
+            ['点积 a·b', dot.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({ax:__angle_between_vectorsNum('ax'), ay:__angle_between_vectorsNum('ay'), bx:__angle_between_vectorsNum('bx'), by:__angle_between_vectorsNum('by'), dot:dot});
+    TBKit.history.mount('#angle_between_vectorsHist',function(rec){ if(rec.ax!=null)document.getElementById('ax').value=rec.ax; if(rec.ay!=null)document.getElementById('ay').value=rec.ay; if(rec.bx!=null)document.getElementById('bx').value=rec.bx; if(rec.by!=null)document.getElementById('by').value=rec.by; calcTool(); });
+    TBKit.util.diffBox('#angle_between_vectorsDiff',['dot']);
+}
+function __angle_between_vectorsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#angle_between_vectorsTable','angle-between-vectors.csv'); } catch(e){}
+}
+function __angle_between_vectorsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#angle_between_vectorsPresets',[
+        {label:'默认',labelEn:'Default',values:{ax:'1', ay:'0', bx:'0', by:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ax:'2', ay:'0', bx:'0', by:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ax:'0.5', ay:'0', bx:'0', by:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __angle_between_vectorsExtras(); }catch(e){} };
+function __angle_between_vectorsBoot(){ try{ __angle_between_vectorsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __angle_between_vectorsBoot();
+else document.addEventListener('DOMContentLoaded', __angle_between_vectorsBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="chord_lengthPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__chord_lengthExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="chord_lengthTable"></div>
+    <div id="chord_lengthDiff"></div>
+    <div id="chord_lengthHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,45 @@ function resetForm(){document.getElementById('r').value = '10';
       document.getElementById('deg').value = '90';
       calcTool();}
 calcTool();
+
+function __chord_lengthNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __chord_lengthExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r'), deg = num('deg');
+    var th = deg * Math.PI / 180;
+    var c = 2 * r * Math.sin(th / 2);
+    if (!isFinite(__chord_lengthNum('r')) || !isFinite(__chord_lengthNum('deg'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#chord_lengthTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['弦长 c (m)', c.toFixed(4)],
+            ['半弦长 (m)', (c / 2).toFixed(4)],
+            ['对应弧长 (m)', (r*th).toFixed(4)],
+            ['矢高 (m)', (r-r*Math.cos(th/2)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__chord_lengthNum('r'), deg:__chord_lengthNum('deg'), th:th});
+    TBKit.history.mount('#chord_lengthHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.deg!=null)document.getElementById('deg').value=rec.deg; calcTool(); });
+    TBKit.util.diffBox('#chord_lengthDiff',['th']);
+}
+function __chord_lengthExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#chord_lengthTable','chord-length.csv'); } catch(e){}
+}
+function __chord_lengthPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#chord_lengthPresets',[
+        {label:'默认',labelEn:'Default',values:{r:'10', deg:'90'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'20', deg:'180'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'5', deg:'45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __chord_lengthExtras(); }catch(e){} };
+function __chord_lengthBoot(){ try{ __chord_lengthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __chord_lengthBoot();
+else document.addEventListener('DOMContentLoaded', __chord_lengthBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

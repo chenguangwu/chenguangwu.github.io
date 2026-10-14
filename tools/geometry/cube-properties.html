@@ -128,12 +128,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cube_propertiesPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cube_propertiesExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cube_propertiesTable"></div>
+    <div id="cube_propertiesDiff"></div>
+    <div id="cube_propertiesHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -193,6 +199,44 @@ function calcTool(){
 function resetForm(){document.getElementById('a').value = '2';
       calcTool();}
 calcTool();
+
+function __cube_propertiesNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cube_propertiesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a');
+    if (!isFinite(__cube_propertiesNum('a'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cube_propertiesTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['体积 V (m³)', (a*a*a).toFixed(3)],
+            ['表面积 A (m²)', (6*a*a).toFixed(3)],
+            ['体对角线 d (m)', (a*Math.sqrt(3)).toFixed(3)],
+            ['面对角线 (m)', (a*Math.sqrt(2)).toFixed(3)],
+            ['棱总长 12a (m)', (12*a).toFixed(3)],
+            ['单面面积 (m²)', (a*a).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({a:__cube_propertiesNum('a')});
+    TBKit.history.mount('#cube_propertiesHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; calcTool(); });
+}
+function __cube_propertiesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cube_propertiesTable','cube-properties.csv'); } catch(e){}
+}
+function __cube_propertiesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cube_propertiesPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'2'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'4'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'1'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cube_propertiesExtras(); }catch(e){} };
+function __cube_propertiesBoot(){ try{ __cube_propertiesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cube_propertiesBoot();
+else document.addEventListener('DOMContentLoaded', __cube_propertiesBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -130,12 +130,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="circle_circumferencePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__circle_circumferenceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="circle_circumferenceTable"></div>
+    <div id="circle_circumferenceDiff"></div>
+    <div id="circle_circumferenceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,45 @@ function calcTool(){
 function resetForm(){document.getElementById('r').value = '5';
       calcTool();}
 calcTool();
+
+function __circle_circumferenceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __circle_circumferenceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r');
+    var C = 2 * Math.PI * r;
+    if (!isFinite(__circle_circumferenceNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#circle_circumferenceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['圆周长 C (m)', C.toFixed(4)],
+            ['直径 (m)', ((C / Math.PI).toFixed(4))],
+            ['圆面积 (m²)', (Math.PI*r*r).toFixed(4)],
+            ['球体积 (m³)', (Math.PI*r*r*r*4/3).toFixed(4)],
+            ['内接正方形面积 (m²)', (2*r*r).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__circle_circumferenceNum('r'), C:C});
+    TBKit.history.mount('#circle_circumferenceHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+    TBKit.util.diffBox('#circle_circumferenceDiff',['C']);
+}
+function __circle_circumferenceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#circle_circumferenceTable','circle-circumference.csv'); } catch(e){}
+}
+function __circle_circumferencePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#circle_circumferencePresets',[
+        {label:'默认',labelEn:'Default',values:{r:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __circle_circumferenceExtras(); }catch(e){} };
+function __circle_circumferenceBoot(){ try{ __circle_circumferencePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __circle_circumferenceBoot();
+else document.addEventListener('DOMContentLoaded', __circle_circumferenceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

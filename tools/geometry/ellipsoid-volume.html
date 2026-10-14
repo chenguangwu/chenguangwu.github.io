@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="ellipsoid_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__ellipsoid_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="ellipsoid_volumeTable"></div>
+    <div id="ellipsoid_volumeDiff"></div>
+    <div id="ellipsoid_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -200,6 +206,41 @@ function resetForm(){document.getElementById('a').value = '3';
       document.getElementById('c').value = '1';
       calcTool();}
 calcTool();
+
+function __ellipsoid_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __ellipsoid_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a=num('a'),b=num('b'),c=num('c');
+    if (!isFinite(__ellipsoid_volumeNum('a')) || !isFinite(__ellipsoid_volumeNum('b')) || !isFinite(__ellipsoid_volumeNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#ellipsoid_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['椭球体积 V (m³)', (4/3*Math.PI*a*b*c).toFixed(3)],
+            ['表面积近似 (m2)', (4*Math.PI*Math.pow((Math.pow(a*b,1.6)+Math.pow(a*c,1.6)+Math.pow(b*c,1.6))/3,1/1.6)).toFixed(3)],
+            ['体积 (L)', (4/3*Math.PI*a*b*c*1000).toFixed(1)],
+        ]
+    });
+    TBKit.history.record({a:__ellipsoid_volumeNum('a'), b:__ellipsoid_volumeNum('b'), c:__ellipsoid_volumeNum('c')});
+    TBKit.history.mount('#ellipsoid_volumeHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+}
+function __ellipsoid_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ellipsoid_volumeTable','ellipsoid-volume.csv'); } catch(e){}
+}
+function __ellipsoid_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ellipsoid_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{a:'3', b:'2', c:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'6', b:'4', c:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'1.5', b:'1', c:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __ellipsoid_volumeExtras(); }catch(e){} };
+function __ellipsoid_volumeBoot(){ try{ __ellipsoid_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ellipsoid_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __ellipsoid_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

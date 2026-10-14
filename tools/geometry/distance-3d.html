@@ -150,12 +150,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="distance_3dPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__distance_3dExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="distance_3dTable"></div>
+    <div id="distance_3dDiff"></div>
+    <div id="distance_3dHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -216,6 +222,41 @@ function resetForm(){document.getElementById('x1').value = '0';
       document.getElementById('z2').value = '12';
       calcTool();}
 calcTool();
+
+function __distance_3dNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __distance_3dExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var x1=num('x1'),y1=num('y1'),z1=num('z1'),x2=num('x2'),y2=num('y2'),z2=num('z2');
+    var d=Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2)+Math.pow(z2-z1,2));
+    if (!isFinite(__distance_3dNum('x1')) || !isFinite(__distance_3dNum('y1')) || !isFinite(__distance_3dNum('z1')) || !isFinite(__distance_3dNum('x2')) || !isFinite(__distance_3dNum('y2')) || !isFinite(__distance_3dNum('z2'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#distance_3dTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['三维距离 d', d.toFixed(3)],
+        ]
+    });
+    TBKit.history.record({x1:__distance_3dNum('x1'), y1:__distance_3dNum('y1'), z1:__distance_3dNum('z1'), x2:__distance_3dNum('x2'), y2:__distance_3dNum('y2'), z2:__distance_3dNum('z2'), d:d});
+    TBKit.history.mount('#distance_3dHist',function(rec){ if(rec.x1!=null)document.getElementById('x1').value=rec.x1; if(rec.y1!=null)document.getElementById('y1').value=rec.y1; if(rec.z1!=null)document.getElementById('z1').value=rec.z1; if(rec.x2!=null)document.getElementById('x2').value=rec.x2; if(rec.y2!=null)document.getElementById('y2').value=rec.y2; if(rec.z2!=null)document.getElementById('z2').value=rec.z2; calcTool(); });
+    TBKit.util.diffBox('#distance_3dDiff',['d']);
+}
+function __distance_3dExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#distance_3dTable','distance-3d.csv'); } catch(e){}
+}
+function __distance_3dPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#distance_3dPresets',[
+        {label:'默认',labelEn:'Default',values:{x1:'0', y1:'0', z1:'0', x2:'3', y2:'4', z2:'12'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{x1:'0', y1:'0', z1:'0', x2:'6', y2:'8', z2:'24'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{x1:'0', y1:'0', z1:'0', x2:'1.5', y2:'2', z2:'6'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __distance_3dExtras(); }catch(e){} };
+function __distance_3dBoot(){ try{ __distance_3dPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __distance_3dBoot();
+else document.addEventListener('DOMContentLoaded', __distance_3dBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

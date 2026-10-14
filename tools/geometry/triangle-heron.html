@@ -137,12 +137,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="presets"></div>
+    <div id="triangle_heronPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool(1)">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__triangle_heronExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="triangle_heronTable"></div>
+    <div id="triangle_heronDiff"></div>
+    <div id="triangle_heronHist"></div>
 
     <h3 style="margin:14px 0 4px;font-size:14px;">📐 图形示意（随边长实时变化）</h3>
     <div id="triFig"></div>
@@ -311,6 +317,44 @@ if (typeof TBKit !== 'undefined') {
     calcTool(1);
   }
 }
+
+function __triangle_heronNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __triangle_heronExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a = num('a'), b = num('b'), c = num('c');
+    var s = (a + b + c) / 2;
+    var valid = a>0 && b>0 && c>0 && a+b>c && a+c>b && b+c>a;
+    var A = Math.sqrt(s * (s - a) * (s - b) * (s - c));
+    if (!isFinite(__triangle_heronNum('a')) || !isFinite(__triangle_heronNum('b')) || !isFinite(__triangle_heronNum('c'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#triangle_heronTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['三角形面积 A (m²)', A.toFixed(4)],
+            ['半周长 s (m)', s.toFixed(4)],
+        ]
+    });
+    TBKit.history.record({a:__triangle_heronNum('a'), b:__triangle_heronNum('b'), c:__triangle_heronNum('c'), s:s});
+    TBKit.history.mount('#triangle_heronHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.b!=null)document.getElementById('b').value=rec.b; if(rec.c!=null)document.getElementById('c').value=rec.c; calcTool(); });
+    TBKit.util.diffBox('#triangle_heronDiff',['s']);
+}
+function __triangle_heronExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#triangle_heronTable','triangle-heron.csv'); } catch(e){}
+}
+function __triangle_heronPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#triangle_heronPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'3', b:'4', c:'5'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'6', b:'8', c:'10'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'1.5', b:'2', c:'2.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __triangle_heronExtras(); }catch(e){} };
+function __triangle_heronBoot(){ try{ __triangle_heronPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __triangle_heronBoot();
+else document.addEventListener('DOMContentLoaded', __triangle_heronBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

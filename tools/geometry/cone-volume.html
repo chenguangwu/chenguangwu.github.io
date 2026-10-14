@@ -134,12 +134,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cone_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cone_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cone_volumeTable"></div>
+    <div id="cone_volumeDiff"></div>
+    <div id="cone_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,44 @@ function resetForm(){document.getElementById('r').value = '3';
       document.getElementById('h').value = '4';
       calcTool();}
 calcTool();
+
+function __cone_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cone_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var r = num('r'), h = num('h');
+    var V = Math.PI * r * r * h / 3;
+    if (!isFinite(__cone_volumeNum('r')) || !isFinite(__cone_volumeNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cone_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['体积 V (m³)', V.toFixed(4)],
+            ['底面积 (m²)', (Math.PI * r * r).toFixed(4)],
+            ['母线长 l (m)', (Math.sqrt(r*r+h*h)).toFixed(4)],
+            ['侧面积 (m2)', (Math.PI*r*Math.sqrt(r*r+h*h)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({r:__cone_volumeNum('r'), h:__cone_volumeNum('h'), V:V});
+    TBKit.history.mount('#cone_volumeHist',function(rec){ if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#cone_volumeDiff',['V']);
+}
+function __cone_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cone_volumeTable','cone-volume.csv'); } catch(e){}
+}
+function __cone_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cone_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{r:'3', h:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{r:'6', h:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{r:'1.5', h:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cone_volumeExtras(); }catch(e){} };
+function __cone_volumeBoot(){ try{ __cone_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cone_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __cone_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

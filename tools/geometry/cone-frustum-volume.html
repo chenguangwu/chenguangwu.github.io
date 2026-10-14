@@ -136,12 +136,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="cone_frustum_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__cone_frustum_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="cone_frustum_volumeTable"></div>
+    <div id="cone_frustum_volumeDiff"></div>
+    <div id="cone_frustum_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -201,6 +207,43 @@ function resetForm(){document.getElementById('R').value = '3';
       document.getElementById('h').value = '4';
       calcTool();}
 calcTool();
+
+function __cone_frustum_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __cone_frustum_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var R=num('R'),r=num('r'),h=num('h');
+    var V=Math.PI*h/3*(R*R+R*r+r*r);
+    if (!isFinite(__cone_frustum_volumeNum('R')) || !isFinite(__cone_frustum_volumeNum('r')) || !isFinite(__cone_frustum_volumeNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#cone_frustum_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['圆台体积 V (m³)', V.toFixed(3)],
+            ['母线长 l (m)', (Math.sqrt(h*h+(R-r)*(R-r))).toFixed(4)],
+            ['侧面积 (m2)', (Math.PI*(R+r)*Math.sqrt(h*h+(R-r)*(R-r))).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({R:__cone_frustum_volumeNum('R'), r:__cone_frustum_volumeNum('r'), h:__cone_frustum_volumeNum('h'), V:V});
+    TBKit.history.mount('#cone_frustum_volumeHist',function(rec){ if(rec.R!=null)document.getElementById('R').value=rec.R; if(rec.r!=null)document.getElementById('r').value=rec.r; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+    TBKit.util.diffBox('#cone_frustum_volumeDiff',['V']);
+}
+function __cone_frustum_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cone_frustum_volumeTable','cone-frustum-volume.csv'); } catch(e){}
+}
+function __cone_frustum_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cone_frustum_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{R:'3', r:'1', h:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{R:'6', r:'2', h:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{R:'1.5', r:'0.5', h:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __cone_frustum_volumeExtras(); }catch(e){} };
+function __cone_frustum_volumeBoot(){ try{ __cone_frustum_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cone_frustum_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __cone_frustum_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

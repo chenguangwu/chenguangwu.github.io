@@ -146,12 +146,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="point_line_distancePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__point_line_distanceExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="point_line_distanceTable"></div>
+    <div id="point_line_distanceDiff"></div>
+    <div id="point_line_distanceHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -216,6 +222,42 @@ function resetForm(){document.getElementById('A').value = '1';
       document.getElementById('y0').value = '0';
       calcTool();}
 calcTool();
+
+function __point_line_distanceNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __point_line_distanceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var A = num('A'), B = num('B'), C = num('C'), x0 = num('x0'), y0 = num('y0');
+    var d = Math.abs(A * x0 + B * y0 + C) / Math.sqrt(A * A + B * B);
+    if (!isFinite(__point_line_distanceNum('A')) || !isFinite(__point_line_distanceNum('B')) || !isFinite(__point_line_distanceNum('C')) || !isFinite(__point_line_distanceNum('x0')) || !isFinite(__point_line_distanceNum('y0'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#point_line_distanceTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['距离 d (m)', d.toFixed(4)],
+            ['法向量模 √A²+B²', (Math.sqrt(A*A+B*B)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({A:__point_line_distanceNum('A'), B:__point_line_distanceNum('B'), C:__point_line_distanceNum('C'), x0:__point_line_distanceNum('x0'), y0:__point_line_distanceNum('y0'), d:d});
+    TBKit.history.mount('#point_line_distanceHist',function(rec){ if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.B!=null)document.getElementById('B').value=rec.B; if(rec.C!=null)document.getElementById('C').value=rec.C; if(rec.x0!=null)document.getElementById('x0').value=rec.x0; if(rec.y0!=null)document.getElementById('y0').value=rec.y0; calcTool(); });
+    TBKit.util.diffBox('#point_line_distanceDiff',['d']);
+}
+function __point_line_distanceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#point_line_distanceTable','point-line-distance.csv'); } catch(e){}
+}
+function __point_line_distancePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#point_line_distancePresets',[
+        {label:'默认',labelEn:'Default',values:{A:'1', B:'1', C:'-1', x0:'0', y0:'0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{A:'2', B:'2', C:'-2', x0:'0', y0:'0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{A:'0.5', B:'0.5', C:'-0.5', x0:'0', y0:'0'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __point_line_distanceExtras(); }catch(e){} };
+function __point_line_distanceBoot(){ try{ __point_line_distancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __point_line_distanceBoot();
+else document.addEventListener('DOMContentLoaded', __point_line_distanceBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="torus_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__torus_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="torus_volumeTable"></div>
+    <div id="torus_volumeDiff"></div>
+    <div id="torus_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,42 @@ function resetForm(){document.getElementById('R').value = '5';
       document.getElementById('r').value = '1';
       calcTool();}
 calcTool();
+
+function __torus_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __torus_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var R=num('R'),r=num('r');
+    if (!isFinite(__torus_volumeNum('R')) || !isFinite(__torus_volumeNum('r'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#torus_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['环体体积 V (m³)', (2*Math.PI*Math.PI*R*r*r).toFixed(3)],
+            ['环体表面积 (m²)', (4*Math.PI*Math.PI*R*r).toFixed(3)],
+            ['中心圆周长 (m)', (2*Math.PI*R).toFixed(3)],
+            ['体积与环半径之比', (2*Math.PI*Math.PI*R*r*r/Math.max(R,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({R:__torus_volumeNum('R'), r:__torus_volumeNum('r')});
+    TBKit.history.mount('#torus_volumeHist',function(rec){ if(rec.R!=null)document.getElementById('R').value=rec.R; if(rec.r!=null)document.getElementById('r').value=rec.r; calcTool(); });
+}
+function __torus_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#torus_volumeTable','torus-volume.csv'); } catch(e){}
+}
+function __torus_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#torus_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{R:'5', r:'1'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{R:'10', r:'2'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{R:'2.5', r:'0.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __torus_volumeExtras(); }catch(e){} };
+function __torus_volumeBoot(){ try{ __torus_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __torus_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __torus_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

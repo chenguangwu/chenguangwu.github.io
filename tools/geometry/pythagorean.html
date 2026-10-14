@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pythagoreanPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pythagoreanExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pythagoreanTable"></div>
+    <div id="pythagoreanDiff"></div>
+    <div id="pythagoreanHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -199,6 +205,45 @@ function resetForm(){document.getElementById('a').value = '3';
       document.getElementById('b').value = '4';
       calcTool();}
 calcTool();
+
+function __pythagoreanNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pythagoreanExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var a = num('a'), b = num('b');
+    var c = Math.sqrt(a * a + b * b); // ∠A 的对边是 a ⇒ tan A = a/b；原式 atan2(b,a) 算的是 ∠B，导致 A、B 互换
+    var angA = Math.atan2(a, b) * 180 / Math.PI;
+    if (!isFinite(__pythagoreanNum('a')) || !isFinite(__pythagoreanNum('b'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pythagoreanTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['斜边 c (m)', c.toFixed(4)],
+            ['∠A (°)', angA.toFixed(2)],
+            ['∠B (°)', (90-angA).toFixed(2)],
+            ['三角形面积 (m²)', (a*b/2).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({a:__pythagoreanNum('a'), b:__pythagoreanNum('b'), c:c});
+    TBKit.history.mount('#pythagoreanHist',function(rec){ if(rec.a!=null)document.getElementById('a').value=rec.a; if(rec.b!=null)document.getElementById('b').value=rec.b; calcTool(); });
+    TBKit.util.diffBox('#pythagoreanDiff',['c']);
+}
+function __pythagoreanExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pythagoreanTable','pythagorean.csv'); } catch(e){}
+}
+function __pythagoreanPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pythagoreanPresets',[
+        {label:'默认',labelEn:'Default',values:{a:'3', b:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{a:'6', b:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{a:'1.5', b:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pythagoreanExtras(); }catch(e){} };
+function __pythagoreanBoot(){ try{ __pythagoreanPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pythagoreanBoot();
+else document.addEventListener('DOMContentLoaded', __pythagoreanBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

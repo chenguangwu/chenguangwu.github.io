@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="pyramid_volumePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__pyramid_volumeExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="pyramid_volumeTable"></div>
+    <div id="pyramid_volumeDiff"></div>
+    <div id="pyramid_volumeHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -197,6 +203,40 @@ function resetForm(){document.getElementById('A').value = '9';
       document.getElementById('h').value = '4';
       calcTool();}
 calcTool();
+
+function __pyramid_volumeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __pyramid_volumeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var A=num('A'),h=num('h');
+    if (!isFinite(__pyramid_volumeNum('A')) || !isFinite(__pyramid_volumeNum('h'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#pyramid_volumeTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['棱锥体积 V (m³)', (A*h/3).toFixed(3)],
+            ['等体积正方体边长 (m)', (Math.pow(Math.max(A*h/3,0),1/3)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({A:__pyramid_volumeNum('A'), h:__pyramid_volumeNum('h')});
+    TBKit.history.mount('#pyramid_volumeHist',function(rec){ if(rec.A!=null)document.getElementById('A').value=rec.A; if(rec.h!=null)document.getElementById('h').value=rec.h; calcTool(); });
+}
+function __pyramid_volumeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pyramid_volumeTable','pyramid-volume.csv'); } catch(e){}
+}
+function __pyramid_volumePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pyramid_volumePresets',[
+        {label:'默认',labelEn:'Default',values:{A:'9', h:'4'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{A:'18', h:'8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{A:'4.5', h:'2'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __pyramid_volumeExtras(); }catch(e){} };
+function __pyramid_volumeBoot(){ try{ __pyramid_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pyramid_volumeBoot();
+else document.addEventListener('DOMContentLoaded', __pyramid_volumeBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
