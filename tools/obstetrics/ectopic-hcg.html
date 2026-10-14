@@ -133,12 +133,12 @@ s.parentNode.insertBefore(el, s);
       <div><label>第二次hCG (mIU/mL)</label><input type="number" id="hcg2" value="1300" step="1" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评估风险</button>
+      <div id="ectopic_hcgPresets"></div><button type="button" class="btn primary" onclick="calc()">评估风险</button><button class="btn" type="button" onclick="__ectopic_hcgExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="loadNormal()">正常倍增示例</button>
       <button type="button" class="btn" onclick="loadEctopic()">宫外孕示例</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="ectopic_hcgTable"></div> <div id="ectopic_hcgDiff"></div> <div id="ectopic_hcgChart"></div> <div id="ectopic_hcgHist"></div>
   </div>
 
   <div class="card">
@@ -359,6 +359,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __ectopic_hcg_last=0,__ectopic_hcg_skip=false;
+function __ectopic_hcgSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __ectopic_hcgResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __ectopic_hcgTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __ectopic_hcgRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__ectopic_hcgTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#ectopic_hcgTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#ectopic_hcgDiff');
+        TBKit.history.mount('#ectopic_hcgHist',function(rec){
+            __ectopic_hcg_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __ectopic_hcg_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__ectopic_hcgTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#ectopic_hcgChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __ectopic_hcgExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__ectopic_hcg_skip) return;
+    var snap=__ectopic_hcgSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__ectopic_hcgResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__ectopic_hcg_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __ectopic_hcg_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __ectopic_hcgRender(keys,rk,en);
+}
+function __ectopic_hcgExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ectopic_hcgTable','ectopic-hcg.csv'); } catch(e){}
+}
+function __ectopic_hcgPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#ectopic_hcgPresets',[{label:'默认参数',labelEn:'Default',values:{'hcg1':'800', 'interval':'48', 'hcg2':'1300'}}],function(){ calc(); });
+}
+var __ectopic_hcg_f0=(typeof calc==='function')?calc:null;
+if(__ectopic_hcg_f0){
+    calc=function(){ var __r=__ectopic_hcg_f0.apply(null,arguments); try{ __ectopic_hcgExtras(); }catch(e){} return __r; };
+}
+function __ectopic_hcgBoot(){ try{ __ectopic_hcgPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __ectopic_hcgBoot();
+else document.addEventListener('DOMContentLoaded', __ectopic_hcgBoot);
 </script>
 
 </body>

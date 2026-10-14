@@ -126,10 +126,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>目标功率因数 cosφ2</label><input type="number" id="pf2" value="0.95" min="0.1" max="1" step="0.01" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算补偿容量</button>
+      <div id="power_factor_compensationPresets"></div><button type="button" class="btn primary" onclick="calc()">计算补偿容量</button><button class="btn" type="button" onclick="__power_factor_compensationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="power_factor_compensationTable"></div> <div id="power_factor_compensationDiff"></div> <div id="power_factor_compensationChart"></div> <div id="power_factor_compensationHist"></div>
   </div>
   <div class="card">
     <h2>📋 补偿原理</h2>
@@ -298,6 +298,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __power_factor_compensation_last=0,__power_factor_compensation_skip=false;
+function __power_factor_compensationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __power_factor_compensationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __power_factor_compensationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __power_factor_compensationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__power_factor_compensationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#power_factor_compensationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#power_factor_compensationDiff');
+        TBKit.history.mount('#power_factor_compensationHist',function(rec){
+            __power_factor_compensation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __power_factor_compensation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__power_factor_compensationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#power_factor_compensationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __power_factor_compensationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__power_factor_compensation_skip) return;
+    var snap=__power_factor_compensationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__power_factor_compensationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__power_factor_compensation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __power_factor_compensation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __power_factor_compensationRender(keys,rk,en);
+}
+function __power_factor_compensationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#power_factor_compensationTable','power-factor-compensation.csv'); } catch(e){}
+}
+function __power_factor_compensationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#power_factor_compensationPresets',[{label:'默认参数',labelEn:'Default',values:{'power':'200', 'pf1':'0.75', 'pf2':'0.95'}}],function(){ calc(); });
+}
+var __power_factor_compensation_f0=(typeof calc==='function')?calc:null;
+if(__power_factor_compensation_f0){
+    calc=function(){ var __r=__power_factor_compensation_f0.apply(null,arguments); try{ __power_factor_compensationExtras(); }catch(e){} return __r; };
+}
+function __power_factor_compensationBoot(){ try{ __power_factor_compensationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __power_factor_compensationBoot();
+else document.addEventListener('DOMContentLoaded', __power_factor_compensationBoot);
 </script>
 
 </body>

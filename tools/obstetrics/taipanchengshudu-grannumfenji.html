@@ -164,12 +164,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
-      <button class="btn primary" type="button" onclick="calc()">🧮 分级</button>
+      <div id="taipanchengshudu_grannumfenjiPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 分级</button><button class="btn" type="button" onclick="__taipanchengshudu_grannumfenjiExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">🤱 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
-    <div class="result-box" id="res"></div>
+    <div class="result-box" id="res"></div> <div id="taipanchengshudu_grannumfenjiTable"></div> <div id="taipanchengshudu_grannumfenjiDiff"></div> <div id="taipanchengshudu_grannumfenjiChart"></div> <div id="taipanchengshudu_grannumfenjiHist"></div>
 
     <div class="info-box">💡 Grannum 分级从 0 级（未成熟）到 III 级（成熟/老化），需结合孕周评估胎盘功能。</div>
 
@@ -273,6 +273,114 @@ document.addEventListener('DOMContentLoaded', function () {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copyRes(); }
   });
 });
+
+var __taipanchengshudu_grannumfenji_last=0,__taipanchengshudu_grannumfenji_skip=false;
+function __taipanchengshudu_grannumfenjiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __taipanchengshudu_grannumfenjiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __taipanchengshudu_grannumfenjiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __taipanchengshudu_grannumfenjiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__taipanchengshudu_grannumfenjiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#taipanchengshudu_grannumfenjiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#taipanchengshudu_grannumfenjiDiff');
+        TBKit.history.mount('#taipanchengshudu_grannumfenjiHist',function(rec){
+            __taipanchengshudu_grannumfenji_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __taipanchengshudu_grannumfenji_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__taipanchengshudu_grannumfenjiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#taipanchengshudu_grannumfenjiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __taipanchengshudu_grannumfenjiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__taipanchengshudu_grannumfenji_skip) return;
+    var snap=__taipanchengshudu_grannumfenjiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__taipanchengshudu_grannumfenjiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__taipanchengshudu_grannumfenji_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __taipanchengshudu_grannumfenji_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __taipanchengshudu_grannumfenjiRender(keys,rk,en);
+}
+function __taipanchengshudu_grannumfenjiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#taipanchengshudu_grannumfenjiTable','taipanchengshudu-grannumfenji.csv'); } catch(e){}
+}
+function __taipanchengshudu_grannumfenjiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#taipanchengshudu_grannumfenjiPresets',[{label:'默认参数',labelEn:'Default',values:{'chorion':'0', 'substance':'0', 'basal':'0', 'gaWeek':'32'}}],function(){ calc(); });
+}
+var __taipanchengshudu_grannumfenji_f0=(typeof calc==='function')?calc:null;
+if(__taipanchengshudu_grannumfenji_f0){
+    calc=function(){ var __r=__taipanchengshudu_grannumfenji_f0.apply(null,arguments); try{ __taipanchengshudu_grannumfenjiExtras(); }catch(e){} return __r; };
+}
+function __taipanchengshudu_grannumfenjiBoot(){ try{ __taipanchengshudu_grannumfenjiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __taipanchengshudu_grannumfenjiBoot();
+else document.addEventListener('DOMContentLoaded', __taipanchengshudu_grannumfenjiBoot);
 </script>
 
 

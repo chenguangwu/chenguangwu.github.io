@@ -135,11 +135,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>气压 P (hPa)</label><input type="number" id="pres" value="1013.25" step="0.1" oninput="calc()"></div>
     </div>
     <div class="toolbar" style="margin-top:14px;">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="temp_pressurePresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__temp_pressureExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-grid" id="grid"></div>
-    <div class="result-box" id="detail"></div>
+    <div class="result-box" id="detail"></div> <div id="temp_pressureTable"></div> <div id="temp_pressureDiff"></div> <div id="temp_pressureChart"></div> <div id="temp_pressureHist"></div>
     <div class="info-box">公式：饱和水汽压采用 Magnus-Tetens 公式 eₛ=6.1094·exp(17.625T/(T+243.04)) hPa；露点 Td=243.04·ln(e/6.1094)/(17.625−ln(e/6.1094))；空气密度考虑水汽影响。</div>
   </div>
 
@@ -280,6 +280,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __temp_pressure_last=0,__temp_pressure_skip=false;
+function __temp_pressureSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __temp_pressureResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __temp_pressureTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __temp_pressureRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__temp_pressureTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#temp_pressureTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#temp_pressureDiff');
+        TBKit.history.mount('#temp_pressureHist',function(rec){
+            __temp_pressure_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __temp_pressure_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__temp_pressureTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#temp_pressureChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __temp_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__temp_pressure_skip) return;
+    var snap=__temp_pressureSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__temp_pressureResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__temp_pressure_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __temp_pressure_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __temp_pressureRender(keys,rk,en);
+}
+function __temp_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#temp_pressureTable','temp-pressure.csv'); } catch(e){}
+}
+function __temp_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#temp_pressurePresets',[{label:'默认参数',labelEn:'Default',values:{'temp':'25', 'rh':'60', 'pres':'1013.25'}}],function(){ calc(); });
+}
+var __temp_pressure_f0=(typeof calc==='function')?calc:null;
+if(__temp_pressure_f0){
+    calc=function(){ var __r=__temp_pressure_f0.apply(null,arguments); try{ __temp_pressureExtras(); }catch(e){} return __r; };
+}
+function __temp_pressureBoot(){ try{ __temp_pressurePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __temp_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __temp_pressureBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用温压湿度换算</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>气温 T (°C)</li><li>相对湿度 RH (%)</li><li>气压 P (hPa)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>温压湿度换算是做什么的？</dt><dd>输入气温、相对湿度与气压，计算饱和水汽压、实际水汽压、露点温度与空气密度，常用于大气探空、通风换热与气象数据的参数换算。</dd><dt>如何使用温压湿度换算？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>温压湿度换算适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

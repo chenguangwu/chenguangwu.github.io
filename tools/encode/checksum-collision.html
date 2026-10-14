@@ -116,10 +116,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>尝试次数</label><input type="number" id="attempts" value="1000" step="any" oninput="calc()"></div>
     <div class="input-row"><label>待校验数据 bits</label><input type="number" id="bits" value="1024" step="any" oninput="calc()"></div>
     <div class="toolbar">
-      <button class="btn primary" onclick="calc()">计算</button>
+      <div id="checksum_collisionPresets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__checksum_collisionExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div> <div id="checksum_collisionTable"></div> <div id="checksum_collisionDiff"></div> <div id="checksum_collisionChart"></div> <div id="checksum_collisionHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -264,6 +264,114 @@ function copyResult() {
   });
 }
 calc();
+
+var __checksum_collision_last=0,__checksum_collision_skip=false;
+function __checksum_collisionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __checksum_collisionResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __checksum_collisionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __checksum_collisionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__checksum_collisionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#checksum_collisionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#checksum_collisionDiff');
+        TBKit.history.mount('#checksum_collisionHist',function(rec){
+            __checksum_collision_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __checksum_collision_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__checksum_collisionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#checksum_collisionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __checksum_collisionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__checksum_collision_skip) return;
+    var snap=__checksum_collisionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__checksum_collisionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__checksum_collision_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __checksum_collision_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __checksum_collisionRender(keys,rk,en);
+}
+function __checksum_collisionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#checksum_collisionTable','checksum-collision.csv'); } catch(e){}
+}
+function __checksum_collisionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#checksum_collisionPresets',[{label:'默认参数',labelEn:'Default',values:{'k':'16', 'attempts':'1000', 'bits':'1024'}}],function(){ calc(); });
+}
+var __checksum_collision_f0=(typeof calc==='function')?calc:null;
+if(__checksum_collision_f0){
+    calc=function(){ var __r=__checksum_collision_f0.apply(null,arguments); try{ __checksum_collisionExtras(); }catch(e){} return __r; };
+}
+function __checksum_collisionBoot(){ try{ __checksum_collisionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __checksum_collisionBoot();
+else document.addEventListener('DOMContentLoaded', __checksum_collisionBoot);
 </script>
 </body>
 </html>

@@ -148,7 +148,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__voltage_8Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="voltage_8Table"></div> <div id="voltage_8Diff"></div> <div id="voltage_8Chart"></div> <div id="voltage_8Hist"></div>
     <div class="info-box">💡 按校正后载流量选取标准截面；温度校正系数按 PVC 绝缘 70℃ 上限计算</div>
     <div class="tool-notes" style="--tool-accent:#FF6B35;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -217,6 +217,114 @@ function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey(
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
+
+var __voltage_8_last=0,__voltage_8_skip=false;
+function __voltage_8Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __voltage_8ResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __voltage_8Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __voltage_8Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__voltage_8Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#voltage_8Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#voltage_8Diff');
+        TBKit.history.mount('#voltage_8Hist',function(rec){
+            __voltage_8_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __voltage_8_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__voltage_8Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#voltage_8Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __voltage_8Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__voltage_8_skip) return;
+    var snap=__voltage_8Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__voltage_8ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__voltage_8_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __voltage_8_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __voltage_8Render(keys,rk,en);
+}
+function __voltage_8Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#voltage_8Table','voltage-8.csv'); } catch(e){}
+}
+function __voltage_8Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#voltage_8Presets',[{label:'默认参数',labelEn:'Default',values:{'vI':'100', 'vCore':'0.91', 'vV':'380', 'vMethod':'1.0', 'vTemp':'30'}}],function(){ calc(); });
+}
+var __voltage_8_f0=(typeof calc==='function')?calc:null;
+if(__voltage_8_f0){
+    calc=function(){ var __r=__voltage_8_f0.apply(null,arguments); try{ __voltage_8Extras(); }catch(e){} return __r; };
+}
+function __voltage_8Boot(){ try{ __voltage_8Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __voltage_8Boot();
+else document.addEventListener('DOMContentLoaded', __voltage_8Boot);
 </script>
 
 </div>

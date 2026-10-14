@@ -133,11 +133,11 @@ s.parentNode.insertBefore(el, s);
       <div><label>风速 V (m/s)</label><input type="number" id="wind" value="2" step="0.1" min="0" oninput="calc()"></div>
     </div>
     <div class="toolbar" style="margin-top:14px;">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="heat_indexPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__heat_indexExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-grid" id="grid"></div>
-    <div class="result-box" id="detail"></div>
+    <div class="result-box" id="detail"></div> <div id="heat_indexTable"></div> <div id="heat_indexDiff"></div> <div id="heat_indexChart"></div> <div id="heat_indexHist"></div>
     <div class="info-box">气温≥27°C 且湿度≥40% 时采用 NWS Rothfusz 炎热指数；气温≤10°C 且有风时采用风寒指数；其余区间体感接近实际气温。</div>
   </div>
 
@@ -317,6 +317,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __heat_index_last=0,__heat_index_skip=false;
+function __heat_indexSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __heat_indexResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __heat_indexTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __heat_indexRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__heat_indexTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#heat_indexTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#heat_indexDiff');
+        TBKit.history.mount('#heat_indexHist',function(rec){
+            __heat_index_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __heat_index_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__heat_indexTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#heat_indexChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __heat_indexExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__heat_index_skip) return;
+    var snap=__heat_indexSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__heat_indexResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__heat_index_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __heat_index_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __heat_indexRender(keys,rk,en);
+}
+function __heat_indexExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#heat_indexTable','heat-index.csv'); } catch(e){}
+}
+function __heat_indexPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#heat_indexPresets',[{label:'默认参数',labelEn:'Default',values:{'temp':'32', 'rh':'70', 'wind':'2'}}],function(){ calc(); });
+}
+var __heat_index_f0=(typeof calc==='function')?calc:null;
+if(__heat_index_f0){
+    calc=function(){ var __r=__heat_index_f0.apply(null,arguments); try{ __heat_indexExtras(); }catch(e){} return __r; };
+}
+function __heat_indexBoot(){ try{ __heat_indexPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __heat_indexBoot();
+else document.addEventListener('DOMContentLoaded', __heat_indexBoot);
 </script>
 
 </body>

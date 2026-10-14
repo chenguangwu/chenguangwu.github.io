@@ -163,10 +163,10 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">评分评估</button>
+      <div id="bishop_scorePresets"></div><button type="button" class="btn primary" onclick="calc()">评分评估</button><button class="btn" type="button" onclick="__bishop_scoreExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="bishop_scoreTable"></div> <div id="bishop_scoreDiff"></div> <div id="bishop_scoreChart"></div> <div id="bishop_scoreHist"></div>
   </div>
 
   <div class="card">
@@ -343,6 +343,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __bishop_score_last=0,__bishop_score_skip=false;
+function __bishop_scoreSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bishop_scoreResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bishop_scoreTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bishop_scoreRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bishop_scoreTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bishop_scoreTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bishop_scoreDiff');
+        TBKit.history.mount('#bishop_scoreHist',function(rec){
+            __bishop_score_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __bishop_score_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bishop_scoreTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bishop_scoreChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bishop_scoreExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bishop_score_skip) return;
+    var snap=__bishop_scoreSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bishop_scoreResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bishop_score_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bishop_score_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bishop_scoreRender(keys,rk,en);
+}
+function __bishop_scoreExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bishop_scoreTable','bishop-score.csv'); } catch(e){}
+}
+function __bishop_scorePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bishop_scorePresets',[{label:'默认参数',labelEn:'Default',values:{'dilation':'0', 'effacement':'0', 'station':'0', 'position':'0', 'consistency':'0'}}],function(){ calc(); });
+}
+var __bishop_score_f0=(typeof calc==='function')?calc:null;
+if(__bishop_score_f0){
+    calc=function(){ var __r=__bishop_score_f0.apply(null,arguments); try{ __bishop_scoreExtras(); }catch(e){} return __r; };
+}
+function __bishop_scoreBoot(){ try{ __bishop_scorePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bishop_scoreBoot();
+else document.addEventListener('DOMContentLoaded', __bishop_scoreBoot);
 </script>
 
 </body>

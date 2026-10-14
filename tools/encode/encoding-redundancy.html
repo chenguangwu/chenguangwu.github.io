@@ -116,10 +116,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><label>信息熵</label><input type="number" id="entropy" value="1.8" step="any" oninput="calc()"></div>
     <div class="input-row"><label>符号数</label><input type="number" id="symbols" value="1000" step="any" oninput="calc()"></div>
     <div class="toolbar">
-      <button class="btn primary" onclick="calc()">计算</button>
+      <div id="encoding_redundancyPresets"></div><button class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__encoding_redundancyExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div> <div id="encoding_redundancyTable"></div> <div id="encoding_redundancyDiff"></div> <div id="encoding_redundancyChart"></div> <div id="encoding_redundancyHist"></div>
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
@@ -264,6 +264,114 @@ function copyResult() {
   });
 }
 calc();
+
+var __encoding_redundancy_last=0,__encoding_redundancy_skip=false;
+function __encoding_redundancySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __encoding_redundancyResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __encoding_redundancyTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __encoding_redundancyRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__encoding_redundancyTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#encoding_redundancyTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#encoding_redundancyDiff');
+        TBKit.history.mount('#encoding_redundancyHist',function(rec){
+            __encoding_redundancy_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __encoding_redundancy_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__encoding_redundancyTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#encoding_redundancyChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __encoding_redundancyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__encoding_redundancy_skip) return;
+    var snap=__encoding_redundancySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__encoding_redundancyResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__encoding_redundancy_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __encoding_redundancy_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __encoding_redundancyRender(keys,rk,en);
+}
+function __encoding_redundancyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#encoding_redundancyTable','encoding-redundancy.csv'); } catch(e){}
+}
+function __encoding_redundancyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#encoding_redundancyPresets',[{label:'默认参数',labelEn:'Default',values:{'avgLen':'2.2', 'entropy':'1.8', 'symbols':'1000'}}],function(){ calc(); });
+}
+var __encoding_redundancy_f0=(typeof calc==='function')?calc:null;
+if(__encoding_redundancy_f0){
+    calc=function(){ var __r=__encoding_redundancy_f0.apply(null,arguments); try{ __encoding_redundancyExtras(); }catch(e){} return __r; };
+}
+function __encoding_redundancyBoot(){ try{ __encoding_redundancyPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __encoding_redundancyBoot();
+else document.addEventListener('DOMContentLoaded', __encoding_redundancyBoot);
 </script>
 </body>
 </html>

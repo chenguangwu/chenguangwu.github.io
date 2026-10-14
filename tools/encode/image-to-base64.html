@@ -135,7 +135,7 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="btn" onclick="document.getElementById('fileInput').click()">选择图片</button>
   <button type="button" class="btn primary" onclick="copyBase64()">复制 Base64</button>
   <button type="button" class="btn" onclick="copyDataUrl()">复制 data:URL</button>
-  <button type="button" class="btn" onclick="downloadImg()">下载图片</button>
+  <div id="image_to_base64Presets"></div><button type="button" class="btn" onclick="downloadImg()">下载图片</button><button class="btn" type="button" onclick="__image_to_base64Export()">导出明细 CSV</button>
 </div>
 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:10px 14px;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;">
   <label for="outFmt" style="margin:0;">输出 data:URL 前缀</label>
@@ -155,7 +155,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div id="b64PreviewBox" style="margin-top:10px;"></div>
 </div>
-<div class="result-box" id="result"></div>
+<div class="result-box" id="result"></div> <div id="image_to_base64Table"></div> <div id="image_to_base64Diff"></div> <div id="image_to_base64Chart"></div> <div id="image_to_base64Hist"></div>
 <style>
 #dropZone.drag-over{border-color:var(--primary);background:var(--bg-active);}
 .b64-out{font-family:'SF Mono','Courier New',monospace;font-size:11px;word-break:break-all;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;max-height:180px;overflow:auto;margin-top:8px;line-height:1.5;}
@@ -344,6 +344,114 @@ function decodeB64(){
 function calcTool(){if(!_dataUrl){ToolBox.setResult('result','<p style="color:var(--text-muted);font-size:13px;">请选择一张图片，转换结果会显示在这里。数据全程在本地处理，不会上传。</p>');}}
 function esc(s){var d=document.createElement('div');const __g4=s==null?'':String(s);d.textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 init();calcTool();
+
+var __image_to_base64_last=0,__image_to_base64_skip=false;
+function __image_to_base64Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __image_to_base64ResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __image_to_base64Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __image_to_base64Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__image_to_base64Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#image_to_base64Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#image_to_base64Diff');
+        TBKit.history.mount('#image_to_base64Hist',function(rec){
+            __image_to_base64_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadImg();
+            }catch(e2){}
+            __image_to_base64_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__image_to_base64Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#image_to_base64Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __image_to_base64Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__image_to_base64_skip) return;
+    var snap=__image_to_base64Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__image_to_base64ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__image_to_base64_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __image_to_base64_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __image_to_base64Render(keys,rk,en);
+}
+function __image_to_base64Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#image_to_base64Table','image-to-base64.csv'); } catch(e){}
+}
+function __image_to_base64Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#image_to_base64Presets',[{label:'默认参数',labelEn:'Default',values:{'outFmt':'keep'}}],function(){ downloadImg(); });
+}
+var __image_to_base64_f0=(typeof downloadImg==='function')?downloadImg:null;
+if(__image_to_base64_f0){
+    downloadImg=function(){ var __r=__image_to_base64_f0.apply(null,arguments); try{ __image_to_base64Extras(); }catch(e){} return __r; };
+}
+function __image_to_base64Boot(){ try{ __image_to_base64Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __image_to_base64Boot();
+else document.addEventListener('DOMContentLoaded', __image_to_base64Boot);
 </script>
 
 </body>

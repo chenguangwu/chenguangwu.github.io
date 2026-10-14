@@ -152,7 +152,7 @@ s.parentNode.insertBefore(el, s);
           <input type="number" id="shrinkPct" value="5" oninput="calcPredict()" step="any">
         </div>
       </div>
-      <div class="result-box" id="resultPredict"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__shrinkageExport()">导出明细 CSV</button></div><div class="result-box" id="resultPredict"></div> <div id="shrinkageTable"></div> <div id="shrinkageDiff"></div> <div id="shrinkageChart"></div> <div id="shrinkageHist"></div>
     </div>
 
     <div class="tab-content" id="mode-reverse">
@@ -381,6 +381,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __shrinkage_last=0,__shrinkage_skip=false;
+function __shrinkageSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __shrinkageResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __shrinkageTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __shrinkageRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__shrinkageTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#shrinkageTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#shrinkageDiff');
+        TBKit.history.mount('#shrinkageHist',function(rec){
+            __shrinkage_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcPredict();
+            }catch(e2){}
+            __shrinkage_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__shrinkageTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#shrinkageChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __shrinkageExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__shrinkage_skip) return;
+    var snap=__shrinkageSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__shrinkageResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__shrinkage_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __shrinkage_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __shrinkageRender(keys,rk,en);
+}
+function __shrinkageExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#shrinkageTable','shrinkage.csv'); } catch(e){}
+}
+function __shrinkagePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#shrinkagePresets',[{label:'默认参数',labelEn:'Default',values:{'cutSize':'100', 'shrinkPct':'5', 'targetSize':'100', 'shrinkPct2':'5'}}],function(){ calcPredict(); });
+}
+var __shrinkage_f0=(typeof calcPredict==='function')?calcPredict:null;
+if(__shrinkage_f0){
+    calcPredict=function(){ var __r=__shrinkage_f0.apply(null,arguments); try{ __shrinkageExtras(); }catch(e){} return __r; };
+}
+function __shrinkageBoot(){ try{ __shrinkagePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __shrinkageBoot();
+else document.addEventListener('DOMContentLoaded', __shrinkageBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用缩水率修正</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>裁剪尺寸（cm）</li><li>缩水率（%，正=缩 负=伸）</li><li>目标成品尺寸（cm）</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>缩水率修正是做什么的？</dt><dd>输入面料缩水率与成衣目标尺寸，可正向预测水洗后成品尺寸，也可反算裁剪时的放缩尺寸以抵消缩水，用于服装制版中按缩水率修正版型、保证成衣规格。</dd><dt>如何使用缩水率修正？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>缩水率修正适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

@@ -136,10 +136,10 @@ s.parentNode.insertBefore(el, s);
       <div><label>放电效率 η (%)</label><input type="number" id="eff" value="90" min="1" max="100" step="1" oninput="calc()"></div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="calc()">计算</button>
+      <div id="battery_bankPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__battery_bankExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
-    <div class="result-box" id="result"></div>
+    <div class="result-box" id="result"></div> <div id="battery_bankTable"></div> <div id="battery_bankDiff"></div> <div id="battery_bankChart"></div> <div id="battery_bankHist"></div>
     <div class="conn-diagram" id="diagram"></div>
   </div>
   <div class="card">
@@ -326,6 +326,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __battery_bank_last=0,__battery_bank_skip=false;
+function __battery_bankSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __battery_bankResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __battery_bankTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __battery_bankRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__battery_bankTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#battery_bankTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#battery_bankDiff');
+        TBKit.history.mount('#battery_bankHist',function(rec){
+            __battery_bank_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __battery_bank_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__battery_bankTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#battery_bankChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __battery_bankExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__battery_bank_skip) return;
+    var snap=__battery_bankSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__battery_bankResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__battery_bank_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __battery_bank_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __battery_bankRender(keys,rk,en);
+}
+function __battery_bankExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#battery_bankTable','battery-bank.csv'); } catch(e){}
+}
+function __battery_bankPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#battery_bankPresets',[{label:'默认参数',labelEn:'Default',values:{'cellV':'3.2', 'cellAh':'100', 'seriesN':'16', 'parallelN':'2', 'loadW':'500', 'dod':'80', 'eff':'90'}}],function(){ calc(); });
+}
+var __battery_bank_f0=(typeof calc==='function')?calc:null;
+if(__battery_bank_f0){
+    calc=function(){ var __r=__battery_bank_f0.apply(null,arguments); try{ __battery_bankExtras(); }catch(e){} return __r; };
+}
+function __battery_bankBoot(){ try{ __battery_bankPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __battery_bankBoot();
+else document.addEventListener('DOMContentLoaded', __battery_bankBoot);
 </script>
 
 <section class="opt-guide"><h2>如何使用蓄电池组计算</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>单体电池电压 (V)</li><li>单体电池容量 (Ah)</li><li>串联数量 (串)</li><li>并联数量 (并)</li><li>负载功率 (W)</li><li>放电深度 DoD (%)</li><li>放电效率 η (%)</li></ul><h2>适用场景</h2><p>蓄电池组串并联容量与电压核算，UPS/光伏离网/通信基站/电动车等场景均可使用。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>蓄电池组计算是做什么的？</dt><dd>输入单体电池电压、容量及串并联数量，计算电池组总电压、总容量、总能量并估算给定负载下的续航时间，适用于储能、UPS与电动车电源设计。</dd><dt>如何使用蓄电池组计算？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>蓄电池组计算适合哪些场景？</dt><dd>蓄电池组串并联容量与电压核算，UPS/光伏离网/通信基站/电动车等场景均可使用。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>

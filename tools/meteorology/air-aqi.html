@@ -135,7 +135,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__air_aqiExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="air_aqiTable"></div> <div id="air_aqiDiff"></div> <div id="air_aqiChart"></div> <div id="air_aqiHist"></div>
     <div class="info-box">💡 公式：IAQI = (IAQI高 - IAQI低)/(C高 - C低) × (C - C低) + IAQI低；AQI = max(各污染物 IAQI)，首要污染物为 IAQI 最大的项目。</div>
     <div class="tool-notes" style="--tool-accent:#0EA5E9;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -268,6 +268,114 @@ document.addEventListener('DOMContentLoaded',function(){
   if(hdr)hdr.addEventListener('click',function(){document.getElementById('toolIntro').classList.toggle('open');});
 });
 calc();
+
+var __air_aqi_last=0,__air_aqi_skip=false;
+function __air_aqiSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __air_aqiResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __air_aqiTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __air_aqiRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__air_aqiTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#air_aqiTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#air_aqiDiff');
+        TBKit.history.mount('#air_aqiHist',function(rec){
+            __air_aqi_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __air_aqi_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__air_aqiTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#air_aqiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __air_aqiExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__air_aqi_skip) return;
+    var snap=__air_aqiSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__air_aqiResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__air_aqi_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __air_aqi_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __air_aqiRender(keys,rk,en);
+}
+function __air_aqiExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#air_aqiTable','air-aqi.csv'); } catch(e){}
+}
+function __air_aqiPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#air_aqiPresets',[{label:'默认参数',labelEn:'Default',values:{'pm25':'75', 'pm10':'120', 'so2':'20', 'no2':'30', 'co':'1.2', 'o3':'100'}}],function(){ calc(); });
+}
+var __air_aqi_f0=(typeof calc==='function')?calc:null;
+if(__air_aqi_f0){
+    calc=function(){ var __r=__air_aqi_f0.apply(null,arguments); try{ __air_aqiExtras(); }catch(e){} return __r; };
+}
+function __air_aqiBoot(){ try{ __air_aqiPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __air_aqiBoot();
+else document.addEventListener('DOMContentLoaded', __air_aqiBoot);
 </script>
 
 
