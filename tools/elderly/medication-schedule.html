@@ -127,12 +127,18 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <button class="btn primary" onclick="addMed()">新增药物</button>
+      <div id="medication_schedulePresets"></div>
       <button class="btn" onclick="render()">生成日程</button>
+      <button class="btn" type="button" onclick="__medication_scheduleExport()">导出明细 CSV</button>
       <button class="btn" onclick="exportText()">导出文本</button>
     </div>
 
     <div id="meds"></div>
     <div id="result" class="result-box" style="margin-top:12px;"></div>
+    <div id="medication_scheduleTable"></div>
+    <div id="medication_scheduleDiff"></div>
+    <div id="medication_scheduleChart"></div>
+    <div id="medication_scheduleHist"></div>
   </div>
 </div>
 
@@ -247,6 +253,111 @@ function exportText() {
 
 renderInputs();
 render();
+
+var __medication_schedule_last=0,__medication_schedule_skip=false;
+function __medication_scheduleSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __medication_scheduleResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __medication_scheduleTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __medication_scheduleRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__medication_scheduleTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#medication_scheduleTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#medication_scheduleDiff');
+        TBKit.history.mount('#medication_scheduleHist',function(rec){
+            __medication_schedule_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(e) e.value=rec[k];
+                }
+                render();
+            }catch(e2){}
+            __medication_schedule_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__medication_scheduleTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#medication_scheduleChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __medication_scheduleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__medication_schedule_skip) return;
+    var snap=__medication_scheduleSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__medication_scheduleResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__medication_schedule_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __medication_schedule_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __medication_scheduleRender(keys,rk,en);
+}
+function __medication_scheduleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#medication_scheduleTable','medication-schedule.csv'); } catch(e){}
+}
+function __medication_schedulePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#medication_schedulePresets',[{label:'默认参数',labelEn:'Default',values:{'days':'3', 'notes':'每次'}}],function(){ render(); });
+}
+var __medication_schedule_f0=(typeof render==='function')?render:null;
+if(__medication_schedule_f0){
+    render=function(){ var __r=__medication_schedule_f0.apply(null,arguments); try{ __medication_scheduleExtras(); }catch(e){} return __r; };
+}
+function __medication_scheduleBoot(){ try{ __medication_schedulePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __medication_scheduleBoot();
+else document.addEventListener('DOMContentLoaded', __medication_scheduleBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
