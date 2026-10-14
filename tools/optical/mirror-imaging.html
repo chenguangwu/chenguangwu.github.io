@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="mirror_imagingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__mirror_imagingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="mirror_imagingTable"></div>
+    <div id="mirror_imagingDiff"></div>
+    <div id="mirror_imagingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,44 @@ function resetForm(){document.getElementById('u').value = 300;
       document.getElementById('R').value = 200;
       calcTool();}
 calcTool();
+
+function __mirror_imagingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mirror_imagingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var u=num('u'), R=num('R');
+    var f=R/2;
+    var denom = 1/f - 1/u;
+    var v = 1/denom, m = -v/u, real = v>0;
+    if (!isFinite(__mirror_imagingNum('u')) || !isFinite(__mirror_imagingNum('R'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#mirror_imagingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['焦距 f = R/2', (R/2).toFixed(1)+' mm'],
+            ['像距 v', v.toFixed(2)+' mm'],
+        ]
+    });
+    TBKit.history.record({u:__mirror_imagingNum('u'), R:__mirror_imagingNum('R'), f:f});
+    TBKit.history.mount('#mirror_imagingHist',function(rec){ if(rec.u!=null)document.getElementById('u').value=rec.u; if(rec.R!=null)document.getElementById('R').value=rec.R; calcTool(); });
+    TBKit.util.diffBox('#mirror_imagingDiff',['f']);
+}
+function __mirror_imagingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mirror_imagingTable','mirror-imaging.csv'); } catch(e){}
+}
+function __mirror_imagingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mirror_imagingPresets',[
+        {label:'默认',labelEn:'Default',values:{u:'300', R:'200'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{u:'600', R:'400'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{u:'150', R:'100'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __mirror_imagingExtras(); }catch(e){} };
+function __mirror_imagingBoot(){ try{ __mirror_imagingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mirror_imagingBoot();
+else document.addEventListener('DOMContentLoaded', __mirror_imagingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

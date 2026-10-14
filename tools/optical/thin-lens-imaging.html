@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="thin_lens_imagingPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__thin_lens_imagingExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="thin_lens_imagingTable"></div>
+    <div id="thin_lens_imagingDiff"></div>
+    <div id="thin_lens_imagingHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,42 @@ function resetForm(){document.getElementById('u').value = 300;
       document.getElementById('f').value = 100;
       calcTool();}
 calcTool();
+
+function __thin_lens_imagingNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __thin_lens_imagingExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var u=num('u'), f=num('f');
+    var denom = 1/f - 1/u;
+    var v, m, real;
+    if (!isFinite(__thin_lens_imagingNum('u')) || !isFinite(__thin_lens_imagingNum('f'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#thin_lens_imagingTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['提示', '平行光，像在无穷远'],
+        ]
+    });
+    TBKit.history.record({u:__thin_lens_imagingNum('u'), f:__thin_lens_imagingNum('f'), denom:denom});
+    TBKit.history.mount('#thin_lens_imagingHist',function(rec){ if(rec.u!=null)document.getElementById('u').value=rec.u; if(rec.f!=null)document.getElementById('f').value=rec.f; calcTool(); });
+    TBKit.util.diffBox('#thin_lens_imagingDiff',['denom']);
+}
+function __thin_lens_imagingExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#thin_lens_imagingTable','thin-lens-imaging.csv'); } catch(e){}
+}
+function __thin_lens_imagingPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#thin_lens_imagingPresets',[
+        {label:'默认',labelEn:'Default',values:{u:'300', f:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{u:'600', f:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{u:'150', f:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __thin_lens_imagingExtras(); }catch(e){} };
+function __thin_lens_imagingBoot(){ try{ __thin_lens_imagingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __thin_lens_imagingBoot();
+else document.addEventListener('DOMContentLoaded', __thin_lens_imagingBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

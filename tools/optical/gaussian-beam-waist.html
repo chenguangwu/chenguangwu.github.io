@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="gaussian_beam_waistPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gaussian_beam_waistExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="gaussian_beam_waistTable"></div>
+    <div id="gaussian_beam_waistDiff"></div>
+    <div id="gaussian_beam_waistHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -253,6 +259,43 @@ function resetForm(){document.getElementById('lam').value = 650;
       document.getElementById('D').value = 10;
       calcTool();}
 calcTool();
+
+function __gaussian_beam_waistNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gaussian_beam_waistExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var lam=num('lam')*1e-9, f=num('f')/1000, D=num('D')/1000;
+    var w0 = 4*lam*f/(Math.PI*D);
+    if (!isFinite(__gaussian_beam_waistNum('lam')) || !isFinite(__gaussian_beam_waistNum('f')) || !isFinite(__gaussian_beam_waistNum('D'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gaussian_beam_waistTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['束腰半径 w₀ = 4λf/(πD)', (w0*1e6).toFixed(2)+' µm'],
+            ['瑞利长度 z_R (m)', (Math.PI*w0*w0/lam).toExponential(4)],
+            ['远场发散角 (rad)', (lam/(Math.PI*w0)).toExponential(4)],
+        ]
+    });
+    TBKit.history.record({lam:__gaussian_beam_waistNum('lam'), f:__gaussian_beam_waistNum('f'), D:__gaussian_beam_waistNum('D'), w0:w0});
+    TBKit.history.mount('#gaussian_beam_waistHist',function(rec){ if(rec.lam!=null)document.getElementById('lam').value=rec.lam; if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.D!=null)document.getElementById('D').value=rec.D; calcTool(); });
+    TBKit.util.diffBox('#gaussian_beam_waistDiff',['w0']);
+}
+function __gaussian_beam_waistExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gaussian_beam_waistTable','gaussian-beam-waist.csv'); } catch(e){}
+}
+function __gaussian_beam_waistPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gaussian_beam_waistPresets',[
+        {label:'默认',labelEn:'Default',values:{lam:'650', f:'50', D:'10'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{lam:'1300', f:'100', D:'20'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{lam:'325', f:'25', D:'5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gaussian_beam_waistExtras(); }catch(e){} };
+function __gaussian_beam_waistBoot(){ try{ __gaussian_beam_waistPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gaussian_beam_waistBoot();
+else document.addEventListener('DOMContentLoaded', __gaussian_beam_waistBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

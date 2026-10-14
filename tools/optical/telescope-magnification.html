@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="telescope_magnificationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__telescope_magnificationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="telescope_magnificationTable"></div>
+    <div id="telescope_magnificationDiff"></div>
+    <div id="telescope_magnificationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -250,6 +256,44 @@ function resetForm(){document.getElementById('fo').value = 1000;
       document.getElementById('fe').value = 25;
       calcTool();}
 calcTool();
+
+function __telescope_magnificationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __telescope_magnificationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fo=num('fo'), fe=num('fe');
+    var M = fo/fe;
+    if (!isFinite(__telescope_magnificationNum('fo')) || !isFinite(__telescope_magnificationNum('fe'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#telescope_magnificationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角放大率 M = f₀/fₑ', M.toFixed(1)+' ×'],
+            ['两镜焦距比倒数', (fe/Math.max(fo,1e-9)).toFixed(6)],
+            ['放大率平方（相对聚光力）', (M*M).toFixed(3)],
+            ['两镜焦距之和 (mm)', (fo+fe).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({fo:__telescope_magnificationNum('fo'), fe:__telescope_magnificationNum('fe'), M:M});
+    TBKit.history.mount('#telescope_magnificationHist',function(rec){ if(rec.fo!=null)document.getElementById('fo').value=rec.fo; if(rec.fe!=null)document.getElementById('fe').value=rec.fe; calcTool(); });
+    TBKit.util.diffBox('#telescope_magnificationDiff',['M']);
+}
+function __telescope_magnificationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#telescope_magnificationTable','telescope-magnification.csv'); } catch(e){}
+}
+function __telescope_magnificationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#telescope_magnificationPresets',[
+        {label:'默认',labelEn:'Default',values:{fo:'1000', fe:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fo:'2000', fe:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fo:'500', fe:'12.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __telescope_magnificationExtras(); }catch(e){} };
+function __telescope_magnificationBoot(){ try{ __telescope_magnificationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __telescope_magnificationBoot();
+else document.addEventListener('DOMContentLoaded', __telescope_magnificationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

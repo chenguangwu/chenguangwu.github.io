@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="rayleigh_resolutionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__rayleigh_resolutionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="rayleigh_resolutionTable"></div>
+    <div id="rayleigh_resolutionDiff"></div>
+    <div id="rayleigh_resolutionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -252,6 +258,45 @@ function resetForm(){document.getElementById('lam').value = 550;
       document.getElementById('D').value = 100;
       calcTool();}
 calcTool();
+
+function __rayleigh_resolutionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rayleigh_resolutionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var lam=num('lam')*1e-9, D=num('D')/1000;
+    var theta = 1.22*lam/D;
+    var arcsec = theta*206265;
+    if (!isFinite(__rayleigh_resolutionNum('lam')) || !isFinite(__rayleigh_resolutionNum('D'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#rayleigh_resolutionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['最小分辨角 θ = 1.22λ/D', theta.toExponential(3)+' rad'],
+            ['折合角秒', arcsec.toFixed(2)+' ″'],
+            ['最小分辨角（微弧度）', (theta*1e6).toFixed(4)+' μrad'],
+            ['最小分辨角（度）', (theta*180/Math.PI).toExponential(3)+' °'],
+        ]
+    });
+    TBKit.history.record({lam:__rayleigh_resolutionNum('lam'), D:__rayleigh_resolutionNum('D'), theta:theta});
+    TBKit.history.mount('#rayleigh_resolutionHist',function(rec){ if(rec.lam!=null)document.getElementById('lam').value=rec.lam; if(rec.D!=null)document.getElementById('D').value=rec.D; calcTool(); });
+    TBKit.util.diffBox('#rayleigh_resolutionDiff',['theta']);
+}
+function __rayleigh_resolutionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rayleigh_resolutionTable','rayleigh-resolution.csv'); } catch(e){}
+}
+function __rayleigh_resolutionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#rayleigh_resolutionPresets',[
+        {label:'默认',labelEn:'Default',values:{lam:'550', D:'100'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{lam:'1100', D:'200'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{lam:'275', D:'50'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __rayleigh_resolutionExtras(); }catch(e){} };
+function __rayleigh_resolutionBoot(){ try{ __rayleigh_resolutionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __rayleigh_resolutionBoot();
+else document.addEventListener('DOMContentLoaded', __rayleigh_resolutionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

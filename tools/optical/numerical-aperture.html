@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="numerical_aperturePresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__numerical_apertureExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="numerical_apertureTable"></div>
+    <div id="numerical_apertureDiff"></div>
+    <div id="numerical_apertureHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -196,6 +202,44 @@ function resetForm(){document.getElementById('n').value = 1.0;
       document.getElementById('theta').value = 30;
       calcTool();}
 calcTool();
+
+function __numerical_apertureNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __numerical_apertureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n=num('n'), t=num('theta')*Math.PI/180;
+    var NA = n*Math.sin(t);
+    if (!isFinite(__numerical_apertureNum('n')) || !isFinite(__numerical_apertureNum('theta'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#numerical_apertureTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['数值孔径 NA = n·sinθ', NA.toFixed(3)],
+            ['由 NA 反推半角 (°)', (Math.asin(Math.min(1,NA/Math.max(n,1e-9)))*180/Math.PI).toFixed(3)],
+            ['NA 平方', (NA*NA).toFixed(5)],
+            ['n 与 NA 之比', (n/Math.max(NA,1e-9)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n:__numerical_apertureNum('n'), theta:__numerical_apertureNum('theta'), NA:NA});
+    TBKit.history.mount('#numerical_apertureHist',function(rec){ if(rec.n!=null)document.getElementById('n').value=rec.n; if(rec.theta!=null)document.getElementById('theta').value=rec.theta; calcTool(); });
+    TBKit.util.diffBox('#numerical_apertureDiff',['NA']);
+}
+function __numerical_apertureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#numerical_apertureTable','numerical-aperture.csv'); } catch(e){}
+}
+function __numerical_aperturePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#numerical_aperturePresets',[
+        {label:'默认',labelEn:'Default',values:{n:'1.0', theta:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n:'2', theta:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n:'0.5', theta:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __numerical_apertureExtras(); }catch(e){} };
+function __numerical_apertureBoot(){ try{ __numerical_aperturePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __numerical_apertureBoot();
+else document.addEventListener('DOMContentLoaded', __numerical_apertureBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

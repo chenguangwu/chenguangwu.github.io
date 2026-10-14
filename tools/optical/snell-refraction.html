@@ -135,12 +135,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="snell_refractionPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__snell_refractionExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="snell_refractionTable"></div>
+    <div id="snell_refractionDiff"></div>
+    <div id="snell_refractionHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -256,6 +262,43 @@ function resetForm(){document.getElementById('n1').value = 1.0;
       document.getElementById('theta1').value = 30;
       calcTool();}
 calcTool();
+
+function __snell_refractionNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __snell_refractionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var n1=num('n1'), n2=num('n2'), t1=num('theta1')*Math.PI/180;
+    var s = n1*Math.sin(t1)/n2;
+    var out;
+    if (!isFinite(__snell_refractionNum('n1')) || !isFinite(__snell_refractionNum('n2')) || !isFinite(__snell_refractionNum('theta1'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#snell_refractionTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['折射角 θ₂', out],
+            ['n₁·sinθ₁', (n1*Math.sin(t1)).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({n1:__snell_refractionNum('n1'), n2:__snell_refractionNum('n2'), theta1:__snell_refractionNum('theta1'), s:s});
+    TBKit.history.mount('#snell_refractionHist',function(rec){ if(rec.n1!=null)document.getElementById('n1').value=rec.n1; if(rec.n2!=null)document.getElementById('n2').value=rec.n2; if(rec.theta1!=null)document.getElementById('theta1').value=rec.theta1; calcTool(); });
+    TBKit.util.diffBox('#snell_refractionDiff',['s']);
+}
+function __snell_refractionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#snell_refractionTable','snell-refraction.csv'); } catch(e){}
+}
+function __snell_refractionPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#snell_refractionPresets',[
+        {label:'默认',labelEn:'Default',values:{n1:'1.0', n2:'1.33', theta1:'30'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{n1:'2', n2:'2.66', theta1:'60'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{n1:'0.5', n2:'0.665', theta1:'15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __snell_refractionExtras(); }catch(e){} };
+function __snell_refractionBoot(){ try{ __snell_refractionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __snell_refractionBoot();
+else document.addEventListener('DOMContentLoaded', __snell_refractionBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

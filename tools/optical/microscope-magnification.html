@@ -142,12 +142,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="microscope_magnificationPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__microscope_magnificationExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="microscope_magnificationTable"></div>
+    <div id="microscope_magnificationDiff"></div>
+    <div id="microscope_magnificationHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -261,6 +267,43 @@ function resetForm(){document.getElementById('fo').value = 4;
       document.getElementById('D').value = 250;
       calcTool();}
 calcTool();
+
+function __microscope_magnificationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __microscope_magnificationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var fo=num('fo'), fe=num('fe'), L=num('L'), D=num('D');
+    var M = (L/fo)*(D/fe);
+    if (!isFinite(__microscope_magnificationNum('fo')) || !isFinite(__microscope_magnificationNum('fe')) || !isFinite(__microscope_magnificationNum('L')) || !isFinite(__microscope_magnificationNum('D'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#microscope_magnificationTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['总放大率 M = (L/f₀)(D/fₑ)', M.toFixed(0)+' ×'],
+            ['物镜放大率', (L/fo).toFixed(1)+' ×'],
+            ['目镜放大率', (D/fe).toFixed(1)+' ×'],
+        ]
+    });
+    TBKit.history.record({fo:__microscope_magnificationNum('fo'), fe:__microscope_magnificationNum('fe'), L:__microscope_magnificationNum('L'), D:__microscope_magnificationNum('D'), M:M});
+    TBKit.history.mount('#microscope_magnificationHist',function(rec){ if(rec.fo!=null)document.getElementById('fo').value=rec.fo; if(rec.fe!=null)document.getElementById('fe').value=rec.fe; if(rec.L!=null)document.getElementById('L').value=rec.L; if(rec.D!=null)document.getElementById('D').value=rec.D; calcTool(); });
+    TBKit.util.diffBox('#microscope_magnificationDiff',['M']);
+}
+function __microscope_magnificationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#microscope_magnificationTable','microscope-magnification.csv'); } catch(e){}
+}
+function __microscope_magnificationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#microscope_magnificationPresets',[
+        {label:'默认',labelEn:'Default',values:{fo:'4', fe:'25', L:'160', D:'250'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{fo:'8', fe:'50', L:'320', D:'500'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fo:'2', fe:'12.5', L:'80', D:'125'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __microscope_magnificationExtras(); }catch(e){} };
+function __microscope_magnificationBoot(){ try{ __microscope_magnificationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __microscope_magnificationBoot();
+else document.addEventListener('DOMContentLoaded', __microscope_magnificationBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

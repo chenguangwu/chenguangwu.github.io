@@ -132,12 +132,18 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div id="f_numberPresets"></div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__f_numberExport()">导出明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="f_numberTable"></div>
+    <div id="f_numberDiff"></div>
+    <div id="f_numberHist"></div>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
@@ -249,6 +255,44 @@ function resetForm(){document.getElementById('f').value = 50;
       document.getElementById('D').value = 25;
       calcTool();}
 calcTool();
+
+function __f_numberNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __f_numberExtras(){
+    if (typeof TBKit === 'undefined') return;
+    var f=num('f'), D=num('D');
+    var N = f/D;
+    if (!isFinite(__f_numberNum('f')) || !isFinite(__f_numberNum('D'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#f_numberTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['光圈数 N = f/D', N.toFixed(1)],
+            ['相对孔径倒数', (D/Math.max(f,1e-9)).toFixed(6)],
+            ['有效孔径面积 (mm²)', (Math.PI*Math.pow(D/2,2)).toFixed(4)],
+            ['曝光级差 EV', (Math.log(N*N)/Math.LN2).toFixed(4)],
+        ]
+    });
+    TBKit.history.record({f:__f_numberNum('f'), D:__f_numberNum('D'), N:N});
+    TBKit.history.mount('#f_numberHist',function(rec){ if(rec.f!=null)document.getElementById('f').value=rec.f; if(rec.D!=null)document.getElementById('D').value=rec.D; calcTool(); });
+    TBKit.util.diffBox('#f_numberDiff',['N']);
+}
+function __f_numberExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#f_numberTable','f-number.csv'); } catch(e){}
+}
+function __f_numberPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#f_numberPresets',[
+        {label:'默认',labelEn:'Default',values:{f:'50', D:'25'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{f:'100', D:'50'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{f:'25', D:'12.5'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __f_numberExtras(); }catch(e){} };
+function __f_numberBoot(){ try{ __f_numberPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __f_numberBoot();
+else document.addEventListener('DOMContentLoaded', __f_numberBoot);
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
