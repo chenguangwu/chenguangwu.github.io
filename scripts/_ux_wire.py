@@ -201,14 +201,30 @@ def find_tag_close(s, open_idx):
         i = mm.end()
 
 
+RESULT_IDS = ("result", "res", "output")
+RESULT_CLASSES = ("result-box", "result-display")
+
+def find_result_container(s):
+    """定位结果容器：优先 id（result/res/output），退化 class（result-box/result-display）。
+    返回 ('id', val) / ('class', val) / None。新架构页（leather/pet 等）用 id="res"，
+    部分页只有 class="result-box" 无 id。"""
+    for rid in RESULT_IDS:
+        if re.search(r'id="%s"' % re.escape(rid), s):
+            return ("id", rid)
+    for rc in RESULT_CLASSES:
+        if re.search(r'class="[^"]*\b%s\b' % re.escape(rc), s):
+            return ("class", rc)
+    return None
+
 def extract_custom(page):
-    """新架构手工页模式：顶层 function <fn> + id="result" + 输入控件（无 calcTool/dataGrid）。
-    返回 dict(fn, inputs, defaults) 或 None。fn 取按钮/输入事件回调中的顶层函数，
-    优先 calc/compute/solve/count/estimate/eval 系命名。"""
+    """新架构手工页模式：顶层 function <fn> + 结果容器（id/res/output 或 result-box 类）
+    + 输入控件（无 calcTool/dataGrid）。返回 dict(fn, inputs, defaults, container) 或 None。
+    fn 取按钮/输入事件回调中的顶层函数，优先 calc/compute/solve/count/estimate/eval 系命名。"""
     s = open(page, encoding='utf-8').read()
     if 'TBKit.matrix.table' in s:
         return None
-    if not re.search(r'id="result"', s):
+    container = find_result_container(s)
+    if container is None:
         return None
     cands = []
     for mm in re.finditer(r'on(?:click|input|change)="(\w+)\(', s):
@@ -247,7 +263,7 @@ def extract_custom(page):
         else:
             m2 = re.search(r'<select\b[^>]*\bid="%s"[^>]*>\s*<option[^>]*value="([^"]*)"' % re.escape(iid), s)
             defaults[iid] = m2.group(1) if m2 else ''
-    return {"fn": fn, "inputs": inputs, "defaults": defaults}
+    return {"fn": fn, "inputs": inputs, "defaults": defaults, "container": container}
 
 
 def gen_script(name, info):
@@ -413,6 +429,7 @@ def apply_custom(page, dry=False):
     p = name.replace('-', '_')
     fn = info["fn"]
     defaults = info["defaults"]
+    container = info["container"]
 
     js = []
     js.append("var __%s_last=0,__%s_skip=false;" % (p, p))
@@ -429,9 +446,12 @@ def apply_custom(page, dry=False):
     js.append("    }")
     js.append("    return out;")
     js.append("}")
-    # 结果摘要文本（#result textContent；占位/报错态返回空 → 不记录）
+    # 结果摘要文本（结果容器 textContent；占位/报错态返回空 → 不记录）
     js.append("function __%sResText(){" % p)
-    js.append("    var r=document.getElementById('result');")
+    if container[0] == "id":
+        js.append("    var r=document.getElementById('%s');" % container[1])
+    else:
+        js.append("    var r=document.querySelector('.%s');" % container[1])
     js.append("    if(!r) return '';")
     js.append("    var t=(r.textContent||'').replace(/\\s+/g,' ').trim();")
     js.append("    if(!t||t==='--'||t==='—'||t==='-') return '';")
@@ -548,13 +568,25 @@ def apply_custom(page, dry=False):
         m2 = re.search(r'<button\b[^>]*onclick="%s\([^)]*\)"[^>]*>.*?</button>' % re.escape(fn), s, re.S)
         s = s[:m2.end()] + '\n      <button class="btn" type="button" onclick="__%sExport()">导出明细 CSV</button>' % p + s[m2.end():]
     else:
-        # 无主按钮（纯输入事件触发）：在 #result 前插独立导出行
-        rp = s.find('id="result"')
-        op = s.rfind('<', 0, rp)
+        # 无主按钮（纯输入事件触发）：在结果容器前插独立导出行
+        if container[0] == "id":
+            rp = s.find('id="%s"' % container[1])
+            op = s.rfind('<', 0, rp)
+        else:
+            cm = re.search(r'<\w+\b[^>]*class="[^"]*\b%s\b' % re.escape(container[1]), s)
+            if not cm:
+                return "skip:custom-result-class-not-found"
+            op = cm.start()
         s = s[:op] + '<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__%sExport()">导出明细 CSV</button></div>\n    ' % p + s[op:]
-    # 3) 结果容器：在 #result 元素闭合后
-    rp = s.find('id="result"')
-    op = s.rfind('<', 0, rp)
+    # 3) 结果容器：在结果元素闭合后
+    if container[0] == "id":
+        rp = s.find('id="%s"' % container[1])
+        op = s.rfind('<', 0, rp)
+    else:
+        cm = re.search(r'<\w+\b[^>]*class="[^"]*\b%s\b' % re.escape(container[1]), s)
+        if not cm:
+            return "skip:custom-result-class-not-found"
+        op = cm.start()
     close_idx = find_tag_close(s, op)
     if close_idx is None:
         return "skip:custom-result-tag-unmatched"
