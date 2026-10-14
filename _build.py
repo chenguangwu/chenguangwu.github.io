@@ -3393,6 +3393,12 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         ind = t['industry']
         by_industry.setdefault(ind, []).append(t)
 
+    # 同分类（目录）分组：行业池不足 2 个时回退补相关工具，保证每页站内互链 ≥2。
+    # 曾致 36 页 related 卡片 <2（含完全无块的页）⇒ crosslink 不达标，跨工具导流与 SEO 双失。
+    by_catdir = {}
+    for t in tools:
+        by_catdir.setdefault(os.path.dirname(t['path']), []).append(t)
+
     # 预加载指南映射：工具 basename -> (指南相对路径, 标题)，用于工具页注入"使用指南"链接
     # 注意：basename 在同一行业外会重名（如 calc-1.html 存在于 42 个行业目录），
     # 仅按 basename 匹配会把「增值税计算使用指南」注入到消防/医疗等无关页面。
@@ -3469,6 +3475,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
     fixed_bc = 0
     fixed_rt = 0
     fixed_rt_removed = 0
+    fixed_rt_rebuilt = 0   # 卡片 <2（或全死链）⇒ 重建为保证 ≥2 的相关工具块
     fixed_nav = 0
     dropped_crit = 0
     i18n_dir = os.path.join(ROOT, 'i18n', 'tools')
@@ -3969,6 +3976,48 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     content = content.replace('</body>', rt_html + '</body>', 1)
                 curated_applied += 1
 
+        # 保证 ≥2 的相关工具：行业池不足则回退同分类（目录）兄弟，再不足回退全站。
+        # 目的：杜绝「有块但仅 1 张卡片 / 完全无块」导致的站内互链 <2（crosslink 不达标）。
+        def _guarantee_rel(rel):
+            rel = list(rel)
+            if len(rel) >= 2:
+                return rel
+            seen = {t['url']} | {rt['url'] for rt in rel}
+            for pool in (by_catdir.get(os.path.dirname(t['path']), []), tools):
+                for rt in pool:
+                    if len(rel) >= 6:
+                        break
+                    if rt['url'] in seen:
+                        continue
+                    seen.add(rt['url'])
+                    rel.append(rt)
+                if len(rel) >= 2:
+                    break
+            return rel
+
+        def _rt_html_of(rel):
+            if not rel:
+                return ''
+            h = ('<!-- 相关工具 -->\n<div class="related-tools" data-related-tools="1">\n'
+                 "  <h3 class=\"related-tools-title\">🔗 相关工具</h3>\n"
+                 "  <div class=\"related-tools-grid\">\n")
+            d = 'tools/' + os.path.dirname(t['path'])
+            for rt in rel:
+                h += ('    <a href="%s" class="related-tool-card">\n'
+                      '      <span class="rt-icon">%s</span>\n'
+                      '      <span class="rt-info"><span class="rt-name">%s</span>'
+                      '<span class="rt-desc">%s</span></span>\n    </a>\n') % (
+                    os.path.relpath(rt['url'], d).replace(os.sep, '/'),
+                    rt.get('icon', '🛠️'),
+                    esc_html_py(rt['name']),
+                    esc_html_py(_zh_desc_of(rt))[:50])
+            h += '  </div>\n</div>\n'
+            return h
+
+        _rel_guar = _guarantee_rel(
+            [rt for rt in by_industry.get(industry, []) if rt['url'] != t['url']][:6])
+        _rt_html_guar = _rt_html_of(_rel_guar)
+
         _rt_m = _rt_block_pat.search(content)
         if _rt_m:
             _block = _rt_m.group(0)
@@ -3996,14 +4045,24 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 return ''
 
             _new_block = _card_pat.sub(_card_rep, _block)
+            _n_cards = len(_card_pat.findall(_new_block))
             if 'related-tool-card' not in _new_block:
-                content = content.replace(_block, '')
-                fixed_rt_removed += 1
+                # 整块卡片全是死链：优先重建为保证 ≥2 的块（而不是直接删掉丢内链）
+                if _rt_html_guar:
+                    content = content.replace(_block, _rt_html_guar)
+                    fixed_rt_rebuilt += 1
+                else:
+                    content = content.replace(_block, '')
+                    fixed_rt_removed += 1
+            elif _n_cards < 2 and _rt_html_guar:
+                # 仅 1 张卡片 ⇒ 站内互链 <2，crosslink 不达标：整块重建为 ≥2 张
+                content = content.replace(_block, _rt_html_guar)
+                fixed_rt_rebuilt += 1
             else:
                 content = content.replace(_block, _new_block)
                 fixed_rt_removed += _rtc['removed']
         else:
-            related = [rt for rt in by_industry.get(industry, []) if rt['url'] != t['url']][:6]
+            related = _rel_guar   # 已保证 ≥2（行业池不足时回退同分类/全站）
             if related:
                 rt_html = '<!-- 相关工具 -->\n<div class="related-tools" data-related-tools="1">\n  <h3 class="related-tools-title">🔗 相关工具</h3>\n  <div class="related-tools-grid">\n'
                 rt_tool_dir = 'tools/' + os.path.dirname(t['path'])
@@ -4028,6 +4087,11 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     _m = re.search(r'(?:</div>\s*)+(?=<script)', content)
                     if _m:
                         content = content[:_m.end()] + '\n' + rt_html + content[_m.end():]
+                        fixed_rt += 1
+                    elif '</body>' in content:
+                        # 最后兜底：小分类/特殊结构页（如 index、biz 生成页）四个锚点全落空时，
+                        # 仍在正文收尾前插入，避免该页永久无相关工具内链（crosslink 缺口）。
+                        content = content.replace('</body>', rt_html + '</body>', 1)
                         fixed_rt += 1
 
         # 6. 内容深度块（content-depth 试点）：注入独有使用场景 / 示例 / FAQ，打掉模板化页过滤。

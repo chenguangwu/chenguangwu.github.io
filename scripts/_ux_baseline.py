@@ -37,8 +37,13 @@ TABS_RE = re.compile(r"class=\"[^\"]*(tab|step|wizard|accordion)[^\"]*\"", re.I)
 COMPARE_RE = re.compile(r"对比|比较|compare", re.I)
 FAQ_RE = re.compile(r"常见问题|FAQ|答疑|问与答", re.I)
 INPUT_RE = re.compile(r"<(input|select|textarea)\b", re.I)
+# 站内互链三种写法都算：① ../cat/slug.html ② 绝对 /tools/cat/slug.html ③ 同目录 slug.html
+# ② 曾漏计：部分页的相关工具用绝对路径（如 /tools/electrical/calc-1.html），是真实内链却判无
+# crosslink，虚报 23 页缺口（与 TOOLBOX-REDIRECT 同属度量口径修正，非放宽标准）。
 CROSS_RE = re.compile(
-    r'href="(?:(?:\.\./){1,3}(?:tools/)?[a-z0-9\-]+/[a-z0-9\-]+\.html|(?!index\.html)[a-z0-9\-]+\.html)"',
+    r'href="(?:(?:\.\./){1,3}(?:tools/)?[a-z0-9\-]+/[a-z0-9\-]+\.html'
+    r'|/tools/[a-z0-9\-]+/[a-z0-9\-]+\.html'
+    r'|(?!index\.html)[a-z0-9\-]+\.html)"',
     re.I)
 # 指南页不是「工具 → 工具」导流，不计入 crosslink
 GUIDE_RE = re.compile(r'guides/', re.I)
