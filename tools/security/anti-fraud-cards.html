@@ -224,7 +224,7 @@ s.parentNode.insertBefore(el, s);
     <div class="history-header">
       <h3>诈骗手法库（<span id="cardCount">0</span> 种）</h3>
     </div>
-    <div id="cardList"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__anti_fraud_cardsExport()">导出明细 CSV</button></div><div id="cardList"></div> <div id="anti_fraud_cardsTable"></div> <div id="anti_fraud_cardsDiff"></div> <div id="anti_fraud_cardsChart"></div> <div id="anti_fraud_cardsHist"></div>
     <div id="emptyHint" style="display:none;text-align:center;padding:30px 20px;color:var(--text-muted);font-size:14px;">没有找到匹配的诈骗类型</div>
   </div>
 
@@ -613,6 +613,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __anti_fraud_cards_last=0,__anti_fraud_cards_skip=false;
+function __anti_fraud_cardsSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __anti_fraud_cardsResText(){
+    var r=document.getElementById('cardList');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __anti_fraud_cardsTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __anti_fraud_cardsRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__anti_fraud_cardsTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#anti_fraud_cardsTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#anti_fraud_cardsDiff');
+        TBKit.history.mount('#anti_fraud_cardsHist',function(rec){
+            __anti_fraud_cards_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                filterCards();
+            }catch(e2){}
+            __anti_fraud_cards_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__anti_fraud_cardsTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#anti_fraud_cardsChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __anti_fraud_cardsExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__anti_fraud_cards_skip) return;
+    var snap=__anti_fraud_cardsSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__anti_fraud_cardsResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__anti_fraud_cards_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __anti_fraud_cards_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __anti_fraud_cardsRender(keys,rk,en);
+}
+function __anti_fraud_cardsExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#anti_fraud_cardsTable','anti-fraud-cards.csv'); } catch(e){}
+}
+function __anti_fraud_cardsPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#anti_fraud_cardsPresets',[{label:'默认参数',labelEn:'Default',values:{'catFilter':'all'}}],function(){ filterCards(); });
+}
+var __anti_fraud_cards_f0=(typeof filterCards==='function')?filterCards:null;
+if(__anti_fraud_cards_f0){
+    filterCards=function(){ var __r=__anti_fraud_cards_f0.apply(null,arguments); try{ __anti_fraud_cardsExtras(); }catch(e){} return __r; };
+}
+function __anti_fraud_cardsBoot(){ try{ __anti_fraud_cardsPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __anti_fraud_cardsBoot();
+else document.addEventListener('DOMContentLoaded', __anti_fraud_cardsBoot);
 </script>
 
 </body>

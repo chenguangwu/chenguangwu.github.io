@@ -152,7 +152,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <div id="tableArea"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__blood_routine_referenceExport()">导出明细 CSV</button></div><div id="tableArea"></div> <div id="blood_routine_referenceTable"></div> <div id="blood_routine_referenceDiff"></div> <div id="blood_routine_referenceChart"></div> <div id="blood_routine_referenceHist"></div>
 
     <div class="info-box" style="margin-top:16px;">
       参考区间依据《临床检验学》及WS/T 405-2012行业标准。不同实验室仪器/试剂可能有差异，请以报告单标注参考范围为准。
@@ -374,6 +374,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __blood_routine_reference_last=0,__blood_routine_reference_skip=false;
+function __blood_routine_referenceSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __blood_routine_referenceResText(){
+    var r=document.getElementById('tableArea');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __blood_routine_referenceTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __blood_routine_referenceRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__blood_routine_referenceTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#blood_routine_referenceTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#blood_routine_referenceDiff');
+        TBKit.history.mount('#blood_routine_referenceHist',function(rec){
+            __blood_routine_reference_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                renderTable();
+            }catch(e2){}
+            __blood_routine_reference_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__blood_routine_referenceTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#blood_routine_referenceChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __blood_routine_referenceExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__blood_routine_reference_skip) return;
+    var snap=__blood_routine_referenceSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__blood_routine_referenceResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__blood_routine_reference_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __blood_routine_reference_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __blood_routine_referenceRender(keys,rk,en);
+}
+function __blood_routine_referenceExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#blood_routine_referenceTable','blood-routine-reference.csv'); } catch(e){}
+}
+function __blood_routine_referencePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#blood_routine_referencePresets',[{label:'默认参数',labelEn:'Default',values:{'metricSel':'all'}}],function(){ renderTable(); });
+}
+var __blood_routine_reference_f0=(typeof renderTable==='function')?renderTable:null;
+if(__blood_routine_reference_f0){
+    renderTable=function(){ var __r=__blood_routine_reference_f0.apply(null,arguments); try{ __blood_routine_referenceExtras(); }catch(e){} return __r; };
+}
+function __blood_routine_referenceBoot(){ try{ __blood_routine_referencePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __blood_routine_referenceBoot();
+else document.addEventListener('DOMContentLoaded', __blood_routine_referenceBoot);
 </script>
 
 </body>

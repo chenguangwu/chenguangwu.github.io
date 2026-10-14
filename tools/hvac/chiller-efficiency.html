@@ -218,7 +218,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
-      <button type="button" class="btn primary" onclick="calcNominal()">&#128202; 计算能效</button>
+      <div id="chiller_efficiencyPresets"></div><button type="button" class="btn primary" onclick="calcNominal()">&#128202; 计算能效</button><button class="btn" type="button" onclick="__chiller_efficiencyExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">&#128203; 复制结果</button>
       <button type="button" class="btn" onclick="resetNominal()">&#128260; 重置</button>
     </div>
@@ -230,7 +230,7 @@ s.parentNode.insertBefore(el, s);
     <div id="nominalCards" class="data-grid" style="display:none;"></div>
 
     <!-- 计算过程 -->
-    <div id="nominalFormula" class="result-box" style="display:none;"></div>
+    <div id="nominalFormula" class="result-box" style="display:none;"></div> <div id="chiller_efficiencyTable"></div> <div id="chiller_efficiencyDiff"></div> <div id="chiller_efficiencyChart"></div> <div id="chiller_efficiencyHist"></div>
 
     <!-- 能效等级对照表 -->
     <h3 style="margin-top:20px;">&#128203; GB 19577-2015 能效等级对照表</h3>
@@ -619,6 +619,114 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+
+var __chiller_efficiency_last=0,__chiller_efficiency_skip=false;
+function __chiller_efficiencySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __chiller_efficiencyResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __chiller_efficiencyTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __chiller_efficiencyRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__chiller_efficiencyTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#chiller_efficiencyTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#chiller_efficiencyDiff');
+        TBKit.history.mount('#chiller_efficiencyHist',function(rec){
+            __chiller_efficiency_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcNominal();
+            }catch(e2){}
+            __chiller_efficiency_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__chiller_efficiencyTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#chiller_efficiencyChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __chiller_efficiencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__chiller_efficiency_skip) return;
+    var snap=__chiller_efficiencySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__chiller_efficiencyResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__chiller_efficiency_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __chiller_efficiency_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __chiller_efficiencyRender(keys,rk,en);
+}
+function __chiller_efficiencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#chiller_efficiencyTable','chiller-efficiency.csv'); } catch(e){}
+}
+function __chiller_efficiencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#chiller_efficiencyPresets',[{label:'默认参数',labelEn:'Default',values:{'capacityKw':'500', 'capacityRt':'142.17', 'powerKw':'90', 'tIn':'12', 'tOut':'7', 'cop100':'5.6', 'cop75':'6.3', 'cop50':'6.8', 'cop25':'6.0'}}],function(){ calcNominal(); });
+}
+var __chiller_efficiency_f0=(typeof calcNominal==='function')?calcNominal:null;
+if(__chiller_efficiency_f0){
+    calcNominal=function(){ var __r=__chiller_efficiency_f0.apply(null,arguments); try{ __chiller_efficiencyExtras(); }catch(e){} return __r; };
+}
+function __chiller_efficiencyBoot(){ try{ __chiller_efficiencyPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __chiller_efficiencyBoot();
+else document.addEventListener('DOMContentLoaded', __chiller_efficiencyBoot);
 </script>
 
 </body>

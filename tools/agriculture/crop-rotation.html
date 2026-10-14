@@ -270,7 +270,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar">
-      <button type="button" class="btn primary" onclick="generatePlan()">生成规划表</button>
+      <div id="crop_rotationPresets"></div><button type="button" class="btn primary" onclick="generatePlan()">生成规划表</button><button class="btn" type="button" onclick="__crop_rotationExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="exportPlan()">导出为文本</button>
     </div>
   </div>
@@ -287,7 +287,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card" id="planCard" style="display:none;">
     <h3>4年轮作规划表</h3>
-    <div id="planSummary" class="summary-box"></div>
+    <div id="planSummary" class="summary-box"></div> <div id="crop_rotationTable"></div> <div id="crop_rotationDiff"></div> <div id="crop_rotationChart"></div> <div id="crop_rotationHist"></div>
     <div style="margin-top:16px;overflow-x:auto;">
       <table class="rotation-table" id="rotationTable"></table>
     </div>
@@ -770,6 +770,114 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+
+var __crop_rotation_last=0,__crop_rotation_skip=false;
+function __crop_rotationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __crop_rotationResText(){
+    var r=document.getElementById('planSummary');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __crop_rotationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __crop_rotationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__crop_rotationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#crop_rotationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#crop_rotationDiff');
+        TBKit.history.mount('#crop_rotationHist',function(rec){
+            __crop_rotation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generatePlan();
+            }catch(e2){}
+            __crop_rotation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__crop_rotationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#crop_rotationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __crop_rotationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__crop_rotation_skip) return;
+    var snap=__crop_rotationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__crop_rotationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__crop_rotation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __crop_rotation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __crop_rotationRender(keys,rk,en);
+}
+function __crop_rotationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#crop_rotationTable','crop-rotation.csv'); } catch(e){}
+}
+function __crop_rotationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#crop_rotationPresets',[{label:'默认参数',labelEn:'Default',values:{'areaInput':'10', 'seasonInput':'春', 'modeInput':'standard'}}],function(){ generatePlan(); });
+}
+var __crop_rotation_f0=(typeof generatePlan==='function')?generatePlan:null;
+if(__crop_rotation_f0){
+    generatePlan=function(){ var __r=__crop_rotation_f0.apply(null,arguments); try{ __crop_rotationExtras(); }catch(e){} return __r; };
+}
+function __crop_rotationBoot(){ try{ __crop_rotationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __crop_rotationBoot();
+else document.addEventListener('DOMContentLoaded', __crop_rotationBoot);
 </script>
 
 <script type="application/ld+json">
