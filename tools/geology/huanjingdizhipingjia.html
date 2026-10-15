@@ -126,6 +126,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
 <div class="result-box" id="res"></div>
+<div id="geoChart" style="margin-top:14px;"></div>
 <div class="info-box">💡 内梅罗综合指数：P = √((Pmax² + Pavg²)/2)，Pi = Ci/Si（实测值/标准值）。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>各指标须使用统一评价标准</li><li>未填写的指标行自动跳过</li><li>P&lt;0.7清洁，0.7-1轻污染，1-2中污染，&gt;2重污染</li><li>实际评价应依据《环境质量标准》系列</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -214,6 +215,27 @@ function applyGeoPreset(kind){
   else return;
   buildInd(); calc();
 }
+function __geoExtras(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof indicators==='undefined'||!indicators.length) return;
+  var en=TBKit.util.isEn();
+  var labels=[],data=[];
+  for(var i=0;i<indicators.length;i++){
+    var ce=document.getElementById('c'+i), se=document.getElementById('s'+i), ne=document.getElementById('n'+i);
+    if(!ce||!se||!ne) continue;
+    var c=parseFloat(ce.value), s=parseFloat(se.value);
+    if(isNaN(c)||isNaN(s)||s<=0) continue;
+    labels.push(ne.value||('指标'+(i+1)));
+    data.push(+(c/s).toFixed(3));
+  }
+  if(!labels.length) return;
+  TBKit.chart.bar('#geoChart',{labels:labels,series:[{name:en?'Pi':'单项指数 Pi',data:data}],height:240,title:en?'Single-factor Pollution Index':'各指标单项污染指数'});
+}
+var __geo_f0=(typeof calc==='function')?calc:null;
+if(__geo_f0){ calc=function(){ var r=__geo_f0.apply(null,arguments); try{__geoExtras();}catch(e){} return r; }; }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(function(){try{calc();}catch(e){}},0); });
+else setTimeout(function(){try{calc();}catch(e){}},0);
+
 document.addEventListener('DOMContentLoaded',function(){renderHistory();buildInd();});
 </script>
 
