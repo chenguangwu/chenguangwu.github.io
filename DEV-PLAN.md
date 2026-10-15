@@ -46,12 +46,6 @@
 
 - **已全部清完（2026-10-15）**：① 全站 19 个 `type="number"` 装逗号序列输入框 → 改 `text inputmode="decimal"`；② `_build.py` 相关工具卡 `rt-desc` 退化 → 走权威描述源重写（30.6%→1.4%）。两处均随 `b6c19538b0` 提交、门禁 218/218 通过。
 
-### P2 · 数据驱动 / 仓库卫生（择机）
-
-- **GSC 收录数据刷新**：`_gsc_inspect_progress.json` / `_gsc_unindexed.csv` 停留 2026-08-07（6155 URL），可择机重跑 `scripts/_gsc_inspect_urls.py`（单次查询不循环）。
-- **51.la / Clarity 月度复盘**：拉 PV、停留时长、二跳率，校准 UX 专项优先级（真实指标，验证 §一代理指标是否奏效）。
-- **`.git` 压缩**：`git gc --aggressive --prune=now`（执行前 `git status` 干净，执行后 `git fsck`）。当前约 730MB。
-
 ### P3 · 待老板定夺（不擅自开工）
 
 - **新工具扩充**：受纯前端红线约束，如有方向走 `scripts/gen_*` 批量生成 + 中英文 / 指南三件套。
