@@ -168,6 +168,12 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="addHive()">➕ 添加蜂箱</button>
       <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
     </div>
+    <div style="margin:10px 0 4px;font-size:13px;color:var(--text-muted);">🍯 示例蜂场（一键填充演示数据）：</div>
+    <div class="toolbar">
+      <button type="button" class="btn" onclick="applyHoneyPreset('single')">单箱起步</button>
+      <button type="button" class="btn" onclick="applyHoneyPreset('multi')">三箱轮作</button>
+      <button type="button" class="btn" onclick="applyHoneyPreset('overdue')">到期提醒</button>
+    </div>
   </div>
 
   <div class="card">
@@ -266,6 +272,37 @@ function addHive() {
   document.getElementById('hiveStart').value = '';
   render();
   ToolBox.showToast(i18nText('toast.msg578'));
+}
+
+function applyHoneyPreset(kind){
+  if(!kind) return;
+  var base = Date.now();
+  function daysAgo(n){ return fmtDate(new Date(base - n*86400000)); }
+  function mkHive(id,name,loc,cycle,startOffset){
+    return { id: id, name: name, loc: loc, cycle: cycle, start: daysAgo(startOffset), createdAt: base };
+  }
+  hives = [];
+  extractions = [];
+  if(kind==='single'){
+    hives.push(mkHive(900001,'1号箱','果园',10,30));
+    extractions.push({ id: 910001, hiveId: 900001, hiveName: '1号箱', date: daysAgo(20), amount: 6.5 });
+  } else if(kind==='multi'){
+    hives.push(mkHive(900002,'1号箱','果园',10,30));
+    hives.push(mkHive(900003,'2号箱','油菜田',12,45));
+    hives.push(mkHive(900004,'3号箱','槐树林',14,60));
+    extractions.push({ id: 910002, hiveId: 900002, hiveName: '1号箱', date: daysAgo(20), amount: 6.5 });
+    extractions.push({ id: 910003, hiveId: 900003, hiveName: '2号箱', date: daysAgo(33), amount: 5.0 });
+    extractions.push({ id: 910004, hiveId: 900004, hiveName: '3号箱', date: daysAgo(46), amount: 4.2 });
+  } else if(kind==='overdue'){
+    hives.push(mkHive(900005,'到期箱','阳台',7,45));
+  } else { return; }
+  saveHives();
+  saveExtr();
+  ['hiveName','hiveLoc','hiveStart','extrAmount'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  render();
+  ToolBox.showToast('已填充示例蜂场数据');
 }
 
 function delHive(id) {

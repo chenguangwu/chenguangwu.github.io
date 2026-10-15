@@ -193,7 +193,7 @@ const strokeData = {
   '一':1,'二':2,'三':3,'四':5,'五':4,'六':4,'七':2,'八':2,'九':2,'十':2,
   '百':6,'千':3,'万':3,'亿':1,'零':13,'两':7,'三':3,'四':5,'五':4,'六':4,
   '七':2,'八':2,'九':2,'十':2,
-  '人':2,'大':3,'天':4,'地':6,'山':3,'水':4,'火':4,'风':4,'云':4,'雨':8,
+  '人':2,'大':3,'天':4,'地':6,'山':3,'水':4,'火':4,'风':4,'云':4,'雨':8,'永':5,
   '日':4,'月':4,'星':9,'辰':7,'光':6,'明':8,'暗':13,'阳':6,'阴':6,'春':9,
   '夏':10,'秋':9,'冬':5,'温':12,'度':9,'气':4,'力':2,'量':12,'中':4,'外':5,
   '内':4,'上':3,'下':3,'左':5,'右':5,'前':9,'后':6,'东':5,'西':6,'南':9,'北':5,
@@ -1104,3 +1104,32 @@ searchPoems();
 searchBias();
 randomQuote();
 searchQuotes();
+
+// ===================== 示例查询预设 =====================
+function applyCulturePreset(kind){
+  if(!kind) return;
+  var P={
+    libai:  {tab:'poem',  q:'李白'},
+    silent:  {tab:'poem',  q:'静夜思'},
+    yong:    {tab:'stroke',q:'永'},
+    bias:    {tab:'bias',  q:'锚定'},
+    quote:   {tab:'quote', q:''}
+  };
+  var p=P[kind]; if(!p) return;
+  switchTab(p.tab);
+  if(p.tab==='poem'){
+    poemFilterType='all'; poemFilterValue='';
+    var ps=document.getElementById('poemSearch'); if(ps) ps.value=p.q;
+    searchPoems();
+  } else if(p.tab==='stroke'){
+    var st=document.getElementById('strokeInput'); if(st) st.value=p.q;
+    queryStrokes();
+  } else if(p.tab==='bias'){
+    biasFilter='all';
+    var bs=document.getElementById('biasSearch'); if(bs) bs.value=p.q;
+    searchBias();
+  } else if(p.tab==='quote'){
+    quoteFilter='all';
+    randomQuote();
+  }
+}
