@@ -36,7 +36,14 @@
 
 ---
 
-## 二、其他待处理
+## 二、UX 中分段 uplift 专项（UX-Q4 续，进行中）
+
+- **目标**：把评分 3–5 分（非 index 的真正工具页，共 **388 页**；其中 259 页有输入）逐批补强，把全站 UX 均值从 7.40 继续推高。普遍短板：compare(85%)/chart(81%)/preset(73%)/persist(72%)/tabs(71%)/table(68%)/export(35%)。
+- **原则**：只加对该工具真实有用的功能（图表/预设/导出/历史/对比/明细表/分步），**不硬塞无关装饰**；index 导航页不碰。
+- **模式**：复用 `js/tool-kit.js`（TBKit.chart/table/preset/history/export/compare）；逐页按既有 `calcTool`/结果容器接线，守卫 `typeof TBKit==='undefined'`；每批 build+门禁+commit+push。
+- **批次进度**：见 `.workbuddy/memory/2026-10-15.md`。
+
+## 三、其他待处理
 
 ### P0 · 定时到期（不可忘）
 
