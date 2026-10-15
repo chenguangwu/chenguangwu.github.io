@@ -131,6 +131,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="saveRecord()">保存记录</button>
     </div>
+
+    <div class="toolbar" style="margin-top:12px;flex-wrap:wrap;gap:6px;">
+      <span style="font-size:13px;color:var(--text-muted);">📋 示例病例：</span>
+      <button type="button" class="btn" onclick="applyAsiaPreset('normal')">正常对照</button>
+      <button type="button" class="btn" onclick="applyAsiaPreset('t8')">T8 完全损伤</button>
+      <button type="button" class="btn" onclick="applyAsiaPreset('c6')">C6 不完全损伤</button>
+    </div>
   </div>
 
   <div class="card">
@@ -226,6 +233,34 @@ function init() {
   renderSensory();
   renderMotor();
   renderHistory();
+}
+
+function applyAsiaPreset(kind){
+  if(!kind) return;
+  var i, d;
+  var cutSens = kind==='t8' ? 14 : (kind==='c6' ? 5 : 99);   // sensoryDermatomes 下标：T8=14、C6=4
+  var cutMot  = kind==='t8' ? 5 : (kind==='c6' ? 2 : 99);    // keyMuscles 下标：T1=4、C6=1
+  var sensVal = kind==='t8' ? '0' : (kind==='c6' ? '1' : '2');
+  var motVal  = kind==='t8' ? '0' : (kind==='c6' ? '1' : '5');
+  if(kind!=='normal' && kind!=='t8' && kind!=='c6') return;
+  for(i=0;i<sensoryDermatomes.length;i++){
+    d=sensoryDermatomes[i];
+    var v = i<cutSens ? '2' : sensVal;
+    ['lt_l','pp_l','lt_r','pp_r'].forEach(function(type){
+      var sel=document.getElementById('sens_'+d+'_'+type);
+      if(sel) sel.value=v;
+    });
+  }
+  for(i=0;i<keyMuscles.length;i++){
+    var mv = i<cutMot ? '5' : motVal;
+    ['l','r'].forEach(function(side){
+      var sel=document.getElementById('motor_'+i+'_'+side);
+      if(sel) sel.value=mv;
+    });
+  }
+  updateSensoryScore();
+  updateMotorScore();
+  evaluate();
 }
 
 function renderSensory() {
