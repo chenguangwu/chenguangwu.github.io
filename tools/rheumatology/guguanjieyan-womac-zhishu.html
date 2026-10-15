@@ -140,9 +140,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;gap:6px;">
+      <span style="font-size:13px;color:var(--text-muted);">📋 示例答卷：</span>
+      <button class="btn" type="button" onclick="applyWomacPreset('mild')">轻度（24 分）</button>
+      <button class="btn" type="button" onclick="applyWomacPreset('moderate')">中度（48 分）</button>
+      <button class="btn" type="button" onclick="applyWomacPreset('severe')">重度（72 分）</button>
+      <button class="btn" type="button" onclick="applyWomacPreset('extreme')">极重度（96 分）</button>
+    </div>
+
     <div class="result-box" id="res"></div>
 
-    <div class="info-box">💡 WOMAC 总分 0~240 分（Likert 5 级版），分数越高表示症状/功能障碍越重：轻度 &lt;120，中度 120~180，重度 &gt;180。</div>
+    <div class="info-box">💡 WOMAC 总分 0~96 分（Likert 5 级版，24 项 × 0~4 分），分数越高表示症状/功能障碍越重：轻度 &lt;25，中度 25~48，重度 49~72，极重度 ≥73。</div>
 
     <div class="tool-notes" style="--tool-accent:#7C3AED;">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -182,6 +190,18 @@ function renderQuestions(items, containerId, prefix) {
       '</div></div>';
   }).join('');container.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
+function applyWomacPreset(kind){
+  if(!kind) return;
+  var V={mild:1,moderate:2,severe:3,extreme:4}[kind];
+  if(V===undefined) return;
+  [['pain',5],['stiff',2],['func',17]].forEach(function(pair){
+    for(var i=0;i<pair[1];i++){
+      var r=document.querySelector('input[name="'+pair[0]+'_'+i+'"][value="'+V+'"]');
+      if(r) r.checked=true;
+    }
+  });
+  calc();
+}
 function sumSection(prefix, count) {
   let total = 0, answered = 0;
   for (let i = 0; i < count; i++) {
@@ -203,12 +223,13 @@ function calc() {
   }
 
   let severity, cls;
-  if (total < 120) { severity = '轻度（Mild）'; cls = 'score-mild'; }
-  else if (total <= 180) { severity = '中度（Moderate）'; cls = 'score-moderate'; }
-  else { severity = '重度（Severe）'; cls = 'score-severe'; }
+  if (total < 25) { severity = '轻度（Mild）'; cls = 'score-mild'; }
+  else if (total <= 48) { severity = '中度（Moderate）'; cls = 'score-moderate'; }
+  else if (total <= 72) { severity = '重度（Severe）'; cls = 'score-severe'; }
+  else { severity = '极重度（Extreme）'; cls = 'score-severe'; }
 
   const __g3='<div class="data-grid">' +
-    '<div class="data-card"><div class="num">' + total + '</div><div class="label">WOMAC 总分（0~240）</div></div>' +
+    '<div class="data-card"><div class="num">' + total + '</div><div class="label">WOMAC 总分（0~96）</div></div>' +
     '<div class="data-card"><div class="num"><span class="severity-badge ' + cls + '">' + severity + '</span></div><div class="label">严重程度</div></div>' +
     '<div class="data-card"><div class="num">' + pain.total + '</div><div class="label">疼痛（0~20）</div></div>' +
     '<div class="data-card"><div class="num">' + stiff.total + '</div><div class="label">僵硬（0~8）</div></div>' +
@@ -318,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <ul class="intro-features">
       <li>完整 24 项 Likert 5 级版量表</li>
       <li>自动计算疼痛、僵硬、功能三个维度及总分</li>
-      <li>按总分进行轻/中/重度分层</li>
+      <li>按总分进行轻/中/重/极重度分层</li>
       <li>纯前端处理，数据不上传</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
