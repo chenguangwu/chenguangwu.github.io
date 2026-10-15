@@ -164,6 +164,7 @@ s.parentNode.insertBefore(el, s);
     <div class="sum-box" id="sumBox"></div>
 
     <div id="resultTable"></div>
+    <div id="tbChart" style="margin-top:14px;"></div>
 
     <div class="tip-box tip-info">
       按权重模式：个人目标 = 总目标 × (个人权重 ÷ 权重总和)。可按历史业绩、客户资源、职级设定权重。
@@ -299,6 +300,27 @@ function fmt(n){ return Math.round(n).toLocaleString('zh-CN'); }
 
 renderMembers();
 calc();
+
+function __tbExtras(){
+  if(typeof TBKit==='undefined') return;
+  var total=+document.getElementById('total').value||0;
+  if(total<=0||!members.length) return;
+  var mode=document.getElementById('mode').value;
+  var en=TBKit.util.isEn();
+  var labels=[],data=[];
+  var sumWeight=members.reduce(function(s,m){return s+(+m.weight||0);},0);
+  if(mode==='weight'&&sumWeight<=0) sumWeight=1;
+  members.forEach(function(m){
+    var share = mode==='avg'? total/members.length : total*((+m.weight||0)/sumWeight);
+    labels.push(m.name||'未命名');
+    data.push(+(+share).toFixed(2));
+  });
+  TBKit.chart.bar('#tbChart',{labels:labels,series:[{name:en?'Target':'分解目标',data:data}],height:240,title:en?'Target Breakdown':'目标分解'});
+}
+var __tb_f0=(typeof calc==='function')?calc:null;
+if(__tb_f0){ calc=function(){ var r=__tb_f0.apply(null,arguments); try{__tbExtras();}catch(e){} return r; }; }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}});
+else {try{calc();}catch(e){}}
 </script>
 
 <!-- SEO 介绍区块 -->
