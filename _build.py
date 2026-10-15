@@ -3475,7 +3475,8 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
     fixed_bc = 0
     fixed_rt = 0
     fixed_rt_removed = 0
-    fixed_rt_rebuilt = 0   # 卡片 <2（或全死链）⇒ 重建为保证 ≥2 的相关工具块
+    fixed_rt_rebuilt = 0   # 全死链 ⇒ 重建为保证 ≥4 的相关工具块
+    fixed_rt_topped = 0    # 已有块被删死链后 <4 张 ⇒ 保留原卡片并补齐到 4 张
     fixed_nav = 0
     dropped_crit = 0
     i18n_dir = os.path.join(ROOT, 'i18n', 'tools')
@@ -3987,11 +3988,11 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     content = content.replace('</body>', rt_html + '</body>', 1)
                 curated_applied += 1
 
-        # 保证 ≥2 的相关工具：行业池不足则回退同分类（目录）兄弟，再不足回退全站。
-        # 目的：杜绝「有块但仅 1 张卡片 / 完全无块」导致的站内互链 <2（crosslink 不达标）。
+        # 保证 ≥4 的相关工具：行业池不足则回退同分类（目录）兄弟，再不足回退全站。
+        # 目的：DEV-PLAN §1.1 要求每页 ≥4 条跨工具内链（旧口径只保 ≥2，实测 241 页仍只有 2–3 条）。
         def _guarantee_rel(rel):
             rel = list(rel)
-            if len(rel) >= 2:
+            if len(rel) >= 4:
                 return rel
             seen = {t['url']} | {rt['url'] for rt in rel}
             for pool in (by_catdir.get(os.path.dirname(t['path']), []), tools):
@@ -4002,9 +4003,42 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         continue
                     seen.add(rt['url'])
                     rel.append(rt)
-                if len(rel) >= 2:
+                if len(rel) >= 4:
                     break
             return rel
+
+        # 已有块被删死链后只剩 2–3 张：保留原卡片（人工/策划选取优先），只做补齐到 4 张
+        def _topup_cards(block, need):
+            if need <= 0:
+                return ''
+            _d = 'tools/' + os.path.dirname(t['path'])
+            seen = {t['url']}          # 统一成 'tools/<dir>/<slug>.html' 全路径，避免去重失效塞重复卡片
+            for _m in re.finditer(r'<a href="([^"]+)" class="related-tool-card">', block):
+                _h = _m.group(1)
+                if _h.startswith('/tools/'):
+                    seen.add(_h[1:])
+                elif not _h.startswith('http'):
+                    seen.add(os.path.normpath(os.path.join(_d, _h)).replace(os.sep, '/'))
+            out = ''
+            for pool in (by_industry.get(industry, []), by_catdir.get(os.path.dirname(t['path']), []), tools):
+                for rt in pool:
+                    if need <= 0:
+                        break
+                    if rt['url'] in seen:
+                        continue
+                    seen.add(rt['url'])
+                    out += ('    <a href="%s" class="related-tool-card">\n'
+                            '      <span class="rt-icon">%s</span>\n'
+                            '      <span class="rt-info"><span class="rt-name">%s</span>'
+                            '<span class="rt-desc">%s</span></span>\n    </a>\n') % (
+                        os.path.relpath(rt['url'], _d).replace(os.sep, '/'),
+                        rt.get('icon', '🛠️'),
+                        esc_html_py(rt['name']),
+                        esc_html_py(_zh_desc_of(rt))[:50])
+                    need -= 1
+                if need <= 0:
+                    break
+            return out
 
         def _rt_html_of(rel):
             if not rel:
@@ -4056,6 +4090,29 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 return ''
 
             _new_block = _card_pat.sub(_card_rep, _block)
+            # 去重：历史补齐曾因 href 归一口径不一致塞进重复卡片（同一 URL 出现两次），
+            # 看起来 4 张实则 2 条内链。按归一化 URL 保留首次出现者。
+            _dup_seen = set()
+            _dup_rm = [0]
+
+            def _card_dedup(cm):
+                _h2 = re.search(r'href="([^"]+)"', cm.group(0))
+                if not _h2:
+                    return cm.group(0)
+                _u = _h2.group(1)
+                if _u.startswith('/tools/'):
+                    _k2 = _u[1:]
+                elif _u.startswith('http'):
+                    return cm.group(0)
+                else:
+                    _k2 = os.path.normpath(os.path.join(os.path.dirname(filepath), _u)).replace(os.sep, '/')
+                if _k2 in _dup_seen:
+                    _dup_rm[0] += 1
+                    return ''
+                _dup_seen.add(_k2)
+                return cm.group(0)
+
+            _new_block = _card_pat.sub(_card_dedup, _new_block)
             _n_cards = len(_card_pat.findall(_new_block))
             if 'related-tool-card' not in _new_block:
                 # 整块卡片全是死链：优先重建为保证 ≥2 的块（而不是直接删掉丢内链）
@@ -4065,11 +4122,14 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 else:
                     content = content.replace(_block, '')
                     fixed_rt_removed += 1
-            elif _n_cards < 2 and _rt_html_guar:
-                # 仅 1 张卡片 ⇒ 站内互链 <2，crosslink 不达标：整块重建为 ≥2 张
-                content = content.replace(_block, _rt_html_guar)
-                fixed_rt_rebuilt += 1
-            else:
+            elif _n_cards < 4 and _rt_html_guar:
+                # 卡片数 <4 ⇒ 站内互链不足（旧口径只保 ≥2）：保留原卡片，补齐到 4 张
+                _extra = _topup_cards(_new_block, 4 - _n_cards)
+                if _extra:
+                    _k = _new_block.rfind('  </div>\n</div>')
+                    if _k >= 0:
+                        _new_block = _new_block[:_k] + _extra + _new_block[_k:]
+                        fixed_rt_topped += 1
                 content = content.replace(_block, _new_block)
                 fixed_rt_removed += _rtc['removed']
         else:
@@ -4212,6 +4272,8 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         'fixed_bc': fixed_bc,
         'fixed_rt': fixed_rt,
         'fixed_rt_removed': fixed_rt_removed,
+        'fixed_rt_rebuilt': fixed_rt_rebuilt,
+        'fixed_rt_topped': fixed_rt_topped,
         'fixed_nav': fixed_nav,
         'dropped_crit': dropped_crit,
         'curated_applied': curated_applied,
@@ -4224,9 +4286,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
 
 
 def _report_tool_seo_result(result):
-    print('  h1 added: %d, h1 normalized: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d' %
+    print('  h1 added: %d, h1 normalized: %d, breadcrumbs: %d, related tools: %d (recomputed), removed stale blocks: %d, nav injected: %d, rt rebuilt: %d, rt topped-up: %d' %
           (result['fixed_h1'], result.get('fixed_h1_sem', 0), result['fixed_bc'], result['fixed_rt'],
-           result['fixed_rt_removed'], result['fixed_nav']))
+           result['fixed_rt_removed'], result['fixed_nav'],
+           result.get('fixed_rt_rebuilt', 0), result.get('fixed_rt_topped', 0)))
     if result.get('dropped_crit'):
         print('  critical-css removed (redundant with common.css): %d pages' %
               result['dropped_crit'])
