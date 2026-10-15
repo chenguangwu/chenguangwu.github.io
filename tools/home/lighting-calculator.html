@@ -185,6 +185,7 @@ s.parentNode.insertBefore(el, s);
 
 <h3>💡 不同灯具建议数量</h3>
 <div class="bulb-grid" id="bulb-grid"></div>
+<div id="lightChart" style="margin-top:14px;"></div>
 
 <div class="info-box" style="margin-top:12px;">
  💡 计算公式:总光通量 = 面积 × 照度标准 ÷ (CU × MF)。<br>
@@ -311,6 +312,27 @@ function calc(){
 }
 
 renderRoomTypes(); calc();
+
+function __lightExtras(){
+  if(typeof TBKit==='undefined') return;
+  var length=+document.getElementById('length').value||0;
+  var width=+document.getElementById('width').value||0;
+  var cu=+document.getElementById('cu').value||0.6;
+  var mf=+document.getElementById('mf').value||0.8;
+  var area=length*width;
+  if(area<=0) return;
+  var lux=ROOM_LUX[activeRoom]||0;
+  var totalLumens=area*lux/(cu*mf);
+  if(!isFinite(totalLumens)||totalLumens<=0) return;
+  var en=TBKit.util.isEn();
+  var labels=BULB_TYPES.map(function(b){return b.name;});
+  var data=BULB_TYPES.map(function(b){return Math.ceil(totalLumens/b.lumens)*b.power;});
+  TBKit.chart.bar('#lightChart',{labels:labels,series:[{name:en?'Total Power (W)':'总功率 (W)',data:data}],height:240,title:en?'Power by Bulb Type':'各灯具类型总功率'});
+}
+var __light_f0=(typeof calc==='function')?calc:null;
+if(__light_f0){ calc=function(){ var r=__light_f0.apply(null,arguments); try{__lightExtras();}catch(e){} return r; }; }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}});
+else {try{calc();}catch(e){}}
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

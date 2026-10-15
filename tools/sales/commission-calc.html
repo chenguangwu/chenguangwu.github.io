@@ -164,6 +164,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="detailTable"></div>
+    <div id="commChart" style="margin-top:14px;"></div>
 
     <div class="tip-box tip-info">
       <strong>超额累进</strong>：每段销售额按对应档位费率分别计算后相加；<strong>全额累进</strong>：全部销售额按达到的最高档费率计算。
@@ -337,6 +338,41 @@ function fmt(n){ return Math.round(n).toLocaleString('zh-CN'); }
 
 renderTiers();
 calc();
+
+function __commExtras(){
+  if(typeof TBKit==='undefined') return;
+  var salesRaw=+document.getElementById('sales').value||0;
+  var unit=document.getElementById('unit').value;
+  var sales=unit==='万元'?salesRaw*10000:salesRaw;
+  var method=document.getElementById('method').value;
+  if(sales<=0) return;
+  var sorted=tiers.slice().sort(function(a,b){return a.up-b.up;});
+  var details=[],comm=0,lower=0;
+  if(method==='progressive'){
+    for(var i=0;i<sorted.length;i++){
+      var upper=sorted[i].up,rate=sorted[i].rate;
+      if(sales>lower){
+        var seg=Math.min(sales,upper)-lower;
+        comm+=seg*rate/100;
+        details.push({range:fmt(lower)+'~'+(upper===Infinity?'不限':fmt(upper)),comm:seg*rate/100});
+        lower=upper;
+      } else break;
+    }
+  } else {
+    var hitIdx=0;
+    for(var k=0;k<sorted.length;k++){ if(sales>(k===0?0:sorted[k-1].up)) hitIdx=k; }
+    details.push({range:'全部销售额',comm:sales*sorted[hitIdx].rate/100});
+  }
+  if(!details.length) return;
+  var en=TBKit.util.isEn();
+  var labels=details.map(function(d){return d.range;});
+  var data=details.map(function(d){return +(d.comm).toFixed(2);});
+  TBKit.chart.bar('#commChart',{labels:labels,series:[{name:en?'Commission':'区间佣金',data:data}],height:240,title:en?'Commission by Tier':'各阶梯佣金'});
+}
+var __comm_f0=(typeof calc==='function')?calc:null;
+if(__comm_f0){ calc=function(){ var r=__comm_f0.apply(null,arguments); try{__commExtras();}catch(e){} return r; }; }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}});
+else {try{calc();}catch(e){}}
 </script>
 
 <!-- SEO 介绍区块 -->
