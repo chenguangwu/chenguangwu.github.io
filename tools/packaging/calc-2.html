@@ -152,6 +152,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
     <div class='info-box' style='margin-top:12px;'>材料系数 C 参考：EPE 珍珠棉 2.0~2.8，EPS 泡沫 3.0~4.0，气泡膜/气垫 4.0~5.0。公式 t = (H/G)·C。</div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出缓冲厚度计算结果 CSV" onclick="__cushionExport()">⬇️ Export Cushion Thickness Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="参数与缓冲厚度结果可导出为 CSV 备案">Parameters and cushioning results can be exported as CSV for record</span>
+    </div>
+    <table id="cushionTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 </div>
 
@@ -255,6 +260,41 @@ function applyCushionPreset(kind){
   var set=function(id,v){var el=document.getElementById(id);if(el)el.value=v;};
   set('dropH',p.H);set('gValue',p.G);set('cValue',p.C);set('weight',p.w);set('area',p.a);
   if(typeof window.calculate==='function') window.calculate();
+}
+</script>
+<script>
+function __cushionExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var H=parseFloat(ToolBox.$('dropH').value)||0;
+    var G=parseFloat(ToolBox.$('gValue').value)||0;
+    var C=parseFloat(ToolBox.$('cValue').value)||0;
+    var weight=parseFloat(ToolBox.$('weight').value)||0;
+    var area=parseFloat(ToolBox.$('area').value)||0;
+    if(H<0||G<=0||C<=0) return;
+    var tCm=(H/G)*C;
+    var tMm=tCm*10;
+    var rows=[
+      ['跌落高度 (cm)', ToolBox.formatNumber(H,1)],
+      ['产品脆值 G', ToolBox.formatNumber(G,0)],
+      ['缓冲材料系数 C', ToolBox.formatNumber(C,1)],
+      ['产品重量 (kg)', weight>0?ToolBox.formatNumber(weight,1):'—'],
+      ['接触面积 (cm²)', area>0?ToolBox.formatNumber(area,0):'—'],
+      ['建议缓冲厚度 (mm)', ToolBox.formatNumber(tMm,1)],
+      ['建议缓冲厚度 (cm)', ToolBox.formatNumber(tCm,2)]
+    ];
+    if(weight>0&&area>0){
+      var stressKPa=(weight*9.80665*G)/(area/10000)/1000;
+      rows.push(['缓冲面动应力 (kPa)', ToolBox.formatNumber(stressKPa,2)]);
+    }
+    var tb=document.getElementById('cushionTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#cushionTable','cushion-thickness.csv');
+  }catch(e){}
 }
 </script>
 
