@@ -131,6 +131,19 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 PDSS 评分 CSV" onclick="__pdssExport()">⬇️ Export PDSS Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="7 个条目回答、总分、条目均分与惊恐严重度可导出为 CSV">All 7 item responses, total score, item mean and panic severity can be exported as CSV</span>
+    </div>
+    <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
+      <button type="button" class="btn" onclick="applyPdssPreset(0)" data-zh="🟢 无（无发作）">🟢 None</button>
+      <button type="button" class="btn" onclick="applyPdssPreset(1)" data-zh="🟡 轻度">🟡 Mild</button>
+      <button type="button" class="btn" onclick="applyPdssPreset(2)" data-zh="🟠 中度">🟠 Moderate</button>
+      <button type="button" class="btn" onclick="applyPdssPreset(4)" data-zh="🔴 重度（每日发作）">🔴 Severe</button>
+    </div>
+    <table id="pdssTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="pdssHistory" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">PDSS 严重度分级</h3>
     <table>
@@ -242,13 +255,95 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __pdssLevelName(total){
+  if(total<=3)return '亚临床';
+  if(total<=7)return '轻度';
+  if(total<=13)return '中度';
+  return '重度';
+}
+function __pdssOpts(i){ var q=QS[i]; return typeof q==='string'?OPTS:q.o; }
+function __pdssText(i){ var q=QS[i]; return typeof q==='string'?q:q.t; }
+function __pdssAdvice(sev){
+  var m={
+    '亚临床':['目前惊恐症状轻微。','Currently minimal panic symptoms.'],
+    '轻度':['存在轻度惊恐症状，建议关注。','Mild panic symptoms; monitoring suggested.'],
+    '中度':['存在临床显著的惊恐障碍，建议接受专业评估与CBT治疗。','Clinically significant panic disorder; professional assessment and CBT suggested.'],
+    '重度':['存在重度惊恐障碍，功能明显受损，需积极药物联合心理治疗。','Severe panic disorder with marked impairment; active medication plus psychotherapy needed.']
+  };
+  return m[sev]||['',''];
+}
+function __pdssExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof QS==='undefined'||typeof A==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rows=[];
+    for(var i=0;i<QS.length;i++){
+      var v=A[i];
+      rows.push([en?('Q'+(i+1)):('第'+(i+1)+'题'), __pdssText(i), v<0?(en?'Unanswered':'未作答'):__pdssOpts(i)[v], v<0?'':v]);
+    }
+    rows.push([en?'Answered items':'已答条目', done+'/'+QS.length, '', '']);
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      var maxT=(QS[0].o.length-1)*QS.length;
+      var mean=(total/QS.length).toFixed(1);
+      var sev=__pdssLevelName(total);
+      var sevEn={'亚临床':'Subclinical','轻度':'Mild','中度':'Moderate','重度':'Severe'};
+      var adv=__pdssAdvice(sev);
+      rows.push([en?'Total score':'总分', total+'/'+maxT, '', '']);
+      rows.push([en?'Item mean':'条目均分', mean, '', '']);
+      rows.push([en?'Cutoff (8)':'临界值(8)', total>=8?(en?'≥8':'≥8'):(en?'<8':'<8'), '', '']);
+      rows.push([en?'Severity':'严重度', en?(sevEn[sev]||sev):sev, '', '']);
+      rows.push([en?'Advice':'干预建议', en?adv[1]:adv[0], '', '']);
+    }
+    var tb=document.querySelector('#pdssTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#pdssTable','pdss-panic.csv');
+  }catch(e){}
+}
+function __pdssExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rec={answered:done+'/'+QS.length};
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      rec.score=total;
+      rec.level=__pdssLevelName(total);
+    }
+    rec.ans=A.join(',');
+    TBKit.history.record(rec,3000);
+    __pdssMountHist();
+  }catch(e){}
+}
+function __pdssMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#pdssHistory', function(rec){
+      if(typeof rec.ans!=='string'||!rec.ans) return;
+      A=rec.ans.split(',').map(function(x){return parseInt(x);});
+      render();
+    },8);
+  }catch(e){}
+}
+function applyPdssPreset(j){
+  A=A.map(function(){return j;});
+  render();
+  calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('PDSS 恐慌严重度量表总分：'+total+'/28','tool.copy_ok');
 }
+var __pd0=calc; calc=function(){__pd0(); __pdssExtras();};
 render();calc();
+__pdssMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

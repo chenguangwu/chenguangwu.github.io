@@ -132,6 +132,17 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 CAGE 筛查 CSV" onclick="__cageExport()">⬇️ Export CAGE Screen CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="4 项饮酒问题回答、阳性项数与筛查结论可导出为 CSV">All 4 alcohol-problem items, positive count and screening result can be exported as CSV</span>
+    </div>
+    <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
+      <button type="button" class="btn" onclick="applyCagePreset('no')" data-zh="⚪ 全部「否」">⚪ All No</button>
+      <button type="button" class="btn" onclick="applyCagePreset('yes')" data-zh="🔴 全部「是」">🔴 All Yes</button>
+    </div>
+    <table id="cageTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="cageHistory" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">CAGE 结果判定</h3>
     <table>
@@ -236,13 +247,73 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __cageExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof QS==='undefined'||typeof A==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rows=[];
+    for(var i=0;i<QS.length;i++){
+      var v=A[i];
+      var ans = v<0?(en?'Unanswered':'未作答'):(v===0?(en?'Yes':'是'):(en?'No':'否'));
+      rows.push([en?('Q'+(i+1)):('第'+(i+1)+'题'), QS[i][0], QS[i][1], ans]);
+    }
+    if(done>=QS.length){
+      var yes=A.filter(function(v){return v===0;}).length;
+      var pos=yes>=2;
+      var sev=pos?(en?'Positive':'筛查阳性'):(en?'Negative':'筛查阴性');
+      var sevEn={'筛查阳性':'Positive','筛查阴性':'Negative'};
+      var advice=pos?(en?'CAGE score ≥2 suggests possible alcohol problems; consider AUDIT and evaluation.':'CAGE总分≥2，提示存在酒精相关问题，建议进一步使用AUDIT量表评估并考虑就诊。'):
+                     (en?'CAGE score <2; below positive screen threshold for alcohol problems.':'CAGE总分<2，暂未达酒精问题筛查阳性标准。');
+      rows.push([en?'Positive items':'阳性项数', yes+'/'+QS.length, '', '']);
+      rows.push([en?'Cutoff (≥2)':'阳性标准(≥2)', pos?(en?'Met':'满足'):(en?'Not met':'不满足'), '', '']);
+      rows.push([en?'Screening result':'筛查结论', en?(sevEn[sev]||sev):sev, '', '']);
+      rows.push([en?'Advice':'建议', advice, '', '']);
+    }
+    var tb=document.querySelector('#cageTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#cageTable','cage-substance.csv');
+  }catch(e){}
+}
+function __cageExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var done=A.filter(function(v){return v>=0;}).length;
+    if(done<QS.length) return;
+    var yes=A.filter(function(v){return v===0;}).length;
+    var rec={answered:done+'/'+QS.length, yes:yes+'/'+QS.length, screen:(yes>=2)?'阳性':'阴性', ans:A.join(',')};
+    TBKit.history.record(rec,3000);
+    __cageMountHist();
+  }catch(e){}
+}
+function __cageMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#cageHistory', function(rec){
+      if(typeof rec.ans!=='string'||!rec.ans) return;
+      A=rec.ans.split(',').map(function(x){return parseInt(x);});
+      render();
+    },8);
+  }catch(e){}
+}
+function applyCagePreset(mode){
+  if(mode==='no') A=A.map(function(){return 1;});
+  else if(mode==='yes') A=A.map(function(){return 0;});
+  render(); calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var yes=A.filter(function(v){return v===0;}).length;
   ToolBox.copyText('CAGE 酒精问题筛查：'+yes+'/4，'+(yes>=2?'阳性':'阴性'), i18nText('toast.msg544'));
 }
+var __cg0=calc; calc=function(){__cg0(); __cageExtras();};
 render();calc();
+__cageMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->
