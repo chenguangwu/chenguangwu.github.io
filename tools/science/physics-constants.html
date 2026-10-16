@@ -143,6 +143,15 @@ s.parentNode.insertBefore(el, s);
 
     <div id="constList"></div>
     <div id="emptyHint" style="text-align:center;color:var(--text-muted);padding:30px;display:none;">未找到匹配的常数</div>
+
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="btn" onclick="__pcExport()">⬇️ 导出常数清单 CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);">导出当前筛选结果的常数明细（名称 / 符号 / 数值 / 单位 / 分类 / 说明）</span>
+    </div>
+    <div id="pcChart" style="margin-top:10px;"></div>
+    <table id="pcTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead><tbody></tbody>
+    </table>
   </div>
 
   <div class="card">
@@ -287,10 +296,62 @@ function renderList(){
       '</div>';
   }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('constList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('constList').innerHTML=__h1;
 }
+const CAT_EN={universal:'Cosmology',atomic:'Atomic',thermo:'Thermodynamics',em:'Electromagnetism',astro:'Astronomy'};
+function __pcIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __pcFiltered(){
+  const q=(document.getElementById('searchBox')&&document.getElementById('searchBox').value||'').trim().toLowerCase();
+  let list=CONSTANTS.filter(c=>curCat==='all'||c.cat===curCat);
+  if(q){ list=list.filter(c=>c.name.toLowerCase().includes(q)||c.sym.toLowerCase().includes(q)||c.desc.toLowerCase().includes(q)); }
+  return list;
+}
+function __pcMagBuckets(list){
+  const en=__pcIsEn();
+  const defs=[
+    {k:'big', zh:'≥10^10', min:10, max:Infinity},
+    {k:'mid', zh:'10^1~10^9', min:1, max:9},
+    {k:'one', zh:'10^0', min:0, max:0},
+    {k:'n19', zh:'10^-1~10^-9', min:-9, max:-1},
+    {k:'n10', zh:'10^-10~10^-19', min:-19, max:-10},
+    {k:'tiny',zh:'≤10^-20', min:-Infinity, max:-20}
+  ];
+  return defs.map(function(d){
+    return {label:(en?d.zh:d.zh), n:list.filter(function(c){return c.exp>=d.min&&c.exp<=d.max;}).length};
+  });
+}
+function __pcExport(){
+  if(typeof TBKit==='undefined')return;
+  const list=__pcFiltered();
+  if(!list.length){ return; }
+  const en=__pcIsEn();
+  const t=document.getElementById('pcTable'); if(!t)return;
+  const tb=t.querySelector('tbody'); tb.innerHTML='';
+  const th=t.querySelector('thead'); if(th) th.innerHTML = en
+    ? '<tr><th>Name</th><th>Symbol</th><th>Value</th><th>Unit</th><th>Category</th><th>Description</th></tr>'
+    : '<tr><th>名称</th><th>符号</th><th>数值</th><th>单位</th><th>分类</th><th>说明</th></tr>';
+  list.forEach(function(c){
+    const r=document.createElement('tr');
+    const catName=(CATS.find(function(x){return x.key===c.cat;})||{name:c.cat}).name;
+    const vals=[c.name, c.sym, fmtVal(c), c.unit, en?(CAT_EN[c.cat]||c.cat):catName, c.desc];
+    vals.forEach(function(v){const td=document.createElement('td');td.textContent=v;r.appendChild(td);});
+    tb.appendChild(r);
+  });
+  t.style.display='';
+  try{ TBKit.util.exportTable('#pcTable','physics-constants.csv'); }catch(e){}
+}
+function __pcExtras(){
+  if(typeof TBKit==='undefined')return;
+  const host=document.getElementById('pcChart');
+  if(host && TBKit.chart && TBKit.chart.bar){
+    const list=__pcFiltered();
+    const bk=__pcMagBuckets(list).filter(function(b){return b.n>0;});
+    try{ TBKit.chart.bar(host,{labels:bk.map(function(b){return b.label;}),values:bk.map(function(b){return b.n;})}); }catch(e){}
+  }
+}
 function copyVal(idx){
   const c=CONSTANTS[idx];
   ToolBox.copyText(c.val+' '+c.unit,'已复制 '+c.name);
 }
+var __pc0=renderList; renderList=function(){ __pc0(); try{ __pcExtras(); }catch(e){} };
 initTabs();
 renderList();
 </script>

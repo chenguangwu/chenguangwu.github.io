@@ -193,6 +193,15 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="action-btn reset" onclick="reset()">↻ 重置</button>
     </div>
     
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="btn" onclick="__examExport()">⬇️ 导出考试时间表 CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);">按当前时长生成分段提醒点（0/25/50/75/100%）</span>
+    </div>
+    <div id="examChart" style="margin-top:10px;"></div>
+    <table id="examTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead><tbody></tbody>
+    </table>
+
     <h3 style="font-size:14px;margin:16px 0 8px;color:var(--text-primary);">⏱️ 正计时</h3>
     <div class="action-row">
       <button type="button" class="action-btn start" onclick="startCountup()">▶ 开始</button>
@@ -313,6 +322,73 @@ function updateDisplay() {
   }
 }
 
+function __examHMS(sec){
+  sec = Math.max(0, Math.round(sec));
+  var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function __examIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+var EXAM_NODES = [
+  {p:0,   zh:'开始（0%）',   tip:'审题、浏览全卷，先易后难'},
+  {p:0.25,zh:'进度 25%',     tip:'检查做题节奏，遇难题先跳过'},
+  {p:0.5, zh:'进度 50%',     tip:'过半复核，确保会做的已拿分'},
+  {p:0.75,zh:'进度 75%',     tip:'进入收尾，优先完成高分值题'},
+  {p:1,   zh:'结束（100%）', tip:'停笔，检查答题卡填涂'}
+];
+var EXAM_NODES_EN = [
+  {p:0,   en:'Start (0%)',   tip:'Scan the paper, easy questions first'},
+  {p:0.25,en:'25% elapsed',  tip:'Check pace; skip hard ones for now'},
+  {p:0.5, en:'50% elapsed',  tip:'Halfway: secure the points you know'},
+  {p:0.75,en:'75% elapsed',  tip:'Wrap up: prioritize high-value items'},
+  {p:1,   en:'End (100%)',   tip:'Stop writing; check the answer sheet'}
+];
+function __examRows(){
+  var total = countDown.total || 0;
+  var en = __examIsEn();
+  var nodes = en ? EXAM_NODES_EN : EXAM_NODES;
+  var rows = nodes.map(function(n){
+    var used = total * n.p, left = total - used;
+    return [(en?n.en:n.zh), __examHMS(used), __examHMS(left), n.tip];
+  });
+  var seg = total/4;
+  var extra = en
+    ? [['Total (seconds)','','',String(total)],
+       ['Total (hh:mm:ss)','','',__examHMS(total)],
+       ['Segment length (min)','','',(seg/60).toFixed(2)]]
+    : [['总时长（秒）','','',String(total)],
+       ['总时长（时:分:秒）','','',__examHMS(total)],
+       ['每段时长（分钟）','','',(seg/60).toFixed(2)]];
+  return rows.concat(extra);
+}
+function __examExport(){
+  if(typeof TBKit==='undefined')return;
+  var total = countDown.total || 0;
+  if(total<=0) return;
+  var en = __examIsEn();
+  var t = document.getElementById('examTable'); if(!t)return;
+  var tb = t.querySelector('tbody'); tb.innerHTML='';
+  var th = t.querySelector('thead'); if(th) th.innerHTML = en
+    ? '<tr><th>Checkpoint</th><th>Elapsed</th><th>Remaining</th><th>Suggested action</th></tr>'
+    : '<tr><th>提醒节点</th><th>已用</th><th>剩余</th><th>建议动作</th></tr>';
+  __examRows().forEach(function(r){
+    var tr=document.createElement('tr');
+    r.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+  try{ TBKit.util.exportTable('#examTable','exam-timer-schedule.csv'); }catch(e){}
+}
+function __examExtras(){
+  if(typeof TBKit==='undefined')return;
+  var total = countDown.total || 0;
+  var host = document.getElementById('examChart');
+  if(host && TBKit.chart && TBKit.chart.bar && total>0){
+    var en = __examIsEn();
+    var seg = total/4;
+    var labels = en ? ['Seg 1','Seg 2','Seg 3','Seg 4'] : ['第1段','第2段','第3段','第4段'];
+    try{ TBKit.chart.bar(host,{labels:labels, values:[seg,seg,seg,seg]}); }catch(e){}
+  }
+}
 function playBeep() {
   if ('AudioContext' in window || 'webkitAudioContext' in window) {
     try {
@@ -402,7 +478,9 @@ function resetCountup() {
 });
 
 reset();
+var __exam0 = reset; reset = function(){ __exam0(); try{ __examExtras(); }catch(e){} };
 renderHistory();
+try{ __examExtras(); }catch(e){}
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

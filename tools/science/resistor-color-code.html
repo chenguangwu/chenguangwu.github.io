@@ -171,6 +171,18 @@ s.parentNode.insertBefore(el, s);
       <div class="l">请选择色环颜色后点击识别</div>
     </div>
 
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="btn" onclick="__resExport()">⬇️ 导出色环明细 CSV</button>
+      <button type="button" class="btn" onclick="__resPreset(4)">4环示例</button>
+      <button type="button" class="btn" onclick="__resPreset(5)">5环示例</button>
+      <span style="font-size:12px;color:var(--text-muted);">导出当前色环配置、阻值与误差范围明细</span>
+    </div>
+    <div id="resChart" style="margin-top:10px;"></div>
+    <table id="resTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead><tbody></tbody>
+    </table>
+    <div id="resHistory" style="margin-top:10px;"></div>
+
     <div class="info-box">
       读法：4 环＝有效数字1 · 有效数字2 · 乘数 · 误差；5 环＝有效数字1 · 有效数字2 · 有效数字3 · 乘数 · 误差。阻值＝有效数字 × 乘数。
     </div>
@@ -416,6 +428,95 @@ function applyResistorValue(val){
   }
 }
 
+function __resEval(){
+  var arr = sel[bandCount];
+  var digits, mul, tol;
+  if(bandCount===4){
+    digits = COLORS[arr[0]].value*10 + COLORS[arr[1]].value;
+    mul = COLORS[arr[2]].mul; tol = COLORS[arr[3]].tol;
+  } else {
+    digits = COLORS[arr[0]].value*100 + COLORS[arr[1]].value*10 + COLORS[arr[2]].value;
+    mul = COLORS[arr[3]].mul; tol = COLORS[arr[4]].tol;
+  }
+  var r = digits * mul;
+  return {arr:arr, digits:digits, mul:mul, tol:tol, r:r, lo:r*(1-tol/100), hi:r*(1+tol/100)};
+}
+function __resE24(r){
+  if(!(r>0)) return '—';
+  var exp = Math.floor(Math.log10(r));
+  var base = r/Math.pow(10,exp);
+  var best = E24[0], bd = Math.abs(base-E24[0]/10);
+  for(var i=1;i<E24.length;i++){ var d=Math.abs(base-E24[i]/10); if(d<bd){bd=d;best=E24[i];} }
+  return formatResistance(best*Math.pow(10,exp-1));
+}
+function __resExport(){
+  if(typeof TBKit==='undefined')return;
+  var e = __resEval();
+  var t = document.getElementById('resTable'); if(!t)return;
+  var tb = t.querySelector('tbody'); tb.innerHTML='';
+  var en = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var th = t.querySelector('thead'); if(th) th.innerHTML = en
+    ? '<tr><th>Band</th><th>Color</th><th>Meaning</th><th>Value</th></tr>'
+    : '<tr><th>环位</th><th>颜色</th><th>含义</th><th>数值</th></tr>';
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  var names=[], i;
+  if(bandCount===4){
+    var m4 = en ? ['Digit 1 (tens)','Digit 2 (ones)','Multiplier','Tolerance'] : ['有效数字第1位','有效数字第2位','乘数','误差'];
+    row('1', COLORS[e.arr[0]].name, m4[0], COLORS[e.arr[0]].value);
+    row('2', COLORS[e.arr[1]].name, m4[1], COLORS[e.arr[1]].value);
+    row('3', COLORS[e.arr[2]].name, m4[2], '×'+COLORS[e.arr[2]].mul);
+    row('4', COLORS[e.arr[3]].name, m4[3], '±'+COLORS[e.arr[3]].tol+'%');
+  } else {
+    var m5 = en ? ['Digit 1 (hundreds)','Digit 2 (tens)','Digit 3 (ones)','Multiplier','Tolerance'] : ['有效数字第1位','有效数字第2位','有效数字第3位','乘数','误差'];
+    row('1', COLORS[e.arr[0]].name, m5[0], COLORS[e.arr[0]].value);
+    row('2', COLORS[e.arr[1]].name, m5[1], COLORS[e.arr[1]].value);
+    row('3', COLORS[e.arr[2]].name, m5[2], COLORS[e.arr[2]].value);
+    row('4', COLORS[e.arr[3]].name, m5[3], '×'+COLORS[e.arr[3]].mul);
+    row('5', COLORS[e.arr[4]].name, m5[4], '±'+COLORS[e.arr[4]].tol+'%');
+  }
+  for(i=0;i<bandCount;i++) names.push(COLORS[e.arr[i]].name);
+  row('', en?'Nominal value':'标称阻值', '', formatResistance(e.r));
+  row('', en?'Resistance (Ω)':'阻值(Ω)', '', e.r);
+  row('', en?'Tolerance':'误差', '', '±'+e.tol+'%');
+  row('', en?'Lower bound':'下限', '', formatResistance(e.lo));
+  row('', en?'Upper bound':'上限', '', formatResistance(e.hi));
+  row('', en?'Band sequence':'色环序列', '', names.join(' · '));
+  row('', en?'Nearest E24 value':'最接近 E24 标准值', '', __resE24(e.r));
+  t.style.display='';
+  try{ TBKit.util.exportTable('#resTable','resistor-color-code.csv'); }catch(err){}
+}
+function __resPreset(n){
+  if(n===5){ if(bandCount!==5) setBands(5); sel[5]=[1,0,0,3,1]; }
+  else { if(bandCount!==4) setBands(4); sel[4]=[1,0,2,10]; }
+  renderSelectors(); renderResistor(); calc();
+}
+function __resExtras(){
+  if(typeof TBKit==='undefined')return;
+  var e = __resEval();
+  var host = document.getElementById('resChart');
+  if(host && TBKit.chart && TBKit.chart.bar){
+    var en = (TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+    try{ TBKit.chart.bar(host, {labels: en?['Lower','Nominal','Upper']:['下限','标称','上限'], values:[e.lo, e.r, e.hi]}); }catch(err){}
+  }
+  try{ TBKit.history.record({answered:bandCount, score:e.r, level:formatResistance(e.r), ans:e.arr.join(',')+'|'+bandCount}, 3000); }catch(err){}
+  __resMountHist();
+}
+function __resMountHist(){
+  if(typeof TBKit==='undefined')return;
+  var host = document.getElementById('resHistory');
+  if(!host || !TBKit.history || !TBKit.history.mount) return;
+  try{
+    TBKit.history.mount('#resHistory', function(rec){
+      var parts = String(rec.ans||'').split('|');
+      var n = +(parts[1]||4);
+      var idxs = String(parts[0]||'').split(',').map(function(x){return +x;});
+      if(idxs.length !== n) return;
+      if(bandCount !== n) setBands(n);
+      sel[n] = idxs;
+      renderSelectors(); renderResistor(); calc();
+    });
+  }catch(err){}
+}
 function buildRefTable(){
   var rows = COLORS.map(function(c){
     var dv = c.value===null?'—':c.value;
@@ -426,10 +527,14 @@ function buildRefTable(){
   const __g10=ToolBox.createTable(['颜色','有效数字','乘数','误差'], rows);document.getElementById('refTable').innerHTML=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
 }
 
+var __res0 = calc; calc = function(){ __res0(); try{ __resExtras(); }catch(e){} };
+var __resR = calcReverse; calcReverse = function(){ __resR(); try{ __resExtras(); }catch(e){} };
+var __resS = setBands; setBands = function(n){ __resS(n); try{ __resExtras(); }catch(e){} };
 renderSelectors();
 renderResistor();
 calc();
 buildRefTable();
+__resMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

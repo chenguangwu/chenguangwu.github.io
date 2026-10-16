@@ -442,6 +442,11 @@ window.__TI18N_EN = {
     '导出混淆统计 CSV':'Export Obfuscation Stats CSV',
     '导出色板清单 CSV':'Export Palette List CSV',
     '导出节奏参数 CSV':'Export Tempo Parameters CSV',
+    '导出色环明细 CSV':'Export Band Details CSV',
+    '导出常数清单 CSV':'Export Constants List CSV',
+    '导出考试时间表 CSV':'Export Exam Schedule CSV',
+    '4环示例':'4-Band Example',
+    '5环示例':'5-Band Example',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——
@@ -449,6 +454,9 @@ window.__TI18N_EN = {
     '📌 示例密码（一键填入检测）':'📌 Sample passwords (one-click fill)',
     '📌 常见预设（一键套用）':'📌 Common presets (one-click apply)',
     '场景预设：':'Scenario presets:','常见自查预设：':'Common Self-Check Presets:',
+    '导出当前色环配置、阻值与误差范围明细':'Export current band config, resistance and tolerance range',
+    '导出当前筛选结果的常数明细（名称 / 符号 / 数值 / 单位 / 分类 / 说明）':'Export filtered constants (name / symbol / value / unit / category / note)',
+    '按当前时长生成分段提醒点（0/25/50/75/100%）':'Generate checkpoint alerts from the current duration (0/25/50/75/100%)',
     '建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用':'Recommended browsers: Chrome / Safari / Firefox / Edge',
     '本工具纯前端运行，数据不会上传到服务器':'This tool runs entirely in your browser; no data is uploaded to any server',
     '计算结果仅供参考，请以实际应用场景为准':'Results are for reference only; verify against your actual use case',
