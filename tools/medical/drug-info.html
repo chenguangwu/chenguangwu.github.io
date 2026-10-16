@@ -207,6 +207,11 @@ s.parentNode.insertBefore(el, s);
 
     <div class="drug-list" id="drugList"></div>
 
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="__drugExport()">⬇️ 导出药物清单 CSV</button>
+    </div>
+    <table id="drugTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
+
     <div class="disclaimer">
       ⚠️ <strong>免责声明：</strong>本工具所收录药物信息仅供学习参考，不构成用药建议或处方依据。
       药物适应症、用法用量、不良反应等可能随指南更新而变化，临床用药请以最新药品说明书及医师/药师指导为准。
@@ -401,6 +406,36 @@ function render(){
 
 initCats();
 render();
+
+// [UX uplift] 药物清单明细表 + 导出 CSV（读取 DRUGS 与当前筛选，不改动渲染内核）
+var __drugF0 = render;
+render = function(){ __drugF0(); __drugExtras(); };
+function __drugExtras(){
+  try{
+    var q = (document.getElementById('search').value||'').trim().toLowerCase();
+    var favs = (function(){ try { return JSON.parse(localStorage.getItem('toolbox_drug_favs')||'[]'); } catch(e){ return []; } })();
+    var filtered = DRUGS.filter(function(d){
+      if(currentCat === '★ 收藏'){ if(favs.indexOf(d.name) < 0) return false; }
+      else if(currentCat !== 'all' && d.cat !== currentCat){ return false; }
+      if(q){ var blob = (d.name+d.en+d.goods+d.use+d.cat).toLowerCase(); if(blob.indexOf(q) < 0) return false; }
+      return true;
+    });
+    var tbl = document.getElementById('drugTable');
+    if(!tbl) return;
+    if(filtered.length === 0){ tbl.innerHTML=''; tbl.style.display='none'; return; }
+    var html = '<thead><tr><th>通用名</th><th>英文名</th><th>类别</th><th>商品名</th><th>适应症</th><th>用法用量</th></tr></thead><tbody>';
+    filtered.forEach(function(d){
+      html += '<tr><td>'+d.name+'</td><td>'+d.en+'</td><td>'+d.cat+'</td><td>'+d.goods+'</td><td>'+d.use+'</td><td>'+d.dose+'</td></tr>';
+    });
+    html += '</tbody>';
+    tbl.innerHTML = html;
+    tbl.style.display = 'table';
+  }catch(e){}
+}
+function __drugExport(){
+  if(typeof TBKit==='undefined') return;
+  try{ TBKit.util.exportTable('#drugTable','drug-list.csv'); }catch(e){}
+}
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

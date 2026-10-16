@@ -140,6 +140,11 @@ s.parentNode.insertBefore(el, s);
 
     <div id="result"></div>
 
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="__uaExport()">⬇️ 导出判读结果 CSV</button>
+    </div>
+    <table id="uaTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
+
     <div class="info-box" style="margin-top:16px;">
       尿干化学11项：比重(SG)、酸碱度(pH)、白细胞酯酶(LEU)、亚硝酸盐(NIT)、蛋白质(PRO)、葡萄糖(GLU)、酮体(KET)、尿胆原(UBG)、胆红素(BIL)、潜血(ERY/BLD)、维生素C(VC)。阳性结果需结合镜检和临床综合判断。
     </div>
@@ -292,6 +297,37 @@ function resetForm(){
 }
 
 buildForm();
+
+// [UX uplift] 判读结果明细表 + 导出 CSV（读取 ITEMS 与当前选项，不改动判读内核）
+var __uaF0 = interpret;
+interpret = function(){ __uaF0(); __uaExtras(); };
+function __uaExtras(){
+  try{
+    var tbl = document.getElementById('uaTable');
+    if(!tbl) return;
+    var rows = [];
+    ITEMS.forEach(function(it){
+      var sel = document.getElementById('ua_'+it.key);
+      if(!sel) return;
+      var v = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+      var r = classify(it);
+      rows.push([it.name, v, r.t]);
+    });
+    if(rows.length === 0){ tbl.innerHTML=''; tbl.style.display='none'; return; }
+    var html = '<thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border,#e8ecf1);">项目</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border,#e8ecf1);">结果</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border,#e8ecf1);">判读</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      html += '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border,#f0f0f0);">'+r[0]+'</td><td style="padding:6px 8px;border-bottom:1px solid var(--border,#f0f0f0);">'+r[1]+'</td><td style="padding:6px 8px;border-bottom:1px solid var(--border,#f0f0f0);">'+r[2]+'</td></tr>';
+    });
+    html += '</tbody>';
+    tbl.innerHTML = html;
+    tbl.style.display = 'table';
+  }catch(e){}
+}
+function __uaExport(){
+  if(typeof TBKit==='undefined') return;
+  try{ TBKit.util.exportTable('#uaTable','urinalysis-result.csv'); }catch(e){}
+}
+interpret();
 </script>
 
 <!-- SEO 介绍区块 -->
