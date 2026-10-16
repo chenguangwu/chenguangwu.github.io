@@ -145,6 +145,12 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result"></div>
     <div id="mbChart" style="margin-top:14px;"></div>
 
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出物料平衡结果 CSV" onclick="__mbExport()">⬇️ Export Material Balance Results CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="投入/产出明细与平衡汇总可导出为 CSV">In/out details and balance summary can be exported as CSV</span>
+    </div>
+    <table id="mbTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+
     <div class="tip-box tip-info" style="margin-top:12px;">
       物料平衡：总投入 − 总产出 = 损耗（含水蒸发、剔废、粘壁等）。得率 = 总产出 ÷ 总投入 × 100%。良好工艺得率应稳定且损耗可解释；得率异常波动提示工艺或计量问题。
     </div>
@@ -283,6 +289,34 @@ function __mbExtras(){
   outs.forEach(function(r){ labels.push((r.name||'产出')+'↑'); data.push(+(+r.qty||0).toFixed(2)); });
   if(!labels.length) return;
   TBKit.chart.bar('#mbChart',{labels:labels,series:[{name:en?'Qty':'数量',data:data}],height:240,title:en?'Material In/Out':'物料投入产出'});
+}
+
+function __mbExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof ins==='undefined'||typeof outs==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var totalIn=0,totalOut=0;
+    ins.forEach(function(r){totalIn+=+r.qty||0;});
+    outs.forEach(function(r){totalOut+=+r.qty||0;});
+    var loss=totalIn-totalOut;
+    var yieldRate=totalIn>0?totalOut/totalIn*100:0;
+    var lossRate=totalIn>0?loss/totalIn*100:0;
+    var rows=[];
+    ins.forEach(function(r){ rows.push([en?'Input':'投入',r.name||'',(+r.qty||0).toFixed(2)]); });
+    outs.forEach(function(r){ rows.push([en?'Output':'产出',r.name||'',(+r.qty||0).toFixed(2)]); });
+    rows.push([en?'Summary':'汇总',en?'Total input':'总投入',totalIn.toFixed(2)]);
+    rows.push([en?'Summary':'汇总',en?'Total output':'总产出',totalOut.toFixed(2)]);
+    rows.push([en?'Summary':'汇总',en?'Loss':'损耗',loss.toFixed(2)]);
+    rows.push([en?'Summary':'汇总',en?'Yield rate (%)':'得率 (%)',yieldRate.toFixed(1)]);
+    rows.push([en?'Summary':'汇总',en?'Loss rate (%)':'损耗率 (%)',lossRate.toFixed(2)]);
+    var tb=document.querySelector('#mbTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#mbTable','material-balance.csv');
+  }catch(e){}
 }
 var __mb_f0=(typeof calc==='function')?calc:null;
 if(__mb_f0){ calc=function(){ var r=__mb_f0.apply(null,arguments); try{__mbExtras();}catch(e){} return r; }; }

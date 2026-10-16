@@ -205,6 +205,12 @@ s.parentNode.insertBefore(el, s);
         <div class="stat-card"><div class="val" id="perPersonKm">¥0</div><div class="lbl">人均每公里</div></div>
       </div>
 
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn" data-zh="⬇️ 导出费用计算结果 CSV" onclick="__rtExport()">⬇️ Export Cost Results CSV</button>
+        <span style="font-size:13px;color:var(--text-muted);" data-zh="当前参数与全部费用指标可导出为 CSV">Current parameters and cost metrics can be exported as CSV</span>
+      </div>
+      <table id="rtTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+
       <div class="tip-box tip-info">
         💡 <strong>省钱小贴士：</strong>保持经济车速(80-100km/h)可省油约15%；提前规划路线避开拥堵；多人拼车可大幅降低人均成本。
       </div>
@@ -366,6 +372,39 @@ function calc() {
   const __g4='¥' + Math.round(perPerson);document.getElementById('perPerson').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   const __g5='¥' + perKm.toFixed(2);document.getElementById('perKm').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6='¥' + perPersonKm.toFixed(2);document.getElementById('perPersonKm').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+}
+
+function __rtExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var g=function(id){var el=document.getElementById(id);return el?(+el.value||0):0;};
+    var carTypeEl=document.getElementById('carType');
+    var carType=carTypeEl?carTypeEl.value:'custom';
+    var d=g('distance'),c=g('consumption'),p=g('price'),t=g('tolls'),people=g('people')||1;
+    var fuel=d*c/100, fuelCost=fuel*p, total=fuelCost+t;
+    var perPerson=total/people, perKm=d>0?total/d:0, perPersonKm=d>0?perPerson/d:0;
+    var en=TBKit.util.isEn();
+    var rows=[
+      [en?'Total distance (km)':'总距离 (公里)', d],
+      [en?'Fuel consumption (L/100km)':'百公里油耗 (L/100km)', c],
+      [en?'Fuel price (CNY/L)':'油价 (元/L)', p],
+      [en?'Toll fee (CNY)':'高速通行费 (元)', t],
+      [en?'Passengers':'乘车人数', people],
+      [en?'Vehicle type':'车辆类型', carType],
+      [en?'Fuel needed (L)':'所需油量 (L)', fuel.toFixed(1)],
+      [en?'Fuel cost (CNY)':'油费 (元)', Math.round(fuelCost)],
+      [en?'Total cost (CNY)':'全程总费用 (元)', Math.round(total)],
+      [en?'Cost per person (CNY)':'人均费用 (元)', Math.round(perPerson)],
+      [en?'Cost per km (CNY)':'每公里成本 (元)', perKm.toFixed(2)],
+      [en?'Cost per person per km (CNY)':'人均每公里 (元)', perPersonKm.toFixed(2)]
+    ];
+    var tb=document.querySelector('#rtTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#rtTable','road-trip-gas-cost.csv');
+  }catch(e){}
 }
 
 function getCurrentData() {
