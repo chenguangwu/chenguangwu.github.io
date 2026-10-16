@@ -119,6 +119,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 ASRS 筛查结果 CSV" onclick="__asrsExport()">⬇️ Export ASRS Screening CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="6 题回答、阳性项数、筛查结论与症状分型可导出为 CSV">All 6 answers, positive count, screening conclusion and symptom type can be exported as CSV</span>
+    </div>
+    <table id="asrsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -159,6 +164,56 @@ function buildList(){
     html+='</select></div>';
   });
   const __g1=html;document.getElementById('asrsItems').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function __asrsExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof asrsItems==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var optLabels=en?['Never','Rarely','Sometimes','Often','Almost always']:['从不','很少','有时','经常','非常频繁'];
+    var positiveCount=0,totalScore=0,itemResults=[];
+    asrsItems.forEach(function(item,i){
+      var sel=document.getElementById('q'+i);
+      var v=sel?parseInt(sel.value):0;
+      if(!isFinite(v))v=0;
+      var isPositive=v>=item.positiveFrom;
+      if(isPositive)positiveCount++;
+      totalScore+=v;
+      itemResults.push({q:item.q,v:v,positive:isPositive});
+    });
+    var screenPositive=positiveCount>=4;
+    var level,recommendation;
+    if(positiveCount>=5){level=en?'Highly suspected adult ADHD':'高度疑似成人ADHD';recommendation=en?'The screening result is highly positive. A professional adult ADHD diagnostic evaluation at a mental health center is strongly recommended':'筛查结果高度阳性，强烈建议到精神卫生中心进行成人ADHD专业诊断评估。';}
+    else if(positiveCount>=4){level=en?'Screening positive':'筛查阳性';recommendation=en?'The screening result is positive. A professional adult ADHD evaluation at a mental health center is recommended to confirm the diagnosis':'筛查结果为阳性，建议到精神卫生中心进行成人ADHD专业评估确诊。';}
+    else if(positiveCount>=3){level=en?'Screening suspicious':'筛查可疑';recommendation=en?'Quite a few ADHD symptoms are present. Pay attention to attention function and seek professional evaluation if necessary':'存在较多ADHD症状，建议关注注意力功能，必要时进行专业评估。';}
+    else if(positiveCount>=1){level=en?'Screening negative (mild symptoms)':'筛查阴性（少量症状）';recommendation=en?'A few ADHD-like symptoms are present, generally not affecting daily functioning. Observation is recommended':'存在少量ADHD样症状，一般不影响日常功能，建议观察。';}
+    else{level=en?'Screening negative':'筛查阴性';recommendation=en?'No obvious ADHD symptoms found; attention function is within the normal range':'未发现明显ADHD症状，注意力功能在正常范围。';}
+    var rows=[];
+    itemResults.forEach(function(r,i){
+      rows.push([i+1, r.q.substring(3), optLabels[r.v]||'', r.positive?(en?'Yes':'是'):(en?'No':'否')]);
+    });
+    var inattentive=itemResults.slice(0,4).filter(function(r){return r.positive;}).length;
+    var hyperactive=itemResults.slice(4).filter(function(r){return r.positive;}).length;
+    var typeDesc;
+    if(inattentive>=3&&hyperactive>=1)typeDesc=en?'Combined presentation (both inattention and hyperactivity/impulsivity prominent)':'混合型表现（注意力缺陷+多动/冲动症状均突出）';
+    else if(inattentive>=3)typeDesc=en?'Predominantly inattentive presentation':'注意力缺陷为主型表现';
+    else if(hyperactive>=1)typeDesc=en?'Predominantly hyperactive/impulsive presentation':'多动/冲动为主型表现';
+    else typeDesc=en?'No obvious subtype features':'无明显分型特征';
+    rows.push([en?'Positive items (/6)':'阳性项数（/6）', positiveCount+'/6', screenPositive?(en?'Positive':'阳性'):(en?'Negative':'阴性'), '']);
+    rows.push([en?'Total score (0-24)':'原始总分（0-24）', totalScore+'/24', '', '']);
+    rows.push([en?'Screening conclusion':'筛查结论', level, '', '']);
+    rows.push([en?'Screening result':'筛查结果', screenPositive?(en?'Positive':'阳性'):(en?'Negative':'阴性'), '', '']);
+    rows.push([en?'Inattention (items 1-4)':'注意力缺陷（1-4题）', inattentive+'/4', '', '']);
+    rows.push([en?'Hyperactivity/impulsivity (items 5-6)':'多动/冲动（5-6题）', hyperactive+'/2', '', '']);
+    rows.push([en?'Symptom type':'症状类型', typeDesc, '', '']);
+    rows.push([en?'Recommendation':'建议', recommendation, '', '']);
+    var tb=document.querySelector('#asrsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#asrsTable','asrs-screen.csv');
+  }catch(e){}
 }
 function calc(){
   var positiveCount=0, totalScore=0;

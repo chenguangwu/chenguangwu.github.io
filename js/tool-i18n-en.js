@@ -378,6 +378,9 @@ window.__TI18N_EN = {
     '轻度打码':'Light Mosaic',
     '中度打码':'Medium Mosaic',
     '重度打码':'Heavy Mosaic',
+    '导出 CD-RISC 评分结果 CSV':'Export CD-RISC Score CSV',
+    '导出 ASRS 筛查结果 CSV':'Export ASRS Screening CSV',
+    '导出维修服务质量结果 CSV':'Export Maintenance Quality CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——

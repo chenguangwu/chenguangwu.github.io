@@ -118,6 +118,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 CD-RISC 评分结果 CSV" onclick="__cdriscExport()">⬇️ Export CD-RISC Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="25 题得分、总分/得分率/高低分项、韧性水平与解读可导出为 CSV">All 25 item scores, total/rate/high-low items, resilience level, and interpretation can be exported as CSV</span>
+    </div>
+    <table id="cdriscTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -164,6 +169,46 @@ function buildList(){
     html+='<div class="input-row" style="align-items:center;margin-bottom:6px;"><div style="flex:1;"><label style="font-size:13px;">'+q+'</label></div><select id="q'+i+'" style="font-size:16px;flex:0 0 120px;" onchange="calc()"><option value="0">0-从不</option><option value="1">1-很少</option><option value="2" selected>2-有时</option><option value="3">3-经常</option><option value="4">4-几乎总是</option></select></div>';
   });
   const __g1=html;document.getElementById('cdriscItems').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function __cdriscExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof items==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var optLabels=en?['Never','Rarely','Sometimes','Often','Almost always']:['0-从不','1-很少','2-有时','3-经常','4-几乎总是'];
+    var total=0;
+    var rows=[];
+    items.forEach(function(q,i){
+      var sel=document.getElementById('q'+i);
+      var v=sel?parseInt(sel.value):2;
+      if(!isFinite(v))v=2;
+      total+=v;
+      rows.push([q, v, optLabels[v]||'']);
+    });
+    var max=items.length*4;
+    var pct=total/max*100;
+    var highCount=0,lowCount=0;
+    rows.forEach(function(r){ if(r[1]>=3)highCount++; if(r[1]<=1)lowCount++; });
+    var level,interpretation;
+    if(total>=80){level=en?'High resilience':'高心理韧性';interpretation=en?'Strong resilience with good adversity coping, social support, and psychological flexibility, comparable to or above the general population average':'心理韧性很强，具备良好的逆境应对能力、社会支持和心理弹性，与一般人群平均水平相当或更高。';}
+    else if(total>=65){level=en?'Moderately high resilience':'中高心理韧性';interpretation=en?'Good resilience; basically able to cope with life stresses and challenges, with room for improvement in some areas':'心理韧性较好，基本能够应对生活中的压力和挑战，在某些方面仍有提升空间。';}
+    else if(total>=50){level=en?'Moderate resilience':'中等心理韧性';interpretation=en?'Moderate resilience; some difficulty coping with stress. Monitor mental health and build resilience skills':'心理韧性处于中等水平，应对压力时可能存在一定困难，建议关注心理健康并培养韧性技能。';}
+    else if(total>=30){level=en?'Low resilience':'低心理韧性';interpretation=en?'Low resilience with limited capacity to cope with adversity and stress; counseling support and resilience training recommended':'心理韧性偏低，应对逆境和压力的能力有限，建议寻求心理咨询支持，学习韧性提升技巧。';}
+    else{level=en?'Very low resilience':'极低心理韧性';interpretation=en?'Very low resilience; may feel overwhelmed under stress. Seek professional psychological support as early as possible':'心理韧性很低，可能在面对压力时感到难以应对，建议尽早寻求专业心理支持和帮助。';}
+    rows.push([en?'Total score (0-100)':'总分（0-100）', total+'/100', pct.toFixed(0)+'%']);
+    rows.push([en?'Score rate':'得分率', pct.toFixed(0)+'%', '']);
+    rows.push([en?'Average score':'平均分', (total/items.length).toFixed(2)+'/4.0', '']);
+    rows.push([en?'High items (>=3)':'高分项（≥3分）', highCount+'/'+items.length, '']);
+    rows.push([en?'Low items (<=1)':'低分项（≤1分）', lowCount+'/'+items.length, '']);
+    rows.push([en?'Resilience level':'韧性水平', level, '']);
+    rows.push([en?'Interpretation':'结果解读', interpretation, '']);
+    var tb=document.querySelector('#cdriscTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#cdriscTable','cd-risc-score.csv');
+  }catch(e){}
 }
 function calc(){
   var total=0, scores=[];
