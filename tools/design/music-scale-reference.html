@@ -162,6 +162,7 @@ s.parentNode.insertBefore(el, s);
     <div class="piano-row" id="piano"></div>
     <div id="notesDisplay" style="text-align:center;font-size:20px;margin:16px 0;word-spacing:8px;font-weight:600;color:var(--primary);"></div>
     <div id="sigInfo" style="padding:14px;background:#f8f9ff;border-radius:8px;font-size:13px;"></div>
+    <div id="musicChart" style="margin-top:16px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -253,6 +254,31 @@ function render(){
   }
   const __h1=sigText+`<br>💡 红色是根音，蓝色是音阶内音`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('sigInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sigInfo').innerHTML=__h1;
 }
+
+function __musicExtras(){
+  if(typeof TBKit==='undefined') return;
+  var host=document.getElementById('musicChart'); if(!host) return;
+  var root=document.getElementById('root').value;
+  var type=document.getElementById('scaleType').value;
+  var rootIdx=notes.indexOf(root);
+  var pattern=scales[type];
+  if(!pattern||rootIdx<0){ host.innerHTML=''; return; }
+  var labels=[],data=[];
+  pattern.forEach(function(i){
+    var note=notes[(rootIdx+i)%12];
+    var pc=notes.indexOf(note);
+    var midi=60+pc;
+    var freq=440*Math.pow(2,(midi-69)/12);
+    labels.push(note);
+    data.push(Math.round(freq*10)/10);
+  });
+  TBKit.chart.bar('#musicChart',{labels:labels,series:[{name:'频率(Hz)',data:data}],height:Math.max(220,pattern.length*36),title:'各音级频率（Hz，十二平均律 A4=440）'});
+}
+
+var __mRender=render;
+render=function(){__mRender();__musicExtras();};
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__musicExtras();});}else{__musicExtras();}
+
 render();
 </script><script>
 // tool-intro折叠交互
