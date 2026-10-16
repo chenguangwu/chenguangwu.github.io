@@ -142,6 +142,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
     <div class='info-box' style='margin-top:12px;'>火灾荷载密度分级参考：低 ≤ 300 MJ/m²，中等 300~1200 MJ/m²，高 ＞ 1200 MJ/m²。结果仅供参考。</div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出火灾荷载计算结果 CSV" onclick="__fire2Export()">⬇️ Export Fire Load Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="参数与计算结果可导出为 CSV 备案">Parameters and results can be exported as CSV for record</span>
+    </div>
+    <table id="fire2Table" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 </div>
 
@@ -243,6 +248,37 @@ s.parentNode.insertBefore(el, s);
   window.copyResult = copyResult;
   window.applyLoadPreset = applyLoadPreset;
 })();
+</script>
+<script>
+function __fire2Export(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var mass=parseFloat(ToolBox.$('mass').value)||0;
+    var hv=parseFloat(ToolBox.$('hv').value)||0;
+    var area=parseFloat(ToolBox.$('area').value)||0;
+    if(mass<0||hv<=0||area<=0) return;
+    var total=mass*hv;
+    var density=total/area;
+    var woodEquiv=density/18;
+    var level=(density<=300)?'低':((density<=1200)?'中等':'高');
+    var rows=[
+      ['可燃物总质量 (kg)', ToolBox.formatNumber(mass,1)],
+      ['燃烧热值 (MJ/kg)', ToolBox.formatNumber(hv,1)],
+      ['房间面积 (m²)', ToolBox.formatNumber(area,1)],
+      ['总热值 (MJ)', ToolBox.formatNumber(total,1)],
+      ['火灾荷载密度 (MJ/m²)', ToolBox.formatNumber(density,1)],
+      ['等效木材荷载 (kg/m²)', ToolBox.formatNumber(woodEquiv,1)],
+      ['火灾严重程度等级', level]
+    ];
+    var tb=document.getElementById('fire2Table');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#fire2Table','fire-load-density.csv');
+  }catch(e){}
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

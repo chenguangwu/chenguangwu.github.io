@@ -150,6 +150,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
     <div class='info-box' style='margin-top:12px;'>参考值基于常见设计经验：A 类轻/中/严重危险级分别按 100/75/50 m²/具；B 类分别按 1.5/1.0/0.5 m²/具估算。每个设置点不宜少于 2 具。</div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出灭火器配置结果 CSV" onclick="__fire4Export()">⬇️ Export Extinguisher Placement Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="参数与配置结果可导出为 CSV 备案">Parameters and results can be exported as CSV for record</span>
+    </div>
+    <table id="fire4Table" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 </div>
 
@@ -252,6 +257,39 @@ s.parentNode.insertBefore(el, s);
   window.copyResult = copyResult;
   window.applyExtPreset = applyExtPreset;
 })();
+</script>
+<script>
+function __fire4Export(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var area=parseFloat(ToolBox.$('area').value)||0;
+    var fc=ToolBox.$('fireClass').value;
+    var lvl=ToolBox.$('level').value;
+    if(area<=0) return;
+    var coverage={A:{light:100,medium:75,severe:50},B:{light:1.5,medium:1.0,severe:0.5},C:{light:100,medium:75,severe:50}};
+    var perUnit=(coverage[fc]&&coverage[fc][lvl])?coverage[fc][lvl]:0;
+    if(!perUnit) return;
+    var count=Math.ceil(area/perUnit);
+    var points=Math.ceil(count/2);
+    var levelName=(lvl==='light')?'轻危险级':((lvl==='severe')?'严重危险级':'中危险级');
+    var className=(fc==='A')?'A 类':((fc==='B')?'B 类':'C 类');
+    var rows=[
+      ['保护面积 (m²)', ToolBox.formatNumber(area,1)],
+      ['火灾类型', className],
+      ['危险等级', levelName],
+      ['单具保护面积 (m²/具)', ToolBox.formatNumber(perUnit,2)],
+      ['估算灭火器总数 (具)', String(count)],
+      ['布置设置点数 (个)', String(points)]
+    ];
+    var tb=document.getElementById('fire4Table');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#fire4Table','fire-extinguisher-placement.csv');
+  }catch(e){}
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
