@@ -122,6 +122,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 FTND 评估结果 CSV" onclick="__ftndExport()">⬇️ Export FTND Assessment CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各题回答与得分、总分、依赖程度与戒烟建议可导出为 CSV">Per-item answers and scores, total, dependence level, and quitting advice can be exported as CSV</span>
+    </div>
+    <table id="ftndTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -177,6 +182,59 @@ function buildList(){
     html+='</select></div>';
   });
   const __g1=html;document.getElementById('ftndItems').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function __ftndExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof ftndItems==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var total=0, highRisk=0;
+    var rows=[];
+    ftndItems.forEach(function(item,i){
+      var sel=document.getElementById('q'+i);
+      var v=sel?parseInt(sel.value):0;
+      if(!isFinite(v))v=0;
+      total+=v;
+      var lbl='';
+      item.options.forEach(function(o){if(o.v===v)lbl=o.label;});
+      var maxV=Math.max.apply(null,item.options.map(function(o){return o.v;}));
+      if(v===maxV&&maxV>0)highRisk++;
+      rows.push([(i+1), item.q.substring(3), lbl, v, maxV]);
+    });
+    var level,interpretation,quitAdvice;
+    if(total<=2){
+      level=en?'Very low dependence':'极低依赖';
+      interpretation=en?'Nicotine dependence is very low; smoking is more of a behavioral/psychological habit than physical dependence':'尼古丁依赖程度极低，吸烟更多是行为/心理习惯而非生理依赖。';
+      quitAdvice=en?'Quit through self-management, focusing on changing smoking habits and behaviors. Brief nicotine replacement or behavioral therapy may help':'可通过自我管理戒烟，重点改变吸烟习惯和行为。可配合简短尼古丁替代或行为疗法。';
+    }else if(total<=4){
+      level=en?'Low dependence':'低度依赖';
+      interpretation=en?'Nicotine dependence is low; some physical dependence but not severe':'尼古丁依赖程度较低，有一定的生理依赖但不太严重。';
+      quitAdvice=en?'Try quitting on your own; combine behavioral intervention with short-course nicotine replacement therapy (NRT). Quit success rate is relatively high':'可尝试自行戒烟，建议结合行为干预和短疗程尼古丁替代治疗（NRT）。戒烟成功率较高。';
+    }else if(total<=5){
+      level=en?'Moderate dependence':'中度依赖';
+      interpretation=en?'Moderate nicotine dependence with clear physical dependence; withdrawal symptoms may occur when quitting':'尼古丁依赖程度中等，存在明显生理依赖，戒烟时可能出现戒断症状。';
+      quitAdvice=en?'Visit a smoking cessation clinic. NRT plus behavioral intervention is recommended, or consider varenicline/bupropion medication':'建议到戒烟门诊就诊。推荐尼古丁替代治疗（NRT）+ 行为干预，或考虑伐尼克兰/安非他酮药物治疗。';
+    }else if(total<=7){
+      level=en?'High dependence':'高度依赖';
+      interpretation=en?'Relatively high nicotine dependence; quitting alone is difficult and withdrawal symptoms may be severe':'尼古丁依赖程度较高，生理依赖明显，自行戒烟困难，戒断症状可能较重。';
+      quitAdvice=en?'Strongly recommend a smoking cessation clinic. Combined pharmacotherapy (NRT + varenicline) with psychological behavioral intervention and a personalized quit plan':'强烈建议到戒烟门诊就诊。推荐联合药物治疗（NRT+伐尼克兰），配合心理行为干预，制定个性化戒烟方案。';
+    }else{
+      level=en?'Very high dependence':'极高依赖';
+      interpretation=en?'Extremely high nicotine dependence; quitting alone is extremely difficult and professional medical intervention is needed':'尼古丁依赖程度极高，生理依赖严重，自行戒烟极困难，需专业医疗干预。';
+      quitAdvice=en?'Must receive systematic treatment at a smoking cessation clinic. High-dose NRT combined with varenicline, intensive psychological support; multiple attempts may be needed':'必须到戒烟门诊接受系统治疗。推荐高剂量NRT联合伐尼克兰，强化心理行为支持，可能需要多次尝试。';
+    }
+    rows.push([en?'Total score':'总分','','',total+'/10','']);
+    rows.push([en?'Dependence level':'依赖程度', level,'','','']);
+    rows.push([en?'High-risk items (max score)':'高风险项（满分项）', highRisk,'','','']);
+    rows.push([en?'Interpretation':'结果解读', interpretation,'','','']);
+    rows.push([en?'Quitting advice':'戒烟建议', quitAdvice,'','','']);
+    var tb=document.querySelector('#ftndTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#ftndTable','ftnd-assessment.csv');
+  }catch(e){}
 }
 function calc(){
   var total=0, results=[];

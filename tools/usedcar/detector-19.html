@@ -124,6 +124,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出泡水车检测结果 CSV" onclick="__floodExport()">⬇️ Export Flood-Damage Check CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各检测项结果、区域风险、泡水结论与购买建议可导出为 CSV">Per-item results, zone risk, flood conclusion, and purchase advice can be exported as CSV</span>
+    </div>
+    <table id="floodTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -220,6 +225,67 @@ function buildList(){
     });
   });
   const __g1=html;document.getElementById('checkItems').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function __floodExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof checks==='undefined'||typeof opts==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var totalWeight=0, totalScore=0, confirmed=[], suspicious=[];
+    var rows=[];
+    checks.forEach(function(g){
+      var gScore=0, gWeight=0, gConfirmed=0, gSuspicious=0;
+      g.list.forEach(function(it){
+        var sel=document.getElementById('ck_'+it.key);
+        var v=sel?parseInt(sel.value):0;
+        if(!isFinite(v))v=0;
+        var lbl='';
+        opts.forEach(function(o){if(o.v===v)lbl=o.label;});
+        var score=v*it.weight;
+        gScore+=score; gWeight+=it.weight*2; totalScore+=score; totalWeight+=it.weight*2;
+        if(v===2){gConfirmed++;confirmed.push({name:it.name,group:g.group});}
+        if(v===1){gSuspicious++;suspicious.push({name:it.name,group:g.group});}
+        rows.push([g.group, it.name, en?('Weight x'+it.weight):('权重×'+it.weight), lbl, score]);
+      });
+      var gRisk=Math.round(gScore/gWeight*100);
+      rows.push([g.group, en?'Zone subtotal':'区域汇总', (en?'Confirmed ':'确认 ')+gConfirmed+(en?' item(s)':' 项'), (en?'Suspicious ':'可疑 ')+gSuspicious+(en?' item(s)':' 项'), gRisk+'%']);
+    });
+    var riskPct=Math.round(totalScore/totalWeight*100);
+    var level,interp,advice;
+    if(confirmed.length===0&&suspicious.length===0){
+      level=en?'No flood traces found':'未发现泡水痕迹';
+      interp=en?'No flood indications found in any check; flood risk is extremely low. Basic checks are still recommended':'所有检测项均未发现泡水迹象，泡水风险极低。建议仍做基本检查确认。';
+      advice=['1. '+(en?'Extremely low flood risk; transaction can proceed normally':'泡水风险极低，可正常交易'),'2. '+(en?'Check maintenance and service records for confirmation':'建议检查维修保养记录确认'),'3. '+(en?'Note the no-flood guarantee in the purchase contract':'签署购车合同注明无泡水保证')];
+    }else if(confirmed.length===0&&suspicious.length<=2){
+      level=en?'Low flood risk':'泡水风险低';
+      interp=en?'No confirmed flood traces, only a few suspicious items. Flood possibility is low; further inspection of suspicious items recommended':'未确认泡水痕迹，仅有个别可疑项。泡水可能性较低，建议对可疑项进一步检查。';
+      advice=['1. '+(en?'Low flood risk but suspicious items exist':'泡水风险较低但有可疑项'),'2. '+(en?'Further testing of suspicious items recommended':'建议对可疑项做进一步检测'),'3. '+(en?'Check insurance records for flood claims':'检查保险记录是否有水淹理赔')];
+    }else if(confirmed.length===0&&suspicious.length>=3){
+      level=en?'Moderate flood risk':'泡水风险中等';
+      interp=en?'Multiple suspicious signs but no confirmed items; flooding cannot be ruled out. Professional detailed inspection recommended before deciding':'多项可疑迹象但无确认项，不能排除泡水可能。建议专业机构详细检测后再决定。';
+      advice=['1. '+(en?'Multiple suspicious signs; flooding cannot be ruled out':'多项可疑迹象，不能排除泡水'),'2. '+(en?'Strongly recommend re-inspection by a professional agency':'强烈建议专业检测机构复检'),'3. '+(en?'Do not pay a deposit before confirmation':'确认前不要支付定金')];
+    }else if(confirmed.length<=2){
+      level=en?'Suspected flooded vehicle':'疑似泡水车';
+      interp=(en?('Found '+confirmed.length+' confirmed flood trace(s); highly suspected flooded vehicle. Strongly recommend walking away or demanding a large discount'):('发现'+confirmed.length+'项确认泡水痕迹，高度疑似泡水车。强烈建议放弃购买或要求大幅降价。'));
+      advice=['1. '+(en?'Highly suspected flooded vehicle':'高度疑似泡水车'),'2. '+(en?'Strongly recommend walking away from the purchase':'强烈建议放弃购买'),'3. '+(en?'If still considering, demand a 30-50% price reduction':'如仍考虑，需大幅降价（30-50%）'),'4. '+(en?'Future repair costs for flooded vehicles are extremely high':'泡水车后续维修成本极高')];
+    }else{
+      level=en?'Confirmed flooded vehicle':'确认泡水车';
+      interp=(en?('Found '+confirmed.length+' confirmed flood traces; can be judged a flooded vehicle. Flooded vehicles pose serious safety hazards; strongly advise against purchase'):('发现'+confirmed.length+'项确认泡水痕迹，可以判定为泡水车。泡水车存在严重安全隐患，强烈建议不要购买。'));
+      advice=['1. '+(en?'Confirmed flooded vehicle; strongly advise against purchase':'确认为泡水车，强烈建议不要购买'),'2. '+(en?'Flooded vehicles pose serious safety/health hazards':'泡水车存在严重安全/健康隐患'),'3. '+(en?'Electronic system corrosion will continue to worsen':'电子系统腐蚀会持续恶化'),'4. '+(en?'Even repairs cannot fully eliminate the hazards':'即使维修也无法完全消除隐患')];
+    }
+    rows.push([en?'Flood risk index':'泡水风险指数', riskPct+'%','','','']);
+    rows.push([en?'Confirmed items':'确认项数', confirmed.length,'','','']);
+    rows.push([en?'Suspicious items':'可疑项数', suspicious.length,'','','']);
+    rows.push([en?'Conclusion':'检测结论', level,'','','']);
+    rows.push([en?'Risk interpretation':'风险解读', interp,'','','']);
+    rows.push([en?'Purchase advice':'购买建议', advice.join(' '),'','','']);
+    var tb=document.querySelector('#floodTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#floodTable','flood-damage-check.csv');
+  }catch(e){}
 }
 function calc(){
   var totalWeight=0, totalScore=0, confirmed=[], suspicious=[];
