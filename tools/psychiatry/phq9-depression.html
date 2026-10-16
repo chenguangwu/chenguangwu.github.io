@@ -134,6 +134,19 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="常见情境快选：">Quick scenarios: </span>
+      <button type="button" class="btn" onclick="applyQuizPreset(0)" data-zh="🟢 无症状（全不会）">🟢 No symptoms</button>
+<button type="button" class="btn" onclick="applyQuizPreset(1)" data-zh="🟡 轻度（好几天）">🟡 Mild</button>
+<button type="button" class="btn" onclick="applyQuizPreset(2)" data-zh="🟠 中度（一半天数）">🟠 Moderate</button>
+<button type="button" class="btn" onclick="applyQuizPreset(3)" data-zh="🔴 重度（几乎每天）">🔴 Severe</button>
+    </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 PHQ-9 评分 CSV" onclick="__phq9Export()">⬇️ Export PHQ-9 Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="9 个条目回答、总分、严重程度与 DSM-5 筛查结论可导出为 CSV">All 9 item responses, total score, severity and DSM-5 screening result can be exported as CSV</span>
+    </div>
+    <table id="phq9Table" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="phq9History" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">PHQ-9 严重度分级</h3>
     <table>
@@ -256,13 +269,90 @@ function calc(){
   if(sui){html+='<div class="tip-box tip-error" style="margin-top:8px;"><strong>注意：</strong>您在第9题（自伤/自杀念头）有得分，提示存在自杀风险，请立即联系专业机构或拨打心理援助热线（全国24小时：400-161-9995）。</div>';}
   const __g5=html;document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __quizOpts(i){ var q=QS[i]; return typeof q==='string'?OPTS:q.o; }
+function __quizText(i){ var q=QS[i]; return typeof q==='string'?q:q.t; }
+function applyQuizPreset(j){
+  A=A.map(function(){return j;});
+  render();
+  calc();
+}
+function __quizExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rec={answered:done+'/'+QS.length};
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      rec.score=total;
+      rec.level=__quizLevelName(total);
+    }
+    rec.ans=A.join(',');
+    TBKit.history.record(rec, 3000);
+    __quizMountHist();
+  }catch(e){}
+}
+function __quizMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#phq9History', function(rec){
+      if(typeof rec.ans!=='string'||!rec.ans) return;
+      A=rec.ans.split(',').map(function(x){return parseInt(x);});
+      render();
+    }, 8);
+  }catch(e){}
+}
+function __quizLevelName(total){
+  if(total<=4)return '无抑郁';
+  if(total<=9)return '轻度抑郁';
+  if(total<=14)return '中度抑郁';
+  if(total<=19)return '中重度抑郁';
+  return '重度抑郁';
+}
+function __phq9Export(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof QS==='undefined'||typeof A==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rows=[];
+    for(var i=0;i<QS.length;i++){
+      var v=A[i];
+      rows.push([en?('Q'+(i+1)):('第'+(i+1)+'题'), __quizText(i), v<0?(en?'Unanswered':'未作答'):__quizOpts(i)[v], v<0?'':v]);
+    }
+    rows.push([en?'Answered items':'已答条目', done+'/'+QS.length, '', '']);
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      var max=0; for(var m=0;m<QS.length;m++) max+=__quizOpts(m).length-1;
+      var sevEn={'无抑郁':'No depression','轻度抑郁':'Mild depression','中度抑郁':'Moderate depression','中重度抑郁':'Moderately severe depression','重度抑郁':'Severe depression'};
+      var sev=__quizLevelName(total);
+      var ge2=0;A.forEach(function(v){if(v>=2)ge2++;});
+      var core=(A[0]>=2||A[1]>=2);
+      var dsm=(ge2>=5&&core)?'符合':'不符合';
+      var dsmEn=dsm==='符合'?'Meets criteria':'Does not meet criteria';
+      var sui=A[8]>0;
+      rows.push([en?'Total score':'总分', total+'/'+max, '', '']);
+      rows.push([en?'Severity':'严重程度', en?(sevEn[sev]||sev):sev, '', '']);
+      rows.push([en?'Items scoring >=2':'症状条目（≥2）', ge2, '', '']);
+      rows.push([en?'DSM-5 major depression screen':'DSM-5 重性抑郁筛查', en?dsmEn:dsm, '', '']);
+      rows.push([en?'Suicidal ideation item (Q9)':'自杀意念条目（第9题）', sui?(en?'Positive (score '+A[8]+')':'阳性（得分 '+A[8]+'）'):(en?'Negative':'阴性'), '', '']);
+    }
+    var tb=document.querySelector('#phq9Table tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#phq9Table','phq9-depression.csv');
+  }catch(e){}
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('PHQ-9 抑郁量表总分：'+total+'/27','tool.copy_ok');
 }
+var __qr0=calc; calc=function(){__qr0(); __quizExtras();};
 render();calc();
+__quizMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -388,6 +388,9 @@ window.__TI18N_EN = {
     '导出 NRS 疼痛评估 CSV':'Export NRS Pain Assessment CSV',
     '导出应急流程清单 CSV':'Export Emergency Flow Checklist CSV',
     '导出当前体位压力点 CSV':'Export Position Pressure Points CSV',
+    '导出 PHQ-9 评分 CSV':'Export PHQ-9 Score CSV',
+    '导出 GAD-7 评分 CSV':'Export GAD-7 Score CSV',
+    '导出 ISI 评分 CSV':'Export ISI Score CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——

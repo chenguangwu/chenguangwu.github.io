@@ -134,6 +134,18 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 ISI 评分 CSV" onclick="__isiExport()">⬇️ Export ISI Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="7 个条目回答、总分、失眠严重度与干预建议可导出为 CSV">All 7 item responses, total score, insomnia severity and intervention advice can be exported as CSV</span>
+    </div>
+    <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
+      <button type="button" class="btn" onclick="applyIsiPreset(0)" data-zh="🟢 无（无困扰）">🟢 None</button>
+      <button type="button" class="btn" onclick="applyIsiPreset(2)" data-zh="🟡 轻中度（部分困扰）">🟡 Mild-Mod</button>
+      <button type="button" class="btn" onclick="applyIsiPreset(4)" data-zh="🔴 重度（严重困扰）">🔴 Severe</button>
+    </div>
+    <table id="isiTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="isiHistory" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">ISI 严重度分级</h3>
     <table>
@@ -244,13 +256,94 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __isiLevelName(total){
+  if(total<=7)return '无失眠';
+  if(total<=14)return '亚临床失眠';
+  if(total<=21)return '中度失眠';
+  return '重度失眠';
+}
+function __isiOpts(i){ var q=QS[i]; return typeof q==='string'?OPTS:q.o; }
+function __isiText(i){ var q=QS[i]; return typeof q==='string'?q:q.t; }
+function __isiAdvice(sev){
+  var m={
+    '无失眠':['目前睡眠状况良好，无明显失眠。','Sleep is currently good with no significant insomnia.'],
+    '亚临床失眠':['存在轻度/亚临床失眠，建议改善睡眠卫生习惯。','Mild/subclinical insomnia; improve sleep hygiene is suggested.'],
+    '中度失眠':['建议就医评估，首选失眠认知行为治疗(CBT-I)。','Seek medical assessment; first-line CBT-I is recommended.'],
+    '重度失眠':['存在重度失眠，需积极综合治疗。','Severe insomnia; active combined treatment is needed.']
+  };
+  return m[sev]||['',''];
+}
+function __isiExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof QS==='undefined'||typeof A==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rows=[];
+    for(var i=0;i<QS.length;i++){
+      var v=A[i];
+      rows.push([en?('Q'+(i+1)):('第'+(i+1)+'题'), __isiText(i), v<0?(en?'Unanswered':'未作答'):__isiOpts(i)[v], v<0?'':v]);
+    }
+    rows.push([en?'Answered items':'已答条目', done+'/'+QS.length, '', '']);
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      var maxT=(QS[0].o.length-1)*QS.length;
+      var sev=__isiLevelName(total);
+      var sevEn={'无失眠':'No insomnia','亚临床失眠':'Subclinical insomnia','中度失眠':'Moderate insomnia','重度失眠':'Severe insomnia'};
+      var pct=Math.round(total/maxT*100);
+      var adv=__isiAdvice(sev);
+      rows.push([en?'Total score':'总分', total+'/'+maxT, '', '']);
+      rows.push([en?'Insomnia severity':'失眠严重度', en?(sevEn[sev]||sev):sev, '', '']);
+      rows.push([en?'Severity ratio':'严重度占比', pct+'%', '', '']);
+      rows.push([en?'Advice':'干预建议', en?adv[1]:adv[0], '', '']);
+    }
+    var tb=document.querySelector('#isiTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#isiTable','isi-insomnia.csv');
+  }catch(e){}
+}
+function __isiExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rec={answered:done+'/'+QS.length};
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      rec.score=total;
+      rec.level=__isiLevelName(total);
+    }
+    rec.ans=A.join(',');
+    TBKit.history.record(rec,3000);
+    __isiMountHist();
+  }catch(e){}
+}
+function __isiMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#isiHistory', function(rec){
+      if(typeof rec.ans!=='string'||!rec.ans) return;
+      A=rec.ans.split(',').map(function(x){return parseInt(x);});
+      render();
+    },8);
+  }catch(e){}
+}
+function applyIsiPreset(j){
+  A=A.map(function(){return j;});
+  render();
+  calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('ISI 失眠严重度指数：'+total+'/28','tool.copy_ok');
 }
+var __is0=calc; calc=function(){__is0(); __isiExtras();};
 render();calc();
+__isiMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

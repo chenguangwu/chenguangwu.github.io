@@ -131,6 +131,19 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 GAD-7 评分 CSV" onclick="__gd7Export()">⬇️ Export GAD-7 Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="7 个条目回答、总分、焦虑严重度与干预建议可导出为 CSV">All 7 item responses, total score, anxiety severity and intervention advice can be exported as CSV</span>
+    </div>
+    <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
+      <button type="button" class="btn" onclick="applyGad7Preset(0)" data-zh="🟢 无（完全不会）">🟢 None</button>
+      <button type="button" class="btn" onclick="applyGad7Preset(1)" data-zh="🟡 轻度（好几天）">🟡 Mild</button>
+      <button type="button" class="btn" onclick="applyGad7Preset(2)" data-zh="🟠 中度（一半天数）">🟠 Moderate</button>
+      <button type="button" class="btn" onclick="applyGad7Preset(3)" data-zh="🔴 重度（几乎每天）">🔴 Severe</button>
+    </div>
+    <table id="gad7Table" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="gad7History" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">GAD-7 严重度分级</h3>
     <table>
@@ -241,13 +254,94 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __gd7LevelName(total){
+  if(total<=4)return '无焦虑';
+  if(total<=9)return '轻度焦虑';
+  if(total<=14)return '中度焦虑';
+  return '重度焦虑';
+}
+function __gd7Opts(i){ return OPTS; }
+function __gd7Text(i){ return QS[i]; }
+function __gd7Advice(sev){
+  var m={
+    '无焦虑':['目前无明显焦虑症状。','No significant anxiety symptoms at present.'],
+    '轻度焦虑':['建议自我放松训练、规律作息，持续关注。','Self-relaxation training and regular routine are suggested; keep monitoring.'],
+    '中度焦虑':['建议专业心理评估与干预。','Professional psychological assessment and intervention are recommended.'],
+    '重度焦虑':['建议药物治疗联合心理治疗并尽早就医。','Medication combined with psychotherapy and early medical care are recommended.']
+  };
+  return m[sev]||['',''];
+}
+function __gd7Export(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof QS==='undefined'||typeof A==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rows=[];
+    for(var i=0;i<QS.length;i++){
+      var v=A[i];
+      rows.push([en?('Q'+(i+1)):('第'+(i+1)+'题'), __gd7Text(i), v<0?(en?'Unanswered':'未作答'):__gd7Opts(i)[v], v<0?'':v]);
+    }
+    rows.push([en?'Answered items':'已答条目', done+'/'+QS.length, '', '']);
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      var maxT=(OPTS.length-1)*QS.length;
+      var sev=__gd7LevelName(total);
+      var sevEn={'无焦虑':'No anxiety','轻度焦虑':'Mild anxiety','中度焦虑':'Moderate anxiety','重度焦虑':'Severe anxiety'};
+      var pct=Math.round(total/maxT*100);
+      var adv=__gd7Advice(sev);
+      rows.push([en?'Total score':'总分', total+'/'+maxT, '', '']);
+      rows.push([en?'Anxiety severity':'焦虑严重度', en?(sevEn[sev]||sev):sev, '', '']);
+      rows.push([en?'Severity ratio':'严重度占比', pct+'%', '', '']);
+      rows.push([en?'Advice':'干预建议', en?adv[1]:adv[0], '', '']);
+    }
+    var tb=document.querySelector('#gad7Table tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#gad7Table','gad7-anxiety.csv');
+  }catch(e){}
+}
+function __gd7Extras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rec={answered:done+'/'+QS.length};
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      rec.score=total;
+      rec.level=__gd7LevelName(total);
+    }
+    rec.ans=A.join(',');
+    TBKit.history.record(rec,3000);
+    __gd7MountHist();
+  }catch(e){}
+}
+function __gd7MountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#gad7History', function(rec){
+      if(typeof rec.ans!=='string'||!rec.ans) return;
+      A=rec.ans.split(',').map(function(x){return parseInt(x);});
+      render();
+    },8);
+  }catch(e){}
+}
+function applyGad7Preset(j){
+  A=A.map(function(){return j;});
+  render();
+  calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('GAD-7 焦虑量表总分：'+total+'/21','tool.copy_ok');
 }
+var __gd0=calc; calc=function(){__gd0(); __gd7Extras();};
 render();calc();
+__gd7MountHist();
 </script>
 
 <!-- SEO 介绍区块 -->
