@@ -132,6 +132,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div id="result" class="result-box"></div>
     <div id="elderChart" style="margin-top:12px;"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出照护评估结果 CSV" onclick="__elderExport()">⬇️ Export Eldercare Assessment CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各项评分、总分与建议等级可导出为 CSV">Per-item scores, total score, and recommended level can be exported as CSV</span>
+    </div>
+    <table id="elderTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 </div>
 
@@ -255,6 +261,37 @@ function __elderExtras() {
 }
 var __f0 = calc;
 calc = function () { __f0(); __elderExtras(); };
+
+function __elderExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof AREA==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var score=0;
+    var rows=[];
+    for(var i=0;i<AREA.length;i++){
+      var sel=document.querySelector('input[name="a'+i+'"]:checked');
+      var v=sel?Number(sel.value):0;
+      score+=v;
+      var label=AREA[i];
+      var desc=v===0?(en?'Independent':'独立'):(v===1?(en?'Partial help':'轻度帮助'):(en?'Fully dependent':'完全依赖'));
+      rows.push([label,v,desc]);
+    }
+    var level,care;
+    if(score>=10){ level=en?'Level 3 (severe)':'三级（重度）'; care=en?'High-frequency care; professional caregiver recommended':'需高频照护，建议专业护理人员介入并评估康复计划'; }
+    else if(score>=7){ level=en?'Level 2 (moderate)':'二级（中度）'; care=en?'Partial daily care such as grooming/meal reminders':'需日常部分照护，如洗漱/就餐提醒、短时陪护'; }
+    else { level=en?'Level 1 (mild)':'一级（轻度）'; care=en?'Basically self-care capable; routine check-ins advised':'日常自理能力基本完整，建议日常巡检'; }
+    rows.push([en?'Total score':'总分',score,'']);
+    rows.push([en?'Recommended level':'建议等级',0,level]);
+    rows.push([en?'Care suggestion':'照护建议',0,care]);
+    var tb=document.querySelector('#elderTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(row){ h+='<tr><td>'+row[0]+'</td><td>'+row[1]+'</td><td>'+row[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#elderTable','eldercare-level.csv');
+  }catch(e){}
+}
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function () { calc(); });
 } else {

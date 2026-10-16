@@ -216,6 +216,12 @@ s.parentNode.insertBefore(el, s);
       <p style="font-size:12px;color:var(--text-muted);margin-top:6px;" data-zh="支持格式：#fff, #ffffff, rgb(255,255,255), rgba(255,255,255,1), hsl(0,100%,50%), hsla(0,100%,50%,1)">Convert colors between HEX, RGB, HSL and more in your browser — with a live picker and copy buttons.</p>
 
       <div class="color-formats" id="colorFormats"></div>
+
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn" data-zh="⬇️ 导出颜色格式与对比度 CSV" onclick="__ccExport()">⬇️ Export Color Formats &amp; Contrast CSV</button>
+        <span style="font-size:13px;color:var(--text-muted);" data-zh="当前颜色各格式取值与 WCAG 对比度结果可导出为 CSV">All format values and WCAG contrast results can be exported as CSV</span>
+      </div>
+      <table id="ccTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
     </div>
 
     <div id="tab-palette" class="tab-content">
@@ -728,6 +734,60 @@ function clearHistory() {
   localStorage.removeItem(HISTORY_KEY);
   renderHistory();
   ToolBox.showToast(i18nText());
+}
+
+function __ccExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var inputEl=document.getElementById('colorInput');
+    var color=currentColor;
+    if(inputEl){
+      var parsed=parseColor(inputEl.value);
+      if(parsed) color=parsed;
+    }
+    var r=color.r,g=color.g,b=color.b,a=color.a;
+    var hex=rgbToHex(r,g,b);
+    var hsl=rgbToHsl(r,g,b);
+    var cmyk=rgbToCmyk(r,g,b);
+    var hwb=rgbToHwb(r,g,b);
+    var rows=[
+      [en?'HEX':'HEX',hex],
+      [en?'HEX (uppercase)':'HEX (大写)',hex.toUpperCase()],
+      ['RGB','rgb('+r+', '+g+', '+b+')'],
+      ['RGBA','rgba('+r+', '+g+', '+b+', '+a+')'],
+      ['HSL','hsl('+hsl.h+', '+hsl.s+'%, '+hsl.l+'%)'],
+      ['HSLA','hsla('+hsl.h+', '+hsl.s+'%, '+hsl.l+'%, '+a+')'],
+      ['CMYK','cmyk('+cmyk.c+'%, '+cmyk.m+'%, '+cmyk.y+'%, '+cmyk.k+'%)'],
+      ['HWB','hwb('+hwb.h+', '+hwb.w+'%, '+hwb.b+'%)'],
+      [en?'Red channel':'R 通道',r],
+      [en?'Green channel':'G 通道',g],
+      [en?'Blue channel':'B 通道',b],
+      [en?'Alpha':'Alpha',a]
+    ];
+    var fgEl=document.getElementById('fgInput'),bgEl=document.getElementById('bgInput');
+    if(fgEl&&bgEl){
+      var fg=parseColor(fgEl.value),bg=parseColor(bgEl.value);
+      if(fg&&bg){
+        var fgL=getLuminance(fg.r,fg.g,fg.b),bgL=getLuminance(bg.r,bg.g,bg.b);
+        var lighter=Math.max(fgL,bgL),darker=Math.min(fgL,bgL);
+        var ratio=(lighter+0.05)/(darker+0.05);
+        rows.push([en?'Contrast foreground':'对比度前景色',rgbToHex(fg.r,fg.g,fg.b)]);
+        rows.push([en?'Contrast background':'对比度背景色',rgbToHex(bg.r,bg.g,bg.b)]);
+        rows.push([en?'Contrast ratio':'对比度',ratio.toFixed(2)+':1']);
+        rows.push([en?'WCAG AA (4.5:1)':'WCAG AA (4.5:1)',ratio>=4.5?'✓':'✗']);
+        rows.push([en?'WCAG AAA (7:1)':'WCAG AAA (7:1)',ratio>=7?'✓':'✗']);
+        rows.push([en?'Large text AA (3:1)':'大文本 AA (3:1)',ratio>=3?'✓':'✗']);
+        rows.push([en?'Large text AAA (4.5:1)':'大文本 AAA (4.5:1)',ratio>=4.5?'✓':'✗']);
+      }
+    }
+    var tb=document.querySelector('#ccTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(row){ h+='<tr><td>'+row[0]+'</td><td>'+row[1]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#ccTable','color-converter.csv');
+  }catch(e){}
 }
 
 updateDisplay();
