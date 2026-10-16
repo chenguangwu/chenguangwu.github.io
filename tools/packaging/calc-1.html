@@ -137,6 +137,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 <p>请输入参数后计算。</p></div>
     <div class='info-box' style='margin-top:12px;'>外箱尺寸 = 产品内尺寸 + 2×(缓冲厚度 + 纸板厚度)。结果向上取整到毫米，便于实际选材。</div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出纸箱尺寸计算结果 CSV" onclick="__cartonExport()">⬇️ Export Carton Size Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="参数与外箱尺寸结果可导出为 CSV 备案">Parameters and carton dimensions can be exported as CSV for record</span>
+    </div>
+    <table id="cartonTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 </div>
 
@@ -226,6 +231,46 @@ s.parentNode.insertBefore(el, s);
   window.calculate = calculate;
   window.copyResult = copyResult;
 })();
+</script>
+<script>
+function __cartonExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var inL=parseFloat(ToolBox.$('inL').value)||0;
+    var inW=parseFloat(ToolBox.$('inW').value)||0;
+    var inH=parseFloat(ToolBox.$('inH').value)||0;
+    var pad=parseFloat(ToolBox.$('pad').value)||0;
+    var board=parseFloat(ToolBox.$('board').value)||0;
+    if(inL<0||inW<0||inH<0||pad<0||board<0) return;
+    var add=2*(pad+board);
+    var outL=Math.ceil(inL+add);
+    var outW=Math.ceil(inW+add);
+    var outH=Math.ceil(inH+add);
+    var innerVol=inL*inW*inH/1000000000;
+    var outerVol=outL*outW*outH/1000000000;
+    var util=outerVol>0?(innerVol/outerVol*100):0;
+    var rows=[
+      ['产品内长 (mm)', ToolBox.formatNumber(inL,1)],
+      ['产品内宽 (mm)', ToolBox.formatNumber(inW,1)],
+      ['产品内高 (mm)', ToolBox.formatNumber(inH,1)],
+      ['每边缓冲厚度 (mm)', ToolBox.formatNumber(pad,1)],
+      ['纸板厚度 (mm)', ToolBox.formatNumber(board,2)],
+      ['外箱长 (mm)', String(outL)],
+      ['外箱宽 (mm)', String(outW)],
+      ['外箱高 (mm)', String(outH)],
+      ['外箱体积 (m³)', ToolBox.formatNumber(outerVol,4)],
+      ['产品净体积 (m³)', ToolBox.formatNumber(innerVol,4)],
+      ['空间利用率 (%)', ToolBox.formatNumber(util,1)]
+    ];
+    var tb=document.getElementById('cartonTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#cartonTable','carton-size.csv');
+  }catch(e){}
+}
 </script>
 <script>
 function applyCartonPreset(kind){
