@@ -163,6 +163,19 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="copyResult()">记录疼痛评分</button>
     </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="常见程度快选：">Quick severity presets: </span>
+      <button type="button" class="btn" onclick="selectPain(0)" data-zh="😊 无痛 0">😊 No pain 0</button>
+<button type="button" class="btn" onclick="selectPain(3)" data-zh="🙂 轻度 3">🙂 Mild 3</button>
+<button type="button" class="btn" onclick="selectPain(5)" data-zh="😐 中度 5">😐 Moderate 5</button>
+<button type="button" class="btn" onclick="selectPain(8)" data-zh="😣 重度 8">😣 Severe 8</button>
+    </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 NRS 疼痛评估 CSV" onclick="__nrsExport()">⬇️ Export NRS Pain Assessment CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="当前 NRS 分值、疼痛等级、表情对照与处置建议可导出为 CSV">Current NRS score, pain level, face reference and management advice can be exported as CSV</span>
+    </div>
+    <table id="nrsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="nrsHistory" style="margin-top:10px;"></div>
     <div class="info-box">
       <strong>NRS疼痛评估参考：</strong><br>
       0分：无痛 → 无需镇痛处理<br>
@@ -285,8 +298,64 @@ function copyResult(){
   ToolBox.copyText(text, i18nText('msg517'));
 }
 
+function __nrsLevelInfo(score){
+  var lv=getLevel(score);
+  var enMap=[
+    {max:0, label:'No pain', desc:'Patient feels completely normal with no pain', cls:'pain-none'},
+    {max:3, label:'Mild pain', desc:'Slight pain that does not affect daily activities or sleep. Non-pharmacological interventions (e.g. hot/cold compress, position adjustment) may be considered', cls:'pain-mild'},
+    {max:6, label:'Moderate pain', desc:'Obvious pain affecting sleep and daily activities. Analgesics as prescribed are recommended', cls:'pain-moderate'},
+    {max:10, label:'Severe pain', desc:'Excruciating pain severely affecting quality of life. Report to the doctor immediately and provide active pharmacological analgesia', cls:'pain-severe'}
+  ];
+  for(var i=0;i<enMap.length;i++){ if(score<=enMap[i].max) return {zh:lv, en:enMap[i]}; }
+  return {zh:lv, en:enMap[enMap.length-1]};
+}
+function __nrsExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var score=parseInt(document.getElementById('bigNum').textContent);
+    if(!isFinite(score))score=0;
+    var info=__nrsLevelInfo(score);
+    var face=faces[score];
+    var range=score===0?(en?'No pain':'无痛'):score<=3?(en?'Mild (1-3)':'轻度（1-3）'):score<=6?(en?'Moderate (4-6)':'中度（4-6）'):(en?'Severe (7-10)':'重度（7-10）');
+    var rows=[];
+    rows.push([en?'NRS score (0-10)':'NRS 评分（0-10）', score, '', '']);
+    rows.push([en?'Pain level':'疼痛等级', en?info.en.label:info.zh.label, '', '']);
+    rows.push([en?'Severity range':'程度区间', range, '', '']);
+    rows.push([en?'Faces reference':'表情对照', face, '', '']);
+    rows.push([en?'Management advice':'处置建议', en?info.en.desc:info.zh.desc, '', '']);
+    var tb=document.querySelector('#nrsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#nrsTable','nrs-pain-assessment.csv');
+  }catch(e){}
+}
+var __np0=selectPain;
+selectPain=function(s){__np0(s);__nrsExtras();};
+function __nrsExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var score=parseInt(document.getElementById('bigNum').textContent);
+    if(!isFinite(score))return;
+    var info=__nrsLevelInfo(score);
+    TBKit.history.record({score:score, level:TBKit.util.isEn()?info.en.label:info.zh.label}, 3000);
+    __nrsMountHist();
+  }catch(e){}
+}
+function __nrsMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#nrsHistory', function(rec){
+      var s=parseInt(rec.score);
+      if(isFinite(s)) selectPain(s);
+    }, 8);
+  }catch(e){}
+}
 renderScale();
 selectPain(0);
+__nrsMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

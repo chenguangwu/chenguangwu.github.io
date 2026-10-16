@@ -150,6 +150,19 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="resetAll()">重置评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制评估结果</button>
     </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="常见场景预设：">Common scenario presets: </span>
+      <button type="button" class="btn" onclick="applyBradenPreset('baseline')" data-zh="🟢 低危基线">🟢 Low-risk baseline</button>
+<button type="button" class="btn" onclick="applyBradenPreset('moderate')" data-zh="🟡 中度风险">🟡 Moderate risk</button>
+<button type="button" class="btn" onclick="applyBradenPreset('high')" data-zh="🟠 高危卧床">🟠 High-risk bedridden</button>
+<button type="button" class="btn" onclick="applyBradenPreset('severe')" data-zh="🔴 极度风险">🔴 Very high risk</button>
+    </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 Braden 评分 CSV" onclick="__bradenExport()">⬇️ Export Braden Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="6 个维度得分、总分、风险等级与护理建议可导出为 CSV">All 6 dimension scores, total, risk level and nursing recommendations can be exported as CSV</span>
+    </div>
+    <table id="bradenTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="bradenHistory" style="margin-top:10px;"></div>
     <div class="info-box">
       <strong>Braden评分参考标准：</strong><br>
       15-18分：轻度风险 → 预防措施：定时翻身（q4h）、保护皮肤<br>
@@ -233,8 +246,8 @@ var dimensions = [
   ]},
   { name:'营养摄入', key:'nutrition', options:[
     {val:1, text:'极差：从未吃过完整一餐'},
-    {val:2, text:'不足： rarely吃完一餐或进食流质'},
-    {val:3, text:'充足：吃完大半餐或管饲 adequate'},
+    {val:2, text:'不足：很少吃完一餐或进食流质'},
+    {val:3, text:'充足：吃完大半餐或管饲'},
     {val:4, text:'极佳：每餐都能吃完'}
   ]},
   { name:'摩擦剪切力', key:'friction', options:[
@@ -295,8 +308,86 @@ function copyResult(){
   ToolBox.copyText(text, i18nText('msg604'));
 }
 
+function __bradenOptionText(key, val){
+  var dims = dimensions.filter(function(d){return d.key===key;});
+  if(!dims.length) return '';
+  var opts = dims[0].options.filter(function(o){return o.val===val;});
+  return opts.length ? opts[0].text : '';
+}
+function __bradenLevel(total){
+  if(total >= 19) return {label:'无风险', desc:'患者压疮风险低，维持常规护理', en:'No risk', descEn:'Low pressure injury risk; maintain routine care'};
+  if(total >= 15) return {label:'轻度风险', desc:'建议：每4小时翻身一次，保护皮肤完整性', en:'Mild risk', descEn:'Turn every 4 hours and protect skin integrity'};
+  if(total >= 13) return {label:'中度风险', desc:'建议：每2小时翻身一次，使用减压床垫', en:'Moderate risk', descEn:'Turn every 2 hours and use a pressure-relief mattress'};
+  if(total >= 10) return {label:'高度风险', desc:'建议：每2小时翻身，气垫床，局部减压，加强营养', en:'High risk', descEn:'Turn every 2 hours, air mattress, local pressure relief, strengthen nutrition'};
+  return {label:'极度风险', desc:'建议：每1小时翻身，气垫床，加强营养支持，皮肤保护', en:'Very high risk', descEn:'Turn every 1 hour, air mattress, strengthen nutritional support and skin protection'};
+}
+function __bradenExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof dimensions==='undefined'||typeof scores==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var dimEn={sensory:'Sensory perception',moisture:'Moisture',activity:'Activity',mobility:'Mobility',nutrition:'Nutrition',friction:'Friction & shear'};
+    var rows=[];
+    dimensions.forEach(function(dim){
+      rows.push([en?(dimEn[dim.key]||dim.name):dim.name, scores[dim.key], __bradenOptionText(dim.key, scores[dim.key]), '']);
+    });
+    var total=0; for(var k in scores) total+=scores[k];
+    var lv=__bradenLevel(total);
+    rows.push([en?'Total score (6-23)':'总分（6-23）', total, '', '']);
+    rows.push([en?'Risk level':'风险等级', en?lv.en:lv.label, '', '']);
+    rows.push([en?'Nursing recommendation':'护理建议', en?lv.descEn:lv.desc, '', '']);
+    var tb=document.querySelector('#bradenTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#bradenTable','braden-score.csv');
+  }catch(e){}
+}
+function applyBradenPreset(kind){
+  if(!kind) return;
+  var presets={
+    baseline:{sensory:4,moisture:4,activity:4,mobility:4,nutrition:4,friction:3},
+    moderate:{sensory:3,moisture:3,activity:2,mobility:2,nutrition:2,friction:2},
+    high:{sensory:3,moisture:2,activity:1,mobility:2,nutrition:2,friction:2},
+    severe:{sensory:1,moisture:1,activity:1,mobility:1,nutrition:1,friction:1}
+  };
+  var p=presets[kind];
+  if(!p) return;
+  scores=p;
+  renderItems();
+  calc();
+  __bradenExtras();
+}
+function __bradenExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var total=0; for(var k in scores) total+=scores[k];
+    var lv=__bradenLevel(total);
+    var rec={score:total, level:TBKit.util.isEn()?lv.en:lv.label};
+    for(var k in scores) rec[k]=scores[k];
+    TBKit.history.record(rec, 3000);
+    __bradenMountHist();
+  }catch(e){}
+}
+function __bradenMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#bradenHistory', function(rec){
+      for(var k in rec){
+        if(k==='score'||k==='level'||k==='t') continue;
+        if(typeof scores[k]!=='undefined') scores[k]=rec[k];
+      }
+      renderItems();
+      calc();
+    }, 8);
+  }catch(e){}
+}
+var __bs0=selectScore;
+selectScore=function(k,v){__bs0(k,v);__bradenExtras();};
 renderItems();
 calc();
+__bradenMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

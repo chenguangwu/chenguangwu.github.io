@@ -149,6 +149,18 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="resetAll()">重置评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制评估结果</button>
     </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="常见场景预设：">Common scenario presets: </span>
+      <button type="button" class="btn" onclick="applyMorsePreset('baseline')" data-zh="🟢 无风险基线">🟢 No-risk baseline</button>
+<button type="button" class="btn" onclick="applyMorsePreset('low')" data-zh="🟡 低度风险">🟡 Low risk</button>
+<button type="button" class="btn" onclick="applyMorsePreset('high')" data-zh="🔴 高度风险">🔴 High risk</button>
+    </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 Morse 评分 CSV" onclick="__morseExport()">⬇️ Export Morse Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="6 个项目得分、总分、跌倒风险等级与护理建议可导出为 CSV">All 6 item scores, total, fall risk level and nursing recommendations can be exported as CSV</span>
+    </div>
+    <table id="morseTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="morseHistory" style="margin-top:10px;"></div>
     <div class="info-box">
       <strong>Morse评分参考标准：</strong><br>
       0-24分：无跌倒风险 → 常规护理<br>
@@ -209,10 +221,9 @@ var items = [
     {val:0, text:'无跌倒史'},
     {val:25, text:'有跌倒史（近3个月内）'}
   ]},
-  { name:'医学诊断（可多选）', key:'diagnosis', options:[
-    {val:0, text:'无'},
-    {val:15, text:'有≥2个诊断'},
-    {val:15, text:'有1个诊断'}
+  { name:'医学诊断', key:'diagnosis', options:[
+    {val:0, text:'无 / 仅1个诊断'},
+    {val:15, text:'≥2个诊断'}
   ]},
   { name:'行走辅助', key:'aid', options:[
     {val:0, text:'无需辅助 / 卧床'},
@@ -238,7 +249,7 @@ var scores = {history:0, diagnosis:0, aid:0, iv:0, gait:0, cognition:0};
 function renderItems(){
   var html = '';
   items.forEach(function(dim){
-    var sc = dim.key==='diagnosis' ? scores[dim.key] : scores[dim.key];
+    var sc = scores[dim.key];
     html += '<div class="score-item"><h3>' + dim.name + ' <span class="item-score" id="score_' + dim.key + '">' + sc + '</span></h3>';
     html += '<div class="option-row">';
     dim.options.forEach(function(opt){
@@ -284,8 +295,83 @@ function copyResult(){
   ToolBox.copyText(text, i18nText('msg604'));
 }
 
+function __morseOptionText(key, val){
+  var dims = items.filter(function(d){return d.key===key;});
+  if(!dims.length) return '';
+  var opts = dims[0].options.filter(function(o){return o.val===val;});
+  return opts.length ? opts[0].text : '';
+}
+function __morseLevel(total){
+  if(total < 25) return {label:'无跌倒风险', desc:'患者跌倒风险低，维持常规护理', en:'No fall risk', descEn:'Low fall risk; maintain routine care'};
+  if(total <= 50) return {label:'低度跌倒风险', desc:'建议：床头悬挂"防跌倒"警示标识，对患者及家属进行安全宣教，保持病区环境安全', en:'Low fall risk', descEn:'Post a "Fall Prevention" warning sign at the bedside, provide safety education to patient and family, keep the ward environment safe'};
+  return {label:'高度跌倒风险', desc:'建议：落实跌倒高危护理措施，专人陪护，使用床栏，穿防滑鞋，将呼叫铃置于伸手可及处', en:'High fall risk', descEn:'Implement high-risk fall nursing measures: dedicated escort, bed rails, non-slip footwear, call bell within reach'};
+}
+function __morseExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof items==='undefined'||typeof scores==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var dimEn={history:'Fall history',diagnosis:'Medical diagnosis',aid:'Walking aid',iv:'IV infusion',gait:'Gait',cognition:'Cognitive status'};
+    var rows=[];
+    items.forEach(function(dim){
+      rows.push([en?(dimEn[dim.key]||dim.name):dim.name, scores[dim.key], __morseOptionText(dim.key, scores[dim.key]), '']);
+    });
+    var total=0; for(var k in scores) total+=scores[k];
+    var lv=__morseLevel(total);
+    rows.push([en?'Total score (0-125)':'总分（0-125）', total, '', '']);
+    rows.push([en?'Fall risk level':'跌倒风险等级', en?lv.en:lv.label, '', '']);
+    rows.push([en?'Nursing recommendation':'护理建议', en?lv.descEn:lv.desc, '', '']);
+    var tb=document.querySelector('#morseTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#morseTable','morse-fall-risk.csv');
+  }catch(e){}
+}
+function applyMorsePreset(kind){
+  if(!kind) return;
+  var presets={
+    baseline:{history:0,diagnosis:0,aid:0,iv:0,gait:0,cognition:0},
+    low:{history:0,diagnosis:0,aid:15,iv:20,gait:10,cognition:0},
+    high:{history:25,diagnosis:15,aid:15,iv:20,gait:20,cognition:15}
+  };
+  var p=presets[kind];
+  if(!p) return;
+  scores=p;
+  renderItems();
+  calc();
+  __morseExtras();
+}
+function __morseExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var total=0; for(var k in scores) total+=scores[k];
+    var lv=__morseLevel(total);
+    var rec={score:total, level:TBKit.util.isEn()?lv.en:lv.label};
+    for(var k in scores) rec[k]=scores[k];
+    TBKit.history.record(rec, 3000);
+    __morseMountHist();
+  }catch(e){}
+}
+function __morseMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#morseHistory', function(rec){
+      for(var k in rec){
+        if(k==='score'||k==='level'||k==='t') continue;
+        if(typeof scores[k]!=='undefined') scores[k]=rec[k];
+      }
+      renderItems();
+      calc();
+    }, 8);
+  }catch(e){}
+}
+var __ms0=selectScore;
+selectScore=function(k,v){__ms0(k,v);__morseExtras();};
 renderItems();
 calc();
+__morseMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -383,6 +383,9 @@ window.__TI18N_EN = {
     '导出维修服务质量结果 CSV':'Export Maintenance Quality CSV',
     '导出 C-SSRS 评估结果 CSV':'Export C-SSRS Assessment CSV',
     '导出 MMPI-2 判读结果 CSV':'Export MMPI-2 Interpretation CSV',
+    '导出 Braden 评分 CSV':'Export Braden Score CSV',
+    '导出 Morse 评分 CSV':'Export Morse Score CSV',
+    '导出 NRS 疼痛评估 CSV':'Export NRS Pain Assessment CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——
