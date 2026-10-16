@@ -212,11 +212,15 @@ s.parentNode.insertBefore(el, s);
     <h2>统计结果</h2>
     <div class="stats" id="statsGrid"></div>
     <div class="readability" id="readability"></div>
-    <div class="density" id="densitySection" style="display:none;">
-      <h3>高频词统计（前10）</h3>
-      <div class="density-list" id="densityList"></div>
+      <div class="density" id="densitySection" style="display:none;">
+        <h3>高频词统计（前10）</h3>
+        <div class="density-list" id="densityList"></div>
+      </div>
+      <div class="toolbar" style="margin-top:14px;">
+        <button type="button" class="btn" onclick="__wcExport()">⬇️ 导出统计结果 CSV</button>
+      </div>
+      <table id="wcTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
     </div>
-  </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -267,6 +271,36 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 const input = document.getElementById('input');
+
+// [UX uplift] 结果明细表 + 导出 CSV（读取 #statsGrid 卡片，不改动计算内核）
+var __wcF0 = analyze;
+analyze = function(){ __wcF0(); __wcExtras(); };
+function __wcExtras(){
+  try{
+    var grid = document.getElementById('statsGrid');
+    var tbl = document.getElementById('wcTable');
+    if(!grid || !tbl) return;
+    var cards = grid.querySelectorAll('.stat-card');
+    if(cards.length === 0){ tbl.innerHTML=''; tbl.style.display='none'; return; }
+    var rows = [];
+    cards.forEach(function(c){
+      var n = c.querySelector('.num'), l = c.querySelector('.lbl');
+      if(n && l) rows.push([l.textContent.trim(), n.textContent.trim()]);
+    });
+    if(rows.length === 0){ tbl.innerHTML=''; tbl.style.display='none'; return; }
+    var html = '<thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #e8ecf1;">指标</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid #e8ecf1;">数值</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      html += '<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;">'+r[0]+'</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-variant-numeric:tabular-nums;">'+r[1]+'</td></tr>';
+    });
+    html += '</tbody>';
+    tbl.innerHTML = html;
+    tbl.style.display = 'table';
+  }catch(e){}
+}
+function __wcExport(){
+  if(typeof TBKit==='undefined') return;
+  try{ TBKit.util.exportTable('#wcTable','word-counter.csv'); }catch(e){}
+}
 
 input.addEventListener('input', debounce(analyze, 300));
 document.getElementById('showDensity').addEventListener('change', function() {

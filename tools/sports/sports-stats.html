@@ -214,6 +214,12 @@ s.parentNode.insertBefore(el, s);
     <h3 style="font-size:14px;margin:16px 0 8px;">最近 10 条记录</h3>
     <div id="records"></div>
 
+    <h3 style="font-size:14px;margin:16px 0 8px;">全部记录明细</h3>
+    <div class="toolbar" style="margin-bottom:8px;">
+      <button type="button" class="btn" onclick="__ssExport()">⬇️ 导出 CSV</button>
+    </div>
+    <table id="ssTable" class="result-table" style="width:100%;border-collapse:collapse;font-size:13px;display:none;"></table>
+
     <button type="button" class="btn" style="width:100%;margin-top:12px;" onclick="clearAll()">清空所有数据</button>
   </div>
 
@@ -366,6 +372,28 @@ function applySportPreset(kind){
 }
 document.getElementById('aDate').valueAsDate = new Date();
 render();
+
+// [UX uplift] 全部记录明细表 + 导出 CSV（读取 records 数组，不改动计算内核）
+var __ssF0 = render;
+render = function(){ __ssF0(); __ssExtras(); };
+function __ssExtras(){
+  try{
+    var tbl = document.getElementById('ssTable');
+    if(!tbl) return;
+    if(!records || records.length === 0){ tbl.innerHTML=''; tbl.style.display='none'; return; }
+    var html = '<thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border-color,#e8ecf1);">日期</th><th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--border-color,#e8ecf1);">类型</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid var(--border-color,#e8ecf1);">时长(min)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid var(--border-color,#e8ecf1);">距离(km)</th><th style="text-align:right;padding:6px 8px;border-bottom:2px solid var(--border-color,#e8ecf1);">卡路里(kcal)</th></tr></thead><tbody>';
+    records.forEach(function(r){
+      html += '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--bg-hover,#f0f0f0);">'+ (r.date||'') +'</td><td style="padding:6px 8px;border-bottom:1px solid var(--bg-hover,#f0f0f0);">'+ (r.sport||'') +'</td><td style="padding:6px 8px;border-bottom:1px solid var(--bg-hover,#f0f0f0);text-align:right;font-variant-numeric:tabular-nums;">'+ (r.minutes||0) +'</td><td style="padding:6px 8px;border-bottom:1px solid var(--bg-hover,#f0f0f0);text-align:right;font-variant-numeric:tabular-nums;">'+ (r.distance||0) +'</td><td style="padding:6px 8px;border-bottom:1px solid var(--bg-hover,#f0f0f0);text-align:right;font-variant-numeric:tabular-nums;">'+ (r.cal||0) +'</td></tr>';
+    });
+    html += '</tbody>';
+    tbl.innerHTML = html;
+    tbl.style.display = 'table';
+  }catch(e){}
+}
+function __ssExport(){
+  if(typeof TBKit==='undefined') return;
+  try{ TBKit.util.exportTable('#ssTable','sports-stats.csv'); }catch(e){}
+}
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
