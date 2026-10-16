@@ -172,6 +172,12 @@ s.parentNode.insertBefore(el, s);
 
 <div class="stat-grid" id="stats"></div>
 
+<div class="toolbar" style="margin-top:12px;">
+  <button type="button" class="btn" data-zh="⬇️ 导出统计指标与数据 CSV" onclick="__dsExport()">⬇️ Export Statistics &amp; Data CSV</button>
+  <span style="font-size:13px;color:var(--text-muted);" data-zh="全部统计指标与原始数据明细可导出为 CSV">All statistics and raw data can be exported as CSV</span>
+</div>
+<table id="dsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+
 <h3>📊 直方图</h3>
 <div class="histogram" id="histogram"></div>
 <div id="hist-info" style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;"></div>
@@ -313,13 +319,72 @@ function calc(){
 }
 
 function loadSample(){
- const samples = [
-  '12,15,18,22,25,28,30,32,35,38,40,42,45,48,50,52,55,58,60,62,65,68,70,72,75,78,80,82,85,88',
-  '55,62,68,72,75,78,80,82,85,85,88,90,92,95,98,100,105,110,115,120',
-  '1,2,2,3,3,3,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,8,8,9'
- ];
- document.getElementById('data').value = samples[Math.floor(Math.random()*samples.length)];
- calc();
+  const samples = [
+    '12,15,18,22,25,28,30,32,35,38,40,42,45,48,50,52,55,58,60,62,65,68,70,72,75,78,80,82,85,88',
+    '55,62,68,72,75,78,80,82,85,85,88,90,92,95,98,100,105,110,115,120',
+    '1,2,2,3,3,3,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,8,8,9'
+  ];
+  document.getElementById('data').value = samples[Math.floor(Math.random()*samples.length)];
+  calc();
+}
+
+function __dsExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var data=parseData();
+    if(data.length<2) return;
+    var n=data.length;
+    var sum=data.reduce(function(a,b){return a+b;},0);
+    var mean=sum/n;
+    var sorted=data.slice().sort(function(a,b){return a-b;});
+    var min=sorted[0],max=sorted[n-1];
+    var median=n%2?sorted[(n-1)/2]:(sorted[n/2-1]+sorted[n/2])/2;
+    var variance=data.reduce(function(s,x){return s+(x-mean)*(x-mean);},0)/n;
+    var std=Math.sqrt(variance);
+    var q1=sorted[Math.floor(n*0.25)];
+    var q3=sorted[Math.floor(n*0.75)];
+    var iqr=q3-q1;
+    var sampleVar=n>1?data.reduce(function(s,x){return s+(x-mean)*(x-mean);},0)/(n-1):0;
+    var sampleStd=Math.sqrt(sampleVar);
+    var skew=n>2?data.reduce(function(s,x){return s+Math.pow((x-mean)/sampleStd,3);},0)/n:0;
+    var kurt=n>3?data.reduce(function(s,x){return s+Math.pow((x-mean)/sampleStd,4);},0)/n-3:0;
+    var counts={};
+    data.forEach(function(x){counts[x]=(counts[x]||0)+1;});
+    var modeCount=0,modes=[];
+    Object.keys(counts).forEach(function(v){
+      var c=counts[v];
+      if(c>modeCount){modeCount=c;modes=[+v];}
+      else if(c===modeCount)modes.push(+v);
+    });
+    var rows=[
+      [en?'Sample size n':'样本数 n',n],
+      [en?'Sum':'总和 Σ',sum.toFixed(2)],
+      [en?'Mean':'均值 x̄',mean.toFixed(3)],
+      [en?'Median':'中位数',median.toFixed(3)],
+      [en?'Mode':'众数',modes.length===Object.keys(counts).length?'—':modes.join(',')],
+      [en?'Minimum':'最小值',min.toFixed(2)],
+      [en?'Maximum':'最大值',max.toFixed(2)],
+      [en?'Range R':'极差 R',(max-min).toFixed(2)],
+      [en?'Variance σ²':'方差 σ²',variance.toFixed(3)],
+      [en?'Std dev σ':'标准差 σ',std.toFixed(3)],
+      [en?'Sample variance s²':'样本方差 s²',sampleVar.toFixed(3)],
+      [en?'Sample std dev s':'样本标准差 s',sampleStd.toFixed(3)],
+      [en?'Q1 (lower quartile)':'Q1 下四分位',q1.toFixed(2)],
+      [en?'Q3 (upper quartile)':'Q3 上四分位',q3.toFixed(2)],
+      [en?'IQR':'IQR 四分位距',iqr.toFixed(2)],
+      [en?'Skewness':'偏度 Skew',skew.toFixed(3)],
+      [en?'Excess kurtosis':'超额峰度',kurt.toFixed(3)],
+      [en?'CV (%)':'变异系数 CV',(std/mean*100).toFixed(2)+'%']
+    ];
+    data.forEach(function(x,i){ rows.push([(en?'Data point ':'数据点 ')+(i+1),x]); });
+    var tb=document.querySelector('#dsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(row){ h+='<tr><td>'+row[0]+'</td><td>'+row[1]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#dsTable','data-distribution.csv');
+  }catch(e){}
 }
 
 calc();

@@ -15,6 +15,8 @@ window.__TI18N_EN = {
 '导出费用计算结果 CSV':'Export Cost Results CSV',
 '导出颜色格式与对比度 CSV':'Export Color Formats & Contrast CSV',
 '导出照护评估结果 CSV':'Export Eldercare Assessment CSV',
+'导出统计指标与数据 CSV':'Export Statistics & Data CSV',
+'导出干系人分析结果 CSV':'Export Stakeholder Analysis CSV',
 '导出物料平衡结果 CSV':'Export Material Balance Results CSV','导出个税计算结果 CSV':'Export Tax Calculation CSV','导出体表面积计算结果 CSV':'Export BSA Results CSV','导出理想体重计算结果 CSV':'Export IBW Results CSV','导出火灾荷载计算结果 CSV':'Export Fire Load Results CSV','导出灭火器配置结果 CSV':'Export Extinguisher Placement Results CSV',
     '导入':'Import','打印':'Print','分享':'Share','重置全部':'Reset All',
     '添加测站':'Add Station','添加测段':'Add Section','平差计算':'Adjust','图上→实际':'Map→Ground','实际→图上':'Ground→Map','图上+实际→比例尺':'Map+Ground→Scale',

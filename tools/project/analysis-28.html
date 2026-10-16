@@ -117,6 +117,11 @@ s.parentNode.insertBefore(el, s);
 <div class="toolbar"><button type="button" class="btn" onclick="addSh()">+ 添加干系人</button><button type="button" class="btn primary" onclick="calc()">分析矩阵</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
 <div class="result-box" id="res"></div>
     <div class="toolbar" style="margin-top:8px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出干系人分析结果 CSV" onclick="__an28Export()">⬇️ Export Stakeholder Analysis CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="干系人权力/利益/关注度/象限与应对策略可导出为 CSV">Stakeholder power/interest/attention/quadrant and strategies can be exported as CSV</span>
+    </div>
+    <table id="an28Table" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见项目预设：</span>
       <button type="button" class="btn" onclick="applyStakePreset('construction')">🏗️ 工程项目</button>
 <button type="button" class="btn" onclick="applyStakePreset('software')">💻 软件项目</button>
@@ -218,6 +223,33 @@ function calc(){
   const __g2=h;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 renderSh();calc();
+
+function __an28Export(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof shData==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var rows=[];
+    shData.forEach(function(s,idx){
+      var name=document.getElementById('sn'+idx).value||(en?'Stakeholder ':'干系人')+(idx+1);
+      var p=+document.getElementById('sp'+idx).value||0;
+      var i=+document.getElementById('si'+idx).value||0;
+      var score=p*i;
+      var level,strategy;
+      if(p>=3&&i>=3){level=en?'Manage closely':'重点管理';strategy=en?'Close engagement, joint decisions, frequent 1:1 communication':'密切参与、联合决策、高频一对一沟通';}
+      else if(p>=3&&i<3){level=en?'Keep satisfied':'令其满意';strategy=en?'Regular executive reporting, address key concerns':'高层定期汇报、满足关键诉求';}
+      else if(p<3&&i>=3){level=en?'Keep informed':'随时告知';strategy=en?'Weekly reports/reviews for transparency':'周报/评审会保持信息透明';}
+      else{level=en?'Monitor':'监控观察';strategy=en?'Low-cost monitoring of dynamics':'最低成本监测动态';}
+      rows.push([name,p,i,score,level,strategy]);
+    });
+    var tb=document.querySelector('#an28Table tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#an28Table','stakeholder-analysis.csv');
+  }catch(e){}
+}
 </script>
 
 <!-- SEO 介绍区块 -->
