@@ -184,6 +184,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="stat-grid" id="statGrid"></div>
     <div id="taskList" style="margin-top:12px;"></div>
+    <div id="hydChart"></div>
   </div>
 
   <div class="card" id="checklistCard" style="display:none;">
@@ -442,6 +443,23 @@ function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify(components)
 function load(){try{components=JSON.parse(localStorage.getItem(STORE_KEY))||[];}catch(e){components=[];}}
 function todayStr(){var d=new Date();var p=function(n){return n<10?'0'+n:n;};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
 function fmtDate(d){var p=function(n){return n<10?'0'+n:n;};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+
+function __hydExtras(){
+  if(typeof TBKit==='undefined') return;
+  var host=document.getElementById('hydChart'); if(!host) return;
+  if(!components||components.length===0){host.innerHTML='';return;}
+  var now=new Date(); now.setHours(0,0,0,0);
+  var labels=[],data=[];
+  components.forEach(function(c){
+    labels.push(c.name||'元件');
+    var due=nextDue(c); due.setHours(0,0,0,0);
+    var d=daysTo(now,due); if(!isFinite(d))d=0;
+    data.push(d);
+  });
+  TBKit.chart.bar('#hydChart',{labels:labels,series:[{name:'距下次维护(天)',data:data}],height:260,title:'各元件距下次维护天数（负值为已逾期）'});
+}
+var __hydRender=render;
+render=function(){__hydRender();__hydExtras();};
 
 document.addEventListener('DOMContentLoaded',function(){
   load();
