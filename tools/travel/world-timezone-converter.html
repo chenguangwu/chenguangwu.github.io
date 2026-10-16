@@ -175,6 +175,11 @@ s.parentNode.insertBefore(el, s);
 
     <div class="clock-grid" id="clockGrid"></div>
     <div id="tzChart" style="margin-top:14px;"></div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出各城市时间 CSV" onclick="__tzExport()">⬇️ Export City Times CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="所选城市换算后的时刻可导出为 CSV 表格">Converted times for selected cities can be exported as a CSV table</span>
+    </div>
+    <table id="tzTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -362,8 +367,29 @@ function __tzExtras(){
   TBKit.chart.bar('#tzChart',{labels:labels,series:[{name:'与本地时差(小时)',data:data}],height:240,title:'各城市与本地时差（小时）'});
 }
 var __tzRender=render;
-render=function(){__tzRender();__tzExtras();};
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__tzExtras();});}else{__tzExtras();}
+render=function(){__tzRender();__tzExtras();__tzTable();};
+function __tzTable(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var localT=document.getElementById('localTime').value;
+    var localD=document.getElementById('localDate').value;
+    var now=(localT&&localD)?new Date(localD+'T'+localT):new Date();
+    var localOffset=-now.getTimezoneOffset()/60;
+    var rows=[['城市','当地时刻','日期','与本地时差']];
+    selectedCities.forEach(function(c){
+      var data=cities[c]; if(!data)return;
+      var diff=data.offset-localOffset;
+      var tt=new Date(now.getTime()+diff*3600000);
+      rows.push([c,fmtTime(tt),fmtDate(tt),(diff>=0?'+':'')+diff+'小时']);
+    });
+    var tb=document.getElementById('tzTable'); if(!tb)return;
+    var html='<thead><tr><th>'+rows[0].join('</th><th>')+'</th></tr></thead><tbody>';
+    for(var i=1;i<rows.length;i++){ html+='<tr><td>'+rows[i].join('</td><td>')+'</td></tr>'; }
+    html+='</tbody>'; tb.innerHTML=html;
+  }catch(e){}
+}
+function __tzExport(){ if(typeof TBKit==='undefined') return; try{ TBKit.util.exportTable('#tzTable','world-timezone.csv'); }catch(e){} }
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__tzExtras();__tzTable();});}else{__tzExtras();__tzTable();}
 setInterval(()=>{
   const localT=document.getElementById('localTime').value;
   if(!localT)render();

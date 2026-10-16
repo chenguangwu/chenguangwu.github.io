@@ -199,6 +199,11 @@ s.parentNode.insertBefore(el, s);
       <input type="text" id="custom" readonly style="flex:1;">
       <button type="button" class="btn success copy-btn" onclick="copyVal('custom')">复制</button>
     </div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出进制对照表 CSV" onclick="__bcExport()">⬇️ Export Base Table CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="五种进制的转换结果可导出为 CSV 对照表">Conversion results across bases can be exported as a CSV comparison table</span>
+    </div>
+    <table id="bcTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 
   <div class="card">
@@ -331,6 +336,27 @@ function copyAll(){
 function clearAll(){
   document.getElementById('input').value = '';
   ['bin','oct','dec','hex','custom'].forEach(id => document.getElementById(id).value='');
+}
+
+function __bcExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var inp=(document.getElementById('input').value||'').trim();
+    if(!inp) return;
+    var num;
+    if(inp.startsWith('0x')||inp.startsWith('0X')) num=parseInt(inp,16);
+    else if(inp.startsWith('0b')||inp.startsWith('0B')) num=parseInt(inp.slice(2),2);
+    else if(inp.startsWith('0o')||inp.startsWith('0O')) num=parseInt(inp.slice(2),8);
+    else num=parseInt(inp,10);
+    if(isNaN(num)) return;
+    var cb=parseInt(document.getElementById('customBase').value)||36;
+    var rows=[['二进制',num.toString(2)],['八进制',num.toString(8)],['十进制',num.toString(10)],['十六进制',num.toString(16).toUpperCase()],['自定义进制('+cb+')',num.toString(cb).toUpperCase()]];
+    var tb=document.getElementById('bcTable'); if(!tb)return;
+    var html='<thead><tr><th>进制</th><th>数值</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
+    html+='</tbody>'; tb.innerHTML=html;
+    TBKit.util.exportTable('#bcTable','base-convert.csv');
+  }catch(e){}
 }
 
 convert();
