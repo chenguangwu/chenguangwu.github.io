@@ -132,6 +132,17 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 MDQ 双相筛查 CSV" onclick="__mdqExport()">⬇️ Export MDQ Bipolar Screen CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="13 项既往表现、同期性、困扰程度与三条筛查标准结论可导出为 CSV">All 13 lifetime items, co-occurrence, distress level and three screening-criteria result can be exported as CSV</span>
+    </div>
+    <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
+      <button type="button" class="btn" onclick="applyMdqPreset('no')" data-zh="⚪ 全部「否」">⚪ All No</button>
+      <button type="button" class="btn" onclick="applyMdqPreset('yes')" data-zh="🔴 全部「是」">🔴 All Yes</button>
+    </div>
+    <table id="mdqTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="mdqHistory" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">MDQ 阳性判定标准（同时满足）</h3>
     <table>
@@ -276,13 +287,80 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __mdqExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof QS==='undefined'||typeof A==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var done1=A.filter(function(v){return v>=0;}).length;
+    var rows=[];
+    for(var i=0;i<QS.length;i++){
+      var v=A[i];
+      var ans = v<0?(en?'Unanswered':'未作答'):(v===0?(en?'Yes':'是'):(en?'No':'否'));
+      rows.push([en?('Q'+(i+1)):('第'+(i+1)+'题'), QS[i], ans, '']);
+    }
+    rows.push([en?'Part 2 co-occurrence':'第二部分 同期发生', P2<0?(en?'Unanswered':'未作答'):(P2===0?(en?'Yes':'是'):(en?'No':'否')), '', '']);
+    rows.push([en?'Part 3 distress level':'第三部分 困扰程度', P3<0?(en?'Unanswered':'未作答'):Q3[P3], '', '']);
+    if(done1>=QS.length && P2>=0 && P3>=0){
+      var yes=A.filter(function(v){return v===0;}).length;
+      var c1=yes>=7, c2=P2===0, c3=P3>=2;
+      var screen=c1&&c2&&c3;
+      var sev=screen?(en?'Positive':'筛查阳性'):(en?'Negative':'筛查阴性');
+      var sevEn={'筛查阳性':'Positive','筛查阴性':'Negative'};
+      var advice=screen?(en?'All three criteria met; possible bipolar disorder, seek professional mood-disorder evaluation.':'三条标准同时满足，提示可能存在双相障碍，建议尽快接受专业心境障碍评估。'):
+                              (en?'Criteria not all met; currently MDQ screen negative.':'未同时满足三条标准，目前未达MDQ筛查阳性。');
+      rows.push([en?'Part1 "Yes" count':'第一部分「是」数', yes+'/13', '', '']);
+      rows.push([en?'Criterion1 (≥7 yes)':'标准1(≥7项「是」)', c1?(en?'Met':'满足'):(en?'Not met':'不满足'), '', '']);
+      rows.push([en?'Criterion2 (co-occur)':'标准2(同期发生)', c2?(en?'Met':'满足'):(en?'Not met':'不满足'), '', '']);
+      rows.push([en?'Criterion3 (distress≥2)':'标准3(困扰≥2)', c3?(en?'Met':'满足'):(en?'Not met':'不满足'), '', '']);
+      rows.push([en?'Screening result':'筛查结论', en?(sevEn[sev]||sev):sev, '', '']);
+      rows.push([en?'Advice':'建议', advice, '', '']);
+    }
+    var tb=document.querySelector('#mdqTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#mdqTable','mdq-bipolar.csv');
+  }catch(e){}
+}
+function __mdqExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var done1=A.filter(function(v){return v>=0;}).length;
+    if(done1<QS.length||P2<0||P3<0) return;
+    var yes=A.filter(function(v){return v===0;}).length;
+    var c1=yes>=7, c2=P2===0, c3=P3>=2;
+    var rec={answered:(done1+'/'+QS.length), part1yes:yes+'/13', screen:(c1&&c2&&c3)?'阳性':'阴性', ans:A.join(','), p2:P2, p3:P3};
+    TBKit.history.record(rec,3000);
+    __mdqMountHist();
+  }catch(e){}
+}
+function __mdqMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#mdqHistory', function(rec){
+      if(typeof rec.ans!=='string'||!rec.ans) return;
+      A=rec.ans.split(',').map(function(x){return parseInt(x);});
+      P2=rec.p2; P3=rec.p3;
+      render();
+    },8);
+  }catch(e){}
+}
+function applyMdqPreset(mode){
+  if(mode==='no'){ A=A.map(function(){return 1;}); P2=1; P3=0; }
+  else if(mode==='yes'){ A=A.map(function(){return 0;}); P2=0; P3=3; }
+  render(); calc();
+}
 function copyResult(){
   var done1=A.filter(function(v){return v>=0;}).length;
   if(done1<QS.length||P2<0||P3<0){ToolBox.showToast(i18nText(), 'warning');return;}
   var yes=A.filter(function(v){return v===0;}).length;
   ToolBox.copyText('MDQ 双相筛查：第一部分"是"'+yes+'/13，筛查'+(yes>=7&&P2===0&&P3>=2?'阳性':'阴性'), i18nText('toast.msg544'));
 }
+var __md0=calc; calc=function(){__md0(); __mdqExtras();};
 render();calc();
+__mdqMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->
