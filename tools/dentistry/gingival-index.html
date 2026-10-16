@@ -149,6 +149,12 @@ s.parentNode.insertBefore(el, s);
 
     <div class="result-box" id="result"></div>
 
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出牙龈指数结果 CSV" onclick="__giExport()">⬇️ Export Gingival Index CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各指数牙 GI 均值、BOP 与汇总评估可导出为 CSV">Per-index-tooth GI, BOP, and summary assessment can be exported as CSV</span>
+    </div>
+    <table id="giTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+
     <div class="info-box" style="margin-top:16px;">
       ⚠️ GI 与 BOP 是评估牙龈炎症的常用指标。BOP 阳性率是牙龈炎症活动性的敏感指标。
     </div>
@@ -346,6 +352,59 @@ function copyResult() {
   let bopP = 0;
   TEETH.forEach(t => { if (parseInt(document.getElementById(`${t.id}_bop`).value) === 1) bopP++; });
   ToolBox.copyText(`GI=${gi.toFixed(2)}，BOP阳性率=${(bopP / TEETH.length * 100).toFixed(0)}%`, i18nText());
+}
+
+function __giExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof TEETH==='undefined'||typeof SITES==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var allScores=[];
+    var bopPositive=0;
+    var rows=[];
+    TEETH.forEach(function(t){
+      var toothScores=[];
+      SITES.forEach(function(s,si){
+        var el=document.getElementById(t.id+'_'+si);
+        var v=el?parseInt(el.value):0;
+        if(!isFinite(v))v=0;
+        toothScores.push(v);
+        allScores.push(v);
+      });
+      var bopEl=document.getElementById(t.id+'_bop');
+      var bop=bopEl?parseInt(bopEl.value):0;
+      if(bop===1)bopPositive++;
+      var avg=toothScores.reduce(function(a,b){return a+b;},0)/4;
+      rows.push([t.name,avg.toFixed(2),bop===1?(en?'Positive':'阳性'):(en?'Negative':'阴性')]);
+    });
+    if(!allScores.length) return;
+    var gi=allScores.reduce(function(a,b){return a+b;},0)/allScores.length;
+    var bopRate=bopPositive/TEETH.length*100;
+    var giGrade,giGradeEn;
+    if(gi<=0){giGrade='牙龈健康';giGradeEn='Healthy gingiva';}
+    else if(gi<=1.0){giGrade='轻度牙龈炎';giGradeEn='Mild gingivitis';}
+    else if(gi<=2.0){giGrade='中度牙龈炎';giGradeEn='Moderate gingivitis';}
+    else{giGrade='重度牙龈炎';giGradeEn='Severe gingivitis';}
+    var bopGrade,bopGradeEn;
+    if(bopRate<10){bopGrade='BOP阴性/极少';bopGradeEn='BOP negative/minimal';}
+    else if(bopRate<30){bopGrade='轻度出血';bopGradeEn='Mild bleeding';}
+    else if(bopRate<50){bopGrade='中度出血';bopGradeEn='Moderate bleeding';}
+    else{bopGrade='重度出血';bopGradeEn='Severe bleeding';}
+    var advice,adviceEn;
+    if(gi<=1.0&&bopRate<30){advice='炎症较轻，加强口腔卫生与定期洁治即可。';adviceEn='Mild inflammation; reinforce oral hygiene and regular prophylaxis';}
+    else if(gi<=2.0){advice='中度炎症，需牙周基础治疗（洁治+根面平整）及菌斑控制指导。';adviceEn='Moderate inflammation; periodontal basic therapy (scaling + root planing) and plaque control';}
+    else{advice='重度炎症，需系统牙周治疗并排查系统性疾病，必要时药物治疗。';adviceEn='Severe inflammation; systematic periodontal therapy, screen for systemic disease';}
+    rows.push([en?'Gingival Index (GI)':'牙龈指数 GI',gi.toFixed(2),en?giGradeEn:giGrade]);
+    rows.push([en?'BOP positive rate':'BOP阳性率',bopRate.toFixed(0)+'%',bopPositive+'/'+TEETH.length+' · '+(en?bopGradeEn:bopGrade)]);
+    rows.push([en?'Assessed sites':'评估位点数',allScores.length,'']);
+    rows.push([en?'Advice':'建议',0,en?adviceEn:advice]);
+    var tb=document.querySelector('#giTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#giTable','gingival-index.csv');
+  }catch(e){}
 }
 
 buildInputs();
