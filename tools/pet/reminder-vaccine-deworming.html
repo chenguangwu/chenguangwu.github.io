@@ -150,6 +150,11 @@ s.parentNode.insertBefore(el, s);
   <!-- 宠物列表 -->
   <div id="petList"></div>
 
+  <div class="card" id="vaxChartCard">
+    <h3>📊 各宠物距最近待办到期天数</h3>
+    <div id="vaxChart"></div>
+  </div>
+
   <!-- 记录日志 -->
   <div class="card" id="logCard" style="display:none;">
     <h3>📋 全部记录日志</h3>
@@ -594,6 +599,28 @@ function render(){
   renderPets();
   renderLog();
 }
+
+function __vaxExtras(){
+  if(typeof TBKit==='undefined') return;
+  var host=document.getElementById('vaxChart'); if(!host) return;
+  var labels=[],data=[];
+  pets.forEach(function(p){
+    var items=computeItems(p);
+    var best=null;
+    items.forEach(function(it){
+      if(it.done||it.na||it.countdown===null||!isFinite(it.countdown)) return;
+      if(best===null||it.countdown<best) best=it.countdown;
+    });
+    if(best!==null){ labels.push(p.name); data.push(best); }
+  });
+  if(!labels.length){ host.innerHTML=''; return; }
+  TBKit.chart.bar('#vaxChart',{labels:labels,series:[{name:'距最近到期(天)',data:data}],height:Math.max(220,labels.length*46),title:'各宠物距最近待办到期天数'});
+}
+
+var __vaxRender=render;
+render=function(){__vaxRender();__vaxExtras();};
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__vaxExtras();});}else{__vaxExtras();}
+
 render();
 })();
 </script>
