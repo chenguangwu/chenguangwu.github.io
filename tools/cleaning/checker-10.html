@@ -128,6 +128,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div id="modChart"></div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出保洁质量考核结果 CSV" onclick="__clean10Export()">⬇️ Export Cleaning Quality Assessment CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="16 项区域评分、四区平均分、综合考核分与奖惩建议可导出为 CSV">All 16 area item scores, zone averages, overall score, and reward/penalty advice can be exported as CSV</span>
+    </div>
+    <table id="clean10Table" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -166,6 +171,54 @@ var AREAS=[
   });
   const __g1=html;document.getElementById('areas').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 })();
+function __clean10Export(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof AREAS==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var totalAvg=0,areaRows=[],zeroItems=[];
+    var rows=[];
+    AREAS.forEach(function(a,ai){
+      var sum=0;
+      a.items.forEach(function(it,ii){
+        var sel=document.getElementById('a'+ai+'_'+ii);
+        var v=sel?parseInt(sel.value):0;
+        if(!isFinite(v))v=0;
+        sum+=v;
+        if(v===0)zeroItems.push('【'+a.name+'】'+it);
+        var lbl=v+'分';
+        if(v===0)lbl+=en?' (not done)':'（未做）';
+        else if(v===5)lbl+=en?' (excellent)':'（优秀）';
+        rows.push([a.name, it, v, lbl]);
+      });
+      var avg=sum/a.items.length;
+      totalAvg+=avg;
+      areaRows.push({name:a.name,avg:avg,score:sum,max:a.items.length*5});
+    });
+    var score=Math.round(totalAvg/AREAS.length*20);
+    var level,action;
+    if(score>=90){level=en?'Excellent':'优秀';action=en?'Recommend a monthly quality bonus (e.g., cash bonus/public commendation) and summarize best practices for rollout':'建议给予月度质量奖励（如奖金/通报表扬），并总结优秀经验推广。';}
+    else if(score>=80){level=en?'Good':'良好';action=en?'Cleaning quality meets standards; maintain current level and strengthen training for lower-scoring items':'保洁质量达标，建议保持现有水平，针对较低分项加强培训。';}
+    else if(score>=70){level=en?'Pass':'合格';action=en?'Cleaning quality basically passes; increase inspection frequency and cleaner training for weak areas':'保洁质量基本合格，需针对薄弱区域加强检查频次和保洁员培训。';}
+    else{level=en?'Fail':'不合格';action=en?'Cleaning quality below standard; deduct monthly quality assessment points, require rectification within a deadline, and arrange re-inspection':'保洁质量不达标，建议扣罚当月质量考核分，限期整改并安排复查。';}
+    areaRows.forEach(function(r){
+      rows.push([r.name, en?'Zone average':'区域平均分', r.avg.toFixed(1), r.score+'/'+r.max]);
+    });
+    rows.push([en?'Overall':'综合', en?'Overall assessment score':'综合考核分', score+'/100', level]);
+    rows.push([en?'Reward/penalty advice':'奖惩建议', action,'','']);
+    if(zeroItems.length){
+      rows.push([en?'Zero-score items':'严重扣分项', zeroItems.length+' '+(en?'item(s)':'项'), zeroItems.join('；'), '']);
+    }else{
+      rows.push([en?'Zero-score items':'严重扣分项', en?'0 items':'0 项', en?'No zero-score items':'无零分项', '']);
+    }
+    var tb=document.querySelector('#clean10Table tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#clean10Table','cleaning-quality-assessment.csv');
+  }catch(e){}
+}
 function calc(){
   var totalAvg=0,areaRows=[],zeroItems=[];
   AREAS.forEach(function(a,ai){

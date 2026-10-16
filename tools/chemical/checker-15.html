@@ -128,14 +128,18 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetForm()">全部重置</button>
     </div>
     <div id="modChart"></div>
-    <div class="result-box" id="res">
+    <div class="result-box" id="res"></div>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
       <button type="button" class="btn" onclick="applyQmsPreset('full')">🟢 体系完善</button>
 <button type="button" class="btn" onclick="applyQmsPreset('partial')">🟡 部分落实</button>
 <button type="button" class="btn" onclick="applyQmsPreset('none')">🔴 普遍缺失</button>
     </div>
-</div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出体系合规检查结果 CSV" onclick="__qmsExport()">⬇️ Export QMS Compliance Check CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="16 项落实情况、三模块达成率、体系合规度与需整改项可导出为 CSV">All 16 implementation statuses, module achievement rates, compliance level, and rectification items can be exported as CSV</span>
+    </div>
+    <table id="qmsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -185,6 +189,46 @@ var MODULES=[
   });
   const __g1=html;document.getElementById('modules').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 })();
+function __qmsExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof MODULES==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var gradeLabels={0:en?'Not implemented (0 pts)':'未落实（0分）',1:en?'Partially implemented (1 pt)':'部分落实（1分）',2:en?'Implemented (2 pts)':'已落实（2分）'};
+    var totalScore=0,totalMax=0,gaps=[],modRows=[];
+    var rows=[];
+    MODULES.forEach(function(m,mi){
+      var ms=0,mm=m.items.length*2;
+      m.items.forEach(function(it,ii){
+        var sel=document.getElementById('m'+mi+'_'+ii);
+        var v=sel?parseInt(sel.value):0;
+        if(!isFinite(v))v=0;
+        ms+=v;totalScore+=v;
+        if(v<2)gaps.push('【'+m.name.replace(/^[一二三]、/,'')+'】'+it+'（'+(v===0?(en?'Not implemented':'未落实'):(en?'Partially implemented':'部分落实'))+'）');
+        rows.push([m.name, it, v, gradeLabels[v]||'']);
+      });
+      totalMax+=mm;
+      modRows.push({name:m.name,rate:Math.round(ms/mm*100),score:ms,max:mm});
+    });
+    var rate=Math.round(totalScore/totalMax*100);
+    var level=rate>=90?(en?'Excellent':'优秀'):rate>=75?(en?'Good':'良好'):rate>=60?(en?'Pass':'合格'):(en?'Fail':'不合格');
+    modRows.forEach(function(r){
+      rows.push([r.name, en?'Module achievement rate':'模块达成率', r.rate+'%', r.score+'/'+r.max]);
+    });
+    rows.push([en?'Overall':'总体', en?'System compliance level':'体系合规度', rate+'%', level]);
+    if(gaps.length){
+      rows.push([en?'Rectification items':'需整改项', gaps.length+' '+(en?'item(s)':'项'), gaps.join('；'), '']);
+    }else{
+      rows.push([en?'Rectification items':'需整改项', en?'0 items':'0 项', en?'All items implemented; the quality management system runs well. Maintain and conduct regular internal audits':'全部项目已落实，质量管理体系运行良好，建议持续保持并定期内审。', '']);
+    }
+    var tb=document.querySelector('#qmsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#qmsTable','qms-compliance-check.csv');
+  }catch(e){}
+}
 function calc(){
   var totalScore=0,totalMax=0,gaps=[],modRows=[];
   MODULES.forEach(function(m,mi){

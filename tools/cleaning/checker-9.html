@@ -128,6 +128,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div id="modChart"></div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 SOP 标准化检查结果 CSV" onclick="__sopExport()">⬇️ Export SOP Standardization Check CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="15 项制定情况、三模块完成率、标准化程度与待完善项可导出为 CSV">All 15 item statuses, module completion rates, standardization level, and pending items can be exported as CSV</span>
+    </div>
+    <table id="sopTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -176,6 +181,46 @@ var MODULES=[
   });
   const __g1=html;document.getElementById('modules').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 })();
+function __sopExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof MODULES==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var gradeLabels={0:en?'Not established (0 pts)':'未制定（0分）',1:en?'Established, pending improvement (1 pt)':'已制定待完善（1分）',2:en?'Established and implemented (2 pts)':'已制定并执行（2分）'};
+    var totalScore=0,totalMax=0,gaps=[],modRows=[];
+    var rows=[];
+    MODULES.forEach(function(m,mi){
+      var ms=0,mm=m.items.length*2;
+      m.items.forEach(function(it,ii){
+        var sel=document.getElementById('m'+mi+'_'+ii);
+        var v=sel?parseInt(sel.value):0;
+        if(!isFinite(v))v=0;
+        ms+=v;totalScore+=v;
+        if(v<2)gaps.push('【'+m.name.replace(/^[一二三]、/,'')+'】'+it+'（'+(v===0?(en?'Not established':'未制定'):(en?'Pending improvement':'待完善'))+'）');
+        rows.push([m.name, it, v, gradeLabels[v]||'']);
+      });
+      totalMax+=mm;
+      modRows.push({name:m.name,rate:Math.round(ms/mm*100),score:ms,max:mm});
+    });
+    var rate=Math.round(totalScore/totalMax*100);
+    var level=rate>=90?(en?'Fully standardized':'流程完善'):rate>=75?(en?'Basically standardized':'基本完善'):rate>=60?(en?'Needs improvement':'待改进'):(en?'Needs rebuilding':'需重建');
+    modRows.forEach(function(r){
+      rows.push([r.name, en?'Module completion rate':'模块完成率', r.rate+'%', r.score+'/'+r.max]);
+    });
+    rows.push([en?'Overall':'总体', en?'Standardization level':'标准化程度', rate+'%', level]);
+    if(gaps.length){
+      rows.push([en?'Pending items':'待完善项', gaps.length+' '+(en?'item(s)':'项'), gaps.join('；'), '']);
+    }else{
+      rows.push([en?'Pending items':'待完善项', en?'0 items':'0 项', en?'Process standardization is complete; SOP development, execution, and inspection are all in place. Maintain and update regularly':'流程标准化完善，SOP 制定、操作执行、检查落实均到位，建议持续维护并定期更新。', '']);
+    }
+    var tb=document.querySelector('#sopTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#sopTable','sop-standardization-check.csv');
+  }catch(e){}
+}
 function calc(){
   var totalScore=0,totalMax=0,gaps=[],modRows=[];
   MODULES.forEach(function(m,mi){
