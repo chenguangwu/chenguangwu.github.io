@@ -149,6 +149,14 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="margin-top:12px;font-size:16px;">预览</h3>
     <textarea id="preview" rows="14" readonly></textarea>
+    <div id="robotsChart" style="margin-top:12px;"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__robotsExport()">⬇️ 导出规则清单 CSV</button>
+    </div>
+    <table id="robotsTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
 
     <div class="tool-notes">
       <div class="tool-notes-title">📌 说明</div>
@@ -287,8 +295,55 @@ function render() {
   }
 
   document.getElementById('preview').value = lines.join('\n').replace(/^\n+/, '');
+  if(typeof __robotsExtras==='function'){try{__robotsExtras();}catch(e){}}
 }
 
+function __robotsRows(){
+  var out=[];
+  rules.forEach(function(r,gi){
+    var uas=r.ua.split(',').map(function(s){return s.trim();}).filter(Boolean);
+    if(!uas.length)uas=['*'];
+    uas.forEach(function(ua){
+      r.allow.forEach(function(p){out.push([gi+1,ua,'Allow',p,r.delay||'']);});
+      r.disallow.forEach(function(p){out.push([gi+1,ua,'Disallow',p,r.delay||'']);});
+      if(!r.allow.length&&!r.disallow.length)out.push([gi+1,ua,'(empty)','','']);
+    });
+  });
+  return out;
+}
+function __robotsExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=__robotsRows();
+  var byUa={};
+  rows.forEach(function(r){byUa[r[1]]=(byUa[r[1]]||0)+1;});
+  var uas=Object.keys(byUa);
+  if(TBKit.chart&&TBKit.chart.bar&&uas.length){
+    try{
+      TBKit.chart.bar('#robotsChart',{labels:uas,series:[{name:en?'Rule count':'规则条数',data:uas.map(function(u){return byUa[u];})}],height:200,title:en?'Rules per user-agent':'各 User-agent 规则条数'});
+    }catch(e){}
+  }
+  var t=document.getElementById('robotsTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');
+  if(!rows.length){t.style.display='none';if(th)th.innerHTML='';return;}
+  if(th)th.innerHTML='<tr><th>'+(en?'Group':'规则组')+'</th><th>User-agent</th><th>'+(en?'Directive':'指令')+'</th><th>'+(en?'Path':'路径')+'</th><th>Crawl-delay</th></tr>';
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    r.forEach(function(v){var c=document.createElement('td');c.textContent=v;tr.appendChild(c);});
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+}
+function __robotsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=__robotsRows();
+  if(!rows.length){ToolBox.showToast(en?'No rule to export':'当前没有可导出的规则','warning');return;}
+  __robotsExtras();
+  var t=document.getElementById('robotsTable');if(!t)return;
+  TBKit.util.exportTable('#robotsTable','robots_rules.csv');
+}
 function copyResult() {
   const val = document.getElementById('preview').value;
   ToolBox.copyText(val, i18nText('msg124'));

@@ -324,6 +324,14 @@ s.parentNode.insertBefore(el, s);
       <span class="stat-chip">混淆后: <strong id="statObfuscated">0</strong> 字符</span>
       <span class="stat-chip">压缩率: <strong id="statRatio">-</strong></span>
     </div>
+    <div id="obfChart" style="margin-top:12px;"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="window.__obfExport&&window.__obfExport()">⬇️ 导出混淆统计 CSV</button>
+    </div>
+    <table id="obfTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
 
     <!-- 安全提示 -->
     <div class="tip-box tip-warn">
@@ -1044,6 +1052,74 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function num(id){var e=document.getElementById(id);if(!e)return 0;var v=parseInt(String(e.textContent||'').replace(/[^0-9]/g,''),10);return isFinite(v)?v:0;}
+  var OPTS_DEF=[
+    ['optVarRename','变量重命名','Identifier renaming'],
+    ['optStringEncrypt','字符串加密','String encryption'],
+    ['optRemoveComments','移除注释','Comment removal'],
+    ['optRemoveWhitespace','移除空白','Whitespace removal'],
+    ['optNumberHex','数字十六进制化','Number hex conversion'],
+    ['optStringArray','字符串数组化','String array extraction']
+  ];
+  window.__obfRows=function(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    var orig=num('statOriginal'),obf=num('statObfuscated');
+    var rows=[];
+    rows.push([en?'Original size (chars)':'原始字符数',orig,'']);
+    rows.push([en?'Obfuscated size (chars)':'混淆后字符数',obf,'']);
+    var delta=obf-orig;
+    rows.push([en?'Size change':'体积变化',(delta>0?'+':'')+delta,delta>0?(en?'Larger after obfuscation':'混淆后体积增大'):(delta<0?(en?'Smaller after obfuscation':'混淆后体积减小'):(en?'Unchanged':'无变化'))]);
+    if(orig>0&&obf>0){
+      var r=((1-obf/orig)*100);
+      rows.push([en?'Size ratio':'体积变化率',(r>0?r.toFixed(1)+'%':'+'+Math.abs(r).toFixed(1)+'%'),r>0?(en?'Shrunk':'缩小'):(en?'Grew':'增大')]);
+    }
+    OPTS_DEF.forEach(function(o){
+      var el=document.getElementById(o[0]);
+      rows.push([en?o[2]:o[1],el?(el.checked?(en?'Enabled':'启用'):(en?'Disabled':'未启用')):(en?'N/A':'—'),'']);
+    });
+    return rows;
+  };
+  window.__obfExtras=function(){
+    if(typeof TBKit==='undefined')return;
+    var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    var orig=num('statOriginal'),obf=num('statObfuscated');
+    if(TBKit.chart&&TBKit.chart.bar&&(orig>0||obf>0)){
+      try{
+        TBKit.chart.bar('#obfChart',{labels:en?['Original','Obfuscated']:['原始','混淆后'],series:[{name:en?'Characters':'字符数',data:[orig,obf]}],height:200,title:en?'Size before / after obfuscation':'混淆前后字符数对比'});
+      }catch(e){}
+    }
+    var t=document.getElementById('obfTable');if(!t)return;
+    var tb=t.querySelector('tbody');tb.innerHTML='';
+    var th=t.querySelector('thead');
+    var rows=window.__obfRows();
+    if(!rows.length){t.style.display='none';return;}
+    if(th)th.innerHTML='<tr><th>'+(en?'Metric':'统计项')+'</th><th>'+(en?'Value':'数值')+'</th><th>'+(en?'Note':'说明')+'</th></tr>';
+    rows.forEach(function(r){
+      var tr=document.createElement('tr');
+      r.forEach(function(v){var c=document.createElement('td');c.textContent=v;tr.appendChild(c);});
+      tb.appendChild(tr);
+    });
+    t.style.display='';
+  };
+  window.__obfExport=function(){
+    if(typeof TBKit==='undefined')return;
+    var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    if(num('statOriginal')===0&&num('statObfuscated')===0){
+      ToolBox.showToast(en?'Run obfuscation first':'请先执行混淆','warning');return;
+    }
+    window.__obfExtras();
+    var t=document.getElementById('obfTable');
+    if(t&&t.querySelector('tbody').children.length){TBKit.util.exportTable('#obfTable','js_obfuscator_stats.csv');}
+  };
+  if(typeof window.updateStats==='function'){
+    var u0=window.updateStats;
+    window.updateStats=function(a,b){u0(a,b);try{window.__obfExtras();}catch(e){}};
+  }
+  try{window.__obfExtras();}catch(e){}
+})();
 </script>
 </body>
 </html>
