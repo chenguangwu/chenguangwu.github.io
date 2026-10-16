@@ -138,6 +138,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 IRLS 评分结果 CSV" onclick="__rlsExport()">⬇️ Export IRLS Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各题得分、维度分析与严重程度分级可导出为 CSV">Per-item scores, dimension analysis, and severity rating can be exported as CSV</span>
+    </div>
+    <table id="rlsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -296,6 +302,49 @@ function calc(){
   html += '<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;"><strong>治疗建议</strong><br>'+advice+'</div>';
 
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+function __rlsExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof questions==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var total=0,severity=0,sleep=0,dailyLife=0,features=0;
+    var rows=[];
+    questions.forEach(function(item,i){
+      var radios=document.getElementsByName('q'+i);
+      var v=0;
+      for(var j=0;j<radios.length;j++){
+        if(radios[j].checked){ v=parseInt(radios[j].value); break; }
+      }
+      total+=v;
+      if(i<3)severity+=v;
+      else if(i<5)sleep+=v;
+      else if(i<7)dailyLife+=v;
+      else features+=v;
+      var sec=item.section||'';
+      rows.push([(sec?sec+' / ':'')+item.q,v,5]);
+    });
+    var sev,advice;
+    if(total===0){sev=en?'Asymptomatic':'无症状';advice=en?'No restless legs symptoms':'无不宁腿症状。';}
+    else if(total<=10){sev=en?'Mild':'轻度';advice=en?'Mild RLS; non-pharmacological treatment, check ferritin':'轻度RLS。建议非药物治疗（规律运动、睡眠卫生、避免咖啡因/酒精）。查血清铁蛋白，若＜75μg/L口服补铁。';}
+    else if(total<=20){sev=en?'Moderate':'中度';advice=en?'Moderate RLS; consider dopamine agonists or alpha-2-delta ligands':'中度RLS。建议药物治疗：多巴胺受体激动剂（普拉克索起始0.125mg）或α2δ配体（加巴喷丁/普瑞巴林）。补铁治疗。';}
+    else if(total<=30){sev=en?'Severe':'重度';advice=en?'Severe RLS; medication with regular ferritin monitoring':'重度RLS。需药物治疗，定期监测铁蛋白（目标＞100μg/L）。警惕多巴胺类药物导致的症状加重(augmentation)。必要时换用α2δ配体。';}
+    else{sev=en?'Very severe':'极重度';advice=en?'Very severe RLS; comprehensive management, review aggravating factors':'极重度RLS，严重影响生活。需综合药物管理，排查加重因素（缺铁、肾功能不全、药物）。考虑阿片类药物（低剂量）作为难治性RLS的三线治疗。';}
+    rows.push([en?'Symptom severity (max 12)':'症状严重程度 (满分 12)',severity,12]);
+    rows.push([en?'Impact on sleep (max 8)':'对睡眠的影响 (满分 8)',sleep,8]);
+    rows.push([en?'Impact on daily life (max 8)':'对日常生活的影响 (满分 8)',dailyLife,8]);
+    rows.push([en?'Symptom features (max 12)':'症状特征 (满分 12)',features,12]);
+    rows.push([en?'IRLS total (max 40)':'IRLS 总分 (满分 40)',total,40]);
+    rows.push([en?'Severity':'严重程度',0,sev]);
+    rows.push([en?'Treatment advice':'治疗建议',0,advice]);
+    var tb=document.querySelector('#rlsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#rlsTable','irls-score.csv');
+  }catch(e){}
 }
 
 function copyResult(){
