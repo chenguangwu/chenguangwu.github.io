@@ -269,6 +269,14 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="btn" onclick="__lunarExport()">⬇️ 导出历法明细 CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);">导出当前查询的公历/农历/干支/生肖/星座/节气/宜忌明细</span>
+    </div>
+    <table id="lunarTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead><tbody></tbody>
+    </table>
+
     <div class="disclaimer">⚠️ 以上内容仅供娱乐参考，不构成任何决策建议</div>
   </div>
 
@@ -601,6 +609,47 @@ function displayResult(solarY, solarM, solarD, lunar) {
   }
 }
 
+function __lunarIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __lunarTxt(id){ const el = document.getElementById(id); return el ? (el.textContent||'').trim() : ''; }
+function __lunarExport(){
+  if(typeof TBKit==='undefined')return;
+  const en = __lunarIsEn();
+  const t = document.getElementById('lunarTable'); if(!t)return;
+  const tb = t.querySelector('tbody'); tb.innerHTML='';
+  const th = t.querySelector('thead'); if(th) th.innerHTML = en
+    ? '<tr><th>Item</th><th>Result</th></tr>'
+    : '<tr><th>项目</th><th>结果</th></tr>';
+  const rows = en
+    ? [['Lunar date', __lunarTxt('resultMain')],
+       ['Gan-Zhi year', __lunarTxt('resultGanzhi')],
+       ['Lunar year / zodiac / Gregorian', __lunarTxt('resultSub')],
+       ['Zodiac animal', __lunarTxt('infoZodiac')],
+       ['Constellation', __lunarTxt('infoConstellation')],
+       ['Weekday', __lunarTxt('infoWeekday')],
+       ['Day of year', __lunarTxt('infoDayOfYear')],
+       ['Nearby solar term', __lunarTxt('solarTermName').replace('🌾','').trim()+' ('+__lunarTxt('solarTermDate')+')'],
+       ['Auspicious (Yi)', __lunarTxt('yiContent')],
+       ['Inauspicious (Ji)', __lunarTxt('jiContent')]]
+    : [['农历日期', __lunarTxt('resultMain')],
+       ['干支纪年', __lunarTxt('resultGanzhi')],
+       ['农历年 / 生肖 / 公历', __lunarTxt('resultSub')],
+       ['生肖', __lunarTxt('infoZodiac')],
+       ['星座', __lunarTxt('infoConstellation')],
+       ['星期', __lunarTxt('infoWeekday')],
+       ['年内第几天', __lunarTxt('infoDayOfYear')],
+       ['临近节气', __lunarTxt('solarTermName').replace('🌾','').trim()+'（'+__lunarTxt('solarTermDate')+'）'],
+       ['宜', __lunarTxt('yiContent')],
+       ['忌', __lunarTxt('jiContent')]];
+  const fest = __lunarTxt('festivalTag');
+  if(fest) rows.push([en?'Festivals':'节日', fest.replace('🎉','').trim()]);
+  rows.forEach(function(r){
+    const tr=document.createElement('tr');
+    [r[0],r[1]].forEach(function(v){const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+  try{ TBKit.util.exportTable('#lunarTable','lunar-calendar.csv'); }catch(e){}
+}
 function initLunarSelects() {
   const yearSel = document.getElementById('lunarYear');
   for (let y = 1900; y <= 2100; y++) {
