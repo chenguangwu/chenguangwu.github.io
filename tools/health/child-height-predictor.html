@@ -227,6 +227,12 @@ s.parentNode.insertBefore(el, s);
         <div class="height-bar-label" id="labelChild">--</div>
         <div class="height-bar-name">预测</div>
       </div>
+
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn" data-zh="⬇️ 导出身高预测结果 CSV" onclick="__chpExport()">⬇️ Export Height Prediction CSV</button>
+        <span style="font-size:13px;color:var(--text-muted);" data-zh="父母身高、靶身高、预测范围与百分位可导出为 CSV">Parent heights, target height, predicted range, and percentile can be exported as CSV</span>
+      </div>
+      <table id="chpTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
     </div>
   </div>
 
@@ -490,6 +496,39 @@ function calc(){
   const __g8=f + 'cm';document.getElementById('labelFather').textContent=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   const __g9=m + 'cm';document.getElementById('labelMother').textContent=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
   const __g10=target.toFixed(0) + 'cm';document.getElementById('labelChild').textContent=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
+}
+
+function __chpExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var f=parseFloat(document.getElementById('father').value);
+    var m=parseFloat(document.getElementById('mother').value);
+    if(!f||!m||f<=0||m<=0) return;
+    var ageEl=document.getElementById('age');
+    var chEl=document.getElementById('childHeight');
+    var age=ageEl?parseFloat(ageEl.value):NaN;
+    var ch=chEl?parseFloat(chEl.value):NaN;
+    var midParent=(f+m)/2;
+    var target=gender==='male'?(f+m+13)/2:(f+m-13)/2;
+    var rows=[
+      [en?'Father height (cm)':'父亲身高 (cm)',f],
+      [en?'Mother height (cm)':'母亲身高 (cm)',m],
+      [en?'Child sex':'孩子性别',gender==='male'?(en?'Male':'男孩'):(en?'Female':'女孩')],
+      [en?'Child age (years)':'孩子年龄 (岁)',isFinite(age)?age:'—'],
+      [en?'Current height (cm)':'当前身高 (cm)',isFinite(ch)?ch:'—'],
+      [en?'Mid-parental height (cm)':'父母平均身高 (cm)',midParent.toFixed(1)],
+      [en?'Target height (cm)':'遗传靶身高 (cm)',target.toFixed(1)],
+      [en?'Predicted range (cm)':'预测范围 (cm)',(target-5).toFixed(1)+' – '+(target+5).toFixed(1)],
+      [en?'Height percentile':'身高百分位',estimatePercentile(target,gender)]
+    ];
+    var tb=document.querySelector('#chpTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#chpTable','child-height-predictor.csv');
+  }catch(e){}
 }
 
 calc();

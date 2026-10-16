@@ -135,6 +135,12 @@ s.parentNode.insertBefore(el, s);
 
     <div class="result-box" id="res"></div>
 
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出储量估算结果 CSV" onclick="__erExport()">⬇️ Export Reserve Estimate CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各块段参数、矿石量、金属量与汇总品位可导出为 CSV">Block parameters, ore tonnage, metal content, and average grade can be exported as CSV</span>
+    </div>
+    <table id="erTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+
     <div class="info-box">💡 矿石量 Q = 面积 S × 厚度 M × 体重 ρ（t）；金属量 = Q × 品位（%）。合计为各块段之和。</div>
 
 <div class="tool-notes" style="--tool-accent:#5D4037;">
@@ -228,6 +234,28 @@ function copyRes(){
   var text=document.getElementById('res').innerText;
   if(!text||!text.trim()){ToolBox.showToast(i18nText(),'warning');return;}
   ToolBox.copyText(text);
+}
+
+function __erExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var r=readBlocks();
+    if(!r.blocks.length) return;
+    var rows=[];
+    r.blocks.forEach(function(b){
+      rows.push([b.name,b.area,b.thick,b.density,b.grade,b.ore.toFixed(1),b.metal.toFixed(2)]);
+    });
+    var avgGrade=r.totalOre>0?r.totalMetal/r.totalOre*100:0;
+    rows.push([(en?'Summary':'合计')+'（'+r.blocks.length+(en?' blocks':' 个块段')+'）','','','','',r.totalOre.toFixed(1),r.totalMetal.toFixed(2)]);
+    rows.push([en?'Average grade':'平均品位','','','',avgGrade.toFixed(3)+'%','','']);
+    var tb=document.querySelector('#erTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(row){ h+='<tr><td>'+row[0]+'</td><td>'+row[1]+'</td><td>'+row[2]+'</td><td>'+row[3]+'</td><td>'+row[4]+'</td><td>'+row[5]+'</td><td>'+row[6]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#erTable','reserve-estimate.csv');
+  }catch(e){}
 }
 function resetAll(){
   document.getElementById('blockBody').innerHTML='';
