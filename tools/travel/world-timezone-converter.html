@@ -174,6 +174,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="clock-grid" id="clockGrid"></div>
+    <div id="tzChart" style="margin-top:14px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -345,6 +346,24 @@ function render(){
 }
 initSelect();
 render();
+
+function __tzExtras(){
+  if(typeof TBKit==='undefined') return;
+  var host=document.getElementById('tzChart'); if(!host) return;
+  if(!selectedCities.length){host.innerHTML='';return;}
+  var localOffset=-new Date().getTimezoneOffset()/60;
+  var labels=[],data=[];
+  selectedCities.forEach(function(c){
+    var cd=cities[c]; if(!cd){return;}
+    labels.push(c);
+    data.push(cd.offset-localOffset);
+  });
+  if(!data.length){host.innerHTML='';return;}
+  TBKit.chart.bar('#tzChart',{labels:labels,series:[{name:'与本地时差(小时)',data:data}],height:240,title:'各城市与本地时差（小时）'});
+}
+var __tzRender=render;
+render=function(){__tzRender();__tzExtras();};
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__tzExtras();});}else{__tzExtras();}
 setInterval(()=>{
   const localT=document.getElementById('localTime').value;
   if(!localT)render();
