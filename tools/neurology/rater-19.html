@@ -119,6 +119,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 UPDRS 运动评分结果 CSV" onclick="__updrsExport()">⬇️ Export UPDRS Motor Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各题得分、总分、严重程度与临床解读可导出为 CSV">Per-item scores, total, severity, and interpretation can be exported as CSV</span>
+    </div>
+    <table id="updrsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -135,6 +140,36 @@ s.parentNode.insertBefore(el, s);
 var items=[{'n': '1.言语(表情肌)', 'o': ['0-正常', '1-轻微', '2-轻度面具脸', '3-中度', '4-重度']}, {'n': '2.僵直(取最严重侧)', 'o': ['0-无', '1-末端可诱发', '2-颈肩轻度', '3-中度', '4-重度']}, {'n': '3.手部拍打(右)', 'o': ['0-正常', '1-轻度减慢', '2-明显减慢', '3-严重困难', '4-不能完成']}, {'n': '4.手部拍打(左)', 'o': ['0-正常', '1-轻度减慢', '2-明显减慢', '3-严重困难', '4-不能完成']}, {'n': '5.手指捏合(右)', 'o': ['0-正常', '1-轻度', '2-中度', '3-严重', '4-不能完成']}, {'n': '6.手指捏合(左)', 'o': ['0-正常', '1-轻度', '2-中度', '3-严重', '4-不能完成']}, {'n': '7.手腕旋前旋后(右)', 'o': ['0-正常', '1-轻度', '2-中度', '3-严重', '4-不能完成']}, {'n': '8.手腕旋前旋后(左)', 'o': ['0-正常', '1-轻度', '2-中度', '3-严重', '4-不能完成']}, {'n': '9.腿部灵活度(右)', 'o': ['0-正常', '1-轻度', '2-中度', '3-严重', '4-不能完成']}, {'n': '10.腿部灵活度(左)', 'o': ['0-正常', '1-轻度', '2-中度', '3-严重', '4-不能完成']}, {'n': '11.从椅中起立', 'o': ['0-正常', '1-缓慢', '2-需扶手', '3-需帮助', '4-不能起立']}, {'n': '12.姿势稳定性', 'o': ['0-正常', '1-后退1-2步', '2-后退3-5步', '3-无保护会摔', '4-站立不稳']}, {'n': '13.步态', 'o': ['0-正常', '1-缓慢', '2-困难不需帮助', '3-需帮助', '4-不能行走']}, {'n': '14.运动迟缓(整体)', 'o': ['0-无', '1-轻微', '2-轻度', '3-中度', '4-重度']}];
 var c=document.getElementById('items');
 items.forEach(function(it,i){var h='<div class="input-row"><div><label>'+it.n+'</label><select id="ui'+i+'" style="font-size:16px;" onchange="calc()">';it.o.forEach(function(o,j){h+='<option value="'+j+'">'+o+'</option>';});h+='</select></div></div>';c.insertAdjacentHTML('beforeend',h);});
+function __updrsExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof items==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var t=0;
+    var rows=[];
+    items.forEach(function(it,i){
+      var sel=document.getElementById('ui'+i);
+      var v=sel?parseInt(sel.value):0;
+      var optText=sel&&sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:(it.o[v]||'');
+      t+=v;
+      rows.push([it.n, v, optText]);
+    });
+    var g,it2;
+    if(t<=10){g=en?'Mild motor impairment':'轻度运动障碍';it2=en?'Mild symptoms; continue medication and follow up':'症状较轻，继续药物并随访。';}
+    else if(t<=20){g=en?'Moderate motor impairment':'中度运动障碍';it2=en?'Moderate symptoms; medication regimen adjustment should be evaluated':'中度症状，需评估药物方案调整。';}
+    else if(t<=30){g=en?'Moderately severe motor impairment':'中重度运动障碍';it2=en?'Moderately severe; adjust medication and evaluate DBS indications':'中重度，建议调整药物，评估DBS指征。';}
+    else{g=en?'Severe motor impairment':'重度运动障碍';it2=en?'Severe; aggressive pharmacotherapy and DBS surgery evaluation recommended':'重度，建议积极药物治疗，评估DBS手术。';}
+    rows.push([en?'UPDRS motor total (max 56)':'总分', t+' / 56','']);
+    rows.push([en?'Severity':'严重程度', g,'']);
+    rows.push([en?'Clinical interpretation':'临床解读', it2,'']);
+    var tb=document.querySelector('#updrsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#updrsTable','updrs-motor-score.csv');
+  }catch(e){}
+}
 function calc(){var t=0,s=[];items.forEach(function(it,i){var v=+document.getElementById('ui'+i).value;s.push({n:it.n,v:v,o:it.o[v]});t+=v;});
 var mx=56;
 if(t<=10){g='轻度运动障碍';c='var(--success)';it='症状较轻，继续药物并随访。';}

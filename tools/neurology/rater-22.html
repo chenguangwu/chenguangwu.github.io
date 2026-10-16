@@ -119,6 +119,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 SARA 评分结果 CSV" onclick="__saraExport()">⬇️ Export SARA Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各题得分、总分、严重程度与临床解读可导出为 CSV">Per-item scores, total, severity, and interpretation can be exported as CSV</span>
+    </div>
+    <table id="saraTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -135,6 +140,37 @@ s.parentNode.insertBefore(el, s);
 var items=[{'n': '1.步态(行走10米含转身)', 'o': ['0-正常', '1-轻微不稳', '2-明显不稳但独立行走', '3-需1人扶持', '4-需2人扶持', '5-不能行走', '6-不能站立']}, {'n': '2.站立(双脚并拢)', 'o': ['0-正常(>60s)', '1-轻微不稳(>60s)', '2-并拢>10s', '3-并拢<10s', '4-分开站立', '5-不能站立']}, {'n': '3.坐位(无支撑)', 'o': ['0-正常(>60s)', '1-轻微不稳(>60s)', '2-可坐>10s', '3-可坐<10s', '4-不能无支撑坐']}, {'n': '4.言语障碍', 'o': ['0-正常', '1-轻微不清', '2-明显不清', '3-严重不清', '4-无法理解', '5-无语']}, {'n': '5.追视(手指跟随)', 'o': ['0-正常', '1-轻度眼震', '2-明显眼震/扫视', '3-严重追视障碍']}, {'n': '6.鼻指测试(右)', 'o': ['0-无辨距不良', '1-轻度过冲', '2-明显过冲/震颤', '3-严重辨距不良', '4-不能完成']}, {'n': '7.鼻指测试(左)', 'o': ['0-无辨距不良', '1-轻度过冲', '2-明显过冲/震颤', '3-严重辨距不良', '4-不能完成']}, {'n': '8.交替快速轮替(手)', 'o': ['0-正常', '1-轻度不规律', '2-明显不规律', '3-严重不规律', '4-不能完成']}];
 var c=document.getElementById('items');
 items.forEach(function(it,i){var h='<div class="input-row"><div><label>'+it.n+'</label><select id="si'+i+'" style="font-size:16px;" onchange="calc()">';it.o.forEach(function(o,j){h+='<option value="'+j+'">'+o+'</option>';});h+='</select></div></div>';c.insertAdjacentHTML('beforeend',h);});
+function __saraExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof items==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var t=0;
+    var rows=[];
+    items.forEach(function(it,i){
+      var sel=document.getElementById('si'+i);
+      var v=sel?parseInt(sel.value):0;
+      var optText=sel&&sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:(it.o[v]||'');
+      t+=v;
+      rows.push([it.n, v, optText]);
+    });
+    var g,it2;
+    if(t<=3){g=en?'Mild':'轻度';it2=en?'Minimal symptoms; daily activities largely unaffected; regular follow-up':'症状轻微，日常活动基本不受限，定期随访。';}
+    else if(t<=8){g=en?'Mild-moderate':'轻-中度';it2=en?'Walking and fine motor tasks beginning to be affected; rehabilitation training recommended':'行走和精细动作开始受影响，建议康复训练。';}
+    else if(t<=15){g=en?'Moderate':'中度';it2=en?'Daily activities markedly limited; active rehabilitation training recommended':'日常活动明显受限，建议积极康复训练。';}
+    else if(t<=30){g=en?'Severe':'重度';it2=en?'Walking requires assistance; comprehensive rehabilitation assessment and assistive device fitting recommended':'行走需辅助，建议全面康复评估和辅具适配。';}
+    else{g=en?'Very severe':'极重度';it2=en?'Daily life severely limited; caregiver support and comprehensive supportive treatment needed':'日常生活严重受限，需他人照护，全面支持治疗。';}
+    rows.push([en?'SARA total (max 40)':'总分', t+' / 40','']);
+    rows.push([en?'Severity':'严重程度', g,'']);
+    rows.push([en?'Clinical interpretation':'临床解读', it2,'']);
+    var tb=document.querySelector('#saraTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#saraTable','sara-score.csv');
+  }catch(e){}
+}
 function calc(){var t=0,s=[];items.forEach(function(it,i){var v=+document.getElementById('si'+i).value;s.push({n:it.n,v:v,o:it.o[v]});t+=v;});
 var mx=40;
 if(t<=3){g='轻度';c='var(--success)';it='症状轻微，日常活动基本不受限，定期随访。';}
