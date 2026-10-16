@@ -149,6 +149,17 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="copyFlow()">复制应急流程</button>
     </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="模拟快操：">Quick actions: </span>
+      <button type="button" class="btn" onclick="markAllFlow()" data-zh="⏩ 全部标记完成">⏩ Mark all done</button>
+<button type="button" class="btn" onclick="clearFlowMarks()" data-zh="🧹 清除完成标记">🧹 Clear marks</button>
+    </div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出应急流程清单 CSV" onclick="__flowExport()">⬇️ Export Flow Checklist CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="8 个步骤的标题、完成状态与处置要点可导出为 CSV">All 8 steps with titles, completion status and key points can be exported as CSV</span>
+    </div>
+    <table id="flowTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="flowHistory" style="margin-top:10px;"></div>
     <div class="info-box">
       <strong>跌倒/坠床应急处理核心原则：</strong><br>
       1. 立即评估，切勿急于扶起患者<br>
@@ -298,6 +309,65 @@ function resetSim(){
   ToolBox.showToast(i18nText('toast.msg329'));
 }
 
+function __flowExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof steps==='undefined'||typeof completedSteps==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var elapsed=startTime?Math.floor((Date.now()-startTime)/1000):0;
+    var mm=Math.floor(elapsed/60).toString().padStart(2,'0');
+    var ss=(elapsed%60).toString().padStart(2,'0');
+    var rows=[];
+    steps.forEach(function(step,i){
+      var done=completedSteps.indexOf(i)>=0;
+      rows.push([en?('Step '+(i+1)):('第'+(i+1)+'步'), step.title, done?(en?'Done':'已完成'):(en?'Pending':'未完成'), step.desc]);
+    });
+    rows.push([en?'Progress':'完成进度', completedSteps.length+'/'+steps.length, '', '']);
+    rows.push([en?'Elapsed time':'模拟用时', mm+':'+ss, '', '']);
+    rows.push([en?'Status':'状态', completedSteps.length===steps.length?(en?'All steps completed':'全部步骤已完成'):(en?'In progress':'进行中'), '', '']);
+    var tb=document.querySelector('#flowTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#flowTable','fall-emergency-flow.csv');
+  }catch(e){}
+}
+function markAllFlow(){
+  if(typeof steps==='undefined') return;
+  completedSteps=steps.map(function(_,i){return i;});
+  currentStep=-1;
+  stopTimer();
+  renderSteps();
+  __flowExtras();
+  ToolBox.showToast(i18nText('toast.msg067'),'success');
+}
+function clearFlowMarks(){
+  completedSteps=[];
+  renderSteps();
+  __flowExtras();
+}
+function __flowExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.record({progress:completedSteps.length+'/'+steps.length, done:completedSteps.length===steps.length}, 3000);
+    __flowMountHist();
+  }catch(e){}
+}
+function __flowMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#flowHistory', function(rec){
+      var m=/^(\d+)\//.exec(rec.progress||'');
+      if(!m) return;
+      var n=parseInt(m[1]);
+      completedSteps=[];
+      for(var i=0;i<n;i++) completedSteps.push(i);
+      currentStep=-1;
+      renderSteps();
+    }, 8);
+  }catch(e){}
+}
 function copyFlow(){
   var text = '跌倒/坠床应急处理流程\n\n';
   steps.forEach(function(step, i){
@@ -306,7 +376,14 @@ function copyFlow(){
   ToolBox.copyText(text, i18nText('toast.copy_success'));
 }
 
+var __ftg0=toggleStep;
+toggleStep=function(i){__ftg0(i);__flowExtras();};
+var __fnx0=nextStep;
+nextStep=function(){__fnx0();__flowExtras();};
+var __frs0=resetSim;
+resetSim=function(){__frs0();__flowExtras();};
 renderSteps();
+__flowMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->
