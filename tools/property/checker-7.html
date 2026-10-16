@@ -129,6 +129,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出品质检查评估结果 CSV" onclick="__qcExport()">⬇️ Export Quality Check Results CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="23 项检查得分、四模块加权得分率、待整改项与综合等级可导出为 CSV">All 23 item scores, weighted module rates, rectification items, and overall grade can be exported as CSV</span>
+    </div>
+    <table id="qcTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -186,6 +191,49 @@ function buildList(){
     });
   });
   const __g1=html;document.getElementById('checklist').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function __qcExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof dims==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var gradeLabels={4:en?'Excellent':'优',3:en?'Good':'良',2:en?'Fair':'中',1:en?'Poor':'差'};
+    var dimResults=[];
+    var rows=[];
+    Object.keys(dims).forEach(function(key){
+      var dim=dims[key];
+      var totalW=0,score=0,issues=[];
+      dim.items.forEach(function(item,i){
+        var sel=document.getElementById(key+i);
+        var v=sel?parseInt(sel.value):3;
+        if(!isFinite(v))v=3;
+        totalW+=item.w*4;
+        score+=v*item.w;
+        if(v<=2)issues.push(item.q);
+        rows.push([dim.name, item.q, v, gradeLabels[v]||'']);
+      });
+      var pct=score/totalW*100;
+      dimResults.push({name:dim.name,weight:dim.weight,pct:pct,issues:issues,
+        level:pct>=85?(en?'Excellent':'优秀'):pct>=70?(en?'Good':'良好'):pct>=55?(en?'Pass':'合格'):(en?'Fail':'不合格')});
+    });
+    var overall=dimResults.reduce(function(a,d){return a+d.pct*d.weight;},0);
+    var overallLevel=overall>=85?(en?'Excellent':'优秀'):overall>=70?(en?'Good':'良好'):overall>=55?(en?'Pass':'合格'):(en?'Fail':'不合格');
+    dimResults.forEach(function(d){
+      rows.push([d.name, (en?'Weight ':'权重')+(d.weight*100)+'%', d.pct.toFixed(1)+'%', d.level+'（'+(en?'rectification items: ':'待整改 ')+d.issues.length+(en?'':' 项')+'）']);
+    });
+    rows.push([en?'Overall':'综合', en?'Weighted overall score':'加权综合得分', overall.toFixed(1)+'%', overallLevel]);
+    var conclusion=overall>=85?(en?'Quality system runs excellently; all modules meet standards. Maintain and benchmark':'品质体系运行优秀，各模块均达标，建议保持并争创标杆。'):
+      overall>=70?(en?'Quality system is generally sound; targeted improvement plans for weak modules recommended':'品质体系总体良好，建议针对薄弱模块制定提升计划。'):
+      overall>=55?(en?'Quality system basically passes but has many issues; rectification within a deadline required':'品质体系基本合格但存在较多问题，需限期整改。'):
+      (en?'Quality system fails; comprehensive rectification and reassessment required':'品质体系不合格，需全面整改并重新评估。');
+    rows.push([en?'Conclusion':'品质体系结论', conclusion,'','']);
+    var tb=document.querySelector('#qcTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#qcTable','quality-check-assessment.csv');
+  }catch(e){}
 }
 function calc(){
   var dimResults=[];
