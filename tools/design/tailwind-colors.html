@@ -180,6 +180,14 @@ s.parentNode.insertBefore(el, s);
       <input type="text" id="searchInput" placeholder="搜索色名或 HEX，如 blue、#3b82f6" style="flex:1;min-width:200px;">
     </div>
     <div id="colorContainer"></div>
+    <div id="twChart" style="margin-top:12px;"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__twExport()">⬇️ 导出色板清单 CSV</button>
+    </div>
+    <table id="twTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见色系预设：</span>
       <button type="button" class="btn" onclick="applyTwPreset('blue')">🔵 蓝色系</button>
@@ -337,6 +345,56 @@ function render(filter = ''){
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h0;
 }
 
+function __twFiltered(filter){
+  var lower=(filter||'').toLowerCase().trim();
+  var out=[];
+  for(var name in TAILWIND_COLORS){
+    var shades=TAILWIND_COLORS[name];
+    if(lower && name.toLowerCase().indexOf(lower)<0 && !shades.some(function(s){return s.toLowerCase().indexOf(lower)>=0;})) continue;
+    out.push([name,shades]);
+  }
+  return out;
+}
+function __twExtras(filter){
+  if(typeof TBKit==='undefined')return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var f=(typeof filter==='string')?filter:(document.getElementById('searchInput')||{}).value||'';
+  var list=__twFiltered(f);
+  var rows=[],labels=[],lums=[];
+  list.forEach(function(item){
+    var name=item[0],shades=item[1];
+    var mainHex=shades[5];
+    var lum=getLuminance.apply(null,hexToRgb(mainHex));
+    var lightest=shades[0],darkest=shades[shades.length-1];
+    rows.push([name,mainHex.toUpperCase(),lum.toFixed(3),lum>0.5?(en?'Dark text':'深色文字'):(en?'Light text':'浅色文字'),lightest.toUpperCase(),darkest.toUpperCase()]);
+    labels.push(name);lums.push(+lum.toFixed(3));
+  });
+  if(TBKit.chart&&TBKit.chart.bar&&labels.length){
+    try{
+      TBKit.chart.bar('#twChart',{labels:labels,series:[{name:en?'Relative luminance':'相对亮度',data:lums}],height:220,title:en?'Main shade luminance by color (500)':'各色主色(500)相对亮度'});
+    }catch(e){}
+  }
+  var t=document.getElementById('twTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');
+  if(!rows.length){t.style.display='none';if(th)th.innerHTML='';return;}
+  if(th)th.innerHTML='<tr><th>'+(en?'Color':'色名')+'</th><th>'+(en?'Main (500)':'主色(500)')+'</th><th>'+(en?'Luminance':'相对亮度')+'</th><th>'+(en?'Text color':'建议文字色')+'</th><th>50</th><th>950</th></tr>';
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    r.forEach(function(v){var c=document.createElement('td');c.textContent=v;tr.appendChild(c);});
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+}
+function __twExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var f=(document.getElementById('searchInput')||{}).value||'';
+  if(!__twFiltered(f).length){ToolBox.showToast(en?'No color to export':'当前无匹配颜色可导出','warning');return;}
+  __twExtras(f);
+  var t=document.getElementById('twTable');
+  if(t&&t.querySelector('tbody').children.length){TBKit.util.exportTable('#twTable','tailwind_colors.csv');}
+}
 function showDetail(name, index, hex){
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(...rgb);
@@ -385,6 +443,7 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
   render(e.target.value);
 });
 
+var __tw0=render; render=function(f){__tw0(f); try{__twExtras(f);}catch(e){}};
 render();
 </script><script>
 // tool-intro折叠交互

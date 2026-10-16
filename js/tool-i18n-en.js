@@ -440,6 +440,8 @@ window.__TI18N_EN = {
     '仅 Googlebot':'Googlebot Only',
     '导出规则清单 CSV':'Export Rule List CSV',
     '导出混淆统计 CSV':'Export Obfuscation Stats CSV',
+    '导出色板清单 CSV':'Export Palette List CSV',
+    '导出节奏参数 CSV':'Export Tempo Parameters CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——

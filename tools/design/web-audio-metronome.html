@@ -153,6 +153,14 @@ s.parentNode.insertBefore(el, s);
 <select id="beatsPer" onchange="setBeats()"><option value="4">4/4 (常见四四拍)</option><option value="3">3/4 (华尔兹)</option><option value="2">2/4 (二拍子)</option><option value="6">6/8 (八六拍)</option></select>
 </div>
 <div class="beats" id="beatDots"></div>
+<div id="metChart" style="margin-top:12px;"></div>
+<div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+  <button type="button" class="btn" onclick="__metExport()">⬇️ 导出节奏参数 CSV</button>
+</div>
+<table id="metTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+  <thead></thead>
+  <tbody></tbody>
+</table>
 <div class="input-row">
 <div><label>音色</label><select id="sound"><option value="click">Click</option><option value="beep">Beep</option></select></div>
 <div><label>音量</label><input type="range" id="vol" min="0" max="100" value="70"></div>
@@ -253,6 +261,68 @@ function setBPM(v){bpm=+v;document.getElementById('bpmDisplay').textContent=bpm;
 function adjustBPM(d){setBPM(Math.max(40,Math.min(240,bpm+d)));}
 function setBeats(){beats=+document.getElementById('beatsPer').value;currentBeat=0;renderDots();}
 function setBeat(i){currentBeat=i;renderDots();}
+var __MET_TERMS=[
+  {min:0,max:60,zh:'Largo 广板',en:'Largo (very slow)'},
+  {min:60,max:76,zh:'Adagio 柔板',en:'Adagio (slow)'},
+  {min:76,max:108,zh:'Andante 行板',en:'Andante (walking)'},
+  {min:108,max:120,zh:'Moderato 中板',en:'Moderato (moderate)'},
+  {min:120,max:156,zh:'Allegro 快板',en:'Allegro (fast)'},
+  {min:156,max:176,zh:'Vivace 活板',en:'Vivace (lively)'},
+  {min:176,max:1000,zh:'Presto 急板',en:'Presto (very fast)'}
+];
+function __metTerm(bpm){
+  for(var i=0;i<__MET_TERMS.length;i++){if(bpm>=__MET_TERMS[i].min&&bpm<__MET_TERMS[i].max)return __MET_TERMS[i];}
+  return __MET_TERMS[__MET_TERMS.length-1];
+}
+function __metRows(){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var interval=60000/bpm;
+  var term=__metTerm(bpm);
+  var rows=[];
+  rows.push([en?'Tempo (BPM)':'速度(BPM)',bpm,'']);
+  rows.push([en?'Beats per measure':'每小节拍数',beats,'']);
+  rows.push([en?'Beat interval (ms)':'单拍间隔(ms)',Math.round(interval*100)/100,'']);
+  rows.push([en?'Beat interval (s)':'单拍间隔(秒)',(interval/1000).toFixed(3),'']);
+  rows.push([en?'Measure duration (s)':'一小节时长(秒)',(interval*beats/1000).toFixed(3),'']);
+  rows.push([en?'Beats per minute→Hz':'拍频(Hz)',(bpm/60).toFixed(3),'']);
+  rows.push([en?'Tempo term':'速度术语',en?term.en:term.zh,'']);
+  rows.push([en?'Measures per minute':'每分钟小节数',(bpm/beats).toFixed(2),'']);
+  for(var i=0;i<beats;i++){
+    rows.push([(en?'Beat ':'第 ')+(i+1)+(en?'':' 拍'),(interval*i/1000).toFixed(3)+(en?' s':' 秒'),i===0?(en?'Accent (first beat)':'重音（首拍）'):(en?'Normal beat':'普通拍')]);
+  }
+  return rows;
+}
+function __metExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var labels=[],data=[];
+  for(var i=0;i<beats;i++){
+    labels.push((en?'Beat ':'第')+(i+1)+(en?'':'拍'));
+    data.push(+(60000/bpm).toFixed(1));
+  }
+  if(TBKit.chart&&TBKit.chart.bar&&labels.length){
+    try{
+      TBKit.chart.bar('#metChart',{labels:labels,series:[{name:en?'Interval (ms)':'间隔(ms)',data:data}],height:180,title:en?'Beat interval at current tempo':'当前速度下各拍间隔'});
+    }catch(e){}
+  }
+  var t=document.getElementById('metTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');
+  var rows=__metRows();
+  if(th)th.innerHTML='<tr><th>'+(en?'Metric':'参数')+'</th><th>'+(en?'Value':'数值')+'</th><th>'+(en?'Note':'说明')+'</th></tr>';
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    r.forEach(function(v){var c=document.createElement('td');c.textContent=v;tr.appendChild(c);});
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+}
+function __metExport(){
+  if(typeof TBKit==='undefined')return;
+  __metExtras();
+  var t=document.getElementById('metTable');
+  if(t&&t.querySelector('tbody').children.length){TBKit.util.exportTable('#metTable','metronome_'+bpm+'bpm.csv');}
+}
 function applyMetronomePreset(kind){
   if(!kind) return;
   var P={largo:{bpm:52,beats:'4'},andante:{bpm:92,beats:'4'},moderato:{bpm:116,beats:'4'},allegro:{bpm:144,beats:'3'},presto:{bpm:184,beats:'2'}};
@@ -262,6 +332,8 @@ function applyMetronomePreset(kind){
   document.getElementById('beatsPer').value=p.beats;
   setBeats();
 }
+var __met0=renderDots; renderDots=function(){__met0(); try{__metExtras();}catch(e){}};
+var __metb=setBPM; setBPM=function(v){__metb(v); try{__metExtras();}catch(e){}};
 setBeats();renderDots();
 </script><script>
 // tool-intro折叠交互
