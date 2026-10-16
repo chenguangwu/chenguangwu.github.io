@@ -164,6 +164,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>客户概览</h3>
     <div class="stat-grid" id="summaryGrid"></div>
+    <div id="ecoChart"></div>
     <div id="customerList"></div>
   </div>
 
@@ -565,6 +566,22 @@ function exportData() {
   ToolBox.downloadText('复购分析报告.csv', '\uFEFF' + lines.join('\n'), 'text/csv;charset=utf-8');
   ToolBox.showToast(i18nText());
 }
+
+function __ecoExtras(){
+  if(typeof TBKit==='undefined') return;
+  var host=document.getElementById('ecoChart'); if(!host) return;
+  if(!customers||customers.length===0){host.innerHTML='';return;}
+  var labels=[],data=[];
+  customers.forEach(function(c){
+    var a=analyzeCust(c);
+    labels.push(c.name||'客户');
+    var cyc=(a&&a.avgCycle)?+a.avgCycle:0; if(!isFinite(cyc))cyc=0;
+    data.push(Math.round(cyc));
+  });
+  TBKit.chart.bar('#ecoChart',{labels:labels,series:[{name:'平均复购周期(天)',data:data}],height:260,title:'各客户平均复购周期对比'});
+}
+var __ecoRenderSummary=renderSummary;
+renderSummary=function(){__ecoRenderSummary();__ecoExtras();};
 
 renderList();
 renderSummary();
