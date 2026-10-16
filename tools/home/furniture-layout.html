@@ -191,6 +191,15 @@ s.parentNode.insertBefore(el, s);
 <div class="info-box" style="margin-top:12px;">
  💡 比例尺:1m = 60px。建议保留 60-80cm 通道。点击家具可旋转或删除。
 </div>
+
+<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+  <button type="button" class="btn" onclick="__flExport()">⬇️ 导出占地明细 CSV</button>
+  <span style="font-size:12px;color:var(--text-muted);">导出各家具尺寸、占地面积与房间占用率明细</span>
+</div>
+<div id="flChart" style="margin-top:10px;"></div>
+<table id="flTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+  <thead></thead><tbody></tbody>
+</table>
 </div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -375,6 +384,60 @@ function doDrag(e){
 
 function endDrag(){ dragging = null; document.onmousemove = null; document.onmouseup = null; }
 
+function __flIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __flArea(it){ const w = it.rotated ? it.h : it.w; const h = it.rotated ? it.w : it.h; return w * h; }
+function __flRoom(){
+  const rl = +document.getElementById('rl').value || 0;
+  const rw = +document.getElementById('rw').value || 0;
+  return {rl:rl, rw:rw, area:rl*rw};
+}
+function __flExport(){
+  if(typeof TBKit==='undefined')return;
+  if(!items.length) return;
+  const en = __flIsEn();
+  const room = __flRoom();
+  const t = document.getElementById('flTable'); if(!t)return;
+  const tb = t.querySelector('tbody'); tb.innerHTML='';
+  const th = t.querySelector('thead'); if(th) th.innerHTML = en
+    ? '<tr><th>#</th><th>Item</th><th>Size (m)</th><th>Footprint (m²)</th><th>Share</th><th>Position</th><th>Rotated</th></tr>'
+    : '<tr><th>序号</th><th>家具</th><th>尺寸(m)</th><th>占地面积(m²)</th><th>占房比</th><th>位置</th><th>已旋转</th></tr>';
+  let sum = 0;
+  items.forEach(function(it){ sum += __flArea(it); });
+  items.forEach(function(it, i){
+    const w = it.rotated ? it.h : it.w;
+    const h = it.rotated ? it.w : it.h;
+    const a = __flArea(it);
+    const share = room.area > 0 ? (a/room.area*100).toFixed(1)+'%' : '-';
+    const tr=document.createElement('tr');
+    const vals=[String(i+1), it.name, w+'×'+h, a.toFixed(2), share,
+                '('+it.x.toFixed(2)+', '+it.y.toFixed(2)+')', it.rotated ? (en?'Yes':'是') : (en?'No':'否')];
+    vals.forEach(function(v){const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+    tb.appendChild(tr);
+  });
+  const rate = room.area > 0 ? (sum/room.area*100).toFixed(1)+'%' : '-';
+  const free = room.area > 0 ? (room.area - sum).toFixed(2) : '-';
+  const summary = en
+    ? [['Room area','','','','','','' ],['Total footprint','','','','','','' ],['Occupancy rate','','','','','','' ],['Free floor area','','','','','','']]
+    : [['房间面积','','','','','','' ],['家具总占地','','','','','','' ],['占用率','','','','','','' ],['剩余活动面积','','','','','','']];
+  const svals = [room.area.toFixed(2)+' m²', sum.toFixed(2)+' m²', rate, (free==='-'?'-':free+' m²')];
+  summary.forEach(function(s, i){
+    const tr=document.createElement('tr');
+    [s[0], '', '', svals[i], '', '', ''].forEach(function(v){const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+  try{ TBKit.util.exportTable('#flTable','furniture-layout.csv'); }catch(e){}
+}
+function __flExtras(){
+  if(typeof TBKit==='undefined')return;
+  const host = document.getElementById('flChart');
+  if(!host || !TBKit.chart || !TBKit.chart.bar) return;
+  if(!items.length){ host.innerHTML=''; return; }
+  const en = __flIsEn();
+  const labels = items.map(function(it, i){ return (i+1)+'. '+it.name; });
+  const values = items.map(function(it){ return +__flArea(it).toFixed(2); });
+  try{ TBKit.chart.bar(host,{labels:labels, values:values}); }catch(e){}
+}
 function exportLayout(){
  if(!items.length){ ToolBox.showToast(i18nText('toast.msg424'),'warn'); return; }
  const rl = +document.getElementById('rl').value;
@@ -386,6 +449,7 @@ function exportLayout(){
 
 document.getElementById('canvas').onclick = () => { selectedId = null; renderItems(); };
 
+var __fl0 = renderItems; renderItems = function(){ __fl0(); try{ __flExtras(); }catch(e){} };
 renderFurnList();
 renderItems();
 </script><script>

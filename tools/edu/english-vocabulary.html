@@ -234,6 +234,15 @@ s.parentNode.insertBefore(el, s);
           <button type="button" class="btn" onclick="backToSetup()">返回</button>
         </div>
       </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__vocabExport()">⬇️ 导出答题明细 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出本轮每题的单词、你的选择与正确答案</span>
+      </div>
+      <div id="vocabChart" style="margin-top:10px;"></div>
+      <table id="vocabTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+        <thead></thead><tbody></tbody>
+      </table>
     </div>
     
     <div id="wordbookPanel" style="display:none;">
@@ -476,6 +485,12 @@ function answer(selected, btn) {
   }, 1200);
 }
 
+var __vocabA0 = answer; answer = function(sel, btn){
+  try{ __vocabAns[currentQ] = {sel: sel, ok: (questions[currentQ] && sel === questions[currentQ].answer)}; }catch(e){}
+  __vocabA0(sel, btn);
+};
+var __vocabS0 = startQuiz; startQuiz = function(){ __vocabAns = []; __vocabS0(); };
+var __vocabR0 = showResult; showResult = function(){ __vocabR0(); try{ __vocabExtras(); }catch(e){} };
 function showResult() {
   const elapsed = Math.round((Date.now() - quizStart) / 1000);
   const pct = Math.round(score / questions.length * 100);
@@ -502,6 +517,55 @@ function showResult() {
   localStorage.setItem('vocab-history',JSON.stringify(hist.slice(0,20)));
 }
 
+var __vocabAns = [];
+function __vocabIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __vocabExport(){
+  if(typeof TBKit==='undefined')return;
+  if(!questions || !questions.length) return;
+  const en = __vocabIsEn();
+  const t = document.getElementById('vocabTable'); if(!t)return;
+  const tb = t.querySelector('tbody'); tb.innerHTML='';
+  const th = t.querySelector('thead'); if(th) th.innerHTML = en
+    ? '<tr><th>#</th><th>Word</th><th>Your answer</th><th>Correct answer</th><th>Result</th></tr>'
+    : '<tr><th>题号</th><th>单词</th><th>你的选择</th><th>正确答案</th><th>结果</th></tr>';
+  let right = 0, wrong = 0, skip = 0;
+  questions.forEach(function(q, i){
+    const a = __vocabAns[i];
+    const sel = a ? a.sel : '';
+    let res;
+    if(!a){ res = en ? 'Unanswered' : '未作答'; skip++; }
+    else if(a.ok){ res = en ? 'Correct' : '正确'; right++; }
+    else { res = en ? 'Wrong' : '错误'; wrong++; }
+    const tr=document.createElement('tr');
+    [String(i+1), q.word, sel || '-', q.answer, res].forEach(function(v){const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+    tb.appendChild(tr);
+  });
+  const pct = questions.length ? Math.round(right/questions.length*100) : 0;
+  const summary = en
+    ? [['Correct','','','',String(right)],['Wrong','','','',String(wrong)],['Unanswered','','','',String(skip)],['Accuracy','','','',pct+'%']]
+    : [['正确数','','','',String(right)],['错误数','','','',String(wrong)],['未作答','','','',String(skip)],['正确率','','','',pct+'%']];
+  summary.forEach(function(s){
+    const tr=document.createElement('tr');
+    s.forEach(function(v){const td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+  try{ TBKit.util.exportTable('#vocabTable','vocabulary-quiz.csv'); }catch(e){}
+}
+function __vocabExtras(){
+  if(typeof TBKit==='undefined')return;
+  const host = document.getElementById('vocabChart');
+  if(!host || !TBKit.chart || !TBKit.chart.bar) return;
+  if(!questions || !questions.length) return;
+  let right = 0, wrong = 0, skip = 0;
+  questions.forEach(function(q, i){
+    const a = __vocabAns[i];
+    if(!a) skip++; else if(a.ok) right++; else wrong++;
+  });
+  const en = __vocabIsEn();
+  const labels = en ? ['Correct','Wrong','Unanswered'] : ['正确','错误','未作答'];
+  try{ TBKit.chart.bar(host,{labels:labels, values:[right, wrong, skip]}); }catch(e){}
+}
 function restartQuiz() { startQuiz(); }
 
 function backToSetup() {

@@ -193,6 +193,15 @@ s.parentNode.insertBefore(el, s);
     <div class="result-stat" id="resultStat"></div>
 
     <div class="currency-grid" id="currencyGrid"></div>
+
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="btn" onclick="__curExport()">⬇️ 导出货币清单 CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);">导出当前筛选结果的货币符号、代码、国家/地区与主辅单位明细</span>
+    </div>
+    <div id="curChart" style="margin-top:10px;"></div>
+    <table id="curTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead><tbody></tbody>
+    </table>
   </div>
 
   <div class="card">
@@ -462,6 +471,58 @@ function filterRegion(region, btn){
   renderCurrencies(q, region);
 }
 
+var REGION_ZH = {asia:'亚洲', europe:'欧洲', americas:'美洲', africa:'非洲', oceania:'大洋洲'};
+function __curIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __curList(){
+  var q = (document.getElementById('searchInput') && document.getElementById('searchInput').value || '').toLowerCase().trim();
+  var region = currentRegion;
+  return currencies.filter(function(c){
+    if(region === 'major' && !c.major) return false;
+    if(region !== 'all' && region !== 'major' && c.region !== region) return false;
+    if(!q) return true;
+    return c.code.toLowerCase().includes(q) || c.name.includes(q) ||
+           c.nameEn.toLowerCase().includes(q) || c.country.includes(q) ||
+           (c.symbol && c.symbol.includes(q));
+  });
+}
+function __curExport(){
+  if(typeof TBKit==='undefined')return;
+  var list = __curList();
+  if(!list.length) return;
+  var en = __curIsEn();
+  var t = document.getElementById('curTable'); if(!t)return;
+  var tb = t.querySelector('tbody'); tb.innerHTML='';
+  var th = t.querySelector('thead'); if(th) th.innerHTML = en
+    ? '<tr><th>Code</th><th>Symbol</th><th>Name (EN)</th><th>Name (ZH)</th><th>Country/Region</th><th>Region</th><th>Major unit</th><th>Sub unit</th><th>Rate</th><th>Major</th></tr>'
+    : '<tr><th>货币代码</th><th>符号</th><th>英文名称</th><th>中文名称</th><th>国家/地区</th><th>所属区域</th><th>主单位</th><th>辅单位</th><th>换算比例</th><th>主要货币</th></tr>';
+  list.forEach(function(c){
+    var tr=document.createElement('tr');
+    var vals=[c.code, c.symbol||'-', c.nameEn, c.name, c.country,
+              en ? (c.region||'-') : (REGION_ZH[c.region]||'-'),
+              c.unit, c.subunit||'-', String(c.subunitRate), (c.major ? (en?'Yes':'是') : (en?'No':'否'))];
+    vals.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+  try{ TBKit.util.exportTable('#curTable','currency-symbols.csv'); }catch(e){}
+}
+function __curExtras(){
+  if(typeof TBKit==='undefined')return;
+  var host = document.getElementById('curChart');
+  if(!host || !TBKit.chart || !TBKit.chart.bar) return;
+  var list = __curList();
+  var en = __curIsEn();
+  var names = en ? {asia:'Asia', europe:'Europe', americas:'Americas', africa:'Africa', oceania:'Oceania'} : REGION_ZH;
+  var labels=[], values=[], counted=0;
+  Object.keys(names).forEach(function(k){
+    var n = list.filter(function(c){return c.region===k;}).length;
+    counted += n;
+    if(n>0){ labels.push(names[k]); values.push(n); }
+  });
+  var rest = list.length - counted;
+  if(rest > 0){ labels.push(en?'Other':'其他'); values.push(rest); }
+  try{ TBKit.chart.bar(host,{labels:labels, values:values}); }catch(e){}
+}
 function renderCurrencies(query, region){
   var list = currencies.filter(function(c){
     if(region === 'major' && !c.major) return false;
@@ -521,6 +582,7 @@ function getRegionName(region){
   return map[region] || region;
 }
 
+var __cur0 = renderCurrencies; renderCurrencies = function(q, r){ __cur0(q, r); try{ __curExtras(); }catch(e){} };
 renderCurrencies('', 'all');
 </script><script>
 // tool-intro折叠交互
