@@ -175,6 +175,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>📋 地毯养护排期</h3>
     <div id="carpetList"><div class="empty">暂无地毯，请先添加</div></div>
+    <div id="carpetChart"></div>
   </div>
 
   <div class="card">
@@ -429,6 +430,26 @@ function render() {
 
 load();
 fillToday();
+function __carpetExtras(){
+  if(typeof TBKit==='undefined') return;
+  var host=document.getElementById('carpetChart'); if(!host) return;
+  if(!carpets||carpets.length===0){host.innerHTML='';return;}
+  var labels=[],data=[];
+  carpets.forEach(function(c){
+    labels.push(c.name||'地毯');
+    var minDays=Infinity;
+    Object.keys(BASE_TASKS).forEach(function(tid){
+      var d=getDaysUntil(getNextDate(c,tid)); if(!isFinite(d))d=0;
+      if(d<minDays)minDays=d;
+    });
+    if(!isFinite(minDays))minDays=0;
+    data.push(minDays);
+  });
+  TBKit.chart.bar('#carpetChart',{labels:labels,series:[{name:'距最近维护(天)',data:data}],height:260,title:'各地毯距最近一次维护天数（负值为已超期）'});
+}
+var __carpetRender=render;
+render=function(){__carpetRender();__carpetExtras();};
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__carpetExtras();});}else{__carpetExtras();}
 render();
 </script>
 

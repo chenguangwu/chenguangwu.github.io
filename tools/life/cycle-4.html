@@ -193,6 +193,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>📋 用品清单与补货提醒</h3>
     <div id="supplyList"><div class="empty">暂无清洁用品，请先添加</div></div>
+    <div id="supplyChart"></div>
   </div>
 
   <div class="card">
@@ -489,6 +490,22 @@ function applySupplyPreset(kind){
 }
 load();
 fillToday();
+function __supplyExtras(){
+  if(typeof TBKit==='undefined') return;
+  var host=document.getElementById('supplyChart'); if(!host) return;
+  if(!supplies||supplies.length===0){host.innerHTML='';return;}
+  var labels=[],data=[];
+  supplies.forEach(function(s){
+    labels.push(s.name||'用品');
+    var d=getDaysUntilEmpty(s); if(!isFinite(d))d=0;
+    if(d>365)d=365;
+    data.push(d);
+  });
+  TBKit.chart.bar('#supplyChart',{labels:labels,series:[{name:'预计可用(天)',data:data}],height:260,title:'各清洁用品预计耗尽天数（≤365天封顶，未设消耗不计入）'});
+}
+var __supplyRender=render;
+render=function(){__supplyRender();__supplyExtras();};
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__supplyExtras();});}else{__supplyExtras();}
 render();
 </script>
 
