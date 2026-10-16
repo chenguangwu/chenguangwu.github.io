@@ -205,6 +205,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 BVAS 评分结果 CSV" onclick="__bvasExport()">⬇️ Export BVAS Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各系统得分、总分与活动度分级可导出为 CSV">Per-system scores, total score, and activity rating can be exported as CSV</span>
+    </div>
+    <table id="bvasTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -336,6 +342,51 @@ function resetForm(){
 
 function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg012'));
+}
+
+function __bvasExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof groups==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var total=0;
+    var activeSystems=0;
+    var rows=[];
+    groups.forEach(function(g){
+      var els=document.querySelectorAll('.'+g.cls);
+      var groupScore=0;
+      var items=[];
+      els.forEach(function(el,i){
+        if(el.checked&&i<g.weights.length){
+          groupScore+=g.weights[i];
+          items.push(g.labels[i]+' (+'+g.weights[i]+')');
+        }
+      });
+      groupScore=Math.min(groupScore,g.max);
+      total+=groupScore;
+      if(groupScore>0){
+        activeSystems++;
+        rows.push([g.name+(en?' system':'系统'),groupScore,g.max,items.join('; ')]);
+      }else{
+        rows.push([g.name+(en?' system':'系统'),0,g.max,en?'No involvement':'无受累']);
+      }
+    });
+    var level,advice;
+    if(total===0){level=en?'Inactive':'无活动';advice=en?'Stable disease in remission':'病情稳定，处于缓解期。维持当前免疫抑制方案，定期监测ANCA滴度和脏器功能。';}
+    else if(total<=5){level=en?'Low activity':'低活动度';advice=en?'Low activity; adjust immunosuppression':'低活动度。可调整免疫抑制方案：增加糖皮质激素剂量或优化免疫抑制剂(甲氨蝶呤/硫唑嘌呤/霉酚酸酯)。监测受累脏器功能。';}
+    else if(total<=15){level=en?'Moderate activity':'中等活动度';advice=en?'Moderate activity; active treatment needed':'中等活动度。需积极治疗：中等至大剂量糖皮质激素联合环磷酰胺或利妥昔单抗诱导缓解。注意防治感染和药物毒性。';}
+    else{level=en?'High activity':'高活动度';advice=en?'High activity; urgent intensive treatment':'高活动度，需紧急强化治疗。甲泼尼龙冲击(500-1000mg/d×3d)+环磷酰胺冲击或利妥昔单抗。危及生命的脏器受累(肺泡出血/急进性肾炎)考虑血浆置换。ICU级别监护。';}
+    rows.push([en?'Total score':'BVAS 总分',total,'','']);
+    rows.push([en?'Activity level':'疾病活动度',0,'',level]);
+    rows.push([en?'Involved systems':'受累系统数',activeSystems,'','']);
+    rows.push([en?'Advice':'临床建议',0,'',advice]);
+    var tb=document.querySelector('#bvasTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#bvasTable','bvas-score.csv');
+  }catch(e){}
 }
 
 calc();

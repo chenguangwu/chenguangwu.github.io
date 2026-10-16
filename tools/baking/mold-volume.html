@@ -173,6 +173,12 @@ s.parentNode.insertBefore(el, s);
 
     <div class="scale-result" id="scaleResult"></div>
 
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出模具换算结果 CSV" onclick="__mvExport()">⬇️ Export Mold Conversion CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="原/目标模具容积、缩放比例与建议填充量可导出为 CSV">Source/target mold volumes, scale ratio, and fill amount can be exported as CSV</span>
+    </div>
+    <table id="mvTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+
     <div class="toolbar" style="flex-wrap:wrap;gap:6px;margin-top:12px;">
       <span style="font-size:13px;color:var(--text-muted);">🎂 示例换算：</span>
       <button type="button" class="btn" onclick="applyMoldPreset('cake6to8')">6寸圆模→8寸</button>
@@ -357,6 +363,39 @@ function copyScale(){
   var toVol=calcVolume('to');
   var ratio=toVol/fromVol;
   ToolBox.copyText('模具容积比 '+fmtNum(fromVol)+'ml : '+fmtNum(toVol)+'ml，缩放比例 ×'+ratio.toFixed(2));
+}
+
+function __mvExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var fromVol=calcVolume('from');
+    var toVol=calcVolume('to');
+    var rows=[
+      [en?'Source mold':'原模具',(en?'Shape':'形状')+'：'+(shapes.from==='round'?(en?'Round':'圆形'):(shapes.from==='square'?(en?'Square':'方形'):(en?'Rectangular':'长方形'))),fmtNum(fromVol)+' ml'],
+      [en?'Target mold':'目标模具',(en?'Shape':'形状')+'：'+(shapes.to==='round'?(en?'Round':'圆形'):(shapes.to==='square'?(en?'Square':'方形'):(en?'Rectangular':'长方形'))),fmtNum(toVol)+' ml']
+    ];
+    if(fromVol>0&&toVol>0){
+      var ratio=toVol/fromVol;
+      var fillVol=toVol*0.65;
+      var note;
+      if(ratio>1.1) note=en?'Target mold larger; increase batter by '+(ratio*100).toFixed(0)+'%':'目标模具更大，需增加 '+(ratio*100).toFixed(0)+'% 的面糊量';
+      else if(ratio<0.9) note=en?'Target mold smaller; reduce batter to '+(ratio*100).toFixed(0)+'% of original':'目标模具更小，需减少至原配方的 '+(ratio*100).toFixed(0)+'%';
+      else note=en?'Volumes are close; use the original recipe directly':'两个模具容积接近，可直接使用原配方';
+      rows.push([en?'Scale ratio':'面糊缩放比例','× '+ratio.toFixed(2),note]);
+      rows.push([en?'Source volume (ml)':'原模具容积 (ml)','',fmtNum(fromVol)]);
+      rows.push([en?'Target volume (ml)':'目标模具容积 (ml)','',fmtNum(toVol)]);
+      rows.push([en?'Suggested fill (ml)':'建议填充量 (ml)','65% × '+fmtNum(toVol),fmtNum(fillVol)]);
+    }else{
+      rows.push([en?'Note':'提示','',en?'Enter valid mold dimensions':'请输入有效的模具尺寸']);
+    }
+    var tb=document.querySelector('#mvTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#mvTable','mold-volume.csv');
+  }catch(e){}
 }
 
 renderInputs('from');
