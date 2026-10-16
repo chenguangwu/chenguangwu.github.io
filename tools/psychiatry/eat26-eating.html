@@ -133,6 +133,19 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="result-box" id="result"></div>
 
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__eatExport()">⬇️ 导出 EAT-26 饮食态度明细 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyEatPreset('low')">低风险示例</button>
+      <button type="button" class="btn" onclick="applyEatPreset('mod')">阳性示例</button>
+      <button type="button" class="btn" onclick="applyEatPreset('high')">高风险示例</button>
+    </div>
+    <table id="eatTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="eatHistory" style="margin-top:10px;"></div>
+
     <h3 style="font-size:14px;margin:16px 0 10px;">EAT-26 计分说明</h3>
     <table>
       <tr><th>选项</th><th>正向条目得分</th><th>反向条目(8/13/25)得分</th></tr>
@@ -268,13 +281,63 @@ function calc(){
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>'+
     (risky?'<div class="tip-box tip-error" style="margin-top:8px;">您报告了暴食或催吐行为，建议尽快就医评估，这些行为可对健康造成严重危害。</div>':'');document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __eatScore(i){return (REV_IDX[i]?REV:NORM)[A[i]];}
+function __eatSev(total){if(total<20)return ['低风险','EAT-26总分低于20，目前饮食态度问题风险较低。'];return ['高风险','EAT-26总分≥20，提示存在饮食障碍关注，建议进一步接受专业进食障碍评估。'];}
+function __eatExport(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length){ToolBox.showToast('请先完成全部 26 题','warning');return;}
+  var total=0;A.forEach(function(v,i){total+=__eatScore(i);});
+  var sev=__eatSev(total);
+  var risky=(A[3]>=3||A[8]>=3);
+  var t=document.getElementById('eatTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>题号</th><th>题目</th><th>选项</th><th>得分</th></tr>';
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  QS.forEach(function(q,i){var v=A[i];var opt=v>=0?OPTS[v]:'';var sc=__eatScore(i);row((i+1),q,opt,sc);});
+  row('','已答条目','',done+' / '+QS.length);
+  row('','EAT-26 总分','',total+' / 78');
+  row('','临界值','',total>=20?'≥20':'<20');
+  row('','严重度','',sev[0]);
+  row('','高风险行为','',risky?'报告暴食/催吐（经常或总是）':'未报告明显暴食/催吐');
+  row('','评估结论','',sev[1]);
+  t.style.display='';
+  TBKit.util.exportTable('#eatTable','eat26_'+total+'.csv');
+}
+function __eatExtras(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length)return;
+  var total=0;A.forEach(function(v,i){total+=__eatScore(i);});
+  var sev=__eatSev(total);
+  TBKit.history.record({answered:done,score:total,level:sev[0],ans:A.join(',')},3000);
+  __eatMountHist();
+}
+function __eatMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#eatHistory',function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans)return;
+    A=rec.ans.split(',').map(function(x){return parseInt(x,10);});render();calc();
+  },8);
+}
+function applyEatPreset(kind){
+  A=new Array(QS.length).fill(-1);
+  var c=0;
+  QS.forEach(function(q,i){
+    if(kind==='low'){A[i]= REV_IDX[i]?3:0;}
+    else if(kind==='high'){A[i]= REV_IDX[i]?0:5;}
+    else if(kind==='mod'){ if(REV_IDX[i]){A[i]=3;} else { c++; A[i]=(c<=7)?5:0; } }
+  });
+  render();calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=0;A.forEach(function(v,i){total+=(REV_IDX[i]?REV:NORM)[v];});
   ToolBox.copyText('EAT-26 进食态度量表总分：'+total+'/78','tool.copy_ok');
 }
-render();calc();
+var __eat0=calc; calc=function(){__eat0(); __eatExtras();};
+render();calc(); __eatMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

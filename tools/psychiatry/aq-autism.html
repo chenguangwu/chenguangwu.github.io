@@ -133,6 +133,19 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="result-box" id="result"></div>
 
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__aqExport()">⬇️ 导出 AQ 评分明细 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyAqPreset('low')">低分示例</button>
+      <button type="button" class="btn" onclick="applyAqPreset('bap')">广泛表型示例</button>
+      <button type="button" class="btn" onclick="applyAqPreset('clinical')">临床显著示例</button>
+    </div>
+    <table id="aqTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="aqHistory" style="margin-top:10px;"></div>
+
     <h3 style="font-size:14px;margin:16px 0 10px;">AQ 分级与子量表</h3>
     <table>
       <tr><th>总分</th><th>分级</th><th>说明</th></tr>
@@ -303,13 +316,65 @@ function calc(){
     '<div style="margin-top:8px;">'+subHtml+'</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __aqBuildSub(){
+  var sub=[];for(var s in SUB){var ss=SUB[s].reduce(function(a,n){return a+score(n-1);},0);sub.push([s,ss]);}return sub;
+}
+function __aqSev(total){if(total<26)return ['低','自闭特质较低，暂未达到临床关注水平。'];if(total<=31)return ['广泛自闭症表型','处于广泛自闭症表型范围，可能具有部分自闭特质，建议关注。'];return ['临床显著','达到临床显著自闭特质范围，建议接受专业发育行为/精神科评估。'];}
+function __aqExport(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length){ToolBox.showToast('请先完成全部 50 题','warning');return;}
+  var total=0;A.forEach(function(v,i){total+=score(i);});
+  var sub=__aqBuildSub();
+  var sev=__aqSev(total);
+  var t=document.getElementById('aqTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>题号</th><th>题目</th><th>选项</th><th>得分</th></tr>';
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  QS.forEach(function(q,i){var v=A[i];var opt=v>=0?OPTS[v]:'';var sc=score(i);row((i+1),q,opt,sc);});
+  row('','AQ 总分','',total+' / 50');
+  sub.forEach(function(s){row('',s[0]+'（0-10）','',s[1]);});
+  row('','严重度','',sev[0]);
+  row('','临床临界 32','',total>=32?'≥32':'<32');
+  row('','评估结论','',sev[1]);
+  t.style.display='';
+  TBKit.util.exportTable('#aqTable','aq_autism_'+total+'.csv');
+}
+function __aqExtras(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length)return;
+  var total=0;A.forEach(function(v,i){total+=score(i);});
+  var sub=__aqBuildSub();
+  var sev=__aqSev(total);
+  TBKit.history.record({answered:done,score:total,level:sev[0],sub:sub.map(function(x){return x[0]+':'+x[1];}).join('|'),ans:A.join(',')}, 3000);
+  __aqMountHist();
+}
+function __aqMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#aqHistory', function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans)return;
+    A=rec.ans.split(',').map(function(x){return parseInt(x,10);});render();calc();
+  },8);
+}
+function applyAqPreset(kind){
+  A=new Array(QS.length).fill(-1);
+  var nf=0;
+  QS.forEach(function(q,i){
+    if(kind==='low'){A[i]= FWD[i+1]?3:0;}
+    else if(kind==='clinical'){A[i]= FWD[i+1]?0:3;}
+    else if(kind==='bap'){ if(FWD[i+1]){A[i]=0;} else { nf++; A[i]=(nf<=4)?2:1; } }
+  });
+  render();calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=0;A.forEach(function(v,i){total+=score(i);});
   ToolBox.copyText('AQ 自闭症光谱量表总分：'+total+'/50','tool.copy_ok');
 }
-render();calc();
+var __aq0=calc; calc=function(){__aq0(); __aqExtras();};
+render();calc(); __aqMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

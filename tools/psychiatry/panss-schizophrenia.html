@@ -134,6 +134,20 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="result-box" id="result"></div>
 
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__panssExport()">⬇️ 导出 PANSS 症状评分明细 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyPanssPreset('none')">无/极轻示例</button>
+      <button type="button" class="btn" onclick="applyPanssPreset('mild')">轻度示例</button>
+      <button type="button" class="btn" onclick="applyPanssPreset('moderate')">中度示例</button>
+      <button type="button" class="btn" onclick="applyPanssPreset('severe')">显著/重度示例</button>
+    </div>
+    <table id="panssTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="panssHistory" style="margin-top:10px;"></div>
+
     <h3 style="font-size:14px;margin:16px 0 10px;">PANSS 总分严重度参考</h3>
     <table>
       <tr><th>总分</th><th>分级</th></tr>
@@ -246,13 +260,59 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>分型提示：</strong>'+(comp>0?'复合指数为正，提示以阳性症状为主型。':comp<0?'复合指数为负，提示以阴性症状为主型。':'复合指数为0，阳性与阴性症状均衡。')+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __panssGroup(i){return i<7?'阳性':(i<14?'阴性':'一般');}
+function __panssLabel(i){var pre=i<7?'P':(i<14?'N':'G');return pre+(i<7?(i+1):(i<14?(i-6):(i-13)));}
+function __panssSev(total){if(total<=57)return '无/极轻';if(total<=74)return '轻度';if(total<=95)return '中度';return '显著/重度';}
+function __panssExport(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=1;}).length;
+  if(done<QS.length){ToolBox.showToast('请先完成全部 30 项评定','warning');return;}
+  var p=0,n=0,g=0;A.forEach(function(v,i){if(i<7)p+=v;else if(i<14)n+=v;else g+=v;});
+  var total=p+n+g;var comp=p-n;var sev=__panssSev(total);
+  var t=document.getElementById('panssTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>题号</th><th>症状</th><th>分组</th><th>评分</th></tr>';
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  QS.forEach(function(q,i){row(__panssLabel(i),q[0],__panssGroup(i),A[i]);});
+  row('','已评定条目','',done+' / '+QS.length);
+  row('','PANSS 总分','',total+' / 210');
+  row('','阳性 P（7-49）','',p);
+  row('','阴性 N（7-49）','',n);
+  row('','一般 G（16-112）','',g);
+  row('','复合指数 P-N','',(comp>=0?'+':'')+comp);
+  row('','严重度','',sev);
+  row('','分型提示','',comp>0?'以阳性症状为主型':(comp<0?'以阴性症状为主型':'阳性与阴性症状均衡'));
+  t.style.display='';
+  TBKit.util.exportTable('#panssTable','panss_'+total+'.csv');
+}
+function __panssExtras(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=1;}).length;
+  if(done<QS.length)return;
+  var p=0,n=0,g=0;A.forEach(function(v,i){if(i<7)p+=v;else if(i<14)n+=v;else g+=v;});
+  var total=p+n+g;var comp=p-n;
+  TBKit.history.record({answered:done,score:total,p:p,n:n,g:g,comp:comp,level:__panssSev(total),ans:A.join(',')},3000);
+  __panssMountHist();
+}
+function __panssMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#panssHistory',function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans)return;
+    A=rec.ans.split(',').map(function(x){return parseInt(x,10);});render();calc();
+  },8);
+}
+function applyPanssPreset(kind){
+  var v=kind==='none'?1:kind==='mild'?2:kind==='moderate'?3:4;
+  A=new Array(QS.length).fill(v);render();calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=1;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var p=0,n=0,g=0;A.forEach(function(v,i){if(i<7)p+=v;else if(i<14)n+=v;else g+=v;});
   ToolBox.copyText('PANSS 总分：'+(p+n+g)+'/210（P='+p+', N='+n+', G='+g+'）','结果已复制');
 }
-render();calc();
+var __panss0=calc; calc=function(){__panss0(); __panssExtras();};
+render();calc(); __panssMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->
