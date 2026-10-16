@@ -193,6 +193,7 @@ s.parentNode.insertBefore(el, s);
   </div>
 
   <div id="resultArea"></div>
+  <div id="ckdChart" style="margin-top:12px;"></div>
 
   <div class="card" id="patientCard" style="display:none;">
     <div class="history-header">
@@ -651,6 +652,43 @@ document.addEventListener('DOMContentLoaded', function(){
     h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });
   });
 });
+
+function __ckdExtras() {
+  if (typeof TBKit === 'undefined') return;
+  var ageEl = document.getElementById('patientAge');
+  if (!ageEl) return;
+  var age = parseInt(ageEl.value);
+  var isFemale = document.getElementById('patientSex').value === 'female';
+  var scr = parseFloat(document.getElementById('scr').value);
+  var scrUnit = document.getElementById('scrUnit').value;
+  var scys = parseFloat(document.getElementById('scys').value);
+  if (!age || age < 18 || isNaN(scr) || scr <= 0) { document.getElementById('ckdChart').innerHTML = ''; return; }
+  var scrMgDl = scrUnit === 'umol' ? scr / 88.4 : scr;
+  var egfrCr = calcEGFRCr(scrMgDl, age, isFemale);
+  var labels = [], data = [];
+  if (!isNaN(scys) && scys > 0) {
+    var egfrCys = calcEGFRCys(scys, age, isFemale);
+    var egfrCrCys = calcEGFRCrCys(scrMgDl, scys, age, isFemale);
+    labels = ['联合(肌酐+胱抑素C)', '单肌酐', '单胱抑素C'];
+    data = [egfrCrCys, egfrCr, egfrCys];
+  } else {
+    labels = ['eGFR(肌酐)'];
+    data = [egfrCr];
+  }
+  TBKit.chart.bar('#ckdChart', {
+    labels: labels,
+    series: [{ name: 'eGFR (mL/min/1.73m²)', data: data }],
+    height: 240,
+    title: '不同公式 eGFR 估算值对比'
+  });
+}
+var __f0 = calculate;
+calculate = function () { __f0(); __ckdExtras(); };
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { calculate(); });
+} else {
+  setTimeout(function () { calculate(); }, 0);
+}
 </script>
 </body>
 </html>
