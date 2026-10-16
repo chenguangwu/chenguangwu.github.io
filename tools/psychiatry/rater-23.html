@@ -122,6 +122,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 LSAS 评分结果 CSV" onclick="__lsasExport()">⬇️ Export LSAS Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各题恐惧/回避分、维度汇总与严重程度可导出为 CSV">Per-item fear/avoidance scores, dimension totals, and severity can be exported as CSV</span>
+    </div>
+    <table id="lsasTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -235,6 +240,49 @@ function calc(){
 function copyResult(){
   var text=document.getElementById('res').innerText;
   ToolBox.copyText(text, i18nText('msg070'));
+}
+function __lsasExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof lsasItems==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var fearTotal=0, avoidTotal=0, perfFear=0, perfAvoid=0, socFear=0, socAvoid=0;
+    var rows=[];
+    lsasItems.forEach(function(item,i){
+      var f=+document.getElementById('f'+i).value;
+      var a=+document.getElementById('a'+i).value;
+      fearTotal+=f;avoidTotal+=a;
+      if(item.type==='P'){perfFear+=f;perfAvoid+=a;}
+      else{socFear+=f;socAvoid+=a;}
+      rows.push([(i+1)+'. '+item.s, item.type==='P'?(en?'Performance':'表演型'):(en?'Social interaction':'社交互动型'), f, a, f+a, ((f+a)/6*100).toFixed(0)+'%']);
+    });
+    var total=fearTotal+avoidTotal;
+    var perfTotal=perfFear+perfAvoid, socTotal=socFear+socAvoid;
+    var maxTotal=lsasItems.length*3*2;
+    var level, interpretation;
+    if(total<30){level=en?'No social anxiety':'无社交焦虑';interpretation=en?'Social anxiety is within the normal range and generally does not impair social functioning':'社交焦虑程度在正常范围内，一般不影响社交功能。';}
+    else if(total<60){level=en?'Mild social anxiety':'轻度社交焦虑';interpretation=en?'Mild social anxiety present; discomfort in some social situations. Monitor and adjust as needed':'存在轻度社交焦虑，可能在某些社交场合感到不适，建议关注并适当调适。';}
+    else if(total<90){level=en?'Moderate social anxiety':'中度社交焦虑';interpretation=en?'Moderate social anxiety causing marked distress in social situations; consider professional counseling assessment':'存在中度社交焦虑，社交场合可能引起明显困扰，建议寻求心理咨询评估。';}
+    else if(total<105){level=en?'Marked social anxiety':'显著社交焦虑';interpretation=en?'Social anxiety is marked and likely meets criteria for social anxiety disorder; psychiatric evaluation recommended':'社交焦虑程度显著，很可能符合社交焦虑障碍诊断，建议精神科就诊评估。';}
+    else{level=en?'Severe social anxiety':'重度社交焦虑';interpretation=en?'Severe social anxiety with broad functional impact; psychiatric evaluation and systematic treatment strongly recommended':'社交焦虑程度严重，广泛影响社交功能，强烈建议精神科就诊和系统治疗。';}
+    rows.push([en?'Performance situations (13 items)':'表演型情境（13项）',en?'Subtotal':'汇总',perfFear+'/39',perfAvoid+'/39',perfTotal+'/78',(perfTotal/78*100).toFixed(0)+'%']);
+    rows.push([en?'Social interaction situations (11 items)':'社交互动型（11项）',en?'Subtotal':'汇总',socFear+'/33',socAvoid+'/33',socTotal+'/66',(socTotal/66*100).toFixed(0)+'%']);
+    rows.push([en?'Total (24 items)':'总计（24项）',en?'Subtotal':'汇总',fearTotal+'/72',avoidTotal+'/72',total+'/144',(total/maxTotal*100).toFixed(0)+'%']);
+    var dominant=fearTotal>avoidTotal?(en?'Fear/anxiety scores higher; anxiety is the main presentation in social situations':'恐惧/焦虑维度得分更高，社交场合以焦虑情绪为主要表现'):(en?'Avoidance scores higher; avoidance is the main coping strategy':'回避维度得分更高，回避行为是主要应对方式');
+    var typeDom=perfTotal>socTotal?(en?'Performance anxiety is more prominent (speaking/performing/being observed)':'表演型情境焦虑更突出（演讲/表演/被观察等）'):(en?'Social interaction anxiety is more prominent (conversations/parties/meetings)':'社交互动型焦虑更突出（交谈/聚会/会面等）');
+    rows.push([en?'Fear vs avoidance comparison':'恐惧 vs 回避对比',en?'Fear':'恐惧',fearTotal+'/72',avoidTotal+'/72',total+'/144','']);
+    rows.push([en?'Dominant feature':'主要表现特征',dominant,'','','','']);
+    rows.push([en?'Dominant situation type':'主要焦虑类型',typeDom,'','','','']);
+    rows.push([en?'Severity level':'严重程度',level,'','','','']);
+    rows.push([en?'Clinical interpretation':'临床解读',interpretation,'','','','']);
+    rows.push([en?'Recommendation':'处理建议',total>=60?(en?'Systematic assessment at a mental health center; CBT and/or medication may be needed':'建议到精神卫生中心进行系统评估，可能需要心理治疗（CBT）和/或药物治疗'):(en?'Monitor social anxiety level; seek counseling if needed':'建议关注社交焦虑水平，必要时寻求心理咨询'),'','','','']);
+    var tb=document.querySelector('#lsasTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#lsasTable','lsas-score.csv');
+  }catch(e){}
 }
 buildList();calc();
 </script>

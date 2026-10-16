@@ -121,6 +121,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 FLACC 评分结果 CSV" onclick="__flaccExport()">⬇️ Export FLACC Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各项行为评分、总分与疼痛等级可导出为 CSV">Per-behavior scores, total score, and pain level can be exported as CSV</span>
+    </div>
+    <table id="flaccTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+
+    <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="calcScore()">计算评分</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="saveRecord()">保存记录</button>
@@ -328,6 +334,53 @@ function calcScore() {
 
   window._score = { total: total, level: level };
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
+}
+
+function __flaccExport() {
+  if (typeof TBKit === 'undefined' || typeof flaccData === 'undefined') return;
+  try {
+    var en = TBKit.util.isEn();
+    var total = 0, allSelected = true, scores = [];
+    flaccData.forEach(function(item) {
+      var radios = document.getElementsByName(item.key);
+      var sel = null;
+      for (var k = 0; k < radios.length; k++) { if (radios[k].checked) { sel = radios[k]; break; } }
+      if (sel) { var v = parseInt(sel.value); scores.push(v); total += v; }
+      else { allSelected = false; scores.push(-1); }
+    });
+
+    var rows = [];
+    flaccData.forEach(function(item, i) {
+      var s = scores[i];
+      if (s < 0) rows.push([item.name, en ? 'Unanswered' : '未评分', '']);
+      else {
+        var desc = '';
+        item.options.forEach(function(opt) { if (opt.score === s) desc = opt.desc; });
+        rows.push([item.name, s + ' / 2', desc]);
+      }
+    });
+
+    if (!allSelected) {
+      rows.push([en ? 'Note' : '说明', en ? 'Please score all 5 items before exporting' : '请先完成全部 5 项评分后再导出', '', '']);
+    } else {
+      var level, intervention;
+      if (total === 0) { level = en ? 'No pain' : '无痛'; intervention = en ? 'No analgesia needed; regular follow-up' : '无需镇痛处理，定期复查'; }
+      else if (total <= 3) { level = en ? 'Mild pain' : '轻度疼痛'; intervention = en ? 'Non-pharmacological interventions first: repositioning, touch, distraction; oral NSAIDs or acetaminophen if necessary' : '首选非药物干预：体位调整、抚触、分散注意力；必要时口服非甾体抗炎药或对乙酰氨基酚'; }
+      else if (total <= 6) { level = en ? 'Moderate pain' : '中度疼痛'; intervention = en ? 'Oral analgesics (acetaminophen/NSAIDs/weak opioids) with non-pharmacological support; reassess in 4-6 hours' : '口服镇痛药（如对乙酰氨基酚/NSAIDs/弱阿片），配合非药物干预，4-6小时后复评'; }
+      else { level = en ? 'Severe pain' : '重度疼痛'; intervention = en ? 'Strong analgesia (opioids), IV administration if needed; monitor respiration and consciousness; reassess in 1-2 hours' : '强效镇痛（阿片类），必要时静脉给药，持续监测呼吸和意识，1-2小时后复评'; }
+      rows.push([en ? 'Total score' : '总分', total + ' / 10', '']);
+      rows.push([en ? 'Level' : '疼痛等级', level, '']);
+      rows.push([en ? 'Intervention' : '处理建议', intervention, '']);
+      if (total >= 4) rows.push([en ? 'Monitoring' : '监测建议', en ? 'Reassess every 4-6 hours and track pain behavior trends' : '中度以上疼痛需缩短复评间隔（4-6小时），记录疼痛行为变化趋势，评估镇痛效果', '']);
+    }
+
+    var tb = document.querySelector('#flaccTable tbody');
+    if (!tb) return;
+    var h = '';
+    rows.forEach(function(r) { h += '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>'; });
+    tb.innerHTML = h;
+    TBKit.util.exportTable('#flaccTable', 'flacc-scale.csv');
+  } catch (e) {}
 }
 
 function saveRecord() {
