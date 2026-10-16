@@ -128,6 +128,12 @@ s.parentNode.insertBefore(el, s);
 
     <div class="result-box" id="result"></div>
     <div id="noiseChart"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出噪声叠加结果 CSV" onclick="__nsExport()">⬇️ Export Noise Superposition CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各声源声级、能量占比与叠加总声压级可导出为 CSV">Per-source levels, energy shares, and combined SPL can be exported as CSV</span>
+    </div>
+    <table id="nsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -385,6 +391,42 @@ function __noiseExtras(){
 }
 var __noiseCalc=calcAll;
 calcAll=function(){__noiseCalc();__noiseExtras();};
+
+function __nsExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof sources==='undefined'||sources.length===0) return;
+  try{
+    var en=TBKit.util.isEn();
+    var sumLinear=0;
+    sources.forEach(function(s){ sumLinear+=Math.pow(10,s.level/10); });
+    var totalLevel=10*Math.log10(sumLinear);
+    var avgLevel=10*Math.log10(sumLinear/sources.length);
+    var maxSource=sources[0];
+    sources.forEach(function(s){ if(s.level>maxSource.level)maxSource=s; });
+    var rows=[];
+    sources.forEach(function(s){
+      var share=Math.pow(10,s.level/10)/sumLinear*100;
+      rows.push([s.name||(en?'Source':'声源'),s.level,share.toFixed(2)+'%']);
+    });
+    var evalText,evalTextEn;
+    if(totalLevel>=85){evalText='超过职业暴露限值（85dB/8h）';evalTextEn='Exceeds occupational exposure limit (85dB/8h)';}
+    else if(totalLevel>=75){evalText='较高，需采取降噪措施';evalTextEn='High; noise control measures required';}
+    else if(totalLevel>=60){evalText='中等，影响工作和交流';evalTextEn='Moderate; affects work and communication';}
+    else if(totalLevel>=40){evalText='较低，一般可接受';evalTextEn='Low; generally acceptable';}
+    else{evalText='安静';evalTextEn='Quiet';}
+    rows.push([en?'Combined SPL (dB)':'叠加后总声压级 (dB)',totalLevel.toFixed(1),en?evalTextEn:evalText]);
+    rows.push([en?'Energy average (dB)':'能量平均 (dB)',avgLevel.toFixed(1),'']);
+    rows.push([en?'Max source':'最大声源',maxSource.level.toFixed(1),maxSource.name]);
+    rows.push([en?'Increase over max source (dB)':'较最大声源增加 (dB)','+'+(totalLevel-maxSource.level).toFixed(1),'']);
+    rows.push([en?'Source count':'声源数量',sources.length,'']);
+    var tb=document.querySelector('#nsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#nsTable','noise-superposition.csv');
+  }catch(e){}
+}
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__noiseExtras();});}else{__noiseExtras();}
 renderSources();
 calcAll();
