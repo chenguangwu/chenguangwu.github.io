@@ -151,6 +151,11 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()' data-page-node-id="BicQk1wH18Lin6jn2GH2Hx">复制结果</button>
     </div>
     <div class='result-box' id='result' data-page-node-id="pVbeQIXMKyfnBKp167oLc2"><p data-page-node-id="EycqdrhcOaQkZVXGbDt7EQ">请输入参数后计算。</p></div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出计算结果为 CSV" onclick="__frExport()">⬇️ Export Calculation Result CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="参数与结果可导出为 CSV 备案">Parameters and results can be exported as CSV for record</span>
+    </div>
+    <table id="frTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
     <div class='info-box' style='margin-top:12px;' data-page-node-id="YKWEcXD63RCk0Ko8SktduQ"><strong data-page-node-id="6YEEfeTB2stHWcOzE7jkH4">口径对照（喷嘴压力 0.30 MPa）：</strong>13mm → 充实水柱约 18.6m；16mm → 约 19.8m；19mm → 约 20.9m；22mm → 约 21.6m（均按折减系数 0.9）。<br data-page-node-id="CnRFVBA4MXoZZwAPPIlo6x">本工具未计水带沿程摩阻，实际到达水枪的喷嘴压力会低于泵出口压力；作战时应结合器材性能与现场经验。</div>
   </div>
 </div>
@@ -262,6 +267,42 @@ s.parentNode.insertBefore(el, s);
   window.copyResult = copyResult;
   window.applyNozzlePreset = applyNozzlePreset;
 })();
+</script>
+<script>
+function __frExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var p=parseFloat(ToolBox.$('pressure').value)||0;
+    var c=parseFloat(ToolBox.$('coeff').value)||0;
+    var angle=parseFloat(ToolBox.$('angle').value)||0;
+    var dn=parseFloat(ToolBox.$('nozzle').value)||19;
+    if(p<=0||c<=0) return;
+    var headM=p*100;
+    var PHI={13:0.0165,16:0.0124,19:0.0097,22:0.0077};
+    var phi=PHI[dn]||(0.79/Math.pow(dn,1.5));
+    var skIdeal=headM/(1+phi*headM);
+    var stream=skIdeal*c;
+    var rad=angle*Math.PI/180;
+    var range=stream*Math.cos(rad);
+    var velocity=Math.sqrt(2*9.81*headM);
+    var rows=[
+      ['喷嘴压力 (MPa)', p.toFixed(2)],
+      ['水枪喷嘴口径 (mm)', String(dn)],
+      ['射流折减系数', c.toFixed(2)],
+      ['喷射仰角 (°)', angle.toFixed(0)],
+      ['充实水柱长度 (m)', ToolBox.formatNumber(stream,2)],
+      ['水平有效射程 (m)', ToolBox.formatNumber(range,2)],
+      ['喷嘴出口流速 (m/s)', ToolBox.formatNumber(velocity,2)]
+    ];
+    var tb=document.getElementById('frTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#frTable','fire-hose-stream.csv');
+  }catch(e){}
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

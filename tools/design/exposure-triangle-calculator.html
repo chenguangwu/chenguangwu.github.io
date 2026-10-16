@@ -150,6 +150,11 @@ s.parentNode.insertBefore(el, s);
 <div class="toolbar" style="margin-top:8px;"><span style="font-size:13px;color:var(--text-muted);">📌 场景预设：</span><button type="button" class="btn" onclick="applyExpPreset('portrait')">人像晴天 f/2.8</button><button type="button" class="btn" onclick="applyExpPreset('indoor')">室内弱光 ISO800</button><button type="button" class="btn" onclick="applyExpPreset('sports')">运动抓拍 1/1000</button><button type="button" class="btn" onclick="applyExpPreset('landscape')">风光小光圈 f/11</button></div>
 <div class="toolbar"><span style="font-size:13px;color:var(--text-muted);">修改后曝光量变化：</span><button type="button" class="btn" onclick="changeExp(-1)">-1EV</button><button type="button" class="btn" onclick="changeExp(1)">+1EV</button><button type="button" class="btn primary" onclick="calc()">🔒 锁定曝光</button></div>
 <div id="equiv" style="margin-top:14px;"></div>
+    <div style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出等效组合 CSV" onclick="__expExport()">⬇️ Export Equivalent Combos CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="相同曝光量的组合可导出为 CSV 备份">Equivalent-exposure combos can be exported as CSV for backup</span>
+    </div>
+    <table id="expTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
 <div style="padding:12px;background:#f8f9ff;border-radius:8px;font-size:13px;margin-top:14px;">
 💡 曝光三角：光圈f值每档√2倍，快门速度每档2倍，ISO每档2倍。改变一项时，调整另一项可保持相同曝光。
 </div>
@@ -248,6 +253,40 @@ function changeExp(delta){
   let si=document.getElementById('shutter').selectedIndex;
   si=Math.max(0,Math.min(shutters.length-1,si-delta));
   document.getElementById('shutter').selectedIndex=si;calc();
+}
+var __expF0 = calc;
+calc = function(){ __expF0(); __expExtras(); };
+function __expExtras(){
+  try{
+    var ai=document.getElementById('aperture').selectedIndex;
+    var si=document.getElementById('shutter').selectedIndex;
+    var ii=document.getElementById('iso').selectedIndex;
+    var iso=isos[ii];
+    var a=apertures[ai];
+    var rows=[];
+    for(var da=-2; da<=2; da++){
+      var na=Math.max(0,Math.min(apertures.length-1,ai+da));
+      var neededSi=si+(na-ai);
+      if(neededSi>=0 && neededSi<shutters.length){
+        rows.push(['f/'+apertures[na], fmtShutter(shutters[neededSi]), 'ISO '+iso]);
+      }
+      var niso=Math.max(0,Math.min(isos.length-1,ii+da));
+      var ns=si-da;
+      if(ns>=0 && ns<shutters.length){
+        rows.push(['f/'+a, fmtShutter(shutters[ns]), 'ISO '+isos[niso]]);
+      }
+    }
+    var tb=document.getElementById('expTable');
+    if(!tb) return;
+    var html='<thead><tr><th>光圈</th><th>快门</th><th>ISO</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td><td>'+rows[i][2]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+  }catch(e){}
+}
+function __expExport(){
+  if(typeof TBKit==='undefined') return;
+  try{ TBKit.util.exportTable('#expTable','exposure-triangle.csv'); }catch(e){}
 }
 calc();
 </script><script>
