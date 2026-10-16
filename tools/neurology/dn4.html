@@ -127,6 +127,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 DN4 评分结果 CSV" onclick="__dn4Export()">⬇️ Export DN4 Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各题得分、症状/检查小计与疼痛类型判定可导出为 CSV">Per-item scores, symptom/exam subscores, and pain type can be exported as CSV</span>
+    </div>
+    <table id="dn4Table" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -298,6 +304,45 @@ function copyResult(){
     }
   });
   ToolBox.copyText('DN4评分：'+total+'分', i18nText());
+}
+
+function __dn4Export(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof questions==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var total=0,symptomScore=0,examScore=0;
+    var rows=[];
+    questions.forEach(function(item,i){
+      var radios=document.getElementsByName('q'+i);
+      var v=0;
+      for(var j=0;j<radios.length;j++){
+        if(radios[j].checked){ v=parseInt(radios[j].value); break; }
+      }
+      total+=v;
+      if(i<7)symptomScore+=v;else examScore+=v;
+      rows.push([(i<7?(en?'Symptom':'症状描述'):(en?'Examination':'临床检查')),item.q,v===1?(en?'Positive':'阳性'):(en?'Negative':'阴性'),1]);
+    });
+    var isNeuro,advice;
+    if(total>=4){
+      isNeuro=en?'Neuropathic pain':'神经病理性疼痛';
+      advice=en?'Neuropathic features present; identify etiology (diabetic neuropathy, postherpetic neuralgia, trigeminal neuralgia). First-line: gabapentin/pregabalin, amitriptyline/duloxetine; topical lidocaine patches as adjunct':'疼痛具有神经病理性特征。建议明确病因（如糖尿病性神经病、带状疱疹后神经痛、三叉神经痛等）。一线药物：加巴喷丁/普瑞巴林、阿米替林/度洛西汀。可联合外用利多卡因贴剂。';
+    }else{
+      isNeuro=en?'Nociceptive pain':'伤害感受性疼痛';
+      advice=en?'Mainly nociceptive; conventional analgesics (acetaminophen/NSAIDs/opioids). If inadequate, repeat DN4 or consider mixed pain':'疼痛以伤害感受性特征为主。可使用常规镇痛药（对乙酰氨基酚/NSAIDs/阿片类）。如镇痛效果不佳，可复查DN4或考虑混合型疼痛可能。';
+    }
+    rows.push([en?'Symptom section (max 7)':'症状描述部分 (满分 7)',symptomScore,7,'']);
+    rows.push([en?'Examination section (max 3)':'临床检查部分 (满分 3)',examScore,3,'']);
+    rows.push([en?'DN4 total (max 10)':'DN4 总分 (满分 10)',total,10,isNeuro]);
+    rows.push([en?'Pain type':'疼痛类型',0,isNeuro,'']);
+    rows.push([en?'Treatment advice':'治疗建议',0,advice,'']);
+    var tb=document.querySelector('#dn4Table tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#dn4Table','dn4-score.csv');
+  }catch(e){}
 }
 
 buildForm();

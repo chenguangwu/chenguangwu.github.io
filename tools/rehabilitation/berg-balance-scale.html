@@ -116,6 +116,12 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="resultBox" style="margin-top:16px;">
       <p style="color:var(--text-muted);">请完成各项测试评分后查看结果</p>
     </div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 Berg 平衡量表结果 CSV" onclick="__bbsExport()">⬇️ Export Berg Balance Scale CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各项得分、总分、评估等级与跌倒风险可导出为 CSV">Per-item scores, total score, rating, and fall risk can be exported as CSV</span>
+    </div>
+    <table id="bbsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
     <div id="bergChart" style="margin-top:12px;"></div>
 
     <div class="toolbar" style="margin-top:12px;">
@@ -299,11 +305,48 @@ function calcScore() {
   return total;
 }
 
+function __bbsExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof bbsItems==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var total=0;
+    var answered=0;
+    var rows=[];
+    var scoreLabels=['0 '+ (en?'(needs help / cannot do)':'（需要帮助/无法完成）'),'1 '+ (en?'(minimal help / large ROM)':'（少量帮助/大范围）'),'2 '+ (en?'(independent / medium ROM)':'（独立/中范围）'),'3 '+ (en?'(independent / small ROM)':'（独立/小范围）'),'4 '+ (en?'(independent / normal)':'（独立/正常）')];
+    bbsItems.forEach(function(item,i){
+      var radios=document.getElementsByName('item'+i);
+      var v=null;
+      for(var k=0;k<radios.length;k++){
+        if(radios[k].checked){ v=parseInt(radios[k].value); break; }
+      }
+      if(v!==null){ total+=v; answered++; }
+      rows.push([(i+1)+'. '+(item.name||item),v===null?(en?'Unanswered':'未评分'):scoreLabels[v],(item.desc||'')]);
+    });
+    var level,risk,advice;
+    if(total<=20){level=en?'Severe balance impairment':'严重平衡障碍';risk=en?'High fall risk':'高跌倒风险';advice=en?'Wheelchair assistance, dedicated supervision, comprehensive balance rehab':'需轮椅辅助，建议专人看护和综合平衡康复训练';}
+    else if(total<=40){level=en?'Moderate balance impairment':'中度平衡障碍';risk=en?'Moderate-high fall risk':'中高跌倒风险';advice=en?'Walker assistance, systematic balance and strength training':'需助行器辅助，建议系统平衡训练和肌力训练';}
+    else if(total<=44){level=en?'Mild balance impairment':'轻度平衡障碍';risk=en?'Moderate fall risk':'中度跌倒风险';advice=en?'Assistive devices, intensive balance and functional training':'需辅助器具，建议强化平衡和功能性训练';}
+    else if(total<=52){level=en?'Good balance':'平衡良好';risk=en?'Low fall risk':'低跌倒风险';advice=en?'Independent walking, maintenance training and fall prevention education':'可独立步行，建议维持性训练和预防跌倒教育';}
+    else{level=en?'Normal balance':'平衡正常';risk=en?'Very low fall risk':'很低跌倒风险';advice=en?'Normal balance function, maintain daily activities':'平衡功能正常，保持日常活动即可';}
+    var fallRisk=total<45?Math.round((45-total)*7):0;
+    rows.push([en?'Total score (max 56)':'总分 (满分 56)',total+' / '+56+'（'+answered+'/'+bbsItems.length+(en?' items)':' 项）'),'']);
+    rows.push([en?'Rating':'评估等级',0,level]);
+    rows.push([en?'Fall risk':'跌倒风险',0,risk+(fallRisk>0?(en?' (estimated +'+fallRisk+'%)':'（估算增加约'+fallRisk+'%）'):'')]);
+    rows.push([en?'Rehab advice':'康复建议',0,advice]);
+    var tb=document.querySelector('#bbsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#bbsTable','berg-balance-scale.csv');
+  }catch(e){}
+}
+
 function saveRecord() {
   var total = 0;
   var answered = 0;
-  bbsItems.forEach(function(item, i) {
-    var sel = document.querySelector('input[name="item' + i + '"]:checked');
+  bbsItems.forEach(function(item, i) {    var sel = document.querySelector('input[name="item' + i + '"]:checked');
     if (sel) { total += parseInt(sel.value); answered++; }
   });
   if (answered === 0) { ToolBox.showToast(i18nText(), 'error'); return; }
