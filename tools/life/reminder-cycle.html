@@ -173,6 +173,13 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>🧹 清洁队列（按紧急度排序）</h3>
     <div id="applList"><div class="empty">暂无家电，请先添加</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+      <button type="button" class="btn" onclick="__applExport()">⬇️ 导出清洁计划 CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);">导出各家电的类型、周期、上次/下次清洁日期与剩余天数</span>
+    </div>
+    <table id="applTable" class="result-table" style="width:100%;margin-top:10px;">
+      <thead></thead><tbody></tbody>
+    </table>
   </div>
 
   <div class="card">
@@ -333,18 +340,61 @@ function render() {
   renderAppls();
 }
 
+function __applIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+var APPL_TYPE_EN={ac_filter:'AC filter',ac_deep:'AC deep clean',washer:'Washing machine',fridge:'Refrigerator',heater:'Water heater',range_hood:'Range hood',microwave:'Microwave',water_disp:'Water dispenser'};
+function __applSorted(){
+  return appliances.slice().map(function(a){
+    var next=getNextDate(a);
+    var days=getDaysUntil(next);
+    if(!isFinite(days)) days=0;
+    return {appl:a, type:getType(a.type), next:next, days:days, urgency:getUrgency(days)};
+  }).sort(function(x,y){ return x.days-y.days; });
+}
+function __applStatusLabel(u){
+  var en=__applIsEn();
+  if(!en) return u.label;
+  return u.level==='over'?'Overdue':(u.level==='soon'?'Due soon':'Normal');
+}
 function __applExtras(){
   if(typeof TBKit==='undefined') return;
-  var host=document.getElementById('applChart'); if(!host) return;
-  if(!appliances.length){ host.innerHTML=''; return; }
-  var labels=[],data=[];
-  appliances.forEach(function(a){
-    labels.push(a.name);
-    var d=getDaysUntil(getNextDate(a));
-    if(!isFinite(d)) d=0;
-    data.push(d);
+  var en=__applIsEn();
+  var host=document.getElementById('applChart');
+  var sorted=__applSorted();
+  if(host){
+    if(!sorted.length){ host.innerHTML=''; }
+    else{
+      TBKit.chart.bar('#applChart',{labels:sorted.map(function(i){return i.appl.name;}),
+        series:[{name:en?'Days to next clean':'距下次清洁(天)',data:sorted.map(function(i){return i.days;})}],
+        height:Math.max(220,sorted.length*42),title:en?'Days until next cleaning':'各家电距下次清洁天数'});
+    }
+  }
+  var t=document.getElementById('applTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en
+      ? '<tr><th>Appliance</th><th>Type</th><th>Cycle (days)</th><th>Last clean</th><th>Next clean</th><th>Days left</th><th>Status</th></tr>'
+      : '<tr><th>家电</th><th>类型</th><th>推荐周期(天)</th><th>上次清洁</th><th>下次清洁</th><th>剩余天数</th><th>状态</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    sorted.forEach(function(i){
+      var tr=document.createElement('tr');
+      var cells=[i.appl.name, en?(APPL_TYPE_EN[i.type.id]||i.type.name):i.type.name, String(i.type.cycle),
+                 i.appl.lastClean, fmtDate(i.next), String(i.days), __applStatusLabel(i.urgency)];
+      cells.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+}
+function __applExport(){
+  if(typeof TBKit==='undefined') return;
+  var en=__applIsEn();
+  var rows=[];
+  rows.push(en?['Appliance','Type','Cycle (days)','Last clean','Next clean','Days left','Status']
+              :['家电','类型','推荐周期(天)','上次清洁','下次清洁','剩余天数','状态']);
+  __applSorted().forEach(function(i){
+    rows.push([i.appl.name, en?(APPL_TYPE_EN[i.type.id]||i.type.name):i.type.name, String(i.type.cycle),
+               i.appl.lastClean, fmtDate(i.next), String(i.days), __applStatusLabel(i.urgency)]);
   });
-  TBKit.chart.bar('#applChart',{labels:labels,series:[{name:'距下次清洁(天)',data:data}],height:Math.max(220,appliances.length*42),title:'各家电距下次清洁天数'});
+  try{ TBKit.util.exportCsv('appliance-clean-plan.csv', rows); }catch(e){}
 }
 
 var __applRender=render;

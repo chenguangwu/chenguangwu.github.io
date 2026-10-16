@@ -453,6 +453,16 @@ window.__TI18N_EN = {
     '导出答题明细 CSV':'Export Quiz Details CSV',
     '4环示例':'4-Band Example',
     '5环示例':'5-Band Example',
+    '导出汉字明细 CSV':'Export Character Details CSV',
+    '导出笔顺明细 CSV':'Export Stroke Order CSV',
+    '导出练习记录 CSV':'Export Practice Records CSV',
+    '导出元素明细 CSV':'Export Element Details CSV',
+    '导出清洁计划 CSV':'Export Cleaning Plan CSV',
+    '⬇️ 导出汉字明细 CSV':'⬇️ Export Character Details CSV',
+    '⬇️ 导出笔顺明细 CSV':'⬇️ Export Stroke Order CSV',
+    '⬇️ 导出练习记录 CSV':'⬇️ Export Practice Records CSV',
+    '⬇️ 导出元素明细 CSV':'⬇️ Export Element Details CSV',
+    '⬇️ 导出清洁计划 CSV':'⬇️ Export Cleaning Plan CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——
@@ -9858,5 +9868,14 @@ window.__TI18N_EN = {
     '⏱️ 示例场景（一键填充常见工程案例）：':'⏱️ Sample Scenarios (common engineering cases):',
     '🌱 示例筛选（一键查看常见组合）：':'🌱 Sample Filters (common combinations):',
     '🦴 示例查询（一键填充常见场景）：':'🦴 Sample Queries (common scenarios):',
+    '导出当前字的字段明细与同部首相关字清单':'Export current character fields and same-radical related characters',
+    '导出当前字的逐笔顺序、笔画名称与总笔画数':'Export stroke sequence, stroke names and total stroke count',
+    '导出本次练习明细与历史成绩记录':'Export current practice details and historical records',
+    '导出当前类别/搜索筛选出的元素完整字段':'Export full fields of elements matched by current category/search',
+    '导出各家电的类型、周期、上次/下次清洁日期与剩余天数':'Export appliance type, cycle, last/next cleaning dates and days left',
+    '元素数据速查':'Element Data Lookup',
+    '📊 元素数据速查':'📊 Element Data Lookup',
+    '各家电距下次清洁天数':'Days Until Next Cleaning by Appliance',
+    '📊 各家电距下次清洁天数':'📊 Days Until Next Cleaning by Appliance',
   }
 };

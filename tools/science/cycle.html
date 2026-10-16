@@ -168,6 +168,19 @@ s.parentNode.insertBefore(el, s);
     <h3>📄 元素详情</h3>
     <div class="detail-panel" id="detailPanel"></div>
   </div>
+
+  <div class="card" id="ptlExtrasCard">
+    <h3>📊 元素数据速查</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="btn" onclick="__ptlExport()">⬇️ 导出元素明细 CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" id="ptlCount">导出当前类别/搜索筛选出的元素完整字段</span>
+    </div>
+    <div id="ptlChart" style="margin-top:10px;"></div>
+    <table id="ptlTable" class="result-table" style="width:100%;margin-top:10px;">
+      <thead></thead><tbody></tbody>
+    </table>
+    <div id="ptlHistory"></div>
+  </div>
 </div>
 
 <div class="tool-notes">
@@ -423,6 +436,92 @@ function showDetail(num){
 }
 
 renderGrid();
+
+var CATS_EN={alkali:'Alkali metal',alkaline:'Alkaline earth',transition:'Transition metal','post-transition':'Post-transition',metalloid:'Metalloid',nonmetal:'Nonmetal',halogen:'Halogen',noble:'Noble gas',lanthanide:'Lanthanide',actinide:'Actinide',unknown:'Unknown'};
+function __ptlIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __ptlCat(c){ var en=__ptlIsEn(); return en ? (CATS_EN[c]||c) : ((CATS[c]&&CATS[c][0])||c); }
+function __ptlFiltered(){
+  var q=''; var si=document.getElementById('search'); if(si) q=(si.value||'').trim().toLowerCase();
+  return D.filter(function(e){
+    if(highlightCat && e[5]!==highlightCat) return false;
+    if(q){
+      var hit=String(e[0])===q||e[1].toLowerCase()===q||e[2].indexOf(q)>=0||e[3].toLowerCase().indexOf(q)>=0;
+      if(!hit) return false;
+    }
+    return true;
+  });
+}
+function __ptlRows(){
+  return __ptlFiltered().slice(0, 40);
+}
+function __ptlExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__ptlIsEn();
+  var list=__ptlFiltered();
+  var shown=__ptlRows();
+  var t=document.getElementById('ptlTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en
+      ? '<tr><th>No.</th><th>Symbol</th><th>Name (CN)</th><th>Name (EN)</th><th>Atomic mass</th><th>Category</th><th>Melting (C)</th><th>Boiling (C)</th></tr>'
+      : '<tr><th>原子序</th><th>符号</th><th>中文名</th><th>英文名</th><th>原子量</th><th>类别</th><th>熔点(℃)</th><th>沸点(℃)</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    shown.forEach(function(e){
+      var tr=document.createElement('tr');
+      [String(e[0]),e[1],e[2],e[3],String(e[4]),__ptlCat(e[5]),(e[6]==='-'?'—':e[6]),(e[7]==='-'?'—':e[7])].forEach(function(v){
+        var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+  var cnt=document.getElementById('ptlCount');
+  if(cnt) cnt.textContent = en ? ('Showing '+shown.length+' of '+list.length+' matched elements') : ('共匹配 '+list.length+' 个元素，表格显示前 '+shown.length+' 个');
+  var host=document.getElementById('ptlChart');
+  if(host){
+    var items=[], seen={};
+    list.forEach(function(e){ seen[e[5]]=(seen[e[5]]||0)+1; });
+    Object.keys(seen).forEach(function(k){
+      items.push({label:__ptlCat(k), value:seen[k], color:(CATS[k]&&CATS[k][1])||undefined});
+    });
+    if(items.length){
+      TBKit.chart.pie('#ptlChart',{items:items,height:240,title:en?'Element category distribution':'元素类别分布'});
+    } else { host.innerHTML=''; }
+  }
+}
+function __ptlExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__ptlIsEn();
+  var rows=[];
+  rows.push(en?['No.','Symbol','Name (CN)','Name (EN)','Atomic mass','Category','Melting (C)','Boiling (C)','Electron config']
+              :['原子序','符号','中文名','英文名','原子量','类别','熔点(℃)','沸点(℃)','电子排布']);
+  __ptlFiltered().forEach(function(e){
+    rows.push([String(e[0]),e[1],e[2],e[3],String(e[4]),__ptlCat(e[5]),(e[6]==='-'?'—':e[6]),(e[7]==='-'?'—':e[7]),e[8]]);
+  });
+  try{ TBKit.util.exportCsv('periodic-elements.csv', rows); }catch(e){}
+}
+var __ptlDetail0=showDetail;
+showDetail=function(num){
+  var __r=__ptlDetail0.apply(null,arguments);
+  try{
+    if(typeof TBKit!=='undefined'){
+      var e=D.find(function(x){return x[0]===num;});
+      if(e){
+        TBKit.history.record({element:e[1], name:e[2], no:e[0]}, 2000);
+        var hh=document.getElementById('ptlHistory');
+        if(hh) TBKit.history.mount('#ptlHistory', function(rec){
+          if(!rec||rec.no==null)return;
+          showDetail(rec.no);
+        });
+      }
+    }
+  }catch(err){}
+  return __r;
+};
+var __ptlApply0=applyFilter;
+applyFilter=function(){ var __r=__ptlApply0.apply(null,arguments); try{ __ptlExtras(); }catch(e){} return __r; };
+function __ptlBoot(){ try{ __ptlExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __ptlBoot();
+else document.addEventListener('DOMContentLoaded', __ptlBoot);
 </script>
 
 

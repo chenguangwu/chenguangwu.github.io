@@ -188,6 +188,22 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="font-size:14px;margin:16px 0 8px;">🔍 相关汉字</h3>
     <div class="related-grid" id="relatedGrid"></div>
+
+    <div id="ccExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__ccExport()">⬇️ 导出汉字明细 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出当前字的字段明细与同部首相关字清单</span>
+      </div>
+      <div id="ccChart" style="margin-top:10px;"></div>
+      <table id="ccTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <table id="ccRelTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="ccPreset"></div>
+      <div id="ccHistory"></div>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -351,6 +367,109 @@ function lookup() {
 document.getElementById('charInput').addEventListener('keypress', e => {
   if (e.key === 'Enter') lookup();
 });
+
+function __ccIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __ccRel(ch, d){
+  if(!d) return [];
+  return Object.keys(charDB).filter(function(k){ return k!==ch && charDB[k].radical===d.radical; }).slice(0, 8);
+}
+function __ccExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__ccIsEn();
+  var ch=(document.getElementById('charInput').value||'').trim()||'汉';
+  var d=charDB[ch];
+  var t=document.getElementById('ccTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>Field</th><th>Value</th></tr>':'<tr><th>项目</th><th>值</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    var rows = d ? (en
+      ? [['Character',ch],['Pinyin',d.pinyin],['Radical',d.radical],['Total strokes',String(d.strokes)],['Wubi',d.wubi||'-'],['Meanings',String(d.meanings.length)],['Same-radical chars',String(__ccRel(ch,d).length)]]
+      : [['汉字',ch],['拼音',d.pinyin],['部首',d.radical],['总笔画',String(d.strokes)],['五笔',d.wubi||'-'],['释义条数',String(d.meanings.length)],['同部首字数',String(__ccRel(ch,d).length)]]
+    ) : (en ? [['Character',ch],['Status','Not in database']] : [['汉字',ch],['状态','未收录']]);
+    rows.forEach(function(r){
+      var tr=document.createElement('tr');
+      [r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+  var rt=document.getElementById('ccRelTable');
+  if(rt){
+    var rel=__ccRel(ch,d);
+    var th2=rt.querySelector('thead');
+    if(th2) th2.innerHTML = en?'<tr><th>Char</th><th>Pinyin</th><th>Radical</th><th>Strokes</th><th>Wubi</th></tr>':'<tr><th>汉字</th><th>拼音</th><th>部首</th><th>笔画</th><th>五笔</th></tr>';
+    var b2=rt.querySelector('tbody'); b2.innerHTML='';
+    rel.forEach(function(k){
+      var e=charDB[k];
+      var tr=document.createElement('tr');
+      [k,e.pinyin,e.radical,String(e.strokes),e.wubi||'-'].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      b2.appendChild(tr);
+    });
+  }
+  var host=document.getElementById('ccChart');
+  if(host){
+    if(d){
+      var rel2=Object.keys(charDB).filter(function(k){return charDB[k].radical===d.radical;}).slice(0,10);
+      if(rel2.indexOf(ch)<0) rel2.unshift(ch);
+      var useAll = rel2.length<3;
+      var keys = useAll ? Object.keys(charDB) : rel2;
+      TBKit.chart.bar('#ccChart',{labels:keys,
+        series:[{name:en?'Strokes':'笔画数',data:keys.map(function(k){return charDB[k].strokes;})}],
+        height:200,title: useAll ? (en?'Stroke count of all characters in database':'全库汉字笔画数对比')
+                                : (en?'Stroke count of same-radical characters':'同部首汉字笔画数对比')});
+    } else { host.innerHTML=''; }
+  }
+  if(d){
+    TBKit.history.record({char:ch, pinyin:d.pinyin, strokes:d.strokes}, 2000);
+    var hh=document.getElementById('ccHistory');
+    if(hh) TBKit.history.mount('#ccHistory', function(rec){
+      if(!rec||!rec.char)return;
+      document.getElementById('charInput').value=rec.char;
+      lookup();
+    });
+  }
+}
+function __ccExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__ccIsEn();
+  var ch=(document.getElementById('charInput').value||'').trim()||'汉';
+  var d=charDB[ch];
+  var rows=[];
+  rows.push(en?['Field','Value']:['项目','值']);
+  if(d){
+    rows.push(en?['Character',ch]:['汉字',ch]);
+    rows.push(en?['Pinyin',d.pinyin]:['拼音',d.pinyin]);
+    rows.push(en?['Radical',d.radical]:['部首',d.radical]);
+    rows.push(en?['Total strokes',String(d.strokes)]:['总笔画',String(d.strokes)]);
+    rows.push(en?['Wubi',d.wubi||'-']:['五笔',d.wubi||'-']);
+    rows.push(en?['Meanings',String(d.meanings.length)]:['释义条数',String(d.meanings.length)]);
+    rows.push(en?['Etymology',d.history]:['字源',d.history]);
+  } else {
+    rows.push(en?['Character',ch]:['汉字',ch]);
+    rows.push(en?['Status','Not in database']:['状态','未收录']);
+  }
+  rows.push([]);
+  rows.push(en?['Char','Pinyin','Radical','Strokes','Wubi']:['汉字','拼音','部首','笔画','五笔']);
+  __ccRel(ch,d).forEach(function(k){
+    var e=charDB[k];
+    rows.push([k,e.pinyin,e.radical,String(e.strokes),e.wubi||'-']);
+  });
+  try{ TBKit.util.exportCsv('chinese-character.csv', rows); }catch(e){}
+}
+function __ccPresets(){
+  if(typeof TBKit==='undefined')return;
+  var list=[];
+  ['汉','字','中','国','学','生','爱','家'].forEach(function(c){
+    var e=charDB[c];
+    list.push({label:c+(e?'('+e.pinyin+')':''),labelEn:c+(e?'('+e.pinyin+')':''),values:{charInput:c}});
+  });
+  TBKit.preset.bar('#ccPreset', list, function(){ lookup(); });
+}
+var __cc_f0=lookup;
+lookup=function(){ var __r=__cc_f0.apply(null,arguments); try{ __ccExtras(); }catch(e){} return __r; };
+function __ccBoot(){ try{ __ccPresets(); __ccExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __ccBoot();
+else document.addEventListener('DOMContentLoaded', __ccBoot);
 
 lookup();
 </script><script>

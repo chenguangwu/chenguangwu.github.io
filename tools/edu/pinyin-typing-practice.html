@@ -192,6 +192,22 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="resetTyping()">🔄 重新开始</button>
       <button type="button" class="btn" onclick="randomText()">🎲 换一段</button>
     </div>
+
+    <input type="hidden" id="ptTypeSel" value="poem">
+    <div id="ptExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__ptExport()">⬇️ 导出练习记录 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出本次练习明细与历史成绩记录</span>
+      </div>
+      <div id="ptChart" style="margin-top:10px;"></div>
+      <table id="ptTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <table id="ptHistTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="ptPreset"></div>
+    </div>
     
     <p style="font-size:13px;color:var(--text-muted);text-align:center;margin-top:16px;">
       💡 开启中文输入法后，按照上方文字输入即可
@@ -392,6 +408,127 @@ function finishTyping() {
   history.unshift({ speed, accuracy: acc, time: new Date().toLocaleString('zh-CN') });
   localStorage.setItem('typing-history', JSON.stringify(history.slice(0, 30)));
 }
+
+var __ptType = 'poem';
+var __ptSetText0 = setText;
+setText = function(t, b){ var __r = __ptSetText0.apply(null, arguments); __ptType = t; try{ __ptExtras(); }catch(e){} return __r; };
+var __ptRandom0 = randomText;
+randomText = function(){
+  var __r = __ptRandom0.apply(null, arguments);
+  Object.keys(textSamples).forEach(function(k){ if(textSamples[k].indexOf(currentText) >= 0) __ptType = k; });
+  try{ __ptExtras(); }catch(e){}
+  return __r;
+};
+
+function __ptIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __ptName(){
+  var m = {poem:'唐诗', idiom:'成语', essay:'散文', tech:'技术', common:'常用字'};
+  var e = {poem:'Tang poem', idiom:'Idiom', essay:'Prose', tech:'Tech text', common:'Common chars'};
+  return __ptIsEn() ? (e[__ptType]||__ptType) : (m[__ptType]||__ptType);
+}
+function __ptHist(){
+  try{ return JSON.parse(localStorage.getItem('typing-history') || '[]') || []; }catch(e){ return []; }
+}
+function __ptExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__ptIsEn();
+  var total=currentText.length, typed=currentIndex, err=errors;
+  var acc = typed>0 ? Math.round((typed-err)/typed*100) : 100;
+  var elapsed = startTime ? (Date.now()-startTime)/1000/60 : 0;
+  var speed = elapsed>0 ? Math.round((typed-err)/elapsed) : 0;
+  if(!isFinite(speed)) speed=0;
+  var t=document.getElementById('ptTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>结果</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    var rows = en
+      ? [['Text type',__ptName()],['Total chars',String(total)],['Typed chars',String(typed)],['Errors',String(err)],
+         ['Accuracy',acc+'%'],['Speed (chars/min)',String(Math.max(0,speed))],['Elapsed (s)',String(Math.round(elapsed*60))],['Progress',(total?Math.round(typed/total*100):0)+'%']]
+      : [['文本类型',__ptName()],['总字数',String(total)],['已输入',String(typed)],['错误数',String(err)],
+         ['正确率',acc+'%'],['速度(字/分)',String(Math.max(0,speed))],['用时(秒)',String(Math.round(elapsed*60))],['进度',(total?Math.round(typed/total*100):0)+'%']];
+    rows.forEach(function(r){
+      var tr=document.createElement('tr');
+      [r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+  var hist=__ptHist();
+  var ht=document.getElementById('ptHistTable');
+  if(ht){
+    var th2=ht.querySelector('thead');
+    if(th2) th2.innerHTML = en?'<tr><th>#</th><th>Time</th><th>Speed</th><th>Accuracy</th></tr>':'<tr><th>#</th><th>时间</th><th>速度(字/分)</th><th>正确率</th></tr>';
+    var b2=ht.querySelector('tbody'); b2.innerHTML='';
+    hist.slice(0,10).forEach(function(h,i){
+      var tr=document.createElement('tr');
+      [String(i+1), h.time||'-', String(h.speed||0), (h.accuracy!=null?h.accuracy:'0')+'%'].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      b2.appendChild(tr);
+    });
+  }
+  var host=document.getElementById('ptChart');
+  if(host){
+    var src=hist.slice(0,10).reverse();
+    if(src.length){
+      TBKit.chart.line('#ptChart',{labels:src.map(function(h,i){return String(i+1);}),
+        series:[{name:en?'Speed (chars/min)':'速度(字/分)',data:src.map(function(h){return h.speed||0;})}],
+        height:200, title:en?'Recent practice speed trend':'最近练习速度趋势'});
+    } else { host.innerHTML=''; }
+  }
+}
+function __ptExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__ptIsEn();
+  var total=currentText.length, typed=currentIndex, err=errors;
+  var acc = typed>0 ? Math.round((typed-err)/typed*100) : 100;
+  var elapsed = startTime ? (Date.now()-startTime)/1000/60 : 0;
+  var speed = elapsed>0 ? Math.round((typed-err)/elapsed) : 0;
+  if(!isFinite(speed)) speed=0;
+  var rows=[];
+  rows.push(en?['Item','Value']:['项目','结果']);
+  rows.push(en?['Text type',__ptName()]:['文本类型',__ptName()]);
+  rows.push(en?['Total chars',String(total)]:['总字数',String(total)]);
+  rows.push(en?['Typed chars',String(typed)]:['已输入',String(typed)]);
+  rows.push(en?['Errors',String(err)]:['错误数',String(err)]);
+  rows.push(en?['Accuracy',acc+'%']:['正确率',acc+'%']);
+  rows.push(en?['Speed (chars/min)',String(Math.max(0,speed))]:['速度(字/分)',String(Math.max(0,speed))]);
+  rows.push(en?['Elapsed (s)',String(Math.round(elapsed*60))]:['用时(秒)',String(Math.round(elapsed*60))]);
+  rows.push([]);
+  rows.push(en?['#','Time','Speed','Accuracy']:['#','时间','速度(字/分)','正确率']);
+  __ptHist().forEach(function(h,i){
+    rows.push([String(i+1), h.time||'-', String(h.speed||0), (h.accuracy!=null?h.accuracy:'0')+'%']);
+  });
+  try{ TBKit.util.exportCsv('pinyin-typing-practice.csv', rows); }catch(e){}
+}
+function __ptSetTypeSel(){
+  var sel=document.getElementById('ptTypeSel'); if(!sel)return;
+  var t=sel.value;
+  var order=['poem','idiom','essay','tech','common'];
+  var spans=document.querySelectorAll('.text-opt');
+  var i=order.indexOf(t);
+  if(i>=0 && spans[i]) setText(t, spans[i]);
+}
+function __ptPresets(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.preset.bar('#ptPreset', [
+    {label:'唐诗', labelEn:'Tang poem', values:{ptTypeSel:'poem'}},
+    {label:'成语', labelEn:'Idiom', values:{ptTypeSel:'idiom'}},
+    {label:'散文', labelEn:'Prose', values:{ptTypeSel:'essay'}},
+    {label:'技术', labelEn:'Tech text', values:{ptTypeSel:'tech'}},
+    {label:'常用字', labelEn:'Common chars', values:{ptTypeSel:'common'}}
+  ], function(){ __ptSetTypeSel(); });
+}
+var __ptUpdate0 = updateStats;
+updateStats = function(){ var __r = __ptUpdate0.apply(null, arguments); try{ __ptExtras(); }catch(e){} return __r; };
+function __ptBoot(){
+  try{
+    __ptPresets();
+    var sel=document.getElementById('ptTypeSel');
+    if(sel) sel.addEventListener('change', __ptSetTypeSel);
+    __ptExtras();
+  }catch(e){}
+}
+if(document.readyState && document.readyState!=='loading') __ptBoot();
+else document.addEventListener('DOMContentLoaded', __ptBoot);
 
 setText('poem', document.querySelector('.text-opt'));
 </script><script>

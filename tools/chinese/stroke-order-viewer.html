@@ -131,6 +131,19 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="stroke-box" id="out"></div>
+
+    <div id="soExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__soExport()">⬇️ 导出笔顺明细 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出当前字的逐笔顺序、笔画名称与总笔画数</span>
+      </div>
+      <div id="soChart" style="margin-top:10px;"></div>
+      <table id="soTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="soPreset"></div>
+      <div id="soHistory"></div>
+    </div>
   </div>
 </div>
 
@@ -187,6 +200,104 @@ function render() {
   html += '<p style="margin-top:8px;color:var(--text-muted);">提示：真实笔顺依字形字体可能存在差异，结果供学习参考。</p>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h2;
 }
+
+function __soIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+var SO_EN_PAIRS=[
+  ['横折折撇','H-T-T-LF'],['横折折折','H-T-T-T'],['横折弯钩','H-T-C-H'],['横折折钩','H-T-T-H'],
+  ['横折钩','H-T-hook'],['横折弯','H-T-curve'],['竖折折','V-T-T'],['竖折撇','V-T-LF'],
+  ['横折','H-turn'],['竖钩','V-hook'],['竖提','V-rise'],['竖折','V-turn'],['竖弯','V-curve'],
+  ['弯钩','curve-hook'],['横撇','H-LF'],['撇点','LF-dot'],['撇折','LF-turn'],['撇捺','LF-RF'],
+  ['点','dot'],['横','horizontal'],['竖','vertical'],['撇','left-falling'],['捺','right-falling'],
+  ['提','rising'],['折','turning'],['钩','hook'],['弯','curved'],['人字','ren-shape'],['一','horizontal'],['丨','vertical']
+];
+function __soEnName(n){
+  if(!n) return n;
+  var out=String(n);
+  SO_EN_PAIRS.forEach(function(p){ if(out.indexOf(p[0])>=0) out=out.split(p[0]).join(p[1]); });
+  return out;
+}
+function __soCount(arr){
+  var m=String(arr[arr.length-1]||'').match(/(\d+)\s*画/);
+  return m?parseInt(m[1],10):Math.max(0, arr.length-1);
+}
+function __soEval(){
+  var w=(document.getElementById('word').value||'').trim().slice(0,1);
+  var arr=STROKES[w];
+  return {w:w, arr:arr};
+}
+function __soExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__soIsEn();
+  var r=__soEval(); var arr=r.arr, w=r.w;
+  var t=document.getElementById('soTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>No.</th><th>Stroke</th></tr>':'<tr><th>笔序</th><th>笔画</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    if(arr){
+      var list=arr.slice(0, arr.length-1);
+      list.forEach(function(s,i){
+        var tr=document.createElement('tr');
+        [String(i+1), en?__soEnName(s):s].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+        body.appendChild(tr);
+      });
+      var tr2=document.createElement('tr');
+      var sumText = en ? ('Total strokes: ' + __soCount(arr)) : ('共 ' + __soCount(arr) + ' 画');
+      [(en?'Total':'合计'), sumText].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr2.appendChild(td);});
+      body.appendChild(tr2);
+    } else {
+      var tr3=document.createElement('tr');
+      var v1=en?'Status':'状态', v2=en?'Stroke data not available for this character':'该字未收录笔顺数据';
+      [v1,v2].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr3.appendChild(td);});
+      body.appendChild(tr3);
+    }
+  }
+  var host=document.getElementById('soChart');
+  if(host){
+    var keys=Object.keys(STROKES);
+    TBKit.chart.bar('#soChart',{labels:keys,
+      series:[{name:en?'Strokes':'总笔画',data:keys.map(function(k){return __soCount(STROKES[k]);})}],
+      height:200, title:en?'Stroke count by character':'示例字总笔画数对比'});
+  }
+  if(arr){
+    TBKit.history.record({char:w, strokes:__soCount(arr)}, 2000);
+    var hh=document.getElementById('soHistory');
+    if(hh) TBKit.history.mount('#soHistory', function(rec){
+      if(!rec||!rec.char)return;
+      document.getElementById('word').value=rec.char;
+      render();
+    });
+  }
+}
+function __soExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__soIsEn();
+  var r=__soEval(); var arr=r.arr, w=r.w;
+  var rows=[];
+  rows.push(en?['Character','No.','Stroke']:['汉字','笔序','笔画']);
+  if(arr){
+    arr.slice(0, arr.length-1).forEach(function(s,i){
+      rows.push([w, String(i+1), en?__soEnName(s):s]);
+    });
+    rows.push([]);
+    rows.push([w, en?'Total':'合计', String(__soCount(arr))]);
+  } else {
+    rows.push([w||'-', '-', en?'Not in database':'未收录']);
+  }
+  try{ TBKit.util.exportCsv('stroke-order.csv', rows); }catch(e){}
+}
+function __soPresets(){
+  if(typeof TBKit==='undefined')return;
+  var list=Object.keys(STROKES).map(function(c){
+    return {label:c, labelEn:c, values:{word:c}};
+  });
+  TBKit.preset.bar('#soPreset', list, function(){ render(); });
+}
+var __so_f0=render;
+render=function(){ var __r=__so_f0.apply(null,arguments); try{ __soExtras(); }catch(e){} return __r; };
+function __soBoot(){ try{ __soPresets(); __soExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __soBoot();
+else document.addEventListener('DOMContentLoaded', __soBoot);
 
 function copyResult() {
   const text = document.getElementById('out').innerText || '';
