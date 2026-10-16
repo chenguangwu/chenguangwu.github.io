@@ -147,6 +147,12 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>📊 油耗分析</h2>
     <div id="result"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出油耗分析结果 CSV" onclick="__faExport()">⬇️ Export Fuel Analysis CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="加油明细、油耗指标与异常标记可导出为 CSV">Refueling details, fuel metrics, and anomaly flags can be exported as CSV</span>
+    </div>
+    <table id="faTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -347,6 +353,51 @@ function calc(){
   </div>`;
 
   const __g5=html;document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+}
+
+function __faExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof records==='undefined'||records.length<2) return;
+  try{
+    var en=TBKit.util.isEn();
+    var sorted=records.slice().sort(function(a,b){return a.mileage-b.mileage;});
+    var consumptions=[];
+    for(var i=1;i<sorted.length;i++){
+      var dist=sorted[i].mileage-sorted[i-1].mileage;
+      if(dist<=0) continue;
+      var fuel=sorted[i].liters;
+      var consumption=fuel/dist*100;
+      var cost=fuel*sorted[i].price;
+      consumptions.push({
+        date:sorted[i].date,mileage:sorted[i].mileage,distance:dist,
+        liters:fuel,consumption:consumption,cost:cost,costPerKm:cost/dist
+      });
+    }
+    if(consumptions.length===0) return;
+    var avgConsumption=consumptions.reduce(function(s,c){return s+c.consumption;},0)/consumptions.length;
+    var stdDev=Math.sqrt(consumptions.reduce(function(s,c){return s+Math.pow(c.consumption-avgConsumption,2);},0)/consumptions.length);
+    var minConsumption=Math.min.apply(null,consumptions.map(function(c){return c.consumption;}));
+    var maxConsumption=Math.max.apply(null,consumptions.map(function(c){return c.consumption;}));
+    var totalCost=consumptions.reduce(function(s,c){return s+c.cost;},0);
+    var totalDist=consumptions.reduce(function(s,c){return s+c.distance;},0);
+    var totalLiters=consumptions.reduce(function(s,c){return s+c.liters;},0);
+    var avgPrice=totalCost/totalLiters;
+    var threshold=avgConsumption+stdDev*1.5;
+    var rows=[];
+    consumptions.forEach(function(c){
+      var isAnomaly=c.consumption>threshold;
+      rows.push([c.date,c.mileage,c.distance+'km',c.liters+'L',c.consumption.toFixed(1),c.costPerKm.toFixed(2),'¥'+c.cost.toFixed(0),isAnomaly?(en?'Anomaly ⚠️':'异常 ⚠️'):(en?'Normal':'正常')]);
+    });
+    rows.push([en?'Summary':'汇总',en?'Total distance':'总里程',totalDist+'km',totalLiters.toFixed(1)+'L',avgConsumption.toFixed(1),'','¥'+totalCost.toFixed(0),'']);
+    rows.push([en?'Average':'平均',en?'Avg consumption':'平均油耗',avgConsumption.toFixed(1)+' L/100km',en?'Range':'范围',minConsumption.toFixed(1)+'~'+maxConsumption.toFixed(1),en?'Avg price':'均价','¥'+avgPrice.toFixed(2),'']);
+    rows.push([en?'Anomaly threshold':'异常阈值','',threshold.toFixed(1)+' L/100km','','','','',consumptions.filter(function(c){return c.consumption>threshold;}).length+(en?' anomalies':' 次异常')]);
+    var tb=document.querySelector('#faTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td><td>'+r[6]+'</td><td>'+r[7]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#faTable','fuel-anomaly.csv');
+  }catch(e){}
 }
 
 renderRecords();

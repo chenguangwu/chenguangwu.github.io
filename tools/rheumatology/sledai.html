@@ -165,6 +165,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 SLEDAI 评分结果 CSV" onclick="__sledaiExport()">⬇️ Export SLEDAI Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各阳性项目、总分与活动度分级可导出为 CSV">Positive items, total score, and activity rating can be exported as CSV</span>
+    </div>
+    <table id="sledaiTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -279,6 +285,44 @@ function resetForm(){
 
 function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg102'));
+}
+
+function __sledaiExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var score=0;
+    var rows=[];
+    function scan(cls,labels,weight){
+      var els=document.querySelectorAll('.'+cls);
+      els.forEach(function(el,i){
+        if(el.checked){
+          score+=weight;
+          rows.push([labels[i],'+'+weight,en?'Positive':'阳性']);
+        }
+      });
+    }
+    scan('s8',['癫痫发作','精神病','器质性脑病综合征','视觉障碍','颅神经病变','狼疮性头痛','脑血管意外','血管炎'],8);
+    scan('s4',['关节炎','肌炎','尿管型','血尿','蛋白尿','脓尿'],4);
+    scan('s2',['新发皮疹','脱发','黏膜溃疡','胸膜炎','心包炎','补体降低','抗dsDNA升高'],2);
+    scan('s1',['发热','血小板减少','白细胞减少'],1);
+    var level,advice;
+    if(score===0){level=en?'Inactive':'无活动';advice=en?'Stable disease; maintain current treatment and monitor complement/dsDNA':'病情稳定，维持当前治疗方案，定期监测补体和dsDNA抗体。';}
+    else if(score<=5){level=en?'Mild activity':'轻度活动';advice=en?'Mild activity; consider adjusting antimalarial (hydroxychloroquine) or low-dose immunosuppression':'轻度活动，可考虑调整抗疟药(羟氯喹)或低剂量免疫抑制治疗。';}
+    else if(score<=10){level=en?'Moderate activity':'中度活动';advice=en?'Moderate activity; intensify treatment with steroids and immunosuppressants':'中度活动，需加强治疗：增加糖皮质激素剂量，考虑加用免疫抑制剂(霉酚酸酯/环磷酰胺/他克莫司)。';}
+    else if(score<=19){level=en?'Severe activity':'重度活动';advice=en?'Severe activity; active immunosuppressive therapy with organ protection':'重度活动，积极免疫抑制治疗：中高剂量糖皮质激素联合环磷酰胺或霉酚酸酯，注意脏器保护。';}
+    else{level=en?'Very severe activity':'极重度活动';advice=en?'Very severe activity; urgent hospitalization, methylprednisolone pulse + cyclophosphamide, consider plasmapheresis/rituximab':'极重度活动，紧急住院治疗：甲泼尼龙冲击+环磷酰胺冲击，评估血浆置换/利妥昔单抗指征，防治感染。';}
+    rows.push([en?'SLEDAI-2K total':'SLEDAI-2K 总分',score,'']);
+    rows.push([en?'Activity level':'疾病活动度',0,level]);
+    rows.push([en?'Positive items':'阳性项目数',rows.length-2,'']);
+    rows.push([en?'Advice':'临床建议',0,advice]);
+    var tb=document.querySelector('#sledaiTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#sledaiTable','sledai-score.csv');
+  }catch(e){}
 }
 
 calc();
