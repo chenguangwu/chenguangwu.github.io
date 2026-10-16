@@ -134,6 +134,19 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="result-box" id="result"></div>
 
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__bisExport()">⬇️ 导出 BIS-11 冲动明细 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyBisPreset('low')">低冲动示例</button>
+      <button type="button" class="btn" onclick="applyBisPreset('mid')">中等示例</button>
+      <button type="button" class="btn" onclick="applyBisPreset('high')">高冲动示例</button>
+    </div>
+    <table id="bisTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="bisHistory" style="margin-top:10px;"></div>
+
     <h3 style="font-size:14px;margin:16px 0 10px;">BIS-11 严重度参考</h3>
     <table>
       <tr><th>总分</th><th>分级</th><th>说明</th></tr>
@@ -249,13 +262,64 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __bisSev(total){if(total<=52)return ['低冲动','冲动性较低，自我控制良好。','Low','Low impulsivity; self-control is generally good.'];if(total<=71)return ['中等','冲动性处于普通人群常见范围。','Moderate','Impulsivity within the typical range for the general population.'];if(total<=95)return ['高冲动','冲动性较高，建议关注情绪与行为管理。','High','Elevated impulsivity; watch emotion and behaviour regulation.'];return ['极高','冲动性极高，可能影响生活功能，建议专业评估。','Very high','Very high impulsivity; may impair daily functioning - consider professional assessment.'];}
+function __bisExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length){ToolBox.showToast(en?'Please answer all '+QS.length+' items first':'请先完成全部 '+QS.length+' 题','warning');return;}
+  var total=0,att=0,mot=0,np=0;
+  A.forEach(function(v,i){var s=sc(i);total+=s;if(SUB[i+1]==='注意')att+=s;else if(SUB[i+1]==='运动')mot+=s;else np+=s;});
+  var sev=__bisSev(total);
+  var t=document.getElementById('bisTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>'+(en?'Item':'题号')+'</th><th>'+(en?'Question':'题目')+'</th><th>'+(en?'Option':'选项')+'</th><th>'+(en?'Score':'得分')+'</th></tr>';
+  var OEN={'极少':'Rarely','偶尔':'Occasionally','经常':'Often','总是':'Always'};
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  QS.forEach(function(q,i){var v=A[i];var opt=v>=0?(en?(OEN[OPTS[v]]||String(v+1)):OPTS[v]):'';var s=sc(i);row((i+1),q,opt,s);});
+  row('',en?'BIS-11 total':'BIS-11 总分','',total+' / 120');
+  row('',en?'Attention (7-28)':'注意(7-28)','',att);
+  row('',en?'Motor (11-44)':'运动(11-44)','',mot);
+  row('',en?'Nonplanning (12-48)':'非计划(12-48)','',np);
+  row('',en?'Severity':'严重度','',en?sev[2]:sev[0]);
+  row('',en?'Conclusion':'评估结论','',en?sev[3]:sev[1]);
+  t.style.display='';
+  TBKit.util.exportTable('#bisTable','bis11_'+total+'.csv');
+}
+function __bisExtras(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length)return;
+  var total=0,att=0,mot=0,np=0;
+  A.forEach(function(v,i){var s=sc(i);total+=s;if(SUB[i+1]==='注意')att+=s;else if(SUB[i+1]==='运动')mot+=s;else np+=s;});
+  var sev=__bisSev(total);
+  TBKit.history.record({answered:done,score:total,att:att,mot:mot,np:np,level:sev[0],ans:A.join(',')},3000);
+  __bisMountHist();
+}
+function __bisMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#bisHistory',function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans)return;
+    A=rec.ans.split(',').map(function(x){return parseInt(x,10);});render();calc();
+  },8);
+}
+function applyBisPreset(kind){
+  A=new Array(QS.length).fill(-1);
+  QS.forEach(function(q,i){
+    if(kind==='low'){A[i]= REV[i+1]?3:0;}
+    else if(kind==='high'){A[i]= REV[i+1]?0:3;}
+    else {A[i]=1;}
+  });
+  render();calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=0;A.forEach(function(v,i){total+=sc(i);});
   ToolBox.copyText('BIS-11 冲动量表总分：'+total+'/120','tool.copy_ok');
 }
-render();calc();
+var __bis0=calc; calc=function(){__bis0(); __bisExtras();};
+render();calc(); __bisMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

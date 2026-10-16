@@ -410,6 +410,12 @@ window.__TI18N_EN = {
     '轻度示例':'Mild Example',
     '中度示例':'Moderate Example',
     '显著/重度示例':'Marked/Severe Example',
+    '导出 BIS-11 冲动明细 CSV':'Export BIS-11 Impulsivity Details CSV',
+    '导出 LES 应激明细 CSV':'Export LES Stress Details CSV',
+    '低冲动示例':'Low Impulse Example',
+    '中等示例':'Moderate Example',
+    '高冲动示例':'High Impulse Example',
+    '中风险示例':'Moderate Risk Example',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——

@@ -133,6 +133,19 @@ s.parentNode.insertBefore(el, s);
     <div class="e-grid" id="egrid"></div>
     <div class="result-box" id="result"></div>
 
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__lesExport()">⬇️ 导出 LES 应激明细 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyLesPreset('low')">低风险示例</button>
+      <button type="button" class="btn" onclick="applyLesPreset('mid')">中风险示例</button>
+      <button type="button" class="btn" onclick="applyLesPreset('high')">高风险示例</button>
+    </div>
+    <table id="lesTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="lesHistory" style="margin-top:10px;"></div>
+
     <h3 style="font-size:14px;margin:16px 0 10px;">应激健康风险分级</h3>
     <table>
       <tr><th>LCU总分</th><th>风险等级</th><th>近期重大疾病风险</th></tr>
@@ -231,11 +244,58 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
+function evIdx(name){for(var i=0;i<EVENTS.length;i++){if(EVENTS[i][0]===name)return i;}return -1;}
+function __lesSev(t){if(t<150)return ['低风险','过去一年生活事件应激较低，重大疾病风险约30%。','Low risk','Life-event stress over the past year is low; major-illness risk about 30%.'];if(t<300)return ['中风险','过去一年生活事件应激中等，重大疾病风险约50%，建议关注身心状态。','Moderate risk','Moderate life-event stress over the past year; major-illness risk about 50% - monitor physical and mental state.'];return ['高风险','过去一年生活事件应激很高，重大疾病风险约80%，强烈建议加强自我照料与专业帮助。','High risk','Very high life-event stress over the past year; major-illness risk about 80% - strengthen self-care and seek professional help.'];}
+function __lesExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var keys=Object.keys(sel);
+  if(keys.length===0){ToolBox.showToast(en?'Select at least one life event first':'请先勾选至少一项生活事件','warning');return;}
+  var t=document.getElementById('lesTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>'+(en?'Life event':'生活事件')+'</th><th>'+(en?'Stress value (LCU)':'应激值(LCU)')+'</th></tr>';
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  keys.sort(function(a,b){return EVENTS[b][1]-EVENTS[a][1];});
+  var t2=0;
+  keys.forEach(function(k){var e=EVENTS[k];t2+=e[1];row(e[0],e[1]);});
+  var sev=__lesSev(t2);
+  var risk=t2<150?(en?'~30%':'约30%'):(t2<300?(en?'~50%':'约50%'):(en?'~80%':'约80%'));
+  row(en?'LCU total':'LCU总分',t2);
+  row(en?'Events selected':'勾选事件数',keys.length);
+  row(en?'Illness risk':'疾病风险',risk);
+  row(en?'Severity':'严重度',en?sev[2]:sev[0]);
+  row(en?'Conclusion':'评估结论',en?sev[3]:sev[1]);
+  t.style.display='';
+  TBKit.util.exportTable('#lesTable','les_stress_'+t2+'.csv');
+}
+function __lesExtras(){
+  if(typeof TBKit==='undefined')return;
+  var keys=Object.keys(sel);
+  if(keys.length===0)return;
+  var t=keys.reduce(function(s,k){return s+EVENTS[k][1];},0);
+  TBKit.history.record({answered:keys.length,score:t,level:(t<150?'低风险':(t<300?'中风险':'高风险')),ans:keys.join(',')},3000);
+  __lesMountHist();
+}
+function __lesMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#lesHistory',function(rec){
+    sel={};if(rec.ans)rec.ans.split(',').forEach(function(k){if(k!=='')sel[k]=1;});render();calc();
+  },8);
+}
+function applyLesPreset(kind){
+  sel={};
+  function add(a){a.forEach(function(n){var i=evIdx(n);if(i>=0)sel[i]=1;});}
+  if(kind==='low'){add(['度假','轻微违法行为']);}
+  else if(kind==='mid'){add(['个人受伤或患病','夫妻分居','亲密家庭成员死亡']);}
+  else if(kind==='high'){add(['配偶死亡','离婚','夫妻分居','判刑或入狱','亲密家庭成员死亡']);}
+  render();
+}
 function copyResult(){
   var t=total();var cnt=0;for(var i in sel)cnt++;
   ToolBox.copyText('LES 生活事件应激量表：LCU总分 '+t+'，事件数 '+cnt,'tool.copy_ok');
 }
-render();
+var __les0=calc; calc=function(){__les0(); __lesExtras();};
+render(); __lesMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->
