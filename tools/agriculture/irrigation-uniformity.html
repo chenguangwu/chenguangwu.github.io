@@ -140,6 +140,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出灌溉均匀度结果 CSV" onclick="__irrExport()">⬇️ Export Irrigation Uniformity Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="各测点灌水量与均匀度指标可导出为 CSV 报告">Per-point readings and uniformity metrics can be exported as CSV report</span>
+    </div>
+    <table id="irrTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -301,6 +306,42 @@ function copyResult(){
 }
 renderPoints();
 calc();
+</script>
+<script>
+function __irrExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var vals=[];
+    for(var i=0;i<pointCount;i++){var el=document.getElementById('pt'+i);if(el){var v=+el.value;if(!isNaN(v)&&v>=0)vals.push(v);}}
+    if(vals.length<2) return;
+    var n=vals.length,sum=0,j;
+    for(j=0;j<n;j++)sum+=vals[j];
+    var mean=sum/n,absDev=0;
+    for(j=0;j<n;j++)absDev+=Math.abs(vals[j]-mean);
+    var cu=mean>0?(1-absDev/(n*mean))*100:0;
+    var sorted=vals.slice().sort(function(a,b){return a-b;});
+    var q1=Math.max(1,Math.floor(n/4)),q1s=0;
+    for(j=0;j<q1;j++)q1s+=sorted[j];
+    var du=mean>0?(q1s/q1/mean)*100:0;
+    var variance=0;for(j=0;j<n;j++)variance+=Math.pow(vals[j]-mean,2);variance/=n;
+    var std=Math.sqrt(variance);
+    var cv=mean>0?(std/mean)*100:0;
+    var rows=[];
+    for(j=0;j<n;j++)rows.push(['测点'+(j+1), ToolBox.formatNumber(vals[j],2)]);
+    rows.push(['平均灌水量 (mm)', ToolBox.formatNumber(mean,2)]);
+    rows.push(['克里斯琴森系数 CU (%)', ToolBox.formatNumber(cu,1)]);
+    rows.push(['分布均匀度 DU (%)', ToolBox.formatNumber(du,1)]);
+    rows.push(['变异系数 CV (%)', ToolBox.formatNumber(cv,1)]);
+    rows.push(['标准差 (mm)', ToolBox.formatNumber(std,2)]);
+    var tb=document.getElementById('irrTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var k=0;k<rows.length;k++){ html+='<tr><td>'+rows[k][0]+'</td><td>'+rows[k][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#irrTable','irrigation-uniformity.csv');
+  }catch(e){}
+}
 </script>
 
 <!-- SEO 介绍区块 -->

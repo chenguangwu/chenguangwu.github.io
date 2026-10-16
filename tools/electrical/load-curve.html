@@ -147,6 +147,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="load-input" id="loadInputs"></div>
     <div class="result-box" id="result"></div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出用电负荷曲线结果 CSV" onclick="__loadCurveExport()">⬇️ Export Load Curve Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="24 小时负荷与负荷率指标可导出为 CSV">24-hour loads and load-rate metrics can be exported as CSV</span>
+    </div>
+    <table id="loadCurveTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
     <h3 style="margin-top:14px;">日负荷曲线</h3>
     <div class="chart-wrap">
       <div class="bar-chart" id="chart"></div>
@@ -291,6 +296,42 @@ function copyResult(){
 }
 buildInputs();
 calc();
+</script>
+<script>
+function __loadCurveExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var data=[],sum=0,h;
+    for(h=0;h<24;h++){var v=parseFloat(document.getElementById('h'+h).value)||0;data.push(v);sum+=v;}
+    if(data.length===0) return;
+    var maxV=Math.max.apply(null,data);
+    var minV=Math.min.apply(null,data);
+    var avg=sum/24;
+    var diff=maxV-minV;
+    var loadRate=avg/maxV;
+    var diffRate=diff/maxV;
+    var peakHour=data.indexOf(maxV);
+    var valleyHour=data.indexOf(minV);
+    var rows=[];
+    for(h=0;h<24;h++)rows.push([(h<10?'0'+h:h)+':00', ToolBox.formatNumber(data[h],0)]);
+    rows.push(['日用电量 (kWh)', ToolBox.formatNumber(sum,0)]);
+    rows.push(['最大负荷 (kW)', ToolBox.formatNumber(maxV,0)]);
+    rows.push(['最小负荷 (kW)', ToolBox.formatNumber(minV,0)]);
+    rows.push(['平均负荷 (kW)', ToolBox.formatNumber(avg,1)]);
+    rows.push(['负荷率 (%)', ToolBox.formatNumber(loadRate*100,1)]);
+    rows.push(['峰谷差 (kW)', ToolBox.formatNumber(diff,0)]);
+    rows.push(['峰谷差率 (%)', ToolBox.formatNumber(diffRate*100,1)]);
+    rows.push(['峰值时刻', peakHour+':00']);
+    rows.push(['谷值时刻', valleyHour+':00']);
+    var tb=document.getElementById('loadCurveTable');
+    if(!tb) return;
+    var html='<thead><tr><th>时段</th><th>负荷 (kW)</th></tr></thead><tbody>';
+    for(var k=0;k<rows.length;k++){ html+='<tr><td>'+rows[k][0]+'</td><td>'+rows[k][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#loadCurveTable','load-curve.csv');
+  }catch(e){}
+}
 </script>
 
 <!-- SEO 介绍区块 -->
