@@ -134,6 +134,18 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__lsasExport()">⬇️ 导出 LSAS 社交焦虑明细 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyLsasPreset('none')">无/轻度示例</button>
+      <button type="button" class="btn" onclick="applyLsasPreset('moderate')">中度示例</button>
+      <button type="button" class="btn" onclick="applyLsasPreset('severe')">极重度示例</button>
+    </div>
+    <table id="lsasTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="lsasHistory" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">LSAS 严重度分级（总分0-144）</h3>
     <table>
@@ -254,6 +266,62 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __lsasSev(total){if(total<=60)return ['无/轻度','社交焦虑程度较低。','None/mild','Social anxiety is low.'];if(total<=70)return ['中度','存在中度社交焦虑，建议关注。','Moderate','Moderate social anxiety present; worth monitoring.'];if(total<=80)return ['显著','存在显著社交焦虑，建议专业评估。','Marked','Marked social anxiety present; professional assessment advised.'];if(total<=90)return ['重度','存在重度社交焦虑，建议药物+心理治疗。','Severe','Severe social anxiety present; medication plus psychotherapy advised.'];return ['极重度','存在极重度社交焦虑，功能严重受损，需积极治疗。','Very severe','Very severe social anxiety with marked functional impairment; active treatment needed.'];}
+function __lsasExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var doneF=F.filter(function(v){return v>=0;}).length;
+  var doneV=V.filter(function(v){return v>=0;}).length;
+  if(doneF<QS.length||doneV<QS.length){ToolBox.showToast(en?'Please complete all '+(QS.length*2)+' ratings first':'请先完成全部 '+(QS.length*2)+' 个评分','warning');return;}
+  var fear=F.reduce(function(s,v){return s+v;},0);
+  var avo=V.reduce(function(s,v){return s+v;},0);
+  var total=fear+avo;
+  var pf=0,pa=0,sf=0,sa=0;
+  QS.forEach(function(q,i){if(q[1]==='P'){pf+=F[i];pa+=V[i];}else{sf+=F[i];sa+=V[i];}});
+  var sev=__lsasSev(total);
+  var t=document.getElementById('lsasTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>'+(en?'Item':'题号')+'</th><th>'+(en?'Situation':'情境')+'</th><th>'+(en?'Type':'类型')+'</th><th>'+(en?'Fear':'恐惧/焦虑')+'</th><th>'+(en?'Avoidance':'回避')+'</th></tr>';
+  var FEN={'无':'None','轻度':'Mild','中度':'Moderate','重度':'Severe'};
+  var AEN={'从不':'Never','偶尔':'Occasionally','经常':'Often','通常':'Usually'};
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  QS.forEach(function(q,i){
+    var typ=en?(q[1]==='P'?'Performance':'Social'):(q[1]==='P'?'表现型':'社交型');
+    row((i+1),q[0],typ,en?(FEN[FEAR[F[i]]]||F[i]):FEAR[F[i]],en?(AEN[AVO[V[i]]]||V[i]):AVO[V[i]]);
+  });
+  row('',en?'Answered ratings':'已评条目','',(doneF+doneV)+' / '+(QS.length*2),'');
+  row('',en?'LSAS total':'LSAS总分','',total+' / 144','');
+  row('',en?'Fear (0-72)':'恐惧(0-72)','',fear,'');
+  row('',en?'Avoidance (0-72)':'回避(0-72)','',avo,'');
+  row('',en?'Performance subtype':'表现型','',(pf+pa),'');
+  row('',en?'Social subtype':'社交型','',(sf+sa),'');
+  row('',en?'Severity':'严重度','',en?sev[2]:sev[0],'');
+  row('',en?'Conclusion':'评估结论','',en?sev[3]:sev[1],'');
+  t.style.display='';
+  TBKit.util.exportTable('#lsasTable','lsas_social_'+total+'.csv');
+}
+function __lsasExtras(){
+  if(typeof TBKit==='undefined')return;
+  var doneF=F.filter(function(v){return v>=0;}).length;
+  var doneV=V.filter(function(v){return v>=0;}).length;
+  if(doneF<QS.length||doneV<QS.length)return;
+  var total=F.reduce(function(s,v){return s+v;},0)+V.reduce(function(s,v){return s+v;},0);
+  TBKit.history.record({answered:doneF+doneV,score:total,level:__lsasSev(total)[0],ans:F.join(','),ans2:V.join(',')},3000);
+  __lsasMountHist();
+}
+function __lsasMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#lsasHistory',function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans||typeof rec.ans2!=='string'||!rec.ans2)return;
+    F=rec.ans.split(',').map(function(x){return parseInt(x,10);});
+    V=rec.ans2.split(',').map(function(x){return parseInt(x,10);});
+    render();calc();
+  },8);
+}
+function applyLsasPreset(kind){
+  var v=kind==='none'?0:kind==='moderate'?2:3;
+  F=new Array(QS.length).fill(v);V=new Array(QS.length).fill(v);render();calc();
+}
 function copyResult(){
   var doneF=F.filter(function(v){return v>=0;}).length;
   var doneV=V.filter(function(v){return v>=0;}).length;
@@ -262,7 +330,8 @@ function copyResult(){
   var avo=V.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('LSAS 社交焦虑量表总分：'+(fear+avo)+'/144', i18nText('toast.msg544'));
 }
-render();calc();
+var __lsas0=calc; calc=function(){__lsas0(); __lsasExtras();};
+render();calc(); __lsasMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

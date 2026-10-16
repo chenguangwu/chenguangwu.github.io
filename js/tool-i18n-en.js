@@ -416,6 +416,15 @@ window.__TI18N_EN = {
     '中等示例':'Moderate Example',
     '高冲动示例':'High Impulse Example',
     '中风险示例':'Moderate Risk Example',
+    '导出 ASRS 筛查明细 CSV':'Export ASRS Screen Details CSV',
+    '阴性示例':'Negative Screen Example',
+    '导出 CD-RISC 韧性明细 CSV':'Export CD-RISC Resilience Details CSV',
+    '低韧性示例':'Low Resilience Example',
+    '中韧性示例':'Moderate Resilience Example',
+    '高韧性示例':'High Resilience Example',
+    '导出 LSAS 社交焦虑明细 CSV':'Export LSAS Social Anxiety Details CSV',
+    '无/轻度示例':'None/Mild Example',
+    '极重度示例':'Very Severe Example',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——

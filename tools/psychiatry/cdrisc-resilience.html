@@ -131,6 +131,18 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__cdExport()">⬇️ 导出 CD-RISC 韧性明细 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyCdPreset('low')">低韧性示例</button>
+      <button type="button" class="btn" onclick="applyCdPreset('mid')">中韧性示例</button>
+      <button type="button" class="btn" onclick="applyCdPreset('high')">高韧性示例</button>
+    </div>
+    <table id="cdTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="cdHistory" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">CD-RISC-10 韧性水平参考</h3>
     <table>
@@ -243,13 +255,56 @@ function calc(){
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>'+
     '<div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:'+Math.round(total/40*100)+'%;"></div></div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __cdSev(total){if(total<=19)return ['较低','心理韧性较低，面对压力时可能较难恢复，建议加强应对技能与心理建设。','Low','Resilience is low; recovery from stress may be difficult - build coping skills and psychological resources.'];if(total<=29)return ['中等','具备中等水平的心理韧性，有一定的复原与应对能力。','Moderate','Moderate resilience with reasonable recovery and coping capacity.'];return ['较高','心理韧性良好，面对逆境具有较强的复原力。','High','Good resilience with strong capacity to bounce back from adversity.'];}
+function __cdExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length){ToolBox.showToast(en?'Please answer all '+QS.length+' items first':'请先完成全部 '+QS.length+' 题','warning');return;}
+  var total=A.reduce(function(s,v){return s+v;},0);
+  var sev=__cdSev(total);
+  var t=document.getElementById('cdTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>'+(en?'Item':'题号')+'</th><th>'+(en?'Question':'题目')+'</th><th>'+(en?'Option':'选项')+'</th><th>'+(en?'Score':'得分')+'</th></tr>';
+  var OEN={'从不(0)':'Never (0)','罕见(1)':'Rarely (1)','有时(2)':'Sometimes (2)','经常(3)':'Often (3)','几乎总是(4)':'Almost always (4)'};
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  QS.forEach(function(q,i){var v=A[i];row((i+1),q,en?(OEN[OPTS[v]]||OPTS[v]):OPTS[v],v);});
+  row('',en?'Answered items':'已答条目','',done+' / '+QS.length);
+  row('',en?'Resilience total':'韧性总分','',total+' / 40');
+  row('',en?'Item mean':'条目均分','',(total/10).toFixed(1));
+  row('',en?'Resilience level':'韧性水平','',Math.round(total/40*100)+'%');
+  row('',en?'Severity':'严重度','',en?sev[2]:sev[0]);
+  row('',en?'Conclusion':'评估结论','',en?sev[3]:sev[1]);
+  t.style.display='';
+  TBKit.util.exportTable('#cdTable','cdrisc_'+total+'.csv');
+}
+function __cdExtras(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length)return;
+  var total=A.reduce(function(s,v){return s+v;},0);
+  TBKit.history.record({answered:done,score:total,level:__cdSev(total)[0],ans:A.join(',')},3000);
+  __cdMountHist();
+}
+function __cdMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#cdHistory',function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans)return;
+    A=rec.ans.split(',').map(function(x){return parseInt(x,10);});render();calc();
+  },8);
+}
+function applyCdPreset(kind){
+  var v=kind==='low'?0:kind==='mid'?2:4;
+  A=new Array(QS.length).fill(v);render();calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('CD-RISC-10 心理韧性量表总分：'+total+'/40','tool.copy_ok');
 }
-render();calc();
+var __cd0=calc; calc=function(){__cd0(); __cdExtras();};
+render();calc(); __cdMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

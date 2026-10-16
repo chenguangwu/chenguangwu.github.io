@@ -133,6 +133,17 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__asrsExport()">⬇️ 导出 ASRS 筛查明细 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyAsrsPreset('neg')">阴性示例</button>
+      <button type="button" class="btn" onclick="applyAsrsPreset('pos')">阳性示例</button>
+    </div>
+    <table id="asrsTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="asrsHistory" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">ASRS 阳性判定规则</h3>
     <table>
@@ -246,6 +257,56 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __asrsSev(pos){if(pos>=4)return ['筛查阳性','6项中阳性项≥4，提示可能存在成人ADHD，建议进一步接受专业评估。','Screen positive','≥4 of 6 items positive, suggesting possible adult ADHD; further professional assessment is advised.'];return ['筛查阴性','6项中阳性项<4，目前未达ADHD筛查阳性标准。','Screen negative','<4 of 6 items positive; does not currently meet the ADHD screen-positive threshold.'];}
+function __asrsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length){ToolBox.showToast(en?'Please answer all '+QS.length+' items first':'请先完成全部 '+QS.length+' 题','warning');return;}
+  var total=A.reduce(function(s,v){return s+v;},0);
+  var pos=0;A.forEach(function(v,i){if(SH[i].indexOf(v)>=0)pos++;});
+  var sev=__asrsSev(pos);
+  var t=document.getElementById('asrsTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>'+(en?'Item':'题号')+'</th><th>'+(en?'Question':'题目')+'</th><th>'+(en?'Option':'选项')+'</th><th>'+(en?'Positive':'阳性项')+'</th></tr>';
+  var OEN={'从不':'Never','很少':'Rarely','有时':'Sometimes','经常':'Often','非常频繁':'Very often'};
+  function row(){var r=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];r.appendChild(c);}tb.appendChild(r);return r;}
+  QS.forEach(function(q,i){var v=A[i];var isP=SH[i].indexOf(v)>=0;row((i+1),q,en?(OEN[OPTS[v]]||OPTS[v]):OPTS[v],en?(isP?'Yes':'No'):(isP?'是':'否'));});
+  row('',en?'Answered items':'已答条目','',done+' / '+QS.length);
+  row('',en?'Positive items':'阳性项数','',pos+' / 6');
+  row('',en?'Total score':'总分(0-24)','',total);
+  row('',en?'Positive threshold 4':'阳性标准4','',pos>=4?'≥4':'<4');
+  row('',en?'Screen result':'筛查结论','',en?sev[2]:sev[0]);
+  row('',en?'Conclusion':'评估结论','',en?sev[3]:sev[1]);
+  t.style.display='';
+  TBKit.util.exportTable('#asrsTable','asrs_adhd_'+total+'.csv');
+}
+function __asrsExtras(){
+  if(typeof TBKit==='undefined')return;
+  var done=A.filter(function(v){return v>=0;}).length;
+  if(done<QS.length)return;
+  var total=A.reduce(function(s,v){return s+v;},0);
+  var pos=0;A.forEach(function(v,i){if(SH[i].indexOf(v)>=0)pos++;});
+  TBKit.history.record({answered:done,score:total,pos:pos,level:__asrsSev(pos)[0],ans:A.join(',')},3000);
+  __asrsMountHist();
+}
+function __asrsMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#asrsHistory',function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans)return;
+    A=rec.ans.split(',').map(function(x){return parseInt(x,10);});render();calc();
+  },8);
+}
+function applyAsrsPreset(kind){
+  A=new Array(QS.length).fill(-1);
+  QS.forEach(function(q,i){
+    // 阴影项(SH)即阳性选项；neg 取非阴影最低项，pos 取阴影项首项
+    var sh=SH[i];
+    if(kind==='pos'){A[i]=sh[0];}
+    else{var j=0;while(sh.indexOf(j)>=0)j++;A[i]=j;}
+  });
+  render();calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
@@ -253,7 +314,8 @@ function copyResult(){
   var pos=0;A.forEach(function(v,i){if(SH[i].indexOf(v)>=0)pos++;});
   ToolBox.copyText('ASRS 阳性项 '+pos+'/6，总分 '+total+'/24','tool.copy_ok');
 }
-render();calc();
+var __asrs0=calc; calc=function(){__asrs0(); __asrsExtras();};
+render();calc(); __asrsMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->
