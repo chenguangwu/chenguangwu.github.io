@@ -33,7 +33,7 @@ window.__TI18N_EN = {
 '导出牙龈指数结果 CSV':'Export Gingival Index CSV',
 '导出 DN4 评分结果 CSV':'Export DN4 Score CSV',
 '导出 Berg 平衡量表结果 CSV':'Export Berg Balance Scale CSV',
-'导出 FLACC 评分结果 CSV':'Export FLACC Score CSV','导出 LSAS 评分结果 CSV':'Export LSAS Score CSV',
+'导出 FLACC 评分结果 CSV':'Export FLACC Score CSV','导出 LSAS 评分结果 CSV':'Export LSAS Score CSV','导出 CAT 评分结果 CSV':'Export CAT Score CSV','导出 WOMAC 评分结果 CSV':'Export WOMAC Score CSV',
 '导出物料平衡结果 CSV':'Export Material Balance Results CSV','导出个税计算结果 CSV':'Export Tax Calculation CSV','导出体表面积计算结果 CSV':'Export BSA Results CSV','导出理想体重计算结果 CSV':'Export IBW Results CSV','导出火灾荷载计算结果 CSV':'Export Fire Load Results CSV','导出灭火器配置结果 CSV':'Export Extinguisher Placement Results CSV',
     '导入':'Import','打印':'Print','分享':'Share','重置全部':'Reset All',
     '添加测站':'Add Station','添加测段':'Add Section','平差计算':'Adjust','图上→实际':'Map→Ground','实际→图上':'Ground→Map','图上+实际→比例尺':'Map+Ground→Scale',

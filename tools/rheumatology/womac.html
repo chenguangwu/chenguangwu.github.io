@@ -135,6 +135,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 WOMAC 评分结果 CSV" onclick="__womacExport()">⬇️ Export WOMAC Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="24 题得分、三维度小计与标准化总分、严重程度可导出为 CSV">All 24 item scores, dimension subtotals, normalized total, and severity can be exported as CSV</span>
+    </div>
+    <table id="womacTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -278,6 +283,46 @@ function calc(){
   html+='<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;"><strong>'+level+'骨关节炎</strong><br>'+advice+'</div>';
 
   const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+
+function __womacExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var painSum=0,stiffSum=0,funcSum=0;
+    var rows=[];
+    function readSel(id){
+      var sel=document.getElementById(id);
+      var v=sel?parseInt(sel.value):0;
+      var optText=sel&&sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:'';
+      return {v:v,t:optText};
+    }
+    painLabels.forEach(function(l,i){var r=readSel('p'+i);painSum+=r.v;rows.push([en?'Pain':'疼痛',(i+1)+'. '+l,r.v,r.t]);});
+    stiffLabels.forEach(function(l,i){var r=readSel('s'+i);stiffSum+=r.v;rows.push([en?'Stiffness':'僵硬',(i+1)+'. '+l,r.v,r.t]);});
+    funcLabels.forEach(function(l,i){var r=readSel('f'+i);funcSum+=r.v;rows.push([en?'Function':'功能',(i+1)+'. '+l,r.v,r.t]);});
+    var total=painSum+stiffSum+funcSum;
+    var painNorm=Math.round(painSum/20*100);
+    var stiffNorm=Math.round(stiffSum/8*100);
+    var funcNorm=Math.round(funcSum/68*100);
+    var totalNorm=Math.round(total/96*100);
+    rows.push([en?'Pain':'疼痛',en?'Subtotal (5 items)':'小计（5 项）',painSum+'/20',(en?'Normalized ':'标准化 ')+painNorm+'/100']);
+    rows.push([en?'Stiffness':'僵硬',en?'Subtotal (2 items)':'小计（2 项）',stiffSum+'/8',(en?'Normalized ':'标准化 ')+stiffNorm+'/100']);
+    rows.push([en?'Function':'功能',en?'Subtotal (17 items)':'小计（17 项）',funcSum+'/68',(en?'Normalized ':'标准化 ')+funcNorm+'/100']);
+    rows.push([en?'Total':'总计',en?'Total (24 items)':'总分（24 项）',total+'/96',(en?'Normalized ':'标准化 ')+totalNorm+'/100']);
+    var level,advice;
+    if(totalNorm<25){level=en?'Mild':'轻度';advice=en?'Mild osteoarthritis. Lifestyle interventions first: weight loss, low-impact exercise (swimming/cycling), quadriceps strengthening. NSAIDs as needed; consider glucosamine':'轻度骨关节炎。以生活方式干预为主：减重、低冲击运动(游泳/骑车)、股四头肌锻炼。NSAIDs按需使用，可考虑氨基葡萄糖。';}
+    else if(totalNorm<=50){level=en?'Moderate':'中度';advice=en?'Moderate osteoarthritis. Regular NSAIDs (watch GI/cardiovascular risks), physical therapy, weight loss. Consider intra-articular injection (hyaluronic acid/corticosteroid)':'中度骨关节炎。规律NSAIDs(注意胃肠/心血管风险)，物理治疗，减重。可考虑关节腔注射(透明质酸/糖皮质激素)。';}
+    else if(totalNorm<=75){level=en?'Severe':'重度';advice=en?'Severe osteoarthritis. Intra-articular injection (steroid/hyaluronic acid), assistive devices (cane/knee brace), assess orthopedic surgical indications (osteotomy/unicompartmental replacement)':'重度骨关节炎。关节腔注射(激素/玻尿酸)，辅具支持(手杖/护膝)，评估骨科手术指征(截骨/单髁置换)。';}
+    else{level=en?'Very severe':'极重度';advice=en?'Very severe osteoarthritis with markedly impaired quality of life; strongly recommend assessing total knee arthroplasty (TKA)/total hip arthroplasty (THA) indications. Optimize weight and comorbidities before surgery':'极重度骨关节炎。严重影响生活质量，强烈建议评估全膝关节置换术(TKA)/全髋关节置换术(THA)指征。术前优化体重和基础疾病。';}
+    rows.push([en?'Severity':'严重程度',level,'','']);
+    rows.push([en?'Clinical advice':'临床建议',advice,'','']);
+    var tb=document.querySelector('#womacTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#womacTable','womac-score.csv');
+  }catch(e){}
 }
 
 function copyResult(){

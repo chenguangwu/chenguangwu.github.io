@@ -124,6 +124,11 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 CAT 评分结果 CSV" onclick="__catExport()">⬇️ Export CAT Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="各题得分、总分、影响程度与临床建议可导出为 CSV">Per-item scores, total, impact level, and clinical advice can be exported as CSV</span>
+    </div>
+    <table id="catTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -223,6 +228,37 @@ function calc(){
   html+='<div class="progress-bar"><div class="progress-fill" style="width:'+(total/40*100)+'%;"></div></div>';
   html+='<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;"><strong>'+level+'</strong><br>'+advice+'</div>';
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+function __catExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof questions==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var total=0;
+    var rows=[];
+    questions.forEach(function(q,i){
+      var sel=document.getElementById('q'+i);
+      var v=sel?parseInt(sel.value):0;
+      var optText=sel&&sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:'';
+      total+=v;
+      rows.push([(i+1)+'. '+q, v, optText]);
+    });
+    var level,advice;
+    if(total<=10){level=en?'Mild impact':'轻度影响';advice=en?'Minimal impact; maintain current regular therapy (LABA/LAMA/ICS as indicated), quit smoking, and follow up regularly to monitor exacerbations':'影响轻微，维持当前规律治疗(LABA/LAMA/ICS按指征)，戒烟，定期随访监测急性加重。';}
+    else if(total<=20){level=en?'Moderate impact':'中度影响';advice=en?'Moderate impact; optimize bronchodilator regimen, strengthen pulmonary rehabilitation and exercise training, and vaccinate against influenza/pneumococcus':'影响中等，优化支气管舒张剂方案，加强肺康复与运动训练，接种流感/肺炎疫苗。';}
+    else if(total<=30){level=en?'Severe impact':'重度影响';advice=en?'Severe impact; intensify pharmacotherapy (dual/triple inhaled therapy), assess oxygen therapy, non-invasive ventilation, and comorbidity management':'影响严重，强化药物(双支扩/三联吸入)，评估氧疗、无创通气及合并症管理。';}
+    else{level=en?'Very severe impact':'极重度影响';advice=en?'Very severe impact; multidisciplinary comprehensive management, assess end-stage options (lung volume reduction/transplant/palliative care), and watch for depression and anxiety':'影响极重，多学科综合管理，评估终末期治疗(肺减容/移植/姑息)，关注抑郁焦虑。';}
+    rows.push([en?'Total score':'总分', total+' / 40','']);
+    rows.push([en?'Impact level':'影响程度', level,'']);
+    rows.push([en?'Clinical advice':'临床建议', advice,'']);
+    var tb=document.querySelector('#catTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#catTable','copd-cat.csv');
+  }catch(e){}
 }
 
 function resetAll(){
