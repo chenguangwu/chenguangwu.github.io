@@ -425,6 +425,9 @@ window.__TI18N_EN = {
     '导出 LSAS 社交焦虑明细 CSV':'Export LSAS Social Anxiety Details CSV',
     '无/轻度示例':'None/Mild Example',
     '极重度示例':'Very Severe Example',
+    '导出 C-SSRS 风险筛查 CSV':'Export C-SSRS Risk Screen CSV',
+    '极低危示例':'Very Low Risk Example',
+    '高危示例':'High Risk Example',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——

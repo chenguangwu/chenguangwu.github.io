@@ -166,6 +166,17 @@ s.parentNode.insertBefore(el, s);
       建议尽快联系心理专业人员，热线：<a href="tel:4001619995">400-161-9995</a>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__cssrsExport()">⬇️ 导出 C-SSRS 风险筛查 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyCssrsPreset('low')">极低危示例</button>
+      <button type="button" class="btn" onclick="applyCssrsPreset('high')">高危示例</button>
+    </div>
+    <table id="cssrsTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="cssrsHistory" style="margin-top:10px;"></div>
     <div class="crisis-overlay" id="crisisModal" role="alertdialog" aria-modal="true" aria-labelledby="crisisTitle">
       <div class="crisis-card">
         <div class="c-ico">🆘</div>
@@ -339,13 +350,85 @@ function calc(){
   setCrisisUI(isHigh,isMid);
   if(isHigh)showCrisisModal();
 }
+var __CSS_RISK_EN={'极低危':'Very low','低危':'Low','中危':'Moderate','高危':'High','极高危':'Very high'};
+function __cssrsEval(){
+  var highestYes=0;
+  for(var k=0;k<IDE.length;k++){if(I[k]===0)highestYes=k+1;}
+  var anyBeh=B.some(function(v){return v===0;});
+  var actualAttempt=B[3]===0;
+  var recent=RECENT===0;
+  var risk,desc,descEn;
+  if(anyBeh){
+    if(actualAttempt&&recent){risk='极高危';desc='近期（3个月内）存在自杀尝试，属极高风险，需立即危机干预与一对一监护。';descEn='Suicide attempt within the last 3 months - very high risk; immediate crisis intervention and one-to-one monitoring are required.';}
+    else if(actualAttempt){risk='高危';desc='存在自杀尝试史，属高风险，需专业评估与安全计划。';descEn='History of suicide attempt - high risk; professional assessment and a safety plan are needed.';}
+    else {risk='高危';desc='存在准备行为/中断或放弃的尝试，属高风险，需立即专业评估。';descEn='Preparatory behaviour or interrupted/aborted attempt - high risk; urgent professional assessment is needed.';}
+  }else{
+    if(highestYes>=4){risk='高危';desc='存在伴意图/计划的自杀意念，属高风险，需立即专业评估与安全计划。';descEn='Suicidal ideation with intent or plan - high risk; immediate professional assessment and a safety plan are needed.';}
+    else if(highestYes===3){risk='中危';desc='存在伴方法的自杀意念但无明显意图，属中度风险，建议尽快寻求专业帮助。';descEn='Suicidal ideation with a method but no clear intent - moderate risk; seek professional help promptly.';}
+    else if(highestYes>=1){risk='低危';desc='存在被动或主动的自杀意念但无方法/意图，属低风险，建议关注并寻求支持。';descEn='Passive or active suicidal ideation without method or intent - low risk; monitor and seek support.';}
+    else {risk='极低危';desc='目前未发现自杀意念与行为，风险极低，但仍建议持续关注情绪状态。';descEn='No suicidal ideation or behaviour identified; risk is very low, but continued attention to mood is advised.';}
+  }
+  return {highestYes:highestYes,anyBeh:anyBeh,actualAttempt:actualAttempt,recent:recent,risk:risk,desc:desc,descEn:descEn};
+}
+function __cssrsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var doneI=I.filter(function(v){return v>=0;}).length;
+  var doneB=B.filter(function(v){return v>=0;}).length;
+  if(doneI<IDE.length||doneB<BEH.length||(B[3]===0&&RECENT<0)){
+    ToolBox.showToast(en?'Please complete all questions first':'请先完成全部问题','warning');return;
+  }
+  var r=__cssrsEval();
+  var t=document.getElementById('cssrsTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>'+(en?'Item':'题号')+'</th><th>'+(en?'Question':'题目')+'</th><th>'+(en?'Answer':'回答')+'</th></tr>';
+  function row(){var rr=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];rr.appendChild(c);}tb.appendChild(rr);return rr;}
+  IDE.forEach(function(q,i){row((i+1),q,en?(I[i]===0?'Yes':'No'):YN[I[i]]);});
+  BEH.forEach(function(b,i){row('B'+(i+1),b[1],en?(B[i]===0?'Yes':'No'):YN[B[i]]);});
+  if(B[3]===0){row('R1',en?'Was the most recent actual attempt within the past 3 months?':'最近一次实际尝试是否在过去3个月内？',en?(RECENT===0?'Yes':'No'):YN[RECENT]);}
+  row(en?'Ideation level (0-5)':'意念等级(0-5)','',r.highestYes);
+  row(en?'Suicidal behaviour':'自杀行为','',en?(r.anyBeh?'Yes':'No'):(r.anyBeh?'有':'无'));
+  row(en?'Actual attempt':'实际尝试','',en?(r.actualAttempt?'Yes':'No'):(r.actualAttempt?'有':'无'));
+  row(en?'Risk level':'风险等级','',en?(__CSS_RISK_EN[r.risk]||r.risk):r.risk);
+  row(en?'Conclusion':'评估结论','',en?r.descEn:r.desc);
+  t.style.display='';
+  TBKit.util.exportTable('#cssrsTable','cssrs_risk.csv');
+}
+function __cssrsExtras(){
+  if(typeof TBKit==='undefined')return;
+  var doneI=I.filter(function(v){return v>=0;}).length;
+  var doneB=B.filter(function(v){return v>=0;}).length;
+  if(doneI<IDE.length||doneB<BEH.length||(B[3]===0&&RECENT<0))return;
+  var r=__cssrsEval();
+  TBKit.history.record({answered:doneI+doneB,score:r.highestYes,level:r.risk,ans:I.join(','),ans2:B.join(','),recent:RECENT},3000);
+  __cssrsMountHist();
+}
+function __cssrsMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#cssrsHistory',function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans||typeof rec.ans2!=='string'||!rec.ans2)return;
+    I=rec.ans.split(',').map(function(x){return parseInt(x,10);});
+    B=rec.ans2.split(',').map(function(x){return parseInt(x,10);});
+    RECENT=(typeof rec.recent==='number')?rec.recent:-1;
+    render();calc();
+  },8);
+}
+function applyCssrsPreset(kind){
+  I=new Array(IDE.length).fill(1);
+  B=new Array(BEH.length).fill(1);
+  RECENT=-1;
+  if(kind==='high'){B[0]=0;}
+  var ri=document.getElementById('recentItem');if(ri)ri.style.display='none';
+  render();calc();
+}
 function copyResult(){
   var doneI=I.filter(function(v){return v>=0;}).length;
   if(doneI<IDE.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var highestYes=0;for(var k=0;k<IDE.length;k++){if(I[k]===0)highestYes=k+1;}
   ToolBox.copyText('C-SSRS 自杀风险筛查：意念等级 '+highestYes+'/5，自杀行为'+(B.some(function(v){return v===0;})?'有':'无'), i18nText('toast.msg544'));
 }
-render();calc();
+var __cssrs0=calc; calc=function(){__cssrs0(); __cssrsExtras();};
+render();calc(); __cssrsMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->
