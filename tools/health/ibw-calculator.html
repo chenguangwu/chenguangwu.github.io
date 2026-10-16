@@ -195,6 +195,11 @@ s.parentNode.insertBefore(el, s);
       <div class="stat-card"><div class="val" id="bmiVal">--</div><div class="lbl">BMI</div></div>
       <div class="stat-card"><div class="val" id="statusVal">--</div><div class="lbl">体重状态</div></div>
     </div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出理想体重计算结果 CSV" onclick="__ibwExport()">⬇️ Export IBW Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="各公式理想体重与 BMI 可导出为 CSV">Per-formula IBW and BMI can be exported as CSV</span>
+    </div>
+    <table id="ibwTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
 
     <div id="comparisonSection" style="margin-top:16px;display:none;">
       <div class="section-title">📊 体重对比</div>
@@ -457,6 +462,43 @@ function calc(){
 }
 
 calc();
+</script>
+<script>
+function __ibwExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var h=parseFloat(document.getElementById('height').value);
+    var w=parseFloat(document.getElementById('actualWeight').value);
+    var d=calcIBW(h);
+    if(!d) return;
+    var ibw=d.devine;
+    var rows=[
+      ['身高 (cm)', h.toFixed(1)],
+      ['实际体重 (kg)', (w&&w>0)?w.toFixed(1):'—'],
+      ['Devine 理想体重 (kg)', ibw.toFixed(1)],
+      ['Robinson 理想体重 (kg)', d.robinson.toFixed(1)],
+      ['Miller 理想体重 (kg)', d.miller.toFixed(1)],
+      ['Hamwi 理想体重 (kg)', d.hamwi.toFixed(1)]
+    ];
+    if(w&&w>0){
+      var abw=ibw+0.4*(w-ibw);
+      var diff=w-ibw;
+      var bmi=w/Math.pow(h/100,2);
+      var status=w<ibw*0.9?'低于IBW':(w<=ibw*1.1?'接近IBW':(w<=ibw*1.2?'略高于IBW':'肥胖 - 建议用ABW'));
+      rows.push(['调整体重 ABW (kg)', abw.toFixed(1)]);
+      rows.push(['与IBW差值 (kg)', (diff>0?'+':'')+diff.toFixed(1)]);
+      rows.push(['BMI (kg/m²)', bmi.toFixed(1)]);
+      rows.push(['体重状态', status]);
+    }
+    var tb=document.getElementById('ibwTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var k=0;k<rows.length;k++){ html+='<tr><td>'+rows[k][0]+'</td><td>'+rows[k][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#ibwTable','ideal-body-weight.csv');
+  }catch(e){}
+}
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
