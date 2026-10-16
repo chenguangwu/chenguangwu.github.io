@@ -172,6 +172,11 @@ s.parentNode.insertBefore(el, s);
       建议尽快联系心理专业人员，热线：<a href="tel:4001619995">400-161-9995</a>
     </div>
     <div class="result-box" id="res"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 C-SSRS 评估结果 CSV" onclick="__cssrsExport()">⬇️ Export C-SSRS Assessment CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="8 题回答、意念严重程度、行为筛查与风险等级可导出为 CSV">All 8 answers, ideation severity, behavior screening and risk level can be exported as CSV</span>
+    </div>
+    <table id="cssrsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
     <div class="crisis-overlay" id="crisisModal" role="alertdialog" aria-modal="true" aria-labelledby="crisisTitle">
       <div class="crisis-card">
         <div class="c-ico">🆘</div>
@@ -234,6 +239,55 @@ function setCrisisUI(isHigh,isMid){
   if(b)b.classList.toggle('show',!!isHigh);
   if(mi)mi.classList.toggle('show',!!isMid);
   if(!isHigh)closeCrisisModal();
+}
+function __cssrsExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof ideationItems==='undefined'||typeof behaviorItems==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var ideationScores=ideationItems.map(function(q,i){var sel=document.getElementById('ide'+i);var v=sel?parseInt(sel.value):0;return isFinite(v)?v:0;});
+    var behaviorScores=behaviorItems.map(function(q,i){var sel=document.getElementById('beh'+i);var v=sel?parseInt(sel.value):0;return isFinite(v)?v:0;});
+    var maxIdeation=-1;
+    for(var i=0;i<ideationScores.length;i++){if(ideationScores[i]===1)maxIdeation=i;}
+    var ideationLevelsZh=['无自杀意念','被动自杀意念（希望死去）','主动自杀意念（有想法但无方法/计划/意图）','主动自杀意念伴方法（想到方法但无意图/计划）','主动自杀意念伴部分意图（有意图但无具体计划）','主动自杀意念伴具体计划和意图'];
+    var ideationLevelsEn=['No suicidal ideation','Passive ideation (wish to die)','Active ideation (no method/plan/intent)','Active ideation with method (no intent/plan)','Active ideation with partial intent (no specific plan)','Active ideation with specific plan and intent'];
+    var ideationText=(en?ideationLevelsEn:ideationLevelsZh)[maxIdeation+1];
+    var hasRecentBehavior=behaviorScores[0]===1;
+    var hasPrep=behaviorScores[1]===1;
+    var hasNSSI=behaviorScores[2]===1;
+    var anyBehavior=hasRecentBehavior||hasPrep;
+    var riskLevel,riskAction;
+    if(anyBehavior){riskLevel=en?'High risk':'高风险';riskAction=en?'Immediate crisis intervention, 24-hour supervision, psychiatric emergency evaluation, remove dangerous items':'需立即进行危机干预，24小时监护，精神科急诊评估，移除危险物品';}
+    else if(maxIdeation>=4){riskLevel=en?'High risk':'高风险';riskAction=en?'Immediate psychiatric evaluation, 24-hour safety supervision, safety plan, restrict access to lethal means':'需立即精神科评估，24小时安全监护，制定安全计划，限制致命手段获取';}
+    else if(maxIdeation>=3){riskLevel=en?'Moderately high risk':'中高风险';riskAction=en?'Psychiatric evaluation within 48 hours, establish safety plan, strengthen follow-up, assess outpatient vs inpatient treatment':'需48小时内精神科评估，建立安全计划，加强随访，评估门诊vs住院治疗';}
+    else if(maxIdeation>=2){riskLevel=en?'Moderate risk':'中风险';riskAction=en?'Psychiatric evaluation within one week, establish safety plan, regular follow-up, monitor mood changes':'需一周内精神科评估，建立安全计划，定期随访，关注情绪变化';}
+    else if(maxIdeation>=1){riskLevel=en?'Low risk':'低风险';riskAction=en?'Monitor emotional state, arrange psychological counseling, regularly assess changes in suicidal ideation':'需关注情绪状态，安排心理咨询，定期评估自杀意念变化';}
+    else{riskLevel=en?'Extremely low risk':'极低风险';riskAction=en?'No current suicidal ideation or behavior; maintain mental health awareness and social support':'当前无自杀意念和行为，建议关注心理健康，保持社会支持';}
+    if(hasNSSI&&!anyBehavior&&maxIdeation<2){riskLevel=en?'Low-moderate risk':'低-中风险';riskAction=en?'Non-suicidal self-injury present; psychological assessment and intervention needed, focus on emotion regulation':'存在非自杀性自伤行为，需心理评估和干预，关注情绪调节能力';}
+    var rows=[];
+    ideationItems.forEach(function(q,i){
+      rows.push([(en?'Ideation ':'意念 ')+(i+1), q.replace(/^\d+\.\s*/,''), ideationScores[i]?(en?'Yes':'是'):(en?'No':'否'), '']);
+    });
+    behaviorItems.forEach(function(q,i){
+      rows.push([(en?'Behavior ':'行为 ')+(i+1), q.replace(/^\d+\.\s*/,''), behaviorScores[i]?(en?'Yes':'是'):(en?'No':'否'), '']);
+    });
+    rows.push([en?'Highest ideation level':'自杀意念最高级别', (maxIdeation+1)+(en?' (0=none)':'级（0=无）'), '', '']);
+    rows.push([en?'Ideation severity':'意念严重程度', ideationText, '', '']);
+    rows.push([en?'Suicidal behavior (past 3 months)':'自杀行为（近3月）', hasRecentBehavior?(en?'Yes (high risk)':'有（高风险）'):(en?'No':'无'), '', '']);
+    rows.push([en?'Preparatory behavior':'自杀准备行为', hasPrep?(en?'Yes':'有'):(en?'No':'无'), '', '']);
+    rows.push([en?'Non-suicidal self-injury':'非自杀性自伤', hasNSSI?(en?'Yes':'有'):(en?'No':'无'), '', '']);
+    rows.push([en?'Risk level':'风险等级', riskLevel, '', '']);
+    rows.push([en?'Clinical recommendation':'临床建议', riskAction, '', '']);
+    if(maxIdeation>=0||anyBehavior){
+      rows.push([en?'Crisis hotline (24h)':'危机干预热线（24小时）', en?'National mental health hotline: 400-161-9995; Beijing crisis center: 010-82951332; Hope 24: 400-8211215; call 120 in emergency':'全国心理援助热线：400-161-9995；北京心理危机研究与干预中心：010-82951332；希望24热线：400-8211215；紧急情况请拨打120', '', '']);
+    }
+    var tb=document.querySelector('#cssrsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#cssrsTable','c-ssrs-assessment.csv');
+  }catch(e){}
 }
 function calc(){
   var ideationScores=ideationItems.map(function(q,i){return +document.getElementById('ide'+i).value;});
