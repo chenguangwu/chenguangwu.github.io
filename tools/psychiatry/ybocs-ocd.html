@@ -132,6 +132,19 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出 Y-BOCS 评分 CSV" onclick="__ybocExport()">⬇️ Export Y-BOCS Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="10 个条目回答、总分、强迫思维与行为群得分可导出为 CSV">All 10 item responses, total score, obsession and compulsion cluster scores can be exported as CSV</span>
+    </div>
+    <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
+      <button type="button" class="btn" onclick="applyYbocPreset(0)" data-zh="🟢 无（无症状）">🟢 None</button>
+      <button type="button" class="btn" onclick="applyYbocPreset(1)" data-zh="🟡 轻度（轻度）">🟡 Mild</button>
+      <button type="button" class="btn" onclick="applyYbocPreset(2)" data-zh="🟠 中度（中度）">🟠 Moderate</button>
+      <button type="button" class="btn" onclick="applyYbocPreset(4)" data-zh="🔴 重度（极重度）">🔴 Severe</button>
+    </div>
+    <table id="ybocTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    <div id="ybocHistory" style="margin-top:10px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">Y-BOCS 严重度分级</h3>
     <table>
@@ -249,13 +262,99 @@ function calc(){
     '</div>'+
     '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
+function __ybocLevelName(total){
+  if(total<=7)return '亚临床';
+  if(total<=15)return '轻度';
+  if(total<=23)return '中度';
+  if(total<=31)return '重度';
+  return '极重度';
+}
+function __ybocOpts(i){ return OPTS; }
+function __ybocText(i){ var q=QS[i]; return typeof q==='string'?q:q.t; }
+function __ybocGroup(i){ var q=QS[i]; return typeof q==='string'?'':q.g; }
+function __ybocAdvice(sev){
+  var m={
+    '亚临床':['目前无明显强迫症状。','No significant obsessive-compulsive symptoms at present.'],
+    '轻度':['轻度强迫症状，功能影响有限，可观察随访。','Mild OCD symptoms with limited functional impact; monitor.'],
+    '中度':['中度强迫症状，建议接受CBT-ERP或药物治疗。','Moderate OCD; CBT-ERP or medication is recommended.'],
+    '重度':['重度强迫症状，需积极药物联合心理治疗。','Severe OCD; active medication plus psychotherapy needed.'],
+    '极重度':['极重度强迫症状，功能严重受损，建议强化治疗。','Extreme OCD with severe impairment; intensive treatment needed.']
+  };
+  return m[sev]||['',''];
+}
+function __ybocExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof QS==='undefined'||typeof A==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rows=[];
+    for(var i=0;i<QS.length;i++){
+      var v=A[i];
+      rows.push([en?('Q'+(i+1)):('第'+(i+1)+'题'), __ybocText(i), __ybocGroup(i), v<0?(en?'Unanswered':'未作答'):__ybocOpts(i)[v], v<0?'':v]);
+    }
+    rows.push([en?'Answered items':'已答条目', done+'/'+QS.length, '', '', '']);
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      var maxT=(OPTS.length-1)*QS.length;
+      var obs=A.slice(0,5).reduce(function(s,v){return s+v;},0);
+      var com=A.slice(5,10).reduce(function(s,v){return s+v;},0);
+      var sev=__ybocLevelName(total);
+      var sevEn={'亚临床':'Subclinical','轻度':'Mild','中度':'Moderate','重度':'Severe','极重度':'Extreme'};
+      var adv=__ybocAdvice(sev);
+      rows.push([en?'Total score':'总分', total+'/'+maxT, '', '', '']);
+      rows.push([en?'Obsession (0-20)':'强迫思维(0-20)', obs+'/20', '', '', '']);
+      rows.push([en?'Compulsion (0-20)':'强迫行为(0-20)', com+'/20', '', '', '']);
+      rows.push([en?'Severity':'严重度', en?(sevEn[sev]||sev):sev, '', '', '']);
+      rows.push([en?'Advice':'干预建议', en?adv[1]:adv[0], '', '', '']);
+    }
+    var tb=document.querySelector('#ybocTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#ybocTable','ybocs-ocd.csv');
+  }catch(e){}
+}
+function __ybocExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var done=A.filter(function(v){return v>=0;}).length;
+    var rec={answered:done+'/'+QS.length};
+    if(done>=QS.length){
+      var total=A.reduce(function(s,v){return s+v;},0);
+      rec.score=total;
+      rec.level=__ybocLevelName(total);
+    }
+    rec.ans=A.join(',');
+    TBKit.history.record(rec,3000);
+    __ybocMountHist();
+  }catch(e){}
+}
+function __ybocMountHist(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    TBKit.history.mount('#ybocHistory', function(rec){
+      if(typeof rec.ans!=='string'||!rec.ans) return;
+      A=rec.ans.split(',').map(function(x){return parseInt(x);});
+      render();
+    },8);
+  }catch(e){}
+}
+function applyYbocPreset(j){
+  A=A.map(function(){return j;});
+  render();
+  calc();
+}
 function copyResult(){
   var done=A.filter(function(v){return v>=0;}).length;
   if(done<QS.length){ToolBox.showToast(i18nText(), 'warning');return;}
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('Y-BOCS 强迫量表总分：'+total+'/40','tool.copy_ok');
 }
+var __yb0=calc; calc=function(){__yb0(); __ybocExtras();};
 render();calc();
+__ybocMountHist();
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -391,6 +391,8 @@ window.__TI18N_EN = {
     '导出 PHQ-9 评分 CSV':'Export PHQ-9 Score CSV',
     '导出 GAD-7 评分 CSV':'Export GAD-7 Score CSV',
     '导出 ISI 评分 CSV':'Export ISI Score CSV',
+    '导出 PCL-5 评分 CSV':'Export PCL-5 Score CSV',
+    '导出 Y-BOCS 评分 CSV':'Export Y-BOCS Score CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——
