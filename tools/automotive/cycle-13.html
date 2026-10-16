@@ -185,6 +185,7 @@ s.parentNode.insertBefore(el, s);
   </div>
 
   <div id="resultArea"></div>
+  <div id="vehChart" style="margin-top:12px;"></div>
 
   <div class="card">
     <h2>📅 季节性提醒</h2>
@@ -420,6 +421,35 @@ function render(){
 load();
 if(vehicles.length&&!activeVeh)activeVeh=vehicles[0].id;
 render();
+
+function __vehExtras() {
+  if (typeof TBKit === 'undefined') return;
+  if (!vehicles || !vehicles.length) { document.getElementById('vehChart').innerHTML = ''; return; }
+  var labels = [], data = [];
+  vehicles.forEach(function (v) {
+    if (!v.wipers || !v.wipers.length) return;
+    var minRemain = Infinity;
+    v.wipers.forEach(function (w) {
+      var r = calcWiper(w, v.freq);
+      if (r.remainMonths < minRemain) minRemain = r.remainMonths;
+    });
+    if (isFinite(minRemain)) { labels.push(v.name); data.push(Number(minRemain.toFixed(1))); }
+  });
+  if (!labels.length) { document.getElementById('vehChart').innerHTML = ''; return; }
+  TBKit.chart.bar('#vehChart', {
+    labels: labels,
+    series: [{ name: '最早雨刷剩余月数', data: data }],
+    height: 240,
+    title: '各车辆雨刷最早需更换剩余月数对比'
+  });
+}
+var __f0 = render;
+render = function () { __f0(); __vehExtras(); };
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { render(); });
+} else {
+  setTimeout(function () { render(); }, 0);
+}
 </script>
 
 <!-- SEO 介绍区块 -->
