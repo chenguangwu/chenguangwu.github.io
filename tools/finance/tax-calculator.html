@@ -212,6 +212,11 @@ s.parentNode.insertBefore(el, s);
       <div class="summary-card"><div class="num" id="effectiveRate">--</div><div class="lbl">实际税负</div></div>
       <div class="summary-card"><div class="num" id="annualTax">--</div><div class="lbl">年个税估算</div></div>
     </div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出个税计算结果 CSV" onclick="__taxExport()">⬇️ Export Tax Calculation CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="个税计算结果可导出为 CSV 备案">Tax calculation results can be exported as CSV for record</span>
+    </div>
+    <table id="taxResultTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 
   <div class="card">
@@ -350,7 +355,43 @@ function calculate(){
 }
 
 calculate();
-</script><script>
+</script>
+<script>
+function __taxExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var salary=parseFloat(document.getElementById('salary').value)||0;
+    var insurance=parseFloat(document.getElementById('insurance').value)||0;
+    var special=parseFloat(document.getElementById('special').value)||0;
+    var threshold=parseFloat(document.getElementById('threshold').value)||0;
+    var taxableIncome=Math.max(0, salary-insurance-threshold-special);
+    var tax=0,rate=0,deduction=0;
+    for(var i=0;i<brackets.length;i++){
+      if(taxableIncome<=brackets[i].max){ tax=Math.max(0, taxableIncome*brackets[i].rate-brackets[i].deduction); rate=brackets[i].rate; deduction=brackets[i].deduction; break; }
+    }
+    var afterTax=salary-insurance-tax;
+    var annual=tax*12;
+    var eff=salary>0?(tax/salary*100):0;
+    var rows=[
+      ['应纳税所得额 (元)', taxableIncome.toFixed(2)],
+      ['适用税率', (rate*100).toFixed(0)+'%'],
+      ['速算扣除数 (元)', String(deduction)],
+      ['应缴个税 (元)', tax.toFixed(2)],
+      ['税后收入 (元)', afterTax.toFixed(2)],
+      ['实际税负', eff.toFixed(1)+'%'],
+      ['年个税估算 (元)', annual.toFixed(2)]
+    ];
+    var tb=document.getElementById('taxResultTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var k=0;k<rows.length;k++){ html+='<tr><td>'+rows[k][0]+'</td><td>'+rows[k][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#taxResultTable','tax-calculation.csv');
+  }catch(e){}
+}
+</script>
+<script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
   var headers=document.querySelectorAll('.tool-intro-header');

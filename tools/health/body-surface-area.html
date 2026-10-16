@@ -212,6 +212,11 @@ s.parentNode.insertBefore(el, s);
       <div class="stat-card"><div class="val" id="haycockVal">--</div><div class="lbl">Haycock</div></div>
       <div class="stat-card"><div class="val" id="bmiVal">--</div><div class="lbl">BMI</div></div>
     </div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出体表面积计算结果 CSV" onclick="__bsaExport()">⬇️ Export BSA Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="各公式体表面积与 BMI 可导出为 CSV">Per-formula BSA and BMI can be exported as CSV</span>
+    </div>
+    <table id="bsaTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
 
     <div class="comparison-chart" id="chartSection" style="display:none;">
       <div class="section-title">📊 各公式结果对比</div>
@@ -464,6 +469,31 @@ function calc(){
   const __g11=bmi.toFixed(1);document.getElementById('bmiVal').textContent=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
   
   updateChart(mosteller, dubois, haycock);
+}
+
+function __bsaExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var m=getMetricValues();
+    if(!m) return;
+    var rows=[
+      ['身高 (cm)', m.height.toFixed(1)],
+      ['体重 (kg)', m.weight.toFixed(1)],
+      ['Mosteller 体表面积 (m²)', calcBSA(m.height,m.weight,'mosteller').toFixed(3)],
+      ['Du Bois 体表面积 (m²)', calcBSA(m.height,m.weight,'duBois').toFixed(3)],
+      ['Haycock 体表面积 (m²)', calcBSA(m.height,m.weight,'haycock').toFixed(3)],
+      ['Gehan-George 体表面积 (m²)', calcBSA(m.height,m.weight,'gehan').toFixed(3)],
+      ['Boyd 体表面积 (m²)', calcBSA(m.height,m.weight,'boyd').toFixed(3)],
+      ['BMI (kg/m²)', (m.weight/Math.pow(m.height/100,2)).toFixed(1)]
+    ];
+    var tb=document.getElementById('bsaTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var k=0;k<rows.length;k++){ html+='<tr><td>'+rows[k][0]+'</td><td>'+rows[k][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#bsaTable','body-surface-area.csv');
+  }catch(e){}
 }
 
 function updateChart(mosteller, dubois, haycock){
