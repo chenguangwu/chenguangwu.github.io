@@ -148,6 +148,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
     <div class='info-box' style='margin-top:12px;'>水温越高，饱和蒸汽压越大，允许虹吸高度越低。计算已扣除安全余量与管路损失，结果应保留足够安全裕度。</div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出虹吸高度计算结果 CSV" onclick="__siphonExport()">⬇️ Export Siphon Height Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="参数与虹吸高度结果可导出为 CSV 备案">Parameters and siphon-height results can be exported as CSV for record</span>
+    </div>
+    <table id="siphonTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 </div>
 
@@ -255,6 +260,37 @@ s.parentNode.insertBefore(el, s);
   }
   window.applySiphonPreset = applySiphonPreset;
 })();
+</script>
+<script>
+function __siphonExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var atm=parseFloat(ToolBox.$('atm').value)||0;
+    var temp=parseFloat(ToolBox.$('temp').value)||0;
+    var safety=parseFloat(ToolBox.$('safety').value)||0;
+    var loss=parseFloat(ToolBox.$('loss').value)||0;
+    if(atm<=0||temp<0||temp>100||safety<0||loss<0) return;
+    var pv=0.61078*Math.exp(17.27*temp/(temp+237.3));
+    var hTheo=(atm-pv)/9.80665;
+    var hMax=hTheo-safety-loss;
+    var rows=[
+      ['当地大气压 (kPa)', ToolBox.formatNumber(atm,3)],
+      ['水温 (°C)', ToolBox.formatNumber(temp,1)],
+      ['饱和蒸汽压 (kPa)', ToolBox.formatNumber(pv,2)],
+      ['安全余量 (m)', ToolBox.formatNumber(safety,1)],
+      ['水头损失 (m)', ToolBox.formatNumber(loss,1)],
+      ['理论最大吸上高度 (m)', ToolBox.formatNumber(hTheo,2)],
+      ['建议最大虹吸高度 (m)', ToolBox.formatNumber(hMax,2)]
+    ];
+    var tb=document.getElementById('siphonTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#siphonTable','siphon-height.csv');
+  }catch(e){}
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

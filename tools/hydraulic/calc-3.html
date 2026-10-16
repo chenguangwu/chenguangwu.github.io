@@ -155,6 +155,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
     <div class='info-box' style='margin-top:12px;'>C 值参考：PVC/PE 新管 140，新钢管 120，旧钢管/铸铁管 90~100，混凝土管 120。结果未含局部水头损失。</div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" data-zh="⬇️ 导出管道水头损失结果 CSV" onclick="__pipeHlExport()">⬇️ Export Pipe Head Loss Results CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);" data-zh="参数与水头损失结果可导出为 CSV 备案">Parameters and head-loss results can be exported as CSV for record</span>
+    </div>
+    <table id="pipeHlTable" class="result-table" style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;display:none;"></table>
   </div>
 </div>
 
@@ -265,6 +270,40 @@ s.parentNode.insertBefore(el, s);
   }
   window.applyHw3Preset = applyHw3Preset;
 })();
+</script>
+<script>
+function __pipeHlExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var flow=parseFloat(ToolBox.$('flow').value)||0;
+    var unit=ToolBox.$('flowUnit').value;
+    var dMm=parseFloat(ToolBox.$('diameter').value)||0;
+    var L=parseFloat(ToolBox.$('length').value)||0;
+    var C=parseFloat(ToolBox.$('c').value)||0;
+    if(flow<0||dMm<=0||L<0||C<=0) return;
+    var Q=unit==='lps'?flow/1000:flow/3600;
+    var D=dMm/1000;
+    var hf=10.67*L*Math.pow(Q,1.852)/(Math.pow(C,1.852)*Math.pow(D,4.87));
+    var dP=hf*9.80665;
+    var v=Q/(Math.PI*Math.pow(D/2,2));
+    var rows=[
+      ['流量', ToolBox.formatNumber(flow,2)+(unit==='lps'?' L/s':' m³/h')],
+      ['管径 (mm)', ToolBox.formatNumber(dMm,1)],
+      ['管长 (m)', ToolBox.formatNumber(L,1)],
+      ['Hazen-Williams 系数 C', ToolBox.formatNumber(C,0)],
+      ['沿程水头损失 hf (m)', ToolBox.formatNumber(hf,3)],
+      ['压降 ΔP (kPa)', ToolBox.formatNumber(dP,2)],
+      ['管内流速 (m/s)', ToolBox.formatNumber(v,2)]
+    ];
+    var tb=document.getElementById('pipeHlTable');
+    if(!tb) return;
+    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
+    html+='</tbody>';
+    tb.innerHTML=html;
+    TBKit.util.exportTable('#pipeHlTable','pipe-head-loss.csv');
+  }catch(e){}
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
