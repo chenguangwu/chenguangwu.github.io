@@ -148,6 +148,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="toolbar" style="margin-top:8px;"><span style="font-size:13px;color:var(--text-muted);">📌 拍摄场景预设：</span><button type="button" class="btn" onclick="applyShutterPreset('wide')">广角手持 24mm</button><button type="button" class="btn" onclick="applyShutterPreset('standard')">挂机标头 50mm</button><button type="button" class="btn" onclick="applyShutterPreset('portrait')">人像中焦 85mm</button><button type="button" class="btn" onclick="applyShutterPreset('tele')">长焦打鸟 400mm</button></div>
 <div class="result-hero"><div class="val" id="safeShutter">-</div><div style="opacity:0.9;margin-top:4px;">建议安全快门</div></div>
+<div class="toolbar" style="margin-top:12px;">
+  <button type="button" class="btn" data-zh="⬇️ 导出快门计算结果 CSV" onclick="__ssExport()">⬇️ Export Shutter Calculation CSV</button>
+  <span style="font-size:13px;color:var(--text-muted);" data-zh="等效焦距、安全快门与场景参考可导出为 CSV">Effective focal length, safe shutter speed, and scenario reference can be exported as CSV</span>
+</div>
+<table id="ssTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
 <div id="guide"></div>
 </div>
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -240,6 +245,49 @@ function calc(){
     html+=`<div class="guide-item" style="border-color:${sc.color};background:${sc.color}15;"><strong>${fmtShutter(sc.spd)}</strong> - ${sc.use}</div>`;
   });
   const __g2=html;document.getElementById('guide').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+function __ssExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var f=+document.getElementById('focal').value||50;
+    var crop=+document.getElementById('crop').value||1;
+    var isStops=+document.getElementById('is').value||0;
+    var effF=f*crop;
+    var baseSpeed=1/effF;
+    var stops=[1,1/2,1/4,1/8,1/15,1/30,1/60,1/125,1/250,1/500,1/1000];
+    var baseIdx=stops.findIndex(function(s){return s<=baseSpeed;});
+    if(baseIdx<0)baseIdx=stops.length-1;
+    var safeIdx=Math.max(0,baseIdx-isStops);
+    var safe=stops[safeIdx];
+    var rows=[
+      [en?'Focal length (mm)':'焦距 (mm)',f],
+      [en?'Crop factor':'裁切系数',crop],
+      [en?'Image stabilization (stops)':'防抖等级 (档)',isStops],
+      [en?'Effective focal length (mm)':'等效焦距 (mm)',effF.toFixed(1)],
+      [en?'Base safe speed (1/focal)':'基础安全速度 (1/焦距)',fmtShutter(stops[baseIdx])],
+      [en?'Recommended safe shutter':'建议安全快门',fmtShutter(safe)]
+    ];
+    var scenarios=[
+      {spd:1/1000,use:'凝固高速运动（飞鸟、赛车）',useEn:'Freeze fast motion (birds, racing)'},
+      {spd:1/500,use:'体育、动作、奔跑儿童',useEn:'Sports, action, running children'},
+      {spd:1/250,use:'行走的人、日常抓拍',useEn:'Walking people, daily snapshots'},
+      {spd:1/125,use:'风景、静止人物、日常',useEn:'Landscape, still subjects, daily'},
+      {spd:1/60,use:'安全手持下限、摆拍',useEn:'Safe handheld limit, posed shots'},
+      {spd:1/30,use:'需屏息、轻微动态模糊',useEn:'Hold breath, slight motion blur'},
+      {spd:1/15,use:'建议三脚架、追焦',useEn:'Tripod recommended, panning'},
+      {spd:1/4,use:'弱光环境、车流光轨',useEn:'Low light, light trails'},
+      {spd:2,use:'瀑布拉丝、夜景长曝光',useEn:'Waterfall silk, night long exposure'}
+    ];
+    scenarios.forEach(function(sc){ rows.push([en?'Scenario reference':'场景参考',fmtShutter(sc.spd)+' — '+(en?sc.useEn:sc.use)]); });
+    var tb=document.querySelector('#ssTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#ssTable','shutter-speed.csv');
+  }catch(e){}
 }
 calc();
 </script><script>

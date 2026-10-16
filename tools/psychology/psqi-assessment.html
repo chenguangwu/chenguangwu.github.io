@@ -218,6 +218,11 @@ s.parentNode.insertBefore(el, s);
     <button type="button" class="btn" onclick="copyResult()">复制结果</button>
   </div>
   <div class="result-box" id="res"></div>
+  <div class="toolbar" style="margin-top:12px;">
+    <button type="button" class="btn" data-zh="⬇️ 导出 PSQI 评估结果 CSV" onclick="__psqiExport()">⬇️ Export PSQI Assessment CSV</button>
+    <span style="font-size:13px;color:var(--text-muted);" data-zh="7 个成分得分、全局分与评估等级可导出为 CSV">Seven component scores, global score, and rating can be exported as CSV</span>
+  </div>
+  <table id="psqiTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
 </div>
 
 
@@ -327,6 +332,48 @@ resEl.setAttribute('data-copy-value',copy);}
 function copyResult(){var e=pEl('res');if(!e)return;var t=e.getAttribute('data-copy-value')||e.textContent;if(window.ToolBox&&ToolBox.copyText){ToolBox.copyText(t,'tool.copy_ok');}}
 document.addEventListener('keydown',function(ev){if(!ev||!ev.key)return;var tag=(ev.target&&ev.target.tagName)?String(ev.target.tagName).toLowerCase():'';if(tag==='input'||tag==='textarea')return;var s=PSQI_STEPS[PSQI_CUR];if(ev.key==='ArrowLeft')pGo(-1);else if(ev.key==='ArrowRight')pGo(1);else if((s.type==='freq'||s.type==='quality')&&ev.key>='1'&&ev.key<='4'){var sc=(s.type==='freq')?PSQI_FREQ:PSQI_QUAL;pPick(sc[parseInt(ev.key,10)-1].v);}});
 pLoad();PSQI_CUR=pNextUn();if(PSQI_CUR>=PSQI_STEPS.length)PSQI_CUR=0;pRender();if(pAns()===pTotalQ())calc();
+
+function __psqiExport(){
+  if(typeof TBKit==='undefined') return;
+  if(typeof PSQI_ANS==='undefined'||typeof PSQI_STEPS==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var A=PSQI_ANS;
+    var miss=[];
+    for(var i=0;i<PSQI_STEPS.length;i++){var s=PSQI_STEPS[i];if(s.type==='text')continue;if(A[s.key]===undefined||A[s.key]===null||A[s.key]==='')miss.push(i+1);}
+    if(miss.length) return;
+    var c1=parseInt(A.qual,10);
+    var latMlvl=(function(m){m=parseInt(m,10);if(isNaN(m))return 0;if(m<=15)return 0;if(m<=30)return 1;if(m<=60)return 2;return 3;})(A.latM);
+    var c2=Math.max(parseInt(A.latF,10),latMlvl);
+    var h=parseFloat(A.hours);var c3=(h>=7)?0:(h>=6)?1:(h>=5)?2:3;
+    var bed=toHours(A.bed),wake=toHours(A.wake);var c4=0;
+    if(bed!==null&&wake!==null){var ib=(wake>=bed)?(wake-bed):(24-bed+wake);var eff=(ib>0)?(h/ib*100):0;c4=(eff>85)?0:(eff>=75)?1:(eff>=65)?2:3;}
+    var dsum=parseInt(A.d1,10)+parseInt(A.d2,10)+parseInt(A.d3,10)+parseInt(A.d4,10)+parseInt(A.d5,10)+parseInt(A.d6,10)+parseInt(A.d7,10);
+    var c5=(dsum===0)?0:(dsum<=9)?1:(dsum<=18)?2:3;
+    var c6=parseInt(A.med,10);
+    var c7=Math.round((parseInt(A.day1,10)+parseInt(A.day2,10))/2);
+    var comps=[c1,c2,c3,c4,c5,c6,c7];
+    var total=comps.reduce(function(a,b){return a+b;},0);
+    var namesEn=['Subjective sleep quality','Sleep latency','Sleep duration','Habitual sleep efficiency','Sleep disturbances','Use of sleep medication','Daytime dysfunction'];
+    var namesZh=['主观睡眠质量','入睡时长','睡眠时长','睡眠效率','睡眠障碍','助眠药物','白天功能'];
+    var g,it;
+    if(total<=5){g=en?'Good sleep':'睡眠较好';it=en?'Overall good sleep quality; keep a regular schedule':'睡眠质量总体不错，继续保持规律作息即可。';}
+    else if(total<=10){g=en?'Mild-moderate sleep problems':'轻中度睡眠问题';it=en?'Some sleep trouble; start with sleep hygiene (fixed schedule, less screen time, limit caffeine)':'存在一定睡眠困扰，建议先从睡眠卫生入手（固定作息、减少睡前屏幕、限制咖啡因）。';}
+    else if(total<=15){g=en?'Marked sleep problems':'明显睡眠问题';it=en?'Sleep significantly impaired; consider a sleep clinic or counseling':'睡眠已明显受损，建议预约睡眠门诊或心理咨询，排查焦虑、呼吸暂停等因素。';}
+    else{g=en?'Severe sleep problems':'严重睡眠问题';it=en?'Very poor sleep quality; seek medical help (sleep/psychiatry) as soon as possible':'睡眠质量很差，强烈建议尽快就医（睡眠科/精神科），不要只靠自我调节。';}
+    var rows=[];
+    for(var j=0;j<7;j++){ rows.push([en?namesEn[j]:namesZh[j],comps[j],3]); }
+    rows.push([en?'Global score':'全局分',total,21]);
+    rows.push([en?'Rating':'评估等级',0,g]);
+    rows.push([en?'Suggestion':'建议',0,it]);
+    var tb=document.querySelector('#psqiTable tbody');
+    if(!tb) return;
+    var h2='';
+    rows.forEach(function(r){ h2+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h2;
+    TBKit.util.exportTable('#psqiTable','psqi-assessment.csv');
+  }catch(e){}
+}
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->
