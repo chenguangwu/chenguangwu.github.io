@@ -191,6 +191,14 @@ s.parentNode.insertBefore(el, s);
     </div>
     
     <div id="statusList"></div>
+    <div id="httpChart" style="margin-top:12px;"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__httpExport()">⬇️ 导出状态码清单 CSV</button>
+    </div>
+    <table id="httpTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -316,6 +324,60 @@ function renderList(){
 function toggleDetail(card){
   card.classList.toggle('expanded');
 }
+function __httpFiltered(){
+  return statusCodes.filter(s => {
+    if(currentCat !== 'all' && getCategory(s.code) !== currentCat) return false;
+    if(searchKey && !(`${s.code} ${s.name} ${s.desc} ${s.detail}`.toLowerCase().includes(searchKey.toLowerCase()))) return false;
+    return true;
+  });
+}
+function __httpExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var list=__httpFiltered();
+  var cats=['1','2','3','4','5'];
+  var catNames={zh:['1xx 信息','2xx 成功','3xx 重定向','4xx 客户端错误','5xx 服务端错误'],en:['1xx Info','2xx Success','3xx Redirect','4xx Client Error','5xx Server Error']};
+  var counts=cats.map(function(c){return list.filter(function(s){return getCategory(s.code)===c;}).length;});
+  var host=document.getElementById('httpChart');
+  if(host&&TBKit.chart&&TBKit.chart.bar){
+    try{
+      TBKit.chart.bar('#httpChart',{labels:en?catNames.en:catNames.zh,series:[{name:en?'Count':'数量',data:counts}],height:200,title:en?'Status code distribution (current filter)':'当前筛选结果分类分布'});
+    }catch(e){}
+  }
+  var t=document.getElementById('httpTable');
+  if(t){
+    var tb=t.querySelector('tbody');tb.innerHTML='';
+    var th=t.querySelector('thead');
+    if(list.length===0){t.style.display='';if(th)th.innerHTML='';return;}
+    if(th)th.innerHTML='<tr><th>'+(en?'Code':'状态码')+'</th><th>'+(en?'Name (EN)':'英文名')+'</th><th>'+(en?'Description':'中文说明')+'</th></tr>';
+    list.forEach(function(s){
+      var r=document.createElement('tr');
+      [s.code,s.name,s.desc].forEach(function(v){var c=document.createElement('td');c.textContent=v;r.appendChild(c);});
+      tb.appendChild(r);
+    });
+  }
+}
+function __httpExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var list=__httpFiltered();
+  var t=document.getElementById('httpTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(!th)return;
+  if(list.length===0){ToolBox.showToast(en?'No status code to export':'当前无匹配状态码可导出','warning');return;}
+  th.innerHTML='<tr><th>'+(en?'Code':'状态码')+'</th><th>'+(en?'Name (EN)':'英文名')+'</th><th>'+(en?'Description':'中文说明')+'</th></tr>';
+  list.forEach(function(s){
+    var r=document.createElement('tr');
+    [s.code,s.name,s.desc].forEach(function(v){var c=document.createElement('td');c.textContent=v;r.appendChild(c);});
+    tb.appendChild(r);
+  });
+  th.insertAdjacentHTML('beforeend','');
+  var total=document.createElement('tr');
+  [en?'Total':'合计',list.length,''].forEach(function(v){var c=document.createElement('td');c.textContent=v;total.appendChild(c);});
+  tb.appendChild(total);
+  t.style.display='';
+  TBKit.util.exportTable('#httpTable','http_status_codes.csv');
+}
 
 function filterStatus(){
   searchKey = document.getElementById('search').value.trim();
@@ -329,6 +391,7 @@ function filterBy(btn){
   renderList();
 }
 
+var __hr0=renderList; renderList=function(){__hr0(); __httpExtras();};
 renderList();
 </script><script>
 // tool-intro折叠交互

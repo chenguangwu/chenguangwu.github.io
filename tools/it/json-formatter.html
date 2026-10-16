@@ -273,6 +273,14 @@ s.parentNode.insertBefore(el, s);
       <div style="flex:1;"></div>
       <span style="font-size:12px;color:var(--text-muted);" id="resultStat"></span>
     </div>
+    <div id="jsonChart" style="margin-top:12px;"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__jsonExport()">⬇️ 导出结构统计 CSV</button>
+    </div>
+    <table id="jsonTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -445,6 +453,63 @@ function renderTree(value, level = 0, key = null) {
   return html;
 }
 
+function __jsonStats(v){
+  var st={object:0,array:0,string:0,number:0,boolean:0,null:0,keys:0,maxDepth:1,total:0};
+  function walk(x,d){
+    st.total++;
+    if(d>st.maxDepth)st.maxDepth=d;
+    if(x===null){st.null++;return;}
+    var t=typeof x;
+    if(Array.isArray(x)){st.array++;x.forEach(function(i){walk(i,d+1);});return;}
+    if(t==='object'){st.object++;Object.keys(x).forEach(function(k){st.keys++;walk(x[k],d+1);});return;}
+    if(t==='string')st.string++;
+    else if(t==='number')st.number++;
+    else if(t==='boolean')st.boolean++;
+  }
+  walk(v,1);
+  return st;
+}
+function __jsonExtras(){
+  if(typeof TBKit==='undefined')return;
+  if(typeof lastValidJSON==='undefined'||lastValidJSON===null)return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var st=__jsonStats(lastValidJSON);
+  var names={object:[en?'Object':'对象',st.object],array:[en?'Array':'数组',st.array],string:[en?'String':'字符串',st.string],number:[en?'Number':'数字',st.number],boolean:[en?'Boolean':'布尔',st.boolean],null:[en?'Null':'空值',st.null]};
+  var order=['object','array','string','number','boolean','null'];
+  if(TBKit.chart&&TBKit.chart.bar){
+    try{
+      TBKit.chart.bar('#jsonChart',{labels:order.map(function(k){return names[k][0];}),series:[{name:en?'Node count':'节点数',data:order.map(function(k){return names[k][1];})}],height:200,title:en?'JSON node type distribution':'JSON 节点类型分布'});
+    }catch(e){}
+  }
+  var t=document.getElementById('jsonTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');
+  var size=JSON.stringify(lastValidJSON).length;
+  var rows=[[en?'Total nodes':'总节点数',st.total,''],[en?'Max depth':'最大层级深度',st.maxDepth],[en?'Object key count':'对象键总数',st.keys],[en?'Value nodes':'值节点数',st.string+st.number+st.boolean+st.null],[en?'Serialized size (chars)':'序列化字符数',size]];
+  if(th)th.innerHTML='<tr><th>'+(en?'Metric':'统计项')+'</th><th>'+(en?'Value':'数值')+'</th></tr>';
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    var c1=document.createElement('td');c1.textContent=r[0];tr.appendChild(c1);
+    var c2=document.createElement('td');c2.textContent=r[1];tr.appendChild(c2);
+    tb.appendChild(tr);
+  });
+  order.forEach(function(k){
+    var tr=document.createElement('tr');
+    var c1=document.createElement('td');c1.textContent=names[k][0];tr.appendChild(c1);
+    var c2=document.createElement('td');c2.textContent=names[k][1];tr.appendChild(c2);
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+}
+function __jsonExport(){
+  if(typeof TBKit==='undefined')return;
+  if(typeof lastValidJSON==='undefined'||lastValidJSON===null){
+    ToolBox.showToast((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Please load valid JSON first':'请先输入或加载有效 JSON','warning');return;
+  }
+  __jsonExtras();
+  var t=document.getElementById('jsonTable');
+  if(t&&t.querySelector('tbody').children.length){TBKit.util.exportTable('#jsonTable','json_structure_stats.csv');}
+}
 function renderOutput() {
   if (!lastValidJSON) return;
   const ind = getIndent();
@@ -454,6 +519,7 @@ function renderOutput() {
   const size = JSON.stringify(lastValidJSON).length;
   const lines = JSON.stringify(lastValidJSON, null, ind).split('\n').length;
   document.getElementById('resultStat').textContent = `${size.toLocaleString()} 字符 · ${lines} 行`;
+  if(typeof __jsonExtras==='function'){try{__jsonExtras();}catch(e){}}
 }
 
 function formatJSON() {

@@ -428,10 +428,17 @@ window.__TI18N_EN = {
     '导出 C-SSRS 风险筛查 CSV':'Export C-SSRS Risk Screen CSV',
     '极低危示例':'Very Low Risk Example',
     '高危示例':'High Risk Example',
+    '弱口令示范':'Weak Password Demo',
+    '键盘序列示范':'Keyboard Sequence Demo',
+    '强口令示范':'Strong Password Demo',
+    '导出状态码清单 CSV':'Export Status Code List CSV',
+    '导出结构统计 CSV':'Export Structure Stats CSV',
+    '导出强度明细 CSV':'Export Strength Details CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——
     '功能特点':'Features','使用场景':'Use Cases','工具简介':'About This Tool','常见问题':'FAQ',
+    '📌 示例密码（一键填入检测）':'📌 Sample passwords (one-click fill)',
     '场景预设：':'Scenario presets:','常见自查预设：':'Common Self-Check Presets:',
     '建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用':'Recommended browsers: Chrome / Safari / Firefox / Edge',
     '本工具纯前端运行，数据不会上传到服务器':'This tool runs entirely in your browser; no data is uploaded to any server',
