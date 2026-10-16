@@ -144,6 +144,11 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">✅ 计算评分</button> <button type="button" class="btn" onclick="reset()">重置</button></div>
     <div class="result-box" id="result" style="margin-top:12px;"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" data-zh="⬇️ 导出荧光素染色评分 CSV" onclick="__fsExport()">⬇️ Export Fluorescein Staining Score CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);" data-zh="角膜/结膜各分区评分、角膜与结膜小计、总评分与损伤程度可导出为 CSV">Per-zone cornea/conjunctiva scores, subtotals, total score, and damage grade can be exported as CSV</span>
+    </div>
+    <table id="fsTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -291,10 +296,44 @@ function getScores(){
   zones.forEach(function(z,i){
     var key=currentZone+i;
     var r=document.querySelector('input[name="'+key+'"]:checked');
-    scores[key]=r?parseInt(r.value):null;
+    if(r)scores[key]=parseInt(r.value);
   });
 }
 
+function __fsExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var corneaTotal=0,conjTotal=0;
+    var rows=[];
+    CORNEA_ZONES.forEach(function(z,i){
+      var v=corneaScores['cornea'+i];
+      if(v!=null){corneaTotal+=v;rows.push([(en?'Cornea · ':'角膜 · ')+z, v, '']);}
+      else rows.push([(en?'Cornea · ':'角膜 · ')+z, en?'Unscored':'未评分', '']);
+    });
+    CONJ_ZONES.forEach(function(z,i){
+      var v=conjScores['conj'+i];
+      if(v!=null){conjTotal+=v;rows.push([(en?'Conjunctiva · ':'结膜 · ')+z, v, '']);}
+      else rows.push([(en?'Conjunctiva · ':'结膜 · ')+z, en?'Unscored':'未评分', '']);
+    });
+    var total=corneaTotal+conjTotal;
+    var grade;
+    if(corneaTotal===0&&conjTotal===0)grade=en?'No staining':'无染色';
+    else if(corneaTotal<=3)grade=en?'Mild staining':'轻度染色';
+    else if(corneaTotal<=6)grade=en?'Moderate staining':'中度染色';
+    else grade=en?'Severe staining':'重度染色';
+    rows.push([en?'Cornea staining score (0-15)':'角膜染色评分 (0-15)', corneaTotal, '']);
+    rows.push([en?'Conjunctival staining (0-18)':'结膜染色 (0-18)', conjTotal, '']);
+    rows.push([en?'Total score (0-33)':'总评分 (0-33)', total, '']);
+    rows.push([en?'Ocular surface damage':'眼表损伤', grade, '']);
+    var tb=document.querySelector('#fsTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#fsTable','fluorescein-staining-score.csv');
+  }catch(e){}
+}
 function calc(){
   currentZone='cornea';
   getScores();
