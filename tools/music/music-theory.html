@@ -189,10 +189,12 @@ s.parentNode.insertBefore(el, s);
     </select>
 
     <div id="scale-display" class="scale-grid"></div>
+    <table id="scaleHidden" style="display:none;"><thead><tr><th>Note</th><th>Degree</th><th>Frequency (Hz)</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="playScale()">▶ 试听音阶</button>
       <button type="button" class="btn" onclick="stopAll()">⏹ 停止</button>
+      <button type="button" class="btn" onclick="window.__scaleExport()">⬇️ 导出音阶 CSV</button>
     </div>
 
     <h3 style="margin-top:24px;">常用和弦查询</h3>
@@ -445,6 +447,28 @@ function playPianoKey(noteIdx, el) {
   setTimeout(() => el.classList.remove('playing'), 400);
 }
 
+window.__scaleExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var sel=document.getElementById('scale-type');
+  var type=sel?sel.value:'major';
+  var ivs=SCALE_INTERVALS[type];
+  if(!ivs)return;
+  var degNames=['1','b2','2','b3','3','4','b5','5','b6','6','b7','7'];
+  var tbody=document.querySelector('#scaleHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  ivs.forEach(function(iv){
+    var n=(rootNote+iv)%12;
+    var freq=NOTE_FREQS[n]*Math.pow(2,Math.floor((rootNote+iv)/12));
+    var tr=document.createElement('tr');
+    var cells=[NOTES[n],degNames[iv%12],freq.toFixed(2)];
+    cells.forEach(function(v){
+      var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#scaleHidden', en?('scale-'+NOTES[rootNote]+'-'+type+'.csv'):('音阶-'+NOTES[rootNote]+'.csv'));
+};
 renderRootSelector();
 renderScale();
 renderChord();

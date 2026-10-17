@@ -178,7 +178,12 @@ s.parentNode.insertBefore(el, s);
       <button class="cat-tab" onclick="setCategory('other', this)">其他记录</button>
     </div>
 
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" onclick="window.__dnsExport()">⬇️ 导出DNS记录 CSV</button>
+    </div>
+
     <div id="recordList"></div>
+    <table id="dnsHidden" style="display:none;"><thead><tr><th>Type</th><th>Full Name</th><th>Category</th><th>Example</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -345,6 +350,37 @@ function copyExample(text){
   });
 }
 
+var __DNS_CAT_EN={basic:'Basic',mail:'Mail',security:'Security',service:'Service',other:'Other'};
+window.__dnsExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var kwEl=document.getElementById('filterInput');
+  var kw=kwEl?(kwEl.value||'').trim().toLowerCase():'';
+  var cat=(typeof currentCat==='string'?currentCat:'all');
+  var list=DNS_RECORDS.filter(function(r){
+    if(cat!=='all'&&r.cat!==cat)return false;
+    if(kw){
+      var t=(r.type+' '+r.name+' '+r.full+' '+r.desc).toLowerCase();
+      if(t.indexOf(kw)<0)return false;
+    }
+    return true;
+  });
+  if(!list.length){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'No records to export':'没有可导出的记录','info');
+    return;
+  }
+  var tbody=document.querySelector('#dnsHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  list.forEach(function(r){
+    var tr=document.createElement('tr');
+    var cells=[r.type,r.full,en?(__DNS_CAT_EN[r.cat]||r.cat):r.cat,r.example];
+    cells.forEach(function(v){
+      var td=document.createElement('td');td.textContent=v==null?'':String(v);tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#dnsHidden', en?('dns-records'+(cat!=='all'?('-'+cat):'')+'.csv'):('DNS记录类型.csv'));
+};
 filterRecords();
 </script><script>
 // tool-intro折叠交互

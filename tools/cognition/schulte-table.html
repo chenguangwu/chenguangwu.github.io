@@ -207,10 +207,12 @@ s.parentNode.insertBefore(el, s);
         <strong style="font-size:14px;color:var(--text-primary)">历史成绩曲线</strong>
         <select id="scSpec" style="flex:1;min-width:180px"></select>
         <button class="btn" id="scClear">清空该规格</button>
+        <button type="button" class="btn" onclick="window.__scExport()">⬇️ 导出训练记录 CSV</button>
       </div>
       <canvas class="sc-chart" id="scChart" width="560" height="280"></canvas>
       <div class="sc-empty" id="scHistEmpty" style="display:none">暂无该规格的练习记录，先完成一组训练吧。</div>
       <div id="scHistTable"></div>
+      <table id="scHidden" style="display:none;"><thead><tr><th>Date</th><th>Grid</th><th>Mode</th><th>Order</th><th>Time (s)</th><th>Errors</th><th>Rate (/s)</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 </div>
@@ -573,6 +575,39 @@ s.parentNode.insertBefore(el, s);
     }
   })();
 })();
+</script>
+<script>
+var __SC_MODE_EN={num:'Numbers',letter:'Letters',hanzi:'Chinese characters',color:'Color names'};
+window.__scExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var raw=null;
+  try{raw=JSON.parse(localStorage.getItem('tb_schulte_history_v1')||'{}');}catch(e){raw={};}
+  var out=[];
+  Object.keys(raw||{}).forEach(function(spec){
+    var list=raw[spec]||[];
+    list.forEach(function(r){out.push(r);});
+  });
+  if(!out.length){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'No training records to export':'还没有训练记录可导出','info');
+    return;
+  }
+  out.sort(function(a,b){return String(a.at||'')<String(b.at||'')?-1:1;});
+  var tbody=document.querySelector('#scHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  out.forEach(function(r){
+    var grid=(r.order||0)+'x'+(r.order||0);
+    var mode=en?(__SC_MODE_EN[r.mode]||r.mode):({num:'数字',letter:'字母',hanzi:'汉字',color:'颜色名'}[r.mode]||r.mode);
+    var dir=r.dir==='desc'?(en?'Descending':'倒序'):(en?'Ascending':'正序');
+    var tr=document.createElement('tr');
+    var cells=[String(r.at||'').slice(0,10),grid,mode,dir,(+r.t).toFixed(2),String(r.err||0),(+r.rate).toFixed(2)];
+    cells.forEach(function(v){
+      var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#scHidden', en?'schulte-training-records.csv':'舒尔特训练记录.csv');
+};
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
