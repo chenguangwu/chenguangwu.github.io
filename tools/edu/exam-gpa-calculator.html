@@ -182,7 +182,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn scale-btn" onclick="loadGpaSample('cs')">计算机专业</button>
       <button type="button" class="btn scale-btn" onclick="loadGpaSample('biz')">商科</button>
       <button type="button" class="btn scale-btn" onclick="loadGpaSample('med')">医学</button>
+      <button type="button" class="btn" onclick="window.__gpaExport()">⬇️ 导出成绩单 CSV</button>
     </div>
+    <table id="gpaHidden" style="display:none;"><thead><tr><th>Course</th><th>Grade</th><th>Credit</th><th>Points</th><th>Weighted</th></tr></thead><tbody></tbody></table>
     
     <div class="scale-info" id="scale-info"></div>
     
@@ -438,6 +440,29 @@ document.querySelectorAll('.scale-btn').forEach(b => {
   b.onclick = () => setScale(b.dataset.s);
 });
 
+function __gpaExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!state.courses||!state.courses.length){ToolBox.showToast(en?'No courses added':'尚未添加课程');return;}
+  var scale=SCALES[state.scale];
+  var tb=document.querySelector('#gpaHidden tbody');
+  tb.innerHTML='';
+  state.courses.forEach(function(c){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+ToolBox.escHtml(c.name)+'</td><td>'+c.grade+'</td><td>'+c.credit+'</td><td>'+c.points.toFixed(2)+'</td><td>'+(c.points*c.credit).toFixed(2)+'</td>';
+    tb.appendChild(tr);
+  });
+  var totalCredit=state.courses.reduce(function(s,c){return s+c.credit;},0);
+  var totalPoints=state.courses.reduce(function(s,c){return s+c.points*c.credit;},0);
+  var gpa=totalCredit>0?totalPoints/totalCredit:0;
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td>TOTAL</td><td>-</td><td>'+totalCredit.toFixed(1)+'</td><td>-</td><td>'+totalPoints.toFixed(2)+'</td>';
+  tb.appendChild(tr);
+  var tr2=document.createElement('tr');
+  tr2.innerHTML='<td>GPA ('+scale.name+')</td><td>-</td><td>-</td><td>'+gpa.toFixed(2)+'</td><td>-</td>';
+  tb.appendChild(tr2);
+  TBKit.util.exportTable('#gpaHidden',en?'gpa-report.csv':'GPA成绩单-'+scale.name+'.csv');
+}
 const loaded = loadData();
 state.scale = loaded.scale || '4standard';
 state.courses = loaded.courses || [];
