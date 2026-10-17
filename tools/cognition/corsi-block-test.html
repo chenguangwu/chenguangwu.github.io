@@ -202,10 +202,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="cb-result" id="cbResult">
+      <div class="cb-toolbar" style="margin:8px 0;">
+        <button type="button" class="btn" onclick="window.__cbExport()">⬇️ 导出Corsi结果 CSV</button>
+      </div>
       <div class="result-box" id="cbResultBox"></div>
       <div class="cb-norm" id="cbNorm"></div>
       <canvas class="cb-chart" id="cbChart" width="520" height="260"></canvas>
       <div class="cb-hint" id="cbChartCap"></div>
+      <table id="cbHidden" style="display:none"><thead><tr><th>Trial</th><th>Mode</th><th>Length</th><th>Sequence</th><th>Response</th><th>Correct</th></tr></thead><tbody></tbody></table>
     </div>
 
     <p class="cb-hint">提示：演示阶段木块高亮由系统控制；进入输入阶段后，正序请按亮起顺序点击，倒序请按相反顺序点击。节奏越快、长度越长，越接近真实记忆负荷。</p>
@@ -444,6 +448,7 @@ s.parentNode.insertBefore(el, s);
       at: new Date().toISOString()
     };
     saveSession(rec);
+    window.__cbResult = rec; window.__cbTrials = G.trials.slice();
 
     $('cbResult').classList.add('on');
     const __h2='<p>Corsi 广度：<strong>' + span.toFixed(1) + '</strong> · 正确试次 <strong>' + totalCorrect + '/' + G.trials.length + '</strong></p>' +
@@ -556,6 +561,7 @@ s.parentNode.insertBefore(el, s);
   renderBoard();
   setStat();
 })();
+function __cbExport(){if(typeof TBKit==='undefined')return;var en=TBKit.util.isEn();var tbody=document.querySelector('#cbHidden tbody');if(!tbody)return;tbody.innerHTML='';var res=window.__cbResult,trials=window.__cbTrials;if(!res||!trials||!trials.length){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please finish the test first':'请先完成至少一次测试再导出','warn');return;}for(var i=0;i<trials.length;i++){var t=trials[i];var tr=document.createElement('tr');tr.innerHTML='<td>'+(i+1)+'</td><td>'+t.mode+'</td><td>'+t.length+'</td><td>'+t.seq.join('-')+'</td><td>'+t.resp.join('-')+'</td><td>'+(t.correct?(en?'Yes':'是'):(en?'No':'否'))+'</td>';tbody.appendChild(tr);}var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Corsi Span ('+res.mode+')':'Corsi广度 ('+(res.mode==='fwd'?'正序':'倒序')+')')+'</b></td><td colspan="3"><b>'+Number(res.span).toFixed(1)+'</b></td>';tbody.appendChild(tr);var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Total Correct':'正确试次')+'</b></td><td colspan="3"><b>'+res.totalCorrect+' / '+res.trials+'</b></td>';tbody.appendChild(tr);var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Product Score':'乘积分')+'</b></td><td colspan="3"><b>'+res.product+'</b></td>';tbody.appendChild(tr);TBKit.util.exportTable('#cbHidden',en?'corsi-result.csv':'Corsi木块结果.csv');}
 
 /* 示例方案预设（全局函数：IIFE 内的 cbMode/cbSpeed 由 id 直接访问） */
 function applyCorsiPreset(kind){

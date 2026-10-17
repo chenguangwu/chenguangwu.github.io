@@ -220,10 +220,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="ds-result" id="dsResult">
+      <div class="ds-toolbar" style="margin-top:8px;">
+        <button type="button" class="btn" onclick="window.__dsExport()">⬇️ 导出数字广度结果 CSV</button>
+      </div>
       <div class="result-box" id="dsResultBox"></div>
       <div class="ds-norm" id="dsNorm"></div>
       <canvas class="ds-chart" id="dsChart" width="520" height="260"></canvas>
       <div class="ds-hint" id="dsChartCap"></div>
+      <table id="dsHidden" style="display:none"><thead><tr><th>Trial</th><th>Condition</th><th>Length</th><th>Sequence</th><th>Response</th><th>Correct</th></tr></thead><tbody></tbody></table>
     </div>
 
     <p class="ds-hint">提示：序列只呈现一次，请集中注意力。倒背要求把听到的数字反着说；排序要求把数字从小到大依次说出。pace 越快越接近真实工作记忆负荷。所有数据仅保存在本机浏览器。</p>
@@ -436,6 +440,7 @@ s.parentNode.insertBefore(el, s);
       at: new Date().toISOString()
     };
     saveSession(rec);
+    window.__dsResult = rec; window.__dsTrials = G.trials.slice();
     $('dsResult').classList.add('on');
     var parts = [];
     if (G.spans.fwd) { parts.push('正背 <strong>' + G.spans.fwd.toFixed(1) + '</strong>'); }
@@ -623,6 +628,7 @@ s.parentNode.insertBefore(el, s);
 
   setStat();
 })();
+function __dsExport(){if(typeof TBKit==='undefined')return;var en=TBKit.util.isEn();var tbody=document.querySelector('#dsHidden tbody');if(!tbody)return;tbody.innerHTML='';var res=window.__dsResult,trials=window.__dsTrials;if(!res||!trials||!trials.length){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please finish the test first':'请先完成至少一次测试再导出','warn');return;}for(var i=0;i<trials.length;i++){var t=trials[i];var tr=document.createElement('tr');tr.innerHTML='<td>'+(i+1)+'</td><td>'+t.cond+'</td><td>'+t.length+'</td><td>'+t.seq.join('-')+'</td><td>'+t.resp.join('-')+'</td><td>'+(t.correct?(en?'Yes':'是'):(en?'No':'否'))+'</td>';tbody.appendChild(tr);}var condEN={'fwd':'Forward','bwd':'Backward','seq':'Sequencing'};var condCN={'fwd':'正背','bwd':'倒背','seq':'排序'};var sum=[['fwd',res.fwd],['bwd',res.bwd],['seq',res.seq]];for(var j=0;j<sum.length;j++){var tr=document.createElement('tr');var lbl=en?(condEN[sum[j][0]]+' Span'):(condCN[sum[j][0]]+'广度');tr.innerHTML='<td colspan="3"><b>'+lbl+'</b></td><td colspan="3"><b>'+Number(sum[j][1]).toFixed(1)+'</b></td>';tbody.appendChild(tr);}var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Total Span':'总广度')+'</b></td><td colspan="3"><b>'+Number(res.total).toFixed(1)+'</b></td>';tbody.appendChild(tr);var tr=document.createElement('tr');tr.innerHTML='<td colspan="3"><b>'+(en?'Total Trials':'总试次')+'</b></td><td colspan="3"><b>'+res.trials+'</b></td>';tbody.appendChild(tr);TBKit.util.exportTable('#dsHidden',en?'digit-span-result.csv':'数字广度结果.csv');}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
