@@ -215,9 +215,11 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__lkExport()">⬇️ 导出评分明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <table id="lkHidden" style="display:none"><thead><tr><th>Item</th><th>Left</th><th>Right</th><th>Max</th></tr></thead><tbody></tbody></table>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">Lund-Kennedy 评分解读</h3>
     <table>
@@ -323,6 +325,25 @@ function copyResult(){
   for(var k in scores.L) leftTotal+=scores.L[k];
   for(var k in scores.R) rightTotal+=scores.R[k];
   ToolBox.copyText('Lund-Kennedy评分：左侧='+leftTotal+'分, 右侧='+rightTotal+'分, 总分='+(leftTotal+rightTotal)+'/20分', '结果已复制');
+}
+
+function __lkExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#lkHidden tbody');
+  tbody.innerHTML='';
+  function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
+  var labels={polyp:en?'Polyp':'息肉',edema:en?'Edema':'水肿',discharge:en?'Discharge':'分泌物',scar:en?'Scar':'瘢痕',crust:en?'Crust':'结痂'};
+  var leftTotal=0,rightTotal=0;
+  for(var k in scores.L){leftTotal+=scores.L[k];rightTotal+=scores.R[k];}
+  for(var k in scores.L){row([labels[k]||k, scores.L[k], scores.R[k], 2]);}
+  row([en?'Left Total':'左侧合计', leftTotal, '', 10]);
+  row([en?'Right Total':'右侧合计', '', rightTotal, 10]);
+  row([en?'Total':'总分', leftTotal+rightTotal, '', 20]);
+  var total=leftTotal+rightTotal;
+  var sev=total<=5?'轻度':total<=13?'中度':'重度';
+  row([en?'Severity':'程度', sev, '', '']);
+  TBKit.util.exportTable('#lkHidden', en?'lund-kennedy-score.csv':'Lund-Kennedy评分明细.csv');
 }
 
 calc();

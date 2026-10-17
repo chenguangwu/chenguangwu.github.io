@@ -494,6 +494,8 @@ window.__TI18N_EN = {
     '⬇️ 导出修剪高度 CSV':'⬇️ Export Lawn Mowing Height CSV',
     '⬇️ 导出评估明细 CSV':'⬇️ Export Assessment Details CSV',
     '⬇️ 导出脏腑证候 CSV':'⬇️ Export Zang-Fu Syndromes CSV',
+    '⬇️ 导出三焦辨证 CSV':'⬇️ Export San-Jiao Differentiation CSV',
+    '⬇️ 导出六淫辨证 CSV':'⬇️ Export Six-Evils Differentiation CSV',
     '⬇️ 导出分级标准 CSV':'⬇️ Export Grading Standard CSV',
     '⬇️ 导出八纲速查 CSV':'⬇️ Export Eight-Principles Cheat Sheet CSV',
     '⬇️ 导出时间轴 CSV':'⬇️ Export Timeline CSV',

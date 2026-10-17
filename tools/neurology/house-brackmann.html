@@ -154,9 +154,11 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">生成评估</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__hbExport()">⬇️ 导出分级标准 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <table id="hbHidden" style="display:none"><thead><tr><th>Grade</th><th>Name</th><th>Severity</th><th>Description</th><th>Advice</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -280,6 +282,25 @@ function calc(){
 function copyResult(){
   var info = {1:'I级(正常)',2:'II级(轻度)',3:'III级(中度)',4:'IV级(中重度)',5:'V级(重度)',6:'VI级(完全麻痹)'};
   ToolBox.copyText('House-Brackmann面神经分级：'+info[grade], i18nText('toast.msg544'));
+}
+
+function __hbExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#hbHidden tbody');
+  tbody.innerHTML='';
+  function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
+  var gradeInfo={
+    1:{name:en?'I':'I级',sev:en?'Normal':'正常',desc:en?'Normal facial nerve function, symmetric movement in all areas':'面神经功能正常，各区域运动对称',advice:en?'Normal facial nerve function, no treatment needed':'面神经功能正常，无需治疗。'},
+    2:{name:en?'II':'II级',sev:en?'Mild dysfunction':'轻度功能障碍',desc:en?'Slight asymmetry only on close inspection, normal or slight forehead movement, complete eye closure, slight mouth asymmetry':'近距离检查才发现轻微不对称，额纹运动正常或稍弱，眼可完全闭合，口角稍不对称',advice:en?'Mild dysfunction, good prognosis, observe and follow up':'轻度面神经功能障碍，预后良好。可观察随访，多数可完全恢复。'},
+    3:{name:en?'III':'III级',sev:en?'Moderate dysfunction':'中度功能障碍',desc:en?'Obvious but not severe asymmetry, slight forehead movement, complete closure with effort, marked mouth asymmetry':'面部两侧有明显但不严重的差异，额纹轻微可动，眼用力可完全闭合，口角明显不对称',advice:en?'Moderate dysfunction. Medication (corticosteroids + neurotrophics) and facial rehab, good prognosis':'中度面神经功能障碍。建议药物治疗（糖皮质激素+营养神经），配合面部康复训练。预后较好。'},
+    4:{name:en?'IV':'IV级',sev:en?'Moderately severe dysfunction':'中重度功能障碍',desc:en?'Obvious asymmetry, no forehead movement, incomplete closure with effort, severe mouth asymmetry':'面部明显不对称，额纹无运动，眼用力不能完全闭合，口角严重不对称',advice:en?'Moderately severe dysfunction. Active medication, consider electroneurography, eye protection':'中重度面神经功能障碍。需积极药物治疗，建议行面神经电图评估变性程度。注意眼部保护。'},
+    5:{name:en?'V':'V级',sev:en?'Severe dysfunction':'重度功能障碍',desc:en?'Only barely perceptible movement, asymmetry at rest, unable to close eye, slight mouth movement':'仅可察觉的轻微面部运动，静止时不对称，眼不能闭合，口角仅轻微运动',advice:en?'Severe dysfunction. Electroneurography; if >90% degeneration consider decompression. Eye protection, poor prognosis':'重度面神经功能障碍。需行面神经电图评估，若变性＞90%需考虑面神经减压术。需眼部保护。预后较差。'},
+    6:{name:en?'VI':'VI级',sev:en?'Total paralysis':'完全麻痹',desc:en?'No facial movement, loss of facial tone':'面部完全无运动，面肌张力消失',advice:en?'Total paralysis. Urgent etiologic evaluation, electroneurography; if >90% degeneration consider urgent decompression. Strict eye protection':'面神经完全麻痹。需紧急评估病因，行面神经电图评估。若变性＞90%需尽快行面神经减压术。需严格眼部保护。'}
+  };
+  for(var g=1;g<=6;g++){var info=gradeInfo[g];row([g, info.name, info.sev, info.desc, info.advice]);}
+  row([en?'Current Grade':'当前分级', gradeInfo[grade].name, gradeInfo[grade].sev, '', '']);
+  TBKit.util.exportTable('#hbHidden', en?'house-brackmann-grade.csv':'House-Brackmann分级标准.csv');
 }
 
 calc();
