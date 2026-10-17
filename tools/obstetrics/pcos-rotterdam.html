@@ -142,8 +142,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calc()">诊断评估</button>
       <button type="button" class="btn" onclick="reset()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__pcosExport()">⬇️ 导出PCOS鹿特丹诊断 CSV</button>
     </div>
     <div class="result-box" id="result"></div>
+    <table id="pcosHidden" style="display:none"><thead><tr><th>Criterion</th><th>Selected</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -280,6 +282,24 @@ function calc(){
 }
 function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg087'));
+}
+function __pcosExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#pcosHidden tbody');
+  tbody.innerHTML='';
+  var _row=function(cells){var tr=document.createElement('tr');cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});tbody.appendChild(tr);};
+  var labels={1:'稀发排卵/无排卵',2:'高雄激素表现',3:'多囊卵巢(超声)'};
+  var count=0;
+  [1,2,3].forEach(function(n){
+    var sel=crits[n]?(en?'Yes':'是'):(en?'No':'否');
+    if(crits[n])count++;
+    _row([labels[n], sel]);
+  });
+  _row([en?'Met Criteria':'满足条件数',''+count+'/3']);
+  var diag=count>=2?(en?'PCOS (Rotterdam)':'PCOS(多囊卵巢综合征)'):(en?'Not PCOS':'不符合PCOS诊断');
+  _row([en?'Diagnosis':'诊断结果', diag]);
+  TBKit.util.exportTable('#pcosHidden', en?'pcos_rotterdam.csv':'pcos鹿特丹诊断.csv');
 }
 calc();
 </script>
