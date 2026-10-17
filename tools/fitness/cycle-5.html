@@ -175,6 +175,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="prevWeek()">‹ 上周</button>
       <button type="button" class="btn" onclick="thisWeek()">本周</button>
       <button type="button" class="btn" onclick="nextWeek()">下周 ›</button>
+      <button type="button" class="btn" onclick="window.__fc5Export()">⬇️ 导出课程表 CSV</button>
       <button type="button" class="btn danger" onclick="clearDone()">清空打卡</button>
     </div>
   </div>
@@ -196,6 +197,8 @@ s.parentNode.insertBefore(el, s);
     <div class="cal-grid" id="calGrid"></div>
   </div>
 </div>
+
+<table id="fc5Hidden" style="display:none"><thead><tr><th>Plan</th><th>Trainer</th><th>Day</th><th>Time</th><th>CheckIns</th><th>LastCheckIn</th></tr></thead><tbody></tbody></table>
 
 <div class="tool-notes">
   <div class="tool-notes-title">⚠️ 使用说明</div>
@@ -392,6 +395,25 @@ function renderCal(){
     h+='<div class="cal-cell'+(dayDone.length?' has':'')+'" style="'+(isToday?'border-color:var(--primary);':'')+'"><div class="cday">'+day+'</div><div class="dots">'+dots+'</div></div>';
   }
   const __h6=h;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('calGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('calGrid').innerHTML=__h6;
+}
+
+function __fc5Export(){
+  if(typeof TBKit==='undefined')return;
+  if(!data.slots.length){ ToolBox.showToast(i18nText('toast.msg646'),'warning'); return; }
+  var en=TBKit.util.isEn();
+  var dowEn=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var tbody=document.querySelector('#fc5Hidden tbody');
+  tbody.innerHTML='';
+  data.slots.slice().sort(function(a,b){return a.day-b.day||(a.time<b.time?-1:1);}).forEach(function(s){
+    var p=planById(s.planId); if(!p) return;
+    var ds=data.done.filter(function(d){return d.slotId===s.id;}).map(function(d){return d.date;}).sort();
+    var tr=document.createElement('tr');
+    [p.name, p.trainer||'', en?dowEn[s.day]:DOW[s.day], s.time, ds.length, ds.length?ds[ds.length-1]:''].forEach(function(v){
+      var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#fc5Hidden', en?'fitness-schedule.csv':'健身课程表.csv');
 }
 
 function render(){
