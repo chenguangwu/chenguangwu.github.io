@@ -144,8 +144,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="addDisc('rate')">+ 折扣</button>
       <button type="button" class="btn" onclick="addDisc('amount')">+ 满减</button>
       <button type="button" class="btn primary" onclick="calc()">🧮 计算</button>
+      <button type="button" class="btn" onclick="window.__sdExport()">⬇️ 导出叠加明细 CSV</button>
       <span style="font-size:13px;color:var(--text-muted);">📌 示例活动：</span><button type="button" class="btn" onclick="applyDiscPreset('promo')">8折+满300减50</button><button type="button" class="btn" onclick="applyDiscPreset('simple')">单件85折</button><button type="button" class="btn" onclick="applyDiscPreset('multi')">双层满减</button>
     </div>
+    <table id="sdHidden" style="display:none;"><thead><tr><th>Step</th><th>Type</th><th>Param</th><th>Threshold</th><th>Price Before</th><th>Price After</th><th>Saved</th><th>Status</th></tr></thead><tbody></tbody></table>
 
     <div class="final-box" id="finalBox">
       <div class="v" id="finalVal">—</div>
@@ -283,6 +285,40 @@ function calc(){
     ['步骤','当前价','本层优惠'], rows);document.getElementById('detailTable').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
 
+function __sdExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var price=+document.getElementById('price').value||0;
+  if(price<=0){ToolBox.showToast(en?'Please enter original price':'请输入商品原价');return;}
+  var cur=price;
+  var tb=document.querySelector('#sdHidden tbody');
+  tb.innerHTML='';
+  function addRow(step,type,param,threshold,before,after,saved,status){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+step+'</td><td>'+type+'</td><td>'+param+'</td><td>'+threshold+'</td><td>'+before.toFixed(2)+'</td><td>'+after.toFixed(2)+'</td><td>'+saved.toFixed(2)+'</td><td>'+status+'</td>';
+    tb.appendChild(tr);
+  }
+  addRow('Original','-','-','-',price,cur,0,'-');
+  discounts.forEach(function(d,i){
+    var before=cur;
+    var status='Applied';
+    if(d.type==='rate'){
+      cur=cur*(d.value/100);
+    }else{
+      if(cur>=(d.threshold||0)){
+        cur=Math.max(cur-d.value,0);
+      }else{
+        status=en?'Below threshold':'未达门槛';
+      }
+    }
+    addRow('Layer '+(i+1),d.type==='rate'?'Rate':'Amount',d.type==='rate'?(d.value+'%'):('-'+d.value),d.threshold||0,before,cur,before-cur,status);
+  });
+  var totalSave=price-cur;
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td>Final</td><td>-</td><td>-</td><td>-</td><td>'+price.toFixed(2)+'</td><td>'+cur.toFixed(2)+'</td><td>'+totalSave.toFixed(2)+'</td><td>'+(price>0?((totalSave/price*10).toFixed(2)+(en?'/10 off':' 折')):'-')+'</td>';
+  tb.appendChild(tr);
+  TBKit.util.exportTable('#sdHidden',en?'stacked-discount.csv':'叠加折扣明细.csv');
+}
 renderDiscs();
 calc();
 </script>

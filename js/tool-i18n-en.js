@@ -526,6 +526,11 @@ window.__TI18N_EN = {
     '⬇️ 导出换算明细 CSV':'⬇️ Export Conversion Details CSV',
     '⬇️ 导出差异明细 CSV':'⬇️ Export Diff Details CSV',
     '⬇️ 导出标签速查 CSV':'⬇️ Export Tag Reference CSV',
+    '⬇️ 导出叠加明细 CSV':'⬇️ Export Stacked Discount CSV',
+    '⬇️ 导出分解明细 CSV':'⬇️ Export Breakdown Details CSV',
+    '⬇️ 导出哈希值 CSV':'⬇️ Export Hash Digest CSV',
+    '快速布朗狐':'Quick Brown Fox',
+    '中文示例':'Chinese Sample',
   },
   BODY_PHRASE_MAP: {
     // —— 批次101 顺带修复 smt-stencil 既有未译 ——

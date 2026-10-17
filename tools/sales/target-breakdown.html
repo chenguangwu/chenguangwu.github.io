@@ -152,7 +152,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="addMember()">+ 添加成员</button>
       <button type="button" class="btn primary" onclick="calc()">📈 重新分解</button>
+      <button type="button" class="btn" onclick="window.__tbkExport()">⬇️ 导出分解明细 CSV</button>
     </div>
+    <table id="tbkHidden" style="display:none;"><thead><tr><th>Member</th><th>Weight</th><th>Target</th><th>Unit</th><th>Share</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar" style="margin-top:8px;flex-wrap:wrap;gap:6px;">
       <span style="font-size:13px;color:var(--text-muted);">📋 示例方案：</span>
@@ -296,6 +298,31 @@ function calc(){
     ['成员', mode==='weight'?'权重':'—', '分解目标', '占比'], rows);document.getElementById('resultTable').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 
+function __tbkExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var total=+document.getElementById('total').value||0;
+  var mode=document.getElementById('mode').value;
+  var unit=document.getElementById('unit').value;
+  if(!members.length){ToolBox.showToast(en?'No members':'请先添加团队成员');return;}
+  var n=members.length;
+  var sumWeight=members.reduce(function(s,m){return s+(+m.weight||0);},0);
+  if(mode==='weight'&&sumWeight<=0)sumWeight=1;
+  var tb=document.querySelector('#tbkHidden tbody');
+  tb.innerHTML='';
+  var sumTarget=0;
+  members.forEach(function(m){
+    var share=mode==='avg'?total/n:total*((+m.weight||0)/sumWeight);
+    sumTarget+=share;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+ToolBox.escHtml(m.name||'Unnamed')+'</td><td>'+(mode==='weight'?(+m.weight||0):'-')+'</td><td>'+share.toFixed(2)+'</td><td>'+unit+'</td><td>'+(total>0?(share/total*100).toFixed(1):'0.0')+'%</td>';
+    tb.appendChild(tr);
+  });
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td>Total</td><td>'+(mode==='weight'?sumWeight:'-')+'</td><td>'+sumTarget.toFixed(2)+'</td><td>'+unit+'</td><td>100.0%</td>';
+  tb.appendChild(tr);
+  TBKit.util.exportTable('#tbkHidden',en?'target-breakdown.csv':'销售目标分解.csv');
+}
 function fmt(n){ return Math.round(n).toLocaleString('zh-CN'); }
 
 renderMembers();

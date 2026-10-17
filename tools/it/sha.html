@@ -210,7 +210,9 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="calcText()">计算</button>
         <button type="button" class="btn success" onclick="copyAll()">复制全部</button>
+        <button type="button" class="btn" onclick="window.__shaExport()">⬇️ 导出哈希值 CSV</button>
       </div>
+      <table id="shaHidden" style="display:none;"><thead><tr><th>Algorithm</th><th>Digest</th><th>Length</th><th>Input</th></tr></thead><tbody></tbody></table>
       <div id="textResults"></div>
     </div>
 
@@ -282,6 +284,27 @@ function getSelectedAlgos(){
   return Array.from(document.querySelectorAll('.algo-select input:checked')).map(c=>c.value);
 }
 
+function __shaExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var rows=document.querySelectorAll('#textResults .hash-row');
+  if(!rows.length){ToolBox.showToast(en?'Please calculate hash first':'请先输入文本并计算哈希');return;}
+  var text=document.getElementById('textInput').value;
+  var tb=document.querySelector('#shaHidden tbody');
+  tb.innerHTML='';
+  rows.forEach(function(r){
+    var algo=r.querySelector('.hname');
+    var code=r.querySelector('code');
+    if(!algo||!code)return;
+    var hex=code.textContent||'';
+    if(!hex||hex==='不支持')return;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+algo.textContent+'</td><td>'+hex+'</td><td>'+(hex.length/2)+' bytes</td><td>'+ToolBox.escHtml(text)+'</td>';
+    tb.appendChild(tr);
+  });
+  if(!tb.children.length){ToolBox.showToast(en?'No digest available':'暂无可导出的哈希值');return;}
+  TBKit.util.exportTable('#shaHidden',en?'sha-digest.csv':'SHA哈希值.csv');
+}
 async function calcText() {
   var text = document.getElementById('textInput').value;
   var upper = document.getElementById('uppercase').checked;
