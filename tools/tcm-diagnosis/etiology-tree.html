@@ -129,9 +129,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="expandAll()">全部展开</button>
       <button type="button" class="btn" onclick="collapseAll()">全部收起</button>
       <button type="button" class="btn" onclick="copyTree()">复制文本</button>
+      <button type="button" class="btn" onclick="window.__etExport()">⬇️ 导出病因树 CSV</button>
     </div>
 
     <div id="treeContainer" style="margin-top:12px;"></div>
+    <table id="etHidden" style="display:none"><thead><tr><th>Category</th><th>Sub</th><th>Note</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       💡 中医病因分三类：外感（六淫、疠气）、内伤（七情、饮食、劳逸）、其他致病因素（痰饮、瘀血、结石、外伤等）。辨明病因是"审因论治"的基础。
@@ -324,6 +326,23 @@ function copyTree(){
   });
   ToolBox.copyText(lines.join('\n'), i18nText('msg518'));
 }
+function __etExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#etHidden tbody');
+  tbody.innerHTML='';
+  function strip(s){return String(s).replace(/<[^>]+>/g,'');}
+  function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=typeof v==='string'?strip(v):v;tr.appendChild(td);});tbody.appendChild(tr);}
+  tree.forEach(function(top){
+    (top.children||[]).forEach(function(sub){
+      (sub.children||[]).forEach(function(leaf){
+        if(leaf.leaf) row([top.title, sub.title, leaf.leaf]);
+      });
+    });
+  });
+  TBKit.util.exportTable('#etHidden', en?'etiology-tree.csv':'病因病机树.csv');
+}
+
 renderTree();
 </script>
 
