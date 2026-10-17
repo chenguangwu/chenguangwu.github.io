@@ -137,8 +137,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calc()">评分评估</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__kupExport()">⬇️ 导出Kupperman评分 CSV</button>
     </div>
     <div class="result-box" id="result"></div>
+    <table id="kupHidden" style="display:none"><thead><tr><th>Symptom</th><th>Weight</th><th>Severity</th><th>Score</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -302,6 +304,24 @@ function resetAll(){
 }
 function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg069'));
+}
+function __kupExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#kupHidden tbody');
+  tbody.innerHTML='';
+  var _row=function(cells){var tr=document.createElement('tr');cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});tbody.appendChild(tr);};
+  var sevLabel=['无','轻度','中度','重度'];
+  var total=0;
+  var rows=document.querySelectorAll('.symptom-row');
+  rows.forEach(function(row,i){
+    var sev=parseInt(row.dataset.sev||'0');
+    var score=symptoms[i].weight*sev;
+    total+=score;
+    _row([symptoms[i].name, String(symptoms[i].weight), sevLabel[sev], String(score)]);
+  });
+  _row([en?'Total':'总分','','',String(total)]);
+  TBKit.util.exportTable('#kupHidden', en?'kupperman_score.csv':'kupperman评分.csv');
 }
 renderList();calc();
 </script>

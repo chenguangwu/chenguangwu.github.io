@@ -138,8 +138,9 @@ s.parentNode.insertBefore(el, s);
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="回顾近1周情况，对每题选择发生频率。OSDI = (各题得分之和 × 100) / (已答题数 × 4)。">Standard 12-item OSDI questionnaire that computes total and subscale scores with severity grading for dry eye symptom assessment.</p>
     <div id="questionnaire"></div>
-    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">✅ 计算OSDI</button> <button type="button" class="btn" onclick="reset()">重置</button> <span style="font-size:13px;color:var(--text-muted);">📌 示例答卷：</span><button type="button" class="btn" onclick="applyOsdiPreset('normal')">正常</button><button type="button" class="btn" onclick="applyOsdiPreset('mild')">轻度干眼</button><button type="button" class="btn" onclick="applyOsdiPreset('severe')">重度干眼</button></div>
+    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">✅ 计算OSDI</button> <button type="button" class="btn" onclick="reset()">重置</button> <button type="button" class="btn" onclick="window.__osdiExport()">⬇️ 导出OSDI量表 CSV</button> <span style="font-size:13px;color:var(--text-muted);">📌 示例答卷：</span><button type="button" class="btn" onclick="applyOsdiPreset('normal')">正常</button><button type="button" class="btn" onclick="applyOsdiPreset('mild')">轻度干眼</button><button type="button" class="btn" onclick="applyOsdiPreset('severe')">重度干眼</button></div>
     <div class="result-box" id="result" style="margin-top:12px;"></div>
+    <table id="osdiHidden" style="display:none"><thead><tr><th>Question</th><th>Score</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -349,6 +350,26 @@ function calc(){
 function reset(){
   document.querySelectorAll('input[type=radio]').forEach(function(r){r.checked=false;});
   $('result').innerHTML='';
+}
+function __osdiExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#osdiHidden tbody');
+  tbody.innerHTML='';
+  var _row=function(cells){var tr=document.createElement('tr');cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});tbody.appendChild(tr);};
+  var qi=0,sum=0,answered=0;
+  QUESTIONS.forEach(function(group){
+    group.items.forEach(function(it){
+      var r=document.querySelector('input[name="q'+qi+'"]:checked');
+      var v=r?parseInt(r.value):0;
+      if(r){sum+=v;answered++;}
+      _row([(qi+1)+'. '+it, String(v)]);
+      qi++;
+    });
+  });
+  var osdi=answered?sum*100/(answered*4):0;
+  _row([en?'OSDI Total':'OSDI总分', String(Math.round(osdi))]);
+  TBKit.util.exportTable('#osdiHidden', en?'osdi_scale.csv':'osdi量表.csv');
 }
 buildQ();
 document.addEventListener('DOMContentLoaded',function(){
