@@ -183,8 +183,12 @@ s.parentNode.insertBefore(el, s);
     <div style="margin:8px 0 4px;font-size:13px;color:var(--text-muted);">备考目标进度</div>
     <div class="progress-bar"><div class="progress-fill" id="studyProgress" style="width:0%"></div></div>
 
-    <h3 style="margin-top:16px;">学习记录明细</h3>
+    <div class="toolbar" style="margin-top:16px;">
+      <button type="button" class="btn" onclick="window.__examLogExport()">⬇️ 导出学习记录 CSV</button>
+    </div>
+    <h3>学习记录明细</h3>
     <div id="logList"></div>
+    <table id="examLogHidden" style="display:none;"><thead><tr><th>Date</th><th>Hours</th><th>Note</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card" id="emptyCard">
@@ -333,6 +337,26 @@ function render(){
   h+='<button class="btn danger" style="margin-top:10px;padding:6px 12px;font-size:12px;" onclick="clearLog()">清空记录</button>';
   const __h4=h;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h4;
 }
+window.__examLogExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!state.logs||!state.logs.length){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'No study records to export':'还没有学习记录可导出','info');
+    return;
+  }
+  var tbody=document.querySelector('#examLogHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  var arr=state.logs.slice().sort(function(a,b){return a.date<b.date?1:-1;});
+  arr.forEach(function(l){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=l.date;
+    var td2=document.createElement('td');td2.textContent=(parseFloat(l.hours)||0).toFixed(1);
+    var td3=document.createElement('td');td3.textContent=l.note||'';
+    tr.appendChild(td1);tr.appendChild(td2);tr.appendChild(td3);
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#examLogHidden', en?'study-log.csv':'学习记录.csv');
+};
 load();
 // 每分钟刷新（跨日时自动更新天数）
 setInterval(render,60000);

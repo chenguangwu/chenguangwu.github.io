@@ -196,8 +196,12 @@ s.parentNode.insertBefore(el, s);
 <button type="button" class="btn" onclick="applyCssPreset('bg')">🎨 背景</button>
 <button type="button" class="btn" onclick="applyCssPreset('pos')">🧭 定位</button>
     </div>
+    <div class="toolbar" style="margin-top:8px;">
+      <button type="button" class="btn" onclick="window.__cssPropExport()">⬇️ 导出属性速查 CSV</button>
+    </div>
     <div class="stats" id="stats"></div>
     <div class="prop-list" id="propList"></div>
+    <table id="cssPropHidden" style="display:none;"><thead><tr><th>Property</th><th>Category</th><th>Initial Value</th><th>Inherited</th><th>Support</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -492,6 +496,43 @@ document.getElementById('searchInput').addEventListener('input', e => {
   renderProps();
 });
 
+var __CSS_CAT_EN={'布局':'Layout','盒模型':'Box Model','文本':'Text','背景':'Background','边框':'Border','动画':'Animation','变换过渡':'Transform & Transition','列表':'List','表格':'Table'};
+var __CSS_SUPPORT_EN={'全部':'All','全部（sticky 需现代浏览器）':'All (sticky needs modern browsers)','现代浏览器':'Modern browsers'};
+window.__cssPropExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var q=(typeof searchQuery==='string'?searchQuery:'').toLowerCase().trim();
+  var cat=(typeof currentCategory==='string'?currentCategory:'全部');
+  var list=PROPERTIES.filter(function(p){
+    if(cat!=='全部'&&p.cat!==cat)return false;
+    if(q){
+      var t=String(p.name+' '+p.desc+' '+p.cat+' '+(p.values==null?'':p.values)).toLowerCase();
+      if(t.indexOf(q)<0)return false;
+    }
+    return true;
+  });
+  if(!list.length){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'No properties to export':'没有可导出的属性','info');
+    return;
+  }
+  var tbody=document.querySelector('#cssPropHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  list.forEach(function(p){
+    var tr=document.createElement('tr');
+    var cells=[
+      p.name,
+      en?(__CSS_CAT_EN[p.cat]||p.cat):p.cat,
+      p.initial,
+      en?(p.inherit?'Yes':'No'):(p.inherit?'是':'否'),
+      en?(__CSS_SUPPORT_EN[p.support]||p.support):p.support
+    ];
+    cells.forEach(function(v){
+      var td=document.createElement('td');td.textContent=v==null?'':String(v);tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#cssPropHidden', en?'css-properties.csv':'CSS属性速查.csv');
+};
 renderCategories();
 renderProps();
 </script><script>
