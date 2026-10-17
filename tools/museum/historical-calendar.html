@@ -190,12 +190,19 @@ s.parentNode.insertBefore(el, s);
       <div class="cal-card">
         <h3>🌙 详细信息</h3>
         <div id="detail-info"></div>
+        <div class="toolbar" style="margin-top:10px;">
+          <button class="btn" onclick="__hcalExportDetail()">⬇️ 导出历法详情 CSV</button>
+        </div>
       </div>
     </div>
-    
+
     <div class="cal-card" style="margin-top:16px;">
       <h3>📌 历史事件</h3>
       <div class="events-list" id="events-list"></div>
+      <div class="toolbar" style="margin-top:10px;">
+        <button class="btn" onclick="__hcalExportEvents()">⬇️ 导出历史事件 CSV</button>
+      </div>
+      <div id="hcalHistory" style="margin-top:14px;"></div>
     </div>
   </div>
 
@@ -453,7 +460,62 @@ function update() {
 const today = new Date();
 document.getElementById('date-input').value = today.toISOString().slice(0, 10);
 update();
-</script><script>
+</script>
+<script>
+(function(){
+  function __hcalEval(){
+    if(typeof TBKit==='undefined') return null;
+    var v=document.getElementById('date-input').value;
+    if(!v) return null;
+    var p=v.split('-').map(Number);
+    if(p.length<3) return null;
+    var y=p[0],m=p[1],d=p[2];
+    var lunar=solarToLunar(y,m,d);
+    if(!lunar) return null;
+    return {y:y,m:m,d:d,lunar:lunar,
+      ganzhi:getGanZhi(lunar.y), zodiac:getZodiac(lunar.y),
+      term:getSolarTerm(y,m,d),
+      dow:['日','一','二','三','四','五','六'][new Date(y,m-1,d).getDay()],
+      days:Math.floor((new Date()-new Date(y,m-1,d))/86400000)};
+  }
+  window.__hcalExportDetail=function(){
+    if(typeof TBKit==='undefined') return;
+    var r=__hcalEval();
+    if(!r) return;
+    var en=TBKit.util.isEn();
+    var t=document.getElementById('hcalHidden');
+    if(!t){ t=document.createElement('table'); t.id='hcalHidden'; t.style.display='none'; document.body.appendChild(t); }
+    var rows=[[en?'Field':'项目',en?'Value':'数值']];
+    rows.push([en?'Gregorian':'公历', r.y+' 年 '+r.m+' 月 '+r.d+' 日']);
+    rows.push([en?'Weekday':'星期','星期'+r.dow]);
+    rows.push([en?'Lunar':'农历',(r.lunar.isLeap?'闰':'')+LUNAR_MONTH[r.lunar.m-1]+'月'+LUNAR_DAY[r.lunar.d-1]]);
+    rows.push([en?'Gan-Zhi':'干支',r.ganzhi+'年']);
+    rows.push([en?'Zodiac':'生肖','属'+r.zodiac]);
+    if(r.term) rows.push([en?'Solar term':'节气',r.term]);
+    rows.push([en?'Days from today':'距今',r.days+' 天']);
+    t.innerHTML='<tbody>'+rows.map(function(x){return '<tr>'+x.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
+    TBKit.util.exportTable('#hcalHidden','lunar-detail.csv');
+  };
+  window.__hcalExportEvents=function(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var t=document.getElementById('hcalHidden2');
+    if(!t){ t=document.createElement('table'); t.id='hcalHidden2'; t.style.display='none'; document.body.appendChild(t); }
+    var rows=[[en?'Date':'日期',en?'Event':'事件']];
+    HISTORICAL_EVENTS.forEach(function(e){ rows.push([e.d,e.e]); });
+    t.innerHTML='<tbody>'+rows.map(function(x){return '<tr>'+x.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tbody>';}).join('')+'</tbody>';
+    TBKit.util.exportTable('#hcalHidden2','historical-events.csv');
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    if(typeof TBKit==='undefined') return;
+    document.getElementById('date-input').addEventListener('change',function(){
+      TBKit.history.record({date:document.getElementById('date-input').value},3000);
+    });
+    TBKit.history.mount('#hcalHistory',function(rec){return (TBKit.util.isEn()?'Query date: ':'查询日期：')+rec.date;});
+  });
+})();
+</script>
+<script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
   var headers=document.querySelectorAll('.tool-intro-header');

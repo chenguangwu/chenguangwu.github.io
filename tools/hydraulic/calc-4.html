@@ -144,6 +144,11 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>复制结果</button>
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button id="orificeExport" class="btn" style="display:none;" onclick="__orificeExport()">⬇️ 导出计算结果 CSV</button>
+    </div>
+    <div id="orificeTable"></div>
+    <div id="orificeHistory" style="margin-top:14px;"></div>
     <div class='info-box' style='margin-top:12px;'>流量系数参考：薄壁圆孔 0.60~0.64，管嘴 0.82，闸孔 0.60~0.70。公式 Q = Cd·A·√(2gH)。</div>
   </div>
 </div>
@@ -248,6 +253,49 @@ s.parentNode.insertBefore(el, s);
     calculate();
   }
   window.applyOrificePreset = applyOrificePreset;
+})();
+</script>
+<script>
+(function(){
+  function __orificeEval(){
+    if(typeof TBKit==='undefined') return;
+    var G=9.80665;
+    var dMm=parseFloat(ToolBox.$('diameter').value)||0;
+    var H=parseFloat(ToolBox.$('head').value)||0;
+    var Cd=parseFloat(ToolBox.$('cd').value)||0;
+    if(!(dMm>0 && H>0 && Cd>0 && Cd<=1)) return;
+    var d=dMm/1000;
+    var A=Math.PI*Math.pow(d/2,2);
+    var Acm2=A*10000;
+    var Q=Cd*A*Math.sqrt(2*G*H);
+    var Qls=Q*1000;
+    var v=Cd*Math.sqrt(2*G*H);
+    var en=TBKit.util.isEn();
+    var t=document.getElementById('orificeTable');
+    if(!t) return;
+    t.innerHTML='<table class="tbk-table"><thead><tr><th>'+(en?'Parameter':'参数')+'</th><th>'+(en?'Value':'数值')+'</th><th>'+(en?'Unit':'单位')+'</th></tr></thead><tbody>'
+      +'<tr><td>'+(en?'Orifice diameter':'孔口直径')+'</td><td>'+dMm.toFixed(2)+'</td><td>mm</td></tr>'
+      +'<tr><td>'+(en?'Head H':'作用水头 H')+'</td><td>'+H.toFixed(2)+'</td><td>m</td></tr>'
+      +'<tr><td>'+(en?'Discharge coeff Cd':'流量系数 Cd')+'</td><td>'+Cd.toFixed(2)+'</td><td>-</td></tr>'
+      +'<tr><td>'+(en?'Area A':'孔口面积')+'</td><td>'+ToolBox.formatNumber(Acm2,2)+'</td><td>cm²</td></tr>'
+      +'<tr><td>'+(en?'Discharge Q':'出流量 Q')+'</td><td>'+ToolBox.formatNumber(Qls,3)+'</td><td>L/s</td></tr>'
+      +'<tr><td>'+(en?'Velocity v':'收缩断面流速')+'</td><td>'+ToolBox.formatNumber(v,2)+'</td><td>m/s</td></tr>'
+      +'</tbody></table>';
+    var btn=document.getElementById('orificeExport');
+    if(btn) btn.style.display='';
+  }
+  window.__orificeExport=function(){
+    TBKit.util.exportTable('#orificeTable','orifice-flow.csv');
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    if(typeof TBKit==='undefined') return;
+    var calcBtn=document.querySelector('.toolbar .btn.primary');
+    if(calcBtn) calcBtn.addEventListener('click',__orificeEval);
+    ['diameter','head','cd'].forEach(function(id){var e=ToolBox.$(id); if(e) e.addEventListener('input',__orificeEval);});
+    __orificeEval();
+    TBKit.history.record({d:ToolBox.$('diameter').value,h:ToolBox.$('head').value,cd:ToolBox.$('cd').value},3000);
+    TBKit.history.mount('#orificeHistory',function(rec){return (TBKit.util.isEn()?'d=':'孔口直径=')+rec.d+' '+(TBKit.util.isEn()?'H=':'水头=')+rec.h+' '+(TBKit.util.isEn()?'Cd=':'Cd=')+rec.cd;});
+  });
 })();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->

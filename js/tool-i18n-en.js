@@ -478,6 +478,12 @@ window.__TI18N_EN = {
     '删除行尾空格':'Trim Trailing Spaces',
     '变量名':'Variable names',
     '英文标题':'English title',
+    '⬇️ 导出计算结果 CSV':'⬇️ Export Calculation Result CSV',
+    '⬇️ 导出全部对照表 CSV':'⬇️ Export All Grade Tables CSV',
+    '⬇️ 导出全部虫卵对照 CSV':'⬇️ Export All Egg Reference CSV',
+    '⬇️ 导出历法详情 CSV':'⬇️ Export Calendar Details CSV',
+    '⬇️ 导出历史事件 CSV':'⬇️ Export Historical Events CSV',
+    '⬇️ 导出完整逃生方案 CSV':'⬇️ Export Full Escape Plan CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——

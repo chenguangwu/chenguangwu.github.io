@@ -213,6 +213,9 @@ s.parentNode.insertBefore(el, s);
   <div id="shelterCard" class="card" style="display:none;">
     <h3>震后避难与自救要点</h3>
     <div id="shelterTips"></div>
+    <div class="toolbar" style="margin-top:14px;">
+      <button id="eqExport" class="btn" onclick="__eqExport()">⬇️ 导出完整逃生方案 CSV</button>
+    </div>
   </div>
 
   <div class="card">
@@ -522,7 +525,36 @@ s.parentNode.insertBefore(el, s);
   renderHouseTypes();
   generatePlan();
 })();
-</script><script>
+</script>
+<script>
+(function(){
+  window.__eqExport=function(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var rows=[[en?'Category':'类别',en?'Title':'标题',en?'Note':'说明']];
+    function grab(sel, cat){
+      var nodes=document.querySelectorAll(sel);
+      nodes.forEach(function(n){
+        var title=n.querySelector('.es-title, .sc-title, strong');
+        var desc=n.querySelector('.es-desc, .sc-desc, div:last-child');
+        var t=title?title.textContent.trim():'';
+        var d=desc?desc.textContent.trim():'';
+        if(t||d) rows.push([cat,t,d]);
+      });
+    }
+    grab('#escapeSteps .escape-step','逃生步骤');
+    grab('#safeZones .danger-zone','安全区域');
+    grab('#dangerZones .danger-zone','危险区域');
+    grab('#shelterTips .shelter-card','避难要点');
+    if(rows.length<=1) return;
+    var t=document.getElementById('eqHidden');
+    if(!t){ t=document.createElement('table'); t.id='eqHidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
+    TBKit.util.exportTable('#eqHidden','earthquake-escape-plan.csv');
+  };
+})();
+</script>
+<script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
   var headers=document.querySelectorAll('.tool-intro-header');

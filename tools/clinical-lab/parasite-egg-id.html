@@ -141,6 +141,10 @@ s.parentNode.insertBefore(el, s);
     <div class="filter-bar" id="filterBar"></div>
 
     <div id="eggList"></div>
+    <div class="toolbar" style="margin-top:14px;">
+      <button id="eggExport" class="btn" onclick="__eggExport()">⬇️ 导出全部虫卵对照 CSV</button>
+    </div>
+    <div id="eggChart"></div>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>识别要点：</strong>虫卵鉴定依据：大小(μm)、形状、颜色、卵壳特征(厚薄/纹理)、卵盖有无、内容物(卵细胞/毛蚴/六钩蚴)。建议用测微尺测量大小，避免与花粉、植物纤维等杂质混淆。
@@ -255,6 +259,39 @@ function toggleEgg(i){
 
 buildFilter();
 filterEggs();
+</script>
+<script>
+(function(){
+  function __eggChart(){
+    if(typeof TBKit==='undefined') return;
+    var host=document.getElementById('eggChart');
+    if(!host) return;
+    var en=TBKit.util.isEn();
+    var counts={line:0,fluke:0,tape:0};
+    EGGS.forEach(function(e){ if(counts[e.cat]!=null) counts[e.cat]++; });
+    TBKit.chart.pie('#eggChart',{
+      labels:[en?'Nematode':'线虫',en?'Trematode':'吸虫',en?'Cestode':'绦虫'],
+      data:[counts.line,counts.fluke,counts.tape],
+      title:en?'Egg categories count':'虫卵类别数量统计'
+    });
+  }
+  window.__eggExport=function(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var t=document.getElementById('eggHidden');
+    if(!t){ t=document.createElement('table'); t.id='eggHidden'; t.style.display='none'; document.body.appendChild(t); }
+    var rows=[[en?'Name':'名称',en?'Category':'类别',en?'Size':'大小',en?'Shape':'形状',en?'Color':'颜色',en?'Shell':'卵壳',en?'Operculum':'卵盖',en?'Content':'内容物',en?'Note':'说明']];
+    EGGS.forEach(function(e){
+      rows.push([e.name, cats[e.cat], e.size, e.shape, e.color, e.shell, e.operculum, e.content, e.desc]);
+    });
+    t.innerHTML='<tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
+    TBKit.util.exportTable('#eggHidden','parasite-eggs.csv');
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    if(typeof TBKit==='undefined') return;
+    __eggChart();
+  });
+})();
 </script>
 
 <!-- SEO 介绍区块 -->

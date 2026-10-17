@@ -137,6 +137,10 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="margin-top:16px;">牛皮纸等级</h3>
     <div id="table4"></div>
+    <div class="toolbar" style="margin-top:14px;">
+      <button id="pgExport" class="btn" onclick="__pgExport()">⬇️ 导出全部对照表 CSV</button>
+    </div>
+    <div id="pgChart"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -233,6 +237,43 @@ function filterTable() {
     tr.style.display = (kw === '' || txt.indexOf(kw) >= 0) ? '' : 'none';
   });
 }
+</script>
+<script>
+(function(){
+  function __pgWhite(arr){
+    var s=arr[0][1];
+    var m=String(s).match(/[\d.]+/);
+    return m?parseFloat(m[0]):0;
+  }
+  function __pgChart(){
+    if(typeof TBKit==='undefined') return;
+    var host=document.getElementById('pgChart');
+    if(!host) return;
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar('#pgChart',{
+      labels:['铜版纸','胶版纸','白卡纸','牛皮纸'],
+      series:[{name:en?'A-grade brightness ISO(%)':'A等白度ISO(%)',data:[__pgWhite(data1),__pgWhite(data2),__pgWhite(data3),__pgWhite(data4)]}],
+      height:240,
+      title:en?('A-grade brightness of first row by paper type'+(data4[0][1]==='本色'?' (kraft=natural, no brightness)':'')):'各纸类首行(A等)白度对比'+(data4[0][1]==='本色'?'（牛皮纸为本色无白度）':'')
+    });
+  }
+  window.__pgExport=function(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var t=document.getElementById('pgHidden');
+    if(!t){ t=document.createElement('table'); t.id='pgHidden'; t.style.display='none'; document.body.appendChild(t); }
+    var rows=[[en?'Category':'类别',en?'Grade':'等级',en?'Brightness ISO(%)':'白度ISO(%)',en?'Indicator 2':'指标2',en?'Indicator 3':'指标3',en?'Main use':'主要用途']];
+    [['铜版纸',data1],['胶版纸',data2],['白卡纸',data3],['牛皮纸',data4]].forEach(function(p){
+      p[1].forEach(function(r){ rows.push([p[0]].concat(r)); });
+    });
+    t.innerHTML='<tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
+    TBKit.util.exportTable('#pgHidden','paper-grades.csv');
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    if(typeof TBKit==='undefined') return;
+    __pgChart();
+  });
+})();
 </script>
 
 <!-- SEO 介绍区块 -->
