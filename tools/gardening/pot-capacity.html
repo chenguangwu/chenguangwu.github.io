@@ -190,11 +190,16 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">📐 计算用量</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
+      <button type="button" class="btn" onclick="window.__potExport()">⬇️ 导出花盆容量 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="text-align:center;color:var(--text-muted);">👆 设置参数开始计算</p>
     </div>
+<table id="potHidden" style="display:none">
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody></tbody>
+</table>
 
     <div class="info-box">
       <strong>📐 计算公式：</strong><br>
@@ -291,6 +296,7 @@ const TOP_MARGIN = 1;       // cm 顶部留空
 const SHAPES = {
   cylinder: {
     name: '圆柱盆',
+    nameEn: 'Cylinder',
     formula: 'V = π × r² × h',
     fields: [
       { id: 'diameter', label: '花盆内径 (cm)', value: 20 },
@@ -299,6 +305,7 @@ const SHAPES = {
   },
   square: {
     name: '方盆',
+    nameEn: 'Square',
     formula: 'V = 边长² × 高',
     fields: [
       { id: 'side', label: '花盆内边长 (cm)', value: 18 },
@@ -307,6 +314,7 @@ const SHAPES = {
   },
   rect: {
     name: '长方盆',
+    nameEn: 'Rectangle',
     formula: 'V = 长 × 宽 × 高',
     fields: [
       { id: 'length', label: '长度 (cm)', value: 30 },
@@ -451,6 +459,46 @@ function buildResultText() {
 
 function copyResult() {
   ToolBox.copyText(buildResultText(), i18nText('msg338'));
+}
+
+function __potExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#potHidden tbody');
+  tbody.innerHTML='';
+  function _row(a,b){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=a;
+    var td2=document.createElement('td');td2.textContent=b;
+    tr.appendChild(td1);tr.appendChild(td2);
+    tbody.appendChild(tr);
+  }
+  var shape=SHAPES[currentShape];
+  var vals={};
+  for(var f of shape.fields) vals[f.id]=+document.getElementById(f.id).value;
+  var height=vals.height;
+  var baseArea=calcBaseArea(currentShape,vals);
+  var totalVolume=baseArea*height;
+  var drainageVolume=baseArea*DRAINAGE_HEIGHT;
+  var usableVolume=totalVolume-drainageVolume-baseArea*TOP_MARGIN;
+  var soilKg=(usableVolume*SOIL_DENSITY)/1000;
+  var gravelKg=(drainageVolume*GRAVEL_DENSITY)/1000;
+  if(en){
+    _row('Shape', shape.nameEn);
+    _row('Total Volume', totalVolume.toFixed(0)+' cm³ ('+(totalVolume/1000).toFixed(2)+' L)');
+    _row('Drainage Layer Volume', drainageVolume.toFixed(0)+' cm³ ('+(drainageVolume/1000).toFixed(2)+' L)');
+    _row('Soil Volume', usableVolume.toFixed(0)+' cm³ ('+(usableVolume/1000).toFixed(2)+' L)');
+    _row('Soil Weight', soilKg.toFixed(2)+' kg');
+    _row('Gravel Weight', gravelKg.toFixed(2)+' kg');
+  }else{
+    _row('形状', shape.name);
+    _row('花盆总容积', totalVolume.toFixed(0)+' cm³ ('+(totalVolume/1000).toFixed(2)+' L)');
+    _row('排水层容积', drainageVolume.toFixed(0)+' cm³ ('+(drainageVolume/1000).toFixed(2)+' L)');
+    _row('所需土壤体积', usableVolume.toFixed(0)+' cm³ ('+(usableVolume/1000).toFixed(2)+' L)');
+    _row('土壤重量', soilKg.toFixed(2)+' kg');
+    _row('陶粒重量', gravelKg.toFixed(2)+' kg');
+  }
+  TBKit.util.exportTable('#potHidden', en?'pot-capacity.csv':'花盆容量.csv');
 }
 
 renderInputs();

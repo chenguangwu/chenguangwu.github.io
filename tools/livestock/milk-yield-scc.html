@@ -131,6 +131,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="addRecord()">+ 添加一条记录</button>
       <button type="button" class="btn" onclick="removeRecord()">删除最后一条</button>
       <button type="button" class="btn primary" onclick="analyze()">分析趋势</button>
+      <button type="button" class="btn" onclick="window.__sccExport()">⬇️ 导出分析数据 CSV</button>
     </div>
 
     <div class="result-box" id="result" style="display:none;"></div>
@@ -140,6 +141,10 @@ s.parentNode.insertBefore(el, s);
       <h3 style="font-size:14px;margin:16px 0 8px;">体细胞数趋势</h3>
       <div class="trend-chart scc-bar" id="sccChart"></div>
     </div>
+<table id="sccHidden" style="display:none">
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody></tbody>
+</table>
   </div>
 
   <div class="card">
@@ -344,6 +349,72 @@ function renderChart(elId, days, values, unit, color){
 function copyResult(){
   var txt = document.getElementById('result').innerText.replace(/\s+/g,' ').trim();
   ToolBox.copyText(txt, i18nText('msg165'));
+}
+
+function __sccExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#sccHidden tbody');
+  tbody.innerHTML='';
+  function _row(a,b){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=a;
+    var td2=document.createElement('td');td2.textContent=b;
+    tr.appendChild(td1);tr.appendChild(td2);
+    tbody.appendChild(tr);
+  }
+  if(records.length<2){ToolBox.showToast(en?'至少需要2条记录':'Need at least 2 records');return;}
+  var yields=records.map(function(r){return r.yield;});
+  var sccs=records.map(function(r){return r.scc;});
+  var days=records.map(function(r){return r.day;});
+  var avgY=yields.reduce(function(a,b){return a+b;},0)/yields.length;
+  var maxY=Math.max.apply(null,yields);
+  var minY=Math.min.apply(null,yields);
+  var avgS=sccs.reduce(function(a,b){return a+b;},0)/sccs.length;
+  var maxS=Math.max.apply(null,sccs);
+  var minS=Math.min.apply(null,sccs);
+  var n=records.length;
+  var sumX=days.reduce(function(a,b){return a+b;},0);
+  var sumY=yields.reduce(function(a,b){return a+b;},0);
+  var sumXY=0,sumXX=0;
+  for(var i=0;i<n;i++){sumXY+=days[i]*yields[i];sumXX+=days[i]*days[i];}
+  var slopeY=(n*sumXY-sumX*sumY)/(n*sumXX-sumX*sumX);
+  var sumS=sccs.reduce(function(a,b){return a+b;},0);
+  var sumXS=0;
+  for(var j=0;j<n;j++){sumXS+=days[j]*sccs[j];}
+  var slopeS=(n*sumXS-sumX*sumS)/(n*sumXX-sumX*sumX);
+  var lastScc=sccs[sccs.length-1];
+  var gGrade,gGradeEn;
+  if(lastScc<=20){gGrade='优秀';gGradeEn='Excellent';}
+  else if(lastScc<=50){gGrade='良好';gGradeEn='Good';}
+  else if(lastScc<=100){gGrade='警告';gGradeEn='Warning';}
+  else{gGrade='超标';gGradeEn='Exceeded';}
+  var yieldTrend,yieldTrendEn;
+  if(slopeY<-0.3){yieldTrend='下降趋势';yieldTrendEn='Declining';}
+  else if(slopeY>0.3){yieldTrend='上升趋势';yieldTrendEn='Rising';}
+  else{yieldTrend='基本平稳';yieldTrendEn='Stable';}
+  var sccTrend,sccTrendEn;
+  if(slopeS>5){sccTrend='上升趋势';sccTrendEn='Rising';}
+  else if(slopeS<-5){sccTrend='下降趋势';sccTrendEn='Declining';}
+  else{sccTrend='基本平稳';sccTrendEn='Stable';}
+  if(en){
+    _row('Avg Milk Yield', avgY.toFixed(2)+' kg/day');
+    _row('Yield Range', minY.toFixed(1)+' ~ '+maxY.toFixed(1)+' kg');
+    _row('Yield Trend', yieldTrendEn+' (slope '+slopeY.toFixed(2)+' kg/day)');
+    _row('Avg SCC', avgS.toFixed(1)+' 万/ml');
+    _row('SCC Range', minS.toFixed(0)+' ~ '+maxS.toFixed(0)+' 万/ml');
+    _row('SCC Trend', sccTrendEn+' (slope '+slopeS.toFixed(1)+' 万/ml·day)');
+    _row('Latest SCC', lastScc.toFixed(0)+' 万/ml - '+gGradeEn);
+  }else{
+    _row('平均产奶量', avgY.toFixed(2)+' kg/天');
+    _row('产奶量范围', minY.toFixed(1)+' ~ '+maxY.toFixed(1)+' kg');
+    _row('产奶量趋势', yieldTrend+'（斜率 '+slopeY.toFixed(2)+' kg/天）');
+    _row('平均SCC', avgS.toFixed(1)+' 万/ml');
+    _row('SCC范围', minS.toFixed(0)+' ~ '+maxS.toFixed(0)+' 万/ml');
+    _row('SCC趋势', sccTrend+'（斜率 '+slopeS.toFixed(1)+' 万/ml·天）');
+    _row('最新SCC', lastScc.toFixed(0)+' 万/ml - '+gGrade);
+  }
+  TBKit.util.exportTable('#sccHidden', en?'milk-yield-scc.csv':'奶牛产奶量分析.csv');
 }
 
 renderRecords();

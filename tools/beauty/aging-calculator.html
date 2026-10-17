@@ -194,7 +194,12 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" id="resultToolbar" style="display:none;">
       <button type="button" class="btn primary" onclick="restartQuiz()">🔄 重新测试</button>
       <button type="button" class="btn" onclick="saveResult()">💾 保存结果</button>
+      <button type="button" class="btn" onclick="window.__skinExport()">⬇️ 导出皮肤年龄结果 CSV</button>
     </div>
+<table id="skinHidden" style="display:none">
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody></tbody>
+</table>
   </div>
 
   <div class="card">
@@ -437,10 +442,10 @@ function showResult(realAge,skinAge,totalScore,gender){
   let grade,gradeClass,gradeDesc;
   const maxScore=questions.reduce((sum,q)=>sum+q.opts[q.opts.length-1].s,0);
   const ratio=totalScore/maxScore;
-  if(ratio<=0.2){grade='优秀';gradeClass='grade-excellent';gradeDesc='皮肤状态非常好，继续保持！';}
-  else if(ratio<=0.4){grade='良好';gradeClass='grade-good';gradeDesc='皮肤状态不错，稍加注意会更好';}
-  else if(ratio<=0.6){grade='一般';gradeClass='grade-pass';gradeDesc='需要开始重视护肤了';}
-  else{grade='需改善';gradeClass='grade-fail';gradeDesc='皮肤状态堪忧，请立即开始保养';}
+  if(ratio<=0.2){grade='优秀';gradeEn='Excellent';gradeClass='grade-excellent';gradeDesc='皮肤状态非常好，继续保持！';}
+  else if(ratio<=0.4){grade='良好';gradeEn='Good';gradeClass='grade-good';gradeDesc='皮肤状态不错，稍加注意会更好';}
+  else if(ratio<=0.6){grade='一般';gradeEn='Fair';gradeClass='grade-pass';gradeDesc='需要开始重视护肤了';}
+  else{grade='需改善';gradeEn='Needs Improvement';gradeClass='grade-fail';gradeDesc='皮肤状态堪忧，请立即开始保养';}
 
   const dimensions=[
     {name:'细纹皱纹',score:questions[0].opts[answers[0]].s+questions[1].opts[answers[1]].s+questions[6].opts[answers[6]].s,max:18},
@@ -503,7 +508,7 @@ function showResult(realAge,skinAge,totalScore,gender){
   html+='</div>';
 
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultArea').innerHTML=__h1;
-  window._lastResult={realAge,skinAge,totalScore,grade,diff};
+  window._lastResult={realAge,skinAge,totalScore,grade,gradeEn,diff};
 }
 
 function restartQuiz(){
@@ -568,6 +573,40 @@ function switchTab(tab,btn){
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tab);
   });
   if(tab==='history') renderHistory();
+}
+
+function __skinExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#skinHidden tbody');
+  tbody.innerHTML='';
+  function _row(a,b){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=a;
+    var td2=document.createElement('td');td2.textContent=b;
+    tr.appendChild(td1);tr.appendChild(td2);
+    tbody.appendChild(tr);
+  }
+  var r=window._lastResult;
+  if(!r){ToolBox.showToast(en?'请先完成测试':'Please complete the test first');return;}
+  var diffText;
+  if(r.diff>0)diffText=(en?'Younger ':'年轻 ')+r.diff+(en?' yrs':' 岁');
+  else if(r.diff<0)diffText=(en?'Older ':'衰老 ')+Math.abs(r.diff)+(en?' yrs':' 岁');
+  else diffText=(en?'Same as actual age':'与实际年龄相符');
+  if(en){
+    _row('Actual Age', r.realAge+' yrs');
+    _row('Skin Age', r.skinAge+' yrs');
+    _row('Age Difference', diffText);
+    _row('Total Score', r.totalScore);
+    _row('Status', r.gradeEn);
+  }else{
+    _row('实际年龄', r.realAge+' 岁');
+    _row('皮肤年龄', r.skinAge+' 岁');
+    _row('年龄差', diffText);
+    _row('总分', r.totalScore);
+    _row('皮肤状态', r.grade);
+  }
+  TBKit.util.exportTable('#skinHidden', en?'skin-age-result.csv':'皮肤年龄结果.csv');
 }
 
 renderHistory();

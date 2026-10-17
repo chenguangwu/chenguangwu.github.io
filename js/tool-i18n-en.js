@@ -18,7 +18,7 @@ window.__TI18N_EN = {
 '导出统计指标与数据 CSV':'Export Statistics & Data CSV',
 '导出干系人分析结果 CSV':'Export Stakeholder Analysis CSV',
 '导出 PSQI 评估结果 CSV':'Export PSQI Assessment CSV',
-'导出快门计算结果 CSV':'Export Shutter Calculation CSV','导出欧姆定律结果 CSV':'Export Ohms Law Result CSV','导出扭矩换算 CSV':'Export Torque Conversion CSV','导出波长转换 CSV':'Export Wavelength Conversion CSV','导出压力换算 CSV':'Export Pressure Conversion CSV','导出面团含水量 CSV':'Export Dough Hydration CSV','导出花艺黄金比例 CSV':'Export Floral Golden Ratio CSV',
+'导出快门计算结果 CSV':'Export Shutter Calculation CSV','导出欧姆定律结果 CSV':'Export Ohms Law Result CSV','导出扭矩换算 CSV':'Export Torque Conversion CSV','导出波长转换 CSV':'Export Wavelength Conversion CSV','导出压力换算 CSV':'Export Pressure Conversion CSV','导出面团含水量 CSV':'Export Dough Hydration CSV','导出花艺黄金比例 CSV':'Export Floral Golden Ratio CSV','导出皮肤年龄结果 CSV':'Export Skin Age Result CSV','导出花盆容量 CSV':'Export Pot Capacity CSV','导出分析数据 CSV':'Export Analysis Data CSV',
 '导出 BVAS 评分结果 CSV':'Export BVAS Score CSV',
 '导出模具换算结果 CSV':'Export Mold Conversion CSV',
 '导出 SLEDAI 评分结果 CSV':'Export SLEDAI Score CSV',
