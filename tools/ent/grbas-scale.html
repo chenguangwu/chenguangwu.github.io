@@ -184,9 +184,11 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__grExport()">⬇️ 导出评估明细 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <table id="grHidden" style="display:none"><thead><tr><th>Parameter</th><th>Score</th><th>Max</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>评估说明：</strong>GRBAS评分需由有经验的嗓音评估者通过听觉感知进行。建议使用标准化语音样本（持续元音/a/ + 朗读短文）进行评估。总分为0-15分，G分（总评分）为主要参考指标，各子项可提示嗓音障碍的特征性表现。
@@ -292,6 +294,24 @@ function calc(){
 
 function copyResult(){
   ToolBox.copyText('GRBAS评分：G='+scores.G+', R='+scores.R+', B='+scores.B+', A='+scores.A+', S='+scores.S+', 总分='+(scores.G+scores.R+scores.B+scores.A+scores.S)+'/15', '结果已复制');
+}
+
+function __grExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#grHidden tbody');
+  tbody.innerHTML='';
+  function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
+  var total=scores.G+scores.R+scores.B+scores.A+scores.S;
+  var sev=total===0?'正常':total<=3?'轻度异常':total<=7?'中度异常':'重度异常';
+  row([en?'G Grade':'G 总评',scores.G,3]);
+  row([en?'R Roughness':'R 粗糙度',scores.R,3]);
+  row([en?'B Breathiness':'B 气息声',scores.B,3]);
+  row([en?'A Asthenia':'A 无力声',scores.A,3]);
+  row([en?'S Strain':'S 紧张声',scores.S,3]);
+  row([en?'Total':'总分',total,15]);
+  row([en?'Severity':'程度',sev,'']);
+  TBKit.util.exportTable('#grHidden', en?'grbas-assessment.csv':'GRBAS嗓音评估明细.csv');
 }
 
 calc();

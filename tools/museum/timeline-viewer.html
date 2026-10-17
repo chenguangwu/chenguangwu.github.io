@@ -166,8 +166,13 @@ s.parentNode.insertBefore(el, s);
 
     
     <div class="theme-row" id="theme-buttons"></div>
-    
+
+    <div class="toolbar" style="margin:14px 0;">
+      <button type="button" class="btn" onclick="window.__tlExport()">⬇️ 导出时间轴 CSV</button>
+    </div>
+
     <div class="timeline" id="timeline"></div>
+    <table id="tlHidden" style="display:none"><thead><tr><th>Year</th><th>Event</th><th>Category</th><th>Description</th></tr></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -345,7 +350,20 @@ function renderTimeline() {
 
 renderThemeButtons();
 renderTimeline();
-</script><script>
+
+function __tlExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#tlHidden tbody');
+  tbody.innerHTML='';
+  function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
+  var events=TIMELINES[currentTheme].slice().sort(function(a,b){return a.y-b.y;});
+  events.forEach(function(e){
+    var yearStr=e.y<0?en?('BCE '+(-e.y)):'前'+(-e.y):String(e.y);
+    row([yearStr, e.t, e.cat, e.desc]);
+  });
+  TBKit.util.exportTable('#tlHidden', en?('timeline-'+currentTheme+'.csv'):('时间轴-'+currentTheme+'.csv'));
+}</script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
   var headers=document.querySelectorAll('.tool-intro-header');

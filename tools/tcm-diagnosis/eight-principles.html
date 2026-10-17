@@ -149,11 +149,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="deduce()">辨证推演</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__epExport()">⬇️ 导出八纲速查 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);text-align:center;">选择各纲特征后点击「辨证推演」</p>
     </div>
+    <table id="epHidden" style="display:none"><thead><tr><th>Group</th><th>Type</th><th>Description</th><th>Clinical Manifestation</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       💡 阴阳是八纲的总纲：表、热、实属阳，里、寒、虚属阴。临床辨证时，表里寒热虚实常交错出现，须辨明主次、真假。
@@ -312,6 +314,20 @@ function copyResult(){
   var t=document.getElementById('result').innerText;
   if(!t||t.indexOf('选择')===0){ToolBox.showToast(i18nText() ,'warning');return;}
   ToolBox.copyText(t, i18nText());
+}
+function __epExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#epHidden tbody');
+  tbody.innerHTML='';
+  var gname={biaoli:en?'Exterior/Interior':'表里',hanre:en?'Cold/Heat':'寒热',xushi:en?'Deficiency/Excess':'虚实',yinyang:en?'Yin/Yang':'阴阳'};
+  function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
+  for(var key in groups){
+    groups[key].forEach(function(o){
+      row([gname[key]||key, o.title, o.desc, o.symp]);
+    });
+  }
+  TBKit.util.exportTable('#epHidden', en?'eight-principles.csv':'八纲辨证速查表.csv');
 }
 renderGroups();
 </script>
