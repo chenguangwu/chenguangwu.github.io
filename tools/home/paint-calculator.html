@@ -172,7 +172,9 @@ s.parentNode.insertBefore(el, s);
 <div class="toolbar">
  <button type="button" class="btn primary" onclick="calc()">🧮 计算用量</button>
  <button type="button" class="btn" onclick="exportResult()">📥 导出明细</button>
+ <button type="button" class="btn" onclick="__paintExport()">⬇️ 导出用量 CSV</button>
 </div>
+<table id="paintHidden" style="display:none;"><thead><tr><th>涂刷面</th><th>面积(m²)</th></tr></thead><tbody></tbody></table>
 
 <div class="result-grid">
  <div class="result-card"><div class="v" id="total-area">0</div><div class="l">总面积 (m²)</div></div>
@@ -317,6 +319,18 @@ function __paintExtras(){
   var labels=list.map(function(s){return s.name||'未命名';});
   var data=list.map(function(s){return +(s.area).toFixed(1);});
   TBKit.chart.bar('#paintChart',{labels:labels,series:[{name:en?'Area (m²)':'面积 (m²)',data:data}],height:240,title:en?'Paint Area by Surface':'各涂刷面面积'});
+}
+function __paintExport(){
+  if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
+  var list=getSurfaces();
+  if(!list||!list.length){ ToolBox.showToast('请先添加涂刷面'); return; }
+  calc();
+  var en=TBKit.util.isEn();
+  var t=document.getElementById('paintHidden'); if(!t) return;
+  var rows=list.map(function(s){ return [s.name, (+s.area.toFixed(1))]; });
+  t.querySelector('thead').innerHTML='<tr><th>'+(en?'Surface':'涂刷面')+'</th><th>'+(en?'Area (m²)':'面积(m²)')+'</th></tr>';
+  t.querySelector('tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#paintHidden', en?'paint-estimate.csv':'油漆用量.csv');
 }
 var __paint_f0=(typeof calc==='function')?calc:null;
 if(__paint_f0){ calc=function(){ var r=__paint_f0.apply(null,arguments); try{__paintExtras();}catch(e){} return r; }; }

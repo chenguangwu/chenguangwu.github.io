@@ -499,8 +499,16 @@ window.__TI18N_EN = {
     '⬇️ 导出流量结果 CSV':'⬇️ Export Flow Rate Result CSV',
     '⬇️ 导出分频结果 CSV':'⬇️ Export Divider Result CSV',
     '⬇️ 导出用品清单 CSV':'⬇️ Export Supply List CSV',
+    '⬇️ 导出营养明细 CSV':'⬇️ Export Nutrition Details CSV',
+    '⬇️ 导出佣金明细 CSV':'⬇️ Export Commission Details CSV',
+    '⬇️ 导出用量 CSV':'⬇️ Export Usage CSV',
+    '⬇️ 导出照明方案 CSV':'⬇️ Export Lighting Plan CSV',
   },
   BODY_PHRASE_MAP: {
+    // —— 批次98 导出明细表表头（营养/佣金/油漆/照明）——
+    '食物':'Food','重量(g)':'Weight(g)','热量(kcal)':'Cal(kcal)','蛋白质(g)':'Protein(g)','脂肪(g)':'Fat(g)','碳水(g)':'Carb(g)',
+    '阶梯区间':'Tier Range','区间销售额':'Tier Sales','提成比例':'Rate','区间佣金':'Tier Commission',
+    '涂刷面':'Surface','面积(m²)':'Area (m²)','灯具类型':'Bulb Type','单只光通量(lm)':'Lumens','建议数量(只)':'Count','合计功率(W)':'Power (W)',
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——
     '功能特点':'Features','使用场景':'Use Cases','工具简介':'About This Tool','常见问题':'FAQ',
     '📌 示例密码（一键填入检测）':'📌 Sample passwords (one-click fill)',

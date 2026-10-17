@@ -225,6 +225,8 @@ s.parentNode.insertBefore(el, s);
     <div id="nutriChart" style="margin-top:14px;"></div>
 
     <button type="button" class="btn" style="width:100%;margin-top:12px;" onclick="clearAll()">清空本餐</button>
+    <button type="button" class="btn" style="width:100%;margin-top:8px;" onclick="__nutriExport()">⬇️ 导出营养明细 CSV</button>
+    <table id="nutriHidden" style="display:none;"><thead><tr><th>食物</th><th>重量(g)</th><th>热量(kcal)</th><th>蛋白质(g)</th><th>脂肪(g)</th><th>碳水(g)</th></tr></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -489,6 +491,24 @@ function __nutriExtras(){
     {name:en?'Fat':'脂肪',value:fCal},
     {name:en?'Carb':'碳水',value:cCal}
   ],height:240,title:en?'Macro Calorie Distribution':'宏量营养素热量分布'});
+}
+function __nutriExport(){
+  if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
+  if(!items||!items.length){ ToolBox.showToast('请先添加食物'); return; }
+  var en=TBKit.util.isEn();
+  var t=document.getElementById('nutriHidden'); if(!t) return;
+  var rows=items.map(function(it){
+    var f=it.grams/100;
+    return [it.name, it.grams, Math.round(it.cal*f), (+ (it.protein*f).toFixed(1)), (+ (it.fat*f).toFixed(1)), (+ (it.carb*f).toFixed(1))];
+  });
+  var tCal=document.getElementById('tCal').textContent;
+  var tP=document.getElementById('tProtein').textContent;
+  var tF=document.getElementById('tFat').textContent;
+  var tC=document.getElementById('tCarb').textContent;
+  rows.push([en?'TOTAL':'合计','',tCal,tP,tF,tC]);
+  t.querySelector('thead').innerHTML='<tr><th>'+(en?'Food':'食物')+'</th><th>'+(en?'Weight(g)':'重量(g)')+'</th><th>'+(en?'Cal(kcal)':'热量(kcal)')+'</th><th>'+(en?'Protein(g)':'蛋白质(g)')+'</th><th>'+(en?'Fat(g)':'脂肪(g)')+'</th><th>'+(en?'Carb(g)':'碳水(g)')+'</th></tr>';
+  t.querySelector('tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#nutriHidden', en?'nutrition.csv':'营养明细.csv');
 }
 var __nutri_f0=(typeof render==='function')?render:null;
 if(__nutri_f0){ render=function(){ var r=__nutri_f0.apply(null,arguments); try{__nutriExtras();}catch(e){} return r; }; }

@@ -165,6 +165,8 @@ s.parentNode.insertBefore(el, s);
 
     <div id="detailTable"></div>
     <div id="commChart" style="margin-top:14px;"></div>
+    <button type="button" class="btn" style="margin-top:12px;" onclick="__commExport()">⬇️ 导出佣金明细 CSV</button>
+    <table id="commHidden" style="display:none;"><thead><tr><th>阶梯区间</th><th>区间销售额</th><th>提成比例</th><th>区间佣金</th></tr></thead><tbody></tbody></table>
 
     <div class="tip-box tip-info">
       <strong>超额累进</strong>：每段销售额按对应档位费率分别计算后相加；<strong>全额累进</strong>：全部销售额按达到的最高档费率计算。
@@ -368,6 +370,51 @@ function __commExtras(){
   var labels=details.map(function(d){return d.range;});
   var data=details.map(function(d){return +(d.comm).toFixed(2);});
   TBKit.chart.bar('#commChart',{labels:labels,series:[{name:en?'Commission':'区间佣金',data:data}],height:240,title:en?'Commission by Tier':'各阶梯佣金'});
+}
+function __commExport(){
+  if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
+  var salesRaw=+document.getElementById('sales').value||0;
+  var unit=document.getElementById('unit').value;
+  var sales=unit==='万元'?salesRaw*10000:salesRaw;
+  if(sales<=0){ ToolBox.showToast('请先输入销售额计算'); return; }
+  var method=document.getElementById('method').value;
+  var base=+document.getElementById('base').value||0;
+  var taxThr=+document.getElementById('taxThreshold').value||0;
+  var sorted=tiers.slice().sort(function(a,b){return a.up-b.up;});
+  var details=[],comm=0,lower=0;
+  if(method==='progressive'){
+    for(var i=0;i<sorted.length;i++){
+      var upper=sorted[i].up,rate=sorted[i].rate;
+      if(sales>lower){
+        var seg=Math.min(sales,upper)-lower;
+        var segComm=seg*rate/100;
+        comm+=segComm;
+        details.push({range:fmt(lower)+'~'+(upper===Infinity?'不限':fmt(upper)),sales:seg,rate:rate,comm:segComm});
+        lower=upper;
+      } else break;
+    }
+  } else {
+    var hitIdx=0;
+    for(var k=0;k<sorted.length;k++){ if(sales>(k===0?0:sorted[k-1].up)) hitIdx=k; }
+    var useRate=sorted[hitIdx].rate;
+    comm=sales*useRate/100;
+    details.push({range:'全部销售额',sales:sales,rate:useRate,comm:comm});
+  }
+  var total=base+comm;
+  var taxable=Math.max(total-taxThr,0);
+  var tax=quickTax(taxable);
+  var afterTax=total-tax;
+  var en=TBKit.util.isEn();
+  var t=document.getElementById('commHidden'); if(!t) return;
+  var rows=details.map(function(d){
+    return [d.range, fmt(d.sales)+' 元', d.rate+'%', fmt(d.comm)+' 元'];
+  });
+  rows.push(['合计 / TOTAL','—','—',fmt(comm)+' 元']);
+  rows.push([en?'Base Salary':'底薪',fmt(base)+' 元','—','—']);
+  rows.push([en?'After-tax Income':'税后收入',fmt(afterTax)+' 元','—','—']);
+  t.querySelector('thead').innerHTML='<tr><th>'+(en?'Tier Range':'阶梯区间')+'</th><th>'+(en?'Tier Sales':'区间销售额')+'</th><th>'+(en?'Rate':'提成比例')+'</th><th>'+(en?'Tier Commission':'区间佣金')+'</th></tr>';
+  t.querySelector('tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#commHidden', en?'commission.csv':'佣金明细.csv');
 }
 var __comm_f0=(typeof calc==='function')?calc:null;
 if(__comm_f0){ calc=function(){ var r=__comm_f0.apply(null,arguments); try{__commExtras();}catch(e){} return r; }; }

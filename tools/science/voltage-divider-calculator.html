@@ -208,7 +208,11 @@ Vin ──┬── R1 ──┬── Vout<br>
 <div class="toolbar" style="margin-top:16px;">
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="__vdExport()">⬇️ 导出计算结果 CSV</button>
 </div>
+<div id="vdChart" style="margin-top:14px;"></div>
+<div id="vdTable" style="margin-top:12px;"></div>
+<table id="vdHidden" style="display:none;"><thead><tr><th>参数</th><th>数值</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -433,6 +437,54 @@ function resetInput(){
   document.getElementById('voutDesired').value=5;
   setCalc('vout');
 }
+
+function __vdExtras(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  if(!lastResult) return;
+  var en=TBKit.util.isEn();
+  var vin=parseFloat(lastResult.vin)||0;
+  var vout=parseFloat(lastResult.vout)||0;
+  var r1=parseFloat(lastResult.r1)||0;
+  var r2=parseFloat(lastResult.r2)||0;
+  var vr1=vin-vout;
+  var vr2=vout;
+  var d1=+vr1.toFixed(3), d2=+vr2.toFixed(3);
+  if(d1<0)d1=0; if(d2<0)d2=0;
+  try{ TBKit.chart.bar('#vdChart',{labels:[en?'R1 Drop':'R1压降',en?'R2 Drop':'R2压降'],series:[{name:en?'Voltage (V)':'电压 (V)',data:[d1,d2]}],height:200,title:en?'Voltage Split':'电压分配'}); }catch(e){}
+  var rows=[
+    [en?'Mode':'计算模式', (lastResult.calcVar==='vout'?'已知R1,R2求Vout':lastResult.calcVar==='r1'?'已知Vout求R1':lastResult.calcVar==='r2'?'已知Vout求R2':'已知Vout求Vin')],
+    [en?'Vin':'输入电压', lastResult.vin+' V'],
+    [en?'R1':'电阻R1', lastResult.r1+' Ω'],
+    [en?'R2':'电阻R2', lastResult.r2+' Ω'],
+    [en?'Vout':'输出电压', lastResult.vout+' V'],
+    [en?'Ratio':'分压比', lastResult.ratio+' %'],
+    [en?'Current':'回路电流', lastResult.current+' mA'],
+    [en?'Power':'总功耗', lastResult.power+' mW']
+  ];
+  var tb=document.getElementById('vdTable');
+  if(tb&&TBKit.matrix){ try{ tb.innerHTML=TBKit.matrix.table({head:[en?'Parameter':'参数',en?'Value':'数值'],rows:rows}); }catch(e){} }
+}
+function __vdExport(){
+  if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
+  if(!lastResult){ ToolBox.showToast('请先进行计算'); return; }
+  var en=TBKit.util.isEn();
+  var t=document.getElementById('vdHidden'); if(!t) return;
+  var rows=[
+    [en?'Mode':'计算模式', (lastResult.calcVar==='vout'?'已知R1,R2求Vout':lastResult.calcVar==='r1'?'已知Vout求R1':lastResult.calcVar==='r2'?'已知Vout求R2':'已知Vout求Vin')],
+    [en?'Vin':'输入电压', lastResult.vin+' V'],
+    [en?'R1':'电阻R1', lastResult.r1+' Ω'],
+    [en?'R2':'电阻R2', lastResult.r2+' Ω'],
+    [en?'Vout':'输出电压', lastResult.vout+' V'],
+    [en?'Ratio':'分压比', lastResult.ratio+' %'],
+    [en?'Current':'回路电流', lastResult.current+' mA'],
+    [en?'Power':'总功耗', lastResult.power+' mW']
+  ];
+  t.querySelector('thead').innerHTML='<tr><th>'+(en?'Parameter':'参数')+'</th><th>'+(en?'Value':'数值')+'</th></tr>';
+  t.querySelector('tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#vdHidden', en?'voltage-divider.csv':'电阻分压器.csv');
+}
+var __vd_f0=(typeof calc==='function')?calc:null;
+if(__vd_f0){ calc=function(){ var r=__vd_f0.apply(null,arguments); try{__vdExtras();}catch(e){} return r; }; }
 
 calc();
 </script><script>

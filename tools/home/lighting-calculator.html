@@ -186,6 +186,8 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 不同灯具建议数量</h3>
 <div class="bulb-grid" id="bulb-grid"></div>
 <div id="lightChart" style="margin-top:14px;"></div>
+<button type="button" class="btn" style="margin-top:12px;" onclick="__lightExport()">⬇️ 导出照明方案 CSV</button>
+<table id="lightHidden" style="display:none;"><thead><tr><th>灯具类型</th><th>单只光通量(lm)</th><th>建议数量(只)</th><th>合计功率(W)</th></tr></thead><tbody></tbody></table>
 
 <div class="info-box" style="margin-top:12px;">
  💡 计算公式:总光通量 = 面积 × 照度标准 ÷ (CU × MF)。<br>
@@ -328,6 +330,24 @@ function __lightExtras(){
   var labels=BULB_TYPES.map(function(b){return b.name;});
   var data=BULB_TYPES.map(function(b){return Math.ceil(totalLumens/b.lumens)*b.power;});
   TBKit.chart.bar('#lightChart',{labels:labels,series:[{name:en?'Total Power (W)':'总功率 (W)',data:data}],height:240,title:en?'Power by Bulb Type':'各灯具类型总功率'});
+}
+function __lightExport(){
+  if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
+  var totalLumens=Math.round(+document.getElementById('total-lumens').textContent||0);
+  if(!totalLumens){ ToolBox.showToast('请先计算照明方案'); return; }
+  var en=TBKit.util.isEn();
+  var t=document.getElementById('lightHidden'); if(!t) return;
+  var length=+document.getElementById('length').value||0;
+  var width=+document.getElementById('width').value||0;
+  var area=length*width;
+  var rows=[[en?'Room':'房间', activeRoom], [en?'Area':'面积', area+' m²'], [en?'Required Lumens':'所需总光通量', totalLumens+' lm']];
+  BULB_TYPES.forEach(function(b){
+    var count=Math.max(1,Math.ceil(totalLumens/b.lumens));
+    rows.push([b.name, b.lumens, count, count*b.power]);
+  });
+  t.querySelector('thead').innerHTML='<tr><th>'+(en?'Bulb Type':'灯具类型')+'</th><th>'+(en?'Lumens':'单只光通量(lm)')+'</th><th>'+(en?'Count':'建议数量(只)')+'</th><th>'+(en?'Power(W)':'合计功率(W)')+'</th></tr>';
+  t.querySelector('tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#lightHidden', en?'lighting-plan.csv':'照明方案.csv');
 }
 var __light_f0=(typeof calc==='function')?calc:null;
 if(__light_f0){ calc=function(){ var r=__light_f0.apply(null,arguments); try{__lightExtras();}catch(e){} return r; }; }

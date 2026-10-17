@@ -272,7 +272,11 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="__ledExport()">⬇️ 导出计算结果 CSV</button>
 </div>
+<div id="ledChart" style="margin-top:14px;"></div>
+<div id="ledTable" style="margin-top:12px;"></div>
+<table id="ledHidden" style="display:none;"><thead><tr><th>参数</th><th>数值</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -658,6 +662,63 @@ function resetInput(){
   document.querySelectorAll('.config-tab').forEach((b,i)=>b.classList.toggle('active',i===0));
   calc();
 }
+
+function __ledExtras(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  if(!lastResult) return;
+  var en=TBKit.util.isEn();
+  var vs=parseFloat(lastResult.vs)||0;
+  var vf=parseFloat(lastResult.vf)||0;
+  var cnt=parseInt(lastResult.count)||1;
+  var totalVf=(lastResult.config==='series')?vf*cnt:vf;
+  var resDrop=Math.max(vs-totalVf,0);
+  try{ TBKit.chart.bar('#ledChart',{labels:[en?'LED Forward Drop':'LED正向压降',en?'Resistor Drop':'电阻压降'],series:[{name:en?'Voltage (V)':'电压 (V)',data:[+totalVf.toFixed(2),+resDrop.toFixed(2)]}],height:200,title:en?'Voltage Split':'电压分配'}); }catch(e){}
+  var rows=[
+    [en?'Circuit':'电路配置', cnt+'个LED '+(lastResult.config==='series'?'串联':'并联')],
+    [en?'Supply Voltage':'电源电压', lastResult.vs+' V'],
+    [en?'LED Count':'LED数量', String(cnt)],
+    [en?'Forward Voltage':'正向压降', vf+' V'],
+    [en?'Forward Current':'工作电流', (parseFloat(lastResult.ifVal)*1000).toFixed(0)+' mA'],
+    [en?'Total Vf':'总正向压降', totalVf.toFixed(2)+' V'],
+    [en?'Resistor Drop':'电阻压降', resDrop.toFixed(2)+' V'],
+    [en?'Theoretical R':'理论电阻', lastResult.R],
+    [en?'Standard R':'标准电阻', lastResult.stdR],
+    [en?'Actual Current':'实际工作电流', lastResult.actualIf+' mA'],
+    [en?'Resistor Power':'电阻功耗', lastResult.P],
+    [en?'Suggested Rating':'建议功率', lastResult.pwRating]
+  ];
+  var tb=document.getElementById('ledTable');
+  if(tb&&TBKit.matrix){ try{ tb.innerHTML=TBKit.matrix.table({head:[en?'Parameter':'参数',en?'Value':'数值'],rows:rows}); }catch(e){} }
+}
+function __ledExport(){
+  if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
+  if(!lastResult){ ToolBox.showToast('请先进行计算'); return; }
+  var en=TBKit.util.isEn();
+  var t=document.getElementById('ledHidden'); if(!t) return;
+  var cnt=parseInt(lastResult.count)||1;
+  var vf=parseFloat(lastResult.vf)||0;
+  var totalVf=(lastResult.config==='series')?vf*cnt:vf;
+  var resDrop=Math.max(parseFloat(lastResult.vs)-totalVf,0);
+  var rows=[
+    [en?'Circuit':'电路配置', cnt+'个LED '+(lastResult.config==='series'?'串联':'并联')],
+    [en?'Supply Voltage':'电源电压', lastResult.vs+' V'],
+    [en?'LED Count':'LED数量', String(cnt)],
+    [en?'Forward Voltage':'正向压降', vf+' V'],
+    [en?'Forward Current':'工作电流', (parseFloat(lastResult.ifVal)*1000).toFixed(0)+' mA'],
+    [en?'Total Vf':'总正向压降', totalVf.toFixed(2)+' V'],
+    [en?'Resistor Drop':'电阻压降', resDrop.toFixed(2)+' V'],
+    [en?'Theoretical R':'理论电阻', lastResult.R],
+    [en?'Standard R':'标准电阻', lastResult.stdR],
+    [en?'Actual Current':'实际工作电流', lastResult.actualIf+' mA'],
+    [en?'Resistor Power':'电阻功耗', lastResult.P],
+    [en?'Suggested Rating':'建议功率', lastResult.pwRating]
+  ];
+  t.querySelector('thead').innerHTML='<tr><th>'+(en?'Parameter':'参数')+'</th><th>'+(en?'Value':'数值')+'</th></tr>';
+  t.querySelector('tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#ledHidden', en?'led-resistor.csv':'led限流电阻.csv');
+}
+var __led_f0=(typeof calc==='function')?calc:null;
+if(__led_f0){ calc=function(){ var r=__led_f0.apply(null,arguments); try{__ledExtras();}catch(e){} return r; }; }
 
 calc();
 </script><script>
