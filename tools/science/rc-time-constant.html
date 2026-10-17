@@ -160,7 +160,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">📡 计算</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__rcExport()">⬇️ 导出RC明细 CSV</button>
     </div>
+    <table id="rcHidden" style="display:none;"><thead><tr><th>Item</th><th>Value</th><th>Charge V</th><th>Discharge V</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见电路预设：</span>
@@ -277,6 +279,43 @@ function calc(){
   drawCurve(tau, vs);
 }
 
+function __rcExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var rRaw=+document.getElementById('resistance').value||0;
+  var cRaw=+document.getElementById('capacitance').value||0;
+  var rMul=+document.getElementById('rUnit').value;
+  var cMul=+document.getElementById('cUnit').value;
+  var vs=+document.getElementById('voltage').value||5;
+  var r=rRaw*rMul,c=cRaw*cMul;
+  if(r<=0||c<=0){ToolBox.showToast(en?'Please enter valid R and C':'请输入有效的 R 和 C');return;}
+  var tau=r*c;
+  var tb=document.querySelector('#rcHidden tbody');
+  tb.innerHTML='';
+  function fmtT(s){
+    if(s>=1)return s.toFixed(3)+' s';
+    if(s>=0.001)return (s*1000).toFixed(3)+' ms';
+    if(s>=0.000001)return (s*1000000).toFixed(3)+' us';
+    return (s*1000000000).toFixed(3)+' ns';
+  }
+  function addRow(item,val,chargeV,disV){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+item+'</td><td>'+val+'</td><td>'+chargeV+'</td><td>'+disV+'</td>';
+    tb.appendChild(tr);
+  }
+  addRow(en?'Resistance (R)':'电阻 R',rRaw+' x '+rMul+' = '+r+' ohm','-','-');
+  addRow(en?'Capacitance (C)':'电容 C',cRaw+' x '+cMul+' = '+c+' F','-','-');
+  addRow(en?'Source voltage':'电源电压',vs+' V','-','-');
+  addRow(en?'Time constant tau':'时间常数 τ',fmtT(tau),'-','-');
+  var points=[['1 tau',1,63.2],['2 tau',2,86.5],['3 tau',3,95.0],['4 tau',4,98.2],['5 tau',5,99.3]];
+  points.forEach(function(pt){
+    var t=pt[1]*tau;
+    var vCharge=vs*(1-Math.exp(-pt[1]));
+    var vDis=vs*Math.exp(-pt[1]);
+    addRow(pt[0]+' ('+pt[2]+'%)',fmtT(t),vCharge.toFixed(3)+' V',vDis.toFixed(3)+' V');
+  });
+  TBKit.util.exportTable('#rcHidden',en?'rc-time-constant.csv':'RC时间常数明细.csv');
+}
 function formatTime(s){
   if(s>=1) return s.toFixed(3)+' s';
   if(s>=0.001) return (s*1000).toFixed(3)+' ms';

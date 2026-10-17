@@ -212,7 +212,9 @@ s.parentNode.insertBefore(el, s);
 <div class="toolbar" style="margin-top:16px;">
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="window.__ptwExport()">⬇️ 导出走线参数 CSV</button>
 </div>
+<table id="ptwHidden" style="display:none;"><thead><tr><th>Parameter</th><th>Value</th><th>Unit</th><th>Note</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -401,6 +403,39 @@ function calc(){
   lastResult={current:I,thickness:oz,temp:dT,layer,width_mm:width_mm.toFixed(4),width_mils:width_mils.toFixed(2),area_mm2:area_mm2.toFixed(4),rec_mm};
 }
 
+function __ptwExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var I=parseFloat(document.getElementById('current').value);
+  var oz=parseFloat(document.getElementById('thickness').value);
+  var dT=parseFloat(document.getElementById('temp').value);
+  var layer=document.querySelector('input[name=layer]:checked').value;
+  if(!I||!oz||!dT){ToolBox.showToast(en?'Please enter current, thickness and temp rise':'请输入电流、铜厚与温升');return;}
+  var k=layer==='external'?0.048:0.024;
+  var b=0.44,c=0.725;
+  var areaMils2=Math.pow(I/(k*Math.pow(dT,b)),1/c);
+  var widthMils=areaMils2/(oz*1.378);
+  var widthMm=widthMils*0.0254;
+  var areaMm2=widthMm*(oz*0.035);
+  var recMm=Math.ceil(widthMm*10)/10;
+  var recMils=Math.ceil(widthMils);
+  var tb=document.querySelector('#ptwHidden tbody');
+  tb.innerHTML='';
+  function addRow(p,v,u,n){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+p+'</td><td>'+v+'</td><td>'+u+'</td><td>'+n+'</td>';
+    tb.appendChild(tr);
+  }
+  addRow(en?'Current':'电流',I,'A','-');
+  addRow(en?'Copper weight':'铜箔厚度',oz,'oz',(oz*35).toFixed(1)+' um');
+  addRow(en?'Temperature rise':'允许温升',dT,'C','-');
+  addRow(en?'Layer':'走线位置',layer==='external'?(en?'External':'外层'):(en?'Internal':'内层'),'-','k='+k);
+  addRow(en?'Required cross-section':'所需截面积',areaMils2.toFixed(1),'mils2',areaMm2.toFixed(4)+' mm2');
+  addRow(en?'Calculated width':'计算宽度',widthMm.toFixed(4),'mm',widthMils.toFixed(2)+' mils');
+  addRow(en?'Recommended width':'建议宽度',recMm,'mm',recMils+' mils ('+(en?'rounded up':'向上取整')+')');
+  addRow(en?'50% safety margin':'50% 安全裕量',(widthMm*1.5).toFixed(3),'mm','-');
+  TBKit.util.exportTable('#ptwHidden',en?'pcb-trace-width.csv':'PCB走线宽度参数.csv');
+}
 function saveHistory(){
   if(!lastResult)return;
   let history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');

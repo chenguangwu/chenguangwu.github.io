@@ -531,6 +531,9 @@ window.__TI18N_EN = {
     '⬇️ 导出哈希值 CSV':'⬇️ Export Hash Digest CSV',
     '快速布朗狐':'Quick Brown Fox',
     '中文示例':'Chinese Sample',
+    '⬇️ 导出RC明细 CSV':'⬇️ Export RC Details CSV',
+    '⬇️ 导出走线参数 CSV':'⬇️ Export Trace Parameters CSV',
+    '⬇️ 导出土查表 CSV':'⬇️ Export Currency Sheet CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 批次101 顺带修复 smt-stencil 既有未译 ——

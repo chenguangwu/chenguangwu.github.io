@@ -208,7 +208,9 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="saveToHistory()">💾 保存记录</button>
         <button type="button" class="btn" onclick="swapCurrencies()">🔄 反向换算</button>
+        <button type="button" class="btn" onclick="window.__ccsExport()">⬇️ 导出土查表 CSV</button>
       </div>
+      <table id="ccsHidden" style="display:none;"><thead><tr><th>Direction</th><th>Amount</th><th>Converted</th><th>Rate</th></tr></thead><tbody></tbody></table>
 
       <div id="sheet"></div>
     </div>
@@ -362,6 +364,43 @@ function switchTab(tab, btn) {
   if (tab === 'currencies') searchCurrencies();
 }
 
+function __ccsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var sel=document.getElementById('currency').value.split(',');
+  var code=sel[0],defaultRate=+sel[1],sym=sel[3],fullName=sel[4];
+  var rateInput=+document.getElementById('rate').value||defaultRate;
+  if(!(rateInput>0)){ToolBox.showToast(en?'Please enter a valid rate':'请输入有效汇率');return;}
+  var amounts=getAmounts();
+  if(!amounts.length){ToolBox.showToast(en?'No amounts to export':'没有可导出的金额');return;}
+  var tb=document.querySelector('#ccsHidden tbody');
+  tb.innerHTML='';
+  function fmtVal(v){return v<1?v.toFixed(2):v<10?v.toFixed(1):String(Math.round(v));}
+  if(!isSwapped){
+    amounts.forEach(function(a){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+code+' to CNY</td><td>'+sym+a+'</td><td>CNY '+(Math.round(a*rateInput*100)/100)+'</td><td>'+rateInput+'</td>';
+      tb.appendChild(tr);
+    });
+    amounts.forEach(function(a){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>CNY to '+code+'</td><td>CNY '+a+'</td><td>'+sym+fmtVal(a/rateInput)+'</td><td>'+rateInput+'</td>';
+      tb.appendChild(tr);
+    });
+  }else{
+    amounts.forEach(function(a){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>CNY to '+code+'</td><td>CNY '+a+'</td><td>'+sym+fmtVal(a/rateInput)+'</td><td>'+rateInput+'</td>';
+      tb.appendChild(tr);
+    });
+    amounts.forEach(function(a){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+code+' to CNY</td><td>'+sym+a+'</td><td>CNY '+(Math.round(a*rateInput*100)/100)+'</td><td>'+rateInput+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+  TBKit.util.exportTable('#ccsHidden',en?'currency-cheat-sheet.csv':'货币速查表-'+code+'.csv');
+}
 function onCurrencyChange() {
   const sel = document.getElementById('currency').value.split(',');
   document.getElementById('rate').value = sel[1];
