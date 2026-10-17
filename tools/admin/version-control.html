@@ -184,6 +184,7 @@ s.parentNode.insertBefore(el, s);
     <div class="history-header">
       <h3>📂 版本历史</h3>
       <button type="button" class="btn" onclick="exportData()">📤 导出JSON</button>
+      <button type="button" class="btn" onclick="exportCsv()">⬇️ 导出CSV</button>
     </div>
     <div id="verList"></div>
   </div>
@@ -337,6 +338,27 @@ function exportData(){
   var data=JSON.stringify({file:document.getElementById('fileName').value,versions:versions,exportDate:new Date().toISOString()},null,2);
   ToolBox.downloadText('versions-'+(document.getElementById('fileName').value||'file')+'.json',data,'application/json');
   ToolBox.showToast(i18nText('toast.msg220'));
+}
+
+function exportCsv(){
+  if(typeof TBKit==='undefined') return;
+  if(versions.length===0){ ToolBox.showToast(i18nText('toast.msg402'),'warning'); return; }
+  var en=TBKit.util.isEn();
+  var html='<table id="verHidden" style="display:none"><thead><tr>'
+    +'<th>'+(en?'Version':'版本')+'</th>'
+    +'<th>'+(en?'Type':'类型')+'</th>'
+    +'<th>'+(en?'Author':'作者')+'</th>'
+    +'<th>'+(en?'Date':'日期')+'</th>'
+    +'<th>'+(en?'Note':'变更说明')+'</th>'
+    +'</tr></thead><tbody>';
+  var typeMap={major:en?'Major':'主版本',minor:en?'Minor':'次版本',patch:en?'Patch':'修订'};
+  versions.forEach(function(v){
+    html+='<tr><td>v'+v.ver+'</td><td>'+(typeMap[v.type]||v.type)+'</td><td>'+(v.author||'')+'</td><td>'+(v.date||'')+'</td><td>'+(v.note||'')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+  TBKit.util.exportTable('#verHidden','version-history.csv');
+  setTimeout(function(){document.body.removeChild(host);},300);
 }
 
 function render(){

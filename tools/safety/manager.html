@@ -199,6 +199,7 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn primary" onclick="addEntry()">添加口令</button>
         <button type="button" class="btn" onclick="document.getElementById('searchQ').value='';renderList();">刷新</button>
         <button type="button" class="btn" onclick="exportBackup()">导出备份</button>
+        <button type="button" class="btn" onclick="exportVaultCsv()">⬇️ 导出明文CSV</button>
         <button type="button" class="btn" onclick="document.getElementById('importFile').click()">导入备份</button>
         <input type="file" id="importFile" accept="application/json" style="display:none;" onchange="importBackup(event)">
         <button type="button" class="btn danger" onclick="lockVault()" style="margin-left:auto;">🔒 锁定</button>
@@ -397,6 +398,26 @@ function exportBackup(){
   var data={version:1,master:localStorage.getItem(MKEY),vault:localStorage.getItem(VKEY)};
   ToolBox.downloadText('password-vault-backup.json',JSON.stringify(data,null,2));
   ToolBox.showToast(i18nText());
+}
+function exportVaultCsv(){
+  if(typeof TBKit==='undefined')return;
+  if(!masterPw||!vault.length){ ToolBox.showToast(i18nText(),'warning'); return; }
+  var en=TBKit.util.isEn();
+  var html='<table id="mgrHidden" style="display:none"><thead><tr>'
+    +'<th>'+(en?'Site':'网站/账户')+'</th>'
+    +'<th>'+(en?'Username':'账号')+'</th>'
+    +'<th>'+(en?'Password':'密码')+'</th>'
+    +'<th>'+(en?'Notes':'备注')+'</th>'
+    +'<th>'+(en?'Strength':'强度')+'</th>'
+    +'</tr></thead><tbody>';
+  vault.forEach(function(e){
+    var st=strength(e.pass);
+    html+='<tr><td>'+(e.site||'')+'</td><td>'+(e.user||'')+'</td><td>'+(e.pass||'')+'</td><td>'+(e.notes||'')+'</td><td>'+(st?st.label:'')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+  TBKit.util.exportTable('#mgrHidden','password-vault.csv');
+  setTimeout(function(){document.body.removeChild(host);},300);
 }
 function importBackup(ev){
   var file=ev.target.files[0];

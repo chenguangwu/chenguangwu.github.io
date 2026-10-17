@@ -226,6 +226,9 @@ s.parentNode.insertBefore(el, s);
 <button type="button" class="btn" onclick="applyContactPreset('family')">👪 家人紧急</button>
     </div>
     <div id="customList" style="margin-top:12px;"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" onclick="__ecExport()">⬇️ 导出全部联系人 CSV</button>
+    </div>
   </div>
 
   <div class="card">
@@ -486,6 +489,32 @@ s.parentNode.insertBefore(el, s);
   renderContacts(MEDICAL_CONTACTS, 'medicalContacts');
   renderContacts(UTILITY_CONTACTS, 'utilityContacts');
   renderCustom();
+
+  window.__ecExport = function(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var rows=[['类别','名称','电话','说明']];
+    var groups=[
+      {cat:en?'Core':'常用',list:CORE_CONTACTS},
+      {cat:en?'Medical':'医疗',list:MEDICAL_CONTACTS},
+      {cat:en?'Utility':'公共事业',list:UTILITY_CONTACTS},
+      {cat:en?'Custom':'自定义',list:getCustom()}
+    ];
+    groups.forEach(function(g){
+      (g.list||[]).forEach(function(c){
+        rows.push([g.cat, c.name||'', c.number||c.phone||'', c.desc||c.note||'']);
+      });
+    });
+    var html='<table id="ecHidden" style="display:none"><thead><tr>'
+      +'<th>'+(en?'Category':'类别')+'</th><th>'+(en?'Name':'名称')+'</th><th>'+(en?'Phone':'电话')+'</th><th>'+(en?'Note':'说明')+'</th></tr></thead><tbody>';
+    rows.slice(1).forEach(function(r){
+      html+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+    TBKit.util.exportTable('#ecHidden','emergency-contacts.csv');
+    setTimeout(function(){document.body.removeChild(host);},300);
+  };
 })();
 </script><script>
 // tool-intro折叠交互

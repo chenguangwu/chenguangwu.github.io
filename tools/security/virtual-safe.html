@@ -224,7 +224,10 @@ s.parentNode.insertBefore(el, s);
     <div class="card">
       <div class="history-header">
         <h3>保险箱内容（<span id="itemCount">0</span> 条）</h3>
-        <button type="button" class="btn" onclick="exportVault()">导出全部</button>
+        <span style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="exportVault()">导出全部</button>
+          <button type="button" class="btn" onclick="exportVaultCsv()">⬇️ 导出明文CSV</button>
+        </span>
       </div>
       <div id="vaultList"></div>
     </div>
@@ -658,6 +661,29 @@ s.parentNode.insertBefore(el, s);
     } catch(e){
       ToolBox.showToast(i18nText(), 'error');
     }
+  };
+
+  window.exportVaultCsv = function(){
+    if(typeof TBKit==='undefined') return;
+    if(!currentKey || vaultData.length === 0){ ToolBox.showToast(i18nText(), 'warning'); return; }
+    var en=TBKit.util.isEn();
+    var html='<table id="vsHidden" style="display:none"><thead><tr>'
+      +'<th>'+(en?'Title':'标题')+'</th>'
+      +'<th>'+(en?'Content':'内容')+'</th>'
+      +'<th>'+(en?'Saved At':'保存时间')+'</th>'
+      +'</tr></thead><tbody>';
+    vaultData.forEach(function(item){
+      var itemKey=deriveKey('', item.salt);
+      var mixedKey=[];
+      for(var i=0;i<256;i++){ mixedKey.push(currentKey[i]^itemKey[i]); }
+      var dec=xorDecrypt(item.data, mixedKey);
+      if(dec===null) dec='';
+      html+='<tr><td>'+(item.title||'')+'</td><td>'+(dec||'')+'</td><td>'+(item.time||'')+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+    TBKit.util.exportTable('#vsHidden','safe-vault.csv');
+    setTimeout(function(){document.body.removeChild(host);},300);
   };
 
   window.resetVault = function(){

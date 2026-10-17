@@ -489,6 +489,10 @@ window.__TI18N_EN = {
     '⬇️ 导出自检记录 CSV':'⬇️ Export Self-Check Records CSV',
     '⬇️ 导出历史记录 CSV':'⬇️ Export History Records CSV',
     '⬇️ 导出标签明细 CSV':'⬇️ Export Archive Label Details CSV',
+    '⬇️ 导出全部联系人 CSV':'⬇️ Export All Contacts CSV',
+    '⬇️ 导出CSV':'⬇️ Export CSV',
+    '⬇️ 导出专注计划 CSV':'⬇️ Export Focus Plan CSV',
+    '⬇️ 导出明文CSV':'⬇️ Export Plaintext CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——
