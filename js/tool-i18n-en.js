@@ -484,6 +484,11 @@ window.__TI18N_EN = {
     '⬇️ 导出历法详情 CSV':'⬇️ Export Calendar Details CSV',
     '⬇️ 导出历史事件 CSV':'⬇️ Export Historical Events CSV',
     '⬇️ 导出完整逃生方案 CSV':'⬇️ Export Full Escape Plan CSV',
+    '⬇️ 导出21天发育日程 CSV':'⬇️ Export 21-Day Incubation Schedule CSV',
+    '⬇️ 导出呼吸方案 CSV':'⬇️ Export Breathing Plan CSV',
+    '⬇️ 导出自检记录 CSV':'⬇️ Export Self-Check Records CSV',
+    '⬇️ 导出历史记录 CSV':'⬇️ Export History Records CSV',
+    '⬇️ 导出标签明细 CSV':'⬇️ Export Archive Label Details CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——

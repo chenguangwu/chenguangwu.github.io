@@ -173,9 +173,12 @@ s.parentNode.insertBefore(el, s);
       <h3 style="margin:18px 0 6px">汇总与本地最佳</h3>
       <div class="tp-stat" id="tpBest"></div>
       <canvas class="tp-histcanvas" id="tpHistCanvas" width="560" height="220"></canvas>
-      <div class="history-header" style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px">
+      <div class="history-header" style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px;gap:8px;flex-wrap:wrap">
         <h3 style="margin:0">历史记录</h3>
-        <button class="btn danger" id="tpClearHist">清空历史</button>
+        <span style="display:flex;gap:8px;">
+          <button class="btn" onclick="__tpExport()">⬇️ 导出历史记录 CSV</button>
+          <button class="btn danger" id="tpClearHist">清空历史</button>
+        </span>
       </div>
       <div class="history-list" id="tpHistList"></div>
     </section>
@@ -625,6 +628,31 @@ s.parentNode.insertBefore(el, s);
   renderHistory();
   selectMode('second');
 })();
+</script>
+<script>
+function __tpExport(){
+  if(typeof TBKit==='undefined') return;
+  var en=TBKit.util.isEn();
+  var key='tp_history_v1';
+  var list=[];
+  try{list=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){list=[];}
+  if(!list.length){TBKit.util.toast(en?'No history yet':'暂无历史记录');return;}
+  var html='<table id="tpHidden" style="display:none"><thead><tr>'
+    +'<th>'+(en?'#':'序号')+'</th>'
+    +'<th>'+(en?'Time':'时间')+'</th>'
+    +'<th>'+(en?'Second P':'一秒挑战P')+'</th>'
+    +'<th>'+(en?'Double P':'双击速度P')+'</th>'
+    +'<th>'+(en?'Beat P':'节拍同步P')+'</th>'
+    +'</tr></thead><tbody>';
+  list.forEach(function(s,i){
+    var d=new Date(s.ts);
+    html+='<tr><td>'+(i+1)+'</td><td>'+d.toLocaleString('zh-CN')+'</td><td>'+(s.second||0)+'</td><td>'+(s.double||0)+'</td><td>'+(s.beat||0)+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+  TBKit.util.exportTable('#tpHidden','time-perception-history.csv');
+  setTimeout(function(){document.body.removeChild(host);},300);
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -238,6 +238,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" id="startBtn" onclick="startBreathing()">开始</button>
       <button type="button" class="btn" id="pauseBtn" onclick="pauseBreathing()" style="display:none;">暂停</button>
       <button type="button" class="btn" onclick="resetBreathing()">重置</button>
+      <button type="button" class="btn" onclick="__breathExport()">⬇️ 导出呼吸方案 CSV</button>
     </div>
   </div>
 
@@ -542,6 +543,35 @@ function clearHistory() {
 }
 
 renderHistory();
+</script>
+<script>
+function __breathExport(){
+  if(typeof TBKit==='undefined') return;
+  var en=TBKit.util.isEn();
+  var t=getTimings();
+  var target=parseInt(document.getElementById('targetCycles').value)||5;
+  var single=t.inhale+t.hold+t.exhale+t.hold2;
+  var html='<table id="breathHidden" style="display:none"><thead><tr>'
+    +'<th>'+(en?'Mode':'模式')+'</th>'
+    +'<th>'+(en?'Inhale(s)':'吸气(秒)')+'</th>'
+    +'<th>'+(en?'Hold(s)':'屏息(秒)')+'</th>'
+    +'<th>'+(en?'Exhale(s)':'呼气(秒)')+'</th>'
+    +'<th>'+(en?'Hold2(s)':'停(秒)')+'</th>'
+    +'<th>'+(en?'Cycle(s)':'单周期(秒)')+'</th>'
+    +'<th>'+(en?'Note':'说明')+'</th>'
+    +'</tr></thead><tbody>';
+  ['478','box','calm','custom'].forEach(function(k){
+    var m=modes[k]; if(!m) return;
+    var cyc=m.inhale+m.hold+m.exhale+m.hold2;
+    var note=(k===currentMode?(en?'Current':'当前'):'')+(k==='custom'?(en?' (editable)':'（可调）'):'');
+    html+='<tr><td>'+(k===currentMode?'★ ':'')+m.name+'</td><td>'+m.inhale+'</td><td>'+m.hold+'</td><td>'+m.exhale+'</td><td>'+m.hold2+'</td><td>'+cyc+'</td><td>'+note+'</td></tr>';
+  });
+  html+='<tr><td>'+(en?'Current plan':'当前方案')+'</td><td>'+t.inhale+'</td><td>'+t.hold+'</td><td>'+t.exhale+'</td><td>'+t.hold2+'</td><td>'+single+'</td><td>'+(en?'Target cycles: ':'目标循环: ')+target+' · '+(en?'Total ~':'总时长约')+' '+ (single*target) +'s</td></tr>';
+  html+='</tbody></table>';
+  var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+  TBKit.util.exportTable('#breathHidden','breathing-plan.csv');
+  setTimeout(function(){document.body.removeChild(host);},300);
+}
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

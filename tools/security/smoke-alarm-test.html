@@ -225,7 +225,10 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <div class="history-header">
       <h3>自检历史记录</h3>
-      <button type="button" class="btn danger" onclick="clearHistory()">清空记录</button>
+      <span style="display:flex;gap:8px;">
+        <button type="button" class="btn" onclick="__alarmExport()">⬇️ 导出自检记录 CSV</button>
+        <button type="button" class="btn danger" onclick="clearHistory()">清空记录</button>
+      </span>
     </div>
     <div id="historyList"></div>
   </div>
@@ -554,6 +557,31 @@ function applyAlarmPreset(kind){
   var el = document.getElementById('alarmLocation');
   if(!el) return;
   el.value = v;
+}
+</script>
+<script>
+function __alarmExport(){
+  if(typeof TBKit==='undefined') return;
+  var en=TBKit.util.isEn();
+  var key='toolbox_smoke_alarm_history';
+  var list=[];
+  try{list=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){list=[];}
+  if(!list.length){TBKit.util.toast(en?'No self-check records yet':'暂无自检记录');return;}
+  var html='<table id="alarmHidden" style="display:none"><thead><tr>'
+    +'<th>'+(en?'#':'序号')+'</th>'
+    +'<th>'+(en?'Date':'日期时间')+'</th>'
+    +'<th>'+(en?'Location':'位置')+'</th>'
+    +'<th>'+(en?'Result':'结果')+'</th>'
+    +'<th>'+(en?'Duration(s)':'鸣响秒数')+'</th>'
+    +'<th>'+(en?'Note':'备注')+'</th>'
+    +'</tr></thead><tbody>';
+  list.forEach(function(r,i){
+    html+='<tr><td>'+(i+1)+'</td><td>'+r.date+'</td><td>'+r.location+'</td><td>'+(r.result==='pass'?(en?'Pass':'通过'):(en?'Fail':'失败'))+'</td><td>'+r.duration+'</td><td>'+(r.note||'')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+  TBKit.util.exportTable('#alarmHidden','smoke-alarm-history.csv');
+  setTimeout(function(){document.body.removeChild(host);},300);
 }
 </script>
 
