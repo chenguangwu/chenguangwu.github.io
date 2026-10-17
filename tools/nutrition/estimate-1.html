@@ -123,11 +123,13 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calculate()">估算摄入量</button>
       <button class="btn" onclick="clearAll()">重置</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="__fiberExport()">⬇️ 导出膳食纤维结果 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p>选择食物后点击估算。</p>
     </div>
+    <table id="fiberHidden" style="display:none"><thead><tr><th>No.</th><th>Food</th><th>Fiber(g)</th></tr></thead><tbody></tbody></table>
 
     <div class="ref-card">
       <h4>膳食纤维参考</h4>
@@ -174,18 +176,18 @@ s.parentNode.insertBefore(el, s);
 <script>
 const STORAGE_KEY = 'tb_nutrition_estimate1';
 const FOODS = [
-  { name: '燕麦片（50g）', fiber: 4.0 },
-  { name: '糙米饭（1碗）', fiber: 3.5 },
-  { name: '全麦面包（2片）', fiber: 3.8 },
-  { name: '苹果（1个）', fiber: 4.4 },
-  { name: '香蕉（1根）', fiber: 3.1 },
-  { name: '西兰花（100g）', fiber: 2.6 },
-  { name: '胡萝卜（100g）', fiber: 2.8 },
-  { name: '扁豆/红豆（100g）', fiber: 7.4 },
-  { name: '鹰嘴豆（100g）', fiber: 7.6 },
-  { name: '杏仁（30g）', fiber: 3.5 },
-  { name: '奇亚籽（15g）', fiber: 5.5 },
-  { name: '菠菜（100g）', fiber: 2.2 }
+  { name: '燕麦片（50g）', nameEn: 'Oat flakes (50g)', fiber: 4.0 },
+  { name: '糙米饭（1碗）', nameEn: 'Brown rice (1 bowl)', fiber: 3.5 },
+  { name: '全麦面包（2片）', nameEn: 'Whole wheat bread (2 slices)', fiber: 3.8 },
+  { name: '苹果（1个）', nameEn: 'Apple (1)', fiber: 4.4 },
+  { name: '香蕉（1根）', nameEn: 'Banana (1)', fiber: 3.1 },
+  { name: '西兰花（100g）', nameEn: 'Broccoli (100g)', fiber: 2.6 },
+  { name: '胡萝卜（100g）', nameEn: 'Carrot (100g)', fiber: 2.8 },
+  { name: '扁豆/红豆（100g）', nameEn: 'Lentils/Red beans (100g)', fiber: 7.4 },
+  { name: '鹰嘴豆（100g）', nameEn: 'Chickpeas (100g)', fiber: 7.6 },
+  { name: '杏仁（30g）', nameEn: 'Almonds (30g)', fiber: 3.5 },
+  { name: '奇亚籽（15g）', nameEn: 'Chia seeds (15g)', fiber: 5.5 },
+  { name: '菠菜（100g）', nameEn: 'Spinach (100g)', fiber: 2.2 }
 ];
 
 function renderFoods() {
@@ -296,6 +298,36 @@ function copyResult() {
 
 renderFoods();
 loadSelection();
+
+const FIBER_GRADE_EN = {'摄入不足':'Insufficient','接近建议':'Near adequate','摄入充足':'Adequate','摄入偏高':'Excessive'};
+function __fiberExport(){
+  if(typeof TBKit==='undefined') return;
+  const en = TBKit.util.isEn();
+  const tbody = document.querySelector('#fiberHidden tbody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  const selected = getSelected();
+  if(!selected.length){ ToolBox.showToast(i18nText(),'warning'); return; }
+  let total = 0;
+  selected.forEach((idx,i)=>{
+    const f = FOODS[idx]; total += f.fiber;
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+(i+1)+'</td><td>'+(en ? (f.nameEn||f.name) : f.name)+'</td><td>'+f.fiber.toFixed(1)+'</td>';
+    tbody.appendChild(tr);
+  });
+  let grade;
+  if(total < 15){ grade='摄入不足'; }
+  else if(total < 25){ grade='接近建议'; }
+  else if(total <= 35){ grade='摄入充足'; }
+  else{ grade='摄入偏高'; }
+  const r1 = document.createElement('tr');
+  r1.innerHTML = '<td></td><td>'+(en?'Total':'合计')+'</td><td>'+total.toFixed(1)+'</td>';
+  tbody.appendChild(r1);
+  const r2 = document.createElement('tr');
+  r2.innerHTML = '<td></td><td>'+(en?'Grade':'评级')+'</td><td>'+(en?(FIBER_GRADE_EN[grade]||grade):grade)+'</td>';
+  tbody.appendChild(r2);
+  TBKit.util.exportTable('#fiberHidden', en ? 'dietary-fiber-result.csv' : '膳食纤维结果.csv');
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

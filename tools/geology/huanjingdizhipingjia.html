@@ -124,9 +124,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn ghost" onclick="applyGeoPreset('moderate')">中污染场景</button>
       <button type="button" class="btn ghost" onclick="applyGeoPreset('heavy')">重污染场景</button>
     </div>
-<div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
+<div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button><button class="btn" type="button" onclick="__geoExport()">⬇️ 导出环境地质结果 CSV</button></div>
 <div class="result-box" id="res"></div>
 <div id="geoChart" style="margin-top:14px;"></div>
+<table id="geoHidden" style="display:none"><thead><tr><th>No.</th><th>Indicator</th><th>Measured Ci</th><th>Standard Si</th><th>Single Index Pi</th></tr></thead><tbody></tbody></table>
 <div class="info-box">💡 内梅罗综合指数：P = √((Pmax² + Pavg²)/2)，Pi = Ci/Si（实测值/标准值）。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>各指标须使用统一评价标准</li><li>未填写的指标行自动跳过</li><li>P&lt;0.7清洁，0.7-1轻污染，1-2中污染，&gt;2重污染</li><li>实际评价应依据《环境质量标准》系列</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -183,6 +184,41 @@ function calc(){
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
+const GEO_GRADE_EN={'清洁':'Clean','轻污染':'Light pollution','中污染':'Moderate pollution','重污染':'Heavy pollution'};
+const GEO_LEVEL_EN={'Ⅰ级':'Level I','Ⅱ级':'Level II','Ⅲ级':'Level III','Ⅳ级':'Level IV'};
+function __geoExport(){
+  if(typeof TBKit==='undefined') return;
+  const en=TBKit.util.isEn();
+  const tbody=document.querySelector('#geoHidden tbody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  let items=[],sum=0,max=0;
+  for(let i=0;i<indicators.length;i++){
+    const c=parseFloat(document.getElementById('c'+i).value);
+    const s=parseFloat(document.getElementById('s'+i).value);
+    if(isNaN(c)||isNaN(s)||s<=0) continue;
+    const p=c/s; items.push({c:c,s:s,p:p}); sum+=p; if(p>max)max=p;
+  }
+  if(items.length===0){ ToolBox.showToast(i18nText(),'warning'); return; }
+  items.forEach((it,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(i+1)+'</td><td>'+(en?'Factor ':'指标 ')+(i+1)+'</td><td>'+it.c+'</td><td>'+it.s+'</td><td>'+it.p.toFixed(3)+'</td>';
+    tbody.appendChild(tr);
+  });
+  const avg=sum/items.length;
+  const P=Math.sqrt((max*max+avg*avg)/2);
+  let grade,level;
+  if(P<0.7){grade='清洁';level='Ⅰ级';}
+  else if(P<1){grade='轻污染';level='Ⅱ级';}
+  else if(P<2){grade='中污染';level='Ⅲ级';}
+  else{grade='重污染';level='Ⅳ级';}
+  function addRow(k,v){const tr=document.createElement('tr');tr.innerHTML='<td></td><td>'+k+'</td><td colspan="3">'+v+'</td>';tbody.appendChild(tr);}
+  addRow(en?'Pmax':'最大单项指数',max.toFixed(3));
+  addRow(en?'Pavg':'平均单项指数',avg.toFixed(3));
+  addRow(en?'Composite Index P':'综合指数 P',P.toFixed(3));
+  addRow(en?'Grade':'环境质量等级',(en?(GEO_LEVEL_EN[level]||level):level)+' '+(en?(GEO_GRADE_EN[grade]||grade):grade));
+  TBKit.util.exportTable('#geoHidden', en?'environmental-geo-result.csv':'环境地质结果.csv');
+}
 function resetAll(){buildInd();calc();ToolBox.showToast(i18nText(),'info');}
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_tool01047';}}
 function saveHistory(){

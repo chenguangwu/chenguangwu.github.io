@@ -126,6 +126,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算总分</button>
       <button class="btn" onclick="resetForm()">重置</button>
+      <button type="button" class="btn" onclick="__nihssExport()">⬇️ 导出NIHSS结果 CSV</button>
     </div>
 
     <div class="toolbar" style="margin-top:8px;">
@@ -136,6 +137,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <table id="nihssHidden" style="display:none"><thead><tr><th>No.</th><th>Item ID</th><th>Item</th><th>Score</th></tr></thead><tbody></tbody></table>
   </div>
 </div>
 
@@ -252,6 +254,43 @@ function resetForm(){
 }
 
 document.addEventListener('DOMContentLoaded', () => { renderItems(); loadState(); calc(); });
+
+const NIHSS_EN = {
+  loc:'1a. Level of Consciousness', locq:'1b. LOC Questions', locc:'1c. LOC Commands',
+  gaze:'2. Best Gaze', visual:'3. Visual Fields', facial:'4. Facial Palsy',
+  armL:'5a. Left Arm Motor', armR:'5b. Right Arm Motor', legL:'6a. Left Leg Motor', legR:'6b. Right Leg Motor',
+  ataxia:'7. Limb Ataxia', sensory:'8. Sensation', language:'9. Best Language',
+  dysarthria:'10. Dysarthria', neglect:'11. Extinction/Neglect'
+};
+const NIHSS_LEVEL_EN = {
+  '无卒中症状':'No stroke symptoms', '轻度卒中':'Mild stroke', '中度卒中':'Moderate stroke',
+  '中-重度卒中':'Moderate-severe stroke', '重度卒中':'Severe stroke'
+};
+function __nihssExport(){
+  if(typeof TBKit==='undefined') return;
+  const en = TBKit.util.isEn();
+  const tbody = document.querySelector('#nihssHidden tbody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  let score=0;
+  items.forEach((it,i)=>{
+    const v = parseInt(document.getElementById(it.id).value,10)||0;
+    score += v;
+    const name = en ? (NIHSS_EN[it.id]||it.id) : it.label;
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+(i+1)+'</td><td>'+it.id+'</td><td>'+name+'</td><td>'+v+'</td>';
+    tbody.appendChild(tr);
+  });
+  const c = classify(score);
+  const lvl = en ? (NIHSS_LEVEL_EN[c.level]||c.level) : c.level;
+  const r1 = document.createElement('tr');
+  r1.innerHTML = '<td></td><td>Total</td><td>Total Score</td><td>'+score+'</td>';
+  tbody.appendChild(r1);
+  const r2 = document.createElement('tr');
+  r2.innerHTML = '<td></td><td>Level</td><td>'+lvl+'</td><td></td>';
+  tbody.appendChild(r2);
+  TBKit.util.exportTable('#nihssHidden', en ? 'nihss-result.csv' : 'NIHSS结果.csv');
+}
 </script>
 <script>
 function applyNihssPreset(kind){
