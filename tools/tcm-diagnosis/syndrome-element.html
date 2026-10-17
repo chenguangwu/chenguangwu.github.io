@@ -137,11 +137,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="derive()">推导证名</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__seExport()">⬇️ 导出证素推导 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);text-align:center;">选择病位与病性证素后点击「推导证名」</p>
     </div>
+    <table id="seHidden" style="display:none;"><thead><tr><th>Field</th><th>Value</th><th>Detail</th><th>Reference</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       💡 证素 = 证的要素，分病位证素（心、肝、脾、肺、肾、胃、胆等）和病性证素（气虚、血虚、阴虚、阳虚、寒、热、痰、湿、瘀等）。组合后即为证名，如"心"+"气虚"="心气虚证"。
@@ -336,6 +338,45 @@ function copyResult(){
   var t=document.getElementById('result').innerText;
   if(!t||t.indexOf('选择')===0){ToolBox.showToast(i18nText() ,'warning');return;}
   ToolBox.copyText(t, i18nText());
+}
+// ============ 导出证素推导结果 CSV ============
+var __SE_NAME_EN={'心':'Heart','肝':'Liver','脾':'Spleen','肺':'Lung','肾':'Kidney','胃':'Stomach','胆':'Gallbladder','小肠/大肠':'Small/Large Intestine','膀胱':'Bladder','胞宫':'Uterus','经络':'Channels','肌肤':'Skin',
+  '气虚':'Qi Deficiency','血虚':'Blood Deficiency','阴虚':'Yin Deficiency','阳虚':'Yang Deficiency','气滞':'Qi Stagnation','血瘀':'Blood Stasis','寒':'Cold','热':'Heat','湿':'Dampness','痰':'Phlegm','湿热':'Damp-Heat','寒湿':'Cold-Damp','食积':'Food Retention','风':'Wind','风热':'Wind-Heat'};
+var __SE_DESC_EN={'心悸失眠，神志异常':'Palpitations, insomnia, mental disturbance','胁痛情志，眩晕抽搐':'Hypochondriac pain, emotional disturbance, dizziness and convulsions','腹胀纳呆，便溏水肿':'Abdominal distension, poor appetite, loose stools, edema','咳喘气短，鼻塞声重':'Cough and panting, shortness of breath, nasal congestion and heavy voice','腰膝酸软，生长发育':'Soreness of the lower back and knees, growth and development','胃脘痛，呕吐呃逆':'Epigastric pain, vomiting and hiccups','口苦黄疸，胆怯易惊':'Bitter mouth, jaundice, timidity and easy fright','腹胀便秘，泄泻腹痛':'Abdominal distension, constipation, diarrhea and abdominal pain','尿频尿急，小便不利':'Frequent urgent urination, difficult urination','月经不调，带下不孕':'Irregular menstruation, abnormal discharge, infertility','经脉循行部位病变':'Disorders along the course of the channels','皮肤病变':'Skin disorders',
+  '乏力气短，自汗':'Fatigue, shortness of breath, spontaneous sweating','面色无华，头晕眼花':'Lusterless complexion, dizziness and blurred vision','五心烦热，潮热盗汗':'Five-palm heat, tidal fever and night sweating','畏寒肢冷，喜温喜按':'Cold intolerance, cold limbs, preference for warmth and pressure','胀闷疼痛，善太息':'Distending pain, frequent sighing','刺痛固定，肿块瘀斑':'Fixed stabbing pain, masses and ecchymosis','冷痛喜温，肢冷面白':'Cold pain relieved by warmth, cold limbs, pale face','发热烦渴，舌红苔黄':'Fever, thirst, red tongue with yellow coating','重浊困倦，苔腻脉濡':'Heaviness and lethargy, greasy coating, soggy pulse','咳痰或无形之痰':'Cough with phlegm or formless phlegm','身热不扬，苔黄腻':'Persistent fever, yellow greasy coating','冷痛重着，苔白腻':'Cold heavy pain, white greasy coating','脘腹胀痛，嗳腐吞酸':'Epigastric distending pain, belching with putrid sour odor','善行数变，痒痛游走':'Rapid shifting, migratory itching and pain','发热咽痛，痰黄':'Fever, sore throat, yellow sputum'};
+var __SE_TREAT_EN={'养心':'Nourish the heart','疏肝/柔肝':'Soothe / soften the liver','健脾':'Strengthen the spleen','润肺/宣肺':'Moisten / diffuse the lung','补肾':'Tonify the kidney','和胃':'Harmonize the stomach','利胆':'Disinhibit the gallbladder',
+  '补气':'Tonify qi','养血':'Nourish blood','滋阴':'Nourish yin','温阳':'Warm yang','理气':'Regulate qi','活血化瘀':'Activate blood and resolve stasis','散寒':'Dispel cold','清热':'Clear heat','化湿':'Resolve dampness','化痰':'Transform phlegm','清热利湿':'Clear heat and drain dampness','散寒化湿':'Dispel cold and resolve dampness','消食导滞':'Promote digestion and relieve retention','疏风':'Dispel wind','疏风清热':'Dispel wind and clear heat','需结合具体证候确定治法':'Treatment should be determined by the specific pattern'};
+var __SE_FORMULA_EN={'保元汤、养心汤':'Baoyuan Tang, Yangxin Tang','天王补心丹':'Tianwang Buxin Dan','柴胡疏肝散、逍遥散':'Chaihu Shugan San, Xiaoyao San','天麻钩藤饮':'Tianma Gouteng Yin','四君子汤、参苓白术散':'Sijunzi Tang, Shenling Baizhu San','理中汤、附子理中丸':'Lizhong Tang, Fuzi Lizhong Wan','百合固金汤、沙参麦冬汤':'Baihe Gujin Tang, Shashen Maidong Tang','金匮肾气丸、右归丸':'Jinkui Shenqi Wan, Yougui Wan','六味地黄丸、左归丸':'Liuwei Dihuang Wan, Zuogui Wan','龙胆泻肝汤、三仁汤':'Longdan Xiegan Tang, Sanren Tang','血府逐瘀汤、桃红四物汤':'Xuefu Zhuyu Tang, Taohong Siwu Tang','须结合具体病情选方，建议参考方剂学教材':'Select the formula according to the actual condition; refer to standard formula textbooks'};
+function __seRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __seExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#seHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var locs=locElements.filter(function(e){return selLoc[e.id];});
+  var nats=natElements.filter(function(e){return selNat[e.id];});
+  if(!locs.length||!nats.length){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'Select at least one location and one nature element':'请至少选择一个病位证素与一个病性证素');
+    return;
+  }
+  function names(list){ return list.map(function(e){return en?(__SE_NAME_EN[e.name]||e.name):e.name;}); }
+  function descs(list){ return list.map(function(e){return en?(__SE_DESC_EN[e.desc]||e.desc):e.desc;}); }
+  var zhName=locs.map(function(e){return e.name;}).join('')+nats.map(function(e){return e.name;}).join('')+'证';
+  var enName=names(locs).join(' ')+' '+names(nats).join(' ')+' Syndrome';
+  tbody.appendChild(__seRow([en?'Syndrome Name':'推导证名', en?enName:zhName, '', '']));
+  tbody.appendChild(__seRow([en?'Location Elements':'病位证素', names(locs).join(en?', ':'、'), descs(locs).join(en?'; ':'；'), '']));
+  tbody.appendChild(__seRow([en?'Nature Elements':'病性证素', names(nats).join(en?', ':'、'), descs(nats).join(en?'; ':'；'), '']));
+  var t=deriveTreatment(locs,nats)||'';
+  var tEn=t.split('、').map(function(x){return __SE_TREAT_EN[x]||x;}).join(', ');
+  tbody.appendChild(__seRow([en?'Treatment Method':'治法推导', en?tEn:t, '', '']));
+  var f=deriveFormula(locs,nats)||'';
+  tbody.appendChild(__seRow([en?'Formula Reference':'方剂参考', en?(__SE_FORMULA_EN[f]||f):f, '', '']));
+  TBKit.util.exportTable('#seHidden', en?'syndrome-element-derivation.csv':'证素推导结果.csv');
 }
 renderGrid('locGrid',locElements,selLoc);
 renderGrid('natGrid',natElements,selNat);

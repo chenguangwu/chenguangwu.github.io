@@ -200,6 +200,10 @@ s.parentNode.insertBefore(el, s);
 
       <div id="deriveResult" class="result-panel" style="display:none;">
       </div>
+      <div class="toolbar" style="margin-top:10px;">
+        <button type="button" class="btn" onclick="window.__tpExport()">⬇️ 导出治则建议 CSV</button>
+      </div>
+      <table id="tpHidden" style="display:none;"><thead><tr><th>Category</th><th>Type</th><th>Principle</th><th>Description</th></tr></thead><tbody></tbody></table>
     </div>
 
     <!-- 正治反治 -->
@@ -411,6 +415,52 @@ function switchTab(name, e) {
   document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
   e.target.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
+}
+// ============ 导出治则建议 CSV ============
+var __TP_ZZ={
+  '寒':{t:'正治',tEn:'Routine treatment',m:'寒者热之',mEn:'Cold is treated with heat',d:'用温热性质的方药治疗寒证',dEn:'Treat cold patterns with warm/hot herbs'},
+  '热':{t:'正治',tEn:'Routine treatment',m:'热者寒之',mEn:'Heat is treated with cold',d:'用寒凉性质的方药治疗热证',dEn:'Treat heat patterns with cold/cool herbs'},
+  '虚':{t:'正治',tEn:'Routine treatment',m:'虚则补之',mEn:'Deficiency is treated by tonifying',d:'用补益方药治疗虚证',dEn:'Treat deficiency patterns with tonifying herbs'},
+  '实':{t:'正治',tEn:'Routine treatment',m:'实则泻之',mEn:'Excess is treated by purging',d:'用攻邪方药治疗实证',dEn:'Treat excess patterns with pathogen-expelling herbs'},
+  '寒虚实':{t:'正治',tEn:'Routine treatment',m:'温补兼施',mEn:'Warming and tonifying combined',d:'温阳散寒兼补益正气',dEn:'Warm yang and dispel cold while tonifying upright qi'},
+  '热虚实':{t:'正治',tEn:'Routine treatment',m:'清热兼补',mEn:'Clearing heat with tonification',d:'清热泻火兼扶助正气',dEn:'Clear heat and purge fire while supporting upright qi'},
+  '真寒假热':{t:'反治',tEn:'Contrary treatment',m:'热因热用',mEn:'Heat used for heat',d:'用温热药治假热证，破阴回阳',dEn:'Use warm herbs for false-heat to break yin and restore yang'},
+  '真热假寒':{t:'反治',tEn:'Contrary treatment',m:'寒因寒用',mEn:'Cold used for cold',d:'用寒凉药治假寒证，清泻里热',dEn:'Use cold herbs for false-cold to clear interior heat'},
+  '真虚假实':{t:'反治',tEn:'Contrary treatment',m:'塞因塞用',mEn:'Obstruction used for obstruction',d:'用补益药治假实证，补虚消胀',dEn:'Use tonics for false-excess to relieve distension'},
+  '真实假虚':{t:'反治',tEn:'Contrary treatment',m:'通因通用',mEn:'Purging used for purging',d:'用通利药治假虚证，攻下实邪',dEn:'Use draining herbs for false-deficiency to expel excess'}
+};
+var __TP_BB={
+  'ben':{p:'缓则治其本',pEn:'Treat the root when not urgent',d:'标症不急，以治本为主，从根本上消除病因',dEn:'When the branch is not urgent, treat the root to remove the cause'},
+  'biao':{p:'急则治其标',pEn:'Treat the branch when urgent',d:'标症急迫，危及生命或严重影响治本，须先治标',dEn:'When the branch is life-threatening, treat the branch first'},
+  'equal':{p:'标本兼治',pEn:'Treat root and branch together',d:'标本均较急重，须标本同治',dEn:'When both root and branch are severe, treat both'}
+};
+var __TP_XZ={
+  'zhengxu':{p:'扶正为主',pEn:'Support upright qi primarily',d:'正虚为主，以扶助正气为核心，兼以祛邪',dEn:'Mainly support upright qi while expelling pathogens'},
+  'xiesheng':{p:'祛邪为主',pEn:'Expel pathogens primarily',d:'邪盛为主，以祛除邪气为核心，兼以扶正',dEn:'Mainly expel pathogens while supporting upright qi'},
+  'both':{p:'扶正祛邪并用',pEn:'Support and expel combined',d:'正虚邪实并重，扶正与祛邪兼顾',dEn:'Deficiency and excess are both significant; combine both strategies'}
+};
+function __tpRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __tpExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#tpHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var n=document.getElementById('nature')?document.getElementById('nature').value:'';
+  var u=document.getElementById('urgency')?document.getElementById('urgency').value:'';
+  var x=document.getElementById('xiezheng')?document.getElementById('xiezheng').value:'';
+  if(!n&&!u&&!x){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'Select at least one condition first':'请先选择疾病性质、标本缓急或邪正盛衰'); return; }
+  var r=__TP_ZZ[n];
+  if(r) tbody.appendChild(__tpRow([en?'Routine / Contrary':'正治反治', en?r.tEn:r.t, en?r.mEn:r.m, en?r.dEn:r.d]));
+  var b=__TP_BB[u];
+  if(b) tbody.appendChild(__tpRow([en?'Root / Branch':'治标治本', en?'Root-branch priority':'标本优先级', en?b.pEn:b.p, en?b.dEn:b.d]));
+  var z=__TP_XZ[x];
+  if(z) tbody.appendChild(__tpRow([en?'Upright qi / Pathogen':'扶正祛邪', en?'Upright-pathogen strategy':'邪正策略', en?z.pEn:z.p, en?z.dEn:z.d]));
+  TBKit.util.exportTable('#tpHidden', en?'treatment-principle.csv':'治则治法建议.csv');
 }
 </script>
 
