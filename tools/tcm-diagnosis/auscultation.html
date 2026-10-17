@@ -133,7 +133,9 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__ausExport()">⬇️ 导出闻诊条目 CSV</button>
     </div>
+    <table id="ausHidden" style="display:none;"><thead><tr><th>Category</th><th>Abnormal Finding</th><th>Indicated Pattern</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       💡 闻诊是"听"和"嗅"的合称。听声音包括语声、呼吸、咳嗽、呕吐、嗳气、呃逆等；嗅气味包括病体气味和排出物气味。
@@ -273,6 +275,48 @@ function copyResult(){
   var t=document.getElementById('result').innerText;
   if(!t||t.indexOf('选择')===0){ToolBox.showToast(i18nText(), 'warning');return;}
   ToolBox.copyText(t, i18nText());
+}
+// ============ 导出闻诊条目 CSV ============
+var __AUS_NAME_EN={
+  '语声高亢有力':'Loud and forceful voice','语声低微无力':'Faint and weak voice','语声重浊':'Muffled heavy voice',
+  '谵语':'Delirious speech','郑声':'Faint repetitive speech','呃逆声高有力':'Loud forceful hiccups',
+  '呃逆声低无力':'Weak faint hiccups','呼吸气粗有力':'Coarse forceful breathing','呼吸气微无力':'Faint weak breathing',
+  '咳声重浊沉闷':'Muffled heavy cough','干咳无痰':'Dry non-productive cough','咳如犬吠':'Barking cough',
+  '口气酸腐臭秽':'Sour putrid breath odor','口气臭秽':'Foul breath odor','口气腥臭':'Fishy bloody breath odor',
+  '汗气腥膻':'Fishy goat-like sweat odor','汗气臭秽':'Foul sweat odor','痰涕腥臭':'Fishy foul sputum or nasal discharge',
+  '大便酸臭':'Sour foul stool','大便腥臭':'Fishy cold stool','小便臊臭异常':'Abnormal ammoniac urine odor',
+  '带下臭秽':'Foul-smelling vaginal discharge'
+};
+var __AUS_NATURE_EN={
+  '实证、热证':'Excess / heat pattern','虚证、寒证':'Deficiency / cold pattern','外感风寒':'External wind-cold',
+  '实热扰心':'Excess heat disturbing the heart','心气大伤':'Severe heart qi damage','实寒/实热':'Excess cold / excess heat',
+  '脾胃气虚':'Spleen-stomach qi deficiency','实热证':'Excess heat pattern','虚证':'Deficiency pattern',
+  '风寒/痰湿':'Wind-cold / phlegm-damp','燥邪/阴虚':'Dryness / yin deficiency','肺肾阴虚/白喉':'Lung-kidney yin deficiency / diphtheria',
+  '食积胃肠':'Food retention in the stomach and intestines','胃热/龋齿':'Stomach heat / dental caries',
+  '血证/肺痈':'Bleeding disorder / lung abscess','湿热熏蒸':'Damp-heat steaming','湿热蕴毒':'Damp-heat with toxin accumulation',
+  '热毒壅肺（肺痈）':'Heat toxin congesting the lung (lung abscess)','肠有积热/食积':'Intestinal heat accumulation / food retention',
+  '脾胃虚寒':'Spleen-stomach deficiency cold','膀胱湿热':'Bladder damp-heat','湿热下注':'Damp-heat pouring downward'
+};
+function __ausRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __ausExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#ausHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var cat=ausData[currentTab]||ausData.sound;
+  cat.items.forEach(function(it){
+    tbody.appendChild(__ausRow([
+      en?(currentTab==='sound'?'Sound':'Smell'):cat.name,
+      en?(__AUS_NAME_EN[it.name]||it.name):it.name,
+      en?(__AUS_NATURE_EN[it.nature]||it.nature):it.nature
+    ]));
+  });
+  TBKit.util.exportTable('#ausHidden', en?'auscultation-items.csv':'闻诊异常条目.csv');
 }
 renderTabs();
 renderList();

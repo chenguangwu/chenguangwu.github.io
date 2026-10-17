@@ -139,11 +139,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="analyze()">判断神之盛衰</button>
       <button type="button" class="btn" onclick="clearAll()">清除勾选</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__spiritExport()">⬇️ 导出望神标准 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);text-align:center;">勾选观察到的表现后点击「判断神之盛衰」</p>
     </div>
+    <table id="spiritHidden" style="display:none;"><thead><tr><th>Spirit State</th><th>Tag</th><th>Description</th><th>Clinical Meaning</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       💡 望神是望诊之首。"神"是人体生命活动的外在表现，反映正气盛衰。得神为佳，失神为危，假神为殁（回光返照）。
@@ -321,6 +323,35 @@ function copyResult(){
   var t=document.getElementById('result').innerText;
   if(!t||t.indexOf('勾选')===0){ToolBox.showToast(i18nText() ,'warning');return;}
   ToolBox.copyText(t, i18nText());
+}
+// ============ 导出望神标准 CSV ============
+var __SPIRIT_EN={
+  good:{n:'Full Spirit (De Shen)',t:'Adequate upright qi',d:'Vigorous spirit, bright eyes, lustrous complexion, firm muscles, quick responses',m:'Essence and qi are sufficient and the spirit is flourishing. Upright qi is intact, organ function not declined; the condition is mild and the prognosis is good.'},
+  less:{n:'Diminished Spirit (Shao Shen)',t:'Insufficient upright qi',d:'Listless spirit, dull eyes with little light, pale lusterless complexion, soft muscles, slow movements',m:'Mild insufficiency of essence and qi, also called "insufficient spirit qi". Upright qi is deficient but not severely depleted; common in deficiency patterns or convalescence, improvable with treatment.'},
+  lost:{n:'Lost Spirit (Shi Shen)',t:'Severe damage to upright qi',d:'Dull spirit, clouded eyes, lusterless complexion, emaciated body, delayed responses',m:'Essence and qi are greatly depleted and the spirit has declined. Upright qi is severely damaged and organ function failing; the condition is serious with poor prognosis, seen in late-stage or chronic consumptive disease.'},
+  fake:{n:'False Spirit (Jia Shen)',t:'Terminal false recovery',d:'Sudden apparent improvement after chronic illness, desire to eat and get up, malar flush like makeup',m:'Essence and qi are about to be exhausted, yin fails to constrain yang and deficient yang floats outward. Known as "final radiance" or "the last flare of a dying lamp"; a sign of critical illness with extremely poor prognosis. Must be distinguished from genuine improvement.'}
+};
+function __spiritRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __spiritExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#spiritHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  spirits.forEach(function(s){
+    var e=__SPIRIT_EN[s.id]||{};
+    tbody.appendChild(__spiritRow([
+      en?(e.n||s.name):s.name,
+      en?(e.t||s.tag):s.tag,
+      en?(e.d||s.desc):s.desc,
+      en?(e.m||s.meaning):s.meaning
+    ]));
+  });
+  TBKit.util.exportTable('#spiritHidden', en?'spirit-observation-standards.csv':'望神辨识标准.csv');
 }
 renderObs();
 renderSpirits();

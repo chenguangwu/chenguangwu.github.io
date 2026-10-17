@@ -135,11 +135,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="simulate()">模拟传变</button>
       <button type="button" class="btn" onclick="showDetail()">查看详情</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__wqyxExport()">⬇️ 导出四层辨证 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);text-align:center;">点击上方层次查看该阶段证候，或点击「模拟传变」查看传变路径</p>
     </div>
+    <table id="wqyxHidden" style="display:none;"><thead><tr><th>Level</th><th>Depth</th><th>Treatment</th><th>Representative Formula</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       💡 传变规律：卫→气→营→血为顺传（由浅入深）；卫→营/血为逆传（心包），病情凶险。叶天士："在卫汗之可也，到气才可清气，入营犹可透热转气，入血就恐耗血动血，直须凉血散血。"
@@ -293,6 +295,35 @@ function copyResult(){
   var t=document.getElementById('result').innerText;
   if(!t||t.indexOf('点击')===0){ToolBox.showToast(i18nText() ,'warning');return;}
   ToolBox.copyText(t, i18nText());
+}
+// ============ 导出卫气营血四层辨证 CSV ============
+var __WQYX_EN={
+  wei:{n:'Wei (Defensive) Level Syndrome',d:'Exterior · Most superficial',t:'Release the exterior with cool-acrid herbs, vent the wei-level pathogen',f:'Yinqiao Powder, Sangju Decoction'},
+  qi:{n:'Qi Level Syndrome',d:'Interior · Relatively superficial',t:'Clear qi-level heat and generate fluids to relieve thirst',f:'Baihu Tang, Ma Xing Shi Gan Tang, Chengqi-type formulas'},
+  ying:{n:'Ying (Nutrient) Level Syndrome',d:'Relatively deep',t:'Clear the ying level, detoxify, and vent heat back to the qi level',f:'Qingying Tang'},
+  xue:{n:'Xue (Blood) Level Syndrome',d:'Deepest',t:'Cool the blood and disperse stasis, clear heat and detoxify',f:'Xijiao Dihuang Tang (water buffalo horn substitutes rhinoceros horn)'}
+};
+function __wqyxRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __wqyxExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#wqyxHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  levels.forEach(function(l){
+    var e=__WQYX_EN[l.id]||{};
+    tbody.appendChild(__wqyxRow([
+      en?(e.n||l.name):l.name,
+      en?(e.d||l.depth):l.depth,
+      en?(e.t||l.treat):l.treat,
+      en?(e.f||l.formula):l.formula
+    ]));
+  });
+  TBKit.util.exportTable('#wqyxHidden', en?'wei-qi-ying-xue-levels.csv':'卫气营血四层辨证.csv');
 }
 renderLevels();
 </script>
