@@ -202,7 +202,12 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="copyAll()">📋 复制全部</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="window.__pressureExport()">⬇️ 导出压力换算 CSV</button>
 </div>
+<table id="pressureHidden" style="display:none">
+<thead><tr><th>Unit</th><th>Value</th></tr></thead>
+<tbody></tbody>
+</table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -499,6 +504,25 @@ function resetInput(){
   document.getElementById('val').value=1;
   document.getElementById('from').value='kPa';
   convert();
+}
+
+function __pressureExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#pressureHidden tbody');
+  tbody.innerHTML='';
+  function _row(a,b){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=a;
+    var td2=document.createElement('td');td2.textContent=b;
+    tr.appendChild(td1);tr.appendChild(td2);
+    tbody.appendChild(tr);
+  }
+  if(!lastResult){ToolBox.toast(en?'Please convert first':'请先换算');return;}
+  Object.keys(units).forEach(function(k){
+    _row(units[k].short, fmtNum(lastResult.results[k]));
+  });
+  TBKit.util.exportTable('#pressureHidden', en?'pressure-conversion.csv':'压力换算.csv');
 }
 
 init();

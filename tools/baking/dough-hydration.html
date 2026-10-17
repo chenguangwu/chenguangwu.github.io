@@ -151,7 +151,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__doughExport()">⬇️ 导出面团含水量 CSV</button>
     </div>
+<table id="doughHidden" style="display:none">
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody></tbody>
+</table>
   </div>
 
   <div class="card">
@@ -255,12 +260,12 @@ function calc(){
 }
 
 function getHydInfo(h){
-  if(h<56)return{grade:'极低含水量',texture:'紧实干硬，难以揉制',use:'适合贝果、椒盐脆饼',bg:'rgba(239,68,68,0.1)',color:'#DC2626'};
-  if(h<61)return{grade:'低含水量',texture:'较紧实，略有弹性',use:'适合意大利面包、甜面包',bg:'rgba(245,158,11,0.1)',color:'#D97706'};
-  if(h<66)return{grade:'标准含水量',texture:'柔软适中，易于操作',use:'适合基础白面包、餐包',bg:'rgba(16,185,129,0.1)',color:'#059669'};
-  if(h<73)return{grade:'较高含水量',texture:'柔软偏湿，需揉面技巧',use:'适合吐司、法棍、酸面团',bg:'rgba(59,130,246,0.1)',color:'#2563EB'};
-  if(h<81)return{grade:'高含水量',texture:'湿黏，需拉伸折叠',use:'适合恰巴塔、佛卡夏',bg:'rgba(124,58,237,0.1)',color:'#7C3AED'};
-  return{grade:'极高含水量',texture:'极湿软，近乎面糊',use:'适合高含水量酸面团',bg:'rgba(255,107,53,0.1)',color:'#FF6B35'};
+  if(h<56)return{grade:'极低含水量',gradeEn:'Very Low',texture:'紧实干硬，难以揉制',use:'适合贝果、椒盐脆饼',bg:'rgba(239,68,68,0.1)',color:'#DC2626'};
+  if(h<61)return{grade:'低含水量',gradeEn:'Low',texture:'较紧实，略有弹性',use:'适合意大利面包、甜面包',bg:'rgba(245,158,11,0.1)',color:'#D97706'};
+  if(h<66)return{grade:'标准含水量',gradeEn:'Standard',texture:'柔软适中，易于操作',use:'适合基础白面包、餐包',bg:'rgba(16,185,129,0.1)',color:'#059669'};
+  if(h<73)return{grade:'较高含水量',gradeEn:'High',texture:'柔软偏湿，需揉面技巧',use:'适合吐司、法棍、酸面团',bg:'rgba(59,130,246,0.1)',color:'#2563EB'};
+  if(h<81)return{grade:'高含水量',gradeEn:'Very High',texture:'湿黏，需拉伸折叠',use:'适合恰巴塔、佛卡夏',bg:'rgba(124,58,237,0.1)',color:'#7C3AED'};
+  return{grade:'极高含水量',gradeEn:'Extremely High',texture:'极湿软，近乎面糊',use:'适合高含水量酸面团',bg:'rgba(255,107,53,0.1)',color:'#FF6B35'};
 }
 
 function copyResult(){
@@ -269,6 +274,36 @@ function copyResult(){
   var hyd=parseFloat(water)/parseFloat(flour)*100;
   var info=getHydInfo(hyd);
   ToolBox.copyText('面粉 '+flour+'g，水 '+water+'g，含水量 '+fmtNum(hyd)+'% ('+info.grade+')');
+}
+
+function __doughExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#doughHidden tbody');
+  tbody.innerHTML='';
+  function _row(a,b){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=a;
+    var td2=document.createElement('td');td2.textContent=b;
+    tr.appendChild(td1);tr.appendChild(td2);
+    tbody.appendChild(tr);
+  }
+  var flour=document.getElementById('flour').value;
+  var water=document.getElementById('water').value;
+  var hyd=parseFloat(water)/parseFloat(flour)*100;
+  var info=getHydInfo(hyd);
+  if(en){
+    _row('Flour (g)', flour);
+    _row('Water (g)', water);
+    _row('Hydration (%)', fmtNum(hyd)+'%');
+    _row('Grade', info.gradeEn);
+  }else{
+    _row('面粉重量 (g)', flour);
+    _row('水重量 (g)', water);
+    _row('含水量 (%)', fmtNum(hyd)+'%');
+    _row('等级', info.grade);
+  }
+  TBKit.util.exportTable('#doughHidden', en?'dough-hydration.csv':'面团含水量.csv');
 }
 
 calc();

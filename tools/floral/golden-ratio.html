@@ -164,6 +164,13 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="range-display" id="rangeDisplay"></div>
     <div class="viz-box" id="vizBox"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__goldenExport()">⬇️ 导出花艺黄金比例 CSV</button>
+    </div>
+<table id="goldenHidden" style="display:none">
+<thead><tr><th>Field</th><th>Value</th></tr></thead>
+<tbody></tbody>
+</table>
   </div>
 
   <div class="card">
@@ -233,10 +240,10 @@ s.parentNode.insertBefore(el, s);
 <script>
 var currentStyle='triangle';
 var STYLE_CONFIG={
-  triangle:{name:'三角形',min:1.5,max:1.5,ideal:1.5},
-  round:{name:'圆形/半球',min:1.5,max:2.0,ideal:1.75},
-  lshape:{name:'L型/不对称',min:2.0,max:2.5,ideal:2.25},
-  cascade:{name:'瀑布型',min:1.0,max:1.5,ideal:1.25}
+  triangle:{name:'三角形',nameEn:'Triangle',min:1.5,max:1.5,ideal:1.5},
+  round:{name:'圆形/半球',nameEn:'Round/Hemisphere',min:1.5,max:2.0,ideal:1.75},
+  lshape:{name:'L型/不对称',nameEn:'L-shape/Asymmetric',min:2.0,max:2.5,ideal:2.25},
+  cascade:{name:'瀑布型',nameEn:'Cascade',min:1.0,max:1.5,ideal:1.25}
 };
 
 function fmtNum(n){
@@ -303,6 +310,42 @@ function renderViz(ch,cw,fh,cfg){
   html+='</svg>';
   html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">'+cfg.name+' · 总高约 '+fmtNum(fh+ch)+'cm（花艺'+fmtNum(fh)+'cm + 花器'+fmtNum(ch)+'cm）</p>';
   const __g8=html;document.getElementById('vizBox').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+}
+
+function __goldenExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#goldenHidden tbody');
+  tbody.innerHTML='';
+  function _row(a,b){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=a;
+    var td2=document.createElement('td');td2.textContent=b;
+    tr.appendChild(td1);tr.appendChild(td2);
+    tbody.appendChild(tr);
+  }
+  var containerH=parseFloat(document.getElementById('containerH').value);
+  var containerW=parseFloat(document.getElementById('containerW').value);
+  var cfg=STYLE_CONFIG[currentStyle];
+  var idealH=containerH*cfg.ideal;
+  var minH=containerH*cfg.min;
+  var maxH=containerH*cfg.max;
+  if(en){
+    _row('Container Height (cm)', fmtNum(containerH));
+    _row('Container Width (cm)', fmtNum(containerW));
+    _row('Style', cfg.nameEn);
+    _row('Ideal Height (cm)', fmtNum(idealH));
+    _row('Min Height (cm)', fmtNum(minH));
+    _row('Max Height (cm)', fmtNum(maxH));
+  }else{
+    _row('花器高度 (cm)', fmtNum(containerH));
+    _row('花器直径 (cm)', fmtNum(containerW));
+    _row('造型', cfg.name);
+    _row('理想高度 (cm)', fmtNum(idealH));
+    _row('最矮高度 (cm)', fmtNum(minH));
+    _row('最高高度 (cm)', fmtNum(maxH));
+  }
+  TBKit.util.exportTable('#goldenHidden', en?'floral-golden-ratio.csv':'花艺黄金比例.csv');
 }
 
 calc();
