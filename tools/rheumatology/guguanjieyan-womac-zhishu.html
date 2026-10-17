@@ -138,6 +138,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" type="button" onclick="calc()">🧮 计算</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
+      <button class="btn" type="button" onclick="window.__womacExport()">⬇️ 导出WOMAC结果 CSV</button>
     </div>
 
     <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;gap:6px;">
@@ -150,6 +151,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="result-box" id="res"></div>
     <div id="womacChart" style="margin-top:12px;"></div>
+    <table id="womacHidden" style="display:none"><thead><tr><th>Section</th><th>Item</th><th>Score</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box">💡 WOMAC 总分 0~96 分（Likert 5 级版，24 项 × 0~4 分），分数越高表示症状/功能障碍越重：轻度 &lt;25，中度 25~48，重度 49~72，极重度 ≥73。</div>
 
@@ -277,6 +279,32 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function () { calc(); });
 } else {
   setTimeout(function () { calc(); }, 0);
+}
+function __womacExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#womacHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var secs=[['A','pain',5],['B','stiff',2],['C','func',17]];
+  var totals={pain:0,stiff:0,func:0};
+  for(var s=0;s<secs.length;s++){
+    var label=secs[s][0],prefix=secs[s][1],cnt=secs[s][2];
+    for(var i=0;i<cnt;i++){
+      var inp=document.querySelector('input[name="'+prefix+'_'+i+'"]:checked');
+      var val=inp?parseInt(inp.value,10):'';
+      if(typeof val==='number')totals[prefix]+=val;
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+label+'</td><td>'+(label+(i+1))+'</td><td>'+(val===''?'—':val)+'</td>';
+      tbody.appendChild(tr);
+    }
+  }
+  var total=totals.pain+totals.stiff+totals.func;
+  var sevEn;
+  if(total<25)sevEn='Mild';else if(total<=48)sevEn='Moderate';else if(total<=72)sevEn='Severe';else sevEn='Extreme';
+  var tr2=document.createElement('tr');tr2.innerHTML='<td><b>Summary</b></td><td>Pain/Stiff/Func</td><td>'+totals.pain+'/'+totals.stiff+'/'+totals.func+'</td>';tbody.appendChild(tr2);
+  var tr3=document.createElement('tr');tr3.innerHTML='<td><b>Total</b></td><td>0-96</td><td>'+total+' ('+sevEn+')</td>';tbody.appendChild(tr3);
+  TBKit.util.exportTable('#womacHidden', en?'womac-index.csv':'WOMAC骨关节炎指数.csv');
 }
 </script>
 

@@ -207,8 +207,10 @@ s.parentNode.insertBefore(el, s);
     <button type="button" class="btn primary" onclick="calc()">查看结果</button>
     <button type="button" class="btn" onclick="pReset()">重新测试</button>
     <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+    <button type="button" class="btn" onclick="window.__sasExport()">⬇️ 导出SAS结果 CSV</button>
   </div>
   <div class="result-box" id="res"></div>
+  <table id="sasHidden" style="display:none"><thead><tr><th>Question</th><th>Chosen</th><th>Scored</th><th>Option</th></tr></thead><tbody></tbody></table>
 </div>
 
 
@@ -300,6 +302,28 @@ resEl.setAttribute('data-copy-value',copy);}
 function copyResult(){var e=pEl('res');if(!e)return;var t=e.getAttribute('data-copy-value')||e.textContent;if(window.ToolBox&&ToolBox.copyText){ToolBox.copyText(t,'tool.copy_ok');}}
 document.addEventListener('keydown',function(ev){if(!ev||!ev.key)return;var tag=(ev.target&&ev.target.tagName)?String(ev.target.tagName).toLowerCase():'';if(tag==='input'||tag==='textarea')return;if(ev.key==='ArrowLeft')pGo(-1);else if(ev.key==='ArrowRight')pGo(1);else if(ev.key>='1'&&ev.key<='4')pPick(SAS_SCALE[parseInt(ev.key,10)-1].v);});
 pLoad();SAS_CUR=pNextUn();if(SAS_CUR>=SAS_QS.length)SAS_CUR=0;pRender();if(pAns()===SAS_QS.length)calc();
+function __sasExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#sasHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  for(var i=0;i<SAS_QS.length;i++){if(SAS_ANS[i]===null||SAS_ANS[i]===undefined){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please answer all questions first':'请先答完全部题目','warn');return;}}
+  var SCALE_EN={'很少':'Rarely','有时':'Sometimes','较多':'Often','总在':'Most of the time'};
+  var G_EN={'正常（无明显焦虑）':'Normal (no significant anxiety)','轻度焦虑':'Mild anxiety','中度焦虑':'Moderate anxiety','重度焦虑':'Severe anxiety'};
+  var raw=0;
+  for(var i=0;i<SAS_QS.length;i++){
+    var v=SAS_ANS[i];var sc=SAS_REV[i]?(5-v):v;raw+=sc;
+    var opt=SAS_SCALE[v-1]?SAS_SCALE[v-1].t:'';
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>Q'+(i+1)+'</td><td>'+v+'</td><td>'+sc+'</td><td>'+(en?(SCALE_EN[opt]||opt):opt)+'</td>';
+    tbody.appendChild(tr);
+  }
+  var std=Math.round(raw*1.25);
+  var g;if(std>=70)g='重度焦虑';else if(std>=60)g='中度焦虑';else if(std>=50)g='轻度焦虑';else g='正常（无明显焦虑）';
+  var tr2=document.createElement('tr');tr2.innerHTML='<td><b>Summary</b></td><td>'+raw+'</td><td>'+std+'</td><td>'+(en?(G_EN[g]||g):g)+'</td>';tbody.appendChild(tr2);
+  TBKit.util.exportTable('#sasHidden', en?'sas-assessment.csv':'SAS焦虑自评.csv');
+}
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->
