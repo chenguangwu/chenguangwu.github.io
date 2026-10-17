@@ -140,7 +140,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-bottom:12px;">
       <button type="button" class="btn primary" onclick="openAddVeh()">➕ 添加车辆</button>
       <button type="button" class="btn" onclick="openAddWiper()">🔧 添加雨刷记录</button>
+      <button type="button" class="btn" onclick="window.__wiperExport()">⬇️ 导出雨刷台账 CSV</button>
     </div>
+    <table id="wiperHidden" style="display:none;"><thead><tr><th>Vehicle</th><th>Frequency</th><th>Position</th><th>Brand</th><th>Replace Date</th><th>Months Used</th><th>Months Left</th><th>Used %</th><th>Status</th></tr></thead><tbody></tbody></table>
 
     <div id="vehForm" style="display:none;">
 
@@ -362,6 +364,23 @@ function calcWiper(w,freq){
   return {cycleMonths,monthsPassed,remainMonths,remainDays,usedPct,status,statusClass,statusText,color};
 }
 
+function __wiperExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!vehicles||!vehicles.length){ToolBox.showToast(en?'No vehicle records':'暂无车辆记录');return;}
+  var tb=document.querySelector('#wiperHidden tbody');
+  tb.innerHTML='';
+  vehicles.forEach(function(v){
+    (v.wipers||[]).forEach(function(w){
+      var r=calcWiper(w,v.freq);
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+ToolBox.escHtml(v.name)+'</td><td>'+FREQ[v.freq].name+'</td><td>'+POS_NAMES[w.pos]+'</td><td>'+ToolBox.escHtml(w.brand)+'</td><td>'+w.date+'</td><td>'+r.monthsPassed+'</td><td>'+r.remainMonths+'</td><td>'+Math.round(r.usedPct)+'</td><td>'+r.statusText+'</td>';
+      tb.appendChild(tr);
+    });
+  });
+  if(!tb.children.length){ToolBox.showToast(en?'No wiper records':'暂无雨刷记录');return;}
+  TBKit.util.exportTable('#wiperHidden',en?'wiper-tracker.csv':'雨刷更换台账.csv');
+}
 function render(){
   const tabs=document.getElementById('vehTabs');
   const area=document.getElementById('resultArea');

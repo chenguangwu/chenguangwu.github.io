@@ -162,7 +162,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calcKPI()">计算 KPI</button>
       <button type="button" class="btn" onclick="savePeriod()">保存本期数据</button>
       <button type="button" class="btn danger" onclick="clearHistory()">清空历史</button>
+      <button type="button" class="btn" onclick="window.__kpiExport()">⬇️ 导出KPI报表 CSV</button>
     </div>
+    <table id="kpiHidden" style="display:none;"><thead><tr><th>KPI</th><th>Value</th><th>Unit</th><th>Green Target</th><th>Amber Threshold</th><th>Status</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card" id="scorecardCard" style="display:none;">
@@ -277,6 +279,40 @@ function getStatusText(key, light) {
   return '需改进';
 }
 
+function __kpiExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var totalOrders=parseInt(document.getElementById('totalOrders').value)||0;
+  var onTimeOrders=parseInt(document.getElementById('onTimeOrders').value)||0;
+  var defects=parseInt(document.getElementById('defects').value)||0;
+  var orderCycle=parseFloat(document.getElementById('orderCycle').value)||0;
+  var invTurns=parseFloat(document.getElementById('invTurns').value)||0;
+  var payableDays=parseFloat(document.getElementById('payableDays').value)||0;
+  var receivableDays=parseFloat(document.getElementById('receivableDays').value)||0;
+  if(totalOrders<=0||onTimeOrders>totalOrders){ToolBox.showToast(en?'Please enter valid order counts':'请输入有效的订单数量');return;}
+  var fulfillment=(onTimeOrders/totalOrders)*100;
+  var onTime=(onTimeOrders/totalOrders)*100;
+  var defect=(defects/totalOrders)*100;
+  var invDays=invTurns>0?365/invTurns:0;
+  var cashCycle=invDays+receivableDays-payableDays;
+  var kpis={fulfillment:fulfillment,onTime:onTime,defect:defect,invTurnover:invTurns,invDays:invDays,cashCycle:cashCycle};
+  var tb=document.querySelector('#kpiHidden tbody');
+  tb.innerHTML='';
+  Object.keys(kpis).forEach(function(key){
+    var val=kpis[key];
+    var b=KPI_BENCHMARKS[key];
+    var light=getLight(key,val);
+    var greenDisp=b.higherBetter?('>='+b.green+b.unit):('<='+b.green+b.unit);
+    var amberDisp=b.higherBetter?('>='+b.amber+b.unit):('<='+b.amber+b.unit);
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+b.name+'</td><td>'+val.toFixed(1)+'</td><td>'+b.unit+'</td><td>'+greenDisp+'</td><td>'+amberDisp+'</td><td>'+getStatusText(key,light)+'</td>';
+    tb.appendChild(tr);
+  });
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td>'+(en?'Total orders':'总订单数')+'</td><td>'+totalOrders+'</td><td>orders</td><td>-</td><td>-</td><td>'+(en?'On-time '+onTimeOrders:'准时 '+onTimeOrders)+'</td>';
+  tb.appendChild(tr);
+  TBKit.util.exportTable('#kpiHidden',en?'supply-chain-kpi.csv':'供应链KPI报表.csv');
+}
 function calcKPI() {
   var totalOrders = parseInt(document.getElementById('totalOrders').value) || 0;
   var onTimeOrders = parseInt(document.getElementById('onTimeOrders').value) || 0;

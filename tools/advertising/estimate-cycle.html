@@ -145,7 +145,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calcLTV()">计算 LTV</button>
       <button type="button" class="btn" onclick="saveParams()">保存参数</button>
       <button type="button" class="btn" onclick="loadParams()">加载参数</button>
+      <button type="button" class="btn" onclick="window.__ltvExport()">⬇️ 导出LTV明细 CSV</button>
     </div>
+    <table id="ltvHidden" style="display:none;"><thead><tr><th>Item</th><th>Value</th><th>Unit</th><th>Note</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card" id="resultCard" style="display:none;">
@@ -431,6 +433,48 @@ function renderSensitivity(arpu, churn, margin, cac) {
   const __h5=html;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('sensBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sensBox').innerHTML=__h5;
 }
 
+function __ltvExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var arpu=parseFloat(document.getElementById('arpu').value)||0;
+  var churn=parseFloat(document.getElementById('churn').value)||0;
+  var margin=parseFloat(document.getElementById('margin').value)||0;
+  var cac=parseFloat(document.getElementById('cac').value)||0;
+  if(arpu<=0||churn<=0||cac<=0){ToolBox.showToast(en?'Please enter valid ARPU, churn and CAC':'请输入有效的 ARPU、流失率与 CAC');return;}
+  var churnRate=churn/100,marginRate=margin/100;
+  var lifetime=1/churnRate;
+  var monthlyGrossProfit=arpu*marginRate;
+  var ltv=monthlyGrossProfit/churnRate;
+  var ratio=cac>0?ltv/cac:0;
+  var paybackMonths=monthlyGrossProfit>0?cac/monthlyGrossProfit:Infinity;
+  var tb=document.querySelector('#ltvHidden tbody');
+  tb.innerHTML='';
+  function addRow(item,val,unit,note){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+item+'</td><td>'+val+'</td><td>'+unit+'</td><td>'+note+'</td>';
+    tb.appendChild(tr);
+  }
+  addRow(en?'ARPU (monthly)':'ARPU 月均客单收入',arpu,'CNY','-');
+  addRow(en?'Churn rate (monthly)':'月流失率',churn,'%','-');
+  addRow(en?'Gross margin':'毛利率',margin,'%','-');
+  addRow(en?'CAC':'CAC 获客成本',cac,'CNY','-');
+  addRow(en?'Avg lifetime':'平均用户生命周期',lifetime.toFixed(1),'months','= 1 / churn');
+  addRow(en?'Monthly gross profit':'月均毛利贡献',monthlyGrossProfit.toFixed(2),'CNY','ARPU x margin');
+  addRow(en?'LTV':'LTV 用户生命周期价值',ltv.toFixed(2),'CNY','grossProfit / churn');
+  addRow(en?'LTV:CAC ratio':'LTV:CAC 比率',ratio.toFixed(2),':1',ratio>=3?(en?'Healthy':'健康'):(ratio>=1?(en?'Needs improvement':'需优化'):(en?'Loss-making':'亏损')));
+  addRow(en?'Payback period':'回本周期',isFinite(paybackMonths)?paybackMonths.toFixed(1):'N/A','months','CAC / monthlyGrossProfit');
+  var months=Math.min(Math.ceil(Math.max(lifetime,cac/monthlyGrossProfit)*1.5),36);
+  if(months<6)months=6;
+  var cumLTV=0;
+  for(var m=0;m<=months;m++){
+    if(m>0){
+      var survival=Math.pow(1-churnRate,m-1);
+      cumLTV+=arpu*marginRate*survival;
+    }
+    addRow((en?'Month ':'第 ')+m+(en?'':' 月'),m===0?'0.00':cumLTV.toFixed(2),'CNY',(en?'Cumulative gross profit':'累计毛利'));
+  }
+  TBKit.util.exportTable('#ltvHidden',en?'ltv-estimate.csv':'LTV估算明细.csv');
+}
 calcLTV();
 </script>
 
