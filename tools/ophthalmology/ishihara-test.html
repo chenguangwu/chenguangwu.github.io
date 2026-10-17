@@ -132,6 +132,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn" onclick="regenPlates()">🔄 重新生成</button>
       <button type="button" class="btn primary" onclick="score()">✅ 评分</button>
+      <button type="button" class="btn" onclick="window.__ishExport()">⬇️ 导出色觉结果 CSV</button>
     </div>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见结果预设：</span>
@@ -144,6 +145,7 @@ s.parentNode.insertBefore(el, s);
     <div class="plate-grid" id="plates"></div>
 
     <div class="result-box" id="result" style="margin-top:16px;"></div>
+    <table id="ishHidden" style="display:none;"><thead><tr><th>Plate</th><th>Expected</th><th>Your Answer</th><th>Result</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -365,6 +367,35 @@ function score(){
     (correct<5?'<p style="color:var(--text-light);">建议到眼科进行标准 Ishihara 38 版或 anomaloscope 检查。</p>':'');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('result').innerHTML=__h2;
   ToolBox.showToast('评分完成：'+correct+'/'+total);
 }
+window.__ishExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var tbody=document.querySelector('#ishHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  var correct=0;
+  PLATES.forEach(function(p,i){
+    var a=answers[i];
+    var has=(a!==null&&a!==undefined&&a!=='none'&&String(a).trim()!=='');
+    var hit=has&&String(a)===String(p.digit);
+    if(hit)correct++;
+    var res=hit?(en?'Correct':'正确'):(has?(en?'Incorrect':'错误'):(en?'No answer':'未作答'));
+    var tr=document.createElement('tr');
+    var cells=[String(i+1),String(p.digit),has?String(a):(en?'—':'—'),res];
+    cells.forEach(function(v){
+      var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  var grade=correct>=5?(en?'Normal colour vision (screening)':'色觉正常(筛查层面)'):(correct===4?(en?'Borderline, retest advised':'临界，建议复查'):(en?'Suggests red-green deficiency':'提示红绿色觉异常'));
+  var tr=document.createElement('tr');
+  var total=document.createElement('td');total.textContent=en?'Total':'合计';
+  var exp=document.createElement('td');exp.textContent=String(PLATES.length);
+  var ans=document.createElement('td');ans.textContent=String(correct);
+  var rst=document.createElement('td');rst.textContent=grade;
+  tr.appendChild(total);tr.appendChild(exp);tr.appendChild(ans);tr.appendChild(rst);
+  tbody.appendChild(tr);
+  TBKit.util.exportTable('#ishHidden', en?'ishihara-color-vision-result.csv':'色觉测试结果.csv');
+};
 buildPlates();
 document.addEventListener('DOMContentLoaded',function(){
   var h=document.querySelector('.tool-intro-header');

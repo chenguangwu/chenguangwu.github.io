@@ -176,9 +176,11 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">生成评估</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__vcExport()">⬇️ 导出声带评估 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <table id="vcHidden" style="display:none;"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">声带麻痹分级参考</h3>
     <table>
@@ -300,6 +302,68 @@ function calc(){
 function copyResult(){
   ToolBox.copyText('喉镜声带评估：'+sel.side+'侧, 活动度='+sel.mobility+', 位置='+sel.position+', 声门闭合='+sel.closure, '结果已复制');
 }
+
+var __VC_OPT_EN={
+  '正常':'Normal','活动减弱':'Reduced','固定不动':'Fixed',
+  '左侧':'Left','右侧':'Right','双侧':'Bilateral',
+  '正中位':'Midline','旁正中位':'Paramedian','中间位':'Intermediate',
+  '完全闭合':'Complete','不完全':'Incomplete','无法闭合':'Cannot close',
+  '活动正常':'Normal mobility','固定':'Fixed'
+};
+window.__vcExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var diagZh,diagEn,gradeZh,gradeEn,advZh,advEn;
+  if(sel.mobility==='正常'){
+    diagZh='声带运动正常';diagEn='Normal vocal fold movement';
+    gradeZh='正常';gradeEn='Normal';
+    advZh='声带运动功能正常，无需特殊处理';advEn='Vocal fold mobility is normal; no specific treatment required.';
+  }else if(sel.mobility==='活动减弱'){
+    diagZh='声带不全麻痹（I度）';diagEn='Incomplete vocal fold paralysis (Grade I)';
+    gradeZh='I度';gradeEn='Grade I';
+    advZh='声带活动减弱，可能为喉返神经不全损伤。建议随访观察，部分可自行恢复；持续不恢复需检查病因（颈部超声、胸部CT等）';
+    advEn='Reduced vocal fold mobility, possibly incomplete recurrent laryngeal nerve injury. Follow-up observation is advised; some cases recover spontaneously. Persistent cases require etiological workup (neck ultrasound, chest CT).';
+  }else{
+    if(sel.position==='中间位'){
+      diagZh='声带完全麻痹（III度）';diagEn='Complete vocal fold paralysis (Grade III)';
+      gradeZh='III度';gradeEn='Grade III';
+      advZh='声带固定于中间位，提示喉上神经及喉返神经同时损伤（迷走神经损伤）。需排查颅底、颈部病变';
+      advEn='Vocal fold fixed in the intermediate position, suggesting combined superior and recurrent laryngeal nerve injury (vagal nerve lesion). Skull base and neck pathology should be excluded.';
+    }else{
+      diagZh='声带麻痹（II度）';diagEn='Vocal fold paralysis (Grade II)';
+      gradeZh='II度';gradeEn='Grade II';
+      advZh='声带固定于旁正中位，提示喉返神经损伤。需排查甲状腺手术、颈部肿瘤、心血管病变等病因';
+      advEn='Vocal fold fixed in the paramedian position, suggesting recurrent laryngeal nerve injury. Investigate thyroid surgery, neck tumours and cardiovascular causes.';
+    }
+    if(sel.side==='双侧'){
+      advZh+='。双侧声带麻痹可致喉梗阻及呼吸困难，需评估气道安全性，必要时行气管切开';
+      advEn+=' Bilateral vocal fold paralysis may cause airway obstruction and dyspnoea; airway safety must be assessed and tracheotomy considered if necessary.';
+    }
+  }
+  if(sel.closure==='无法闭合'||sel.closure==='不完全'){
+    advZh+='。声门闭合不全可致发声嘶哑、误吸，需言语训练或手术干预（声带内移术等）';
+    advEn+=' Incomplete glottic closure may cause hoarseness and aspiration; speech therapy or surgical intervention (e.g. medialisation) may be needed.';
+  }
+  var tbody=document.querySelector('#vcHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  var rows=[
+    [en?'Affected Side':'患侧', en?(__VC_OPT_EN[sel.side]||sel.side):sel.side],
+    [en?'Mobility':'活动度', en?(__VC_OPT_EN[sel.mobility]||sel.mobility):sel.mobility],
+    [en?'Vocal Fold Position':'声带位置', en?(__VC_OPT_EN[sel.position]||sel.position):sel.position],
+    [en?'Glottic Closure':'声门闭合', en?(__VC_OPT_EN[sel.closure]||sel.closure):sel.closure],
+    [en?'Arytenoid':'杓状软骨', en?(__VC_OPT_EN[sel.arytenoid]||sel.arytenoid):sel.arytenoid],
+    [en?'Grade':'分级', en?gradeEn:gradeZh],
+    [en?'Diagnosis':'诊断', en?diagEn:diagZh],
+    [en?'Clinical Advice':'临床建议', en?advEn:advZh]
+  ];
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=r[0];
+    var td2=document.createElement('td');td2.textContent=r[1];
+    tr.appendChild(td1);tr.appendChild(td2);tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#vcHidden', en?'vocal-cord-assessment.csv':'声带评估.csv');
+};
 
 calc();
 </script>

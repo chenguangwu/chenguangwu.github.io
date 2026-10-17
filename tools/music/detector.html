@@ -148,6 +148,10 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="res" style="display:none;"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <button type="button" class="btn" onclick="window.__tapExport()">⬇️ 导出打拍记录 CSV</button>
+    </div>
+    <table id="tapHidden" style="display:none;"><thead><tr><th>Tap</th><th>Interval (ms)</th><th>BPM</th></tr></thead><tbody></tbody></table>
   </div>
 
   <!-- 速度术语参考 -->
@@ -282,6 +286,26 @@ function copyResult(){
   var bpm=document.getElementById('bpmNum').textContent;
   ToolBox.copyText('BPM: '+bpm+' ('+getTempoName(+bpm)+')', i18nText('msg010'));
 }
+window.__tapExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!tapTimes||tapTimes.length<2){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'Tap at least twice to export':'至少打拍两次才能导出','info');
+    return;
+  }
+  var tbody=document.querySelector('#tapHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  for(var i=1;i<tapTimes.length;i++){
+    var iv=tapTimes[i]-tapTimes[i-1];
+    var tr=document.createElement('tr');
+    var cells=[String(i),String(Math.round(iv)),String(Math.round(60000/iv))];
+    cells.forEach(function(v){
+      var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  TBKit.util.exportTable('#tapHidden', en?'bpm-tap-records.csv':'打拍记录.csv');
+};
 // 键盘空格键支持
 document.addEventListener('keydown',function(e){
   if(e.code==='Space' && document.activeElement.tagName!=='INPUT' && document.activeElement.tagName!=='TEXTAREA'){
