@@ -137,9 +137,12 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calcScore()">📊 评估结果</button>
+      <button type="button" class="btn" onclick="window.__twExport()">⬇️ 导出皮肤屏障自评明细 CSV</button>
       <button type="button" class="btn" onclick="resetQuiz()">🔄 重置</button>
     </div>
   </div>
+
+  <table id="twHidden" style="display:none"><thead><tr><th>No</th><th>Question</th><th>Answer</th><th>Score</th></tr></thead><tbody></tbody></table>
 
   <div class="card" id="resultCard" style="display:none;">
     <h2>📊 评估结果</h2>
@@ -311,6 +314,43 @@ function resetQuiz(){
   renderQuiz();
   document.getElementById('resultCard').style.display='none';
   ToolBox.showToast(i18nText('toast.reset'));
+}
+
+function __twExport(){
+  if(typeof TBKit==='undefined')return;
+  if(answers.some(function(a){return a===null;})){
+    ToolBox.showToast(i18nText('toast.msg730'),'warning');
+    return;
+  }
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#twHidden tbody');
+  tbody.innerHTML='';
+  function addRow(no,item,ans,score){
+    var tr=document.createElement('tr');
+    [no,item,ans,score].forEach(function(v){
+      var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  var totalScore=0;
+  questions.forEach(function(q,qi){
+    var opt=q.opts[answers[qi]];
+    totalScore+=opt.s;
+    addRow(qi+1, q.q, opt.t, opt.s);
+  });
+  var maxScore=questions.length*4;
+  var pct=totalScore/maxScore*100;
+  var level,advice;
+  if(totalScore<=12){level=en?'Healthy barrier':'屏障健康';advice=en?'Skin barrier is healthy with normal water retention. Keep current routine with sunscreen and basic moisturizing.':'皮肤屏障功能良好，锁水能力正常。继续保持当前的护肤习惯，注意防晒和基础保湿即可。';}
+  else if(totalScore<=20){level=en?'Mild loss':'轻度流失';advice=en?'Slight tendency of water loss. Strengthen moisturizing with ceramides/hyaluronic acid; avoid over-cleansing.':'皮肤有轻微的水分流失倾向。建议加强保湿，选择含神经酰胺、透明质酸的护肤品，避免过度清洁。';}
+  else if(totalScore<=26){level=en?'Moderate loss':'中度流失';advice=en?'Barrier damage is evident with elevated TEWL. Use repair products (squalane, panthenol), reduce exfoliation, add occlusive moisturizing.':'皮肤屏障受损较明显，TEWL偏高。建议使用修复型护肤品（含角鲨烷、泛醇），减少去角质频率，加强封闭性保湿。';}
+  else{level=en?'Severe loss':'重度流失';advice=en?'Barrier is severely damaged. Stop irritating products immediately, use medical repair cream, consult a dermatologist if needed.':'皮肤屏障严重受损，水分流失严重。建议立即停用刺激性产品，使用医用修复霜，必要时咨询皮肤科医生。';}
+  addRow('—', en?'Total Score':'总分', totalScore, '');
+  addRow('—', en?'Max Score':'满分', maxScore, '');
+  addRow('—', en?'Percentage':'得分率', pct.toFixed(1)+'%', '');
+  addRow('—', en?'Level':'流失程度', level, '');
+  addRow('—', en?'Advice':'护理建议', advice, '');
+  TBKit.util.exportTable('#twHidden', en?'skin-tewl-assessment.csv':'皮肤屏障自评明细.csv');
 }
 
 renderQuiz();
