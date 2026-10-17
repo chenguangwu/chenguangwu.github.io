@@ -121,9 +121,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="addRow()">+ 添加日程</button>
       <button type="button" class="btn" onclick="detect()">检测冲突</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
+      <button type="button" class="btn" onclick="window.__dtmExport()">⬇️ 导出日程 CSV</button>
     </div>
     <div id="rows"></div>
     <div class="result-box" id="res"></div>
+    <table id="dtmHidden" style="display:none;"><thead><tr><th>Meeting</th><th>Date or Weekday</th><th>Time</th><th>Status</th></tr></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -198,6 +200,36 @@ function detect(){
     html+='</tbody></table>';
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h1;
+}
+function __dtmExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var rows=Array.from(document.querySelectorAll('#rows .input-row'));
+  var evs=[];
+  rows.forEach(function(r){
+    var inputs=r.querySelectorAll('input,select');
+    var name=inputs[0].value.trim()||(en?'Untitled':'未命名会议');
+    var mode=inputs[1].value;
+    var date=inputs[2].value;
+    var wk=inputs[1].selectedIndex-1;
+    var st=inputs[3].value,en2=inputs[4].value;
+    if(!st||!en2)return;
+    var s=toMin(st),e=toMin(en2);
+    if(e<=s)return;
+    evs.push({name:name,key:mode==='date'?('d:'+date):('w:'+wk),label:mode==='date'?date:WEEK[wk],s:s,e:e,st:st,en:en2});
+  });
+  if(!evs.length){ToolBox.showToast(en?'No valid schedules to export':'暂无有效日程可导出','warning');return;}
+  var conflict={};
+  for(var i=0;i<evs.length;i++){
+    for(var j=i+1;j<evs.length;j++){
+      if(evs[i].key===evs[j].key && Math.max(evs[i].s,evs[j].s)<Math.min(evs[i].e,evs[j].e)){conflict[i]=true;conflict[j]=true;}
+    }
+  }
+  var data=evs.map(function(e,idx){
+    return [e.name, e.label, e.st+'-'+e.en, conflict[idx]?(en?'CONFLICT':'冲突'):(en?'OK':'正常')];
+  });
+  document.querySelector('#dtmHidden tbody').innerHTML=data.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#dtmHidden', en?'meeting-schedule.csv':'会议日程.csv');
 }
 function clearAll(){
   const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('rows').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('rows').innerHTML=__h2;

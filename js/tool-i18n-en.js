@@ -522,6 +522,7 @@ window.__TI18N_EN = {
     '⬇️ 导出跟踪记录 CSV':'⬇️ Export Tracking Records CSV',
     '⬇️ 导出 eGFR 评估 CSV':'⬇️ Export eGFR Assessment CSV',
     '⬇️ 导出控温记录 CSV':'⬇️ Export Temperature Log CSV',
+    '⬇️ 导出日程 CSV':'⬇️ Export Schedule CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 批次101 顺带修复 smt-stencil 既有未译 ——
