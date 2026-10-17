@@ -407,7 +407,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="generate()">✨ 生成方案</button>
       <button type="button" class="btn" id="regenBtn" onclick="generate()" disabled>🔄 重新生成</button>
       <button type="button" class="btn" id="copyBtn" onclick="copyPlan()" disabled>📋 复制方案</button>
+      <button type="button" class="btn" onclick="window.__stretchExport()">⬇️ 导出方案 CSV</button>
     </div>
+    <table id="stretchHidden" style="display:none;"><thead><tr><th>Step</th><th>Body Part</th><th>Name</th><th>Duration(s)</th><th>Instruction</th></tr></thead><tbody></tbody></table>
 
     <!-- 结果区域 -->
     <div class="result-box" id="result">
@@ -764,6 +766,19 @@ function copyPlan() {
   text += '由 ToolBox 拉伸动作生成器生成';
 
   ToolBox.copyText(text, i18nText('msg407'));
+}
+
+// ===== 导出方案 CSV =====
+function __stretchExport(){
+  if(typeof TBKit==='undefined')return;
+  if(!currentPlan || !currentPlan.length){ToolBox.showToast(TBKit.util.isEn()?'Please generate a routine first':'请先生成方案','warning');return;}
+  var rows=currentPlan.map(function(e,i){
+    return [String(i+1), e.part||'', e.name||'', String(e.seconds||0), e.desc||''];
+  });
+  var total=currentPlan.reduce(function(s,e){return s+(+e.seconds||0);},0);
+  rows.push(['Total','', String(currentPlan.length)+' actions', String(total), '']);
+  document.querySelector('#stretchHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#stretchHidden', TBKit.util.isEn()?'stretch-routine.csv':'拉伸方案.csv');
 }
 
 // ===== 工具函数 =====

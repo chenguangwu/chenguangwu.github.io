@@ -239,7 +239,9 @@ s.parentNode.insertBefore(el, s);
 <div class="toolbar" style="margin-top:16px;">
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="window.__batteryExport()">⬇️ 导出续航明细 CSV</button>
 </div>
+<table id="battHidden" style="display:none;"><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -484,6 +486,24 @@ function resetInput(){
   document.getElementById('volt').value=3.7;
   document.getElementById('eff').value='0.85';
   calc();
+}
+
+function __batteryExport(){
+  if(typeof TBKit==='undefined')return;
+  const capV=parseFloat(document.getElementById('cap').value),capU=document.getElementById('capUnit').value;
+  const currV=parseFloat(document.getElementById('curr').value),currU=document.getElementById('currUnit').value;
+  const volt=parseFloat(document.getElementById('volt').value);
+  const eff=parseFloat(document.getElementById('eff').value);
+  const en=TBKit.util.isEn();
+  if(!capV||!currV||!volt){ToolBox.toast(en?'Please calculate first':'请先计算');return;}
+  const cap=capV*parseFloat(capU),curr=currV*parseFloat(currU);
+  const hours=cap/curr*eff,power=volt*curr/1000,energy=cap*volt/1000;
+  const capLbl=capU==='1'?'mAh':'Ah',currLbl=currU==='1'?'mA':'A';
+  const rows=[['Capacity',cap+' '+capLbl],['Load Current',curr+' '+currLbl],['Voltage',volt+' V'],['Efficiency',Math.round(eff*100)+' %'],['Runtime',fmtTime(hours)],['Power',power.toFixed(2)+' W'],['Energy',energy.toFixed(2)+' Wh'],['Effective Capacity',Math.round(cap*eff)+' mAh']];
+  const pcts=[100,90,75,50,25,10,5];
+  pcts.forEach(p=>{rows.push([p+'% Used',fmtTime(hours*(100-p)/100)]);rows.push([p+'% Remaining',fmtTime(hours*p/100)]);});
+  document.querySelector('#battHidden tbody').innerHTML=rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('');
+  TBKit.util.exportTable('#battHidden', en?'battery-life.csv':'电池续航明细.csv');
 }
 
 calc();

@@ -128,8 +128,10 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">计算</button>
       <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="window.__iqExport()">⬇️ 导出分析 CSV</button>
     </div>
     <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0"></div>
+    <table id="iqrHidden" style="display:none;"><thead><tr><th>Metric</th><th>Value</th><th>Note</th></tr></thead><tbody></tbody></table>
     <div id="iqChart" role="img" aria-label="结果可视化"></div>
     <div id="iqDiff"></div>
     <div id="iqHist"></div>
@@ -253,6 +255,25 @@ function __iqPresets(){
         {label:'对称分布 10/30/50/70/90',labelEn:'Symmetric 10/30/50/70/90',values:{min_:10,q1:30,median_:50,q3:70,max_:90,data_count:50}},
         {label:'右偏分布 0/5/10/20/90',labelEn:'Right-skewed 0/5/10/20/90',values:{min_:0,q1:5,median_:10,q3:20,max_:90,data_count:80}}
     ],function(){ calc(); });
+}
+
+function __iqExport(){
+  if(typeof TBKit==='undefined')return;
+  var mn=__iqNum('min_'),q1=__iqNum('q1'),md=__iqNum('median_'),q3=__iqNum('q3'),mx=__iqNum('max_');
+  if(!isFinite(mn)||!isFinite(q1)||!isFinite(md)||!isFinite(q3)||!isFinite(mx)||q3<q1){ToolBox.toast(TBKit.util.isEn()?'Please enter valid values':'请输入有效数值');return;}
+  var iqr=q3-q1,loF=q1-1.5*iqr,hiF=q3+1.5*iqr,en=TBKit.util.isEn();
+  var rows=[
+    ['Min',mn.toFixed(4), mn<loF?(en?'Outlier (below lower fence)':'异常（低于下界）'):(en?'Within fence':'在界内')],
+    ['Q1',q1.toFixed(4), en?'25th percentile':'第 25 百分位'],
+    ['Median',md.toFixed(4), en?'50th percentile':'第 50 百分位'],
+    ['Q3',q3.toFixed(4), en?'75th percentile':'第 75 百分位'],
+    ['Max',mx.toFixed(4), mx>hiF?(en?'Outlier (above upper fence)':'异常（高于上界）'):(en?'Within fence':'在界内')],
+    ['IQR',iqr.toFixed(4), 'Q3 − Q1'],
+    ['Lower fence',loF.toFixed(4), 'Q1 − 1.5×IQR'],
+    ['Upper fence',hiF.toFixed(4), 'Q3 + 1.5×IQR']
+  ];
+  document.querySelector('#iqrHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#iqrHidden', en?'iqr.csv':'四分位距分析.csv');
 }
 
 var __tb_fn0 = calc;

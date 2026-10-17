@@ -180,8 +180,9 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
-    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">✅ 计算分级</button> <button type="button" class="btn" onclick="reset()">重置</button></div>
+    <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">✅ 计算分级</button> <button type="button" class="btn" onclick="reset()">重置</button> <button type="button" class="btn" onclick="window.__mgbExport()">⬇️ 导出分级明细 CSV</button></div>
     <div class="result-box" id="result" style="margin-top:12px;"></div>
+    <table id="mgbHidden" style="display:none;"><thead><tr><th>Item</th><th>Score</th></tr></thead><tbody></tbody></table>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见病例预设：</span>
       <button type="button" class="btn" onclick="applyMgbPreset('normal')">🟢 无/轻度</button>
@@ -340,6 +341,28 @@ function reset(){
     r.checked=r.value==='0';
   });
   $('result').innerHTML='';
+}
+
+function __mgbExport(){
+  if(typeof TBKit==='undefined')return;
+  var total=0,details=[];
+  ITEMS.forEach(function(item){
+    var r=document.querySelector('input[name="'+item.name+'"]:checked');
+    var v=r?parseInt(r.value):0;
+    total+=v;details.push([item.name,v]);
+  });
+  var en=TBKit.util.isEn(),grade,advice;
+  if(total<=3){grade=en?'None/Mild MGD':'无/轻度MGD';advice=en?'Warm compress + lid massage, regular follow-up':'热敷+睑板腺按摩，定期复查';}
+  else if(total<=7){grade=en?'Moderate MGD':'中度MGD';advice=en?'Warm compress + massage + artificial tears, lid hygiene':'热敷+按摩+人工泪液，注意睑缘清洁';}
+  else if(total<=11){grade=en?'Severe MGD':'重度MGD';advice=en?'Add anti-inflammatory (IPL/LipiFlow), consider gland probing':'加用抗炎药物(IPL/LipiFlow)，考虑腺体探通';}
+  else{grade=en?'Very Severe MGD':'极重度MGD';advice=en?'Comprehensive treatment, close follow-up':'综合治疗，密切随访，必要时手术干预';}
+  var rows=[];
+  details.forEach(function(d){rows.push([d[0],d[1]]);});
+  rows.push(['Total Score',total]);
+  rows.push(['Grade',grade]);
+  rows.push(['Advice',advice]);
+  document.querySelector('#mgbHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#mgbHidden', en?'meibomian-grading.csv':'睑板腺分级.csv');
 }
 
 document.addEventListener('DOMContentLoaded',function(){
