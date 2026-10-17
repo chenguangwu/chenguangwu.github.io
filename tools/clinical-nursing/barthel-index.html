@@ -149,7 +149,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="resetAll()">重置评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制评估结果</button>
+      <button type="button" class="btn" onclick="window.__biExport()">⬇️ 导出评分明细 CSV</button>
     </div>
+    <table id="biHidden" style="display:none"><thead><tr><th>Item</th><th>Option</th><th>Score</th><th>Max Score</th></tr></thead><tbody></tbody></table>
     <div class="info-box">
       <strong>Barthel指数分级标准：</strong><br>
       100分：完全自理 → 独立完成所有ADL<br>
@@ -279,6 +281,31 @@ function selectScore(key, val){
   scores[key] = val;
   renderItems();
   calc();
+}
+
+function __biExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#biHidden tbody');
+  tbody.innerHTML='';
+  var total=0, maxTotal=0;
+  items.forEach(function(it){
+    var val=scores[it.key]||0;
+    var opt=it.options.filter(function(o){return o.val===val;})[0]||{text:'',val:0};
+    var maxOpt=it.options.reduce(function(m,o){return Math.max(m,o.val);},0);
+    total+=val; maxTotal+=maxOpt;
+    var tr=document.createElement('tr');
+    [it.name, opt.text, val, maxOpt].forEach(function(v){
+      var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  var tr=document.createElement('tr');
+  [en?'Total':'总分', '', total, maxTotal].forEach(function(v){
+    var td=document.createElement('td'); td.textContent=v; td.style.fontWeight='600'; tr.appendChild(td);
+  });
+  tbody.appendChild(tr);
+  TBKit.util.exportTable('#biHidden', en?'barthel-index.csv':'Barthel指数评分明细.csv');
 }
 
 function calc(){

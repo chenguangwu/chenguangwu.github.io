@@ -147,7 +147,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="analyze()">分析舌象</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__tdExport()">⬇️ 导出舌象图谱 CSV</button>
     </div>
+    <table id="tdHidden" style="display:none"><thead><tr><th>Category</th><th>Name</th><th>Description</th><th>Nature</th><th>Detail</th></tr></thead><tbody></tbody></table>
 
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);text-align:center;">请在上方选择舌象特征后点击「分析舌象」</p>
@@ -259,6 +261,30 @@ var coatNatures=[
 
 var selected={color:'lightred',shape:'normal',motion:'flexible',coatColor:'white',coatNature:'thin'};
 var selShapes={},selMotions={},selCoats={};
+
+function __tdExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#tdHidden tbody');
+  tbody.innerHTML='';
+  var cats=[
+    {label:en?'Tongue Color':'舌色', arr:tongueColors},
+    {label:en?'Tongue Shape':'舌形', arr:tongueShapes},
+    {label:en?'Tongue Motion':'舌态', arr:tongueMotions},
+    {label:en?'Coat Color':'苔色', arr:coatColors},
+    {label:en?'Coat Nature':'苔质', arr:coatNatures}
+  ];
+  cats.forEach(function(c){
+    c.arr.forEach(function(o){
+      var tr=document.createElement('tr');
+      [c.label, o.name, o.desc, o.nature, o.detail].forEach(function(v){
+        var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  });
+  TBKit.util.exportTable('#tdHidden', en?'tongue-diagnosis-chart.csv':'舌象图谱.csv');
+}
 
 function renderSwatches(){
   var cc=document.getElementById('tongueColor');

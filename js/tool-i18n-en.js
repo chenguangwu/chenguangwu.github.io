@@ -493,6 +493,8 @@ window.__TI18N_EN = {
     '⬇️ 导出用药间隔 CSV':'⬇️ Export Pest Control Interval CSV',
     '⬇️ 导出修剪高度 CSV':'⬇️ Export Lawn Mowing Height CSV',
     '⬇️ 导出场景推荐 CSV':'⬇️ Export Driving Scene Recommendations CSV',
+    '⬇️ 导出残局谱 CSV':'⬇️ Export Endgame Collection CSV',
+    '⬇️ 导出舌象图谱 CSV':'⬇️ Export Tongue Diagnosis Chart CSV',
     '⬇️ 导出修剪时令 CSV':'⬇️ Export Pruning Calendar CSV',
     '⬇️ 导出开放度等级 CSV':'⬇️ Export Bloom Stages CSV',
     '男生·经典中文名': 'Male · Classic Chinese',

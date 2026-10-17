@@ -140,9 +140,14 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="tab-btn" onclick="switchTab('classic')">📜 经典残局</button>
     </div>
 
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__xeExport()">⬇️ 导出残局谱 CSV</button>
+    </div>
+
     <div id="tab-one" class="tab-content active"></div>
     <div id="tab-two" class="tab-content"></div>
     <div id="tab-classic" class="tab-content"></div>
+    <table id="xeHidden" style="display:none"><thead><tr><th>Type</th><th>Title</th><th>Description</th><th>Steps</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -234,6 +239,25 @@ var ENDGAMES={
     {title:'蚯蚓降龙',desc:'黑方小卒（蚯蚓）降服红方大车（龙），以弱胜强的经典。',steps:['黑卒3进1（进卒）','红车退守','黑逐步推进小卒','...卒过河后威力大增']}
   ]
 };
+
+function __xeExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#xeHidden tbody');
+  tbody.innerHTML='';
+  var typeMap={one:en?'One-move mate':'一步杀',two:en?'Two-move mate':'两步杀',classic:en?'Classic study':'经典残局'};
+  ['one','two','classic'].forEach(function(tab){
+    (ENDGAMES[tab]||[]).forEach(function(eg){
+      var tr=document.createElement('tr');
+      [typeMap[tab], eg.title, eg.desc, (eg.steps||[]).join(' / ')].forEach(function(v){
+        var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  });
+  TBKit.util.exportTable('#xeHidden', en?'xiangqi-endgames.csv':'象棋残局谱.csv');
+}
+
 function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach(function(b,i){var tabs=['one','two','classic'];b.classList.toggle('active',tabs[i]===tab);});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
