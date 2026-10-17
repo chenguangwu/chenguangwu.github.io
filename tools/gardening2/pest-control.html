@@ -138,7 +138,11 @@ s.parentNode.insertBefore(el, s);
   
 </div>
 
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__pcExport()">⬇️ 导出用药间隔 CSV</button>
+    </div>
     <div class="pest-grid" id="pestGrid"></div>
+    <table id="pcHidden" style="display:none"><thead><tr><th>Pest</th><th>Recommended Drug</th><th>Interval</th><th>Max Applications</th><th>Pre-harvest Interval</th><th>Safety Level</th><th>Tip</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -233,7 +237,23 @@ function render(){
     html+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5;">'+p.tip+'</p>';
     html+='</div>';
   });
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('pestGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pestGrid').innerHTML=__h0;
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('pestGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}  document.getElementById('pestGrid').innerHTML=__h0;
+}
+
+function __pcExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#pcHidden tbody');
+  tbody.innerHTML='';
+  var safetyMap={safe:en?'Short interval':'安全间隔短',caution:en?'Caution':'注意间隔期',warning:en?'Longer interval':'间隔期较长'};
+  PESTS.forEach(function(p){
+    var tr=document.createElement('tr');
+    [p.name, p.drug, p.interval, p.maxTimes, p.harvest, safetyMap[p.safety]||p.safety, p.tip].forEach(function(v){
+      var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#pcHidden', en?'pest-control-guide.csv':'病虫害用药间隔表.csv');
 }
 
 render();
