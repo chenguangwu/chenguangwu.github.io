@@ -181,6 +181,9 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin:10px 0;">
+      <button type="button" class="btn" onclick="window.__tiExport()">⬇️ 导出评分明细 CSV</button>
+    </div>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">ACR TI-RADS 评分与管理标准</h3>
     <table class="ref-table">
@@ -191,6 +194,7 @@ s.parentNode.insertBefore(el, s);
       <tr><td style="color:#ffc107;font-weight:600;">TR4</td><td>4-6</td><td>中度可疑</td><td>≥1.5cm FNA；1-1.5cm随访</td></tr>
       <tr><td style="color:#ff9800;font-weight:600;">TR5</td><td>≥7</td><td>高度可疑</td><td>≥1.0cm FNA；≥0.5cm考虑随访</td></tr>
     </table>
+    <table id="tiHidden" style="display:none"><thead><tr><th>Section</th><th>Item</th><th>Value</th><th>Extra</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>注意事项：</strong>TI-RADS为风险评估系统，不能替代病理诊断。FNA（细针穿刺活检）是确诊金标准。随访间隔通常为6-12个月，高危结节可缩短至3-6个月。
@@ -292,6 +296,47 @@ function calc(){
       '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">评分进度</div>' +
       '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%;"></div></div>' +
     '</div>';document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+
+function __tiExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#tiHidden tbody');
+  tbody.innerHTML='';
+  function addRow(sec,item,val,extra){
+    var tr=document.createElement('tr');
+    [sec,item,val,extra].forEach(function(v){
+      var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  var catNames={composition:['1. 成分 Composition','1. Composition'],echogenicity:['2. 回声 Echogenicity','2. Echogenicity'],shape:['3. 形态 Shape','3. Shape'],margin:['4. 边缘 Margin','4. Margin'],echogenic:['5. 强回声灶 Echogenic Foci','5. Echogenic Foci']};
+  ['composition','echogenicity','shape','margin','echogenic'].forEach(function(cat){
+    var btn=document.querySelector('.opt-btn.active[data-cat="'+cat+'"]');
+    addRow(en?'Feature':'评分特征', en?catNames[cat][1]:catNames[cat][0], btn?btn.textContent:'', selections[cat]+' pts');
+  });
+  var total=0;
+  for(var k in selections) total+=selections[k];
+  var trLv,risk,advice,fna,followup;
+  if(total===0){trLv='TR1';risk=en?'Normal thyroid':'正常甲状腺';advice=en?'No FNA, no follow-up':'无需FNA，无需随访';fna='-';followup='-';}
+  else if(total===2){trLv='TR2';risk=en?'Benign (<2% malignancy)':'良性（恶性风险<2%）';advice=en?'No FNA, no routine follow-up':'无需FNA，无需常规随访';fna='-';followup=en?'Optional follow-up':'可选择性随访';}
+  else if(total===3){trLv='TR3';risk=en?'Mildly suspicious (2-5%)':'低度可疑（恶性风险2-5%）';advice=en?'FNA if >=2.5cm; follow-up 1.5-2.5cm':'≥2.5cm行FNA；1.5-2.5cm随访';fna='>=2.5cm';followup=en?'1.5-2.5cm: years 1,3,5':'1.5-2.5cm: 1,3,5年';}
+  else if(total>=4&&total<=6){trLv='TR4';risk=en?'Moderately suspicious (5-20%)':'中度可疑（恶性风险5-20%）';advice=en?'FNA if >=1.5cm; follow-up 1-1.5cm':'≥1.5cm行FNA；1-1.5cm随访';fna='>=1.5cm';followup=en?'1-1.5cm: years 1,2,3':'1-1.5cm: 1,2,3年';}
+  else{trLv='TR5';risk=en?'Highly suspicious (>20%)':'高度可疑（恶性风险>20%）';advice=en?'FNA if >=1.0cm; consider follow-up 0.5-1.0cm':'≥1.0cm行FNA；0.5-1.0cm考虑随访';fna='>=1.0cm';followup=en?'0.5-1.0cm: 6-12 months':'0.5-1.0cm: 6-12月';}
+  addRow(en?'Result':'评估结果', en?'TI-RADS Total Score':'TI-RADS 总分', total, '');
+  addRow(en?'Result':'评估结果', en?'TR Level':'TR 级别', trLv, risk);
+  addRow(en?'Result':'评估结果', en?'FNA Threshold':'FNA 指征', fna, '');
+  addRow(en?'Result':'评估结果', en?'Follow-up Plan':'随访方案', followup, '');
+  addRow(en?'Result':'评估结果', en?'Management Advice':'管理建议', advice, '');
+  var refs=[
+    ['TR1','0', en?'Normal':'正常', en?'No FNA, no follow-up':'无需FNA，无需随访'],
+    ['TR2','2', en?'Benign':'良性', en?'No FNA, no routine follow-up':'无需FNA，无需常规随访'],
+    ['TR3','3', en?'Mildly suspicious (2-5%)':'低度可疑（恶性风险2-5%）', en?'FNA if >=2.5cm; follow 1.5-2.5cm':'≥2.5cm行FNA；1.5-2.5cm随访'],
+    ['TR4','4-6', en?'Moderately suspicious (5-20%)':'中度可疑（恶性风险5-20%）', en?'FNA if >=1.5cm; follow 1-1.5cm':'≥1.5cm行FNA；1-1.5cm随访'],
+    ['TR5','>=7', en?'Highly suspicious (>20%)':'高度可疑（恶性风险>20%）', en?'FNA if >=1.0cm; consider follow 0.5-1.0cm':'≥1.0cm行FNA；0.5-1.0cm考虑随访']
+  ];
+  refs.forEach(function(r){ addRow(en?'Reference (ACR)':'参考标准（ACR）', r[0], r[1], r[2]+' / '+r[3]); });
+  TBKit.util.exportTable('#tiHidden', en?'ti-rads-score.csv':'TI-RADS评分明细.csv');
 }
 
 calc();
