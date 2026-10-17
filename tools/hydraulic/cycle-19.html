@@ -167,7 +167,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="loadTemplate()">载入标准模板</button>
       <button type="button" class="btn" onclick="markAllDone()">全部标记已完成</button>
+      <button type="button" class="btn" onclick="window.__pneuExport()">⬇️ 导出维护排程 CSV</button>
     </div>
+    <table id="pneuHidden" style="display:none;"><thead><tr><th>Component</th><th>Type</th><th>Cycle (days)</th><th>Last Maintenance</th><th>Next Due</th><th>Days Left</th><th>Status</th><th>Checklist</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见元件预设：</span>
@@ -310,6 +312,31 @@ var TYPE_CFG={
 var components=[];
 var checklistIdx=-1;
 
+function __pneuExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!components||!components.length){ToolBox.showToast(en?'No components':'暂无元件记录');return;}
+  var now=new Date();now.setHours(0,0,0,0);
+  var tb=document.querySelector('#pneuHidden tbody');
+  tb.innerHTML='';
+  var tasks=components.map(function(c){
+    var due=nextDue(c);due.setHours(0,0,0,0);
+    var days=daysTo(now,due);
+    var state=days<0?'OVERDUE':(days<=7?'DUE SOON':'OK');
+    return {c:c,due:due,days:days,state:state};
+  });
+  tasks.sort(function(a,b){
+    if(a.state!==b.state){var rank={OVERDUE:0,'DUE SOON':1,OK:2};return rank[a.state]-rank[b.state];}
+    return a.days-b.days;
+  });
+  tasks.forEach(function(t){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+ToolBox.escHtml(t.c.name)+'</td><td>'+t.c.type+'</td><td>'+t.c.cycle+'</td><td>'+t.c.last+'</td><td>'+fmtD(t.due)+'</td><td>'+t.days+'</td><td>'+t.state+'</td><td>'+(t.c.checks||[]).join('; ')+'</td>';
+    tb.appendChild(tr);
+  });
+  TBKit.util.exportTable('#pneuHidden',en?'pneumatic-maintenance.csv':'气动维护排程.csv');
+}
+function fmtD(d){var p=function(n){return n<10?'0'+n:n;};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
 function onTypeChange(){
   var t=document.getElementById('compType').value;
   var cfg=TYPE_CFG[t];

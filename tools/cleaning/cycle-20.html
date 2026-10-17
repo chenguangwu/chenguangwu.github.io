@@ -169,7 +169,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button class="btn primary" onclick="addCarpet()">➕ 添加地毯</button>
       <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
+      <button class="btn" onclick="window.__carpetExport()">⬇️ 导出养护排期 CSV</button>
     </div>
+    <table id="carpetHidden" style="display:none;"><thead><tr><th>Carpet</th><th>Material</th><th>Usage</th><th>Task</th><th>Freq (days)</th><th>Last Done</th><th>Next Due</th><th>Days Left</th><th>Status</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -304,6 +306,26 @@ function getUrgency(days, taskId) {
   return { level: 'ok', label: '正常' };
 }
 
+function __carpetExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!carpets||!carpets.length){ToolBox.showToast(en?'No carpets':'暂无地毯记录');return;}
+  var tb=document.querySelector('#carpetHidden tbody');
+  tb.innerHTML='';
+  carpets.forEach(function(c){
+    Object.keys(BASE_TASKS).forEach(function(taskId){
+      var freq=getTaskFreq(taskId,c);
+      var last=getLastLog(c.id,taskId);
+      var next=getNextDate(c,taskId);
+      var days=getDaysUntil(next);
+      var urg=getUrgency(days,taskId);
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+ToolBox.escHtml(c.name)+'</td><td>'+TYPE_FACTOR[c.type].name+'</td><td>'+c.usage+'</td><td>'+BASE_TASKS[taskId].name+'</td><td>'+freq+'</td><td>'+(last?last.date:c.start)+'</td><td>'+fmtDate(next)+'</td><td>'+days+'</td><td>'+urg.label+'</td>';
+      tb.appendChild(tr);
+    });
+  });
+  TBKit.util.exportTable('#carpetHidden',en?'carpet-care-schedule.csv':'地毯养护排期.csv');
+}
 function addCarpet() {
   var name = document.getElementById('carpetName').value.trim();
   var type = document.getElementById('carpetType').value;
