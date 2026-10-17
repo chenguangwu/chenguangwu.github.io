@@ -127,14 +127,15 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calc()">评估合规度</button>
       <button type="button" class="btn" onclick="resetForm()">全部重置</button>
     </div>
-    <div class="result-box" id="res">
+    <div class="result-box" id="res"></div>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
       <button type="button" class="btn" onclick="applySecPreset('full')">🟢 全部落实</button>
 <button type="button" class="btn" onclick="applySecPreset('partial')">🟡 部分落实</button>
 <button type="button" class="btn" onclick="applySecPreset('none')">🔴 普遍未落实</button>
+<button type="button" class="btn" onclick="window.__secExport()">⬇️ 导出自查结果 CSV</button>
     </div>
-</div>
+    <table id="secHidden" style="display:none;"><thead><tr><th>Category</th><th>Item</th><th>Status</th><th>Score</th></tr></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -214,6 +215,54 @@ function calc(){
 function resetForm(){
   MODULES.forEach(function(m,mi){ m.items.forEach(function(it,ii){ document.getElementById('m'+mi+'_'+ii).value='0'; }); });
   calc();
+}
+// ============ 导出自查结果 CSV ============
+var __SEC_MOD_EN={'保密协议管理':'Secrecy Agreement Management','保密培训管理':'Secrecy Training Management','保密检查管理':'Secrecy Inspection Management'};
+var __SEC_ITEM_EN={
+  '全员签订保密协议':'All staff signed NDA',
+  '涉密岗位签订专项保密承诺书':'Confidential posts signed special commitment',
+  '离职/调岗人员保密义务重新确认':'Confidentiality reconfirmed on departure/transfer',
+  '协议条款定期审查与更新':'Agreement clauses reviewed and updated',
+  '新员工入职保密培训':'Confidentiality training for new hires',
+  '年度全员保密教育':'Annual confidentiality education for all',
+  '涉密人员专项培训并考核':'Special training and assessment for confidential staff',
+  '培训记录与档案归档':'Training records and files archived',
+  '定期保密自查（每季度）':'Regular self-inspection (quarterly)',
+  '涉密载体清查与登记':'Confidential media inventory and registration',
+  '信息系统与网络保密检查':'Information system and network inspection',
+  '隐患整改闭环跟踪':'Closed-loop tracking of hazard remediation'
+};
+var __SEC_STATUS={0:['Not implemented','未落实'],1:['Partially implemented','部分落实'],2:['Implemented','已落实']};
+var __SEC_LEVEL_EN={'优秀':'Excellent','良好':'Good','合格':'Pass','不合格':'Fail'};
+function __secRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){ var td=document.createElement('td'); td.textContent=c; tr.appendChild(td); });
+  return tr;
+}
+function __secExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#secHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var totalScore=0,totalMax=0;
+  MODULES.forEach(function(m,mi){
+    var raw=m.name.replace(/^[一二三]、/,'');
+    var mod=en?(__SEC_MOD_EN[raw]||raw):raw;
+    var ms=0,mm=m.items.length*2;
+    m.items.forEach(function(it,ii){
+      var v=+document.getElementById('m'+mi+'_'+ii).value;
+      ms+=v;totalScore+=v;
+      var st=__SEC_STATUS[v]||__SEC_STATUS[0];
+      tbody.appendChild(__secRow([mod, en?(__SEC_ITEM_EN[it]||it):it, en?st[0]:st[1], String(v)]));
+    });
+    totalMax+=mm;
+    tbody.appendChild(__secRow([mod, en?'Module Subtotal':'模块小计', Math.round(ms/mm*100)+'%', ms+'/'+mm]));
+  });
+  var rate=Math.round(totalScore/totalMax*100);
+  var lv=rate>=90?'优秀':rate>=75?'良好':rate>=60?'合格':'不合格';
+  tbody.appendChild(__secRow([en?'Overall':'总体', en?'Overall Compliance':'总体合规度', en?(__SEC_LEVEL_EN[lv]||lv):lv, rate+'%']));
+  TBKit.util.exportTable('#secHidden', en?'secrecy-self-check.csv':'保密管理自查.csv');
 }
 calc();
 </script>

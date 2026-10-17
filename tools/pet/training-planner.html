@@ -216,6 +216,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="generate()">📋 生成训练计划</button>
       <button type="button" class="btn" onclick="savePlan()">💾 保存计划</button>
       <button type="button" class="btn" onclick="copyPlan()">📋 复制</button>
+      <button type="button" class="btn" onclick="window.__petExport()">⬇️ 导出训练安排 CSV</button>
     </div>
   </div>
 
@@ -227,6 +228,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>🗓️ 7天训练安排</h2>
     <div id="weeklyPlan"></div>
+    <table id="petHidden" style="display:none;"><thead><tr><th>Day</th><th>Slot</th><th>Goal</th><th>Task</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -518,6 +520,47 @@ function switchTab(tab,btn){
   if(tab==='history')renderHistory();
 }
 
+// ============ 导出 7 天训练安排 CSV ============
+var __PET_DAY_EN={'周一':'Monday','周二':'Tuesday','周三':'Wednesday','周四':'Thursday','周五':'Friday','周六':'Saturday','周日':'Sunday'};
+var __PET_SLOT_EN={'早':'Morning','午':'Noon','晚':'Evening','睡前':'Before Bed'};
+var __PET_GOAL_EN={'基础服从':'Basic Obedience','如厕训练':'Toilet Training','社交训练':'Socialization','技能才艺':'Tricks','随行训练':'Leash Walking','召回训练':'Recall','纠正乱咬':'Biting Correction','基础指令':'Basic Cues','猫砂训练':'Litter Training','抓挠训练':'Scratching Training','亲人训练':'Bonding & Handling','技能训练':'Trick Training','遛猫训练':'Harness Walking','上厕所':'Litter Training','名字反应':'Name Response','小技能':'Small Tricks'};
+var __PET_TASK_EN={'名字识别':'Name Recognition','坐下':'Sit','趴下':'Down','等待':'Stay','过来':'Come','定点排便':'Potty Spot','笼内训练':'Crate Training','排便信号':'Toilet Signal','户外如厕':'Outdoor Toilet','接触陌生人':'Meeting Strangers','认识其他狗':'Meeting Other Dogs','适应各种声音':'Sound Desensitization','陌生环境':'New Environments','握手':'Shake Hands','击掌':'High Five','装死':'Play Dead','转圈':'Spin','打滚':'Roll Over','项圈适应':'Collar Fitting','不暴冲':'No Pulling','随行':'Loose-Leash Walking','复杂环境':'Complex Environments','短距召回':'Short-Distance Recall','长距召回':'Long-Distance Recall','干扰召回':'Recall with Distractions','紧急召回':'Emergency Recall','咬合力控制':'Bite Inhibition','玩具替代':'Toy Substitution','冷处理':'Time-Out','口令制止':'Verbal Correction','名字反应':'Name Response','允许抚摸':'Allow Petting','认识猫砂盆':'Litter Box Introduction','使用习惯':'Litter Habit','埋屎训练':'Covering Waste','抓柱使用':'Scratching Post','不抓家具':'No Furniture Scratching','磨爪习惯':'Claw Care Habit','适应来客':'Getting Used to Visitors','接受抱摸':'Being Held','跳圈':'Jump Through Hoop','指定地点':'Go to Spot','胸背适应':'Harness Fitting','室内牵引':'Indoor Leash','户外适应':'Outdoor Adaptation','手喂食物':'Hand Feeding','接受抚摸':'Accept Petting','上手训练':'Being Picked Up','认识厕所':'Litter Box Introduction','保持清洁':'Keep Clean','叫名字过来':'Come When Called','声音反应':'Sound Response','站立':'Stand Up','跳障碍':'Jump Over Obstacle'};
+function __petRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __petExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#petHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var dailyTime=+document.getElementById('dailyTime').value;
+  var schedule=dailySchedule[dailyTime]||dailySchedule[20];
+  var petGoals=goals[currentPet];
+  var allTasks=[];
+  selectedGoals.forEach(function(gid){
+    var g=petGoals.find(function(pg){return pg.id===gid;});
+    if(g) allTasks=allTasks.concat(g.tasks.map(function(t){return {goal:g.name,task:t};}));
+  });
+  if(!allTasks.length){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'Please select at least one training goal':'请先选择至少一个训练目标'); return; }
+  var weekDays=['周一','周二','周三','周四','周五','周六','周日'];
+  weekDays.forEach(function(day,dayIdx){
+    var n=Math.min(schedule.length+1,allTasks.length);
+    for(var i=0;i<n;i++){
+      var t=allTasks[(dayIdx+i)%allTasks.length];
+      var s=schedule[i%schedule.length];
+      tbody.appendChild(__petRow([
+        en?(__PET_DAY_EN[day]||day):day,
+        en?(__PET_SLOT_EN[s.time]||s.time):s.time,
+        en?(__PET_GOAL_EN[t.goal]||t.goal):t.goal,
+        en?(__PET_TASK_EN[t.task]||t.task):t.task
+      ]));
+    }
+  });
+  TBKit.util.exportTable('#petHidden', en?'pet-training-plan.csv':'宠物训练安排.csv');
+}
 initGoals();
 generate();
 renderHistory();

@@ -176,6 +176,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="applyContractPreset('rent')">🏠 租赁合同</button>
 <button type="button" class="btn" onclick="applyContractPreset('labor')">💼 劳动合同</button>
 <button type="button" class="btn" onclick="applyContractPreset('sale')">📦 买卖合同</button>
+<button type="button" class="btn" onclick="window.__contractExport()">⬇️ 导出模板清单 CSV</button>
     </div>
       <button type="button" class="tab-btn active" onclick="switchTab('browse',this)">📂 浏览模板</button>
       <button type="button" class="tab-btn" onclick="switchTab('checklist',this)">✅ 通用条款</button>
@@ -194,6 +195,7 @@ s.parentNode.insertBefore(el, s);
       <div class="category-tabs" id="catTabs"></div>
 
       <div id="templateList"></div>
+      <table id="contractHidden" style="display:none;"><thead><tr><th>Template</th><th>Category</th><th>Sections</th><th>Key Points</th></tr></thead><tbody></tbody></table>
     </div>
 
     <div id="tab-checklist" class="tab-content">
@@ -612,6 +614,43 @@ document.getElementById('detailModal').addEventListener('click', function(e) {
   if (e.target.id === 'detailModal') closeModal();
 });
 
+// ============ 导出模板清单 CSV ============
+var __CT_NAME_EN={
+  '房屋租赁合同':'House Lease Contract','劳动合同':'Employment Contract','服务合同':'Service Contract',
+  '借款合同':'Loan Agreement','买卖合同':'Sales Contract','保密协议':'Non-Disclosure Agreement',
+  '合伙协议':'Partnership Agreement','委托代理合同':'Agency/Entrustment Contract'
+};
+var __CT_CAT_EN={rent:'Lease',labor:'Labor',sale:'Sale',service:'Service',loan:'Loan',other:'Other'};
+function __ctRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __contractExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#contractHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var q=(document.getElementById('search').value||'').toLowerCase();
+  var list=templates.slice();
+  if(currentCat!=='all') list=list.filter(function(t){return t.cat===currentCat;});
+  if(q) list=list.filter(function(t){
+    return t.name.toLowerCase().indexOf(q)>=0 || t.desc.toLowerCase().indexOf(q)>=0 ||
+      t.tags.some(function(g){return g.toLowerCase().indexOf(q)>=0;});
+  });
+  if(!list.length){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'No template to export':'当前筛选无模板可导出'); return; }
+  list.forEach(function(t){
+    var pts=t.clauses.reduce(function(a,c){return a+c.items.length;},0);
+    tbody.appendChild(__ctRow([
+      en?(__CT_NAME_EN[t.name]||t.name):t.name,
+      en?(__CT_CAT_EN[t.cat]||t.cat):t.cat,
+      String(t.clauses.length),
+      String(pts)
+    ]));
+  });
+  TBKit.util.exportTable('#contractHidden', en?'contract-templates.csv':'合同模板清单.csv');
+}
 renderCatTabs();
 filterTemplates();
 </script><script>
