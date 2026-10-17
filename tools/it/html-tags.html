@@ -179,7 +179,9 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <input type="text" id="searchInput" placeholder="搜索标签名或描述，如 div、表单、图像" style="flex:1;min-width:200px;">
+      <button type="button" class="btn" onclick="window.__htgExport()">⬇️ 导出标签速查 CSV</button>
     </div>
+    <table id="htgHidden" style="display:none;"><thead><tr><th>Tag</th><th>Category</th><th>Description</th><th>Attributes</th><th>HTML5 New</th><th>Deprecated</th><th>Example</th></tr></thead><tbody></tbody></table>
 
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
@@ -369,6 +371,27 @@ const TAGS = [
   {name:'basefont', cat:'废弃', desc:'默认字体（已废弃）', attrs:'color, size, face', new:false, deprecated:true, example:'<basefont size="3">（已废弃）'},
 ];
 
+function __htgExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var list=TAGS.filter(function(t){
+    if(currentCategory!=='全部'&&t.cat!==currentCategory)return false;
+    if(searchQuery){
+      var q=searchQuery.toLowerCase();
+      return t.name.toLowerCase().indexOf(q)>=0||t.desc.toLowerCase().indexOf(q)>=0||t.cat.toLowerCase().indexOf(q)>=0;
+    }
+    return true;
+  });
+  if(list.length===0){ToolBox.showToast(en?'No tags to export':'当前筛选无标签可导出');return;}
+  var tb=document.querySelector('#htgHidden tbody');
+  tb.innerHTML='';
+  list.forEach(function(t){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+t.name+'</td><td>'+t.cat+'</td><td>'+t.desc+'</td><td>'+t.attrs+'</td><td>'+(t.new?'Yes':'No')+'</td><td>'+(t.deprecated?'Yes':'No')+'</td><td>'+t.example.replace(/\n/g,' ')+'</td>';
+    tb.appendChild(tr);
+  });
+  TBKit.util.exportTable('#htgHidden',en?'html-tags-reference.csv':'HTML标签速查.csv');
+}
 let currentCategory = '全部';
 let searchQuery = '';
 let openTag = null;

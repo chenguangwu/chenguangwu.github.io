@@ -223,7 +223,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="swapTexts()">交换文本</button>
       <button type="button" class="btn" onclick="loadSample()">示例</button>
       <button type="button" class="btn danger" onclick="clearAll()">清空</button>
+      <button type="button" class="btn" onclick="window.__tdExport()">⬇️ 导出差异明细 CSV</button>
     </div>
+    <table id="tdHidden" style="display:none;"><thead><tr><th>Type</th><th>Old Line</th><th>New Line</th><th>Old Value</th><th>New Value</th></tr></thead><tbody></tbody></table>
 
     <div class="stat-grid" id="stats" style="display:none;margin-top:12px;">
       <div class="stat-card">
@@ -578,6 +580,21 @@ function updateStats(diff) {
   document.getElementById('statTotal').textContent = same + add + remove - modify;
 }
 
+function __tdExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!currentDiff||currentDiff.length===0){ToolBox.showToast(en?'Please run diff first':'请先点击「开始对比」');return;}
+  var tb=document.querySelector('#tdHidden tbody');
+  tb.innerHTML='';
+  currentDiff.forEach(function(ch){
+    var tr=document.createElement('tr');
+    var oldLn=ch.oldIndex!=null?ch.oldIndex+1:'';
+    var newLn=ch.newIndex!=null?ch.newIndex+1:'';
+    tr.innerHTML='<td>'+ch.type+'</td><td>'+oldLn+'</td><td>'+newLn+'</td><td>'+ToolBox.escHtml(ch.oldValue||'')+'</td><td>'+ToolBox.escHtml(ch.newValue||'')+'</td>';
+    tb.appendChild(tr);
+  });
+  TBKit.util.exportTable('#tdHidden',en?'text-diff.csv':'文本差异明细.csv');
+}
 function copyDiff() {
   if (!currentDiff) {
     ToolBox.showToast(i18nText('toast.msg696'), 'warning');

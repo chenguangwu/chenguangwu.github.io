@@ -239,7 +239,9 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn" onclick="saveRecord()">💾 保存记录</button>
         <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
         <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
+        <button type="button" class="btn" onclick="window.__tempExport()">⬇️ 导出换算明细 CSV</button>
       </div>
+      <table id="tempHidden" style="display:none;"><thead><tr><th>Scale</th><th>Value</th><th>Formula</th><th>Note</th></tr></thead><tbody></tbody></table>
     </div>
 
     <div id="tab-ref" class="tab-content">
@@ -454,6 +456,35 @@ function loadHistory(i){
 function delHistory(i){let h=getHistory();h.splice(i,1);localStorage.setItem(HK,JSON.stringify(h));renderHistory();}
 function clearHistory(){if(confirm('确定清空？')){localStorage.removeItem(HK);renderHistory();ToolBox.showToast(i18nText());}}
 
+function __tempExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var c=parseFloat(document.getElementById('celsius').value);
+  if(!isFinite(c)){ToolBox.showToast(en?'Invalid input':'请输入有效温度');return;}
+  var f=c*9/5+32,k=c+273.15,r=f+459.67,re=c*0.8;
+  var rows=[
+    ['Celsius','C',c.toFixed(2),en?'Base scale (water freezes at 0)':'基准温标（水冰点 0）'],
+    ['Fahrenheit','F',f.toFixed(2),en?'F = C x 9/5 + 32':'°F = °C × 9/5 + 32'],
+    ['Kelvin','K',k.toFixed(2),en?'K = C + 273.15 (absolute zero 0K)':'K = °C + 273.15（绝对零度 0K）'],
+    ['Rankine','R',r.toFixed(2),en?'R = F + 459.67':'°R = °F + 459.67'],
+    ['Reaumur','Re',re.toFixed(2),en?'Re = C x 0.8':'°Ré = °C × 0.8']
+  ];
+  var refs=[[-273.15,en?'Absolute zero':'绝对零度'],[0,en?'Water freezing point':'水冰点'],[20,en?'Room temperature':'室温'],[36.5,en?'Human body temperature':'人体体温'],[100,en?'Water boiling point':'水沸点']];
+  var tb=document.querySelector('#tempHidden tbody');
+  tb.innerHTML='';
+  rows.forEach(function(rw){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+rw[0]+' ('+rw[1]+')</td><td>'+rw[2]+'</td><td>'+rw[3]+'</td><td></td>';
+    tb.appendChild(tr);
+  });
+  refs.forEach(function(rf){
+    var cc=rf[0];
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>REF: '+rf[1]+'</td><td>'+cc.toFixed(2)+' C</td><td>'+(cc*9/5+32).toFixed(2)+' F / '+(cc+273.15).toFixed(2)+' K</td><td></td>';
+    tb.appendChild(tr);
+  });
+  TBKit.util.exportTable('#tempHidden',en?'temperature-conversion.csv':'温度换算明细.csv');
+}
 fromCelsius();renderHistory();
 </script><script>
 // tool-intro折叠交互
