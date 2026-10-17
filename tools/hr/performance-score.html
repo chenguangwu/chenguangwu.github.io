@@ -161,9 +161,11 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn primary" onclick="calc()">👥 计算绩效</button>
+      <button type="button" class="btn" onclick="window.__perfExport()">⬇️ 导出绩效明细 CSV</button>
     </div>
 
     <div id="resultTable"></div>
+    <table id="perfHidden" style="display:none;"><thead><tr><th>Rank</th><th>Name</th><th>Raw Score</th><th>Norm Score</th><th>Grade</th></tr></thead><tbody></tbody></table>
 
     <div class="tip-box tip-info">
       加权分 = Σ(维度得分 × 权重)。Min-Max 归一化到 0~100；Z-Score 反映相对水平。按优秀/不合格比例强制分布。
@@ -345,6 +347,43 @@ function calc(){
   });
   const __g5=ToolBox.createTable(
     ['排名','姓名','原始加权分','归一化得分','等级'], rows);document.getElementById('resultTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+}
+
+function __perfExport(){
+  if(typeof TBKit==='undefined') return;
+  var en = TBKit.util.isEn();
+  var normMethod = document.getElementById('normMethod').value;
+  var exPct = +document.getElementById('excellentPct').value||0;
+  var failPct = +document.getElementById('failPct').value||0;
+  var wSum = dims.reduce(function(s,d){return s+(+d.weight||0);},0);
+  if(wSum<=0) wSum=1;
+  var results = emps.map(function(e){
+    var raw=0;
+    dims.forEach(function(d,j){ raw += (e.scores[j]||0)*((+d.weight||0)/wSum); });
+    return {name:e.name||'未命名', raw:raw, scores:e.scores};
+  });
+  var raws = results.map(function(r){return r.raw;});
+  var mn=Math.min.apply(null,raws), mx=Math.max.apply(null,raws);
+  var mean=raws.reduce(function(a,b){return a+b;},0)/raws.length;
+  var std=Math.sqrt(raws.reduce(function(s,v){return s+Math.pow(v-mean,2);},0)/raws.length)||1;
+  results.forEach(function(r){
+    if(normMethod==='minmax'){ r.score = mx>mn?((r.raw-mn)/(mx-mn)*100):50; }
+    else if(normMethod==='zscore'){ var z=(r.raw-mean)/std; r.score=Math.max(0,Math.min(100,50+z*16.67)); }
+    else { r.score=r.raw; }
+  });
+  results.sort(function(a,b){return b.score-a.score;});
+  var n=results.length, exCount=Math.round(n*exPct/100), failCount=Math.round(n*failPct/100);
+  var tbody = document.querySelector('#perfHidden tbody');
+  tbody.innerHTML='';
+  results.forEach(function(r,idx){
+    var rank=idx+1, grade;
+    if(rank<=exCount){ grade='优秀'; }
+    else if(rank>n-failCount){ grade='不合格'; }
+    else if(r.score>=85){ grade='良好'; }
+    else { grade='合格'; }
+    tbody.innerHTML += '<tr><td>'+rank+'</td><td>'+ToolBox.escHtml(r.name)+'</td><td>'+r.raw.toFixed(1)+'</td><td>'+r.score.toFixed(1)+'</td><td>'+grade+'</td></tr>';
+  });
+  TBKit.util.exportTable('#perfHidden', en?'performance-score.csv':'绩效考核明细.csv');
 }
 
 renderDims();

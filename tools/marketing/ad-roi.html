@@ -161,6 +161,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">📣 模拟 ROI</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="__adRoiExport()">⬇️ 导出测算明细 CSV</button>
     </div>
 
     <div class="roi-box" id="resultBox">
@@ -173,6 +174,8 @@ s.parentNode.insertBefore(el, s);
     <div id="breakEven"></div>
 
     <div class="tip-box tip-info" id="tipBox"></div>
+    <div id="adRoiChart" style="margin-top:14px;"></div>
+    <table id="adRoiHidden" style="display:none;"><thead><tr><th>指标</th><th>数值</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -331,6 +334,63 @@ function applyAdRoiPreset(kind){
   }
   calc();
 }
+
+function __adRoiExtras(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var budget=+document.getElementById('budget').value||0;
+  var ctr=(+document.getElementById('ctr').value||0)/100;
+  var cvr=(+document.getElementById('cvr').value||0)/100;
+  var aov=+document.getElementById('aov').value||0;
+  var costRate=(+document.getElementById('costRate').value||0)/100;
+  if(budget<=0||aov<=0) return;
+  var clicks,impressions;
+  if(buyMode==='cpc'){var cpc=+document.getElementById('cpc').value||0; if(cpc<=0)return; clicks=budget/cpc; impressions=ctr>0?clicks/ctr:0;}
+  else{var cpm=+document.getElementById('cpm').value||0; if(cpm<=0)return; impressions=budget/cpm*1000; clicks=impressions*ctr;}
+  var conversions=clicks*cvr, revenue=conversions*aov, goodsCost=revenue*costRate;
+  var totalCost=budget+goodsCost+(+document.getElementById('fixedCost').value||0);
+  var profit=revenue-totalCost;
+  var en=TBKit.util.isEn();
+  try{ TBKit.chart.bar('#adRoiChart',{labels:[en?'Revenue':'广告收入',en?'Goods Cost':'商品成本',en?'Profit':'利润'],series:[{name:en?'Amount (¥)':'金额 (元)',data:[+revenue.toFixed(0),+goodsCost.toFixed(0),+profit.toFixed(0)]}],height:220,title:en?'Revenue vs Cost vs Profit':'收入 / 成本 / 利润'}); }catch(e){}
+}
+function __adRoiExport(){
+  if(typeof TBKit==='undefined'){ ToolBox.showToast('导出组件未加载'); return; }
+  var budget=+document.getElementById('budget').value||0;
+  var ctr=(+document.getElementById('ctr').value||0)/100;
+  var cvr=(+document.getElementById('cvr').value||0)/100;
+  var aov=+document.getElementById('aov').value||0;
+  var costRate=(+document.getElementById('costRate').value||0)/100;
+  var fixed=+document.getElementById('fixedCost').value||0;
+  if(budget<=0){ ToolBox.showToast('请先输入预算计算'); return; }
+  var clicks,impressions;
+  if(buyMode==='cpc'){var cpc=+document.getElementById('cpc').value||0; if(cpc<=0){ToolBox.showToast('请先输入有效 CPC');return;} clicks=budget/cpc; impressions=ctr>0?clicks/ctr:0;}
+  else{var cpm=+document.getElementById('cpm').value||0; if(cpm<=0){ToolBox.showToast('请先输入有效 CPM');return;} impressions=budget/cpm*1000; clicks=impressions*ctr;}
+  var conversions=clicks*cvr, revenue=conversions*aov, goodsCost=revenue*costRate;
+  var totalCost=budget+goodsCost+fixed, profit=revenue-totalCost;
+  var roas=budget>0?revenue/budget:0, roi=totalCost>0?profit/totalCost*100:0;
+  var grossMargin=1-costRate, breakEvenRoas=grossMargin>0?1/grossMargin:0;
+  var cpa=conversions>0?budget/conversions:0;
+  var en=TBKit.util.isEn();
+  var t=document.getElementById('adRoiHidden'); if(!t) return;
+  var rows=[
+    [en?'Impressions':'展示量', Math.round(impressions)],
+    [en?'Clicks':'点击量', Math.round(clicks)],
+    [en?'Conversions':'转化数', Math.round(conversions)],
+    [en?'Revenue':'广告收入', Math.round(revenue)+' 元'],
+    [en?'Goods Cost':'商品成本', Math.round(goodsCost)+' 元'],
+    [en?'Total Cost':'总成本', Math.round(totalCost)+' 元'],
+    [en?'Profit':'利润', Math.round(profit)+' 元'],
+    [en?'ROAS':'ROAS', roas.toFixed(2)],
+    [en?'ROI':'ROI', roi.toFixed(1)+'%'],
+    [en?'Gross Margin':'毛利率', (grossMargin*100).toFixed(0)+'%'],
+    [en?'Break-even ROAS':'盈亏平衡ROAS', breakEvenRoas.toFixed(2)],
+    [en?'CPA':'CPA单转化成本', Math.round(cpa)+' 元']
+  ];
+  t.querySelector('thead').innerHTML='<tr><th>'+(en?'Metric':'指标')+'</th><th>'+(en?'Value':'数值')+'</th></tr>';
+  t.querySelector('tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#adRoiHidden', en?'ad-roi.csv':'广告ROI测算.csv');
+}
+var __adRoi_f0=(typeof calc==='function')?calc:null;
+if(__adRoi_f0){ calc=function(){ var r=__adRoi_f0.apply(null,arguments); try{__adRoiExtras();}catch(e){} return r; }; }
 
 calc();
 </script>

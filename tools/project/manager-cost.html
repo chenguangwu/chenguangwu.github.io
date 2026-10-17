@@ -153,6 +153,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="saveProject()">保存项目</button>
       <button type="button" class="btn" onclick="loadProject()">加载项目</button>
       <button type="button" class="btn danger" onclick="resetAll()">重置</button>
+      <button type="button" class="btn" onclick="window.__evmExport()">⬇️ 导出挣值明细 CSV</button>
     </div>
   </div>
 
@@ -182,6 +183,7 @@ s.parentNode.insertBefore(el, s);
     </div>
   </div>
 </div>
+  <table id="evmHidden" style="display:none;"><thead><tr><th>Period</th><th>Cum PV</th><th>Cum EV</th><th>Cum AC</th><th>CV</th><th>SV</th><th>CPI</th><th>SPI</th><th>BAC</th><th>EAC</th><th>ETC</th><th>VAC</th><th>Completion</th><th>Forecast Days</th></tr></thead><tbody></tbody></table>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -486,6 +488,38 @@ function resetAll() {
 
 renderPeriodInputs();
 calcEVM();
+
+function __evmExport(){
+  if(typeof TBKit==='undefined') return;
+  var en = TBKit.util.isEn();
+  var bac = parseFloat(document.getElementById('bac').value)||0;
+  var totalDays = parseInt(document.getElementById('totalDays').value)||1;
+  var cumPV=0, cumEV=0, cumAC=0; var cumData=[];
+  periods.forEach(function(p){
+    cumPV += p.pv; cumEV += p.ev; cumAC += p.ac;
+    cumData.push({ name:p.name, pv:cumPV, ev:cumEV, ac:cumAC });
+  });
+  var last = cumData[cumData.length-1];
+  var pv=last.pv, ev=last.ev, ac=last.ac;
+  var cv=ev-ac, sv=ev-pv, cpi=ac>0?ev/ac:0, spi=pv>0?ev/pv:0;
+  var eac=cpi>0?bac/cpi:bac, etc=eac-ac, vac=bac-eac;
+  var forecastDays = spi>0?Math.round(totalDays/spi):totalDays;
+  var tbody = document.querySelector('#evmHidden tbody');
+  tbody.innerHTML='';
+  cumData.forEach(function(d){
+    var pcv=d.ev-d.ac, psv=d.ev-d.pv, pcpi=d.ac>0?d.ev/d.ac:0, pspi=d.pv>0?d.ev/d.pv:0;
+    tbody.innerHTML += '<tr><td>'+ToolBox.escHtml(d.name)+'</td>'
+      + '<td>'+fmt(d.pv)+'</td><td>'+fmt(d.ev)+'</td><td>'+fmt(d.ac)+'</td>'
+      + '<td>'+fmt(pcv)+'</td><td>'+fmt(psv)+'</td><td>'+pcpi.toFixed(2)+'</td><td>'+pspi.toFixed(2)+'</td>'
+      + '<td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+  });
+  tbody.innerHTML += '<tr><td>Summary</td>'
+    + '<td>'+fmt(pv)+'</td><td>'+fmt(ev)+'</td><td>'+fmt(ac)+'</td>'
+    + '<td>'+fmt(cv)+'</td><td>'+fmt(sv)+'</td><td>'+cpi.toFixed(2)+'</td><td>'+spi.toFixed(2)+'</td>'
+    + '<td>'+fmt(bac)+'</td><td>'+fmt(eac)+'</td><td>'+fmt(etc)+'</td><td>'+fmt(vac)+'</td>'
+    + '<td>'+(ev/bac*100).toFixed(1)+'%</td><td>'+forecastDays+'</td></tr>';
+  TBKit.util.exportTable('#evmHidden', en?'evm-report.csv':'挣值管理明细.csv');
+}
 </script>
 
 <!-- SEO 介绍区块 -->

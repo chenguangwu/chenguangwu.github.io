@@ -160,6 +160,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">⚡ 估算温升</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__pcbExport()">⬇️ 导出PCB热分析 CSV</button>
       <span style="font-size:13px;color:var(--text-muted);">📌 示例板卡：</span><button type="button" class="btn" onclick="applyPcbPreset('small')">3W 小板自然对流</button><button type="button" class="btn" onclick="applyPcbPreset('copper')">5W 大铺铜</button><button type="button" class="btn" onclick="applyPcbPreset('forced')">15W 强制风冷</button>
     </div>
 
@@ -171,6 +172,7 @@ s.parentNode.insertBefore(el, s);
     <div class="data-grid" id="dataGrid"></div>
 
     <div class="tip-box tip-info heat-tip" id="heatTip"></div>
+    <table id="pcbHidden" style="display:none;"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -325,6 +327,38 @@ function copyResult(){
   ToolBox.copyText('PCB温升估算：功耗'+p+'W，面积'+a+'cm²，温升'+dT.toFixed(1)+'°C，板温约'+(amb+dT).toFixed(1)+'°C');
 }
 calc();
+
+function __pcbExport(){
+  if(typeof TBKit==='undefined') return;
+  var en = TBKit.util.isEn();
+  var p = +document.getElementById('power').value || 0;
+  var a = +document.getElementById('area').value || 0;
+  var copper = +document.getElementById('copper').value;
+  var h = +document.getElementById('airflow').value;
+  var amb = +document.getElementById('ambient').value || 25;
+  var cov = +document.getElementById('coverage').value || 0;
+  if(p<=0 || a<=0){ ToolBox.showToast(i18nText('toast.msg777'),'warn'); return; }
+  var aM2 = a/10000;
+  var copperFactor = copper===1?1.0:(copper===2?1.15:1.3);
+  var covFactor = 0.4 + 0.6*(cov/100);
+  var aEff = aM2*copperFactor*covFactor;
+  var dT = p/(h*aEff);
+  var boardTemp = amb + dT;
+  var density = p/a;
+  var tbody = document.querySelector('#pcbHidden tbody');
+  tbody.innerHTML='';
+  tbody.innerHTML += '<tr><td>Power P (W)</td><td>'+p+'</td></tr>';
+  tbody.innerHTML += '<tr><td>Area A (cm²)</td><td>'+a+'</td></tr>';
+  tbody.innerHTML += '<tr><td>Ambient (°C)</td><td>'+amb+'</td></tr>';
+  tbody.innerHTML += '<tr><td>Copper Factor</td><td>'+copperFactor+'</td></tr>';
+  tbody.innerHTML += '<tr><td>Coverage Factor</td><td>'+covFactor.toFixed(2)+'</td></tr>';
+  tbody.innerHTML += '<tr><td>Effective Area (m²)</td><td>'+aEff.toFixed(6)+'</td></tr>';
+  tbody.innerHTML += '<tr><td>Convection h (W/m²·K)</td><td>'+h+'</td></tr>';
+  tbody.innerHTML += '<tr><td>ΔT (°C)</td><td>'+dT.toFixed(2)+'</td></tr>';
+  tbody.innerHTML += '<tr><td>Board Temp (°C)</td><td>'+boardTemp.toFixed(2)+'</td></tr>';
+  tbody.innerHTML += '<tr><td>Power Density (W/cm²)</td><td>'+density.toFixed(3)+'</td></tr>';
+  TBKit.util.exportTable('#pcbHidden', en?'pcb-thermal.csv':'PCB热分析.csv');
+}
 </script>
 
 <!-- SEO 介绍区块 -->

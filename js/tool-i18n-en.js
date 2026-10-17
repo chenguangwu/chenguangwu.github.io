@@ -503,6 +503,11 @@ window.__TI18N_EN = {
     '⬇️ 导出佣金明细 CSV':'⬇️ Export Commission Details CSV',
     '⬇️ 导出用量 CSV':'⬇️ Export Usage CSV',
     '⬇️ 导出照明方案 CSV':'⬇️ Export Lighting Plan CSV',
+    '⬇️ 导出绩效明细 CSV':'⬇️ Export Performance Details CSV',
+    '⬇️ 导出挣值明细 CSV':'⬇️ Export EVM Details CSV',
+    '⬇️ 导出测算明细 CSV':'⬇️ Export Ad ROI Details CSV',
+    '⬇️ 导出预算明细 CSV':'⬇️ Export Budget Details CSV',
+    '⬇️ 导出PCB热分析 CSV':'⬇️ Export PCB Thermal CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 批次98 导出明细表表头（营养/佣金/油漆/照明）——
