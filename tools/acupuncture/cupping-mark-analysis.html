@@ -139,6 +139,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="analyze()">🔍 分析辨证</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制</button>
+      <button type="button" class="btn" onclick="window.__cupExport()">⬇️ 导出罐印对照 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
@@ -147,6 +148,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>📋 罐印颜色辨证总表</h2>
     <div class="result-box" id="refBox"></div>
+    <table id="cupHidden" style="display:none;"><thead><tr><th>Mark</th><th>Syndrome</th><th>Pathogenesis</th><th>Care Advice</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="info-box">
@@ -353,6 +355,41 @@ function copyResult(){
   ToolBox.copyText('罐印分析：'+m.name+'，证型：'+m.body+'，机理：'+m.tcm+'，建议：'+m.advice, i18nText('msg165'));
 }
 
+// ============ 导出罐印对照表 CSV ============
+var __CUP_EN={
+  pink:{n:'Pink / Flushed',b:'Normal / Exterior syndrome',t:'Normal or mild exterior syndrome',a:'Moderate cupping; no special care needed'},
+  red:{n:'Bright Red',b:'Excess Heat Syndrome',t:'Heat syndrome / excess heat',a:'Clear heat and purge fire, bleeding cupping; avoid spicy food'},
+  darkred:{n:'Deep Red',b:'Exuberant Heat / Yin Deficiency',t:'Exuberant heat or yin deficiency with fire',a:'Nourish yin and clear heat; avoid excessive warm moxibustion'},
+  purple:{n:'Purplish Red',b:'Blood Stasis Syndrome',t:'Blood stasis and qi stagnation',a:'Activate blood and resolve stasis; moving or bleeding cupping'},
+  dark:{n:'Dark Purple / Bluish Purple',b:'Cold Congealing Blood Stasis',t:'Cold congealing with blood stasis, chronic disease entering collaterals',a:'Warm channels and dispel cold; combine with moxibustion'},
+  pale:{n:'Pale / Whitish',b:'Deficiency Syndrome',t:'Deficiency, qi and blood insufficiency',a:'Tonify qi and blood; use reinforcing moxibustion'},
+  gray:{n:'Grayish White with Patches',b:'Deficiency Cold / Damp Obstruction',t:'Deficiency cold or damp obstruction',a:'Warm yang and resolve dampness; strengthen spleen and regulate qi'},
+  blister:{n:'Blisters',b:'Damp Syndrome / Over-long Cupping',t:'Dampness effusing outward or cupping left too long',a:'Let small blisters absorb; aspirate large blisters sterilely; strengthen spleen for dampness'},
+  itch:{n:'Itchy Redness',b:'Wind Syndrome / Allergy',t:'Wind pathogen or allergy',a:'Dispel wind and relieve itching; stop cupping and treat allergy if allergic'},
+  sweat:{n:'Water Droplets on Mark',b:'Dampness Exuberance',t:'Prominent dampness',a:'Strengthen spleen and drain dampness; add BL20 and SP9'}
+};
+function __cupRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __cupExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#cupHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  MARKS.forEach(function(m){
+    var e=__CUP_EN[m.key]||{};
+    tbody.appendChild(__cupRow([
+      en?(e.n||m.name):m.name,
+      en?(e.b||m.body):m.body,
+      en?(e.t||m.tcm):m.tcm,
+      en?(e.a||m.advice):m.advice
+    ]));
+  });
+  TBKit.util.exportTable('#cupHidden', en?'cupping-mark-reference.csv':'罐印辨证对照.csv');
+}
 renderColors();
 renderSymptoms();
 analyze();

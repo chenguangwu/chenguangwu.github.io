@@ -306,7 +306,9 @@ s.parentNode.insertBefore(el, s);
       <div class="tr-row">
         <button class="btn" id="trCopyResult">复制结果文本</button>
         <button class="btn" id="trResetAll">重置全部测试</button>
+        <button class="btn" onclick="window.__trhExport()">⬇️ 导出参考对照 CSV</button>
       </div>
+      <table id="trhHidden" style="display:none;"><thead><tr><th>Test</th><th>Age Group</th><th>Reference Range</th><th>Your Result</th><th>Comparison</th></tr></thead><tbody></tbody></table>
     </section>
 
     <div class="tr-note">
@@ -840,6 +842,43 @@ s.parentNode.insertBefore(el, s);
 
   renderResult();
 })();
+</script>
+<script>
+// ============ 导出年龄参考对照 CSV ============
+var __TRH_AGE_EN={'儿童 (6–12 岁)':'Children (6-12 y)','青年 (18–35 岁)':'Young adults (18-35 y)','中年 (36–59 岁)':'Middle age (36-59 y)','老年 (60+ 岁)':'Older adults (60+ y)'};
+var __TRH_CMP_EN={'在参考范围内':'Within reference range','高于参考范围':'Above reference range','低于参考范围':'Below reference range'};
+function __trhRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __trhExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#trhHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var pairs=[['trGapNorm', en?'Gap Detection':'间隙检测'],['trModNorm', en?'Modulation Detection':'调制检测']];
+  pairs.forEach(function(p){
+    var tbl=document.getElementById(p[0]);
+    if(!tbl)return;
+    var trs=tbl.querySelectorAll('tbody tr');
+    for(var i=0;i<trs.length;i++){
+      var tds=trs[i].querySelectorAll('td');
+      if(tds.length<4)continue;
+      var g=(tds[0].textContent||'').trim();
+      var cmp=(tds[3].textContent||'').trim();
+      tbody.appendChild(__trhRow([
+        p[1],
+        en?(__TRH_AGE_EN[g]||g):g,
+        (tds[1].textContent||'').trim(),
+        (tds[2].textContent||'').trim(),
+        en?(__TRH_CMP_EN[cmp]||cmp):cmp
+      ]));
+    }
+  });
+  TBKit.util.exportTable('#trhHidden', en?'temporal-resolution-reference.csv':'听觉时间分辨参考对照.csv');
+}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
