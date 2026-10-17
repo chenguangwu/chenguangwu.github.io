@@ -213,6 +213,7 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="genChinese()">🎲 生成中文名</button>
         <button type="button" class="btn" onclick="copyAll('cn')">📋 复制全部</button>
+        <button type="button" class="btn" onclick="window.__ngExport('cn')">⬇️ 导出名单 CSV</button>
       </div>
       
       <div class="name-grid" id="cnResult"></div>
@@ -235,6 +236,7 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="genEnglish()">🎲 Generate English Names</button>
         <button type="button" class="btn" onclick="copyAll('en')">📋 Copy All</button>
+        <button type="button" class="btn" onclick="window.__ngExport('en')">⬇️ 导出名单 CSV</button>
       </div>
       
       <div class="name-grid" id="enResult"></div>
@@ -262,6 +264,7 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="genNickname()">🎲 生成昵称</button>
         <button type="button" class="btn" onclick="copyAll('nk')">📋 复制全部</button>
+        <button type="button" class="btn" onclick="window.__ngExport('nk')">⬇️ 导出名单 CSV</button>
       </div>
       
       <div class="name-grid" id="nkResult"></div>
@@ -297,6 +300,7 @@ s.parentNode.insertBefore(el, s);
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="genGameId()">🎲 生成游戏ID</button>
         <button type="button" class="btn" onclick="copyAll('gm')">📋 复制全部</button>
+        <button type="button" class="btn" onclick="window.__ngExport('gm')">⬇️ 导出名单 CSV</button>
       </div>
       
       <div class="name-grid" id="gmResult"></div>
@@ -305,10 +309,14 @@ s.parentNode.insertBefore(el, s);
     <div id="tab-history" class="tab-content">
       <div class="toolbar">
         <button type="button" class="btn" onclick="clearHistory()">清空历史</button>
+        <button type="button" class="btn" onclick="window.__ngExport('history')">⬇️ 导出历史 CSV</button>
       </div>
       <div id="historyList"></div>
     </div>
   </div>
+
+<table id="ngHidden" style="display:none"><thead><tr><th>No</th><th>Name</th><th>Meta</th></tr></thead><tbody></tbody></table>
+<table id="ngHistHidden" style="display:none"><thead><tr><th>Type</th><th>Count</th><th>Names</th><th>Date</th></tr></thead><tbody></tbody></table>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -610,6 +618,41 @@ function clearHistory() {
   ToolBox.showToast(i18nText('toast.history_cleared'));
 }
 
+function __ngExport(scope){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var typeNames={chinese:'中文名',english:'英文名',nickname:'昵称',gameid:'游戏ID'};
+  var typeNamesEn={chinese:'Chinese Name',english:'English Name',nickname:'Nickname',gameid:'Game ID'};
+  if(scope==='history'){
+    var hist=[];
+    try{hist=JSON.parse(localStorage.getItem('name-history')||'[]');}catch(e){}
+    if(!hist.length){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg655')); return; }
+    var hb=document.querySelector('#ngHistHidden tbody');
+    hb.innerHTML='';
+    hist.forEach(function(h){
+      var tr=document.createElement('tr');
+      [en?(typeNamesEn[h.type]||h.type):(typeNames[h.type]||h.type), h.names.length, h.names.join(' / '), h.date].forEach(function(v){
+        var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+      });
+      hb.appendChild(tr);
+    });
+    TBKit.util.exportTable('#ngHistHidden', en?'name-history.csv':'起名历史.csv');
+    return;
+  }
+  var lists={cn:lastCn,en:lastEn,nk:lastNk,gm:lastGm};
+  var list=lists[scope]||[];
+  if(!list.length){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg655')); return; }
+  var tb=document.querySelector('#ngHidden tbody');
+  tb.innerHTML='';
+  list.forEach(function(r,i){
+    var tr=document.createElement('tr');
+    [i+1, r.name, r.meta||''].forEach(function(v){
+      var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  TBKit.util.exportTable('#ngHidden', en?('names-'+scope+'.csv'):('起名结果_'+scope+'.csv'));
+}
 genChinese();
 genEnglish();
 genNickname();

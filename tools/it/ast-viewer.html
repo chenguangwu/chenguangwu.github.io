@@ -261,6 +261,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" id="btnCopyJson">复制 AST JSON</button>
       <button class="btn" id="btnExpandAll">全部展开</button>
       <button class="btn" id="btnCollapseAll">全部折叠</button>
+      <button class="btn" id="btnExportStats">⬇️ 导出统计 CSV</button>
     </div>
   </div>
 
@@ -276,6 +277,7 @@ s.parentNode.insertBefore(el, s);
     <div class="type-count-list" id="typeCountList">
       <div class="ast-tree-empty">解析后显示节点类型统计</div>
     </div>
+    <table id="astHidden" style="display:none"><thead><tr><th>Category</th><th>Name</th><th>Value</th><th>Percent</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -805,6 +807,33 @@ class Counter {
     if (!currentAst){ ToolBox.showToast(i18nText('toast.msg670'), 'warning'); return; }
     setAllCollapsed(true);
     ToolBox.showToast(i18nText('toast.msg159'), 'info');
+  });
+  document.getElementById('btnExportStats').addEventListener('click', function(){
+    if (typeof TBKit === 'undefined') return;
+    var rows = typeCountList.querySelectorAll('.type-count-row');
+    if (!rows.length){ ToolBox.showToast(i18nText('toast.msg670'), 'warning'); return; }
+    var en = TBKit.util.isEn();
+    var total = parseInt(statNodes.textContent, 10) || 0;
+    var tbody = document.querySelector('#astHidden tbody');
+    tbody.innerHTML = '';
+    function addRow(cat, name, val, pct){
+      var tr = document.createElement('tr');
+      [cat, name, val, pct].forEach(function(v){
+        var td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    }
+    addRow('Summary', en?'Node Total':'节点总数', statNodes.textContent, '—');
+    addRow('Summary', en?'Node Types':'节点类型数', statTypes.textContent, '—');
+    addRow('Summary', en?'Code Lines':'代码行数', statLines.textContent, '—');
+    addRow('Summary', en?'Characters':'字符数', statChars.textContent, '—');
+    rows.forEach(function(r){
+      var name = r.querySelector('.tc-name');
+      var num = r.querySelector('.tc-num');
+      var cnt = parseInt(num ? num.textContent : '0', 10) || 0;
+      addRow(en?'Node Type':'节点类型', name ? name.textContent : '', cnt, total > 0 ? (cnt / total * 100).toFixed(2) + '%' : '—');
+    });
+    TBKit.util.exportTable('#astHidden', en?'ast-stats.csv':'AST统计.csv');
   });
 
   // 介绍区折叠

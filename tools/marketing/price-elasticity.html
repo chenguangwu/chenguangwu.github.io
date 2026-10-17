@@ -139,7 +139,10 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">📢 计算弹性</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__peExport()">⬇️ 导出弹性分析 CSV</button>
     </div>
+
+    <table id="peHidden" style="display:none"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody></tbody></table>
 
     <div class="elas-box" id="resultBox">
       <div class="v" id="elasVal">—</div>
@@ -266,6 +269,42 @@ function calc(){
 }
 
 function fmt(n){ return Math.round(n).toLocaleString('zh-CN'); }
+
+function __peExport(){
+  if(typeof TBKit==='undefined')return;
+  var p1=+document.getElementById('p1').value||0,
+      q1=+document.getElementById('q1').value||0,
+      p2=+document.getElementById('p2').value||0,
+      q2=+document.getElementById('q2').value||0;
+  if(p1<=0||q1<=0||p2<=0||q2<=0){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast('请先输入完整有效的价格与销量'); return; }
+  var en=TBKit.util.isEn();
+  var dQ=q2-q1, avgQ=(q1+q2)/2, dP=p2-p1, avgP=(p1+p2)/2;
+  var ped=(dQ/avgQ)/(dP/avgP), absPed=Math.abs(ped);
+  var grade=absPed>1?(en?'Elastic':'富有弹性'):(absPed<1?(en?'Inelastic':'缺乏弹性'):(en?'Unit elastic':'单位弹性'));
+  var advice;
+  if(absPed>1)advice=en?'Demand is price-sensitive: lowering price increases total revenue; raising price decreases it.':'需求对价格敏感。降价可增加总收入，涨价会减少收入。';
+  else if(absPed<1)advice=en?'Demand is price-insensitive: raising price increases total revenue; lowering price decreases it.':'需求对价格不敏感。涨价可增加总收入，降价会减少收入。';
+  else advice=en?'Price and quantity changes offset each other; total revenue roughly unchanged.':'价格变动与销量变动抵消，总收入基本不变。';
+  if(ped>0)advice+=en?' Note: price and quantity moved in the same direction (Giffen good or data anomaly).':' 注意：本例价格与销量同向变动，可能为吉芬品或计算异常。';
+  var rev1=p1*q1, rev2=p2*q2, revChange=rev2-rev1, revPct=rev1>0?(revChange/rev1*100):0;
+  var rows=[
+    ['Original Price P1',p1],['Original Quantity Q1',q1],['New Price P2',p2],['New Quantity Q2',q2],
+    ['Price Change',(dP/avgP*100).toFixed(2)+'%'],['Quantity Change',(dQ/avgQ*100).toFixed(2)+'%'],
+    ['Average Price',avgP.toFixed(2)],['Average Quantity',avgQ.toFixed(2)],
+    ['PED (midpoint arc)',ped.toFixed(4)],['|PED|',absPed.toFixed(4)],['Elasticity Grade',grade],
+    ['Original Revenue',rev1.toFixed(2)],['New Revenue',rev2.toFixed(2)],
+    ['Revenue Change',revChange.toFixed(2)],['Revenue Change %',revPct.toFixed(2)+'%'],['Advice',advice]
+  ];
+  var tbody=document.querySelector('#peHidden tbody');
+  tbody.innerHTML='';
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    var td0=document.createElement('td');td0.textContent=r[0];tr.appendChild(td0);
+    var td1=document.createElement('td');td1.textContent=r[1];tr.appendChild(td1);
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#peHidden', en?'price-elasticity.csv':'价格弹性分析.csv');
+}
 
 function drawCurve(p1,q1,p2,q2){
   var canvas = document.getElementById('curve');
