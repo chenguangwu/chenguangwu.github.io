@@ -128,8 +128,10 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">评估教学质量</button>
       <button type="button" class="btn" onclick="resetForm()">重置</button>
+      <button type="button" class="btn" onclick="__csatExport()">⬇️ 导出学员满意度结果 CSV</button>
     </div>
     <div class="result-box" id="res"></div>
+    <table id="csatHidden" style="display:none"><thead><tr><th>No.</th><th>Dimension</th><th>Score</th><th>Weight %</th><th>Weighted</th></tr></thead><tbody></tbody></table>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#FF6B35;">
@@ -206,6 +208,37 @@ function calc(){
 function resetForm(){
   DIMS.forEach(function(d){ document.getElementById('d_'+d.key).value='3'; });
   calc();
+}
+const CSAT_EN={teach:'Teaching Quality',curr:'Curriculum Design',prog:'Learning Progress',venue:'Venue Environment',serv:'Service Attitude'};
+const CSAT_LEVEL_EN={'优秀':'Excellent','良好':'Good','合格':'Pass','不合格':'Fail'};
+function __csatExport(){
+  if(typeof TBKit==='undefined') return;
+  const en=TBKit.util.isEn();
+  const tbody=document.querySelector('#csatHidden tbody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  let total=0;
+  DIMS.forEach((d,i)=>{
+    const v=+document.getElementById('d_'+d.key).value;
+    const weighted=v*d.weight;
+    total+=weighted;
+    const name=en?(CSAT_EN[d.key]||d.key):d.name;
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(i+1)+'</td><td>'+name+'</td><td>'+v+'</td><td>'+Math.round(d.weight*100)+'</td><td>'+weighted.toFixed(2)+'</td>';
+    tbody.appendChild(tr);
+  });
+  let level;
+  if(total>=4.5) level='优秀';
+  else if(total>=3.5) level='良好';
+  else if(total>=2.5) level='合格';
+  else level='不合格';
+  const r1=document.createElement('tr');
+  r1.innerHTML='<td></td><td>'+(en?'Total Score':'综合评分')+'</td><td colspan="3">'+total.toFixed(2)+'</td>';
+  tbody.appendChild(r1);
+  const r2=document.createElement('tr');
+  r2.innerHTML='<td></td><td>'+(en?'Grade':'评级')+'</td><td colspan="3">'+(en?(CSAT_LEVEL_EN[level]||level):level)+'</td>';
+  tbody.appendChild(r2);
+  TBKit.util.exportTable('#csatHidden', en?'dance-csat-result.csv':'学员满意度评估结果.csv');
 }
 calc();
 </script>

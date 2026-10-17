@@ -128,12 +128,14 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn" onclick="undoLast()">↩️ 撤销上次</button>
       <button type="button" class="btn danger" onclick="clearAll()">🗑️ 清空记录</button>
+      <button type="button" class="btn" onclick="__tasteExport()">⬇️ 导出口味偏好结果 CSV</button>
     </div>
   </div>
 
   <div class="card">
     <h2>📈 统计图表</h2>
     <div id="result"></div>
+    <table id="tasteHidden" style="display:none"><thead><tr><th>No.</th><th>Taste Key</th><th>Taste</th><th>Votes</th><th>Percent</th></tr></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -323,6 +325,31 @@ function renderStats(){
 
 renderGrid();
 renderStats();
+
+const TASTE_EN={sweet:'Sweet',salty:'Salty',spicy:'Spicy',sour:'Sour',umami:'Umami',bitter:'Bitter',light:'Light',rich:'Rich'};
+function __tasteExport(){
+  if(typeof TBKit==='undefined') return;
+  const en=TBKit.util.isEn();
+  const tbody=document.querySelector('#tasteHidden tbody');
+  if(!tbody) return;
+  const records=loadRecords();
+  const total=records.length;
+  if(total===0){ ToolBox.showToast(i18nText(),'warning'); return; }
+  const counts={};
+  tastes.forEach(t=>counts[t.key]=0);
+  records.forEach(r=>{ if(counts[r.taste]!==undefined) counts[r.taste]++; });
+  tbody.innerHTML='';
+  tastes.forEach((t,i)=>{
+    const pct=total>0?counts[t.key]/total*100:0;
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(i+1)+'</td><td>'+t.key+'</td><td>'+(en?(TASTE_EN[t.key]||t.name):t.name)+'</td><td>'+counts[t.key]+'</td><td>'+pct.toFixed(1)+'%</td>';
+    tbody.appendChild(tr);
+  });
+  const r1=document.createElement('tr');
+  r1.innerHTML='<td></td><td>'+(en?'Total':'总计')+'</td><td colspan="3">'+total+'</td>';
+  tbody.appendChild(r1);
+  TBKit.util.exportTable('#tasteHidden', en?'taste-preference-result.csv':'口味偏好统计.csv');
+}
 </script>
 
 <!-- SEO 介绍区块 -->
