@@ -477,11 +477,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="resetInputs()">&#8635; 重置</button>
       <button type="button" class="btn" onclick="copyExpression()">&#128203; 复制表达式</button>
       <button type="button" class="btn" onclick="copyTruthTable()">&#128203; 复制真值表</button>
+      <button type="button" class="btn" onclick="window.__truthExport()">⬇️ 导出真值表 CSV</button>
     </div>
 
     <!-- 真值表 -->
     <h3 style="margin-top:16px;">&#128202; 真值表</h3>
     <div class="truth-table-wrap" id="truthTableWrap"></div>
+    <table id="truthHidden" style="display:none;"><thead><tr><th>A</th><th>B</th><th>Q</th></tr></thead><tbody></tbody></table>
     <p class="gate-tip" id="gateTip"></p>
   </div>
 
@@ -1089,6 +1091,22 @@ function updateCombo() {
   const __h6=`最终输出 = <span style="color:var(--primary);font-size:18px;">${currentOutput}</span>`;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){outEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}outEl.innerHTML=__h6;
 }
 
+window.__truthExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var gate=GATES[currentGate];
+  var tbody=document.querySelector('#truthHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  gate.truthTable.forEach(function(r){
+    var tr=document.createElement('tr');
+    var cells=gate.inputs===1?[String(r[0]),'-',String(r[1])]:[String(r[0]),String(r[1]),String(r[2])];
+    cells.forEach(function(v){
+      var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#truthHidden', en?('truth-table-'+currentGate+'.csv'):('真值表-'+currentGate+'.csv'));
+};
 // 启动
 init();
 </script><script>

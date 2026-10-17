@@ -158,9 +158,11 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">生成评估</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__hbExport()">⬇️ 导出面神经评估 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <table id="hbHidden" style="display:none;"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">House-Brackmann 分级标准</h3>
     <table>
@@ -280,6 +282,49 @@ function copyResult(){
   var info = {1:'I级(正常)',2:'II级(轻度)',3:'III级(中度)',4:'IV级(中重度)',5:'V级(重度)',6:'VI级(完全麻痹)'};
   ToolBox.copyText('House-Brackmann面神经分级：'+info[grade], i18nText('toast.msg544'));
 }
+
+var __HB_EXPORT={
+  1:{lv:'I级',lvEn:'Grade I',sev:'正常',sevEn:'Normal',
+     desc:'面神经功能正常，各区域运动对称',descEn:'Normal facial nerve function; symmetric movement in all regions',
+     adv:'面神经功能正常，无需治疗。',advEn:'Normal facial nerve function; no treatment needed.'},
+  2:{lv:'II级',lvEn:'Grade II',sev:'轻度功能障碍',sevEn:'Mild dysfunction',
+     desc:'近距离检查才发现轻微不对称，额纹运动正常或稍弱，眼可完全闭合，口角稍不对称',descEn:'Slight asymmetry only on close inspection; forehead movement normal or slightly weak; complete eye closure; slight mouth asymmetry',
+     adv:'轻度面神经功能障碍，预后良好。可观察随访，多数可完全恢复。',advEn:'Mild dysfunction with good prognosis. Observation and follow-up; most cases recover completely.'},
+  3:{lv:'III级',lvEn:'Grade III',sev:'中度功能障碍',sevEn:'Moderate dysfunction',
+     desc:'面部两侧有明显但不严重的差异，额纹轻微可动，眼用力可完全闭合，口角明显不对称',descEn:'Obvious but not disfiguring difference between the two sides; slight forehead movement; complete eye closure with effort; obvious mouth asymmetry',
+     adv:'中度面神经功能障碍。建议药物治疗（糖皮质激素+营养神经），配合面部康复训练。预后较好。',advEn:'Moderate dysfunction. Pharmacotherapy (corticosteroids plus neurotrophic agents) combined with facial rehabilitation training. Prognosis is fairly good.'},
+  4:{lv:'IV级',lvEn:'Grade IV',sev:'中重度功能障碍',sevEn:'Moderately severe dysfunction',
+     desc:'面部明显不对称，额纹无运动，眼用力不能完全闭合，口角严重不对称',descEn:'Obvious facial asymmetry; no forehead movement; incomplete eye closure with effort; severe mouth asymmetry',
+     adv:'中重度面神经功能障碍。需积极药物治疗，建议行面神经电图评估变性程度。注意眼部保护（人工泪液、眼膏、护眼贴）。',advEn:'Moderately severe dysfunction. Active pharmacotherapy; electroneurography to assess degeneration. Eye protection needed (artificial tears, ointment, patch).'},
+  5:{lv:'V级',lvEn:'Grade V',sev:'重度功能障碍',sevEn:'Severe dysfunction',
+     desc:'仅可察觉的轻微面部运动，静止时不对称，眼不能闭合，口角仅轻微运动',descEn:'Only barely perceptible facial movement; asymmetry at rest; inability to close the eye; slight mouth movement',
+     adv:'重度面神经功能障碍。需行面神经电图评估，若变性>90%需考虑面神经减压术。需眼部保护。预后较差。',advEn:'Severe dysfunction. Electroneurography; facial nerve decompression if degeneration exceeds 90%. Eye protection needed. Prognosis is poorer.'},
+  6:{lv:'VI级',lvEn:'Grade VI',sev:'完全麻痹',sevEn:'Total paralysis',
+     desc:'面部完全无运动，面肌张力消失',descEn:'No facial movement at all; loss of facial muscle tone',
+     adv:'面神经完全麻痹。需紧急评估病因（肿瘤、外伤、炎症等），行面神经电图评估。若变性>90%需尽快行面神经减压术。需严格眼部保护。',advEn:'Complete facial nerve paralysis. Urgent etiological workup (tumor, trauma, inflammation); electroneurography. Decompression as soon as possible if degeneration exceeds 90%. Strict eye protection.'}
+};
+window.__hbExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var d=__HB_EXPORT[grade]||__HB_EXPORT[1];
+  var tbody=document.querySelector('#hbHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  var idx=((grade-1)/5*100).toFixed(0)+'%';
+  var rows=[
+    [en?'Grade':'分级', en?d.lvEn:d.lv],
+    [en?'Severity':'功能障碍程度', en?d.sevEn:d.sev],
+    [en?'Description':'功能描述', en?d.descEn:d.desc],
+    [en?'Recommendation':'治疗建议', en?d.advEn:d.adv],
+    [en?'Dysfunction Index':'功能障碍指数', idx]
+  ];
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    var td1=document.createElement('td');td1.textContent=r[0];
+    var td2=document.createElement('td');td2.textContent=r[1];
+    tr.appendChild(td1);tr.appendChild(td2);tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#hbHidden', en?'facial-nerve-hb-assessment.csv':'面神经评估.csv');
+};
 
 calc();
 </script>

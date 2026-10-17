@@ -145,7 +145,12 @@ s.parentNode.insertBefore(el, s);
       <div><label>输入MIC值(μg/mL)</label><input type="number" id="micVal" placeholder="输入MIC对照折点" step="0.01" oninput="renderDrugs()"></div>
     </div>
 
+    <div class="toolbar">
+      <button type="button" class="btn" onclick="window.__bpExport()">⬇️ 导出折点对照 CSV</button>
+    </div>
+
     <div id="drugArea"></div>
+    <table id="bpHidden" style="display:none;"><thead><tr><th>Drug</th><th>S (<= mcg/mL)</th><th>R (>= mcg/mL)</th><th>I Range</th><th>Interpretation</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>判读标准(CLSI 2023)：</strong><br>
@@ -303,6 +308,47 @@ function renderDrugs(){
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('drugArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('drugArea').innerHTML=__h0;
 }
 
+var __BP_DRUG_EN={'氨苄西林/舒巴坦':'Ampicillin/Sulbactam','哌拉西林/他唑巴坦':'Piperacillin/Tazobactam'};
+function __bpDrugEn(d){
+  if(__BP_DRUG_EN[d])return __BP_DRUG_EN[d];
+  var s=String(d).replace(/[\u4e00-\u9fa5\uff08\uff09()]/g,'').replace(/\s+/g,' ').trim();
+  s=s.replace(/^[\/\-\u00b7\u3001,]+|[\/\-\u00b7\u3001,]+$/g,'').trim();
+  return s||d;
+}
+window.__bpExport=function(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var b=document.getElementById('bacteria').value;
+  var mic=parseFloat(document.getElementById('micVal').value);
+  var list=BP[b];
+  if(!list)return;
+  var tbody=document.querySelector('#bpHidden tbody');if(!tbody)return;
+  tbody.innerHTML='';
+  list.forEach(function(d){
+    var interp='—',interpEn='Not tested';
+    if(!isNaN(mic)&&d.s!=='-'&&d.r!=='-'){
+      if(mic<=d.s){interp='S 敏感';interpEn='S Susceptible';}
+      else if(mic>=d.r){interp='R 耐药';interpEn='R Resistant';}
+      else{interp='I 中介';interpEn='I Intermediate';}
+    }
+    var has=(d.s!=='-'&&d.r!=='-');
+    var iRange=has?('>'+d.s+' 且 <'+d.r):'—';
+    var iRangeEn=has?('>'+d.s+' and <'+d.r):'-';
+    var tr=document.createElement('tr');
+    var cells=[
+      en?__bpDrugEn(d.drug):d.drug,
+      d.s!=='-'?String(d.s):'-',
+      d.r!=='-'?String(d.r):'-',
+      en?iRangeEn:iRange,
+      en?interpEn:interp
+    ];
+    cells.forEach(function(v){
+      var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#bpHidden', en?('mic-breakpoints-'+b+'.csv'):('MIC折点对照.csv'));
+};
 renderDrugs();
 </script>
 
