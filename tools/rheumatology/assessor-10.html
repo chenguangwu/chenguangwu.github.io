@@ -121,7 +121,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算ESSDAI评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
+      <button type="button" class="btn" onclick="window.__esExport()">⬇️ 导出评分明细 CSV</button>
     </div>
+    <table id="esHidden" style="display:none"><thead><tr><th>System</th><th>Weight</th><th>Activity</th><th>Weighted</th></tr></thead><tbody></tbody></table>
     <div class="result-box" id="res"></div>
   </div>
 
@@ -336,6 +338,24 @@ function copyResult(){
   var text=document.getElementById('res').innerText;
   ToolBox.copyText(text, i18nText('msg038'));
 }
+function __esExport() {
+  if (typeof TBKit === 'undefined') return;
+  var en = TBKit.util.isEn();
+  var tbody = document.querySelector('#esHidden tbody');
+  tbody.innerHTML = '';
+  var row = function (a) { var tr = document.createElement('tr'); a.forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); tbody.appendChild(tr); };
+  var total = 0;
+  domains.forEach(function(d, i) {
+    var sel = document.getElementById('d' + i);
+    var v = sel ? parseInt(sel.value) : 0;
+    var weighted = v * d.weight;
+    total += weighted;
+    row([d.name, '×' + d.weight, v + '级', weighted]);
+  });
+  row([en?'Total':'合计', '', '', total]);
+  TBKit.util.exportTable('#esHidden', en ? 'essdai-score.csv' : 'ESSDAI评分明细.csv');
+}
+
 buildList();calc();
 </script>
 

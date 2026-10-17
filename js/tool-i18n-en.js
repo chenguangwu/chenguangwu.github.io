@@ -504,6 +504,7 @@ window.__TI18N_EN = {
     '⬇️ 导出单词表 CSV':'⬇️ Export Vocabulary CSV',
     '⬇️ 导出类型详解 CSV':'⬇️ Export Enneagram Types CSV',
     '⬇️ 导出八卦详解 CSV':'⬇️ Export Bagua Trigrams CSV',
+    '⬇️ 导出评分明细 CSV':'⬇️ Export Score Details CSV',
     '⬇️ 导出时间轴 CSV':'⬇️ Export Timeline CSV',
     '⬇️ 导出场景推荐 CSV':'⬇️ Export Driving Scene Recommendations CSV',
     '⬇️ 导出残局谱 CSV':'⬇️ Export Endgame Collection CSV',

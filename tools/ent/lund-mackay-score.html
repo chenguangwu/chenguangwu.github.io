@@ -228,7 +228,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="resetScore()">重置评分</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__lmExport()">⬇️ 导出评分明细 CSV</button>
     </div>
+    <table id="lmHidden" style="display:none"><thead><tr><th>Side</th><th>Location</th><th>Score</th></tr></thead><tbody></tbody></table>
 
     <div class="result-box" id="result"></div>
 
@@ -364,6 +366,29 @@ function copyResult(){
   var total = rightTotal + leftTotal;
   var text = 'Lund-Mackay评分: 总分'+total+'/24 (右'+rightTotal+'+左'+leftTotal+')';
   ToolBox.copyText(text, i18nText('msg606'));
+}
+
+function __lmExport() {
+  if (typeof TBKit === 'undefined') return;
+  var en = TBKit.util.isEn();
+  var tbody = document.querySelector('#lmHidden tbody');
+  tbody.innerHTML = '';
+  var row = function (a) { var tr = document.createElement('tr'); a.forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); tbody.appendChild(tr); };
+  var names = { maxillary:'上颌窦', anterior_ethmoid:'前组筛窦', posterior_ethmoid:'后组筛窦', sphenoid:'蝶窦', frontal:'额窦', omc:'窦口鼻道复合体(OMC)' };
+  var rightTotal = 0, leftTotal = 0;
+  for (var k in scores.right) rightTotal += scores.right[k];
+  for (var k in scores.left) leftTotal += scores.left[k];
+  var total = rightTotal + leftTotal;
+  ['right','left'].forEach(function(side){
+    var label = side==='right' ? (en?'Right':'右侧') : (en?'Left':'左侧');
+    for (var k in scores[side]) {
+      row([label, en?k:names[k], scores[side][k]]);
+    }
+  });
+  row([en?'Total':'合计', '', total]);
+  row([en?'Right subtotal':'右侧合计', '', rightTotal]);
+  row([en?'Left subtotal':'左侧合计', '', leftTotal]);
+  TBKit.util.exportTable('#lmHidden', en ? 'lund-mackay-score.csv' : 'Lund-Mackay评分明细.csv');
 }
 
 calc();
