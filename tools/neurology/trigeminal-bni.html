@@ -167,9 +167,11 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">生成评估</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__tbExport()">⬇️ 导出分级标准 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <table id="tbHidden" style="display:none"><thead><tr><th>Grade</th><th>Name</th><th>Severity</th><th>Description</th><th>Advice</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -297,6 +299,24 @@ function calc(){
 function copyResult(){
   var info = {1:'BNI I级(无痛)',2:'BNI II级(轻度,药物可控)',3:'BNI III级(中度,药物部分可控)',4:'BNI IV级(中度,药物不可控)',5:'BNI V级(重度,药物无效)'};
   ToolBox.copyText('三叉神经痛BNI分级：'+info[grade], i18nText('msg009'));
+}
+
+function __tbExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#tbHidden tbody');
+  tbody.innerHTML='';
+  function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
+  var gradeInfo={
+    1:{name:en?'BNI I':'BNI I级',sev:en?'Painless':'无痛',desc:en?'Completely painless, no medication needed':'完全无痛，无需任何药物治疗',advice:en?'Pain fully controlled. Maintain current treatment, regular follow-up':'疼痛完全控制。维持当前治疗状态。定期随访。'},
+    2:{name:en?'BNI II':'BNI II级',sev:en?'Mild pain, controlled':'轻度疼痛，药物可控',desc:en?'Occasional pain, fully controlled by medication':'偶尔出现疼痛，药物可完全控制',advice:en?'Good medication control. Continue current regimen (carbamazepine/oxcarbazepine), monitor levels and side effects':'疼痛药物控制良好。继续当前药物方案（卡马西平/奥卡西平），定期监测血药浓度和副作用。'},
+    3:{name:en?'BNI III':'BNI III级',sev:en?'Moderate pain, partial control':'中度疼痛，药物部分可控',desc:en?'Pain persists but tolerable, medication only partially relieves':'疼痛仍存在但可忍受，药物仅部分缓解',advice:en?'Partial control. Adjust regimen: increase dose or combine (carbamazepine+baclofen/pregabalin). Assess surgical need':'疼痛药物部分控制。建议调整药物方案：增加剂量或联合用药（卡马西平+巴氯芬/普瑞巴林）。评估是否需手术干预。'},
+    4:{name:en?'BNI IV':'BNI IV级',sev:en?'Moderate pain, uncontrolled':'中度疼痛，药物不可控',desc:en?'Medication cannot control pain, affects daily life':'药物不能有效控制疼痛，影响日常生活',advice:en?'Poor control. Head MRI (3D-FIESTA) for neurovascular compression. Consider MVD or minimally invasive intervention':'药物控制不佳。建议行头颅MRI（3D-FIESTA序列）评估神经血管压迫。考虑微血管减压术(MVD)或微创介入治疗。'},
+    5:{name:en?'BNI V':'BNI V级',sev:en?'Severe pain, refractory':'重度疼痛，药物完全无效',desc:en?'Severe pain, medication completely ineffective, severely impaired quality of life':'严重疼痛，药物完全无效，严重影响生活质量',advice:en?'Medically refractory. Strongly recommend surgery: MVD preferred; gamma knife or RF thermocoagulation if surgery not tolerated':'药物难治性三叉神经痛。强烈推荐手术治疗：首选微血管减压术(MVD)，不能耐受手术者可行伽马刀放射外科或射频热凝术。'}
+  };
+  for(var g=1;g<=5;g++){var info=gradeInfo[g];row([g, info.name, info.sev, info.desc, info.advice]);}
+  row([en?'Current Grade':'当前分级', gradeInfo[grade].name, gradeInfo[grade].sev, '', '']);
+  TBKit.util.exportTable('#tbHidden', en?'trigeminal-bni-grade.csv':'三叉神经痛BNI分级标准.csv');
 }
 
 calc();
