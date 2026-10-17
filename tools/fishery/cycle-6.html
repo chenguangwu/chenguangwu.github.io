@@ -170,7 +170,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button class="btn primary" onclick="addPond()">➕ 添加池塘</button>
       <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
+      <button class="btn" onclick="window.__pondExport()">⬇️ 导出清淤计划 CSV</button>
     </div>
+    <table id="pondHidden" style="display:none;"><thead><tr><th>Pond</th><th>Area (mu)</th><th>Depth (m)</th><th>Density (/mu)</th><th>Feed Rate (%)</th><th>Last Clean</th><th>Monthly Accum (kg)</th><th>Monthly Conc (mg/L)</th><th>Cycle (months)</th><th>Next Clean</th><th>Days Left</th><th>Risk</th></tr></thead><tbody></tbody></table>
     <div class="preset-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;align-items:center;">
       <span style="font-size:13px;color:var(--text-muted);">常见场景预设：</span>
       <button type="button" class="btn ghost" onclick="applyPondPreset('small')">精养塘</button>
@@ -273,6 +275,23 @@ function getDaysUntil(date) {
   return Math.ceil((date - today) / (1000 * 60 * 60 * 24));
 }
 
+function __pondExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!ponds||!ponds.length){ToolBox.showToast(en?'No pond records':'暂无池塘记录');return;}
+  var tb=document.querySelector('#pondHidden tbody');
+  tb.innerHTML='';
+  ponds.forEach(function(p){
+    var cp=calcParams(p);
+    var risk=getRiskLevel(p);
+    var next=getNextCleanDate(p);
+    var days=getDaysUntil(next);
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+ToolBox.escHtml(p.name)+'</td><td>'+p.area+'</td><td>'+p.depth+'</td><td>'+p.density+'</td><td>'+p.feedRate+'</td><td>'+(p.lastClean||'-')+'</td><td>'+cp.monthlyAccum.toFixed(1)+'</td><td>'+cp.monthlyConc.toFixed(2)+'</td><td>'+cp.cycleMonths.toFixed(1)+'</td><td>'+fmtDate(next)+'</td><td>'+days+'</td><td>'+risk.label+'</td>';
+    tb.appendChild(tr);
+  });
+  TBKit.util.exportTable('#pondHidden',en?'pond-dredging-plan.csv':'池塘清淤计划.csv');
+}
 function addPond() {
   var name = document.getElementById('pondName').value.trim();
   var area = parseFloat(document.getElementById('pondArea').value);

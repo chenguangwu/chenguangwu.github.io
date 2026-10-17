@@ -537,6 +537,8 @@ window.__TI18N_EN = {
     '⬇️ 导出LTV明细 CSV':'⬇️ Export LTV Details CSV',
     '⬇️ 导出雨刷台账 CSV':'⬇️ Export Wiper Log CSV',
     '⬇️ 导出KPI报表 CSV':'⬇️ Export KPI Report CSV',
+    '⬇️ 导出发酵方案 CSV':'⬇️ Export Fermentation Plan CSV',
+    '⬇️ 导出清淤计划 CSV':'⬇️ Export Dredging Plan CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 批次101 顺带修复 smt-stencil 既有未译 ——
