@@ -161,8 +161,10 @@ s.parentNode.insertBefore(el, s);
     <button type="button" class="btn primary" onclick="calc()">查看结果</button>
     <button type="button" class="btn" onclick="mtReset()">重新测试</button>
     <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+    <button type="button" class="btn" onclick="window.__mbtiExport()">⬇️ 导出MBTI结果 CSV</button>
   </div>
   <div class="result-box" id="res"></div>
+  <table id="mbtiHidden" style="display:none;"><thead><tr><th>Dimension</th><th>Preference</th><th>Score</th><th>Percentage</th></tr></thead><tbody></tbody></table>
 </div>
 
 <style>
@@ -533,6 +535,47 @@ MT_CUR=mtNextUnanswered();
 if(MT_CUR>=MT_QS.length){MT_CUR=0;}
 mtRender();
 if(mtAnswered()===MT_QS.length){calc();}
+// ============ 导出 MBTI 结果 CSV ============
+var __MBTI_LETTER_EN={E:'Extraversion',I:'Introversion',S:'Sensing',N:'Intuition',T:'Thinking',F:'Feeling',J:'Judging',P:'Perceiving'};
+var __MBTI_CN_EN={'外向':'Extraversion','内向':'Introversion','实感':'Sensing','直觉':'Intuition','思考':'Thinking','情感':'Feeling','判断':'Judging','感知':'Perceiving'};
+function __mbtiRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __mbtiExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#mbtiHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var raw=mtScore();
+  var code='';
+  for(var k=0;k<MT_DIMS.length;k++){
+    var A=MT_DIMS[k].a,B=MT_DIMS[k].b;
+    var max=0;
+    for(var i=0;i<MT_QS.length;i++){if(MT_QS[i].d===A||MT_QS[i].d===B){max+=2;}}
+    if(max<=0){max=1;}
+    var av=raw[A],bv=raw[B];
+    var pa=Math.round((av+max)/(max*2)*100);
+    if(pa<0){pa=0;}if(pa>100){pa=100;}
+    var pb=100-pa;
+    var win=(av>=bv)?A:B;
+    code+=win;
+    var dim=en?MT_DIMS[k].en:(MT_DIMS[k].an+' / '+MT_DIMS[k].bn);
+    var pref=en?(__MBTI_LETTER_EN[win]+' ('+win+')'):((win===A?MT_DIMS[k].an:MT_DIMS[k].bn)+' ('+win+')');
+    var score=(win===A)?(av+' / '+bv):(bv+' / '+av);
+    tbody.appendChild(__mbtiRow([dim, pref, score, pa+'% / '+pb+'%']));
+  }
+  var done=mtAnswered();
+  var t=MT_TYPES[code]||null;
+  if(done===MT_QS.length&&t){
+    tbody.appendChild(__mbtiRow([en?'Type Code':'类型代码', code, en?'Type Name':'类型名称', en?(t.e||''):(t.n||'')]));
+  }else{
+    tbody.appendChild(__mbtiRow([en?'Progress':'答题进度', done+'/'+MT_QS.length, en?'Status':'状态', en?'Incomplete':'未完成']));
+  }
+  TBKit.util.exportTable('#mbtiHidden', en?'mbti-result.csv':'MBTI测评结果.csv');
+}
 </script>
 
 </div>

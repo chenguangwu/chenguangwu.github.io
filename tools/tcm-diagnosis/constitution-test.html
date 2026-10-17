@@ -135,11 +135,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calcScore()">计算体质</button>
       <button type="button" class="btn" onclick="resetTest()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__constExport()">⬇️ 导出体质评分 CSV</button>
     </div>
 
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);text-align:center;">完成所有题目后点击「计算体质」</p>
     </div>
+    <table id="constHidden" style="display:none;"><thead><tr><th>Constitution</th><th>Transformed Score</th><th>Verdict</th><th>Adjustment</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       ⚠️ 体质判定标准：转化分≥60分为"是"，40-59分为"倾向是"，<40分为"否"。可同时具备多种体质倾向（兼夹体质）。本工具仅供健康参考，不能替代医师诊断。
@@ -342,6 +344,54 @@ function copyResult(){
   var t=document.getElementById('result').innerText;
   if(!t||t.indexOf('完成')===0){ToolBox.showToast(i18nText(), 'warning');return;}
   ToolBox.copyText(t, i18nText());
+}
+// ============ 导出九种体质评分 CSV ============
+var __CONST_EN={
+  pinghe:{n:'Balanced Constitution',a:'Keep a regular lifestyle, moderate diet and exercise'},
+  qixu:{n:'Qi Deficiency',a:'Tonify qi and spleen; yam, jujube, astragalus; avoid overwork'},
+  yangxu:{n:'Yang Deficiency',a:'Warm yang and dispel cold; lamb, ginger, longan; keep warm'},
+  yinxu:{n:'Yin Deficiency',a:'Nourish yin and clear fire; tremella, lily, pear; avoid late nights and spicy food'},
+  tanshi:{n:'Phlegm-Dampness',a:'Strengthen spleen and resolve phlegm; light diet, coix seed, winter melon; exercise more'},
+  shire:{n:'Damp-Heat',a:'Clear heat and drain dampness; mung bean, bitter melon, winter melon; avoid spicy/oily food and alcohol'},
+  xueyu:{n:'Blood Stasis',a:'Activate blood and resolve stasis; hawthorn, peach kernel, safflower; stay active'},
+  qiyu:{n:'Qi Stagnation',a:'Soothe liver and relieve constraint; citrus, rose; keep a pleasant mood'},
+  tebing:{n:'Special Constitution',a:'Tonify qi and secure the exterior; avoid allergens; build up the constitution'}
+};
+var __CONST_VERDICT_EN={'是':'Yes','倾向是':'Tendency','否':'No'};
+function __constRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __constExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#constHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var rows=[];
+  constitutions.forEach(function(con){
+    var total=0,n=con.q.length;
+    for(var i=0;i<n;i++){
+      var key=con.id+'_'+i;
+      var raw=answers[key]||3;
+      total+=con.reverse[i]?(6-raw):raw;
+    }
+    var trans=Math.round((total/n-1)/4*100);
+    var verdict=trans>=60?'是':trans>=40?'倾向是':'否';
+    rows.push({con:con,score:trans,verdict:verdict});
+  });
+  rows.sort(function(a,b){return b.score-a.score;});
+  rows.forEach(function(r){
+    var e=__CONST_EN[r.con.id]||{};
+    tbody.appendChild(__constRow([
+      en?(e.n||r.con.name):r.con.name,
+      String(r.score),
+      en?(__CONST_VERDICT_EN[r.verdict]||r.verdict):r.verdict,
+      en?(e.a||r.con.adjust):r.con.adjust
+    ]));
+  });
+  TBKit.util.exportTable('#constHidden', en?'tcm-constitution-scores.csv':'中医体质评分.csv');
 }
 renderQuestions();
 </script>
