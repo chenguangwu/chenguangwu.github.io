@@ -132,7 +132,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="window.evaluate()">评定分级</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="saveRecord()">保存记录</button>
+      <button type="button" class="btn" onclick="window.__asiaExport()">⬇️ 导出评分明细 CSV</button>
     </div>
+    <table id="asiaHidden" style="display:none"><thead><tr><th>Segment</th><th>LightTouch_Left</th><th>PinPrick_Left</th><th>LightTouch_Right</th><th>PinPrick_Right</th><th>Motor_Left</th><th>Motor_Right</th><th>Note</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar" style="margin-top:12px;flex-wrap:wrap;gap:6px;">
       <span style="font-size:13px;color:var(--text-muted);">📋 示例病例：</span>
@@ -419,6 +421,39 @@ function evaluate() {
 
   window._evalResult = { plane: lastNormalMotor, ais: ais, desc: aisDesc };
   document.getElementById('resultBox').innerHTML = html;
+}
+
+function __asiaExport() {
+  if (typeof TBKit === 'undefined') return;
+  var en = TBKit.util.isEn();
+  var tbody = document.querySelector('#asiaHidden tbody');
+  tbody.innerHTML = '';
+  var row = function (a) { var tr = document.createElement('tr'); a.forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); tbody.appendChild(tr); };
+  var ltL = 0, ppL = 0, ltR = 0, ppR = 0;
+  sensoryDermatomes.forEach(function(d) {
+    var a = document.getElementById('sens_' + d + '_lt_l').value;
+    var b = document.getElementById('sens_' + d + '_pp_l').value;
+    var c = document.getElementById('sens_' + d + '_lt_r').value;
+    var e = document.getElementById('sens_' + d + '_pp_r').value;
+    var v1 = a !== 'NT' ? parseInt(a) : ''; var v2 = b !== 'NT' ? parseInt(b) : ''; var v3 = c !== 'NT' ? parseInt(c) : ''; var v4 = e !== 'NT' ? parseInt(e) : '';
+    if (a !== 'NT') ltL += parseInt(a);
+    if (b !== 'NT') ppL += parseInt(b);
+    if (c !== 'NT') ltR += parseInt(c);
+    if (e !== 'NT') ppR += parseInt(e);
+    row([d, v1, v2, v3, v4, '', '', '']);
+  });
+  var ml = 0, mr = 0;
+  keyMuscles.forEach(function(m, i) {
+    var lv = document.getElementById('motor_' + i + '_l').value;
+    var rv = document.getElementById('motor_' + i + '_r').value;
+    var m1 = lv !== 'NT' ? parseInt(lv) : ''; var m2 = rv !== 'NT' ? parseInt(rv) : '';
+    if (lv !== 'NT') ml += parseInt(lv);
+    if (rv !== 'NT') mr += parseInt(rv);
+    row([m.level + ' ' + m.name, '', '', '', '', m1, m2, '']);
+  });
+  row([en?'Sensory total':'感觉总分', ltL, ppL, ltR, ppR, '', '', '']);
+  row([en?'Motor total':'运动总分', '', '', '', '', ml, mr, '']);
+  TBKit.util.exportTable('#asiaHidden', en ? 'asia-impairment-scale.csv' : 'ASIA损伤量表.csv');
 }
 
 function saveRecord() {

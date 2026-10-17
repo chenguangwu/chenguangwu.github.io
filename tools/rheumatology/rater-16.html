@@ -122,7 +122,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calc()">计算SLEDAI评分</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
+      <button type="button" class="btn" onclick="window.__r16Export()">⬇️ 导出评分明细 CSV</button>
     </div>
+    <table id="r16Hidden" style="display:none"><thead><tr><th>Item</th><th>System</th><th>Weight</th></tr></thead><tbody></tbody></table>
     <div class="result-box" id="res"></div>
   </div>
 
@@ -311,6 +313,26 @@ function copyResult(){
   var text=document.getElementById('res').innerText;
   ToolBox.copyText(text, i18nText('msg101'));
 }
+function __r16Export() {
+  if (typeof TBKit === 'undefined') return;
+  var en = TBKit.util.isEn();
+  var tbody = document.querySelector('#r16Hidden tbody');
+  tbody.innerHTML = '';
+  var row = function (a) { var tr = document.createElement('tr'); a.forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); tbody.appendChild(tr); };
+  var total = 0;
+  var any = false;
+  items.forEach(function(g){
+    var organ = g.group.indexOf('神经')>=0?'神经系统':g.group.indexOf('关节')>=0?'关节肌肉':g.group.indexOf('泌尿')>=0?'泌尿':g.group.indexOf('皮肤')>=0?'皮肤黏膜':g.group.indexOf('浆膜')>=0?'浆膜':g.group.indexOf('免疫')>=0?'免疫':'全身血液';
+    g.list.forEach(function(it){
+      var cb = document.getElementById('cb_' + it.key);
+      if (cb && cb.checked) { total += g.weight; any = true; row([it.name, organ, g.weight]); }
+    });
+  });
+  if (!any) row([en?'(none)':'(无阳性项)', '', 0]);
+  row([en?'Total':'合计', '', total]);
+  TBKit.util.exportTable('#r16Hidden', en ? 'sledai-rater16.csv' : 'SLEDAI评分明细.csv');
+}
+
 buildList();calc();
 </script>
 

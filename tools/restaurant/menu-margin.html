@@ -137,7 +137,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn" onclick="addDish()">➕ 添加菜品</button>
       <button type="button" class="btn primary" onclick="calc()">📊 分析</button>
+      <button type="button" class="btn" onclick="window.__mmExport()">⬇️ 导出菜单分析 CSV</button>
     </div>
+    <table id="mmHidden" style="display:none"><thead><tr><th>Dish</th><th>Cost</th><th>Price</th><th>Profit</th><th>Margin</th></tr></thead><tbody></tbody></table>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:12px;color:var(--text-muted);">排序：</span>
       <button type="button" class="sort-btn active" onclick="setSort('margin',this)">毛利率↓</button>
@@ -297,6 +299,23 @@ function calc(){
 }
 
 renderDishes();
+function __mmExport() {
+  if (typeof TBKit === 'undefined') return;
+  var en = TBKit.util.isEn();
+  var tbody = document.querySelector('#mmHidden tbody');
+  tbody.innerHTML = '';
+  var row = function (a) { var tr = document.createElement('tr'); a.forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); tbody.appendChild(tr); };
+  var totalCost = 0, totalRev = 0, totalProfit = 0;
+  dishes.forEach(function(d){
+    var cost = +d.cost || 0, price = +d.price || 0, profit = price - cost, margin = price > 0 ? (profit/price*100) : 0;
+    totalCost += cost; totalRev += price; totalProfit += profit;
+    row([d.name, cost.toFixed(2), price.toFixed(2), profit.toFixed(2), margin.toFixed(1) + '%']);
+  });
+  var avg = totalRev > 0 ? (totalProfit/totalRev*100) : 0;
+  row([en?'Totals':'合计', totalCost.toFixed(2), totalRev.toFixed(2), totalProfit.toFixed(2), avg.toFixed(1) + '%']);
+  TBKit.util.exportTable('#mmHidden', en ? 'menu-margin.csv' : '菜单毛利率.csv');
+}
+
 calc();
 </script>
 
