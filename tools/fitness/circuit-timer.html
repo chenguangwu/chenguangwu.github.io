@@ -168,6 +168,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn warning" id="pauseBtn" onclick="pauseTimer()" style="display:none;">⏸ 暂停</button>
       <button type="button" class="btn" onclick="skipPhase()">⏭ 跳过</button>
       <button type="button" class="btn danger" onclick="resetTimer()">↻ 重置</button>
+      <button type="button" class="btn" onclick="window.__circuitExport()">⬇️ 导出训练方案 CSV</button>
     </div>
 
     <div class="ct-stage">
@@ -196,6 +197,7 @@ s.parentNode.insertBefore(el, s);
   <p class="formula-desc">例如训练 40 秒、休息 20 秒、8 轮、准备 10 秒：单轮 60 秒，训练总时长 60×8 = 480 秒（8 分钟），含准备 490 秒。计时器按各段时长自动切换训练/休息并统计累计训练分钟数。</p>
 </div>
 <div class="tip-box tip-info" style="margin-top:12px;">提示：训练时保持动作标准，休息时主动恢复（慢走、深呼吸）。结束后做 5 分钟拉伸，帮助恢复。</div>
+    <table id="circuitHidden" style="display:none;"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -464,6 +466,35 @@ function beep(times){
       o.start(t0); o.stop(t0 + 0.16);
     }
   }catch(e){}
+}
+
+function __circuitExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#circuitHidden tbody');
+  tbody.innerHTML='';
+  readInputs();
+  var single=state.workSec+state.restSec;
+  var total=single*state.totalRounds;
+  var withPrep=total+state.readySec;
+  var rows=[
+    {zh:'训练时长(秒)', en:'Work Seconds', v:state.workSec},
+    {zh:'休息时长(秒)', en:'Rest Seconds', v:state.restSec},
+    {zh:'轮数', en:'Rounds', v:state.totalRounds},
+    {zh:'准备倒计时(秒)', en:'Ready Seconds', v:state.readySec},
+    {zh:'单轮时长(秒)', en:'Single Round Seconds', v:single},
+    {zh:'训练总时长(秒)', en:'Total Training Seconds', v:total},
+    {zh:'含准备总时长(秒)', en:'Total With Prep Seconds', v:withPrep},
+    {zh:'训练总分钟', en:'Total Training Minutes', v:Math.round(total/60)},
+    {zh:'累计训练次数', en:'Cumulative Sessions', v:stats.totalSessions},
+    {zh:'累计训练分钟', en:'Cumulative Training Minutes', v:Math.round(stats.totalSeconds/60)}
+  ];
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(en?r.en:r.zh)+'</td><td>'+r.v+'</td>';
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#circuitHidden', en?'circuit-training-plan.csv':'循环训练方案.csv');
 }
 
 load();

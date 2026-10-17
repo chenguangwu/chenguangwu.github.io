@@ -156,6 +156,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" id="startBtn" onclick="toggleRun()">开始</button>
       <button class="btn" id="lapBtn" style="display:none;" onclick="addLap()">计圈</button>
       <button class="btn warning" onclick="resetTimer()">重置</button>
+      <button class="btn" onclick="window.__timerExport()">⬇️ 导出计圈记录 CSV</button>
     </div>
     <div class="preset-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;align-items:center;">
       <span style="font-size:13px;color:var(--text-muted);">常见场景预设：</span>
@@ -168,6 +169,7 @@ s.parentNode.insertBefore(el, s);
       <h3 style="margin-bottom:8px;">圈数记录</h3>
       <div id="lapList"></div>
     </div>
+    <table id="timerHidden" style="display:none;"><thead><tr><th>Lap</th><th>Split</th><th>Total</th></tr></thead><tbody></tbody></table>
 
     <div class="tip-box tip-info" style="margin-top:16px;">
       <strong>使用说明：</strong>正计时模式从 0 开始累计时间（可计圈）；倒计时模式设定目标时长，归零时自动提醒。计时进度会自动保存，刷新页面不丢失。
@@ -336,6 +338,26 @@ function applyTimerPreset(kind){
   else if(kind==='meeting'){switchMode('down');quickSet(15);}
   else if(kind==='workout'){switchMode('down');quickSet(10);}
   else return;
+}
+function __timerExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#timerHidden tbody');
+  tbody.innerHTML='';
+  if(state.laps&&state.laps.length){
+    state.laps.forEach(function(l,i){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>#'+(i+1)+'</td><td>'+format(l.split)+'</td><td>'+format(l.total)+'</td>';
+      tbody.appendChild(tr);
+    });
+    TBKit.util.exportTable('#timerHidden', en?'lap-records.csv':'计圈记录.csv');
+  } else {
+    var ms=curElapsed();
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>1</td><td>'+format(ms)+'</td><td>'+format(ms)+'</td>';
+    tbody.appendChild(tr);
+    TBKit.util.exportTable('#timerHidden', en?'timer-record.csv':'计时记录.csv');
+  }
 }
 load();
 </script>
