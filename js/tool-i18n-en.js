@@ -505,6 +505,8 @@ window.__TI18N_EN = {
     '⬇️ 导出类型详解 CSV':'⬇️ Export Enneagram Types CSV',
     '⬇️ 导出八卦详解 CSV':'⬇️ Export Bagua Trigrams CSV',
     '⬇️ 导出菜单分析 CSV':'⬇️ Export Menu Analysis CSV',
+    '⬇️ 导出咽鼓管评估 CSV':'⬇️ Export Eustachian Tube Assessment CSV',
+    '⬇️ 导出咽反射分级 CSV':'⬇️ Export Gag Reflex Grade CSV',
     '⬇️ 导出时间轴 CSV':'⬇️ Export Timeline CSV',
     '⬇️ 导出场景推荐 CSV':'⬇️ Export Driving Scene Recommendations CSV',
     '⬇️ 导出残局谱 CSV':'⬇️ Export Endgame Collection CSV',

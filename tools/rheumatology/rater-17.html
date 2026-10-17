@@ -122,8 +122,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calc()">计算BVAS评分</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
       <button type="button" class="btn" onclick="copyResult()">复制报告</button>
+      <button type="button" class="btn" onclick="window.__r17Export()">⬇️ 导出评分明细 CSV</button>
     </div>
     <div class="result-box" id="res"></div>
+    <table id="r17Hidden" style="display:none"><thead><tr><th>System</th><th>Item</th><th>Points</th></tr></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -345,6 +347,24 @@ function calc(){
 function copyResult(){
   var text=document.getElementById('res').innerText;
   ToolBox.copyText(text, i18nText('msg011'));
+}
+function __r17Export(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#r17Hidden tbody');
+  tbody.innerHTML='';
+  var _row=function(cells){var tr=document.createElement('tr');cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});tbody.appendChild(tr);};
+  var total=0;
+  groups.forEach(function(g){
+    var gScore=0;
+    g.items.forEach(function(it){
+      var cb=document.getElementById('cb_'+it.key);
+      if(cb&&cb.checked){gScore+=it.pts;_row([g.group,it.name,String(it.pts)]);}
+    });
+    total+=Math.min(gScore,g.max);
+  });
+  _row(['', en?'BVAS Total':'BVAS总分', String(total)]);
+  TBKit.util.exportTable('#r17Hidden', en?'bvas_score_detail.csv':'bvas评分明细.csv');
 }
 buildList();calc();
 </script>
