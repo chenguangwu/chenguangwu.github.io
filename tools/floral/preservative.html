@@ -151,7 +151,7 @@ s.parentNode.insertBefore(el, s);
         </select>
       </div>
     </div>
-    <div style="margin:10px 0 4px;font-size:13px;color:var(--text-muted);">💐 示例场景（一键填充常见花瓶与保鲜液）：</div>
+    <div style="margin:10px 0 4px;font-size:13px;color:var(--text-muted);" data-zh="💐 示例场景（一键填充常见花瓶与保鲜液）：">💐 Example scenarios (one-tap presets for common vases &amp; preservatives):</div>
     <div class="toolbar">
       <button type="button" class="btn" onclick="applyFloralPreset('small')">小花瓶 250ml</button>
       <button type="button" class="btn" onclick="applyFloralPreset('standard')">标准瓶 500ml</button>
@@ -165,7 +165,9 @@ s.parentNode.insertBefore(el, s);
     <div class="ratio-display" id="ratioDisplay"></div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" onclick="copyResult()">复制配方</button>
+      <button type="button" class="btn" onclick="window.__preservativeExport()">⬇️ 导出保鲜液配比 CSV</button>
     </div>
+    <table id="preservativeHidden" style="display:none;"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -238,10 +240,10 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 var PRESET={
-  'chrysal':{name:'可利鲜（标准）',ratio:1/500,unit:'g',desc:'1包10g兑500ml水'},
-  'chrysal-clear':{name:'可利鲜（透明）',ratio:1/100,unit:'g',desc:'1包5g兑500ml水'},
-  'floral-life':{name:'花之寿',ratio:1/100,unit:'g',desc:'1包5g兑500ml水'},
-  'diy':{name:'自制保鲜液',ratio:0,unit:'',desc:'家用材料配制'}
+  'chrysal':{name:'可利鲜（标准）',nameEn:'Chrysal (Standard)',ratio:1/500,unit:'g',desc:'1包10g兑500ml水',descEn:'1 packet (10g) per 500ml water'},
+  'chrysal-clear':{name:'可利鲜（透明）',nameEn:'Chrysal (Clear)',ratio:1/100,unit:'g',desc:'1包5g兑500ml水',descEn:'1 packet (5g) per 500ml water'},
+  'floral-life':{name:'花之寿',nameEn:'Floral Life',ratio:1/100,unit:'g',desc:'1包5g兑500ml水',descEn:'1 packet (5g) per 500ml water'},
+  'diy':{name:'自制保鲜液',nameEn:'DIY Preservative',ratio:0,unit:'',desc:'家用材料配制',descEn:'Homemade mixture'}
 };
 
 function fmtNum(n){
@@ -305,6 +307,42 @@ function copyResult(){
   var val=document.getElementById('presVal').textContent;
   var sub=document.getElementById('presSub').textContent;
   ToolBox.copyText('保鲜液配比：'+water+'ml水 + '+val+'（'+sub+'）');
+}
+
+function __preservativeExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#preservativeHidden tbody');
+  tbody.innerHTML='';
+  var water=parseFloat(document.getElementById('water').value);
+  var type=document.getElementById('presType').value;
+  var preset=PRESET[type];
+  var rows=[];
+  if(type==='diy'){
+    var sugar=water/500*2, vinegar=water/500*1, bleach=water/500*0.5;
+    rows=[
+      {zh:'花瓶水量(ml)',en:'Water (ml)',v:fmtNum(water)},
+      {zh:'白糖(g)',en:'Sugar (g)',v:fmtNum(sugar)},
+      {zh:'白醋(ml)',en:'Vinegar (ml)',v:fmtNum(vinegar)},
+      {zh:'漂白剂(ml)',en:'Bleach (ml)',v:fmtNum(bleach)}
+    ];
+  }else{
+    var amount=water*preset.ratio;
+    var packets=amount/10;
+    rows=[
+      {zh:'花瓶水量(ml)',en:'Water (ml)',v:fmtNum(water)},
+      {zh:'保鲜液类型',en:'Preservative Type',v:en?preset.nameEn:preset.name},
+      {zh:'保鲜液用量('+preset.unit+')',en:'Amount ('+preset.unit+')',v:fmtNum(amount)},
+      {zh:'约标准包数',en:'Approx Packets',v:fmtNum(packets)},
+      {zh:'配比说明',en:'Ratio Note',v:en?preset.descEn:preset.desc}
+    ];
+  }
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(en?r.en:r.zh)+'</td><td>'+r.v+'</td>';
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#preservativeHidden', en?'flower-preservative-ratio.csv':'保鲜液配比.csv');
 }
 
 calc();

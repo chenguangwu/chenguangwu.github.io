@@ -194,7 +194,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="showMonthView=true;renderView()">📅 月份视图</button>
       <button type="button" class="btn" onclick="showMonthView=false;renderView()">📋 列表视图</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
+      <button type="button" class="btn" onclick="window.__plantExport()">⬇️ 导出种植清单 CSV</button>
     </div>
+
+    <table id="plantHidden" style="display:none;"><thead><tr><th>Vegetable</th><th>Category</th><th>Sowing</th><th>Harvest</th><th>Days</th><th>Temp</th></tr></thead><tbody></tbody></table>
 
     <div id="view"></div>
 
@@ -484,6 +487,22 @@ function buildResultText() {
 function copyResult() {
   if (!getFiltered().length) { ToolBox.showToast(i18nText('toast.msg480'), 'error'); return; }
   ToolBox.copyText(buildResultText(), i18nText('msg340'));
+}
+
+function __plantExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#plantHidden tbody');
+  tbody.innerHTML='';
+  var filtered=getFiltered();
+  var catEn={leaf:'Leafy',root:'Root',fruit:'Fruit',bean:'Bean',allium:'Allium',melon:'Melon',other:'Other'};
+  filtered.forEach(function(v){
+    var tr=document.createElement('tr');
+    var catName=en?(catEn[v.cat]||v.cat):CATS[v.cat].name;
+    tr.innerHTML='<td>'+v.name+'</td><td>'+catName+'</td><td>'+v.seed+'</td><td>'+v.harvest+'</td><td>'+(v.days===0?'多年生':v.days)+'</td><td>'+v.temp+'</td>';
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#plantHidden', en?'planting-list.csv':'种植清单.csv');
 }
 
 renderFilters();

@@ -203,7 +203,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="generateRecommendation()">✨ 开始推荐</button>
       <button type="button" class="btn" onclick="saveResult()">💾 保存选择</button>
+      <button type="button" class="btn" onclick="window.__makeupExport()">⬇️ 导出推荐色号 CSV</button>
     </div>
+    <table id="makeupHidden" style="display:none;"><thead><tr><th>Shade Name</th><th>Brand</th><th>Color</th><th>Match</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -564,6 +566,29 @@ function switchTab(tab,btn){
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tab);
   });
   if(tab==='history') renderHistory();
+}
+
+function __makeupExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#makeupHidden tbody');
+  tbody.innerHTML='';
+  var lipsticks=lipstickData[currentSkinTone][currentOccasion];
+  var filtered=lipsticks;
+  if(currentFamily!=='all'){
+    var keywords={'正红':['正红','复古'],'玫红':['玫红','梅子','树莓'],'橘红':['橘红','番茄','西柚'],'南瓜':['南瓜','枫叶','铁锈','砖红'],'豆沙':['豆沙','玫瑰','干燥玫瑰'],'草莓':['草莓','樱桃','水红'],'浆果':['浆果','姨妈','车厘子','牛血'],'吃土':['吃土','土橘','巧克力','棕'],'奶茶':['奶茶','肉桂','杏']};
+    var kws=keywords[currentFamily]||[];
+    filtered=lipsticks.filter(function(l){return kws.some(function(k){return l.name.indexOf(k)>=0||l.brand.indexOf(k)>=0;});});
+    if(filtered.length===0) filtered=lipsticks;
+  }
+  var matchEn={'非常适合':'Best Match','推荐':'Recommended','避免':'Avoid'};
+  filtered.forEach(function(l){
+    var tr=document.createElement('tr');
+    var m=en?(matchEn[l.match]||l.match):l.match;
+    tr.innerHTML='<td>'+l.name+'</td><td>'+l.brand+'</td><td>'+l.color+'</td><td>'+m+'</td>';
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#makeupHidden', en?'recommended-lipsticks.csv':'推荐色号.csv');
 }
 
 initColorFamilies();
