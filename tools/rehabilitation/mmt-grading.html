@@ -143,7 +143,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="saveRecord()">保存评定记录</button>
       <button type="button" class="btn" onclick="resetSelection()">重置</button>
+      <button type="button" class="btn" onclick="window.__mmtExport()">⬇️ 导出分级标准 CSV</button>
     </div>
+    <table id="mmtHidden" style="display:none;"><thead><tr><th>Grade</th><th>Name</th><th>English</th><th>Muscle%</th><th>Standard</th><th>Function</th><th>Training</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见病例预设：</span>
@@ -316,6 +318,16 @@ function clearHistory() {
 function resetSelection() {
   document.querySelectorAll('input[name="grade"]').forEach(function(r) { r.checked = false; });
   document.getElementById('resultBox').innerHTML = '<p style="color:var(--text-muted);">请选择肌力等级查看详细描述</p>';
+}
+
+function __mmtExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var rows=mmtData.map(function(d){
+    return ['Grade '+d.grade, en?d.eng:d.name, d.pct, en?(d.grade===0?'No contraction':d.grade===1?'Trace contraction, no motion':d.grade===2?'Full ROM gravity-eliminated':d.grade===3?'Full ROM against gravity':d.grade===4?'Full ROM against moderate resistance':'Full ROM against max resistance'):d.desc, d.func, d.training];
+  });
+  document.querySelector('#mmtHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td><td>'+r[6]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#mmtHidden', en?'mmt-grading.csv':'肌力分级标准.csv');
 }
 
 init();

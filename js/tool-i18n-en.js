@@ -512,8 +512,17 @@ window.__TI18N_EN = {
     '⬇️ 导出分级明细 CSV':'⬇️ Export Grading Details CSV',
     '⬇️ 导出分析 CSV':'⬇️ Export Analysis CSV',
     '⬇️ 导出方案 CSV':'⬇️ Export Routine CSV',
+    '⬇️ 导出分级标准 CSV':'⬇️ Export Grading Standard CSV',
+    '⬇️ 导出转换明细 CSV':'⬇️ Export Conversion Details CSV',
+    '⬇️ 导出设计参数 CSV':'⬇️ Export Design Parameters CSV',
+    '⬇️ 导出费用对比 CSV':'⬇️ Export Cost Comparison CSV',
+    '0402 阻容':'0402 Chip',
+    'BGA 圆形开孔':'BGA Circle Aperture',
+    '细间距 0.4mm':'Fine Pitch 0.4mm',
   },
   BODY_PHRASE_MAP: {
+    // —— 批次101 顺带修复 smt-stencil 既有未译 ——
+    '🔧 示例场景（一键填充常见元件封装）：':'🔧 Example scenarios (one-tap common packages):',
     // —— 批次98 导出明细表表头（营养/佣金/油漆/照明）——
     '食物':'Food','重量(g)':'Weight(g)','热量(kcal)':'Cal(kcal)','蛋白质(g)':'Protein(g)','脂肪(g)':'Fat(g)','碳水(g)':'Carb(g)',
     '阶梯区间':'Tier Range','区间销售额':'Tier Sales','提成比例':'Rate','区间佣金':'Tier Commission',

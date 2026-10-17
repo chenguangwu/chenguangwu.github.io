@@ -159,7 +159,9 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h3>📊 药品费用对比</h3>
+    <div class="toolbar"><button type="button" class="btn" onclick="window.__peExport()">⬇️ 导出费用对比 CSV</button></div>
     <div id="compareResult"></div>
+    <table id="peHidden" style="display:none;"><thead><tr><th>Drug</th><th>Unit Price</th><th>DDC per Day</th><th>Course Days</th><th>Total Cost</th><th>Ratio vs Best</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -371,6 +373,22 @@ function renderResult(){
   html += '</div>';
 
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h2;
+}
+
+function __peExport(){
+  if(typeof TBKit==='undefined')return;
+  if(!drugList.length){ToolBox.showToast(TBKit.util.isEn()?'Please add drugs first':'请先添加药品','warning');return;}
+  var en=TBKit.util.isEn();
+  var minDDC=Math.min.apply(null,drugList.map(function(d){return d.ddc;}));
+  var rows=drugList.map(function(d){
+    var ratio=Math.round(d.ddc/minDDC*100);
+    return [d.name, d.unitPrice.toFixed(3), d.ddc.toFixed(2), String(d.days), d.totalCost.toFixed(2), ratio+'%'];
+  });
+  var totalDDC=drugList.reduce(function(s,d){return s+d.ddc;},0);
+  var totalAll=drugList.reduce(function(s,d){return s+d.totalCost;},0);
+  rows.push([en?'Total':'合计', '', totalDDC.toFixed(2), '', totalAll.toFixed(2), '']);
+  document.querySelector('#peHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#peHidden', en?'pharmacoeconomics.csv':'中药经济性对比.csv');
 }
 
 renderRefList();

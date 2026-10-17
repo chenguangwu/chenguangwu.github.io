@@ -206,7 +206,9 @@ s.parentNode.insertBefore(el, s);
 <div class="toolbar" style="margin-top:16px;">
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="window.__wgExport()">⬇️ 导出转换明细 CSV</button>
 </div>
+<table id="wgHidden" style="display:none;"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -462,6 +464,21 @@ function resetInput(){
   document.getElementById('mm2').value=0.205;
   setMode('awg');
   calcFromAwg();
+}
+
+function __wgExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var m=document.querySelector('input[name="mode"]:checked');
+  var mode=m?m.value:'awg',awg;
+  if(mode==='mm'){var d=parseFloat(document.getElementById('mm').value);if(!(d>0)){ToolBox.toast(en?'Please enter a valid diameter':'请输入有效线径');return;}awg=mmToAwg(d);}
+  else if(mode==='mm2'){var a=parseFloat(document.getElementById('mm2').value);if(!(a>0)){ToolBox.toast(en?'Please enter a valid area':'请输入有效截面积');return;}awg=mmToAwg(Math.sqrt(a/Math.PI)*2);}
+  else{awg=parseInt(document.getElementById('awg').value);}
+  if(isNaN(awg)){ToolBox.toast(en?'Please enter a valid gauge':'请输入有效线规号');return;}
+  var d_mm=awgToMm(awg),d_mil=d_mm/0.0254,area_mm2=Math.PI*(d_mm/2)**2,res_km=0.0172/area_mm2,ampacity=area_mm2*5;
+  var rows=[['AWG',awg.toFixed(2)],['Diameter (mm)',d_mm.toFixed(4)],['Diameter (mil)',d_mil.toFixed(3)],['Diameter (inch)',(d_mil/1000).toFixed(5)],['Area (mm²)',area_mm2.toFixed(5)],['Area (circular mil)',(d_mil*d_mil).toFixed(1)],['Copper resistance (Ω/km)',res_km.toFixed(3)],['Copper resistance (Ω/1000ft)',(res_km*0.3048).toFixed(3)],['Ampacity @5A/mm² (A)',ampacity.toFixed(2)],['100m drop @1A (V)',(res_km/1000*100*1).toFixed(3)]];
+  document.querySelector('#wgHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#wgHidden', en?'wire-gauge.csv':'线规转换明细.csv');
 }
 
 calcFromAwg();

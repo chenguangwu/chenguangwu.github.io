@@ -170,7 +170,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">📐 设计计算</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__smtExport()">⬇️ 导出设计参数 CSV</button>
     </div>
+    <table id="smtHidden" style="display:none;"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody></tbody></table>
 
     <div class="ap-viz" id="viz"></div>
 
@@ -357,6 +359,27 @@ function copyResult(){
   var area = shape==='circle'?Math.PI*(apW/2)*(apW/2):apW*apL;
   var ar = area/(shape==='circle'?(2*Math.PI*(apW/2)*t):2*(apW+apL)*t);
   ToolBox.copyText('钢网开孔：'+apW.toFixed(3)+'×'+apL.toFixed(3)+'mm，面积比'+ar.toFixed(3)+'，钢网'+t+'mm');
+}
+function __smtExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var padW=+document.getElementById('padW').value||0;
+  var padL=+document.getElementById('padL').value||0;
+  var t=+document.getElementById('thickness').value||0.12;
+  var reduce=+document.getElementById('reduce').value||0;
+  var pitch=+document.getElementById('pitch').value||0;
+  var shape=document.getElementById('shape').value;
+  var tr=+document.getElementById('transfer').value||70;
+  if(padW<=0||padL<=0){ToolBox.toast(en?'Please enter valid pad dimensions':'请输入有效焊盘尺寸');return;}
+  var apW=padW*(1-reduce/100),apL=padL*(1-reduce/100);
+  if(shape==='circle'){var d0=Math.min(apW,apL);apW=d0;apL=d0;}
+  var apArea,wallArea,areaRatio,aspectRatio;
+  if(shape==='circle'){var r=apW/2;apArea=Math.PI*r*r;wallArea=2*Math.PI*r*t;areaRatio=apArea/wallArea;aspectRatio=apW/t;}
+  else{apArea=apW*apL;wallArea=2*(apW+apL)*t;areaRatio=apArea/wallArea;aspectRatio=apW/t;}
+  var volTheo=apArea*t,volActual=volTheo*(tr/100);
+  var rows=[['Pad Width (mm)',padW.toFixed(3)],['Pad Length (mm)',padL.toFixed(3)],['Stencil Thickness (mm)',t.toFixed(3)],['Aperture Reduction (%)',String(reduce)],['Pitch (mm)',pitch.toFixed(3)],['Shape',shape==='circle'?(en?'Circle':'圆形'):(en?'Rectangle':'矩形')],['Transfer Rate (%)',String(tr)],['Aperture Width (mm)',apW.toFixed(3)],['Aperture Length (mm)',apL.toFixed(3)],['Aperture Area (mm²)',apArea.toFixed(4)],['Wall Area (mm²)',wallArea.toFixed(4)],['Area Ratio',areaRatio.toFixed(3)],['Aspect Ratio',aspectRatio.toFixed(2)],['Theoretical Paste (mm³)',volTheo.toFixed(5)],['Actual Paste (mm³)',volActual.toFixed(5)]];
+  document.querySelector('#smtHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#smtHidden', en?'smt-stencil.csv':'SMT钢网设计.csv');
 }
 calc();
 </script>
