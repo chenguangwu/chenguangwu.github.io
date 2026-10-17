@@ -157,7 +157,10 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="calc()">💰 计算明细</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__siExport()">⬇️ 导出社保明细 CSV</button>
     </div>
+
+    <table id="siHidden" style="display:none"><thead><tr><th>Insurance</th><th>Employer Rate (%)</th><th>Employer Amount</th><th>Employee Rate (%)</th><th>Employee Amount</th><th>Subtotal</th></tr></thead><tbody></tbody></table>
 
     <div class="total-box" id="totalBox">
       <div class="v" id="totalVal">—</div>
@@ -313,6 +316,38 @@ function copyResult(){
 
 renderIns();
 calc();
+
+function __siExport(){
+  if(typeof TBKit==='undefined')return;
+  var base=+document.getElementById('base').value||0;
+  var salary=+document.getElementById('salary').value||0;
+  if(base<=0){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast('请先输入有效的缴费基数'); return; }
+  var en=TBKit.util.isEn();
+  var enMap={'养老保险':'Pension','医疗保险':'Medical','失业保险':'Unemployment','工伤保险':'Work Injury','生育保险':'Maternity','住房公积金':'Housing Fund'};
+  var tbody=document.querySelector('#siHidden tbody');
+  tbody.innerHTML='';
+  var erTotal=0,eeTotal=0;
+  insItems.forEach(function(it){
+    var er=base*it.er/100, ee=base*it.ee/100;
+    erTotal+=er; eeTotal+=ee;
+    var tr=document.createElement('tr');
+    [en?(enMap[it.name]||it.name):it.name, it.er, er.toFixed(2), it.ee, ee.toFixed(2), (er+ee).toFixed(2)].forEach(function(v){
+      var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  var tr1=document.createElement('tr');
+  ['Total','—',erTotal.toFixed(2),'—',eeTotal.toFixed(2),(erTotal+eeTotal).toFixed(2)].forEach(function(v){
+    var td=document.createElement('td'); td.textContent=v; tr1.appendChild(td);
+  });
+  tbody.appendChild(tr1);
+  var tr2=document.createElement('tr');
+  ['Net Salary','—',(salary-eeTotal).toFixed(2),'—','—',(salary-eeTotal).toFixed(2)].forEach(function(v){
+    var td=document.createElement('td'); td.textContent=v; tr2.appendChild(td);
+  });
+  tbody.appendChild(tr2);
+  TBKit.util.exportTable('#siHidden', en?'social-insurance.csv':'五险一金明细.csv');
+}
 
 function __siExtras(){
   if(typeof TBKit==='undefined') return;

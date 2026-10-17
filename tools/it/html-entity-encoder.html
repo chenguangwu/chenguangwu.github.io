@@ -193,6 +193,9 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="tab-table" class="tab-content">
+      <div class="toolbar" style="margin-bottom:10px;">
+        <button type="button" class="btn" onclick="window.__heExport()">⬇️ 导出实体速查 CSV</button>
+      </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
@@ -210,6 +213,7 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 
+<table id="heHidden" style="display:none"><thead><tr><th>Character</th><th>Named Entity</th><th>Numeric Entity</th><th>Description</th></tr></thead><tbody></tbody></table>
 <script>
 const entities = [
   { char: '&', name: '&amp;', num: '&#38;', desc: '和号' },
@@ -260,9 +264,10 @@ function decode() {
 }
 
 function initTable() {
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const __h1=entities.map(e =>
     `<tr>
-      <td style="padding:8px;border:1px solid var(--border-color);font-size:18px;text-align:center;">${e.char}</td>
+      <td style="padding:8px;border:1px solid var(--border-color);font-size:18px;text-align:center;">${esc(e.char)}</td>
       <td style="padding:8px;border:1px solid var(--border-color);font-family:monospace;">${e.name}</td>
       <td style="padding:8px;border:1px solid var(--border-color);font-family:monospace;">${e.num}</td>
       <td style="padding:8px;border:1px solid var(--border-color);">${e.desc}</td>
@@ -278,6 +283,21 @@ function loadEntitySample(which){
   };
   var v=map[which];
   try{ if(which==='decode'){document.getElementById('decodeInput').value=v;decode();} else {document.getElementById('encodeInput').value=v;encode();} }catch(e){}
+}
+function __heExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var descMap={'和号':'Ampersand','小于号':'Less than','大于号':'Greater than','双引号':'Double quote','单引号':'Single quote','不换行空格':'Non-breaking space','版权':'Copyright','注册商标':'Registered trademark','商标':'Trademark','分币符号':'Cent sign','英镑':'Pound sign','日元/人民币':'Yen/Renminbi','欧元':'Euro sign','章节':'Section sign','度':'Degree sign','正负号':'Plus-minus sign','乘号':'Multiplication sign','除号':'Division sign','不等于':'Not equal','小于等于':'Less than or equal','大于等于':'Greater than or equal'};
+  var tbody=document.querySelector('#heHidden tbody');
+  tbody.innerHTML='';
+  entities.forEach(function(e){
+    var tr=document.createElement('tr');
+    [e.char,e.name,e.num,en?(descMap[e.desc]||e.desc):e.desc].forEach(function(v){
+      var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#heHidden', en?'html-entities.csv':'HTML实体速查表.csv');
 }
 encode();
 decode();
