@@ -19,7 +19,7 @@
  *   TOOLS    - 已访问页面 HTML，网络优先并持久化
  * AI 模型由 Transformers.js 自行缓存于独立 Cache Storage，不在此重复缓存。
  */
-const BUILD = '07990d9f56';                       // 由 _build.py 注入（内容 hash，勿手改）
+const BUILD = '60778b0231';                       // 由 _build.py 注入（内容 hash，勿手改）
 const SHELL = 'tb-shell-v4';
 const RUNTIME = 'tb-rt-v4-' + BUILD;
 const TOOLS = 'tb-tools-v4-' + BUILD;

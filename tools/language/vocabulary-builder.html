@@ -194,6 +194,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="act-btn fuzzy" onclick="mark('fuzzy')">模糊</button>
       <button type="button" class="act-btn know" onclick="mark('known')">认识</button>
     </div>
+    <div class="card-actions" style="margin-top:10px;">
+      <button type="button" class="btn" onclick="window.__vbExport()">⬇️ 导出单词表 CSV</button>
+    </div>
+    <table id="vbHidden" style="display:none"><thead><tr><th>Category</th><th>Word</th><th>Phonetic</th><th>Meaning</th><th>Example</th></tr></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -406,6 +410,21 @@ function checkStreak() {
   streak.last = today;
   localStorage.setItem(STREAK_KEY, JSON.stringify(streak));
   document.getElementById('s-streak').textContent = streak.days;
+}
+
+function __vbExport() {
+  if (typeof TBKit === 'undefined') return;
+  var en = TBKit.util.isEn();
+  var tbody = document.querySelector('#vbHidden tbody');
+  tbody.innerHTML = '';
+  var catLabels = { cet4: 'CET-4', cet6: 'CET-6', ielts: en ? 'IELTS' : '雅思', toefl: en ? 'TOEFL' : '托福', gre: en ? 'GRE' : 'GRE' };
+  var row = function (a) { var tr = document.createElement('tr'); a.forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }); tbody.appendChild(tr); };
+  for (var cat in WORDS) {
+    WORDS[cat].forEach(function (w) {
+      row([catLabels[cat] || cat, w.w, w.p, w.m, w.e]);
+    });
+  }
+  TBKit.util.exportTable('#vbHidden', en ? 'vocabulary.csv' : '单词表.csv');
 }
 
 document.querySelectorAll('.cat-btn').forEach(b => {
