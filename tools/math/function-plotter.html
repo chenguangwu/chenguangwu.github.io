@@ -156,7 +156,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="autoY()">自适应 Y 范围</button>
       <button type="button" class="btn" onclick="resetView()">重置视图</button>
       <button type="button" class="btn" onclick="downloadPlot()">保存图片</button>
+      <button type="button" class="btn" onclick="window.__fpExport()">⬇️ 导出函数值表 CSV</button>
     </div>
+    <table id="fpHidden" style="display:none;"><thead><tr><th>x</th><th>y</th><th>In Range</th></tr></thead><tbody></tbody></table>
 
     <div class="plot-canvas-wrap">
       <canvas id="plotCanvas"></canvas>
@@ -383,6 +385,27 @@ function draw(){
   ctx.stroke();
   // legend
   const __h1='<span class="legend-item"><span class="legend-dot" style="background:'+COLORS[0]+'"></span>'+ToolBox.escHtml(exprLabel(curType,p))+'</span>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('legend').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('legend').innerHTML=__h1;
+}
+function __fpExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var r=getRange();
+  if(!(isFinite(r.xMin)&&isFinite(r.xMax))||r.xMax<=r.xMin){ToolBox.showToast(en?'Please set a valid X range':'请设置有效的 X 范围');return;}
+  var p=getParams(curType);
+  var fn=makeFunc(curType,p);
+  var N=20;
+  var tb=document.querySelector('#fpHidden tbody');
+  tb.innerHTML='';
+  for(var i=0;i<=N;i++){
+    var x=r.xMin+(r.xMax-r.xMin)*i/N;
+    var y;
+    try{y=fn(x);}catch(e){y=NaN;}
+    var inRange=isFinite(y)&&y>=r.yMin&&y<=r.yMax;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+x.toFixed(4)+'</td><td>'+(isFinite(y)?y.toFixed(4):'undefined')+'</td><td>'+(inRange?'Yes':'No')+'</td>';
+    tb.appendChild(tr);
+  }
+  TBKit.util.exportTable('#fpHidden',en?'function-values.csv':'函数值表-'+exprLabel(curType,p).replace(/[\\/:*?"<>|]/g,'')+'.csv');
 }
 function fmtTick(v){
   if(Math.abs(v)<1e-9)return '0';

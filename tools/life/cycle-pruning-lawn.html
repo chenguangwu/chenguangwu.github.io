@@ -160,7 +160,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button class="btn primary" onclick="addLawn()">➕ 添加草坪</button>
       <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
+      <button class="btn" onclick="window.__lawnExport()">⬇️ 导出养护排期 CSV</button>
     </div>
+    <table id="lawnHidden" style="display:none;"><thead><tr><th>Lawn</th><th>Type</th><th>Task</th><th>Freq (days)</th><th>Last Done</th><th>Next Due</th><th>Days Left</th><th>Status</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见草坪预设：</span>
@@ -300,6 +302,26 @@ function getUrgency(days) {
   return { level: 'ok', label: '正常', color: 'var(--success)' };
 }
 
+function __lawnExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!lawns||!lawns.length){ToolBox.showToast(en?'No lawn records':'暂无草坪记录');return;}
+  var tb=document.querySelector('#lawnHidden tbody');
+  tb.innerHTML='';
+  lawns.forEach(function(c){
+    Object.keys(TASKS).forEach(function(taskId){
+      var freq=getTaskFreq(taskId,c.type);
+      var last=getLastLog(c.id,taskId);
+      var next=getNextDate(c,taskId);
+      var days=getDaysUntil(next);
+      var urg=getUrgency(days);
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+ToolBox.escHtml(c.name)+'</td><td>'+(c.type==='warm'?(en?'Warm-season':'暖季型'):(en?'Cool-season':'冷季型'))+'</td><td>'+TASKS[taskId].name+'</td><td>'+freq+'</td><td>'+(last?last.date:c.start)+'</td><td>'+fmtDate(next)+'</td><td>'+days+'</td><td>'+urg.label+'</td>';
+      tb.appendChild(tr);
+    });
+  });
+  TBKit.util.exportTable('#lawnHidden',en?'lawn-care-schedule.csv':'草坪养护排期.csv');
+}
 function addLawn() {
   var name = document.getElementById('lawnName').value.trim();
   var type = document.getElementById('lawnType').value;

@@ -541,6 +541,7 @@ window.__TI18N_EN = {
     '⬇️ 导出清淤计划 CSV':'⬇️ Export Dredging Plan CSV',
     '⬇️ 导出维护排程 CSV':'⬇️ Export Maintenance Schedule CSV',
     '⬇️ 导出养护排期 CSV':'⬇️ Export Care Schedule CSV',
+    '⬇️ 导出函数值表 CSV':'⬇️ Export Function Values CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 批次101 顺带修复 smt-stencil 既有未译 ——
