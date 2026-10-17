@@ -196,7 +196,9 @@ s.parentNode.insertBefore(el, s);
 <div class="toolbar" style="margin-top:16px;">
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="window.__torqueExport()">⬇️ 导出扭矩换算 CSV</button>
 </div>
+<table id="torqueHidden" style="display:none"><thead><tr><th>Unit</th><th>Value (N·m)</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -428,6 +430,21 @@ function resetInput(){
   document.getElementById('val').value=10;
   document.getElementById('from').value='Nm';
   convert();
+}
+
+function __torqueExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#torqueHidden tbody');
+  if(!tbody)return;
+  if(!lastResult){ToolBox.toast(en?'请先转换':'请先转换');return;}
+  tbody.innerHTML='';
+  var _row=function(u,v){var tr=document.createElement('tr');tr.innerHTML='<td>'+u+'</td><td>'+v+'</td>';tbody.appendChild(tr);};
+  Object.keys(units).forEach(function(k){
+    var val=lastResult.baseNm/units[k].f;
+    _row(en?k:units[k].n, val.toExponential(6).replace(/\.?0+e/,'e')+' N·m');
+  });
+  TBKit.util.exportTable('#torqueHidden', en?'torque-conversion.csv':'扭矩换算结果.csv');
 }
 
 init();

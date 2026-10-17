@@ -238,7 +238,9 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="window.__ohmsExport()">⬇️ 导出欧姆定律结果 CSV</button>
 </div>
+<table id="ohmsHidden" style="display:none"><thead><tr><th>Parameter</th><th>Value</th><th>Unit</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -587,6 +589,23 @@ function resetInput(){
 document.getElementById('v').addEventListener('input',()=>{calc();});
 document.getElementById('i').addEventListener('input',()=>{calc();});
 document.getElementById('r').addEventListener('input',()=>{calc();});
+
+function __ohmsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#ohmsHidden tbody');
+  if(!tbody)return;
+  if(!lastResult){ToolBox.toast(en?'请先计算':'请先计算');return;}
+  var _row=function(p,v,u){var tr=document.createElement('tr');tr.innerHTML='<td>'+p+'</td><td>'+v+'</td><td>'+u+'</td>';tbody.appendChild(tr);};
+  _row(en?'Voltage (V)':'电压 V', lastResult.V_str, 'V');
+  _row(en?'Current (I)':'电流 I', lastResult.I_str, 'A');
+  _row(en?'Resistance (R)':'电阻 R', lastResult.R_str, 'Ω');
+  _row(en?'Power (P)':'功率 P', lastResult.P, 'W');
+  _row(en?'Conductance (G)':'电导 G', (lastResult.G>=1?lastResult.G.toFixed(4)+' S':(lastResult.G*1000).toFixed(2)+' mS'), 'S');
+  var cv={v:en?'Solve: Voltage':'求解量: 电压',i:en?'Solve: Current':'求解量: 电流',r:en?'Solve: Resistance':'求解量: 电阻'}[lastResult.calcVar]||'';
+  _row(cv, '', '');
+  TBKit.util.exportTable('#ohmsHidden', en?'ohms-law-result.csv':'欧姆定律计算结果.csv');
+}
 
 setCalcVar('i');
 </script><script>

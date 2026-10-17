@@ -219,7 +219,9 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="copyHex()">📋 复制HEX</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="window.__wlExport()">⬇️ 导出波长转换 CSV</button>
 </div>
+<table id="wlHidden" style="display:none"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -413,14 +415,14 @@ function calc(){
   const ev=1240/wl;
   const __g6=freq.toFixed(2);document.getElementById('resFreq').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   const __g7=ev.toFixed(2);document.getElementById('resEv').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
-  let colorName='';
-  if(wl<450)colorName='紫色';
-  else if(wl<495)colorName='蓝色';
-  else if(wl<570)colorName='青绿色';
-  else if(wl<590)colorName='黄色';
-  else if(wl<620)colorName='橙色';
-  else colorName='红色';
-  lastResult={wl,r,g,b,hex,freq:freq.toFixed(2),ev:ev.toFixed(2),colorName};
+  let colorName='',colorNameEn='';
+  if(wl<450){colorName='紫色';colorNameEn='Violet';}
+  else if(wl<495){colorName='蓝色';colorNameEn='Blue';}
+  else if(wl<570){colorName='青绿色';colorNameEn='Cyan-Green';}
+  else if(wl<590){colorName='黄色';colorNameEn='Yellow';}
+  else if(wl<620){colorName='橙色';colorNameEn='Orange';}
+  else {colorName='红色';colorNameEn='Red';}
+  lastResult={wl,r,g,b,hex,freq:freq.toFixed(2),ev:ev.toFixed(2),colorName,colorNameEn};
 }
 
 function copyHex(){
@@ -477,6 +479,25 @@ function resetInput(){
   document.getElementById('wl').value=550;
   document.getElementById('wlNum').value=550;
   calc();
+}
+
+function __wlExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#wlHidden tbody');
+  if(!tbody)return;
+  if(!lastResult){ToolBox.toast(en?'请先转换':'请先转换');return;}
+  tbody.innerHTML='';
+  var _row=function(f,v){var tr=document.createElement('tr');tr.innerHTML='<td>'+f+'</td><td>'+v+'</td>';tbody.appendChild(tr);};
+  _row(en?'Wavelength':'波长', lastResult.wl+' nm');
+  _row(en?'Color name':'颜色名称', en?lastResult.colorNameEn:lastResult.colorName);
+  _row(en?'Red (R)':'红色 R', lastResult.r);
+  _row(en?'Green (G)':'绿色 G', lastResult.g);
+  _row(en?'Blue (B)':'蓝色 B', lastResult.b);
+  _row(en?'HEX':'HEX', lastResult.hex);
+  _row(en?'Frequency (THz)':'频率 (THz)', lastResult.freq);
+  _row(en?'Photon energy (eV)':'光子能量 (eV)', lastResult.ev);
+  TBKit.util.exportTable('#wlHidden', en?'wavelength-to-rgb.csv':'波长转RGB结果.csv');
 }
 
 document.getElementById('wl').addEventListener('input',()=>syncWl('range'));
