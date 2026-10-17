@@ -152,7 +152,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="addReading()">添加读数</button>
       <button type="button" class="btn primary" onclick="calcSettlement()">计算结算</button>
       <button type="button" class="btn" onclick="saveData()">保存数据</button>
+      <button type="button" class="btn" onclick="window.__meterExport()">⬇️ 导出抄表台账 CSV</button>
     </div>
+    <table id="meterHidden" style="display:none;"><thead><tr><th>Meter</th><th>Date</th><th>Reading</th><th>Unit</th><th>Usage</th><th>Note</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card" id="settlementCard" style="display:none;">
@@ -230,6 +232,26 @@ try {
 
 var currentMeter = 'electric';
 
+function __meterExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var hasAny=false;
+  Object.keys(data.readings).forEach(function(m){ if((data.readings[m]||[]).length) hasAny=true; });
+  if(!hasAny){ToolBox.showToast(en?'No meter readings':'暂无抄表读数');return;}
+  var tb=document.querySelector('#meterHidden tbody');
+  tb.innerHTML='';
+  Object.keys(data.readings).forEach(function(m){
+    var info=METER_INFO[m];
+    var rs=(data.readings[m]||[]).slice().sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+    rs.forEach(function(r,i){
+      var usage=i===0?'-':Math.max(0,(r.value||0)-(rs[i-1].value||0)).toFixed(2);
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td>'+info.icon+' '+info.name+'</td><td>'+r.date+'</td><td>'+(r.value||0)+'</td><td>'+info.unit+'</td><td>'+usage+'</td><td>'+ToolBox.escHtml(r.note||'')+'</td>';
+      tb.appendChild(tr);
+    });
+  });
+  TBKit.util.exportTable('#meterHidden',en?'utility-meter-log.csv':'水电燃气抄表台账.csv');
+}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e) {} }
 
 function saveData() { save(); ToolBox.showToast(i18nText()); }

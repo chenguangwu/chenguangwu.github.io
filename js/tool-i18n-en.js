@@ -544,6 +544,8 @@ window.__TI18N_EN = {
     '⬇️ 导出函数值表 CSV':'⬇️ Export Function Values CSV',
     '⬇️ 导出成绩单 CSV':'⬇️ Export Transcript CSV',
     '⬇️ 导出巡检报表 CSV':'⬇️ Export Inspection Report CSV',
+    '⬇️ 导出漏斗分析 CSV':'⬇️ Export Funnel Analysis CSV',
+    '⬇️ 导出抄表台账 CSV':'⬇️ Export Meter Log CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 批次101 顺带修复 smt-stencil 既有未译 ——

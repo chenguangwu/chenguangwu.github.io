@@ -150,7 +150,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="addStage()">+ 添加阶段</button>
       <button type="button" class="btn primary" onclick="calc()">👥 分析</button>
+      <button type="button" class="btn" onclick="window.__rfExport()">⬇️ 导出漏斗分析 CSV</button>
     </div>
+    <table id="rfHidden" style="display:none;"><thead><tr><th>Stage</th><th>Count</th><th>Stage Pass %</th><th>Stage Loss %</th><th>Lost</th><th>Width %</th></tr></thead><tbody></tbody></table>
 
     <div class="overall-box" id="overallBox"></div>
 
@@ -307,6 +309,31 @@ function calc(){
   const __g6=tip || '请输入招聘数据进行分析。';tipBox.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
 
+function __rfExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  if(!stages||!stages.length){ToolBox.showToast(en?'No stages':'暂无招聘阶段');return;}
+  var maxCount=stages[0].count||1;
+  var tb=document.querySelector('#rfHidden tbody');
+  tb.innerHTML='';
+  for(var i=0;i<stages.length;i++){
+    var pct=i===0?100:(stages[i].count/(stages[i-1].count||1)*100);
+    var widthPct=stages[i].count/maxCount*100;
+    var lost=i===0?0:(stages[i-1].count-stages[i].count);
+    var lostPct=i===0?0:(100-pct);
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(stages[i].name||'-')+'</td><td>'+stages[i].count+'</td><td>'+(i===0?'-':pct.toFixed(2)+'%')+'</td><td>'+(i===0?'-':lostPct.toFixed(2)+'%')+'</td><td>'+(i===0?'-':lost)+'</td><td>'+widthPct.toFixed(1)+'%</td>';
+    tb.appendChild(tr);
+  }
+  var first=stages[0].count||0;
+  var last=stages[stages.length-1].count||0;
+  var overall=first>0?(last/first*100):0;
+  var pos=document.getElementById('position').value;
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td>Overall ('+(pos||'position')+')</td><td>'+first+' -> '+last+'</td><td>'+overall.toFixed(2)+'%</td><td>-</td><td>'+(first-last)+'</td><td>100.0%</td>';
+  tb.appendChild(tr);
+  TBKit.util.exportTable('#rfHidden',en?'recruitment-funnel.csv':'招聘漏斗分析.csv');
+}
 function fmt(n){ return Math.round(n).toLocaleString('zh-CN'); }
 
 renderStages();
