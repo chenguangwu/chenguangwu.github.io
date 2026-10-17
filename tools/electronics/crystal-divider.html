@@ -191,6 +191,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">🧮 计算</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="__xtExport()">⬇️ 导出分频结果 CSV</button>
     </div>
 
     <div class="freq-box" id="resultBox">
@@ -199,6 +200,8 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="extraInfo"></div>
+    <div id="xtChart" style="margin-top:10px;"></div>
+    <table id="xtTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -373,6 +376,48 @@ function buildRef(){
 }
 
 calc();
+function __xtIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __xtExport(){
+  if(typeof TBKit==='undefined')return;
+  var outTxt=document.getElementById('freqVal').textContent;
+  if(!outTxt||outTxt==='—'){ ToolBox.showToast('请先计算','warning'); return; }
+  var en=__xtIsEn();
+  var rows=[];
+  if(mode==='div'){
+    var x=toHz(+document.getElementById('xtal1').value||0,+document.getElementById('unit1').value);
+    var n=+document.getElementById('divider1').value||1;
+    rows=en?[['Mode','Frequency divider'],['Crystal',formatFreq(x)],['Divider N',n],['Output',outTxt],['Period',(1/(x/n)).toExponential(3)+' s']]:[['模式','分频'],['晶振频率',formatFreq(x)],['分频系数 N',n],['输出频率',outTxt],['周期',(1/(x/n)).toExponential(3)+' s']];
+  }else if(mode==='pll'){
+    var xp=toHz(+document.getElementById('xtal2').value||0,+document.getElementById('unit2').value);
+    var m=+document.getElementById('multi').value||1,n2=+document.getElementById('preDiv').value||1,od=+document.getElementById('outDiv').value||1;
+    rows=en?[['Mode','PLL'],['Reference',formatFreq(xp)],['Pre-div N',n2],['Multiplier M',m],['Out-div',od],['Output',outTxt]]:[['模式','PLL'],['参考频率',formatFreq(xp)],['前置分频',n2],['倍频',m],['输出分频',od],['输出频率',outTxt]];
+  }else{
+    var xr=toHz(+document.getElementById('xtal3').value||0,+document.getElementById('unit3').value);
+    var tgt=toHz(+document.getElementById('target').value||0,+document.getElementById('unit3').value);
+    rows=en?[['Mode','Reverse divider'],['Crystal',formatFreq(xr)],['Target',formatFreq(tgt)],['Output',outTxt]]:[['模式','反求分频'],['晶振频率',formatFreq(xr)],['目标频率',formatFreq(tgt)],['输出频率',outTxt]];
+  }
+  var t=document.getElementById('xtTable'); if(!t)return;
+  var tb=t.querySelector('tbody'); tb.innerHTML='';
+  var th=t.querySelector('thead'); if(th)th.innerHTML=en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>数值</th></tr>';
+  rows.forEach(function(r){var tr=document.createElement('tr');[r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tb.appendChild(tr);});
+  t.style.display='';
+  try{ TBKit.util.exportTable('#xtTable','crystal-divider-result.csv'); }catch(e){}
+}
+function __xtExtras(){
+  if(typeof TBKit==='undefined')return;
+  var outTxt=document.getElementById('freqVal').textContent;
+  if(!outTxt||outTxt==='—')return;
+  var host=document.getElementById('xtChart'); if(!host||!TBKit.chart||!TBKit.chart.bar)return;
+  var en=__xtIsEn();
+  var inHz=0,outHz=0;
+  if(mode==='div'){ inHz=toHz(+document.getElementById('xtal1').value||0,+document.getElementById('unit1').value); outHz=inHz/(+document.getElementById('divider1').value||1); }
+  else if(mode==='pll'){ var xp=toHz(+document.getElementById('xtal2').value||0,+document.getElementById('unit2').value); outHz=(xp/(+document.getElementById('preDiv').value||1)*(+document.getElementById('multi').value||1))/(+document.getElementById('outDiv').value||1); inHz=xp; }
+  else { inHz=toHz(+document.getElementById('xtal3').value||0,+document.getElementById('unit3').value); outHz=toHz(+document.getElementById('target').value||0,+document.getElementById('unit3').value); }
+  var labels=en?['Input','Output']:['输入','输出'];
+  var vals=[+inHz.toFixed(2),+outHz.toFixed(2)];
+  try{ TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Frequency (Hz)':'频率(Hz)',data:vals}],height:220,title:en?'Input vs output frequency':'输入与输出频率'}); }catch(e){}
+}
+var __xt0=calc; calc=function(){ __xt0(); try{ __xtExtras(); }catch(e){} };
 buildRef();
 </script>
 

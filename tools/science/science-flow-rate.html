@@ -318,7 +318,10 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
+  <button type="button" class="btn" onclick="__frExport()">⬇️ 导出流量结果 CSV</button>
 </div>
+<div id="frChart" style="margin-top:10px;"></div>
+<table id="frTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -722,6 +725,35 @@ function resetInput(){
   calc();
 }
 
+function __frIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __frExport(){
+  if(typeof TBKit==='undefined')return;
+  if(!lastResult){ ToolBox.showToast('请先计算','warning'); return; }
+  var en=__frIsEn();
+  var Q=lastResult.Q||0, A=lastResult.A||0, v=lastResult.v||0, mF=lastResult.massFlow||0, Re=lastResult.Re||0;
+  var rows=[];
+  if(en){
+    rows=[['Mode',lastResult.modeName],['Volumetric flow Q',fmtFlow(Q)],['Flow rate (m³/h)',(Q*3600).toFixed(2)],['Flow rate (L/s)',(Q*1000).toFixed(2)],['Flow rate (L/min)',(Q*60000).toFixed(1)],['Flow rate (GPM)',(Q*15850.32314).toFixed(2)],['Flow rate (CFM)',(Q*2118.88).toFixed(2)],['Cross-section A',fmtArea(A)],['Velocity v',fmtVel(v)],['Mass flow',mF>=1?mF.toFixed(3)+' kg/s':(mF*1000).toFixed(2)+' g/s'],['Reynolds number Re',Re>0?(Re>=10000?Re.toFixed(0):Re.toFixed(1)):'—']];
+  } else {
+    rows=[['计算模式',lastResult.modeName],['体积流量 Q',fmtFlow(Q)],['流量 (m³/h)',(Q*3600).toFixed(2)],['流量 (L/s)',(Q*1000).toFixed(2)],['流量 (L/min)',(Q*60000).toFixed(1)],['流量 (GPM)',(Q*15850.32314).toFixed(2)],['流量 (CFM)',(Q*2118.88).toFixed(2)],['截面积 A',fmtArea(A)],['流速 v',fmtVel(v)],['质量流量',mF>=1?mF.toFixed(3)+' kg/s':(mF*1000).toFixed(2)+' g/s'],['雷诺数 Re',Re>0?(Re>=10000?Re.toFixed(0):Re.toFixed(1)):'—']];
+  }
+  var t=document.getElementById('frTable'); if(!t)return;
+  var tb=t.querySelector('tbody'); tb.innerHTML='';
+  var th=t.querySelector('thead'); if(th)th.innerHTML=en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>数值</th></tr>';
+  rows.forEach(function(r){var tr=document.createElement('tr');[r[0],r[1]].forEach(function(val){var td=document.createElement('td');td.textContent=val;tr.appendChild(td);});tb.appendChild(tr);});
+  t.style.display='';
+  try{ TBKit.util.exportTable('#frTable','flow-rate-result.csv'); }catch(e){}
+}
+function __frExtras(){
+  if(typeof TBKit==='undefined')return;
+  if(!lastResult)return;
+  var host=document.getElementById('frChart'); if(!host||!TBKit.chart||!TBKit.chart.bar)return;
+  var Q=lastResult.Q||0, en=__frIsEn();
+  var labels=en?['m³/h','L/s','L/min','GPM']:['m³/h','L/s','L/min','GPM'];
+  var vals=[+(Q*3600).toFixed(2),+(Q*1000).toFixed(2),+(Q*60000).toFixed(1),+(Q*15850.32314).toFixed(2)];
+  try{ TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Flow rate':'流量',data:vals}],height:240,title:en?'Flow rate by unit':'流量（不同单位）'}); }catch(e){}
+}
+var __fr0=calc; calc=function(){ __fr0(); try{ __frExtras(); }catch(e){} };
 calc();
 </script><script>
 // tool-intro折叠交互

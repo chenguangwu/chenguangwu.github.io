@@ -343,6 +343,12 @@ s.parentNode.insertBefore(el, s);
   <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
 </div>
+<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+  <button type="button" class="btn" onclick="__htExport()">⬇️ 导出计算结果 CSV</button>
+  <span style="font-size:12px;color:var(--text-muted);">导出当前模式的热流量、温差与单位换算明细</span>
+</div>
+<div id="htChart" style="margin-top:10px;"></div>
+<table id="htTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
 </div>
 
 <div id="tab-formula" class="tab-content">
@@ -752,6 +758,51 @@ document.getElementById('convType').addEventListener('change',()=>{
   calc();
 });
 
+function __htIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __htExport(){
+  if(typeof TBKit==='undefined')return;
+  if(!lastResult){ ToolBox.showToast('请先计算','warning'); return; }
+  var en=__htIsEn();
+  var k=0,A=0,L=0,T1=0,T2=0,m=0,c=0,h=0;
+  if(mode==='conduction'){
+    k=getCondK(); A=parseFloat(document.getElementById('condA').value)/1e4; L=parseFloat(document.getElementById('condL').value)/1000; T1=parseFloat(document.getElementById('condT1').value); T2=parseFloat(document.getElementById('condT2').value);
+  }else if(mode==='specific'){
+    m=parseFloat(document.getElementById('specM').value)*parseFloat(document.getElementById('specMUnit').value); c=getSpecC(); T1=parseFloat(document.getElementById('specT1').value); T2=parseFloat(document.getElementById('specT2').value);
+  }else if(mode==='convection'){
+    h=getConvH(); A=parseFloat(document.getElementById('convA').value)/1e4; T1=parseFloat(document.getElementById('convTw').value); T2=parseFloat(document.getElementById('convTf').value);
+  }
+  var dT=Math.abs(T1-T2);
+  var Q=lastResult.Q_val;
+  var rows=[];
+  if(en){
+    rows=[['Mode',lastResult.modeName],['Heat transfer rate Q',lastResult.Q+' ('+(Q/1000).toFixed(2)+' kW)'],['Temperature difference ΔT',dT.toFixed(1)+' °C']];
+    if(mode==='conduction'){rows.push(['Thermal conductivity k',k+' W/m·K'],['Area A',(A*1e4).toFixed(2)+' cm²'],['Thickness L',(L*1000).toFixed(2)+' mm'],['Heat flux',(Q/A).toFixed(2)+' W/m²']);}
+    else if(mode==='specific'){rows.push(['Mass m',m+' kg'],['Specific heat c',c+' J/kg·°C'],['Heating/Cooling',T2>T1?'Absorb':'Release'],['Energy Q',(Q/4186).toFixed(2)+' kcal'],['kWh',(Q/3.6e6).toFixed(6)+' kWh'],['BTU',(Q/1055).toFixed(2)+' BTU']);}
+    else if(mode==='convection'){rows.push(['Convection coeff h',h+' W/m²·K'],['Area A',(A*1e4).toFixed(2)+' cm²'],['Heat flux',(Q/A).toFixed(2)+' W/m²']);}
+  } else {
+    rows=[['计算模式',lastResult.modeName],['热流量 Q',lastResult.Q+'（'+(Q/1000).toFixed(2)+' kW）'],['温差 ΔT',dT.toFixed(1)+' °C']];
+    if(mode==='conduction'){rows.push(['导热系数 k',k+' W/m·K'],['截面积 A',(A*1e4).toFixed(2)+' cm²'],['厚度 L',(L*1000).toFixed(2)+' mm'],['热流密度',(Q/A).toFixed(2)+' W/m²']);}
+    else if(mode==='specific'){rows.push(['质量 m',m+' kg'],['比热容 c',c+' J/kg·°C'],['吸/放热',T2>T1?'吸收':'释放'],['热量 Q',(Q/4186).toFixed(2)+' kcal'],['千瓦时',(Q/3.6e6).toFixed(6)+' kWh'],['英热单位',(Q/1055).toFixed(2)+' BTU']);}
+    else if(mode==='convection'){rows.push(['对流系数 h',h+' W/m²·K'],['截面积 A',(A*1e4).toFixed(2)+' cm²'],['热流密度',(Q/A).toFixed(2)+' W/m²']);}
+  }
+  var t=document.getElementById('htTable'); if(!t)return;
+  var tb=t.querySelector('tbody'); tb.innerHTML='';
+  var th=t.querySelector('thead'); if(th)th.innerHTML=en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>数值</th></tr>';
+  rows.forEach(function(r){var tr=document.createElement('tr');[r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tb.appendChild(tr);});
+  t.style.display='';
+  try{ TBKit.util.exportTable('#htTable','heat-transfer-result.csv'); }catch(e){}
+}
+function __htExtras(){
+  if(typeof TBKit==='undefined')return;
+  if(!lastResult)return;
+  var host=document.getElementById('htChart'); if(!host||!TBKit.chart||!TBKit.chart.bar)return;
+  var Q=lastResult.Q_val||0;
+  var en=__htIsEn();
+  var labels=en?['W','kW','kcal/s']:['瓦(W)','千瓦(kW)','千卡/秒'];
+  var vals=[Q,+(Q/1000).toFixed(3),+(Q/4186).toFixed(4)];
+  try{ TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Heat transfer rate':'热流量',data:vals}],height:240,title:en?'Heat transfer rate by unit':'热流量（不同单位）'}); }catch(e){}
+}
+var __ht0=calc; calc=function(){ __ht0(); try{ __htExtras(); }catch(e){} };
 calc();
 </script><script>
 // tool-intro折叠交互

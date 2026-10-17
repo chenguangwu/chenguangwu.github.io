@@ -493,6 +493,12 @@ window.__TI18N_EN = {
     '⬇️ 导出CSV':'⬇️ Export CSV',
     '⬇️ 导出专注计划 CSV':'⬇️ Export Focus Plan CSV',
     '⬇️ 导出明文CSV':'⬇️ Export Plaintext CSV',
+    '⬇️ 导出计算结果 CSV':'⬇️ Export Calculation Result CSV',
+    '⬇️ 导出评估结果 CSV':'⬇️ Export Assessment Result CSV',
+    '⬇️ 导出收益分析 CSV':'⬇️ Export Yield Analysis CSV',
+    '⬇️ 导出流量结果 CSV':'⬇️ Export Flow Rate Result CSV',
+    '⬇️ 导出分频结果 CSV':'⬇️ Export Divider Result CSV',
+    '⬇️ 导出用品清单 CSV':'⬇️ Export Supply List CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 全局 boilerplate（健康/通用模板，跨页复用）——
@@ -506,6 +512,8 @@ window.__TI18N_EN = {
     '导出房型参数、面积/周长/对角线及主材用量估算（含损耗）':'Export shape params, area/perimeter/diagonal and material estimates (incl. waste)',
     '导出当前查询的公历/农历/干支/生肖/星座/节气/宜忌明细':'Export the current Gregorian/lunar/Gan-Zhi/zodiac/constellation/solar-term details',
     '导出目标时间、剩余天/时/分/秒与进度明细':'Export target time, remaining days/hours/minutes/seconds and progress',
+    '导出当前模式的热流量、温差与单位换算明细':'Export current-mode heat transfer rate, ΔT and unit conversions',
+    '导出 VO2max 数值、等级与同龄组定位':'Export VO2max value, level and age-group position',
     '导出当前筛选结果的货币符号、代码、国家/地区与主辅单位明细':'Export filtered currencies: symbol, code, country/region, major and minor units',
     '导出各家具尺寸、占地面积与房间占用率明细':'Export furniture sizes, footprints and room occupancy',
     '导出本轮每题的单词、你的选择与正确答案':'Export each question: word, your choice and the correct answer',

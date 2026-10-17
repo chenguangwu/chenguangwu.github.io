@@ -266,6 +266,12 @@ s.parentNode.insertBefore(el, s);
       <div class="vo2-unit">ml/kg/min</div>
       <div id="levelBadge"></div>
       <div style="margin-top:12px;font-size:13px;color:var(--text-light);" id="vo2Desc"></div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__vo2Export()">⬇️ 导出评估结果 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出 VO2max 数值、等级与同龄组定位</span>
+      </div>
+      <div id="vo2Chart" style="margin-top:10px;"></div>
+      <table id="vo2Table" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
     </div>
   </div>
 
@@ -569,6 +575,43 @@ function calc(){
   const __g9=tipHtml;document.getElementById('trainingTips').innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
 }
 
+function __vo2IsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __vo2Export(){
+  if(typeof TBKit==='undefined')return;
+  var vo2=parseFloat(document.getElementById('vo2Val').textContent);
+  if(isNaN(vo2)){ ToolBox.showToast('请先计算','warning'); return; }
+  var en=__vo2IsEn();
+  var mName={cooper:'Cooper 12分钟跑',mile15:'1.5英里跑',bruce:'Bruce 方案',walking:'1英里步行',rest:'静息法'}[method]||method;
+  var rows=[];
+  if(en){
+    rows=[['Method',mName],['Gender',gender==='male'?'Male':'Female'],['VO2max',vo2+' ml/kg/min'],['Level',document.getElementById('levelBadge').textContent],['Age-group position',document.getElementById('vo2Desc').textContent]];
+  } else {
+    rows=[['测试方法',mName],['性别',gender==='male'?'男':'女'],['VO2max',vo2+' ml/kg/min'],['等级',document.getElementById('levelBadge').textContent],['同龄组定位',document.getElementById('vo2Desc').textContent]];
+  }
+  if(method==='cooper'){rows.push([en?'Distance (m)':'12分钟跑距离(米)',document.getElementById('cooperDist').value],[en?'Age':'年龄',document.getElementById('cooperAge').value]);}
+  else if(method==='mile15'){rows.push([en?'Time (min:sec)':'1.5英里用时(分:秒)',document.getElementById('mileMin').value+':'+document.getElementById('mileSec').value],[en?'Age':'年龄',document.getElementById('mileAge').value]);}
+  else if(method==='bruce'){rows.push([en?'Time (min:sec)':'Bruce用时(分:秒)',document.getElementById('bruceMin').value+':'+document.getElementById('bruceSec').value],[en?'Age':'年龄',document.getElementById('bruceAge').value]);}
+  else if(method==='walking'){rows.push([en?'Weight (kg)':'体重(kg)',document.getElementById('walkWeight').value],[en?'Time (min:sec)':'步行用时(分:秒)',document.getElementById('walkMin').value+':'+document.getElementById('walkSec').value],[en?'HR (bpm)':'心率(bpm)',document.getElementById('walkHr').value],[en?'Age':'年龄',document.getElementById('walkAge').value]);}
+  else {rows.push([en?'Resting HR (bpm)':'静息心率(bpm)',document.getElementById('restHr').value],[en?'BMI':'BMI',document.getElementById('restBmi').value],[en?'Age':'年龄',document.getElementById('restAge').value]);}
+  var t=document.getElementById('vo2Table'); if(!t)return;
+  var tb=t.querySelector('tbody'); tb.innerHTML='';
+  var th=t.querySelector('thead'); if(th)th.innerHTML=en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>数值</th></tr>';
+  rows.forEach(function(r){var tr=document.createElement('tr');[r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tb.appendChild(tr);});
+  t.style.display='';
+  try{ TBKit.util.exportTable('#vo2Table','vo2max-result.csv'); }catch(e){}
+}
+function __vo2Extras(){
+  if(typeof TBKit==='undefined')return;
+  var vo2=parseFloat(document.getElementById('vo2Val').textContent);
+  if(isNaN(vo2))return;
+  var host=document.getElementById('vo2Chart'); if(!host||!TBKit.chart||!TBKit.chart.bar)return;
+  var en=__vo2IsEn();
+  var labels=athletes.map(function(a){return a.name;});
+  var vals=athletes.map(function(a){return +Math.min(100,(vo2/a.val)*100).toFixed(1);});
+  labels.unshift(en?'You':'你'); vals.unshift(vo2);
+  try{ TBKit.chart.bar(host,{labels:labels,series:[{name:en?'VO2max (ml/kg/min)':'VO2max',data:vals}],height:260,title:en?'Your VO2max vs athletes':'你的 VO2max 与运动员对比'}); }catch(e){}
+}
+var __vo2f0=calc; calc=function(){ __vo2f0(); try{ __vo2Extras(); }catch(e){} };
 calc();
 </script><script>
 // tool-intro折叠交互

@@ -224,6 +224,7 @@ s.parentNode.insertBefore(el, s);
     <div id="shopList"><div class="empty">暂无需要补货的用品</div></div>
     <div class="toolbar" style="margin-top:12px;">
       <button class="btn" onclick="copyShopList()">📋 复制购物清单</button>
+      <button type="button" class="btn" onclick="__supplyExport()">⬇️ 导出用品清单 CSV</button>
     </div>
   </div>
 </div>
@@ -502,6 +503,27 @@ function __supplyExtras(){
     data.push(d);
   });
   TBKit.chart.bar('#supplyChart',{labels:labels,series:[{name:'预计可用(天)',data:data}],height:260,title:'各清洁用品预计耗尽天数（≤365天封顶，未设消耗不计入）'});
+}
+function __supplyIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __supplyExport(){
+  if(typeof TBKit==='undefined')return;
+  if(!supplies||supplies.length===0){ ToolBox.showToast('暂无用品数据','warning'); return; }
+  var en=__supplyIsEn();
+  var rows=supplies.map(function(s){
+    var d=getDaysUntilEmpty(s);
+    var left=isFinite(d)?(d>365?'≥365':d.toFixed(0)+' 天'):'—';
+    return [s.name||'用品', s.unit||'', s.stock!=null?s.stock:'', s.rate!=null?s.rate:'', s.period||'', s.threshold!=null?s.threshold:'', left];
+  });
+  var t=document.createElement('table');
+  t.style.display='none'; document.body.appendChild(t);
+  var thead=document.createElement('thead');
+  thead.innerHTML=en?'<tr><th>Name</th><th>Unit</th><th>Stock</th><th>Rate</th><th>Period</th><th>Threshold</th><th>Days left</th></tr>':'<tr><th>用品</th><th>单位</th><th>库存</th><th>消耗速率</th><th>周期</th><th>阈值</th><th>预计可用</th></tr>';
+  t.appendChild(thead);
+  var tb=document.createElement('tbody');
+  rows.forEach(function(r){var tr=document.createElement('tr');r.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tb.appendChild(tr);});
+  t.appendChild(tb);
+  try{ TBKit.util.exportTable(t,'clean-supplies.csv'); }catch(e){}
+  if(t.parentNode)t.parentNode.removeChild(t);
 }
 var __supplyRender=render;
 render=function(){__supplyRender();__supplyExtras();};

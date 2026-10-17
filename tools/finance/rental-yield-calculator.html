@@ -308,10 +308,13 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
         <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
         <button type="button" class="btn" onclick="resetCalc()">🔄 重置</button>
+        <button type="button" class="btn" onclick="__ryExport()">⬇️ 导出收益分析 CSV</button>
       </div>
 
       <div class="result-grid" id="resultGrid"></div>
       <div class="cost-list" id="costList"></div>
+      <div id="ryChart" style="margin-top:12px;"></div>
+      <table id="ryTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
     </div>
 
     <div id="tab-compare" style="display:none;">
@@ -734,6 +737,78 @@ function clearCompare(){
   ToolBox.showToast(i18nText());
 }
 
+function __ryIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __ryExport(){
+  if(typeof TBKit==='undefined')return;
+  var price=(parseFloat(document.getElementById('price').value)||0)*10000;
+  if(!price){ ToolBox.showToast('请输入总价','warning'); return; }
+  var area=parseFloat(document.getElementById('area').value)||0;
+  var rentMode=document.getElementById('rentMode').value;
+  var rent=parseFloat(document.getElementById('rent').value)||0;
+  var monthlyRent=rentMode==='month'?rent:rent/12;
+  var yearlyRent=monthlyRent*12;
+  var monthlyFee=parseFloat(document.getElementById('fee').value)||0;
+  var heat=parseFloat(document.getElementById('heat').value)||0;
+  var decor=parseFloat(document.getElementById('decor').value)||0;
+  var repair=parseFloat(document.getElementById('repair').value)||0;
+  var agency=parseFloat(document.getElementById('agency').value)||0;
+  var tax=parseFloat(document.getElementById('tax').value)||0;
+  var yearlyExpense=monthlyFee*12+heat+decor+repair+agency+tax;
+  var netYearlyIncome=yearlyRent-yearlyExpense;
+  var netMonthlyIncome=netYearlyIncome/12;
+  var grossYield=yearlyRent/price*100;
+  var netYield=netYearlyIncome/price*100;
+  var paybackYears=netYield>0?(price/netYearlyIncome):Infinity;
+  var monthlyPayment=0,cashFlow=netMonthlyIncome,loanAmount=0;
+  if(loanEnabled){
+    var loanRatio=parseFloat(document.getElementById('loanRatio').value)||0;
+    var loanRate=(parseFloat(document.getElementById('loanRate').value)||0)/100;
+    var loanYears=parseInt(document.getElementById('loanYears').value)||30;
+    var loanType=document.getElementById('loanType').value;
+    loanAmount=price*loanRatio/100;
+    var mr=loanRate/12, months=loanYears*12;
+    if(loanType==='equal'){ monthlyPayment=loanAmount*mr*Math.pow(1+mr,months)/(Math.pow(1+mr,months)-1); }
+    else { monthlyPayment=loanAmount/months+loanAmount*mr; }
+    cashFlow=netMonthlyIncome-monthlyPayment;
+  }
+  var en=__ryIsEn();
+  var rows=[];
+  if(en){
+    rows=[['Total price',ToolBox.formatNumber(price,0)+' 元'],['Area',area+' m²'],['Monthly rent',ToolBox.formatNumber(monthlyRent,0)+' 元'],['Yearly rent',ToolBox.formatNumber(yearlyRent,0)+' 元'],['Yearly expense',ToolBox.formatNumber(yearlyExpense,0)+' 元'],['Yearly net income',ToolBox.formatNumber(netYearlyIncome,0)+' 元'],['Gross yield',grossYield.toFixed(2)+'%'],['Net yield',netYield.toFixed(2)+'%'],['Payback period',(isFinite(paybackYears)?paybackYears.toFixed(1)+' 年':'∞')]];
+    if(loanEnabled){rows.push(['Monthly payment',ToolBox.formatNumber(monthlyPayment,0)+' 元'],['Cash flow after payment',ToolBox.formatNumber(cashFlow,0)+' 元/月'],['Loan amount',ToolBox.formatNumber(loanAmount/10000,0)+' 万']);}
+  } else {
+    rows=[['总价',ToolBox.formatNumber(price,0)+' 元'],['面积',area+' m²'],['月租金',ToolBox.formatNumber(monthlyRent,0)+' 元'],['年租金',ToolBox.formatNumber(yearlyRent,0)+' 元'],['年总支出',ToolBox.formatNumber(yearlyExpense,0)+' 元'],['年净收入',ToolBox.formatNumber(netYearlyIncome,0)+' 元'],['毛回报率',grossYield.toFixed(2)+'%'],['净回报率',netYield.toFixed(2)+'%'],['投资回收期',(isFinite(paybackYears)?paybackYears.toFixed(1)+' 年':'∞')]];
+    if(loanEnabled){rows.push(['月供',ToolBox.formatNumber(monthlyPayment,0)+' 元'],['月供后现金流',ToolBox.formatNumber(cashFlow,0)+' 元/月'],['贷款金额',ToolBox.formatNumber(loanAmount/10000,0)+' 万']);}
+  }
+  var t=document.getElementById('ryTable'); if(!t)return;
+  var tb=t.querySelector('tbody'); tb.innerHTML='';
+  var th=t.querySelector('thead'); if(th)th.innerHTML=en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>数值</th></tr>';
+  rows.forEach(function(r){var tr=document.createElement('tr');[r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tb.appendChild(tr);});
+  t.style.display='';
+  try{ TBKit.util.exportTable('#ryTable','rental-yield.csv'); }catch(e){}
+}
+function __ryExtras(){
+  if(typeof TBKit==='undefined')return;
+  var host=document.getElementById('ryChart'); if(!host||!TBKit.chart||!TBKit.chart.bar)return;
+  var price=(parseFloat(document.getElementById('price').value)||0)*10000;
+  if(!price)return;
+  var rentMode=document.getElementById('rentMode').value;
+  var rent=parseFloat(document.getElementById('rent').value)||0;
+  var monthlyRent=rentMode==='month'?rent:rent/12;
+  var yearlyRent=monthlyRent*12;
+  var monthlyFee=parseFloat(document.getElementById('fee').value)||0;
+  var heat=parseFloat(document.getElementById('heat').value)||0;
+  var decor=parseFloat(document.getElementById('decor').value)||0;
+  var repair=parseFloat(document.getElementById('repair').value)||0;
+  var agency=parseFloat(document.getElementById('agency').value)||0;
+  var tax=parseFloat(document.getElementById('tax').value)||0;
+  var yearlyExpense=monthlyFee*12+heat+decor+repair+agency+tax;
+  var en=__ryIsEn();
+  var labels=en?['Yearly rent','Yearly expense','Yearly net']:['年租金','年支出','年净收入'];
+  var vals=[+yearlyRent.toFixed(0),+yearlyExpense.toFixed(0),+(yearlyRent-yearlyExpense).toFixed(0)];
+  try{ TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Amount (元)':'金额(元)',data:vals}],height:240,title:en?'Annual cash flow':'年度收支'}); }catch(e){}
+}
+var __ry0=calc; calc=function(){ __ry0(); try{ __ryExtras(); }catch(e){} };
 calc();
 </script><script>
 // tool-intro折叠交互
