@@ -242,6 +242,10 @@ s.parentNode.insertBefore(el, s);
         <span class="cbs-hint" style="margin:0">点击卡片切换放大对比 · 点击 HEX 复制</span>
       </div>
       <div class="cbs-grid" id="c1Grid"></div>
+      <div class="toolbar" style="margin-top:10px;">
+        <button type="button" class="btn" onclick="window.__cbsExport()">⬇️ 导出模拟结果 CSV</button>
+      </div>
+      <table id="cbsHidden" style="display:none;"><thead><tr><th>Vision Type</th><th>Simulated Hex</th><th>Delta E</th><th>Difference</th></tr></thead><tbody></tbody></table>
       <div class="cbs-legend">
         <span><i style="background:#10B981"></i><span>ΔE 0–5 几乎无差异</span></span>
         <span><i style="background:#F59E0B"></i><span>ΔE 5–15 可察觉</span></span>
@@ -446,6 +450,43 @@ s.parentNode.insertBefore(el, s);
 </div>
 <!-- /SEO 介绍区块 -->
 
+<script>
+// ============ 导出 8 型模拟结果 CSV（读 DOM，不依赖外部 JS 内部状态）============
+var __CBS_TYPE_EN={protanopia:'Protanopia',protanomaly:'Protanomaly',deuteranopia:'Deuteranopia',deuteranomaly:'Deuteranomaly',tritanopia:'Tritanopia',tritanomaly:'Tritanomaly',achromatopsia:'Achromatopsia',bluecone:'Blue-Cone Monochromacy'};
+var __CBS_TAG_EN={'几乎无差异':'Nearly identical','可察觉':'Noticeable','明显不同':'Clearly different'};
+function __cbsRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __cbsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#cbsHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var cards=document.querySelectorAll('#c1Grid .cbs-swatch');
+  if(!cards.length){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'No simulation result yet':'暂无模拟结果'); return; }
+  for(var i=0;i<cards.length;i++){
+    var c=cards[i];
+    var key=c.getAttribute('data-key')||'';
+    var hEl=c.querySelector('.h');
+    var hex=hEl?(hEl.getAttribute('data-copy')||hEl.textContent||'').trim():'';
+    var dEl=c.querySelector('.d');
+    var dtxt=dEl?(dEl.textContent||''):'';
+    var m=dtxt.match(/ΔE\s*([\d.]+)/);
+    var de=m?m[1]:'';
+    var tag=dtxt.replace(/ΔE\s*[\d.]+\s*/,'').replace(/^[·\s]+/,'').trim();
+    tbody.appendChild(__cbsRow([
+      en?(__CBS_TYPE_EN[key]||key):key,
+      hex,
+      de,
+      en?(__CBS_TAG_EN[tag]||tag):tag
+    ]));
+  }
+  TBKit.util.exportTable('#cbsHidden', en?'cvd-simulation.csv':'色觉模拟结果.csv');
+}
+</script>
 <script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
