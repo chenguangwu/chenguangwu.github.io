@@ -197,6 +197,19 @@ s.parentNode.insertBefore(el, s);
       语音由浏览器内置语音引擎合成，无需联网。不同浏览器与系统可用的声音不同；iOS Safari 需手动点击"朗读"按钮触发。视障用户可配合读屏软件使用。
     </div>
     <div class="tip-box tip-warn" id="supportBox" style="display:none;">当前浏览器不支持 Web Speech API 语音合成，请使用 Chrome / Edge / Safari 最新版本。</div>
+
+    <div id="vsExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__vsExport()">⬇️ 导出朗读参数 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出当前文本的字数构成、语速音调音量与预估朗读时长</span>
+      </div>
+      <div id="vsChart" style="margin-top:10px;"></div>
+      <table id="vsTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="vsPreset"></div>
+      <div id="vsHistory"></div>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -393,6 +406,99 @@ function usePreset(el){
   document.getElementById('text').value = full || t;
   updateCharCount();
 }
+
+function __vsIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __vsStat(){
+  var t=document.getElementById('text').value||'';
+  var cn=0, letters=0, digits=0, other=0, enWords=0;
+  for(var i=0;i<t.length;i++){
+    var c=t[i];
+    if(/[\u4e00-\u9fa5]/.test(c)) cn++;
+    else if(/[A-Za-z]/.test(c)) letters++;
+    else if(/[0-9]/.test(c)) digits++;
+    else other++;
+  }
+  var m=t.match(/[A-Za-z]+/g);
+  enWords = m ? m.length : 0;
+  var rate=parseFloat(document.getElementById('rate').value)||1;
+  var pitch=parseFloat(document.getElementById('pitch').value)||1;
+  var vol=parseFloat(document.getElementById('vol').value)||1;
+  var secs = (cn/(260*rate) + enWords/(150*rate))*60 + other*0.05;
+  if(!isFinite(secs)) secs=0;
+  return {len:t.length, cn:cn, letters:letters, digits:digits, other:other, enWords:enWords, rate:rate, pitch:pitch, vol:vol, secs:secs};
+}
+function __vsRows(){
+  var s=__vsStat(), en=__vsIsEn();
+  return en
+    ? [['Total characters',String(s.len)],['Chinese characters',String(s.cn)],['Latin letters',String(s.letters)],
+       ['English words',String(s.enWords)],['Digits',String(s.digits)],['Punctuation & spaces',String(s.other)],
+       ['Rate',String(s.rate)],['Pitch',String(s.pitch)],['Volume',String(s.vol)],
+       ['Estimated duration',s.secs.toFixed(1)+' s']]
+    : [['总字符数',String(s.len)],['中文字符数',String(s.cn)],['英文字母数',String(s.letters)],
+       ['英文单词数',String(s.enWords)],['数字字符数',String(s.digits)],['标点与空格',String(s.other)],
+       ['语速',String(s.rate)],['音调',String(s.pitch)],['音量',String(s.vol)],
+       ['预估朗读时长',s.secs.toFixed(1)+' 秒']];
+}
+function __vsExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__vsIsEn();
+  var s=__vsStat();
+  var t=document.getElementById('vsTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>结果</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    __vsRows().forEach(function(r){
+      var tr=document.createElement('tr');
+      [r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+  var host=document.getElementById('vsChart');
+  if(host){
+    TBKit.chart.bar('#vsChart',{
+      labels: en?['Chinese','Letters','Digits','Punct/space']:['中文','字母','数字','标点空格'],
+      series:[{name:en?'Characters':'字符数',data:[s.cn,s.letters,s.digits,s.other]}],
+      height:200, title: en?'Text composition':'文本构成分布'});
+  }
+  if(s.len>0){
+    TBKit.history.record({chars:s.len, rate:s.rate, pitch:s.pitch, vol:s.vol}, 3000);
+    var hh=document.getElementById('vsHistory');
+    if(hh) TBKit.history.mount('#vsHistory', function(rec){
+      if(!rec)return;
+      if(rec.rate!=null) document.getElementById('rate').value=String(rec.rate);
+      if(rec.pitch!=null) document.getElementById('pitch').value=String(rec.pitch);
+      if(rec.vol!=null) document.getElementById('vol').value=String(rec.vol);
+      document.getElementById('rateVal').textContent=String(rec.rate!=null?rec.rate:1);
+      document.getElementById('pitchVal').textContent=String(rec.pitch!=null?rec.pitch:1);
+      document.getElementById('volVal').textContent=String(rec.vol!=null?rec.vol:1);
+      __vsExtras();
+    });
+  }
+}
+function __vsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__vsIsEn();
+  var rows=[];
+  rows.push(en?['Item','Value']:['项目','结果']);
+  __vsRows().forEach(function(r){ rows.push(r); });
+  try{ TBKit.util.exportCsv('voice-synthesis.csv', rows); }catch(e){}
+}
+function __vsPresets(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.preset.bar('#vsPreset', [
+    {label:'慢速（0.7）', labelEn:'Slow (0.7)', values:{rate:'0.7', pitch:'1', vol:'1'}},
+    {label:'常速（1.0）', labelEn:'Normal (1.0)', values:{rate:'1', pitch:'1', vol:'1'}},
+    {label:'快速（1.5）', labelEn:'Fast (1.5)', values:{rate:'1.5', pitch:'1', vol:'1'}},
+    {label:'高音调（1.5）', labelEn:'High pitch (1.5)', values:{rate:'1', pitch:'1.5', vol:'1'}},
+    {label:'小音量（0.4）', labelEn:'Low volume (0.4)', values:{rate:'1', pitch:'1', vol:'0.4'}}
+  ], function(){ __vsExtras(); });
+}
+var __vsCount0=updateCharCount;
+updateCharCount=function(){ var __r=__vsCount0.apply(null,arguments); try{ __vsExtras(); }catch(e){} return __r; };
+function __vsBoot(){ try{ __vsPresets(); __vsExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __vsBoot();
+else document.addEventListener('DOMContentLoaded', __vsBoot);
 
 document.getElementById('text').addEventListener('input', updateCharCount);
 

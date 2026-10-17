@@ -142,6 +142,19 @@ s.parentNode.insertBefore(el, s);
     <div class="cat-tabs" id="catTabs"></div>
 
     <div id="formulaList"></div>
+
+    <div id="fcExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__fcExport()">⬇️ 导出公式清单 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出当前分类/搜索筛选出的公式名称、表达式与说明</span>
+      </div>
+      <div id="fcChart" style="margin-top:10px;"></div>
+      <table id="fcTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="fcPreset"></div>
+      <div id="fcHistory"></div>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -289,6 +302,81 @@ document.getElementById('searchBox').addEventListener('input', e => {
   searchQuery = e.target.value;
   renderList();
 });
+
+var FC_CAT_EN={'几何':'Geometry','代数':'Algebra','三角':'Trigonometry','物理':'Physics','化学':'Chemistry','概率':'Probability','金融':'Finance','全部':'All'};
+function __fcIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __fcCat(c){ return __fcIsEn() ? (FC_CAT_EN[c]||c) : c; }
+function __fcFiltered(){
+  var q=(typeof searchQuery==='string'?searchQuery:'').toLowerCase();
+  return FORMULAS.filter(function(f){
+    if(selectedCat!=='全部' && f.cat!==selectedCat) return false;
+    if(q && f.name.toLowerCase().indexOf(q)<0 && f.expr.toLowerCase().indexOf(q)<0 && f.cat.toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+}
+function __fcExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__fcIsEn();
+  var list=__fcFiltered();
+  var t=document.getElementById('fcTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>Category</th><th>Formula</th><th>Expression</th><th>Notes</th></tr>':'<tr><th>分类</th><th>公式名</th><th>表达式</th><th>说明</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    list.forEach(function(f){
+      var tr=document.createElement('tr');
+      [__fcCat(f.cat), f.name, f.expr, f.desc||'—'].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+  var host=document.getElementById('fcChart');
+  if(host){
+    var seen={}, order=[];
+    FORMULAS.forEach(function(f){ if(!(f.cat in seen)){seen[f.cat]=0; order.push(f.cat);} seen[f.cat]++; });
+    var items=order.map(function(c){ return {label:__fcCat(c), value:seen[c]}; });
+    TBKit.chart.pie('#fcChart',{items:items,height:240,title:en?'Formula count by category':'各分类公式数量分布'});
+  }
+  var q=(typeof searchQuery==='string'?searchQuery:'').trim();
+  if(q){
+    TBKit.history.record({keyword:q, results:list.length}, 2000);
+    var hh=document.getElementById('fcHistory');
+    if(hh) TBKit.history.mount('#fcHistory', function(rec){
+      if(!rec||!rec.keyword)return;
+      document.getElementById('searchBox').value=rec.keyword;
+      searchQuery=rec.keyword;
+      renderList();
+    });
+  }
+}
+function __fcExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__fcIsEn();
+  var rows=[];
+  rows.push(en?['Category','Formula','Expression','Notes']:['分类','公式名','表达式','说明']);
+  __fcFiltered().forEach(function(f){ rows.push([__fcCat(f.cat), f.name, f.expr, f.desc||'—']); });
+  try{ TBKit.util.exportCsv('formula-list.csv', rows); }catch(e){}
+}
+function __fcPresets(){
+  if(typeof TBKit==='undefined')return;
+  var cats=CATS.filter(function(c){ return c!=='全部'; });
+  TBKit.preset.bar('#fcPreset', cats.map(function(c){
+    return {label:c, labelEn:(FC_CAT_EN[c]||c), values:{searchBox:''}};
+  }), null);
+  var box=document.getElementById('fcPreset');
+  if(box){
+    var btns=box.querySelectorAll('.tbk-preset-btn');
+    for(var i=0;i<btns.length;i++){
+      (function(idx){
+        btns[idx].addEventListener('click', function(){ selectCat(cats[idx]); });
+      })(i);
+    }
+  }
+}
+var __fcList0=renderList;
+renderList=function(){ var __r=__fcList0.apply(null,arguments); try{ __fcExtras(); }catch(e){} return __r; };
+function __fcBoot(){ try{ __fcPresets(); __fcExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __fcBoot();
+else document.addEventListener('DOMContentLoaded', __fcBoot);
 
 renderTabs();
 renderList();

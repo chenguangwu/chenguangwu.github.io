@@ -200,6 +200,19 @@ s.parentNode.insertBefore(el, s);
       <div class="case-btn" onclick="convert('invert')"><span class="label">反转</span><span class="example">hELLO wORLD</span></div>
       <div class="case-btn" onclick="convert('trim')"><span class="label">去空白</span><span class="example">HelloWorld</span></div>
     </div>
+
+    <div id="tcExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__tcExport()">⬇️ 导出命名对照 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">一次性导出当前文本在 12 种命名风格下的转换结果</span>
+      </div>
+      <div id="tcChart" style="margin-top:10px;"></div>
+      <table id="tcTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="tcPreset"></div>
+      <div id="tcHistory"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -337,6 +350,101 @@ function loadCaseSample(which){
   document.getElementById('input').value=m[which]||'';
   updateStats();
 }
+
+var TC_TYPES=[
+  {k:'upper', zh:'全大写', en:'UPPER CASE'},
+  {k:'lower', zh:'全小写', en:'lower case'},
+  {k:'title', zh:'首字母大写', en:'Title Case'},
+  {k:'sentence', zh:'句首大写', en:'Sentence case'},
+  {k:'camel', zh:'小驼峰', en:'camelCase'},
+  {k:'pascal', zh:'大驼峰', en:'PascalCase'},
+  {k:'snake', zh:'下划线', en:'snake_case'},
+  {k:'kebab', zh:'连字符', en:'kebab-case'},
+  {k:'constant', zh:'常量', en:'CONSTANT_CASE'},
+  {k:'alternate', zh:'交替', en:'aLtErNaTe'},
+  {k:'invert', zh:'反转', en:'iNVERT'},
+  {k:'trim', zh:'去空白', en:'No spaces'}
+];
+function __tcIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __tcWords(text){ return (typeof getWords==='function') ? getWords(text) : []; }
+function __tcApply(text, type){
+  switch(type){
+    case 'upper': return text.toUpperCase();
+    case 'lower': return text.toLowerCase();
+    case 'title': return text.replace(/\w\S*/g, function(w){ return w.charAt(0).toUpperCase()+w.substr(1).toLowerCase(); });
+    case 'sentence': return text.toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g, function(c){ return c.toUpperCase(); });
+    case 'camel': return __tcWords(text).map(function(w,i){ return i===0?w.toLowerCase():w.charAt(0).toUpperCase()+w.substr(1).toLowerCase(); }).join('');
+    case 'pascal': return __tcWords(text).map(function(w){ return w.charAt(0).toUpperCase()+w.substr(1).toLowerCase(); }).join('');
+    case 'snake': return __tcWords(text).join('_').toLowerCase();
+    case 'kebab': return __tcWords(text).join('-').toLowerCase();
+    case 'constant': return __tcWords(text).join('_').toUpperCase();
+    case 'alternate': {
+      var up=false;
+      return text.split('').map(function(c){ if(/[a-zA-Z]/.test(c)){ up=!up; return up?c.toUpperCase():c.toLowerCase(); } return c; }).join('');
+    }
+    case 'invert': return text.split('').map(function(c){ return c===c.toUpperCase()?c.toLowerCase():c.toUpperCase(); }).join('');
+    case 'trim': return text.replace(/\s+/g,'');
+  }
+  return text;
+}
+function __tcExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__tcIsEn();
+  var el=document.getElementById('input');
+  var text=el?el.value:'';
+  var t=document.getElementById('tcTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>Style</th><th>Result</th><th>Length</th></tr>':'<tr><th>命名风格</th><th>转换结果</th><th>字符数</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    TC_TYPES.forEach(function(x){
+      var v=__tcApply(text, x.k);
+      var tr=document.createElement('tr');
+      [en?x.en:x.zh, v, String(v.length)].forEach(function(s){var td=document.createElement('td');td.textContent=s;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+  var host=document.getElementById('tcChart');
+  if(host && text){
+    TBKit.chart.bar('#tcChart',{
+      labels: TC_TYPES.map(function(x){ return en?x.en:x.zh; }),
+      series:[{name:en?'Length':'字符数',data:TC_TYPES.map(function(x){ return __tcApply(text,x.k).length; })}],
+      height:220, title: en?'Result length by naming style':'各命名风格结果字符数'});
+  } else if(host){ host.innerHTML=''; }
+  if(text){
+    TBKit.history.record({chars:text.length, styles:TC_TYPES.length}, 2500);
+    var hh=document.getElementById('tcHistory');
+    if(hh) TBKit.history.mount('#tcHistory', function(rec){ /* 文本长度回溯 */ });
+  }
+}
+function __tcExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__tcIsEn();
+  var el=document.getElementById('input');
+  var text=el?el.value:'';
+  var rows=[];
+  rows.push(en?['Style','Result','Length']:['命名风格','转换结果','字符数']);
+  TC_TYPES.forEach(function(x){
+    var v=__tcApply(text, x.k);
+    rows.push([en?x.en:x.zh, v, String(v.length)]);
+  });
+  try{ TBKit.util.exportCsv('text-case.csv', rows); }catch(e){}
+}
+function __tcPresets(){
+  if(typeof TBKit==='undefined')return;
+  var m=[['var','变量名','Variable names','userName firstName orderId userId'],
+         ['title','英文标题','English title','the quick brown fox jumps over the lazy dog'],
+         ['mix','中英混合','Mixed CN/EN','Hello World, 欢迎 to ToolBox! 2024 年度 Report']];
+  var list=m.map(function(x){ return {label:x[1], labelEn:x[2], values:{input:x[3]}}; });
+  TBKit.preset.bar('#tcPreset', list, function(){ updateStats(); __tcExtras(); });
+}
+var __tcStats0=updateStats;
+updateStats=function(){ var __r=__tcStats0.apply(null,arguments); try{ __tcExtras(); }catch(e){} return __r; };
+var __tcConvert0=convert;
+convert=function(type){ var __r=__tcConvert0.apply(null,arguments); try{ __tcExtras(); }catch(e){} return __r; };
+function __tcBoot(){ try{ __tcPresets(); __tcExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __tcBoot();
+else document.addEventListener('DOMContentLoaded', __tcBoot);
 
 updateStats();
 </script><script>

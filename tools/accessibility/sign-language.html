@@ -156,6 +156,19 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="sign-grid" id="signGrid"></div>
 
+    <div id="slExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__slExport()">⬇️ 导出手语词汇 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出当前筛选出的词汇、分类与手势说明</span>
+      </div>
+      <div id="slChart" style="margin-top:10px;"></div>
+      <table id="slTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="slPreset"></div>
+      <div id="slHistory"></div>
+    </div>
+
     <div class="ref-card" style="margin-top:18px;">
       <h4>🖐️ 基本手形说明</h4>
       <table>
@@ -317,6 +330,75 @@ function render(){
   sh += '<div class="stat-card"><div class="val">' + list.length + '</div><div class="lbl">当前显示</div></div>';
   const __h1=sh;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('statGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('statGrid').innerHTML=__h1;
 }
+
+var CAT_EN={问候:'Greetings',称谓:'Terms of address',数字:'Numbers',日常:'Daily',情感:'Emotions',时间:'Time'};
+function __slIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __slCat(c){ return __slIsEn() ? (CAT_EN[c]||c) : c; }
+function __slFiltered(){
+  var q=''; var si=document.getElementById('searchInput'); if(si) q=(si.value||'').trim().toLowerCase();
+  var cat=''; var cs=document.getElementById('catSel'); if(cs) cat=cs.value||'';
+  return SIGNS.filter(function(s){
+    if(cat && s.cat!==cat) return false;
+    if(q && s.word.toLowerCase().indexOf(q)<0 && s.desc.toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+}
+function __slExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__slIsEn();
+  var list=__slFiltered();
+  var t=document.getElementById('slTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>Word</th><th>Category</th><th>Description</th></tr>':'<tr><th>词汇</th><th>分类</th><th>手势说明</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    list.forEach(function(s){
+      var tr=document.createElement('tr');
+      [s.word, __slCat(s.cat), s.desc].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+  var host=document.getElementById('slChart');
+  if(host){
+    var seen={}, order=[];
+    list.forEach(function(s){ if(!(s.cat in seen)){seen[s.cat]=0; order.push(s.cat);} seen[s.cat]++; });
+    var items=order.map(function(c){ return {label:__slCat(c), value:seen[c]}; });
+    if(items.length) TBKit.chart.pie('#slChart',{items:items,height:240,title:en?'Category distribution of current results':'当前结果分类分布'});
+    else host.innerHTML='';
+  }
+  var q=''; var si=document.getElementById('searchInput'); if(si) q=(si.value||'').trim();
+  if(q){
+    TBKit.history.record({keyword:q, results:list.length}, 2000);
+    var hh=document.getElementById('slHistory');
+    if(hh) TBKit.history.mount('#slHistory', function(rec){
+      if(!rec||!rec.keyword)return;
+      document.getElementById('searchInput').value=rec.keyword;
+      render();
+    });
+  }
+}
+function __slExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__slIsEn();
+  var rows=[];
+  rows.push(en?['Word','Category','Description']:['词汇','分类','手势说明']);
+  __slFiltered().forEach(function(s){ rows.push([s.word, __slCat(s.cat), s.desc]); });
+  try{ TBKit.util.exportCsv('sign-language.csv', rows); }catch(e){}
+}
+function __slPresets(){
+  if(typeof TBKit==='undefined')return;
+  var cats=[];
+  SIGNS.forEach(function(s){ if(cats.indexOf(s.cat)<0) cats.push(s.cat); });
+  var list=cats.map(function(c){
+    return {label:c, labelEn:(CAT_EN[c]||c), values:{catSel:c, searchInput:''}};
+  });
+  TBKit.preset.bar('#slPreset', list, function(){ render(); });
+}
+var __slRender0=render;
+render=function(){ var __r=__slRender0.apply(null,arguments); try{ __slExtras(); }catch(e){} return __r; };
+function __slBoot(){ try{ __slPresets(); __slExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __slBoot();
+else document.addEventListener('DOMContentLoaded', __slBoot);
 
 initCats();
 render();

@@ -283,6 +283,18 @@ s.parentNode.insertBefore(el, s);
       <h3 style="margin-bottom:8px;">替换结果</h3>
       <textarea id="resultText" rows="8" readonly style="background:var(--result-bg);cursor:text;"></textarea>
     </div>
+
+    <div id="trExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__trExport()">⬇️ 导出替换明细 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">导出匹配统计与匹配位置明细（前 200 条）</span>
+      </div>
+      <div id="trChart" style="margin-top:10px;"></div>
+      <table id="trTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="trHistory"></div>
+    </div>
   </div>
 
   <!-- SEO 工具介绍 -->
@@ -779,6 +791,132 @@ s.parentNode.insertBefore(el, s);
   });
 
 })();
+</script>
+<script>
+function __trIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __trOpts(){
+  return {
+    cs: document.getElementById('optCase').checked,
+    re: document.getElementById('optRegex').checked,
+    g: document.getElementById('optGlobal').checked,
+    m: document.getElementById('optMultiline').checked
+  };
+}
+function __trFlags(o){ var f=''; if(!o.cs)f+='i'; if(o.g)f+='g'; if(o.m)f+='m'; return f; }
+function __trFind(text, pattern, o){
+  var out=[];
+  if(!text || !pattern) return out;
+  try{
+    if(o.re){
+      var rx=new RegExp(pattern, __trFlags({cs:o.cs, re:o.re, g:true, m:o.m}));
+      var m, c=0;
+      while((m=rx.exec(text))!==null && c<2000){
+        out.push({i:m.index, len:m[0].length, t:m[0]});
+        c++;
+        if(m[0].length===0) rx.lastIndex++;
+      }
+    } else {
+      var s=o.cs?pattern:pattern.toLowerCase();
+      var tg=o.cs?text:text.toLowerCase();
+      var st=0, c2=0;
+      while(true){
+        var idx=tg.indexOf(s, st);
+        if(idx===-1) break;
+        out.push({i:idx, len:s.length, t:text.substr(idx, s.length)});
+        c2++;
+        if(!o.g) break;
+        st=idx+1;
+        if(c2>2000) break;
+      }
+    }
+  }catch(e){}
+  return out;
+}
+function __trSnap(){
+  var text=document.getElementById('sourceText').value||'';
+  var pattern=document.getElementById('findInput').value||'';
+  var o=__trOpts();
+  var hits=__trFind(text, pattern, o);
+  var resEl=document.getElementById('resultText');
+  var result=(resEl && resEl.value!==undefined)?resEl.value:'';
+  var shown=document.getElementById('resultArea') && document.getElementById('resultArea').style.display!=='none';
+  return {text:text, pattern:pattern, hits:hits, result:shown?result:''};
+}
+function __trExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__trIsEn();
+  var s=__trSnap();
+  var len=s.text.length, cnt=s.hits.length;
+  var maxLen=0, gaps=[], prev=null;
+  s.hits.forEach(function(h){ if(h.len>maxLen) maxLen=h.len; if(prev!==null) gaps.push(h.i-prev); prev=h.i; });
+  var avgGap = gaps.length ? Math.round(gaps.reduce(function(a,b){return a+b;},0)/gaps.length) : 0;
+  var cover = len ? (s.hits.reduce(function(a,h){return a+h.len;},0)/len*100) : 0;
+  var outLen = s.result ? s.result.length : null;
+  var delta = (outLen!==null) ? outLen-len : null;
+  var t=document.getElementById('trTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>结果</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    var rows = en
+      ? [['Source length',String(len)],['Matches',String(cnt)],['Longest match',String(maxLen)],
+         ['Avg gap between matches',String(avgGap)],['Coverage of matched chars',cover.toFixed(1)+'%'],
+         ['Output length',(outLen===null?'—':String(outLen))],['Char delta',(delta===null?'—':(delta===0?'0':(delta>0?'+'+delta:String(delta))))]]
+      : [['原始字符数',String(len)],['匹配数量',String(cnt)],['最长匹配长度',String(maxLen)],
+         ['平均匹配间距',String(avgGap)],['匹配字符占比',cover.toFixed(1)+'%'],
+         ['结果字符数',(outLen===null?'—':String(outLen))],['字符变化',(delta===null?'—':(delta===0?'0':(delta>0?'+'+delta:String(delta))))]];
+    rows.forEach(function(r){
+      var tr=document.createElement('tr');
+      [r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+  var host=document.getElementById('trChart');
+  if(host){
+    if(cnt>0 && len>0){
+      var N=10, buckets=new Array(N).fill(0);
+      s.hits.forEach(function(h){
+        var b=Math.floor(h.i/len*N); if(b<0)b=0; if(b>=N)b=N-1; buckets[b]++;
+      });
+      TBKit.chart.bar('#trChart',{labels:buckets.map(function(_,i){return String(i+1);}),
+        series:[{name:en?'Matches':'匹配数',data:buckets}],height:200,
+        title:en?'Distribution of matches across text (10 segments)':'匹配在文本中的分布（10 段）'});
+    } else { host.innerHTML=''; }
+  }
+  if(cnt>0){
+    TBKit.history.record({find:s.pattern, matches:cnt}, 2000);
+    var hh=document.getElementById('trHistory');
+    if(hh) TBKit.history.mount('#trHistory', function(rec){
+      if(!rec||!rec.find)return;
+      document.getElementById('findInput').value=rec.find;
+      doReplace();
+    });
+  }
+}
+function __trExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__trIsEn();
+  var s=__trSnap();
+  var len=s.text.length, cnt=s.hits.length;
+  var rows=[];
+  rows.push(en?['Item','Value']:['项目','结果']);
+  rows.push(en?['Source length',String(len)]:['原始字符数',String(len)]);
+  rows.push(en?['Matches',String(cnt)]:['匹配数量',String(cnt)]);
+  rows.push(en?['Output length',String(s.result?s.result.length:0)]:['结果字符数',String(s.result?s.result.length:0)]);
+  rows.push([]);
+  rows.push(en?['#','Position','Matched text']:['#','位置','匹配内容']);
+  s.hits.slice(0,200).forEach(function(h,i){
+    rows.push([String(i+1), String(h.i), h.t]);
+  });
+  try{ TBKit.util.exportCsv('text-replace.csv', rows); }catch(e){}
+}
+var __trReplace0 = window.doReplace;
+window.doReplace = function(){ var __r=__trReplace0.apply(null,arguments); try{ __trExtras(); }catch(e){} return __r; };
+var __trPreview0 = window.previewMatch;
+window.previewMatch = function(){ var __r=__trPreview0.apply(null,arguments); try{ __trExtras(); }catch(e){} return __r; };
+function __trBoot(){ try{ __trExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __trBoot();
+else document.addEventListener('DOMContentLoaded', __trBoot);
 </script>
 
 
