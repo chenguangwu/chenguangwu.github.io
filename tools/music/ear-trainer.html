@@ -464,6 +464,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn" onclick="resetStats()">重置统计</button>
       <button type="button" class="btn primary" onclick="newRound()">下一题</button>
+      <button type="button" class="btn" onclick="window.__earExport()">⬇️ 导出音程参考表 CSV</button>
     </div>
   </div>
 
@@ -473,6 +474,7 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="refContent" style="margin-top:0;">
       <!-- 动态渲染 -->
     </div>
+    <table id="earHidden" style="display:none;"><thead><tr><th>Item</th><th>Abbr</th><th>Detail</th><th>Example</th></tr></thead><tbody></tbody></table>
   </div>
 
   <!-- SEO 介绍 -->
@@ -1011,6 +1013,45 @@ s.parentNode.insertBefore(el, s);
   updateStats();
 
 })();
+</script>
+<script>
+// ============ 导出音程/和弦参考表 CSV ============
+var __EAR_EN={
+  '小二度':'Minor 2nd','大二度':'Major 2nd','小三度':'Minor 3rd','大三度':'Major 3rd',
+  '纯四度':'Perfect 4th','增四度/减五度':'Tritone','纯五度':'Perfect 5th',
+  '小六度':'Minor 6th','大六度':'Major 6th','小七度':'Minor 7th','大七度':'Major 7th','纯八度':'Octave',
+  '大三和弦':'Major Triad','小三和弦':'Minor Triad','增三和弦':'Augmented Triad','减三和弦':'Diminished Triad'
+};
+function __earRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __earExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#earHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var tbl=document.querySelector('#refContent table tbody');
+  if(!tbl){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'Reference table not ready':'参考表尚未生成'); return; }
+  var trs=tbl.querySelectorAll('tr');
+  for(var i=0;i<trs.length;i++){
+    var tds=trs[i].querySelectorAll('td');
+    if(tds.length<4)continue;
+    var cells=[];
+    for(var j=0;j<4;j++){
+      var s=(tds[j].textContent||'').trim();
+      if(en){
+        if(j===0) s=__EAR_EN[s]||s;
+        else s=s.replace(/根音/g,'Root').replace(/半音/g,'semitones');
+      }
+      cells.push(s);
+    }
+    tbody.appendChild(__earRow(cells));
+  }
+  TBKit.util.exportTable('#earHidden', en?'interval-reference.csv':'音程参考表.csv');
+}
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

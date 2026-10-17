@@ -219,6 +219,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" id="startBtn" onclick="startSim()">开始模拟擦除</button>
       <button type="button" class="btn" onclick="stopSim()">停止</button>
       <button type="button" class="btn" onclick="resetSim()">重置</button>
+      <button type="button" class="btn" onclick="window.__eraseExport()">⬇️ 导出擦除方案对照 CSV</button>
     </div>
   </div>
 
@@ -247,6 +248,7 @@ s.parentNode.insertBefore(el, s);
         <tbody id="compareTable"></tbody>
       </table>
     </div>
+    <table id="eraseHidden" style="display:none;"><thead><tr><th>Algorithm</th><th>Passes</th><th>Security Level</th><th>Scenario</th><th>Speed</th></tr></thead><tbody></tbody></table>
     <div class="tip-box tip-warn" style="margin-top:12px;">注意：本工具仅模拟擦除过程用于教学演示，不会真正删除任何文件。实际数据销毁请使用专业工具（如 shred、DBAN、Eraser 等），SSD 应使用加密擦除或物理销毁。</div>
   </div>
 
@@ -603,6 +605,37 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+</script>
+<script>
+// ============ 导出擦除算法对照表 CSV ============
+var __ERASE_DATA=[
+  {zh:'零填充擦除',en:'Zero Fill',passes:1,lv:'基础',lvEn:'Basic',sc:'日常清理、非敏感数据',scEn:'Routine cleanup, non-sensitive data',tm:'最快',tmEn:'Fastest'},
+  {zh:'随机填充擦除',en:'Random Fill',passes:1,lv:'中等',lvEn:'Medium',sc:'一般敏感数据',scEn:'Generally sensitive data',tm:'快',tmEn:'Fast'},
+  {zh:'DoD 5220.22-M',en:'DoD 5220.22-M',passes:3,lv:'高',lvEn:'High',sc:'机密数据、企业资产处置',scEn:'Confidential data, enterprise asset disposal',tm:'中等',tmEn:'Moderate'},
+  {zh:'Gutmann 方法',en:'Gutmann Method',passes:35,lv:'最高',lvEn:'Highest',sc:'极机密数据、军事级',scEn:'Top-secret data, military grade',tm:'很慢',tmEn:'Very slow'}
+];
+function __eraseRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __eraseExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#eraseHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  __ERASE_DATA.forEach(function(a){
+    tbody.appendChild(__eraseRow([
+      en?a.en:a.zh,
+      String(a.passes),
+      en?a.lvEn:a.lv,
+      en?a.scEn:a.sc,
+      en?a.tmEn:a.tm
+    ]));
+  });
+  TBKit.util.exportTable('#eraseHidden', en?'erase-method-comparison.csv':'擦除方案对照.csv');
+}
 </script>
 
 <script>

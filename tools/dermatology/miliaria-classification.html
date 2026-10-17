@@ -151,9 +151,11 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">生成分型报告</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="window.__miliariaExport()">⬇️ 导出痱子分型对照 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
+    <table id="miliariaHidden" style="display:none;"><thead><tr><th>Feature</th><th>Miliaria Crystallina</th><th>Miliaria Rubra</th><th>Miliaria Pustulosa</th><th>Miliaria Profunda</th></tr></thead><tbody></tbody></table>
 
     <h3 style="font-size:14px;margin:16px 0 10px;">四种痱子对照表</h3>
     <table>
@@ -305,6 +307,39 @@ function calc(){
 function copyResult(){
   var d = typeData[currentType];
   ToolBox.copyText('痱子分型：'+d.name+'（'+d.en+'）\n严重程度：'+d.severity+'\n'+d.desc, i18nText('toast.msg544'));
+}
+
+// ============ 导出四型对照表 CSV ============
+var __MIL_CMP=[
+  {zh:'阻塞深度',en:'Obstruction Depth',v:['角质层','表皮中层','表皮（红痱继发）','表皮-真皮交界'],
+   e:['Stratum corneum','Mid epidermis','Epidermis (secondary to rubra)','Epidermal-dermal junction']},
+  {zh:'皮损形态',en:'Lesion Morphology',v:['1-2mm清亮薄壁水疱','2-4mm红色丘疹/丘疱疹','红色基底上脓疱','1-3mm肤色坚实丘疹'],
+   e:['1-2 mm clear thin-walled vesicles','2-4 mm red papules/vesicles','Pustules on red base','1-3 mm skin-colored firm papules']},
+  {zh:'自觉症状',en:'Symptoms',v:['无症状','瘙痒灼热感','瘙痒疼痛','少痒/无汗'],
+   e:['Asymptomatic','Itching and burning','Itching and pain','Little itch / anhidrosis']},
+  {zh:'好发部位',en:'Common Sites',v:['躯干/颈部','颈/胸背/褶皱处','褶皱/头皮','躯干/四肢'],
+   e:['Trunk / neck','Neck / chest / back / folds','Folds / scalp','Trunk / limbs']},
+  {zh:'好发人群',en:'Common Population',v:['新生儿/发热者','婴幼儿/成人','红痱反复者','热带地区成人'],
+   e:['Newborns / febrile patients','Infants / adults','Recurrent miliaria rubra','Adults in tropical areas']},
+  {zh:'常见诱因',en:'Common Triggers',v:['高温发热','湿热环境','红痱继发感染','反复红痱后'],
+   e:['High temperature / fever','Hot humid environment','Secondary infection of rubra','After repeated rubra']}
+];
+function __milRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __miliariaExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#miliariaHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  __MIL_CMP.forEach(function(r){
+    var vals=en?r.e:r.v;
+    tbody.appendChild(__milRow([en?r.en:r.zh, vals[0], vals[1], vals[2], vals[3]]));
+  });
+  TBKit.util.exportTable('#miliariaHidden', en?'miliaria-comparison.csv':'痱子分型对照.csv');
 }
 
 calc();
