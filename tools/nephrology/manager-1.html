@@ -189,7 +189,9 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="savePatient()">💾 保存患者</button>
       <button type="button" class="btn" onclick="loadPatients()">📂 患者列表</button>
       <button type="button" class="btn" onclick="clearForm()">🔄 清空</button>
+      <button type="button" class="btn" onclick="window.__ckdExport()">⬇️ 导出 eGFR 评估 CSV</button>
     </div>
+    <table id="ckdHidden" style="display:none;"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div id="resultArea"></div>
@@ -542,6 +544,30 @@ function calculate(){
 
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultArea').innerHTML=__h0;
   ToolBox.showToast(i18nText());
+}
+
+function __ckdExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var age=parseInt(document.getElementById('patientAge').value);
+  var isFemale=document.getElementById('patientSex').value==='female';
+  var scr=parseFloat(document.getElementById('scr').value);
+  var scrUnit=document.getElementById('scrUnit').value;
+  var scys=parseFloat(document.getElementById('scys').value);
+  var acr=parseFloat(document.getElementById('acr').value);
+  var acrUnit=document.getElementById('acrUnit').value;
+  if(!age||age<18||isNaN(scr)||scr<=0){ToolBox.showToast(en?'Please enter valid age and creatinine':'请输入有效年龄与肌酐','warning');return;}
+  var scrMgDl=scrUnit==='umol'?scr/88.4:scr;
+  var acrMgg=acrUnit==='mgmmol'?(isNaN(acr)?null:acr*8.84):(isNaN(acr)?null:acr);
+  var egfrCr=calcEGFRCr(scrMgDl,age,isFemale);
+  var egfr=egfrCr,formula='CKD-EPI 2021 (Cr)',egfrCys=null;
+  if(!isNaN(scys)&&scys>0){egfrCys=calcEGFRCys(scys,age,isFemale);egfr=calcEGFRCrCys(scrMgDl,scys,age,isFemale);formula='CKD-EPI (Cr+Cys)';}
+  var gStage=getGFRStage(egfr);
+  var aStage=acrMgg!==null?getACRStage(acrMgg):{stage:'-'};
+  var risk=acrMgg!==null?getRiskLevel(gStage.stage,aStage.stage):{level:'unknown'};
+  var rows=[['Age',String(age)],['Sex',isFemale?'Female':'Male'],['Scr (mg/dL)',scrMgDl.toFixed(2)],['Cystatin C (mg/L)',(!isNaN(scys)&&scys>0)?scys.toFixed(2):'-'],['ACR (mg/g)',acrMgg!==null?acrMgg.toFixed(0):'-'],['eGFR-cr',egfrCr.toFixed(1)],['eGFR-cys',egfrCys!==null?egfrCys.toFixed(1):'-'],['eGFR (used)',egfr.toFixed(1)],['Formula',formula],['GFR Stage (G)',gStage.stage],['Albuminuria (A)',aStage.stage],['Risk',risk.level]];
+  document.querySelector('#ckdHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#ckdHidden', en?'ckd-egfr.csv':'CKD-eGFR评估.csv');
 }
 
 function savePatient(){

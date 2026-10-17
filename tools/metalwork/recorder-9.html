@@ -187,7 +187,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="useNowTemp()">取当前目标温度</button>
       <button type="button" class="btn" onclick="finishJob()">完成并存档</button>
+      <button type="button" class="btn" onclick="window.__htExport()">⬇️ 导出控温记录 CSV</button>
     </div>
+    <table id="htHidden" style="display:none;"><thead><tr><th>Field</th><th>Value</th><th>Note</th></tr></thead><tbody></tbody></table>
     <h4 style="margin-top:14px;font-size:14px;color:var(--heading);">温度曲线</h4>
     <div class="curve-wrap"><svg id="curve" width="100%" height="220" viewBox="0 0 700 220" preserveAspectRatio="none"></svg></div>
     <div id="readings"></div>
@@ -434,6 +436,22 @@ function finishJob(){
   document.getElementById('currentCard').style.display='none';
   renderList();
   ToolBox.showToast(i18nText('toast.msg055'));
+}
+
+function __htExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  if(!current){ToolBox.showToast(en?'No active job. Create one first':'暂无进行中的作业，请先新建记录','warning');return;}
+  var rows=[['Steel',current.steel,''],['Process',current.process,''],['Thickness (mm)',String(current.thickness),''],['Target Temp',String(current.target)+' ℃',''],['Soaking',current.soaking,''],['Job ID',current.id,'']];
+  if(current.readings.length){
+    current.readings.forEach(function(r,i){
+      rows.push(['#'+(i+1)+' '+new Date(r.t).toLocaleString('zh-CN'), String(r.v)+' ℃', r.n||'']);
+    });
+  } else {
+    rows.push(['Note', en?'No readings recorded':'暂无温度记录','']);
+  }
+  document.querySelector('#htHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#htHidden', en?'heat-treatment.csv':'热处理控温记录.csv');
 }
 
 function renderCurrent(){

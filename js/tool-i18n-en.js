@@ -519,6 +519,9 @@ window.__TI18N_EN = {
     '0402 阻容':'0402 Chip',
     'BGA 圆形开孔':'BGA Circle Aperture',
     '细间距 0.4mm':'Fine Pitch 0.4mm',
+    '⬇️ 导出跟踪记录 CSV':'⬇️ Export Tracking Records CSV',
+    '⬇️ 导出 eGFR 评估 CSV':'⬇️ Export eGFR Assessment CSV',
+    '⬇️ 导出控温记录 CSV':'⬇️ Export Temperature Log CSV',
   },
   BODY_PHRASE_MAP: {
     // —— 批次101 顺带修复 smt-stencil 既有未译 ——

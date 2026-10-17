@@ -221,7 +221,9 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn" onclick="addSymptomRow()">+ 添加症状</button>
         <button type="button" class="btn primary" onclick="addRecord()">保存记录</button>
         <button type="button" class="btn" onclick="clearAll()">清空全部</button>
+        <button type="button" class="btn" onclick="window.__dtExport()">⬇️ 导出跟踪记录 CSV</button>
       </div>
+      <table id="dtHidden" style="display:none;"><thead><tr><th>Date</th><th>Tongue Body</th><th>Tongue Coat</th><th>Pulse</th><th>Symptoms</th><th>Total Score</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见证候预设：</span>
@@ -369,6 +371,18 @@ function clearAll() {
     render();
     ToolBox.showToast(i18nText() );
   }
+}
+
+function __dtExport(){
+  if(typeof TBKit==='undefined')return;
+  if(!records.length){ToolBox.showToast(TBKit.util.isEn()?'No tracking records yet':'暂无跟踪记录','warning');return;}
+  var en=TBKit.util.isEn();
+  var rows=records.map(function(r){
+    var sym=r.symptoms.map(function(s){return s.name+'('+s.score+')';}).join('; ')||(en?'none':'无');
+    return [r.date, r.tongueBody||'-', r.tongueCoat||'-', r.pulse||'-', sym, String(r.totalScore)];
+  });
+  document.querySelector('#dtHidden tbody').innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td></tr>';}).join('');
+  TBKit.util.exportTable('#dtHidden', en?'disease-tracking.csv':'病情跟踪记录.csv');
 }
 
 function getScoreBadge(score) {
