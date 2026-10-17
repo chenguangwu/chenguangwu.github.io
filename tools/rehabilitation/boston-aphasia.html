@@ -120,6 +120,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="saveRecord()">保存评定记录</button>
+      <button type="button" class="btn" onclick="window.__baExport('class')">⬇️ 导出失语症分类 CSV</button>
       <button type="button" class="btn" onclick="resetAll()">重置</button>
     </div>
   </div>
@@ -143,9 +144,12 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card">
     <h2>📋 评定记录</h2>
-    <div class="toolbar"><button type="button" class="btn danger" onclick="clearHistory()">清空记录</button></div>
+    <div class="toolbar"><button type="button" class="btn" onclick="window.__baExport('records')">⬇️ 导出评定记录 CSV</button><button type="button" class="btn danger" onclick="clearHistory()">清空记录</button></div>
     <div id="historyList"></div>
   </div>
+
+  <table id="baClsHidden" style="display:none"><thead><tr><th>Aphasia Type</th><th>Fluency</th><th>Comprehension</th><th>Repetition</th><th>Naming</th><th>Lesion Site</th></tr></thead><tbody></tbody></table>
+  <table id="baRecHidden" style="display:none"><thead><tr><th>Date</th><th>Grade</th><th>Level</th><th>Grade Name</th></tr></thead><tbody></tbody></table>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -310,6 +314,40 @@ function resetAll() {
   window._selectedGrade = undefined;
   document.querySelectorAll('.ref-card').forEach(function(c) { c.style.borderColor = 'var(--border)'; c.style.boxShadow = ''; });
   document.getElementById('resultBox').innerHTML = '<p style="color:var(--text-muted);">请选择等级查看详细描述</p>';
+}
+
+function __baExport(scope){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  if(scope==='records'){
+    var records=[];
+    try{records=JSON.parse(localStorage.getItem(STORE_KEY)||'[]');}catch(e){}
+    if(!records.length){ ToolBox.showToast('暂无评定记录可导出','warning'); return; }
+    var rb=document.querySelector('#baRecHidden tbody');
+    rb.innerHTML='';
+    records.forEach(function(r){
+      var tr=document.createElement('tr');
+      [r.date, r.grade, r.level, r.name].forEach(function(v){
+        var td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+      });
+      rb.appendChild(tr);
+    });
+    TBKit.util.exportTable('#baRecHidden', en?'boston-aphasia-records.csv':'波士顿失语症评定记录.csv');
+    return;
+  }
+  var rows=document.querySelectorAll('.card table tbody tr');
+  var cb=document.querySelector('#baClsHidden tbody');
+  cb.innerHTML='';
+  rows.forEach(function(tr){
+    var tds=tr.querySelectorAll('td');
+    if(tds.length<6)return;
+    var out=document.createElement('tr');
+    for(var i=0;i<6;i++){
+      var td=document.createElement('td'); td.textContent=tds[i].textContent; out.appendChild(td);
+    }
+    cb.appendChild(out);
+  });
+  TBKit.util.exportTable('#baClsHidden', en?'boston-aphasia-classification.csv':'波士顿失语症分类.csv');
 }
 
 init();
