@@ -258,6 +258,7 @@ s.parentNode.insertBefore(el, s);
     <div class="kw-charts">
       <h3>&#128200; 词频分布</h3>
       <div id="chartResult"></div>
+      <div id="kwChart" style="margin-top:12px;"></div>
     </div>
   </div>
 
@@ -625,6 +626,7 @@ s.parentNode.insertBefore(el, s);
     var chart = document.getElementById('chartResult');
     if (keywords.length === 0) {
       const __h3='<p style="text-align:center;color:var(--text-muted);">暂无数据</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){chart.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}chart.innerHTML=__h3;
+      try { __kwChart(); } catch (e) {}
       return;
     }
     var maxCount = keywords[0].count;
@@ -641,6 +643,7 @@ s.parentNode.insertBefore(el, s);
       html += '<p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:8px;">仅显示前 ' + displayCount + ' 条，共 ' + keywords.length + ' 个关键词</p>';
     }
     const __h4=html;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){chart.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}chart.innerHTML=__h4;
+    try { __kwChart(); } catch (e) {}
   }
 
   /* ===== 复制与导出 ===== */
@@ -682,15 +685,55 @@ s.parentNode.insertBefore(el, s);
     ToolBox.showToast(i18nText());
   };
 
-  /* ===== 加载示例 ===== */
-  window.loadSample = function() {
-    document.getElementById('inputText').value =
+  /* ===== 示例文本（loadSample 与首屏降级图共用） ===== */
+  var SAMPLE_TEXT =
       '人工智能技术在自然语言处理领域取得了突破性进展。深度学习模型广泛应用于文本分类、情感分析、机器翻译等自然语言处理任务。\n\n'
       + '近年来，大语言模型如GPT系列和BERT在自然语言理解方面表现出色。这些模型通过大规模语料库训练，能够捕捉语言的深层语义特征。\n\n'
       + '关键词提取是自然语言处理的基础任务之一，广泛应用于搜索引擎优化、文档摘要、文本分类和信息检索等场景。常见的关键词提取方法包括基于统计的词频分析和基于图排序的TextRank算法。\n\n'
       + 'The field of natural language processing has been revolutionized by deep learning and large language models. Techniques such as transformer architectures, attention mechanisms, and pre-trained models have significantly improved performance on tasks like text classification, sentiment analysis, machine translation, and keyword extraction.';
+
+  /* ===== TBKit 词频柱状图 ===== */
+  // 有提取结果画当前 TopN；无结果时用内置示例文本演示工具效果（保证首屏常显）
+  function __kwChart() {
+    if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+    var host = document.getElementById('kwChart');
+    if (!host) { return; }
+    var en = TBKit.util.isEn();
+    var list = currentKeywords;
+    var title = en ? 'Top keyword frequency' : '关键词词频 Top 排行';
+    if (!list || list.length === 0) {
+      var toks = tokenize(SAMPLE_TEXT);
+      var freq = countFrequency(toks.all);
+      var sorted = sortFreq(freq);
+      var filtered = filterKeywords(sorted, parseInt(document.getElementById('minLen').value, 10) || 2);
+      list = deduplicateSubstrings(filtered).slice(0, 10);
+      title = en ? 'Top keyword frequency (built-in sample text)' : '关键词词频 Top 排行（内置示例文本）';
+    }
+    if (!list.length) { host.innerHTML = ''; return; }
+    var labels = [], data = [];
+    for (var i = 0; i < list.length; i++) {
+      labels.push(list[i].word);
+      data.push(list[i].count);
+    }
+    TBKit.chart.bar('#kwChart', {
+      title: title,
+      labels: labels,
+      series: [{ name: en ? 'Frequency' : '词频', data: data }]
+    });
+  }
+
+  /* ===== 加载示例 ===== */
+  window.loadSample = function() {
+    document.getElementById('inputText').value = SAMPLE_TEXT;
     ToolBox.showToast(i18nText('toast.msg182'));
   };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { try { __kwChart(); } catch (e) {} });
+  } else {
+    try { __kwChart(); } catch (e) {}
+  }
+  window.addEventListener('toolbox:langchange', function() { try { __kwChart(); } catch (e) {} });
 
 })();
 </script>

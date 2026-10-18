@@ -222,6 +222,7 @@ s.parentNode.insertBefore(el, s);
       <div class="diff-summary-item mod"><span class="count" id="countMod">0</span><span>修改</span></div>
       <div class="diff-summary-item same"><span class="count" id="countSame">0</span><span>相同</span></div>
     </div>
+    <div id="jdChart" style="margin-top:12px;"></div>
   </div>
 
   <div class="card">
@@ -476,6 +477,25 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 }
 
+function __jdChart(addCount, delCount, modCount, sameCount) {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  const host = document.getElementById('jdChart');
+  if (!host) { return; }
+  const en = TBKit.util.isEn();
+  const items = [
+    { name: en ? 'Added' : '新增', value: addCount || 0 },
+    { name: en ? 'Removed' : '删除', value: delCount || 0 },
+    { name: en ? 'Modified' : '修改', value: modCount || 0 },
+    { name: en ? 'Unchanged' : '相同', value: sameCount || 0 }
+  ];
+  const total = items.reduce((s, i) => s + i.value, 0);
+  if (total <= 0) { host.innerHTML = ''; return; }
+  TBKit.chart.pie('#jdChart', {
+    title: en ? 'Difference breakdown by operation' : '差异构成（新增/删除/修改/相同）',
+    items: items
+  });
+}
+
 function doDiff() {
   const leftVal = document.getElementById('left').value;
   const rightVal = document.getElementById('right').value;
@@ -531,6 +551,8 @@ function doDiff() {
     
     document.getElementById('jsonDiff').textContent = JSON.stringify(diffs, null, 2);
     
+    try { __jdChart(addCount, delCount, modCount, sameCount); } catch(e) {}
+
     ToolBox.showToast(`对比完成：${diffs.length} 处差异`);
     
   } catch(e) {
@@ -591,6 +613,20 @@ function loadSample() {
 }
 
 loadSample();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){
+  var a=+(document.getElementById('countAdd').textContent||0),
+      d=+(document.getElementById('countDel').textContent||0),
+      m=+(document.getElementById('countMod').textContent||0),
+      s=+(document.getElementById('countSame').textContent||0);
+  try{__jdChart(a,d,m,s);}catch(e){}
+});}
+window.addEventListener('toolbox:langchange',function(){
+  var a=+(document.getElementById('countAdd').textContent||0),
+      d=+(document.getElementById('countDel').textContent||0),
+      m=+(document.getElementById('countMod').textContent||0),
+      s=+(document.getElementById('countSame').textContent||0);
+  try{__jdChart(a,d,m,s);}catch(e){}
+});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

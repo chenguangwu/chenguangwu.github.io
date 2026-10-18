@@ -125,6 +125,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div id="rows"></div>
     <div class="result-box" id="res"></div>
+    <div id="dtChart" style="margin-top:12px;"></div>
     <table id="dtmHidden" style="display:none;"><thead><tr><th>Meeting</th><th>Date or Weekday</th><th>Time</th><th>Status</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -160,6 +161,52 @@ function addRow(data){
   detect();
 }
 function toMin(t){ var p=t.split(':'); return (+p[0])*60+(+p[1]||0); }
+function __dtCollect(){
+  var rows=Array.from(document.querySelectorAll('#rows .input-row'));
+  var evs=[];
+  rows.forEach(function(r){
+    var inputs=r.querySelectorAll('input,select');
+    var name=inputs[0].value.trim()||'未命名会议';
+    var mode=inputs[1].value;
+    var date=inputs[2].value;
+    var wk=inputs[1].selectedIndex-1;
+    var st=inputs[3].value, en=inputs[4].value;
+    if(!st||!en) return;
+    var s=toMin(st), e=toMin(en);
+    if(e<=s) return;
+    evs.push({name:name, key: mode==='date'?('d:'+date):('w:'+wk), s:s, e:e, st:st, en:en});
+  });
+  return evs;
+}
+function __dtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('dtChart'); if(!host) return;
+  var evs=__dtCollect();
+  if(!evs.length){ host.innerHTML=''; return; }
+  var en=TBKit.util.isEn();
+  var labels=[], dur=[], over=[];
+  evs.forEach(function(a){
+    labels.push(a.name);
+    dur.push(a.e-a.s);
+    var o=0;
+    evs.forEach(function(b){
+      if(a===b) return;
+      if(a.key===b.key){
+        var ov=Math.min(a.e,b.e)-Math.max(a.s,b.s);
+        if(ov>0) o+=ov;
+      }
+    });
+    over.push(o);
+  });
+  TBKit.chart.bar('#dtChart',{
+    title: en?'Duration and overlapping minutes per meeting':'各会议时长与重叠时长（分钟）',
+    labels: labels,
+    series:[
+      {name: en?'Duration':'时长', data: dur},
+      {name: en?'Overlap':'重叠', data: over}
+    ]
+  });
+}
 function detect(){
   var rows=Array.from(document.querySelectorAll('#rows .input-row'));
   var evs=[];
@@ -200,6 +247,7 @@ function detect(){
     html+='</tbody></table>';
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h1;
+  try { __dtChart(); } catch(e){}
 }
 function __dtmExport(){
   if(typeof TBKit==='undefined')return;
@@ -238,6 +286,8 @@ function clearAll(){
 addRow({name:'部门周例会',wk:0,start:'09:00',end:'10:00'});
 addRow({name:'项目评审',wk:0,start:'09:30',end:'11:00'});
 addRow({name:'客户拜访',wk:2,start:'14:00',end:'16:00'});
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__dtChart();}catch(e){}});}else{try{__dtChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__dtChart();}catch(e){}});
 </script>
 
 <!-- SEO 介绍区块 -->

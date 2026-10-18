@@ -194,6 +194,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="resultArea"></div>
+    <div id="eqChart" style="margin-top:12px;"></div>
     <div id="verifyArea"></div>
     <div id="detailArea"></div>
     <table id="ebHidden" style="display:none;"><thead><tr><th>Element</th><th>Reactant Total</th><th>Product Total</th><th>Balanced</th></tr></thead><tbody></tbody></table>
@@ -625,6 +626,39 @@ function onInput(){
   inputTimer=setTimeout(balance,350);
 }
 
+/* ---------- 原子守恒对照图 ---------- */
+var lastBalanceRes=null;
+function __eqChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart)return;
+  var host=document.getElementById('eqChart'); if(!host)return;
+  var res=lastBalanceRes;
+  if(!res){
+    // 降级：用内置示例方程式 H2 + O2 = H2O 展示守恒对照
+    try{ res=balanceEquation('H2 + O2 = H2O'); }catch(e){ res=null; }
+  }
+  if(!res||res.error||!res.elements||!res.elements.length){host.innerHTML='';return;}
+  var en=TBKit.util.isEn();
+  var labels=[],re=[],pr=[];
+  res.elements.forEach(function(e){
+    var rt=0,pt=0;
+    for(var k=0;k<res.species.length;k++){
+      var cnt=res.comps[k][e]||0;
+      if(k<res.nR)rt+=res.coeffs[k]*cnt;else pt+=res.coeffs[k]*cnt;
+    }
+    labels.push(e);
+    re.push(rt);
+    pr.push(pt);
+  });
+  TBKit.chart.bar('#eqChart',{
+    title: en?'Atom count per element: reactants vs products':'各元素反应前后原子数对照',
+    labels: labels,
+    series:[
+      {name: en?'Reactants':'反应物', data: re},
+      {name: en?'Products':'生成物', data: pr}
+    ]
+  });
+}
+
 function balance(){
   var eqStr=document.getElementById('eqInput').value.trim();
   var resultArea=document.getElementById('resultArea');
@@ -638,10 +672,14 @@ function balance(){
   }
   var res=balanceEquation(eqStr);
   if(res.error){
+    lastBalanceRes=null;
+    var __eqc=document.getElementById('eqChart'); if(__eqc)__eqc.innerHTML='';
     const __h5='<div class="eq-error">⚠️ '+res.error+'</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){resultArea.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}resultArea.innerHTML=__h5;
     return;
   }
+  lastBalanceRes=res;
   var coeffs=res.coeffs,species=res.species,nR=res.nR,elements=res.elements,comps=res.comps;
+  try{ __eqChart(); }catch(e){}
   var disp=buildDisplayEquation(species,coeffs,nR);
   var plain=buildPlainEquation(species,coeffs,nR);
   resultArea.innerHTML=
@@ -703,6 +741,8 @@ document.addEventListener('DOMContentLoaded',function(){
 initExamples();
 initElements();
 balance();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__eqChart();}catch(e){}});}else{try{__eqChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__eqChart();}catch(e){}});
 </script>
 
 <!-- SEO 介绍区块 -->
