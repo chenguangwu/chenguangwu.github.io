@@ -476,20 +476,29 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('projName').value=state.projName;
   if(!state.phases.length)loadTemplate(); else {compute();render();}
 
+  var __decTplEn={ '拆除':'Demolition','水电':'Plumbing & wiring','泥瓦':'Masonry','木工':'Carpentry','油漆':'Painting','安装':'Installation','保洁':'Cleaning' };
   function __decExtras(){
-    if(typeof TBKit==='undefined') return;
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
     var host=document.getElementById('schedChart'); if(!host) return;
     if(!state.phases.length){host.innerHTML='';return;}
+    var en=TBKit.util.isEn();
     var labels=[],data=[];
-    state.phases.forEach(function(p){
-      labels.push(p.name||'工序');
+    state.phases.forEach(function(p,i){
+      var nm=p.name||'';
+      labels.push(en?(__decTplEn[nm]||('Phase '+(i+1))):(nm||'工序'));
       data.push(+p.dur||0);
     });
-    TBKit.chart.bar('#schedChart',{labels:labels,series:[{name:'工期(天)',data:data}],height:260,title:'各工序工期（天）'});
+    TBKit.chart.bar('#schedChart',{
+      labels:labels,
+      series:[{name:en?'Duration (days)':'工期(天)',data:data}],
+      height:260,
+      title:en?'Duration of each construction phase (days)':'各工序工期（天）'
+    });
   }
   var __decRender=render;
   render=function(){__decRender();__decExtras();};
   __decExtras();
+  window.addEventListener('toolbox:langchange',function(){try{__decExtras();}catch(e){}});
 
   document.querySelectorAll('.tool-intro-header').forEach(function(h){
     h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});

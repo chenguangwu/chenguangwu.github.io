@@ -173,6 +173,7 @@ s.parentNode.insertBefore(el, s);
   </div>
 
   <div class="stat-grid" id="statGrid"></div>
+  <div id="medChart" style="margin-top:12px;"></div>
 
   <div class="card">
     <div class="tabs">
@@ -470,9 +471,42 @@ function renderStats(){
     '<div class="stat-card"><div class="val" style="color:#EF4444;">'+expired+'</div><div class="lbl">已过期</div></div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h4;
 }
 
+function __medChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('medChart'); if(!host) return;
+  var en=TBKit.util.isEn();
+  if(meds && meds.length){
+    var sorted=meds.slice().sort(function(a,b){ return getDaysLeft(a.expiry)-getDaysLeft(b.expiry); });
+    var labels=[],data=[];
+    sorted.forEach(function(m,i){
+      var d=getDaysLeft(m.expiry);
+      if(!isFinite(d)) d=0;
+      labels.push(en?('Med '+(i+1)):(m.name||'药品'));
+      data.push(d);
+    });
+    TBKit.chart.bar('#medChart',{
+      title:en?'Remaining shelf life by medicine (days, ascending)':'各药品剩余有效期天数（升序）',
+      labels:labels,
+      series:[{name:en?'Days left':'剩余天数',data:data}]
+    });
+    return;
+  }
+  // 无记录时降级展示各预警等级在一年内的天数窗口（阈值 30/90/180 天）
+  var lv=['critical','warning','soon','safe'];
+  var win=[30,60,90,185];
+  var zh={critical:'紧急(≤30天)',warning:'注意(31-90天)',soon:'关注(91-180天)',safe:'安全(>180天)'};
+  var enm={critical:'Critical (<=30d)',warning:'Caution (31-90d)',soon:'Watch (91-180d)',safe:'Safe (>180d)'};
+  var items=lv.map(function(k,i){ return {name:en?enm[k]:zh[k],value:win[i]}; });
+  TBKit.chart.pie('#medChart',{
+    title:en?'Share of a 365-day horizon by alert tier':'各预警等级在一年内的天数窗口占比',
+    items:items
+  });
+}
+
 function renderAll(){
   renderList();
   renderStats();
+  try { __medChart(); } catch(e) {}
 }
 
 function exportData(){
@@ -491,6 +525,7 @@ function exportData(){
 document.addEventListener('DOMContentLoaded', function(){
   loadData();
   renderAll();
+  window.addEventListener('toolbox:langchange', function(){ try{ __medChart(); } catch(e){} });
   var headers = document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
     h.addEventListener('click', function(){ this.parentElement.classList.toggle('open'); });

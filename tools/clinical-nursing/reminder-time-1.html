@@ -231,6 +231,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="tab-content" id="tab-stats">
       <div class="stat-grid" id="statGrid"></div>
+      <div id="coldChart" style="margin-top:12px;"></div>
     </div>
 
     <div class="tab-content" id="tab-guide">
@@ -319,6 +320,7 @@ function init(){
   renderHistory();
   renderStats();
   updateTimerDisplay();
+  try { __coldChart(); } catch(e) {}
 }
 
 function selectArea(el){
@@ -633,6 +635,36 @@ function clearAll(){
   ToolBox.showToast(i18nText('toast.cleared'));
 }
 
+function __coldChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('coldChart'); if(!host) return;
+  var en=TBKit.util.isEn();
+  if(sessions && sessions.length){
+    var count={};
+    sessions.forEach(function(s){ var a=s.area||''; count[a]=(count[a]||0)+1; });
+    var keys=Object.keys(count).sort(function(a,b){ return count[b]-count[a]; });
+    var labels=[],data=[];
+    keys.forEach(function(a,i){
+      labels.push(en?('Area '+(i+1)):a);
+      data.push(count[a]);
+    });
+    TBKit.chart.bar('#coldChart',{
+      title:en?'Session count by body area':'各部位冷敷次数分布',
+      labels:labels,
+      series:[{name:en?'Sessions':'次数',data:data}]
+    });
+    return;
+  }
+  // 无记录时降级展示标准冷敷节奏（分钟）：上限20 / 建议15 / 检查间隔5 / 两次间隔休息30
+  var zhL=['单次冷敷上限','建议单次时长','皮肤检查间隔','两次间隔休息'];
+  var enL=['Max single session','Recommended length','Skin check interval','Rest between sessions'];
+  TBKit.chart.bar('#coldChart',{
+    title:en?'Standard cold-compress cadence (minutes)':'标准冷敷节奏对照（分钟）',
+    labels:en?enL:zhL,
+    series:[{name:en?'minutes':'分钟',data:[20,15,5,30]}]
+  });
+}
+
 function renderStats(){
   var grid = document.getElementById('statGrid');
   if(sessions.length === 0){
@@ -662,6 +694,7 @@ function renderStats(){
   });
   distHtml += '</div>';
   grid.innerHTML += distHtml;
+  try { __coldChart(); } catch(e) {}
 }
 
 function statCard(val, lbl){
@@ -685,6 +718,7 @@ window.addEventListener('beforeunload', function(){
 });
 
 init();
+window.addEventListener('toolbox:langchange',function(){try{__coldChart();}catch(e){}});
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

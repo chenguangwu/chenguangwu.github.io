@@ -568,20 +568,40 @@ function exportData() {
 }
 
 function __ecoExtras(){
-  if(typeof TBKit==='undefined') return;
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var host=document.getElementById('ecoChart'); if(!host) return;
-  if(!customers||customers.length===0){host.innerHTML='';return;}
+  var en=TBKit.util.isEn();
+  if(!customers||customers.length===0){
+    var thr=90;
+    try{ thr=getChurnThreshold(); }catch(e){ thr=90; }
+    if(!isFinite(thr)||thr<=0) thr=90;
+    TBKit.chart.bar('#ecoChart',{
+      title:en?'Repurchase cycle thresholds (days)':'复购周期判定阈值对照（天）',
+      labels:en
+        ? ['High-frequency (<=30d)','Churn alert (>'+thr+'d)','Regular watch (180d)','Annual watch (365d)']
+        : ['高频复购(≤30天)','流失预警(>'+thr+'天)','常规观察(180天)','年度观察(365天)'],
+      series:[{name:en?'days':'天',data:[30,thr,180,365]}],
+      height:260
+    });
+    return;
+  }
   var labels=[],data=[];
-  customers.forEach(function(c){
+  customers.forEach(function(c,i){
     var a=analyzeCust(c);
-    labels.push(c.name||'客户');
+    labels.push(en?('Customer '+(i+1)):(c.name||'客户'));
     var cyc=(a&&a.avgCycle)?+a.avgCycle:0; if(!isFinite(cyc))cyc=0;
     data.push(Math.round(cyc));
   });
-  TBKit.chart.bar('#ecoChart',{labels:labels,series:[{name:'平均复购周期(天)',data:data}],height:260,title:'各客户平均复购周期对比'});
+  TBKit.chart.bar('#ecoChart',{
+    labels:labels,
+    series:[{name:en?'Avg repurchase cycle (days)':'平均复购周期(天)',data:data}],
+    height:260,
+    title:en?'Average repurchase cycle by customer':'各客户平均复购周期对比'
+  });
 }
 var __ecoRenderSummary=renderSummary;
 renderSummary=function(){__ecoRenderSummary();__ecoExtras();};
+window.addEventListener('toolbox:langchange',function(){try{__ecoExtras();}catch(e){}});
 
 renderList();
 renderSummary();
