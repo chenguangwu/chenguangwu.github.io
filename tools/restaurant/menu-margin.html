@@ -152,6 +152,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>📈 毛利率分析</h2>
     <div id="result"></div>
+    <div id="mmChart" style="margin-top:12px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -226,6 +227,38 @@ function addDish(){dishes.push({name:'新菜品',cost:0,price:0});renderDishes()
 function delDish(idx){dishes.splice(idx,1);renderDishes();calc();}
 function setSort(key,btn){sortKey=key;document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');calc();}
 
+function __mmChart(){
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var en = TBKit.util.isEn();
+  var analyzed = dishes.map(function(d){
+    var cost = +d.cost || 0, price = +d.price || 0;
+    return { name: d.name, cost: cost, price: price, profit: price - cost, margin: price > 0 ? ((price - cost) / price * 100) : 0 };
+  });
+  if (!analyzed.length) { return; }
+  var sorters = {
+    margin: function(a,b){ return b.margin - a.margin; },
+    profit: function(a,b){ return b.profit - a.profit; },
+    price: function(a,b){ return b.price - a.price; },
+    cost: function(a,b){ return a.cost - b.cost; }
+  };
+  var cmp = sorters[sortKey] || sorters.margin;
+  analyzed.sort(cmp);
+  var labels = [], prof = [], marg = [];
+  analyzed.forEach(function(d, i){
+    labels.push(en ? ('Dish ' + (i + 1)) : d.name);
+    prof.push(+d.profit.toFixed(2));
+    marg.push(+d.margin.toFixed(1));
+  });
+  TBKit.chart.bar('#mmChart', {
+    title: en ? 'Profit and margin rate by dish (sorted)' : '各菜品毛利与毛利率对比（按当前排序）',
+    labels: labels,
+    series: [
+      { name: en ? 'Profit (CNY)' : '毛利(元)', data: prof },
+      { name: en ? 'Margin (%)' : '毛利率(%)', data: marg }
+    ]
+  });
+}
+
 function calc(){
   const analyzed=dishes.map(d=>{
     const cost=+d.cost||0;
@@ -296,6 +329,7 @@ function calc(){
   </div>`;
 
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  try { __mmChart(); } catch (e) {}
 }
 
 renderDishes();
@@ -317,6 +351,8 @@ function __mmExport() {
 }
 
 calc();
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function(){ try{__mmChart();}catch(e){} }); } else { try{__mmChart();}catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{__mmChart();}catch(e){} });
 </script>
 
 <!-- SEO 介绍区块 -->

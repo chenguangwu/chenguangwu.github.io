@@ -141,6 +141,7 @@ s.parentNode.insertBefore(el, s);
       <h3 style="font-size:14px;margin:16px 0 8px;">体细胞数趋势</h3>
       <div class="trend-chart scc-bar" id="sccChart"></div>
     </div>
+    <div id="sccTrendChart" style="margin-top:16px;"></div>
 <table id="sccHidden" style="display:none">
 <thead><tr><th>Field</th><th>Value</th></tr></thead>
 <tbody></tbody>
@@ -329,6 +330,27 @@ function analyze(){
   renderChart('yieldChart', days, yields, 'kg', '#FF6B35');
   renderChart('sccChart', days, sccs, '万', '#EF4444');
   document.getElementById('chartArea').style.display = 'block';
+  try { __sccTrendChart(); } catch (e) {}
+}
+
+function __sccTrendChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  if(!records||records.length<2) return;
+  var en=TBKit.util.isEn();
+  var labels=[],ys=[],ss=[];
+  records.forEach(function(r){
+    labels.push((en?'D':'第')+r.day);
+    ys.push(+(+r.yield||0).toFixed(2));
+    ss.push(+(+r.scc||0).toFixed(0));
+  });
+  TBKit.chart.line('#sccTrendChart',{
+    title:en?'Milk yield vs SCC trend (divergence = mastitis risk)':'产奶量与体细胞数趋势对比（背离提示乳房炎风险）',
+    labels:labels,
+    series:[
+      {name:en?'Yield (kg)':'产奶量(kg)',data:ys},
+      {name:en?'SCC (10k/mL)':'体细胞数(万/ml)',data:ss}
+    ]
+  });
 }
 
 function renderChart(elId, days, values, unit, color){
@@ -418,6 +440,8 @@ function __sccExport(){
 }
 
 renderRecords();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__sccTrendChart();}catch(e){}});}else{try{__sccTrendChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__sccTrendChart();}catch(e){}});
 </script>
 
 <!-- SEO 介绍区块 -->

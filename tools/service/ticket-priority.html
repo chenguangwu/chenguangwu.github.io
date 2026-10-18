@@ -315,19 +315,28 @@ function render(){
 }
 
 function __tpExtras(){
-  if(typeof TBKit==='undefined') return;
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var host=document.getElementById('tpChart'); if(!host) return;
   if(!tickets||tickets.length===0){host.innerHTML='';return;}
+  var en=TBKit.util.isEn();
+  var scored=tickets.map(function(t){return {name:t.name,score:calcScore(t)};})
+    .sort(function(a,b){return b.score-a.score;});
   var labels=[],data=[];
-  tickets.forEach(function(t){
-    labels.push(t.name||'工单');
-    data.push(calcScore(t));
+  scored.forEach(function(t,i){
+    labels.push(en?('Ticket '+(i+1)):(t.name||'工单'));
+    data.push(t.score);
   });
-  TBKit.chart.bar('#tpChart',{labels:labels,series:[{name:'优先级得分',data:data}],height:260,title:'各工单优先级得分（紧急度×重要度）'});
+  TBKit.chart.bar('#tpChart',{
+    labels:labels,
+    series:[{name:en?'Priority score':'优先级得分',data:data}],
+    height:260,
+    title:en?'Priority score by ticket (urgency x importance)':'各工单优先级得分（紧急度×重要度）'
+  });
 }
 var __tpRender=render;
 render=function(){__tpRender();__tpExtras();};
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__tpExtras();});}else{__tpExtras();}
+window.addEventListener('toolbox:langchange',function(){try{__tpExtras();}catch(e){}});
 renderList();
 render();
 </script>

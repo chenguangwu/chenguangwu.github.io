@@ -192,6 +192,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <div id="convGrid" class="conv-result"></div>
+<div id="torqueChart" style="margin-top:14px;"></div>
 
 <div class="toolbar" style="margin-top:16px;">
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
@@ -363,6 +364,27 @@ function init(){
   convert();
 }
 
+function __torqueChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var sel=document.getElementById('from');
+  if(!sel||!units[sel.value]) return;
+  var en=TBKit.util.isEn();
+  var f=units[sel.value].f;
+  if(!isFinite(f)||f<=0) return;
+  var labels=[],data=[];
+  for(var i=1;i<=20;i++){
+    labels.push(en?String(i):(i+' N·m'));
+    var c=i/f;
+    if(!isFinite(c)) return;
+    data.push(+c.toFixed(4));
+  }
+  TBKit.chart.line('#torqueChart',{
+    title:en?'1-20 N·m converted to the selected unit':'1-20 N·m 换算为当前所选单位',
+    labels:labels,
+    series:[{name:en?sel.value:units[sel.value].n,data:data}]
+  });
+}
+
 function convert(){
   const v=parseFloat(document.getElementById('val').value)||0;
   const from=document.getElementById('from').value;
@@ -379,6 +401,7 @@ function convert(){
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
   lastResult={value:v,from,baseNm};
+  try { __torqueChart(); } catch (e) {}
 }
 
 function saveHistory(){
@@ -448,6 +471,8 @@ function __torqueExport(){
 }
 
 init();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__torqueChart();}catch(e){}});}else{try{__torqueChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__torqueChart();}catch(e){}});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
