@@ -30,6 +30,7 @@ window.__TI18N_EN = {
 '导出正时更换周期 CSV':'Export Timing Belt Replacement CSV',
 '导出色温 CSV':'Export Color Temperature CSV',
 '导出节拍细分 CSV':'Export Beat Subdivision CSV',
+'导出阴影配置 CSV':'Export Shadow Config CSV',
 '导出物理常数 CSV':'Export Physics Constants CSV',
 '导出幻灯片时间 CSV':'Export Presentation Slides CSV',
 '导出色相排列 CSV':'Export Hue Arrangement CSV',
