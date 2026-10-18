@@ -155,6 +155,16 @@ s.parentNode.insertBefore(el, s);
   <table id="cbHidden" style="display:none"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody></tbody></table>
 
   <div class="card">
+    <h2>📋 全车型横向对比（按当前里程计算）</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">下表按上方输入的当前里程、上次更换里程与年均里程，一次性算出所有车型的保养状态，便于横向比较。</p>
+    <div id="cbCompare"></div>
+    <div id="cbCompareChart"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__cbExportCompare()">⬇️ 导出对比表 CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>📚 皮带 vs 链条 对比</h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="cmp-card belt">
@@ -333,6 +343,59 @@ function calc(){
   html+=`</div>`;
   const __g2=html;document.getElementById('resultArea').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   window._lastCalc={modelId:m.id,modelName:m.name,type:m.type,interval:m.interval,curKm,lastKm,yearKm};
+  __cbRenderCompare();
+}
+
+function __cbRenderCompare(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var box=document.getElementById('cbCompare');
+  if(!box)return;
+  var curKm=Math.max(0,+document.getElementById('curKm').value||0);
+  var lastKm=Math.max(0,+document.getElementById('lastKm').value||0);
+  var yearKm=Math.max(1,+document.getElementById('yearKm').value||15000);
+  var dailyKm=yearKm/365;
+  var selId=document.getElementById('modelSel').value;
+  var TYPE_EN={belt:'Timing belt',chain:'Timing chain'};
+  var rows=[];
+  var beltRemain=[];
+  MODELS.forEach(function(m){
+    var typeName=en?TYPE_EN[m.type]:TYPE_NAMES[m.type];
+    var intervalTxt=m.interval>0?ToolBox.formatNumber(m.interval)+' km':(en?'Maintenance-free':'免维护');
+    var nextTxt='—',remainTxt='—',daysTxt='—',statusTxt;
+    if(m.interval>0){
+      var nextDue=lastKm+m.interval;
+      var remain=Math.max(0,nextDue-curKm);
+      nextTxt=ToolBox.formatNumber(nextDue)+' km';
+      remainTxt=ToolBox.formatNumber(remain)+' km';
+      daysTxt=remain>0?Math.round(remain/dailyKm)+(en?' days':' 天'):'0';
+      if(remain<=0)statusTxt=en?'Overdue':'已超期';
+      else if(remain<=m.interval*0.1)statusTxt=en?'Due soon':'即将到期';
+      else statusTxt=en?'OK':'正常';
+      beltRemain.push({name:m.name,id:m.id,remain:remain,interval:m.interval});
+    }else{
+      statusTxt=en?'Maintenance-free':'免维护';
+    }
+    var mark=(m.id===selId)?(en?' ◀ selected':' ◀ 当前选择'):'';
+    rows.push([m.name+mark, typeName, intervalTxt, nextTxt, remainTxt, daysTxt, statusTxt]);
+  });
+  TBKit.matrix.table('#cbCompare',{
+    head: en?['Model','Type','Interval','Next due','Remaining','Days left','Status']:['车型','类型','建议间隔','下次更换里程','剩余里程','预计剩余天数','状态'],
+    rows: rows
+  });
+  // 皮带车型剩余里程对比图（链条免维护无间隔，不纳入）
+  if(beltRemain.length){
+    beltRemain.sort(function(a,b){return b.remain-a.remain;});
+    TBKit.chart.bar('#cbCompareChart',{
+      title: en?'Remaining km by belt model (current inputs)':'各皮带车型剩余里程（按当前输入）',
+      labels: beltRemain.map(function(b){return b.name.length>10?b.name.slice(0,10)+'…':b.name;}),
+      series: [{ name: en?'Remaining (km)':'剩余里程 (km)', data: beltRemain.map(function(b){return b.remain;}) }]
+    });
+  }
+}
+function __cbExportCompare(){
+  if(typeof TBKit==='undefined')return;
+  try{ TBKit.util.exportTable('#cbCompare','cycle-belt-compare.csv'); }catch(e){}
 }
 
 function saveRecord(){

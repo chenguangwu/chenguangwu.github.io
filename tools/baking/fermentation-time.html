@@ -193,6 +193,20 @@ s.parentNode.insertBefore(el, s);
     <div class="info-box">💡 发酵速度随温度变化遵循 Q10 系数（约2-3），即温度每升高10°C，发酵速度约提高2-3倍。基准温度设为27°C。</div>
   </div>
 
+  <div class="card">
+    <h2>📈 当前配方温度扫描与阶段参考</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">以下按当前输入的基准时间、湿度与面团类型计算：温度每变化 2°C 的预计发酵时间，以及常用温度场景规划。</p>
+    <div id="fermChart"></div>
+    <h3 style="margin:16px 0 8px;">🌡️ 常用温度场景规划</h3>
+    <div id="fermPlan"></div>
+    <h3 style="margin:16px 0 8px;">🧁 发酵阶段参考</h3>
+    <div id="fermStage"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__fermExportPlan()">⬇️ 导出场景规划 CSV</button>
+      <button type="button" class="btn" onclick="window.__fermExportStage()">⬇️ 导出阶段参考 CSV</button>
+    </div>
+  </div>
+
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -270,6 +284,7 @@ function calc(){
     document.getElementById('fermCoef').textContent='--';
     document.getElementById('rangeDisplay').innerHTML='';
     document.getElementById('fermTip').innerHTML='';
+    __fermRenderExtras();
     return;
   }
   var refTemp=27;
@@ -305,6 +320,7 @@ function calc(){
     '<div class="item"><div class="v">'+fmtNum(maxTime)+'</div><div class="l">最长 (分钟)</div></div>';document.getElementById('rangeDisplay').innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
   var tip=getTip(temp,hum,type,actualTime);
   const __g10=tip;document.getElementById('fermTip').innerHTML=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
+  __fermRenderExtras();
 }
 
 function getTip(temp,hum,type,time){
@@ -389,7 +405,90 @@ function copyResult(){
   ToolBox.copyText('基准'+baseTime+'分钟，实际'+temp+'°C/湿度'+hum+'% → 修正发酵时间 '+timeEl);
 }
 
+function __fermRenderExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var chartBox=document.getElementById('fermChart');
+  var planBox=document.getElementById('fermPlan');
+  var stageBox=document.getElementById('fermStage');
+  var baseTime=parseFloat(document.getElementById('baseTime').value);
+  var temp=parseFloat(document.getElementById('actualTemp').value);
+  var hum=parseFloat(document.getElementById('actualHumidity').value);
+  var type=document.getElementById('fermType').value;
+  if(!baseTime||!temp||baseTime<=0){
+    if(chartBox)chartBox.innerHTML='';
+    if(planBox)planBox.innerHTML='';
+    if(stageBox)stageBox.innerHTML='';
+    return;
+  }
+  var refTemp=27;
+  var q10=type==='sourdough'?2.2:(type==='cold'?2.5:2.0);
+  var humFactor=1;
+  if(!isNaN(hum)){
+    humFactor=1+(hum-75)*0.008;
+    humFactor=Math.max(0.7,Math.min(1.3,humFactor));
+  }
+  function timeAt(t){
+    var tf=Math.pow(q10,(t-refTemp)/10);
+    return baseTime/(tf*humFactor);
+  }
+  // 温度扫描曲线：10–40°C 每 2°C
+  var scan=[];
+  for(var t=10;t<=40;t+=2)scan.push(t);
+  if(chartBox){
+    TBKit.chart.line('#fermChart',{
+      title: en?'Fermentation time vs temperature (current humidity & dough type)':'发酵时间随温度变化（当前湿度与面团类型）',
+      labels: scan.map(function(t){return t+'°C';}),
+      series: [{ name: en?'Time (min)':'时间（分钟）', data: scan.map(function(t){return +timeAt(t).toFixed(1);}) }]
+    });
+  }
+  // 常用温度场景规划表
+  var scenarios=[
+    [4,'冷藏 4°C','Cold 4°C',en?'Slow cold retard; rich flavour, overnight favourite':'低温慢发酵，风味更足，过夜首选'],
+    [12,'低温 12°C','Cool 12°C',en?'Slow proof; plan half a day':'偏冷慢发酵，需预留半天'],
+    [18,'偏冷 18°C','Cool 18°C',en?'Winter room temperature; allow extra time':'冬季室温，时间需放宽'],
+    [25,'室温 25°C','Room 25°C',en?'Common kitchen condition; close to reference':'常见厨房环境，接近基准'],
+    [27,'理想 27°C','Ideal 27°C',en?'Reference temperature; fastest practical pace':'基准温度，常规节奏'],
+    [30,'温暖 30°C','Warm 30°C',en?'Watch surface drying; proof faster':'发酵加快，注意表面防风干'],
+    [35,'偏高 35°C','High 35°C',en?'Yeast activity drops; risk of over-proofing':'酵母活性下降，易过发酵'],
+  ];
+  var planRows=scenarios.map(function(s){
+    var tf=Math.pow(q10,(s[0]-refTemp)/10);
+    var tm=timeAt(s[0]);
+    return [ en?s[2]:s[1], s[0]+'°C', (tf*humFactor).toFixed(2)+'×', tm.toFixed(1), (tm/60).toFixed(1), en?s[4]:s[3] ];
+  });
+  if(planBox){
+    TBKit.matrix.table('#fermPlan',{
+      head: en?['Scenario','Temp','Factor','Time (min)','Time (h)','Tip']:['场景','温度','修正系数','预计时间（分钟）','预计时间（小时）','建议'],
+      rows: planRows
+    });
+  }
+  // 发酵阶段参考表（静态知识）
+  var stages=[
+    [en?'First proof':'一发（基础发酵）','26–28°C',en?'60–90 min':'60–90 分钟',en?'Volume doubles; finger poke springs back slowly':'体积增至 2 倍，戳洞缓慢回弹'],
+    [en?'Final proof':'二发（最后醒发）','32–38°C',en?'30–45 min':'30–45 分钟',en?'Light press leaves slow indent':'轻按表面留下缓慢回弹的凹痕'],
+    [en?'Cold retard':'冷藏过夜发酵','2–6°C',en?'8–16 h':'8–16 小时',en?'Fuller flavour; temper 30 min before baking':'风味更足，烤前回温 30 分钟'],
+    [en?'Sponge (中种)':'中种法预发酵','28°C',en?'2–4 h':'2–4 小时',en?'Large bubbles on surface':'表面出现明显大气泡'],
+    [en?'Freeze & thaw':'冷冻保存与解冻','−18°C',en?'2 weeks–3 months':'2 周–3 个月',en?'Portion & blast-freeze; proof fully after thawing':'分切速冻，解冻后重新发酵到位'],
+  ];
+  if(stageBox){
+    TBKit.matrix.table('#fermStage',{
+      head: en?['Stage','Reference temp','Reference time','Doneness check']:['阶段','参考温度','参考时间','判断标准'],
+      rows: stages
+    });
+  }
+}
+function __fermExportPlan(){
+  if(typeof TBKit==='undefined')return;
+  try{ TBKit.util.exportTable('#fermPlan','fermentation-scenarios.csv'); }catch(e){}
+}
+function __fermExportStage(){
+  if(typeof TBKit==='undefined')return;
+  try{ TBKit.util.exportTable('#fermStage','fermentation-stages.csv'); }catch(e){}
+}
+
 calc();
+try{ if(typeof __fermRenderExtras==='function') __fermRenderExtras(); }catch(e){}
 </script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
