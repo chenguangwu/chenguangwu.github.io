@@ -120,6 +120,27 @@ s.parentNode.insertBefore(el, s);
 </div>
 
     <input id="file" type="file" accept="image/*" onchange="openFile(event)">
+
+    <!-- 切图设置（功能增强） -->
+    <div class="panel" style="margin:12px 0;">
+      <h3 style="font-size:14px;margin:0 0 8px;">✂️ 切图设置</h3>
+      <div class="toolbar" style="flex-wrap:wrap;gap:8px;align-items:center;">
+        <span style="font-size:13px;color:var(--text-muted);">布局预设：</span>
+        <button type="button" class="btn" onclick="__ngcPreset('nine')">🔲 九宫格 3×3</button>
+        <button type="button" class="btn" onclick="__ngcPreset('four')">🔲 四宫格 2×2</button>
+        <button type="button" class="btn" onclick="__ngcPreset('h6')">▭ 横六宫 3×2</button>
+        <button type="button" class="btn" onclick="__ngcPreset('v6')">▭ 竖六宫 2×3</button>
+      </div>
+      <div class="toolbar" style="margin-top:8px;gap:10px;align-items:center;">
+        <span style="font-size:13px;color:var(--text-muted);">自定义：</span>
+        <label>行数</label>
+        <input type="number" id="ngcRows" min="1" max="6" value="3" style="width:64px;" onchange="__ngcSetGrid()">
+        <label>列数</label>
+        <input type="number" id="ngcCols" min="1" max="6" value="3" style="width:64px;" onchange="__ngcSetGrid()">
+      </div>
+      <div id="ngcInfo" style="font-size:12px;color:var(--text-muted);margin-top:8px;"></div>
+    </div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="splitAndRender()">生成切片</button>
       <button class="btn" onclick="downloadAll()">全部下载</button>
@@ -163,6 +184,57 @@ s.parentNode.insertBefore(el, s);
 <script>
 let image = null;
 let blobs = [];
+let ngcRows = 3, ngcCols = 3;
+
+// ---- 切图增强：预设 / 自定义行列 / 切割信息 / EN ----
+function __ngcEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function __ngcT(zh,en){ return __ngcEn()?en:zh; }
+function __ngcClamp(v){ v = parseInt(v) || 1; return Math.max(1, Math.min(6, v)); }
+
+window.__ngcSetGrid = function(){
+  ngcRows = __ngcClamp(document.getElementById('ngcRows').value);
+  ngcCols = __ngcClamp(document.getElementById('ngcCols').value);
+  document.getElementById('ngcRows').value = ngcRows;
+  document.getElementById('ngcCols').value = ngcCols;
+  splitAndRender();
+};
+
+window.__ngcPreset = function(kind){
+  var map = { nine:[3,3], four:[2,2], h6:[2,3], v6:[3,2] };
+  var g = map[kind];
+  if (!g) return;
+  ngcRows = g[0];
+  ngcCols = g[1];
+  document.getElementById('ngcRows').value = ngcRows;
+  document.getElementById('ngcCols').value = ngcCols;
+  splitAndRender();
+};
+
+function __ngcPieceLabel(idx){
+  return __ngcT('导出第 ' + idx + ' 片', 'Export piece #' + idx);
+}
+
+function __ngcRenderInfo(){
+  var box = document.getElementById('ngcInfo');
+  if (!box) return;
+  if (!image) {
+    box.textContent = __ngcT('上传图片后显示切割参数。', 'Upload an image to see slicing parameters.');
+    return;
+  }
+  var side = Math.min(image.width, image.height);
+  var cw = Math.round(side / ngcCols);
+  var ch = Math.round(side / ngcRows);
+  box.textContent = __ngcT(
+    '原图 ' + image.width + ' x ' + image.height + ' ｜ 居中裁切 ' + side + ' x ' + side + ' ｜ 每片 ' + cw + ' x ' + ch + ' ｜ 共 ' + (ngcRows * ngcCols) + ' 片（' + ngcRows + ' 行 × ' + ngcCols + ' 列）',
+    'Source ' + image.width + ' x ' + image.height + ' | center crop ' + side + ' x ' + side + ' | each piece ' + cw + ' x ' + ch + ' | ' + (ngcRows * ngcCols) + ' pieces (' + ngcRows + ' rows x ' + ngcCols + ' cols)'
+  );
+}
+
+function __ngcRefreshTexts(){
+  var btns = document.querySelectorAll('#grid button[data-idx]');
+  btns.forEach(function(b){ b.textContent = __ngcPieceLabel(b.getAttribute('data-idx')); });
+  __ngcRenderInfo();
+}
 
 function openFile(ev) {
   const f = ev.target.files && ev.target.files[0];
@@ -184,28 +256,31 @@ function splitAndRender() {
   const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h0;
   blobs = [];
   if (!image) {
-    const __h1='<p style="grid-column:1/span 3">请先上传图片。</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
+    const __h1='<p style="grid-column:1/span 3">'+__ngcT('请先上传图片。','Please upload an image first.')+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h1;
+    __ngcRenderInfo();
     return;
   }
 
   const side = Math.min(image.width, image.height);
   const sx = (image.width - side) / 2;
   const sy = (image.height - side) / 2;
-  const cell = side / 3;
+  const cellW = side / ngcCols;
+  const cellH = side / ngcRows;
 
-  for (let r = 0; r < 3; r++) {
-    for (let c = 0; c < 3; c++) {
+  for (let r = 0; r < ngcRows; r++) {
+    for (let c = 0; c < ngcCols; c++) {
       const cs = document.createElement('canvas');
-      cs.width = Math.round(cell);
-      cs.height = Math.round(cell);
+      cs.width = Math.round(cellW);
+      cs.height = Math.round(cellH);
       const ctx = cs.getContext('2d');
-      ctx.drawImage(image, sx + c * cell, sy + r * cell, cell, cell, 0, 0, cs.width, cs.height);
-      const index = r * 3 + c + 1;
+      ctx.drawImage(image, sx + c * cellW, sy + r * cellH, cellW, cellH, 0, 0, cs.width, cs.height);
+      const index = r * ngcCols + c + 1;
 
       const btn = document.createElement('button');
-      btn.textContent = '导出第 ' + index + ' 片';
+      btn.textContent = __ngcPieceLabel(index);
       btn.className = 'btn';
       btn.type = 'button';
+      btn.setAttribute('data-idx', index);
       btn.onclick = () => downloadOne(cs, index);
 
       const wrapper = document.createElement('div');
@@ -217,6 +292,7 @@ function splitAndRender() {
       blobs.push(new Promise(resolve => cs.toBlob(resolve, 'image/png')));
     }
   }
+  __ngcRenderInfo();
 }
 
 function downloadOne(canvas, idx) {
@@ -244,6 +320,12 @@ async function downloadAll() {
     URL.revokeObjectURL(url);
   });
 }
+
+// 语言切换：刷新切片按钮与切割信息（不重画 canvas）
+document.addEventListener('toolbox:langchange', function(){
+  try { __ngcRefreshTexts(); } catch(e) {}
+});
+__ngcRenderInfo();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
