@@ -697,6 +697,25 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn primary" id="downloadBtn" onclick="downloadResult()" disabled>&#11015; 下载 PNG</button>
         <button type="button" class="btn" onclick="resetAll()">&#128260; 重置</button>
       </div>
+
+      <!-- 场景预设（功能增强） -->
+      <div class="toolbar" style="margin:10px 0;flex-wrap:wrap;gap:8px;">
+        <span style="font-size:13px;color:var(--text-muted);">场景预设：</span>
+        <button type="button" class="btn" onclick="__ircPreset('avatar')">&#128100; 社交头像</button>
+        <button type="button" class="btn" onclick="__ircPreset('ios')">&#128241; iOS 图标</button>
+        <button type="button" class="btn" onclick="__ircPreset('card')">&#128199; 卡片 8px</button>
+        <button type="button" class="btn" onclick="__ircPreset('pill')">&#128138; 胶囊全圆角</button>
+        <button type="button" class="btn" onclick="__ircPreset('ellipse')">&#127757; 椭圆裁切</button>
+      </div>
+
+      <!-- 圆角规范速查表（功能增强） -->
+      <div class="panel" style="margin-top:14px;">
+        <h3 style="font-size:14px;margin:0 0 8px;">&#128208; 圆角规范速查表</h3>
+        <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn" onclick="__ircExport()">&#128190; 导出速查表 CSV</button>
+        </div>
+        <div id="__ircTable"></div>
+      </div>
     </div>
   </div>
 
@@ -1170,6 +1189,81 @@ s.parentNode.insertBefore(el, s);
 
     ToolBox.showToast(i18nText());
   };
+
+  // ============================================================
+  // 场景预设 + 圆角规范速查表（功能增强）
+  // ============================================================
+  function __ircEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function __ircT(zh,en){ return __ircEn()?en:zh; }
+  function __ircEsc(s){ return String(s==null?'':s).replace(/[&<>]/g,function(x){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[x]; }); }
+
+  // 各平台圆角规范（zh/en 成对，渲染时按语言取）
+  var __IRC_SPECS = [
+    { zh:['社交头像（微信/QQ）','圆形','短边 50%','头像裁切通用做法，透明背景'], en:['Social avatar (WeChat/QQ)','Circle','50% of short side','Common avatar crop; transparent background'] },
+    { zh:['iOS 应用图标','超椭圆（近似圆角矩形）','短边 22.37%','Apple 连续圆角，需不透明方底'], en:['iOS app icon','Squircle (approx. rounded rect)','22.37% of short side','Apple continuous corner; opaque square base'] },
+    { zh:['Android 自适应图标','圆形 / 圆角矩形','短边 50% / 33%','由系统蒙版决定，安全区居中'], en:['Android adaptive icon','Circle / rounded rect','50% / 33% of short side','Set by system mask; keep safe area centered'] },
+    { zh:['网页卡片','圆角矩形','8px','Ant Design / Bootstrap 5 卡片规范'], en:['Web card','Rounded rect','8px','Ant Design / Bootstrap 5 card spec'] },
+    { zh:['按钮 / 胶囊','全圆角','高度 50%','胶囊按钮，两侧半圆'], en:['Button / pill','Full round','50% of height','Pill button; semicircular ends'] },
+    { zh:['缩略图 / 封面','圆角矩形','4–8px','列表小图轻量圆角即可'], en:['Thumbnail / cover','Rounded rect','4–8px','Light rounding is enough for list thumbnails'] },
+    { zh:['聊天气泡','圆角矩形','12–16px','IM 气泡常用值'], en:['Chat bubble','Rounded rect','12–16px','Common IM bubble radius'] }
+  ];
+
+  function __ircRenderSpecs() {
+    var box = document.getElementById('__ircTable');
+    if (!box) return;
+    var en = __ircEn();
+    var head = en ? ['Scenario','Shape','Value','Notes'] : ['使用场景','推荐形状','参考值','说明'];
+    var h = '<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>' + head.map(function(c){ return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+    __IRC_SPECS.forEach(function(s) {
+      var row = en ? s.en : s.zh;
+      h += '<tr><td>' + __ircEsc(row[0]) + '</td><td>' + __ircEsc(row[1]) + '</td><td>' + __ircEsc(row[2]) + '</td><td>' + __ircEsc(row[3]) + '</td></tr>';
+    });
+    box.innerHTML = h + '</tbody></table></div>';
+  }
+
+  window.__ircExport = function() {
+    if (typeof TBKit === 'undefined' || !TBKit.util || !TBKit.util.exportTable) return;
+    TBKit.util.exportTable('__ircTable', 'rounded-corners-spec.csv');
+  };
+
+  // 场景预设：一键设置圆角类型 + 半径 + 背景
+  window.__ircPreset = function(kind) {
+    if (!uploadedImage) {
+      ToolBox.showToast(__ircT('请先上传图片','Please upload an image first'), 'warning');
+      return;
+    }
+    var minSide = Math.min(uploadedImage.naturalWidth, uploadedImage.naturalHeight);
+    if (kind === 'avatar') {
+      window.setType('circle');
+      window.setBg('transparent');
+    } else if (kind === 'ios') {
+      window.setType('radius');
+      var iosR = Math.max(1, Math.round(minSide * 0.2237));
+      document.getElementById('radiusSlider').value = iosR;
+      window.onRadiusChange(iosR);
+      window.setBg('solid');
+    } else if (kind === 'card') {
+      window.setType('radius');
+      document.getElementById('radiusSlider').value = 8;
+      window.onRadiusChange(8);
+      window.setBg('transparent');
+    } else if (kind === 'pill') {
+      window.setType('radius');
+      var maxR = Math.floor(minSide / 2);
+      document.getElementById('radiusSlider').value = maxR;
+      window.onRadiusChange(maxR);
+      window.setBg('transparent');
+    } else if (kind === 'ellipse') {
+      window.setType('ellipse');
+      window.setBg('transparent');
+    }
+  };
+
+  __ircRenderSpecs();
+
+  document.addEventListener('toolbox:langchange', function() {
+    try { __ircRenderSpecs(); } catch(e) {}
+  });
 
   // 初始化主题
   ToolBox.initToolTheme();
