@@ -538,6 +538,8 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="ToolBox.copyText(document.getElementById('fgHex').value.toUpperCase())">&#128308; 复制前景色</button>
       <button type="button" class="btn" onclick="ToolBox.copyText(document.getElementById('bgHex').value.toUpperCase())">&#11035; 复制背景色</button>
     </div>
+    <div class="toolbar" style="margin-top:10px;"><button type="button" class="btn" id="ccExportCsv" onclick="ccExportCsv()">⬇️ 导出对比度 CSV</button></div>
+    <table id="ccHidden" style="display:none"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody></tbody></table>
   </div>
 
   <!-- 工具介绍（SEO） -->
@@ -869,5 +871,28 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+function ccExportCsv(){
+  if(typeof TBKit==='undefined'){return;}
+  var en=TBKit.util.isEn();
+  var fg=document.getElementById('fgHex').value.replace('#','').toUpperCase();
+  var bg=document.getElementById('bgHex').value.replace('#','').toUpperCase();
+  var fgRgb=hexToRgb(fg), bgRgb=hexToRgb(bg);
+  var ratio=contrastRatio(fgRgb,bgRgb);
+  var pf=function(b){return b?(en?'Pass':'通过'):(en?'Fail':'未通过');};
+  var mc=function(zh,enL){return en?enL:zh;};
+  var tbody=document.querySelector('#ccHidden tbody'); if(!tbody){return;}
+  tbody.innerHTML='';
+  function row(a,b){var tr=document.createElement('tr');tr.innerHTML='<td>'+a+'</td><td>'+b+'</td>';tbody.appendChild(tr);}
+  row(mc('前景色','Foreground'), '#'+fg);
+  row(mc('背景色','Background'), '#'+bg);
+  row(mc('对比度','Contrast Ratio'), ratio.toFixed(2));
+  row(mc('WCAG AA（正常文字）','WCAG AA (Normal Text)'), pf(ratio>=4.5));
+  row(mc('WCAG AA（大号文字）','WCAG AA (Large Text)'), pf(ratio>=3));
+  row(mc('WCAG AAA（正常文字）','WCAG AAA (Normal Text)'), pf(ratio>=7));
+  row(mc('WCAG AAA（大号文字）','WCAG AAA (Large Text)'), pf(ratio>=4.5));
+  TBKit.util.exportTable('#ccHidden', en?'contrast-ratio.csv':'对比度检查.csv');
+}
+</script>
 </body>
 </html>
