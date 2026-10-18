@@ -204,6 +204,8 @@ s.parentNode.insertBefore(el, s);
   <div class="stat-card"><div class="val" id="resEv">--</div><div class="lbl">光子能量 (eV)</div></div>
 </div>
 
+<div id="wlChart" style="margin-top:16px;"></div>
+
 <div class="spectrum-bar">
   <div style="background:#8b00ff;" title="紫 380-450nm"></div>
   <div style="background:#4b0082;"></div>
@@ -400,6 +402,24 @@ function wlToRgb(wl){
   return [Math.round(255*Math.pow(r*factor,0.8)),Math.round(255*Math.pow(g*factor,0.8)),Math.round(255*Math.pow(b*factor,0.8))];
 }
 
+function __wlChart(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var labels=[],r=[],g=[],b=[];
+  for(var w=380;w<=780;w+=20){
+    labels.push(String(w));
+    var c=wlToRgb(w);
+    r.push(c[0]);g.push(c[1]);b.push(c[2]);
+  }
+  TBKit.chart.line('#wlChart',{
+    title: en?'Visible spectrum (RGB vs wavelength)':'可见光谱（RGB 随波长变化）',
+    labels:labels, series:[
+      {name:'R',data:r,color:'#e74c3c'},
+      {name:'G',data:g,color:'#2ecc71'},
+      {name:'B',data:b,color:'#3498db'}
+    ]
+  });
+}
 function calc(){
   const wl=parseInt(document.getElementById('wl').value);
   document.getElementById('wlNum').value=wl;
@@ -423,6 +443,7 @@ function calc(){
   else if(wl<620){colorName='橙色';colorNameEn='Orange';}
   else {colorName='红色';colorNameEn='Red';}
   lastResult={wl,r,g,b,hex,freq:freq.toFixed(2),ev:ev.toFixed(2),colorName,colorNameEn};
+  try{ __wlChart(); }catch(e){}
 }
 
 function copyHex(){
@@ -502,6 +523,7 @@ function __wlExport(){
 
 document.getElementById('wl').addEventListener('input',()=>syncWl('range'));
 calc();
+window.addEventListener('toolbox:langchange', function(){ try{ __wlChart(); }catch(e){} });
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

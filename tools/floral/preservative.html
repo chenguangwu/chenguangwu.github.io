@@ -163,6 +163,7 @@ s.parentNode.insertBefore(el, s);
       <div class="pres-sub" id="presSub">--</div>
     </div>
     <div class="ratio-display" id="ratioDisplay"></div>
+    <div id="presChart" style="margin-top:16px;"></div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" onclick="copyResult()">复制配方</button>
       <button type="button" class="btn" onclick="window.__preservativeExport()">⬇️ 导出保鲜液配比 CSV</button>
@@ -262,6 +263,22 @@ function applyFloralPreset(kind){
   calc();
 }
 
+function __presChart(){
+  if(typeof TBKit==='undefined')return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var type=document.getElementById('presType').value;
+  var preset=window.PRESET&&PRESET[type];
+  var factor=(type==='diy')?(0.5/500):(preset?preset.ratio:0);
+  var labels=[],data=[];
+  for(var w=100;w<=2000;w+=100){
+    labels.push(String(w));
+    data.push(parseFloat((w*factor).toFixed(2)));
+  }
+  TBKit.chart.line('#presChart',{
+    title: en?'Preservative amount vs water':'保鲜液用量随水量变化',
+    labels:labels, series:[{name:en?'Amount':'用量', data:data}]
+  });
+}
 function calc(){
   var water=parseFloat(document.getElementById('water').value);
   var type=document.getElementById('presType').value;
@@ -291,6 +308,7 @@ function calc(){
       '<div class="item"><div class="v">'+fmtNum(packets)+'</div><div class="l">约标准包数</div></div>'+
       '<div class="item"><div class="v">'+fmtNum(water)+'</div><div class="l">水量 (ml)</div></div>';document.getElementById('ratioDisplay').innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
   }
+  try{ __presChart(); }catch(e){}
 }
 
 function renderDiy(water,sugar,vinegar,bleach){
@@ -346,6 +364,7 @@ function __preservativeExport(){
 }
 
 calc();
+window.addEventListener('toolbox:langchange', function(){ try{ __presChart(); }catch(e){} });
 </script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){
