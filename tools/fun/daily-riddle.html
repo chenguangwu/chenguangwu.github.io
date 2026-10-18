@@ -191,7 +191,22 @@ s.parentNode.insertBefore(el, s);
 
     <div class="dr-hist">
       <h3>历史答题记录（本地保存）</h3>
-      <div id="drHistory"></div>
+      <div style="display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:10px;">
+        <button type="button" class="tab-btn active" id="__drTabList" onclick="__drTab('list')">战绩明细</button>
+        <button type="button" class="tab-btn" id="__drTabDiff" onclick="__drTab('diff')">难度对比</button>
+      </div>
+      <div id="__drListPanel">
+        <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn" onclick="__drExport('list')">导出战绩明细 CSV</button>
+          <button type="button" class="btn" onclick="__drExport('diff')">导出难度对比 CSV</button>
+        </div>
+        <div id="__drTrend" style="margin:8px 0;"></div>
+        <div id="__drListTable"></div>
+        <div id="drHistory"></div>
+      </div>
+      <div id="__drDiffPanel" style="display:none;">
+        <div id="__drDiffTable"></div>
+      </div>
     </div>
 
     <div class="dr-note">说明：本工具的“超越 x% 玩家”百分位是基于难度基线与提示使用次数模拟的趣味估算，并非真实统计数据；谜题答案以中文为主，提交时会自动忽略空格与标点。</div>
@@ -556,6 +571,91 @@ s.parentNode.insertBefore(el, s);
   /* ============================================================
    * 10. 初始化
    * ========================================================== */
+  /* ============================================================
+   * 11. 战绩统计 / 趋势 / 难度对比 / 导出（功能增强）
+   * ========================================================== */
+  var DR_DIFF_EN={1:'Easy',2:'Medium',3:'Hard'};
+  function drEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function drT(zh,en){ return drEn()?en:zh; }
+  function drDiffLabel(d){ return drEn() ? (DR_DIFF_EN[d]||String(d)) : diffLabel(d); }
+  function drOkLabel(ok){ return drT(ok?'答对':'未过', ok?'Correct':'Missed'); }
+
+  function __drStats(){
+    var byDiff={};
+    state.history.forEach(function(h){
+      var d=byDiff[h.diff]||(byDiff[h.diff]={n:0,ok:0,score:0});
+      d.n++; if(h.ok){ d.ok++; d.score+=h.gained; }
+    });
+    return byDiff;
+  }
+
+  function __drRenderAll(){
+    var box=document.getElementById('__drListTable'); if(!box) return;
+    var head=[drT('日期','Date'),drT('难度','Difficulty'),drT('题目','Riddle'),drT('结果','Result'),drT('得分','Score'),drT('超越玩家','Beat %')];
+    if(!state.history.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+drT('暂无战绩，完成一次答题后自动统计','No records yet. Stats appear after your first answer.')+'</p>';
+      document.getElementById('__drTrend').innerHTML='';
+    } else {
+      var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+      state.history.forEach(function(r){
+        h+='<tr><td>'+escapeHtml(r.date)+'</td><td>'+drDiffLabel(r.diff)+'</td><td>'+escapeHtml(r.q)+'</td><td>'+
+          (r.ok?('<span style="color:var(--success)">'+drOkLabel(true)+'</span>'):('<span style="color:var(--text-muted)">'+drOkLabel(false)+'</span>'))+'</td><td>'+(r.ok?('+'+r.gained):'0')+'</td><td>'+(r.ok?(r.pct+'%'):'—')+'</td></tr>';
+      });
+      box.innerHTML=h+'</tbody></table></div>';
+      var asc=state.history.slice().reverse();
+      var cum=0, cumArr=[], labels=[];
+      asc.forEach(function(r){ cum += r.gained; cumArr.push(cum); labels.push(r.date.slice(5)); });
+      if(typeof TBKit!=='undefined'){
+        try{ TBKit.chart.line('#__drTrend',{ title:drT('累计积分趋势','Cumulative Score Trend'), labels:labels, series:[{name:drT('累计积分','Score'),data:cumArr}] }); }catch(e){}
+      }
+    }
+    var dbox=document.getElementById('__drDiffTable'); if(!dbox) return;
+    var byDiff=__drStats();
+    var dhead=[drT('难度','Difficulty'),drT('挑战次数','Attempts'),drT('答对','Correct'),drT('正确率','Accuracy'),drT('总积分','Total Score')];
+    var dh='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+dhead.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    [1,2,3].forEach(function(d){
+      var s=byDiff[d]||{n:0,ok:0,score:0};
+      dh+='<tr><td>'+drDiffLabel(d)+'</td><td>'+s.n+'</td><td>'+s.ok+'</td><td>'+(s.n?Math.round(s.ok/s.n*100)+'%':'—')+'</td><td>'+s.score+'</td></tr>';
+    });
+    dbox.innerHTML=dh+'</tbody></table></div>';
+  }
+
+  window.__drTab=function(which){
+    document.getElementById('__drListPanel').style.display = which==='list'?'':'none';
+    document.getElementById('__drDiffPanel').style.display = which==='diff'?'':'none';
+    document.getElementById('__drTabList').classList.toggle('active', which==='list');
+    document.getElementById('__drTabDiff').classList.toggle('active', which==='diff');
+  };
+
+  window.__drExport=function(which){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var head, rows, fname;
+    if(which==='diff'){
+      head=[en?'Difficulty':'难度',en?'Attempts':'挑战次数',en?'Correct':'答对',en?'Accuracy':'正确率',en?'Total Score':'总积分'];
+      rows=[head];
+      [1,2,3].forEach(function(d){
+        var s=__drStats()[d]||{n:0,ok:0,score:0};
+        rows.push([drDiffLabel(d), s.n, s.ok, s.n?Math.round(s.ok/s.n*100)+'%':'—', s.score]);
+      });
+      fname=en?'riddle-difficulty-stats.csv':'灯谜难度对比.csv';
+    } else {
+      head=[en?'Date':'日期',en?'Difficulty':'难度',en?'Riddle':'题目',en?'Result':'结果',en?'Score':'得分',en?'Beat %':'超越玩家'];
+      rows=[head];
+      state.history.forEach(function(r){ rows.push([r.date, drDiffLabel(r.diff), r.q, drOkLabel(r.ok), r.ok?r.gained:0, r.ok?r.pct+'%':'—']); });
+      fname=en?'riddle-history.csv':'灯谜战绩明细.csv';
+    }
+    var t=document.getElementById('__drHidden');
+    if(!t){ t=document.createElement('table'); t.id='__drHidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>'+
+      rows.slice(1).map(function(r){ return '<tr>'+r.map(function(c){ return '<td>'+String(c).replace(/[&<>]/g,function(x){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[x];})+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody>';
+    TBKit.util.exportTable('#__drHidden', fname);
+  };
+
+  var __drRenderHistory0=renderHistory;
+  renderHistory=function(){ __drRenderHistory0(); try{ __drRenderAll(); }catch(e){} };
+  document.addEventListener('toolbox:langchange', function(){ try{ __drRenderAll(); }catch(e){} });
+
   renderStats();
   renderHistory();
   pickToday();
