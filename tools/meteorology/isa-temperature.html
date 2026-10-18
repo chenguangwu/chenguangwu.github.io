@@ -137,10 +137,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__isa_temperatureExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__isa_temperatureExportRef()">导出高度对照 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="isa_temperatureTable"></div>
+    <h3 style="margin:14px 0 8px;">🗻 标准大气温度随高度（对流层 0–11 km）</h3>
+    <div id="isa_temperatureRef"></div>
+    <h3 style="margin:14px 0 8px;">📉 气温随高度递减（−6.5 ℃/km）</h3>
+    <div id="isa_temperatureChart"></div>
     <div id="isa_temperatureDiff"></div>
     <div id="isa_temperatureHist"></div>
 
@@ -221,6 +226,21 @@ function __isa_temperatureExtras(){
             ['气压比（ISA 无量纲）', (Math.pow(1-2.25577e-5*h,5.25588)).toFixed(6)],
         ]
     });
+    var __isaAlt=[0,1,2,3,5,8,11];
+    TBKit.matrix.table('#isa_temperatureRef',{
+      head: en?['Altitude (km)','ISA T (°C)','vs current']:['高度 (km)','标准气温 (°C)','与当前对比'],
+      rows: __isaAlt.map(function(ah){
+        var aT = ah<=11 ? (15-6.5*ah) : -56.5;
+        var cmp = (Math.abs(ah-h)<1e-9) ? (en?'◀ current':'◀ 当前') : (ah>h?(en?'higher':'更高'):(en?'lower':'更低'));
+        return [ah, +aT.toFixed(1), cmp];
+      })
+    });
+    var __isaX=[],__isaY=[];
+    for (var __ah=0;__ah<=11.0001;__ah+=1){ __isaX.push(__ah); __isaY.push(+(15-6.5*__ah).toFixed(1)); }
+    TBKit.chart.line('#isa_temperatureChart',{
+      labels: __isaX.map(String),
+      series:[{name: en?'ISA Temperature (°C)':'标准气温 (°C)', data:__isaY}]
+    });
     TBKit.history.record({h:__isa_temperatureRaw('h')});
     function __isa_temperatureRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#isa_temperatureHist',function(rec){ __isa_temperatureRestore(rec); calcTool(); });
@@ -228,6 +248,10 @@ function __isa_temperatureExtras(){
 function __isa_temperatureExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#isa_temperatureTable','isa-temperature.csv'); } catch(e){}
+}
+function __isa_temperatureExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#isa_temperatureRef','isa-temperature-ref.csv'); } catch(e){}
 }
 function __isa_temperaturePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -242,6 +266,7 @@ calcTool = function(){ __tb_fn0(); try{ __isa_temperatureExtras(); }catch(e){} }
 function __isa_temperatureBoot(){ try{ __isa_temperaturePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __isa_temperatureBoot();
 else document.addEventListener('DOMContentLoaded', __isa_temperatureBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

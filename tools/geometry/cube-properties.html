@@ -134,10 +134,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__cube_propertiesExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__cube_propertiesExportScale()">导出缩放对比 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="cube_propertiesTable"></div>
+    <h3 style="margin:14px 0 8px;">📐 等比缩放对比（边长 k×a）</h3>
+    <div id="cube_propertiesScale"></div>
+    <h3 style="margin:14px 0 8px;">🔵 同体积球体对比</h3>
+    <div id="cube_propertiesSphere"></div>
+    <h3 style="margin:14px 0 8px;">📈 体积 / 表面积随边长变化</h3>
+    <div id="cube_propertiesChart"></div>
     <div id="cube_propertiesDiff"></div>
     <div id="cube_propertiesHist"></div>
 
@@ -218,6 +225,34 @@ function __cube_propertiesExtras(){
             ['单面面积 (m²)', (a*a).toFixed(3)],
         ]
     });
+    var __cpScale=[
+      [0.5,0.5*a,Math.pow(0.5*a,3),6*Math.pow(0.5*a,2),0.5*a*Math.sqrt(3)],
+      [1,a,a*a*a,6*a*a,a*Math.sqrt(3)],
+      [2,2*a,Math.pow(2*a,3),6*Math.pow(2*a,2),2*a*Math.sqrt(3)],
+      [3,3*a,Math.pow(3*a,3),6*Math.pow(3*a,2),3*a*Math.sqrt(3)],
+    ];
+    TBKit.matrix.table('#cube_propertiesScale',{
+      head: en?['Scale k','Side (m)','Volume (m³)','Surface (m²)','Diagonal (m)']:['缩放 k','边长 (m)','体积 (m³)','表面积 (m²)','体对角线 (m)'],
+      rows: __cpScale.map(function(r){ return [r[0]+'×', +r[1].toFixed(3), +r[2].toFixed(3), +r[3].toFixed(3), +r[4].toFixed(3)]; })
+    });
+    var V=a*a*a, rSphere=Math.cbrt(3*V/(4*Math.PI)), Asphere=4*Math.PI*rSphere*rSphere;
+    TBKit.matrix.table('#cube_propertiesSphere',{
+      head: en?['Item','Value']:['项目','数值'],
+      rows: [
+        [en?'Sphere radius (same V)':'同体积球半径 (m)', +rSphere.toFixed(4)],
+        [en?'Sphere surface area (same V)':'同体积球表面积 (m²)', +Asphere.toFixed(4)],
+        [en?'Surface saving vs cube':'较立方体节省表面积', ((1-Asphere/(6*a*a))*100).toFixed(1)+'%'],
+      ]
+    });
+    var __cpX=[],__cpV=[],__cpA=[];
+    for (var __k=0.5;__k<=4.001;__k+=0.25){ var s=__k*a; __cpX.push(+__k.toFixed(2)); __cpV.push(+(s*s*s).toFixed(3)); __cpA.push(+(6*s*s).toFixed(3)); }
+    TBKit.chart.line('#cube_propertiesChart',{
+      labels: __cpX.map(String),
+      series:[
+        {name: en?'Volume V (m³)':'体积 V (m³)', data:__cpV},
+        {name: en?'Surface A (m²)':'表面积 A (m²)', data:__cpA},
+      ]
+    });
     TBKit.history.record({a:__cube_propertiesRaw('a')});
     function __cube_propertiesRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#cube_propertiesHist',function(rec){ __cube_propertiesRestore(rec); calcTool(); });
@@ -225,6 +260,10 @@ function __cube_propertiesExtras(){
 function __cube_propertiesExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#cube_propertiesTable','cube-properties.csv'); } catch(e){}
+}
+function __cube_propertiesExportScale(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cube_propertiesScale','cube-properties-scale.csv'); } catch(e){}
 }
 function __cube_propertiesPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -239,6 +278,7 @@ calcTool = function(){ __tb_fn0(); try{ __cube_propertiesExtras(); }catch(e){} }
 function __cube_propertiesBoot(){ try{ __cube_propertiesPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __cube_propertiesBoot();
 else document.addEventListener('DOMContentLoaded', __cube_propertiesBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

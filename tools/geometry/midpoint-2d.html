@@ -151,10 +151,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__midpoint_2dExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__midpoint_2dExportGeom()">导出几何量 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="midpoint_2dTable"></div>
+    <h3 style="margin:14px 0 8px;">📏 线段几何量（P1→P2）</h3>
+    <div id="midpoint_2dGeom"></div>
+    <h3 style="margin:14px 0 8px;">📈 线段路径（P1 → 中点 → P2）</h3>
+    <div id="midpoint_2dChart"></div>
     <div id="midpoint_2dDiff"></div>
     <div id="midpoint_2dHist"></div>
 
@@ -230,6 +235,23 @@ function __midpoint_2dExtras(){
             ['中点 y_M', ((y1+y2)/2).toFixed(3)],
         ]
     });
+    var dx=x2-x1, dy=y2-y1, dseg=Math.sqrt(dx*dx+dy*dy);
+    var slope = (Math.abs(dx)<1e-9) ? null : dy/dx;
+    TBKit.matrix.table('#midpoint_2dGeom',{
+      head: en?['Geometric quantity','Value']:['几何量','数值'],
+      rows: [
+        [en?'Segment length |P1P2|':'线段长度 |P1P2|', +dseg.toFixed(3)],
+        [en?'Δx (x2-x1)':'Δx (x2-x1)', +dx.toFixed(3)],
+        [en?'Δy (y2-y1)':'Δy (y2-y1)', +dy.toFixed(3)],
+        [en?'Slope k':'斜率 k', slope===null?(en?'vertical (∞)':'垂直(∞)'):(+slope.toFixed(3))],
+        [en?'Direction angle (°)':'方向角 (°)', isFinite(Math.atan2(dy,dx)*180/Math.PI)?(+(Math.atan2(dy,dx)*180/Math.PI).toFixed(1)):(en?'—':'—')],
+      ]
+    });
+    var __xm=(x1+x2)/2, __ym=(y1+y2)/2;
+    TBKit.chart.line('#midpoint_2dChart',{
+      labels: [('('+x1+','+y1+')'), ('('+__xm.toFixed(1)+','+__ym.toFixed(1)+')'), ('('+x2+','+y2+')')],
+      series:[{name: en?'y coordinate':'y 坐标', data:[+y1.toFixed(3),+__ym.toFixed(3),+y2.toFixed(3)]}]
+    });
     TBKit.history.record({x1:__midpoint_2dRaw('x1'), y1:__midpoint_2dRaw('y1'), x2:__midpoint_2dRaw('x2'), y2:__midpoint_2dRaw('y2')});
     function __midpoint_2dRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#midpoint_2dHist',function(rec){ __midpoint_2dRestore(rec); calcTool(); });
@@ -237,6 +259,10 @@ function __midpoint_2dExtras(){
 function __midpoint_2dExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#midpoint_2dTable','midpoint-2d.csv'); } catch(e){}
+}
+function __midpoint_2dExportGeom(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#midpoint_2dGeom','midpoint-2d-geom.csv'); } catch(e){}
 }
 function __midpoint_2dPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -251,6 +277,7 @@ calcTool = function(){ __tb_fn0(); try{ __midpoint_2dExtras(); }catch(e){} };
 function __midpoint_2dBoot(){ try{ __midpoint_2dPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __midpoint_2dBoot();
 else document.addEventListener('DOMContentLoaded', __midpoint_2dBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

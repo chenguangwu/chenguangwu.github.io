@@ -142,10 +142,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__convective_heat_rateExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__convective_heat_rateExportRef()">导出对流系数参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="convective_heat_rateTable"></div>
+    <h3 style="margin:14px 0 8px;">🌡️ 典型对流换热系数参考（h，W/m²·K）</h3>
+    <div id="convective_heat_rateRef"></div>
+    <h3 style="margin:14px 0 8px;">📈 换热率随 h 变化（Q ∝ h，A、ΔT 固定）</h3>
+    <div id="convective_heat_rateChart"></div>
     <div id="convective_heat_rateDiff"></div>
     <div id="convective_heat_rateHist"></div>
 
@@ -222,6 +227,28 @@ function __convective_heat_rateExtras(){
             ['单位温差换热 (W/K)', (h*A).toFixed(3)],
         ]
     });
+    var __chr=[
+      [en?'Air, natural convection':'空气 自然对流', 5],
+      [en?'Air, forced convection':'空气 强制对流', 25],
+      [en?'Water, natural convection':'水 自然对流', 500],
+      [en?'Water, forced convection':'水 强制对流', 10000],
+      [en?'Oil, forced convection':'机油 强制对流', 2000],
+      [en?'Boiling water (atm)':'沸水(常压)', 3000],
+      [en?'Steam, condensation':'蒸汽 冷凝', 5000],
+    ];
+    TBKit.matrix.table('#convective_heat_rateRef',{
+      head: en?['Fluid / Condition','h (W/m²·K)','Q at current A,ΔT (W)','vs current h']:['流体 / 工况','h (W/m²·K)','当前 A·ΔT 下 Q (W)','与当前 h 对比'],
+      rows: __chr.map(function(g){
+        var q=g[1]*A*dT;
+        var cmp = (Math.abs(g[1]-h)<1e-9) ? (en?'◀ current':'◀ 当前') : (g[1]>h?('×'+(g[1]/h).toFixed(1)+(en?' higher':' 更高')):('×'+(h/g[1]).toFixed(1)+(en?' lower':' 更低')));
+        return [g[0], g[1], +q.toFixed(1), cmp];
+      })
+    });
+    var __chX=[5,10,25,50,100,500,2000,10000],__chY=__chX.map(function(hh){return +(hh*A*dT).toFixed(1);});
+    TBKit.chart.line('#convective_heat_rateChart',{
+      labels: __chX.map(String),
+      series:[{name: en?'Heat rate Q (W)':'换热率 Q (W)', data:__chY}]
+    });
     TBKit.history.record({h:__convective_heat_rateRaw('h'), A:__convective_heat_rateRaw('A'), dT:__convective_heat_rateRaw('dT')});
     function __convective_heat_rateRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#convective_heat_rateHist',function(rec){ __convective_heat_rateRestore(rec); calcTool(); });
@@ -229,6 +256,10 @@ function __convective_heat_rateExtras(){
 function __convective_heat_rateExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#convective_heat_rateTable','convective-heat-rate.csv'); } catch(e){}
+}
+function __convective_heat_rateExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#convective_heat_rateRef','convective-heat-rate-ref.csv'); } catch(e){}
 }
 function __convective_heat_ratePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -243,6 +274,7 @@ calcTool = function(){ __tb_fn0(); try{ __convective_heat_rateExtras(); }catch(e
 function __convective_heat_rateBoot(){ try{ __convective_heat_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __convective_heat_rateBoot();
 else document.addEventListener('DOMContentLoaded', __convective_heat_rateBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
