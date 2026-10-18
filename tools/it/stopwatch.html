@@ -284,6 +284,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 
     <div id="lapStats" style="font-size:13px;color:var(--text-muted);text-align:center;padding:20px;">暂无记录</div>
+    <div id="swChart" style="margin-top:12px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -408,12 +409,42 @@ function updateSwDisplay(){
   const __h1=`${pad(min)}:${pad(sec)}<span class="timer-ms">.${pad(ms)}</span>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('swTime').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('swTime').innerHTML=__h1;
 }
 
+// 预设倒计时时长（秒）——与页面预设按钮保持一致，用于无圈速记录时的常显对照
+const CD_PRESETS = [
+  { zh: '30 秒', en: '30 s', sec: 30 },
+  { zh: '1 分钟', en: '1 min', sec: 60 },
+  { zh: '5 分钟', en: '5 min', sec: 300 },
+  { zh: '10 分钟', en: '10 min', sec: 600 },
+  { zh: '番茄 25 分', en: 'Pomodoro 25 min', sec: 1500 },
+  { zh: '1 小时', en: '1 hour', sec: 3600 }
+];
+function __swChart(){
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var host = document.getElementById('swChart');
+  if (!host) { return; }
+  var en = TBKit.util.isEn();
+  if (swState.laps.length > 0) {
+    TBKit.chart.bar('#swChart', {
+      title: en ? 'Lap times (seconds)' : '各圈用时（秒）',
+      labels: swState.laps.map(function(l){ return (en ? 'Lap ' : '第 ') + l.index + (en ? '' : ' 圈'); }),
+      series: [{ name: en ? 'Seconds' : '秒', data: swState.laps.map(function(l){ return +(l.lap / 1000).toFixed(2); }) }]
+    });
+    return;
+  }
+  TBKit.chart.bar('#swChart', {
+    title: en ? 'Built-in countdown presets (seconds)' : '内置倒计时预设时长对照（秒）',
+    labels: CD_PRESETS.map(function(p){ return en ? p.en : p.zh; }),
+    series: [{ name: en ? 'Seconds' : '秒', data: CD_PRESETS.map(function(p){ return p.sec; }) }]
+  });
+}
+
 function renderLaps(){
   const list = document.getElementById('lapList');
   const stats = document.getElementById('lapStats');
   if(swState.laps.length === 0){
     const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2;
     const __h3='暂无记录';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){stats.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}stats.innerHTML=__h3;
+    try { __swChart(); } catch(e){}
     return;
   }
   const laps = swState.laps;
@@ -440,6 +471,7 @@ function renderLaps(){
       <div><strong>${formatTime(avg)}</strong><br>平均</div>
     </div>
   `;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){stats.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}stats.innerHTML=__h5;
+  try { __swChart(); } catch(e){}
 }
 
 function formatTime(ms){
@@ -595,6 +627,8 @@ document.addEventListener('keydown', (e) => {
 cdState.total = cdGetInputMs();
 cdState.remaining = cdState.total;
 cdUpdateDisplay();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__swChart();}catch(e){}});}else{try{__swChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__swChart();}catch(e){}});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

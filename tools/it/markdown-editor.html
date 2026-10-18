@@ -611,6 +611,7 @@ s.parentNode.insertBefore(el, s);
         <span class="stat-item" id="saveStatus" style="color:var(--success);">草稿已自动保存</span>
       </span>
     </div>
+    <div id="mdChart" style="margin-top:12px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -906,6 +907,52 @@ s.parentNode.insertBefore(el, s);
     updateStats(md);
   }
 
+  // --- 文档结构统计（图表用） ---
+  function __mdStructure(md) {
+    var lines = md.split('\n');
+    var headings = 0, codeBlocks = 0, listItems = 0, quotes = 0, tables = 0, links = 0, images = 0, bold = 0;
+    var inFence = false;
+    lines.forEach(function(line){
+      var t = line.trim();
+      if (/^```/.test(t)) { if (!inFence) codeBlocks++; inFence = !inFence; return; }
+      if (inFence) return;
+      if (/^#{1,6}\s+/.test(t)) headings++;
+      if (/^([-*+]|\d+\.)\s+/.test(t)) listItems++;
+      if (/^&gt;|^>/.test(t)) quotes++;
+      if (/^\|.*\|/.test(t)) tables++;
+    });
+    links = (md.match(/(^|[^!])\[[^\]]*\]\([^)]+\)/g) || []).length;
+    images = (md.match(/!\[[^\]]*\]\([^)]+\)/g) || []).length;
+    bold = (md.match(/\*\*[^*]+\*\*/g) || []).length;
+    return { headings: headings, codeBlocks: codeBlocks, listItems: listItems, quotes: quotes,
+             tables: tables, links: links, images: images, bold: bold };
+  }
+
+  function __mdChart() {
+    if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+    var host = document.getElementById('mdChart');
+    if (!host) { return; }
+    var md = editor.value || '';
+    if (!md.trim()) { host.innerHTML = ''; return; }
+    var s = __mdStructure(md);
+    var en = TBKit.util.isEn();
+    var defs = [
+      ['headings', en ? 'Headings' : '标题', s.headings],
+      ['codeBlocks', en ? 'Code blocks' : '代码块', s.codeBlocks],
+      ['listItems', en ? 'List items' : '列表项', s.listItems],
+      ['quotes', en ? 'Quotes' : '引用', s.quotes],
+      ['tables', en ? 'Table rows' : '表格行', s.tables],
+      ['links', en ? 'Links' : '链接', s.links],
+      ['images', en ? 'Images' : '图片', s.images],
+      ['bold', en ? 'Bold spans' : '加粗', s.bold]
+    ];
+    TBKit.chart.bar('#mdChart', {
+      title: en ? 'Document structure breakdown' : '文档结构统计（元素计数）',
+      labels: defs.map(function(d){ return d[1]; }),
+      series: [{ name: en ? 'Count' : '数量', data: defs.map(function(d){ return d[2]; }) }]
+    });
+  }
+
   function updateStats(md) {
     var chars = md.length;
     // 中英文混合词数：中文按字计数，英文按空格分词
@@ -918,6 +965,7 @@ s.parentNode.insertBefore(el, s);
     document.getElementById('charCount').textContent = chars;
     document.getElementById('wordCount').textContent = words;
     document.getElementById('lineCount').textContent = lines;
+    try { __mdChart(); } catch(e){}
   }
 
   // --- 防抖更新 ---
@@ -1148,6 +1196,8 @@ s.parentNode.insertBefore(el, s);
   } else {
     updatePreview();
   }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__mdChart();}catch(e){}});}else{try{__mdChart();}catch(e){}}
+  window.addEventListener('toolbox:langchange',function(){try{__mdChart();}catch(e){}});
 
 })();
 </script>

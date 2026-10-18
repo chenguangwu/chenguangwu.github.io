@@ -128,6 +128,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="个人防护用品（PPE）更换与检查跟踪，内置更换周期数据库，按到期紧急度排序，提醒按时更换与检查。">PPE Replacement Interval Reminder</p>
 
     <div class="stat-grid" id="dashStats"></div>
+    <div id="ppeChart" style="margin-top:12px;"></div>
 
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见用品预设：</span>
@@ -494,6 +495,25 @@ function exportData(){
 window.exportData = exportData;
 
 // ============ 渲染 ============
+var PPE_EN = {
+  helmet:'Helmet', glasses:'Safety glasses', dustMask:'Dust mask / filter',
+  gasFilter:'Gas mask filter', safetyShoes:'Safety shoes', gloves:'Protective gloves',
+  harness:'Safety harness', hearing:'Hearing protection'
+};
+function __ppeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('ppeChart'); if(!host) return;
+  var en=TBKit.util.isEn();
+  var items=PPE_DB.filter(function(p){ return p.cycleDays>0; })
+    .sort(function(a,b){ return a.cycleDays-b.cycleDays; });
+  if(!items.length){ host.innerHTML=''; return; }
+  TBKit.chart.bar('#ppeChart',{
+    title: en?'Replacement cycle by PPE type (days)':'各类防护用品建议更换周期（天）',
+    labels: items.map(function(p){ return en?(PPE_EN[p.key]||p.key):p.name; }),
+    series:[{ name: en?'Days':'天', data: items.map(function(p){ return p.cycleDays; }) }]
+  });
+}
+
 function renderDash(){
   var overdue=0, soon=0, manual=0;
   items.forEach(function(it){
@@ -506,6 +526,7 @@ function renderDash(){
     statCard(overdue, '已逾期', 'var(--danger)') +
     statCard(soon, '即将到期', 'var(--warning)') +
     statCard(manual, '按需检查', 'var(--info)');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('dashStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('dashStats').innerHTML=__h1;
+  try { __ppeChart(); } catch(e){}
 }
 function statCard(val, lbl, color){
   return '<div class="stat-card"><div class="val"'+(color?' style="color:'+color+'"':'')+'>'+val+'</div><div class="lbl">'+lbl+'</div></div>';
@@ -621,6 +642,8 @@ function render(){
 }
 renderTypeSelect();
 render();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__ppeChart();}catch(e){}});}else{try{__ppeChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__ppeChart();}catch(e){}});
 })();
 </script>
 

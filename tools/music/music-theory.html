@@ -189,6 +189,7 @@ s.parentNode.insertBefore(el, s);
     </select>
 
     <div id="scale-display" class="scale-grid"></div>
+    <div id="mtChart" style="margin-top:12px;"></div>
     <table id="scaleHidden" style="display:none;"><thead><tr><th>Note</th><th>Degree</th><th>Frequency (Hz)</th></tr></thead><tbody></tbody></table>
 
     <div class="toolbar">
@@ -359,6 +360,30 @@ function getScaleNotes(root, type) {
   return SCALE_INTERVALS[type].map(iv => (root + iv) % 12);
 }
 
+function __mtChart(){
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var host = document.getElementById('mtChart');
+  if (!host) { return; }
+  var typeEl = document.getElementById('scale-type');
+  if (!typeEl) { return; }
+  var type = typeEl.value;
+  var iv = SCALE_INTERVALS[type];
+  if (!iv) { host.innerHTML = ''; return; }
+  var en = TBKit.util.isEn();
+  var labels = [], data = [];
+  for (var i = 0; i < iv.length; i++) {
+    var n = (rootNote + iv[i]) % 12;
+    var oct = Math.floor((rootNote + iv[i]) / 12);
+    labels.push(NOTES[n]);
+    data.push(+(NOTE_FREQS[n] * Math.pow(2, oct)).toFixed(2));
+  }
+  TBKit.chart.line('#mtChart', {
+    title: (en ? 'Scale note frequencies (Hz): ' : '当前音阶各音频率（Hz）：') + NOTES[rootNote] + ' ' + type,
+    labels: labels,
+    series: [{ name: 'Hz', data: data }]
+  });
+}
+
 function renderScale() {
   const type = document.getElementById('scale-type').value;
   const notes = getScaleNotes(rootNote, type);
@@ -381,6 +406,7 @@ function renderScale() {
       </div>
     </div>
   `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('scale-display').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('scale-display').innerHTML=__h1;
+  try { __mtChart(); } catch(e){}
 }
 
 function playScale() {
@@ -473,6 +499,8 @@ renderRootSelector();
 renderScale();
 renderChord();
 renderPiano();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__mtChart();}catch(e){}});}else{try{__mtChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__mtChart();}catch(e){}});
 ToolBox.initToolTheme();
 </script><script>
 // tool-intro折叠交互
