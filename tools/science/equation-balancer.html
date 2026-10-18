@@ -190,11 +190,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="balance()">🧮 配平</button>
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
+      <button type="button" class="btn" id="ebExportCsv" onclick="ebExportCsv()">⬇️ 导出配平结果 CSV</button>
     </div>
 
     <div id="resultArea"></div>
     <div id="verifyArea"></div>
     <div id="detailArea"></div>
+    <table id="ebHidden" style="display:none;"><thead><tr><th>Element</th><th>Reactant Total</th><th>Product Total</th><th>Balanced</th></tr></thead><tbody></tbody></table>
   </div>
 
   <div class="card">
@@ -772,6 +774,33 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+</script>
+
+<script>
+function ebExportCsv(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#ebHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var eqStr=document.getElementById('eqInput').value.trim();
+  if(!eqStr)return;
+  var res=balanceEquation(eqStr);
+  if(res.error||!res.elements)return;
+  var coeffs=res.coeffs,species=res.species,nR=res.nR,elements=res.elements,comps=res.comps;
+  elements.forEach(function(e){
+    var reactTotal=0,prodTotal=0;
+    for(var k=0;k<species.length;k++){
+      var cnt=comps[k][e]||0;
+      if(k<nR)reactTotal+=coeffs[k]*cnt;else prodTotal+=coeffs[k]*cnt;
+    }
+    var ok=reactTotal===prodTotal;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+e+'</td><td>'+reactTotal+'</td><td>'+prodTotal+'</td><td>'+(en?(ok?'Yes':'No'):(ok?'是':'否'))+'</td>';
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#ebHidden', en?'balancing-result.csv':'配平结果.csv');
+}
 </script>
 
 </body>

@@ -31,6 +31,7 @@ window.__TI18N_EN = {
 '导出色温 CSV':'Export Color Temperature CSV',
 '导出节拍细分 CSV':'Export Beat Subdivision CSV',
 '导出阴影配置 CSV':'Export Shadow Config CSV',
+'导出配平结果 CSV':'Export Balancing Result CSV',
 '导出饮水记录 CSV':'Export Hydration Log CSV',
 '导出物理常数 CSV':'Export Physics Constants CSV',
 '导出幻灯片时间 CSV':'Export Presentation Slides CSV',
