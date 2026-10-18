@@ -138,10 +138,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__torus_volumeExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__torus_volumeExportRef()">导出物体参考 CSV</button>
+      <button class="btn" onclick="__torus_volumeExportDims()">导出尺寸换算 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="torus_volumeTable"></div>
+    <h3 style="margin:14px 0 8px;">🍩 典型环面物体参考（按当前 r/R 比例标记）</h3>
+    <div id="torus_volumeRef"></div>
+    <div id="torus_volumeRefChart"></div>
+    <h3 style="margin:14px 0 8px;">📏 几何尺寸换算</h3>
+    <div id="torus_volumeDims"></div>
     <div id="torus_volumeDiff"></div>
     <div id="torus_volumeHist"></div>
 
@@ -219,6 +226,50 @@ function __torus_volumeExtras(){
             ['体积与环半径之比', (2*Math.PI*Math.PI*R*r*r/Math.max(R,1e-9)).toFixed(4)],
         ]
     });
+    var __tvObjs=[
+      {n:'甜甜圈 Donut',nEn:'Donut',R:2.5,r:1.1},
+      {n:'贝果 Bagel',nEn:'Bagel',R:4.0,r:1.6},
+      {n:'救生圈 Lifebuoy',nEn:'Lifebuoy',R:30,r:11},
+      {n:'自行车轮胎内胎 Tube',nEn:'Tire tube',R:28,r:5},
+      {n:'O 型密封圈 O-ring',nEn:'O-ring',R:2.0,r:0.35},
+      {n:'呼啦圈 Hula hoop',nEn:'Hula hoop',R:35,r:1.2},
+    ];
+    var __tvCurRatio = r/Math.max(R,1e-9);
+    var __tvRows=__tvObjs.map(function(o){
+      var V=2*Math.PI*Math.PI*o.R*o.r*o.r;
+      var S=4*Math.PI*Math.PI*o.R*o.r;
+      var ratio=o.r/o.R;
+      var cmp='';
+      if(isFinite(__tvCurRatio)&&Math.abs(ratio-__tvCurRatio)/Math.max(__tvCurRatio,1e-9)<0.04) cmp=en?'◀ current ratio':'◀ 当前比例';
+      return [en?o.nEn:o.n, +o.R.toFixed(2), +o.r.toFixed(2), +V.toFixed(1), +S.toFixed(1), ratio.toFixed(3), cmp];
+    });
+    TBKit.matrix.table('#torus_volumeRef',{
+      head: en?['Object (cm)','R (cm)','r (cm)','Volume (cm³)','Surface (cm²)','r/R','']:['物体 (cm)','R (cm)','r (cm)','体积 (cm³)','表面积 (cm²)','r/R 比例',''],
+      rows: __tvRows
+    });
+    TBKit.chart.bar('#torus_volumeRefChart',{
+      labels: __tvObjs.map(function(o){return en?o.nEn:o.n;}),
+      series:[{name:en?'Volume (cm³)':'体积 (cm³)',data:__tvRows.map(function(rr){return rr[3];})}],
+      title: en?'Reference torus volumes (cm³)':'典型环面体积参考 (cm³)',
+      horizontal:true
+    });
+    var __Dout=2*(R+r), __Din=2*(R-r), __Davg=2*R, __Dpipe=2*r;
+    var __Vv=2*Math.PI*Math.PI*R*r*r, __Sv=4*Math.PI*Math.PI*R*r;
+    var __Rv=Math.cbrt(3*__Vv/(4*Math.PI));
+    var __Rs=Math.sqrt(__Sv/(4*Math.PI));
+    var __Apipe=Math.PI*r*r;
+    TBKit.matrix.table('#torus_volumeDims',{
+      head: en?['Metric','Value (m)']:['参数','数值 (m)'],
+      rows: [
+        [en?'Outer diameter 2(R+r)':'外径 2(R+r)', +__Dout.toFixed(4)],
+        [en?'Inner diameter 2(R−r)':'内径 2(R−r)', (R>r?+__Din.toFixed(4):'—')],
+        [en?'Center-circle diameter 2R':'中心圆直径 2R', +__Davg.toFixed(4)],
+        [en?'Tube diameter 2r':'管直径 2r', +__Dpipe.toFixed(4)],
+        [en?'Tube cross-section area πr²':'管截面积 πr² (m²)', +__Apipe.toFixed(5)],
+        [en?'Equiv. sphere radius (same V)':'等体积球半径 (m)', +__Rv.toFixed(4)],
+        [en?'Equiv. sphere radius (same S)':'等表面积球半径 (m)', +__Rs.toFixed(4)],
+      ]
+    });
     TBKit.history.record({R:__torus_volumeRaw('R'), r:__torus_volumeRaw('r')});
     function __torus_volumeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#torus_volumeHist',function(rec){ __torus_volumeRestore(rec); calcTool(); });
@@ -226,6 +277,14 @@ function __torus_volumeExtras(){
 function __torus_volumeExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#torus_volumeTable','torus-volume.csv'); } catch(e){}
+}
+function __torus_volumeExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#torus_volumeRef','torus-volume-ref.csv'); } catch(e){}
+}
+function __torus_volumeExportDims(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#torus_volumeDims','torus-volume-dims.csv'); } catch(e){}
 }
 function __torus_volumePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -238,6 +297,7 @@ function __torus_volumePresets(){
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __torus_volumeExtras(); }catch(e){} };
 function __torus_volumeBoot(){ try{ __torus_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 if (document.readyState && document.readyState !== 'loading') __torus_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __torus_volumeBoot);
 </script>

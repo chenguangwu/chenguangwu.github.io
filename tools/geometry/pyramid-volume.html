@@ -141,10 +141,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__pyramid_volumeExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__pyramid_volumeExportFamily()">导出同底等高对比 CSV</button>
+      <button class="btn" onclick="__pyramid_volumeExportRef()">导出著名金字塔 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="pyramid_volumeTable"></div>
+    <h3 style="margin:14px 0 8px;">📦 同底等高的几何体体积对比（锥体 = 柱体的 1/3）</h3>
+    <div id="pyramid_volumeChart"></div>
+    <div id="pyramid_volumeFamily"></div>
+    <h3 style="margin:14px 0 8px;">🏛️ 著名金字塔参考（方锥：底面积 = 边长²）</h3>
+    <div id="pyramid_volumeRef"></div>
     <div id="pyramid_volumeDiff"></div>
     <div id="pyramid_volumeHist"></div>
 
@@ -218,6 +225,45 @@ function __pyramid_volumeExtras(){
             ['等体积正方体边长 (m)', (Math.pow(Math.max(A*h/3,0),1/3)).toFixed(4)],
         ]
     });
+    var Vp=A*h/3;
+    function __pvFmt(x){ if(!isFinite(x))return '—'; return (+x.toFixed(1)).toLocaleString('en-US'); }
+    var rFromA=Math.sqrt(Math.max(A,0)/Math.PI);
+    var Vball=4/3*Math.PI*Math.pow(rFromA,3);
+    var Vtrunc=h/3*(A+Math.sqrt(A*A/4)+A/4);
+    var __pvFamily=[
+      [en?'Cone / pyramid (⅓·base·h)':'锥体 / 棱锥（⅓·底面积·高）', 'V = ⅓·A·h', Vp],
+      [en?'Prism / cylinder (base·h)':'柱体 / 棱柱（底面积·高）', 'V = A·h', A*h],
+      [en?'Sphere (r from base area)':'球（由底面积换算半径）', 'V = 4/3·π·r³', Vball],
+      [en?'Hemisphere (r from base area)':'半球（由底面积换算半径）', 'V = 2/3·π·r³', Vball/2],
+      [en?'Frustum (top base = A/4)':'锥台（上底 = A/4）', 'V = h/3·(A₁+√(A₁A₂)+A₂)', Vtrunc],
+    ];
+    var __pvFamilyRows=__pvFamily.map(function(s){
+      var ratio=Vp>0?(s[2]/Vp):NaN;
+      return [s[0], s[1], +s[2].toFixed(3), isFinite(ratio)?('×'+ratio.toFixed(3)):'—'];
+    });
+    TBKit.matrix.table('#pyramid_volumeFamily',{
+        head: en?['Solid','Formula','Volume (m³)','vs pyramid (×)']:['几何体','公式','体积 (m³)','与棱锥之比'],
+        rows: __pvFamilyRows
+    });
+    TBKit.chart.bar('#pyramid_volumeChart',{
+        title: en?'Volume of solids sharing the same base area and height':'同底等高几何体的体积',
+        labels: [en?'Cone / pyramid':'锥体 / 棱锥', en?'Prism / cylinder':'柱体 / 棱柱', en?'Sphere':'球', en?'Hemisphere':'半球', en?'Frustum':'锥台'],
+        series: [{ name: en?'Volume (m³)':'体积 (m³)', data: [Vp, A*h, Vball, Vball/2, Vtrunc].map(function(v){return +v.toFixed(3);}) }]
+    });
+    var __pvRef=[
+      [en?'Great Pyramid of Giza':'胡夫金字塔', 230.6, 146.6],
+      [en?'Pyramid of the Sun':'太阳金字塔', 225, 65],
+      [en?'Bent Pyramid':'弯曲金字塔', 188.6, 101.1],
+      [en?'Red Pyramid':'红色金字塔', 220, 105],
+    ];
+    var __pvRefRows=__pvRef.map(function(p){
+      var A2=p[2]*p[2], V2=A2*p[3]/3;
+      return [p[0], p[2], p[3], +A2.toFixed(1), __pvFmt(V2), Vp>0?('×'+(V2/Vp).toFixed(2)):'—'];
+    });
+    TBKit.matrix.table('#pyramid_volumeRef',{
+        head: en?['Pyramid','Base side (m)','Height (m)','Base area (m²)','Volume (m³)','vs current volume']:['金字塔','底边 (m)','高 (m)','底面积 (m²)','体积 (m³)','与当前体积比'],
+        rows: __pvRefRows
+    });
     TBKit.history.record({A:__pyramid_volumeRaw('A'), h:__pyramid_volumeRaw('h')});
     function __pyramid_volumeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#pyramid_volumeHist',function(rec){ __pyramid_volumeRestore(rec); calcTool(); });
@@ -225,6 +271,14 @@ function __pyramid_volumeExtras(){
 function __pyramid_volumeExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#pyramid_volumeTable','pyramid-volume.csv'); } catch(e){}
+}
+function __pyramid_volumeExportFamily(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pyramid_volumeFamily','pyramid-volume-family.csv'); } catch(e){}
+}
+function __pyramid_volumeExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pyramid_volumeRef','pyramid-volume-reference.csv'); } catch(e){}
 }
 function __pyramid_volumePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -239,6 +293,7 @@ calcTool = function(){ __tb_fn0(); try{ __pyramid_volumeExtras(); }catch(e){} };
 function __pyramid_volumeBoot(){ try{ __pyramid_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __pyramid_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __pyramid_volumeBoot);
+document.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

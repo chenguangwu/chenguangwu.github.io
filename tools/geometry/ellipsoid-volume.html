@@ -142,10 +142,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__ellipsoid_volumeExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__ellipsoid_volumeExportScan()">导出缩放扫描 CSV</button>
+      <button class="btn" onclick="__ellipsoid_volumeExportRef()">导出形状参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="ellipsoid_volumeTable"></div>
+    <h3 style="margin:14px 0 8px;">🔭 均匀缩放扫描：体积随倍数的立方增长</h3>
+    <div id="ellipsoid_volumeChart"></div>
+    <div id="ellipsoid_volumeScan"></div>
+    <h3 style="margin:14px 0 8px;">🌍 常见椭球形状参考（按当前最大半轴缩放）</h3>
+    <div id="ellipsoid_volumeRef"></div>
     <div id="ellipsoid_volumeDiff"></div>
     <div id="ellipsoid_volumeHist"></div>
 
@@ -222,6 +229,50 @@ function __ellipsoid_volumeExtras(){
             ['体积 (L)', (4/3*Math.PI*a*b*c*1000).toFixed(1)],
         ]
     });
+    var V0=4/3*Math.PI*a*b*c;
+    var __evFs=[0.5,0.7,1,1.5,2];
+    var __evScanRows=__evFs.map(function(f){
+      var Vf=f*f*f*V0;
+      var cmp;
+      if(Math.abs(f-1)<1e-9) cmp=en?'◀ current size':'◀ 当前大小';
+      else cmp=en?('×'+Vf.toFixed(2)+' of current'):('×'+Vf.toFixed(2)+' 当前体积');
+      return [en?('×'+f+' size'):('×'+f+' 大小'), (a*f).toFixed(3), (b*f).toFixed(3), (c*f).toFixed(3), Vf.toFixed(3), cmp];
+    });
+    TBKit.matrix.table('#ellipsoid_volumeScan',{
+        head: en?['Scale factor','a (m)','b (m)','c (m)','Volume (m³)','vs current volume']:['缩放倍数','a (m)','b (m)','c (m)','体积 (m³)','与当前体积比'],
+        rows: __evScanRows
+    });
+    TBKit.chart.bar('#ellipsoid_volumeChart',{
+        title: en?'Volume under uniform scaling (V ∝ f³)':'均匀缩放下的体积（V ∝ f³）',
+        labels: __evFs.map(function(f){return en?('×'+f):('×'+f);}),
+        series: [{ name: en?'Volume (m³)':'体积 (m³)', data: __evFs.map(function(f){return +(f*f*f*V0).toFixed(3);}) }]
+    });
+    var M=Math.max(a,b,c,0);
+    var __evShapes=[
+      [en?'Sphere':'正球体', 1, 1, 1],
+      [en?'Earth':'地球', 1, 1, 0.9967],
+      [en?'Mars':'火星', 1, 1, 0.9941],
+      [en?'Moon':'月球', 1, 1, 0.9988],
+      [en?'Jupiter':'木星', 1, 1, 0.9352],
+      [en?'Egg':'鸡蛋', 1, 0.8, 0.72],
+      [en?'Rugby ball':'橄榄球', 1, 0.545, 0.545],
+      [en?'Oblate spheroid':'扁球体', 1, 0.6, 0.25],
+    ];
+    var curN=M>0?[a/M,b/M,c/M]:[0,0,0];
+    var __evBest=-1,__evBestD=1e18;
+    __evShapes.forEach(function(s,i){
+      var d=Math.abs(curN[0]-s[1])+Math.abs(curN[1]-s[2])+Math.abs(curN[2]-s[3]);
+      if(d<__evBestD){__evBestD=d;__evBest=i;}
+    });
+    var __evRefRows=__evShapes.map(function(s,i){
+      var Vs=4/3*Math.PI*M*(M*s[2])*(M*s[3]);
+      var cmp=i===__evBest?(en?'◀ closest to current shape':'◀ 最接近当前形状'):'';
+      return [s[0], s[1].toFixed(3)+' : '+s[2].toFixed(3)+' : '+s[3].toFixed(3), Vs.toFixed(3), (s[1]*s[2]*s[3]).toFixed(3), cmp];
+    });
+    TBKit.matrix.table('#ellipsoid_volumeRef',{
+        head: en?['Shape','Axis ratios a : b : c','Volume at current max axis (m³)','Product of ratios','Note']:['形状','半轴比 a : b : c','按当前最大半轴的体积 (m³)','三轴乘积','备注'],
+        rows: __evRefRows
+    });
     TBKit.history.record({a:__ellipsoid_volumeRaw('a'), b:__ellipsoid_volumeRaw('b'), c:__ellipsoid_volumeRaw('c')});
     function __ellipsoid_volumeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#ellipsoid_volumeHist',function(rec){ __ellipsoid_volumeRestore(rec); calcTool(); });
@@ -229,6 +280,14 @@ function __ellipsoid_volumeExtras(){
 function __ellipsoid_volumeExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#ellipsoid_volumeTable','ellipsoid-volume.csv'); } catch(e){}
+}
+function __ellipsoid_volumeExportScan(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ellipsoid_volumeScan','ellipsoid-volume-scan.csv'); } catch(e){}
+}
+function __ellipsoid_volumeExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ellipsoid_volumeRef','ellipsoid-volume-shapes.csv'); } catch(e){}
 }
 function __ellipsoid_volumePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -243,6 +302,7 @@ calcTool = function(){ __tb_fn0(); try{ __ellipsoid_volumeExtras(); }catch(e){} 
 function __ellipsoid_volumeBoot(){ try{ __ellipsoid_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __ellipsoid_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __ellipsoid_volumeBoot);
+document.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -138,10 +138,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__ellipse_areaExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__ellipse_areaExportScan()">导出轴比扫描 CSV</button>
+      <button class="btn" onclick="__ellipse_areaExportCircle()">导出等面积圆 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="ellipse_areaTable"></div>
+    <h3 style="margin:14px 0 8px;">📐 轴比扫描：面积随 b/a 线性缩小（固定长半轴）</h3>
+    <div id="ellipse_areaChart"></div>
+    <div id="ellipse_areaScan"></div>
+    <h3 style="margin:14px 0 8px;">⭕ 等面积圆对比</h3>
+    <div id="ellipse_areaCircle"></div>
     <div id="ellipse_areaDiff"></div>
     <div id="ellipse_areaHist"></div>
 
@@ -219,6 +226,35 @@ function __ellipse_areaExtras(){
             ['等面积圆半径对应值 π√(ab)', (Math.PI*Math.pow(a*b,0.5)).toFixed(3)],
         ]
     });
+    var __eaRatios=[1,0.9,0.8,0.7,0.6,0.5,0.3,0.1];
+    var __eaT=function(t){return a*t;};
+    var __eaScanRows=__eaRatios.map(function(t){
+      var bb=__eaT(t), AA=Math.PI*a*bb;
+      var curRatio=b>0?(b/a):NaN;
+      var cmp;
+      if(isFinite(curRatio)&&Math.abs(t-curRatio)/Math.max(curRatio,1e-9)<0.005) cmp=en?'◀ current axis ratio':'◀ 当前轴比';
+      else cmp=en?('×'+t.toFixed(2)+' of circle area'):('×'+t.toFixed(2)+' 圆面积');
+      return ['b/a = '+t.toFixed(2), +bb.toFixed(3), +AA.toFixed(3), (2*Math.PI*Math.sqrt((a*a+bb*bb)/2)).toFixed(3), cmp];
+    });
+    TBKit.matrix.table('#ellipse_areaScan',{
+        head: en?['Axis ratio b/a','Semi-minor b (m)','Area A (m²)','Perimeter approx (m)','vs circle area']:['轴比 b/a','短半轴 b (m)','面积 A (m²)','周长近似 (m)','与圆面积比'],
+        rows: __eaScanRows
+    });
+    TBKit.chart.line('#ellipse_areaChart',{
+        title: en?'Area vs axis ratio (semi-major axis fixed)':'面积随轴比变化（长半轴固定）',
+        labels: __eaRatios.map(function(t){return t.toFixed(2);}),
+        series: [{ name: en?'Area (m²)':'面积 (m²)', data: __eaRatios.map(function(t){return +(Math.PI*a*a*t).toFixed(3);}) }]
+    });
+    var rEq=Math.sqrt(Math.max(a*b,0));
+    var perEll=2*Math.PI*Math.sqrt((a*a+b*b)/2);
+    var perCirc=2*Math.PI*rEq;
+    TBKit.matrix.table('#ellipse_areaCircle',{
+        head: en?['Shape','Area (m²)','Equivalent radius (m)','Perimeter approx (m)','Perimeter difference vs ellipse (m)']:['形状','面积 (m²)','等效半径 (m)','周长近似 (m)','与椭圆周长差 (m)'],
+        rows: [
+            [en?'Ellipse (current input)':'椭圆（当前输入）', (Math.PI*a*b).toFixed(3), +rEq.toFixed(3), +perEll.toFixed(3), en?'—':'—'],
+            [en?'Equal-area circle':'等面积圆', (Math.PI*rEq*rEq).toFixed(3), +rEq.toFixed(3), +perCirc.toFixed(3), +(perCirc-perEll).toFixed(3)],
+        ]
+    });
     TBKit.history.record({a:__ellipse_areaRaw('a'), b:__ellipse_areaRaw('b')});
     function __ellipse_areaRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#ellipse_areaHist',function(rec){ __ellipse_areaRestore(rec); calcTool(); });
@@ -226,6 +262,14 @@ function __ellipse_areaExtras(){
 function __ellipse_areaExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#ellipse_areaTable','ellipse-area.csv'); } catch(e){}
+}
+function __ellipse_areaExportScan(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ellipse_areaScan','ellipse-area-scan.csv'); } catch(e){}
+}
+function __ellipse_areaExportCircle(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#ellipse_areaCircle','ellipse-area-circle.csv'); } catch(e){}
 }
 function __ellipse_areaPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -240,6 +284,7 @@ calcTool = function(){ __tb_fn0(); try{ __ellipse_areaExtras(); }catch(e){} };
 function __ellipse_areaBoot(){ try{ __ellipse_areaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __ellipse_areaBoot();
 else document.addEventListener('DOMContentLoaded', __ellipse_areaBoot);
+document.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
