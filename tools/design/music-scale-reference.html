@@ -163,6 +163,8 @@ s.parentNode.insertBefore(el, s);
     <div id="notesDisplay" style="text-align:center;font-size:20px;margin:16px 0;word-spacing:8px;font-weight:600;color:var(--primary);"></div>
     <div id="sigInfo" style="padding:14px;background:#f8f9ff;border-radius:8px;font-size:13px;"></div>
     <div id="musicChart" style="margin-top:16px;"></div>
+    <div class="toolbar" style="margin-top:12px;"><button type="button" class="btn" id="msExportCsv" onclick="msExportCsv()">⬇️ 导出音阶 CSV</button></div>
+    <table id="msHidden" style="display:none"><thead><tr><th>Degree</th><th>Note</th><th>Frequency (Hz)</th></tr></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -379,6 +381,29 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+function msExportCsv(){
+  if(typeof TBKit==='undefined'){return;}
+  var en=TBKit.util.isEn();
+  var root=document.getElementById('root').value;
+  var type=document.getElementById('scaleType').value;
+  var rootIdx=notes.indexOf(root);
+  var pattern=scales[type];
+  if(!pattern||rootIdx<0){return;}
+  var tbody=document.querySelector('#msHidden tbody'); if(!tbody){return;}
+  tbody.innerHTML='';
+  pattern.forEach(function(i,idx){
+    var note=notes[(rootIdx+i)%12];
+    var pc=notes.indexOf(note);
+    var midi=60+pc;
+    var freq=440*Math.pow(2,(midi-69)/12);
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(idx+1)+'</td><td>'+note+'</td><td>'+(Math.round(freq*10)/10)+'</td>';
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#msHidden', en?'music-scale.csv':'音阶参考.csv');
+}
 </script>
 </body>
 </html>
