@@ -163,7 +163,9 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn danger" onclick="undoLast()">撤销上次</button>
       <button type="button" class="btn" onclick="clearToday()">清空今日</button>
+      <button type="button" class="btn" id="wrExportCsv" onclick="wrExportCsv()">⬇️ 导出饮水记录 CSV</button>
     </div>
+    <table id="wrHidden" style="display:none;"><thead><tr><th>Date</th><th>Time</th><th>Amount (ml)</th></tr></thead><tbody></tbody></table>
     <div class="preset-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;align-items:center;">
       <span style="font-size:13px;color:var(--text-muted);">常见场景预设：</span>
       <button type="button" class="btn ghost" onclick="applyWaterPreset('office')">办公</button>
@@ -493,6 +495,28 @@ document.addEventListener('DOMContentLoaded',function(){
   var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});});
 });
+</script>
+<script>
+function wrExportCsv(){
+  if (typeof TBKit === 'undefined') return;
+  var en = TBKit.util.isEn();
+  var tbody = document.querySelector('#wrHidden tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  if (typeof records === 'undefined' || !records) return;
+  var dates = Object.keys(records).sort();
+  for (var d = 0; d < dates.length; d++){
+    var rec = records[dates[d]];
+    if (!rec || !rec.logs) continue;
+    for (var i = 0; i < rec.logs.length; i++){
+      var lg = rec.logs[i];
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + dates[d] + '</td><td>' + (lg.t || '') + '</td><td>' + (lg.ml || 0) + '</td>';
+      tbody.appendChild(tr);
+    }
+  }
+  TBKit.util.exportTable('#wrHidden', en ? 'hydration-log.csv' : '饮水记录.csv');
+}
 </script>
 </body>
 </html>
