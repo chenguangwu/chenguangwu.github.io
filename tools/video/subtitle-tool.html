@@ -163,6 +163,7 @@ s.parentNode.insertBefore(el, s);
       </div>
 
       <div class="subtitle-list" id="sub-list"></div>
+      <div id="subChart" style="margin-top:14px;"></div>
 
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="exportSRT()">⬇ 导出 SRT</button>
@@ -330,6 +331,7 @@ function renderSubs() {
     </div>
   `).join('');
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('sub-list').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sub-list').innerHTML=__h0;
+  try { __subChart(); } catch (e) {}
 }
 
 function escapeHtml(s) {
@@ -348,6 +350,34 @@ function exportVTT() {
   ToolBox.downloadText(text, `subtitles-${Date.now()}.vtt`);
 }
 
+function __subChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var host = document.getElementById('subChart');
+  if (!host) return;
+  if (!subtitles || subtitles.length === 0) { host.innerHTML = ''; return; }
+  var en = TBKit.util.isEn();
+  var labels = [], data = [];
+  subtitles.forEach(function (s) {
+    labels.push((en ? '#' : '第') + s.index + (en ? '' : '条'));
+    data.push(Math.max(0, Math.round((s.end - s.start) / 100) / 10));
+  });
+  TBKit.chart.bar('#subChart', {
+    title: en ? 'Each subtitle duration (seconds)' : '各条字幕时长（秒）',
+    labels: labels,
+    series: [{ name: en ? 's' : '秒', data: data }]
+  });
+}
+function __subInit() {
+  var ta = document.getElementById('srt-input');
+  if (ta && !ta.value.trim()) { try { loadSample(); } catch (e) {} }
+  try { __subChart(); } catch (e) {}
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', __subInit);
+} else {
+  __subInit();
+}
+window.addEventListener('toolbox:langchange', function () { try { __subChart(); } catch (e) {} });
 ToolBox.initToolTheme();
 </script><script>
 // tool-intro折叠交互

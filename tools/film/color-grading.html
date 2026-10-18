@@ -151,6 +151,7 @@ s.parentNode.insertBefore(el, s);
 
     <h3>常见 LUT 类型对照</h3>
     <div id="lutTable"></div>
+    <div id="cgChart" style="margin-top:14px;"></div>
 
     <h3 style="margin-top:20px;">色彩空间参考</h3>
     <div id="csTable"></div>
@@ -281,7 +282,32 @@ function filterData() {
     tr.style.display = (matchKw && matchFilter) ? '' : 'none';
   });
 }
+function __cgChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) return;
+  var host = document.getElementById('cgChart');
+  if (!host) return;
+  if (typeof lutData === 'undefined' || !lutData.length) { host.innerHTML = ''; return; }
+  var en = TBKit.util.isEn();
+  var map = {};
+  lutData.forEach(function (row) {
+    var t = row[2] || '其他';
+    map[t] = (map[t] || 0) + 1;
+  });
+  var labels = [], data = [];
+  Object.keys(map).forEach(function (k) {
+    labels.push(en ? (cgTypeEn[k] || k) : k);
+    data.push(map[k]);
+  });
+  TBKit.chart.bar('#cgChart', {
+    title: en ? 'LUT count by type' : '各类型 LUT 数量',
+    labels: labels,
+    series: [{ name: en ? 'count' : '数量', data: data }]
+  });
+}
+var cgTypeEn = { '技术': 'Technical', '创意': 'Creative', '监视器': 'Monitor' };
+window.addEventListener('toolbox:langchange', function () { try { __cgChart(); } catch (e) {} });
 filterData();
+__cgChart();
 </script>
 
 <!-- SEO 介绍区块 -->

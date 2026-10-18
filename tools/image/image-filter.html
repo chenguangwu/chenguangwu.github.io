@@ -160,6 +160,8 @@ s.parentNode.insertBefore(el, s);
       <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
     </div>
 
+    <div id="imgfChart" style="margin-top:14px;"></div>
+
     <div id="controls" style="display:none;">
       <h3>预设滤镜</h3>
       <div class="filter-grid" id="preset-grid"></div>
@@ -308,6 +310,7 @@ function applyFilter() {
   document.getElementById('preview-img').style.filter = filter;
   currentFilter = filter;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  try { __imgfChart(); } catch (e) {}
 }
 
 function resetFilter() {
@@ -346,6 +349,40 @@ dz.addEventListener('drop', e => {
   if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
 });
 
+function __imgfChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) return;
+  var host = document.getElementById('imgfChart');
+  if (!host) return;
+  var en = TBKit.util.isEn();
+  var defs = [
+    ['brightness', '亮度', 'Brightness'],
+    ['contrast', '对比度', 'Contrast'],
+    ['saturate', '饱和度', 'Saturation'],
+    ['grayscale', '灰度', 'Grayscale'],
+    ['sepia', '褐度', 'Sepia'],
+    ['invert', '反色', 'Invert']
+  ];
+  var labels = [], data = [];
+  for (var i = 0; i < defs.length; i++) {
+    var el = document.getElementById(defs[i][0]);
+    labels.push(en ? defs[i][2] : defs[i][1]);
+    data.push(el ? (+el.value || 0) : 0);
+  }
+  TBKit.chart.bar('#imgfChart', {
+    title: en ? 'Current filter intensity (%)' : '当前滤镜参数强度（%）',
+    labels: labels,
+    series: [{ name: en ? '%' : '%', data: data }]
+  });
+}
+function __imgfInit() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { try { __imgfChart(); } catch (e) {} });
+  } else {
+    try { __imgfChart(); } catch (e) {}
+  }
+}
+__imgfInit();
+window.addEventListener('toolbox:langchange', function () { try { __imgfChart(); } catch (e) {} });
 ToolBox.initToolTheme();
 </script><script>
 // tool-intro折叠交互
