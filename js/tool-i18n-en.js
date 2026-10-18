@@ -24,6 +24,7 @@ window.__TI18N_EN = {
 '导出膳食纤维结果 CSV':'Export Dietary Fiber Result CSV',
 '导出听力图数据 CSV':'Export Audiogram Data CSV',
 '导出对比度 CSV':'Export Contrast CSV',
+'导出色差矩阵 CSV':'Export Delta E Matrix CSV',
 '导出色相排列 CSV':'Export Hue Arrangement CSV',
 '导出学员满意度结果 CSV':'Export Student Satisfaction Result CSV',
 '导出口味偏好结果 CSV':'Export Taste Preference Result CSV','导出模拟结果 CSV':'Export Simulation Result CSV',

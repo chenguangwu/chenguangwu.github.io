@@ -231,7 +231,9 @@ s.parentNode.insertBefore(el, s);
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
       <button class="btn" id="pcExport">导出分析报告 JSON</button>
       <button class="btn" id="pcCopy">复制当前配色</button>
+      <button class="btn" id="pcExportCsv">⬇️ 导出色差矩阵 CSV</button>
     </div>
+    <table id="pcHidden" style="display:none"><thead><tr><th>Color A</th><th>Color B</th><th>Channel</th><th>Delta E</th><th>Confusing</th></tr></thead><tbody></tbody></table>
 
     <div class="pc-note"><span>使用边界说明：</span><span>本工具是设计与自查辅助工具，所有模拟结果来自色彩科学模型的数学推算，</span><b>不等同于医学诊断</b><span>，也不能替代专业色觉检查（石原色盲检测图、Farnsworth D-15 排列测试）。模型的已知局限：色弱严重度采用线性插值，与真实光谱响应存在偏差；不同显示器色域与亮度也会影响观感；提出的修正建议是启发式起点，请结合实际用途复核。</span></div>
   </div>
@@ -721,6 +723,30 @@ s.parentNode.insertBefore(el, s);
   $('pcCopy').addEventListener('click', function () {
     if (!S.colors.length) { toast(B('请先解析配色', 'Please parse a palette first')); return; }
     copyText(S.colors.map(function (c) { return rgbToHex(c[0], c[1], c[2]); }).join(', '));
+  });
+  $('pcExportCsv').addEventListener('click', function () {
+    if (typeof TBKit === 'undefined') { return; }
+    if (!S.colors.length) { toast(B('请先解析配色', 'Please parse a palette first')); return; }
+    var en = TBKit.util.isEn();
+    var tbody = document.querySelector('#pcHidden tbody');
+    if (!tbody) { return; }
+    tbody.innerHTML = '';
+    var metric = S.metric, list = S.colors;
+    for (var i = 0; i < list.length; i++) {
+      for (var j = i + 1; j < list.length; j++) {
+        var ha = rgbToHex(list[i][0], list[i][1], list[i][2]);
+        var hb = rgbToHex(list[j][0], list[j][1], list[j][2]);
+        for (var v = 0; v < VISION.length; v++) {
+          var t = VISION[v];
+          var d = distFor(metric, rgbToLab(simulate(list[i], t.key)), rgbToLab(simulate(list[j], t.key)));
+          var conf = d < 10 ? (en ? 'Yes' : '是') : (en ? 'No' : '否');
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + ha + '</td><td>' + hb + '</td><td>' + (en ? t.en : t.zh) + '</td><td>' + d.toFixed(1) + '</td><td>' + conf + '</td>';
+          tbody.appendChild(tr);
+        }
+      }
+    }
+    TBKit.util.exportTable('#pcHidden', en ? 'palette-cvd-matrix.csv' : '色差矩阵.csv');
   });
 
   function downloadBlob(data, filename, mime) {
