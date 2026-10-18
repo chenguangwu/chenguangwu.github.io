@@ -595,6 +595,25 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn danger" onclick="clearAll()">🗑️ 清除全部</button>
     </div>
 
+    <!-- 常用场景预设（功能增强） -->
+    <div class="toolbar" style="margin:8px 0;">
+      <span style="font-size:13px;color:var(--text-muted);">常用场景预设：</span>
+      <button type="button" class="btn" onclick="__ifcPreset('web')">🌐 网页优化</button>
+      <button type="button" class="btn" onclick="__ifcPreset('thumb')">🖼️ 缩略图 300px</button>
+      <button type="button" class="btn" onclick="__ifcPreset('avatar')">👤 头像 200px</button>
+      <button type="button" class="btn" onclick="__ifcPreset('hd')">💎 高清保留</button>
+    </div>
+
+    <!-- 转换汇总（功能增强） -->
+    <div class="panel" style="margin-top:14px;">
+      <h3 style="font-size:14px;margin:0 0 8px;">📊 转换汇总</h3>
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__ifcExport()">导出转换汇总 CSV</button>
+      </div>
+      <div id="__ifcChart" style="margin:8px 0;"></div>
+      <div id="__ifcTable"></div>
+    </div>
+
     <!-- 转换结果对比 -->
     <div class="preview-section" id="previewSection" style="display:none;">
       <h3 style="margin-bottom:12px;">转换结果</h3>
@@ -1193,6 +1212,132 @@ s.parentNode.insertBefore(el, s);
     var map = { png: 'PNG', jpeg: 'JPEG', webp: 'WEBP', bmp: 'BMP' };
     return map[format] || format;
   }
+
+  // ============================================================
+  // 场景预设 + 转换汇总（功能增强）
+  // ============================================================
+  function __ifcEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function __ifcT(zh,en){ return __ifcEn()?en:zh; }
+  function __ifcEsc(s){ return String(s==null?'':s).replace(/[&<>]/g,function(x){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[x]; }); }
+
+  var __IFC_PRESETS = {
+    web:    { format:'webp', quality:80,  sizeMode:'original' },
+    thumb:  { format:'jpeg', quality:85,  sizeMode:'custom', w:300, h:300 },
+    avatar: { format:'png',  quality:90,  sizeMode:'custom', w:200, h:200 },
+    hd:     { format:'png',  quality:100, sizeMode:'original' }
+  };
+
+  window.__ifcPreset = function(kind) {
+    var p = __IFC_PRESETS[kind];
+    if (!p) return;
+    if (typeof window.selectFormat === 'function') window.selectFormat(p.format);
+    var qs = document.getElementById('qualitySlider');
+    if (qs) qs.value = p.quality;
+    if (typeof window.updateQualityLabel === 'function') window.updateQualityLabel();
+    var radio = document.querySelector('input[name="sizeMode"][value="' + p.sizeMode + '"]');
+    if (radio) radio.checked = true;
+    if (typeof window.updateSizeMode === 'function') window.updateSizeMode();
+    if (p.sizeMode === 'custom') {
+      var cw = document.getElementById('customWidth');
+      var ch = document.getElementById('customHeight');
+      if (cw) cw.value = p.w;
+      if (ch) ch.value = p.h;
+    }
+    try { __ifcRenderSummary(); } catch(e) {}
+  };
+
+  function __ifcSummaryData() {
+    var rows = [];
+    state.files.forEach(function(item, idx) {
+      var r = state.results[idx];
+      rows.push({
+        name: item.name,
+        orig: item.origSize,
+        conv: r ? r.size : 0,
+        done: !!r,
+        fmt: state.targetFormat
+      });
+    });
+    return { rows: rows };
+  }
+
+  function __ifcFmtBytes(b) {
+    if (!b) return '0 B';
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(2) + ' MB';
+  }
+
+  function __ifcRenderSummary() {
+    var box = document.getElementById('__ifcTable');
+    if (!box) return;
+    var d = __ifcSummaryData();
+    if (!d.rows.length) {
+      box.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">' + __ifcT('上传图片并转换后，这里显示体积对比与压缩率。','Upload images and convert to see size comparison here.') + '</p>';
+      var ch0 = document.getElementById('__ifcChart');
+      if (ch0) ch0.innerHTML = '';
+      return;
+    }
+    var head = [__ifcT('文件','File'), __ifcT('原始大小','Original'), __ifcT('转换后','Converted'), __ifcT('压缩率','Saved'), __ifcT('输出格式','Format')];
+    var h = '<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>' + head.map(function(c){ return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+    d.rows.forEach(function(r) {
+      var saved = (r.done && r.orig > 0) ? (1 - r.conv / r.orig) * 100 : null;
+      var savedTxt = saved == null ? '—' : (saved >= 0 ? '-' : '+') + Math.abs(saved).toFixed(1) + '%';
+      h += '<tr><td>' + __ifcEsc(r.name) + '</td><td>' + __ifcFmtBytes(r.orig) + '</td><td>' + (r.done ? __ifcFmtBytes(r.conv) : '—') + '</td><td>' + savedTxt + '</td><td>' + __ifcEsc(getFormatName(r.fmt)) + '</td></tr>';
+    });
+    box.innerHTML = h + '</tbody></table></div>';
+    __ifcRenderChart(d);
+  }
+
+  function __ifcRenderChart(d) {
+    var host = document.getElementById('__ifcChart');
+    if (!host) return;
+    if (typeof TBKit === 'undefined' || !TBKit.chart || !TBKit.chart.bar) { host.innerHTML = ''; return; }
+    if (!d.rows.length) { host.innerHTML = ''; return; }
+    var labels = [], orig = [], conv = [];
+    d.rows.slice(0, 20).forEach(function(r) {
+      var nm = r.name.length > 8 ? r.name.slice(0, 8) + '…' : r.name;
+      labels.push(nm);
+      orig.push(+(r.orig / 1024).toFixed(1));
+      conv.push(r.done ? +(r.conv / 1024).toFixed(1) : 0);
+    });
+    host.innerHTML = '';
+    TBKit.chart.bar(host, {
+      labels: labels,
+      series: [
+        { name: __ifcT('原始 (KB)','Original (KB)'), data: orig },
+        { name: __ifcT('转换后 (KB)','Converted (KB)'), data: conv }
+      ],
+      height: 220
+    });
+  }
+
+  window.__ifcExport = function() {
+    if (typeof TBKit === 'undefined' || !TBKit.util || !TBKit.util.exportTable) return;
+    TBKit.util.exportTable('__ifcTable', 'image-convert-summary.csv');
+  };
+
+  var __ifcOC0 = onConverted;
+  onConverted = function(idx, item, blob, format) {
+    __ifcOC0(idx, item, blob, format);
+    try { __ifcRenderSummary(); } catch(e) {}
+  };
+
+  var __ifcSF0 = window.selectFormat;
+  window.selectFormat = function(format) {
+    __ifcSF0(format);
+    try { __ifcRenderSummary(); } catch(e) {}
+  };
+
+  var __ifcClear0 = window.clearAll;
+  window.clearAll = function() {
+    __ifcClear0();
+    try { __ifcRenderSummary(); } catch(e) {}
+  };
+
+  document.addEventListener('toolbox:langchange', function() {
+    try { __ifcRenderSummary(); } catch(e) {}
+  });
 
   // 初始化
   selectFormat('png');
