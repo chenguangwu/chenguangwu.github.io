@@ -142,10 +142,18 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__quick_ratioExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__quick_ratioExportBench()">导出行业参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="quick_ratioTable"></div>
+    <h3 style="margin:14px 0 8px;">🧱 流动性构成</h3>
+    <div id="quick_ratioChart"></div>
+    <h3 style="margin:14px 0 8px;">🎯 达标缺口分析（目标速动比率 1.0）</h3>
+    <div id="quick_ratioGap"></div>
+    <div id="quick_ratioGauge"></div>
+    <h3 style="margin:14px 0 8px;">🏭 行业参考区间对比</h3>
+    <div id="quick_ratioBench"></div>
     <div id="quick_ratioDiff"></div>
     <div id="quick_ratioHist"></div>
 
@@ -315,6 +323,52 @@ function __quick_ratioExtras(){
             ['存货占流动资产比 (%)', (inv/ca*100).toFixed(2)],
         ]
     });
+    // 流动性构成图：速动资产 vs 存货 vs 流动负债
+    var __qrQuick=Math.max(0,ca-inv);
+    TBKit.chart.bar('#quick_ratioChart',{
+        title: en?'Liquidity composition (CNY)':'流动性构成（元）',
+        labels: en?['Quick assets','Inventory','Current liabilities']:['速动资产','存货','流动负债'],
+        series: [{ name: en?'Amount (CNY)':'金额（元）', data: [+__qrQuick.toFixed(2), +inv.toFixed(2), +cl.toFixed(2)] }]
+    });
+    // 达标缺口分析（目标速动比率 = 1.0）
+    var __qrRatio=(ca-inv)/cl;
+    var __qrNeed=cl*1-__qrQuick;
+    var __qrGap=document.getElementById('quick_ratioGap');
+    if(__qrGap){
+        var __qrHtml;
+        if(__qrNeed>0){
+            __qrHtml='<div class="tip-box tip-warning" style="margin:0;"><strong>'+(en?'Shortfall ':'缺口 ')+__qrNeed.toFixed(2)+(en?' CNY':' 元')+'</strong><div style="margin-top:6px;font-size:13px;line-height:1.7;">'+(en?'To reach a quick ratio of 1.0, add quick assets of '+__qrNeed.toFixed(2)+' CNY (cash, receivables, short-term investments) or reduce current liabilities by the same amount.':'欲使速动比率达到 1.0，需增加速动资产（货币资金、应收款项、短期投资）'+__qrNeed.toFixed(2)+' 元，或减少等额流动负债。')+'</div></div>';
+        }else{
+            __qrHtml='<div class="tip-box tip-success" style="margin:0;"><strong>'+(en?'Target met':'已达标')+'</strong><div style="margin-top:6px;font-size:13px;line-height:1.7;">'+(en?'Quick assets exceed current liabilities by '+Math.abs(__qrNeed).toFixed(2)+' CNY, i.e. a buffer of '+Math.abs(__qrNeed).toFixed(2)+' CNY above the 1.0 target.':'速动资产超出流动负债 '+Math.abs(__qrNeed).toFixed(2)+' 元，即在 1.0 目标线之上还有 '+Math.abs(__qrNeed).toFixed(2)+' 元安全垫。')+'</div></div>';
+        }
+        __qrGap.innerHTML=__qrHtml;
+    }
+    var __qrColor=__qrRatio<0.8?'#ef4444':(__qrRatio<1?'#f59e0b':(__qrRatio<1.5?'#22c55e':'#3b82f6'));
+    TBKit.chart.gauge('#quick_ratioGauge',{
+        title: en?'Quick ratio (gauge)':'速动比率（仪表）',
+        value: +__qrRatio.toFixed(2), min: 0, max: 2.5,
+        color: __qrColor, label: __qrRatio>=1?(en?'Meets 1.0 target':'达到 1.0 目标线'):(en?'Below 1.0 target':'低于 1.0 目标线')
+    });
+    // 行业参考区间
+    var __qrBench=[
+        ['互联网/科技','Internet / tech',1.5,2.5],
+        ['医药生物','Pharma & biotech',1.0,1.5],
+        ['制造业','Manufacturing',0.8,1.2],
+        ['公用事业','Utilities',0.6,1.0],
+        ['零售/贸易','Retail / trading',0.5,0.8],
+        ['房地产','Real estate',0.3,0.6],
+    ];
+    var __qrBenchRows=__qrBench.map(function(b){
+        var cmp;
+        if(__qrRatio<b[2]) cmp=(en?'Below range by ':'低于区间 ')+(b[2]-__qrRatio).toFixed(2);
+        else if(__qrRatio>b[3]) cmp=(en?'Above range by ':'高于区间 ')+(__qrRatio-b[3]).toFixed(2);
+        else cmp=en?'Within typical range':'处于典型区间';
+        return [en?b[1]:b[0], b[2].toFixed(1)+' – '+b[3].toFixed(1), cmp];
+    });
+    TBKit.matrix.table('#quick_ratioBench',{
+        head: en?['Industry','Typical range','Current position']:['行业','典型区间','当前值定位'],
+        rows: __qrBenchRows
+    });
     TBKit.history.record({ca:__quick_ratioRaw('ca'), inv:__quick_ratioRaw('inv'), cl:__quick_ratioRaw('cl')});
     function __quick_ratioRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#quick_ratioHist',function(rec){ __quick_ratioRestore(rec); calcTool(); });
@@ -322,6 +376,10 @@ function __quick_ratioExtras(){
 function __quick_ratioExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#quick_ratioTable','quick-ratio.csv'); } catch(e){}
+}
+function __quick_ratioExportBench(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#quick_ratioBench','quick-ratio-benchmark.csv'); } catch(e){}
 }
 function __quick_ratioPresets(){
     if (typeof TBKit === 'undefined') return;

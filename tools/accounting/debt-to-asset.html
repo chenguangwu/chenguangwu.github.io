@@ -138,10 +138,16 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__debt_to_assetExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__debt_to_assetExportBench()">导出行业参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="debt_to_assetTable"></div>
+    <h3 style="margin:14px 0 8px;">⚠️ 杠杆风险分级</h3>
+    <div id="debt_to_assetRisk"></div>
+    <div id="debt_to_assetGauge"></div>
+    <h3 style="margin:14px 0 8px;">🏭 行业参考区间对比</h3>
+    <div id="debt_to_assetBench"></div>
     <div id="debt_to_assetDiff"></div>
     <div id="debt_to_assetHist"></div>
 
@@ -310,6 +316,44 @@ function __debt_to_assetExtras(){
             ['所有者权益 (元)', (ta-tl).toFixed(2)],
         ]
     });
+    // 杠杆风险分级（阈值参考财考通用口径）
+    var __dtaRatio=tl/ta*100;
+    var __dtaLv, __dtaCls, __dtaAdvice;
+    if(__dtaRatio<40){ __dtaLv=en?'Low leverage':'低杠杆'; __dtaCls='tip-success'; __dtaAdvice=en?'Capital structure is conservative with strong debt-servicing capacity; suitable for expansion financing when opportunities arise.':'资本结构保守，偿债能力强；出现优质投资机会时可适度增加负债提升股东回报。'; }
+    else if(__dtaRatio<60){ __dtaLv=en?'Moderate':'适中'; __dtaCls='tip-info'; __dtaAdvice=en?'Leverage is within the common range; keep monitoring interest coverage and short-term debt maturity structure.':'杠杆处于常见区间；持续监控利息保障倍数与短期债务到期结构。'; }
+    else if(__dtaRatio<70){ __dtaLv=en?'Elevated':'偏高'; __dtaCls='tip-warning'; __dtaAdvice=en?'Financial flexibility is narrowing; control new borrowing and strengthen cash-flow forecasting.':'财务弹性收窄；宜控制新增借款并加强现金流预测。'; }
+    else { __dtaLv=en?'High risk':'高风险'; __dtaCls='tip-danger'; __dtaAdvice=en?'Above the common alert line of 70%; refinancing and solvency pressure increase. Consider deleveraging.':'已超过 70% 常用警戒线，再融资与偿债压力上升，宜考虑去杠杆。'; }
+    var __dtaRisk=document.getElementById('debt_to_assetRisk');
+    if(__dtaRisk){
+        __dtaRisk.innerHTML='<div class="tip-box '+__dtaCls+'" style="margin:0;"><strong>'+__dtaRatio.toFixed(2)+'% · '+__dtaLv+'</strong><div style="margin-top:6px;font-size:13px;line-height:1.7;">'+__dtaAdvice+'</div></div>';
+    }
+    var __dtaColor=__dtaRatio<40?'#22c55e':(__dtaRatio<60?'#3b82f6':(__dtaRatio<70?'#f59e0b':'#ef4444'));
+    TBKit.chart.gauge('#debt_to_assetGauge',{
+        title: en?'Debt-to-asset ratio (risk scale)':'资产负债率（风险刻度）',
+        value: +__dtaRatio.toFixed(2), min: 0, max: 100,
+        color: __dtaColor, label: __dtaLv
+    });
+    // 行业参考区间（典型值区间，用于横向定位）
+    var __dtaBench=[
+        ['银行/保险','Banking / insurance',88,95],
+        ['房地产','Real estate',70,80],
+        ['公用事业','Utilities',55,70],
+        ['制造业','Manufacturing',40,60],
+        ['零售/贸易','Retail / trading',50,65],
+        ['医药生物','Pharma & biotech',35,50],
+        ['互联网/科技','Internet / tech',20,40],
+    ];
+    var __dtaBenchRows=__dtaBench.map(function(b){
+        var cmp;
+        if(__dtaRatio<b[2]) cmp=(en?'Below range by ':'低于区间 ')+(b[2]-__dtaRatio).toFixed(2)+' pt';
+        else if(__dtaRatio>b[3]) cmp=(en?'Above range by ':'高于区间 ')+(__dtaRatio-b[3]).toFixed(2)+' pt';
+        else cmp=en?'Within typical range':'处于典型区间';
+        return [en?b[1]:b[0], b[2]+'% – '+b[3]+'%', cmp];
+    });
+    TBKit.matrix.table('#debt_to_assetBench',{
+        head: en?['Industry','Typical range','Current position']:['行业','典型区间','当前值定位'],
+        rows: __dtaBenchRows
+    });
     TBKit.history.record({tl:__debt_to_assetRaw('tl'), ta:__debt_to_assetRaw('ta')});
     function __debt_to_assetRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#debt_to_assetHist',function(rec){ __debt_to_assetRestore(rec); calcTool(); });
@@ -317,6 +361,10 @@ function __debt_to_assetExtras(){
 function __debt_to_assetExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#debt_to_assetTable','debt-to-asset.csv'); } catch(e){}
+}
+function __debt_to_assetExportBench(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#debt_to_assetBench','debt-to-asset-benchmark.csv'); } catch(e){}
 }
 function __debt_to_assetPresets(){
     if (typeof TBKit === 'undefined') return;

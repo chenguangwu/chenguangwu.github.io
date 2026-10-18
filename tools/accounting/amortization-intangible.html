@@ -142,10 +142,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__amortization_intangibleExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__amortization_intangibleExportSched()">导出摊销计划 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="amortization_intangibleTable"></div>
+    <h3 style="margin:14px 0 8px;">📉 账面净值与累计摊销趋势</h3>
+    <div id="amortization_intangibleChart"></div>
+    <h3 style="margin:14px 0 8px;">📅 逐年摊销计划</h3>
+    <div id="amortization_intangibleSched"></div>
     <div id="amortization_intangibleDiff"></div>
     <div id="amortization_intangibleHist"></div>
 
@@ -316,6 +321,27 @@ function __amortization_intangibleExtras(){
             ['年摊销率 (%)', ((c-s)/(n||1)/c*100).toFixed(2)],
         ]
     });
+    // 逐年摊销计划（直线法：每年等额，净值线性下降至残值）
+    var __aiRows=[], __aiNbv=[], __aiAcc=[];
+    var __aiYear=((c-s)/n), __aiYears=Math.max(1,Math.round(n));
+    for(var y=1;y<=__aiYears;y++){
+        var __aiAmort=(y===__aiYears)?(c-s-__aiYear*(__aiYears-1)):__aiYear;
+        var __aiAccV=(y===__aiYears)?(c-s):__aiYear*y;
+        __aiRows.push([y+'', __aiAmort.toFixed(2), __aiAccV.toFixed(2), (c-__aiAccV).toFixed(2)]);
+        __aiNbv.push(+(c-__aiAccV).toFixed(2)); __aiAcc.push(+__aiAccV.toFixed(2));
+    }
+    TBKit.matrix.table('#amortization_intangibleSched',{
+        head: en?['Year','Annual Amortization','Accumulated','Net Book Value']:['年度','年摊销额 (元)','累计摊销 (元)','期末账面净值 (元)'],
+        rows: __aiRows
+    });
+    TBKit.chart.line('#amortization_intangibleChart',{
+        title: en?'Net book value & accumulated amortization by year':'账面净值与累计摊销（按年）',
+        labels: __aiRows.map(function(r){return r[0];}),
+        series: [
+            {name: en?'Net book value':'账面净值 (元)', data: __aiNbv},
+            {name: en?'Accumulated amortization':'累计摊销 (元)', data: __aiAcc}
+        ]
+    });
     TBKit.history.record({c:__amortization_intangibleRaw('c'), s:__amortization_intangibleRaw('s'), n:__amortization_intangibleRaw('n')});
     function __amortization_intangibleRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#amortization_intangibleHist',function(rec){ __amortization_intangibleRestore(rec); calcTool(); });
@@ -323,6 +349,10 @@ function __amortization_intangibleExtras(){
 function __amortization_intangibleExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#amortization_intangibleTable','amortization-intangible.csv'); } catch(e){}
+}
+function __amortization_intangibleExportSched(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#amortization_intangibleSched','amortization-schedule.csv'); } catch(e){}
 }
 function __amortization_intangiblePresets(){
     if (typeof TBKit === 'undefined') return;
