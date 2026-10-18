@@ -258,6 +258,7 @@ s.parentNode.insertBefore(el, s);
     <div class="history">
       <h3>📜 历史记录</h3>
       <div id="historyList"><div class="history-empty">还没有记录，开始第一个番茄吧！</div></div>
+      <div id="pmChart" style="margin-top:12px;"></div>
     </div>
   </div>
 
@@ -351,10 +352,26 @@ function saveStats(){
   localStorage.setItem('pomodoro-stats', JSON.stringify(todayStats));
 }
 
+function __pmChart(){
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var host = document.getElementById('pmChart');
+  if (!host) { return; }
+  var en = TBKit.util.isEn();
+  var labels = en ? ['Focus', 'Short break', 'Long break'] : ['专注', '短休', '长休'];
+  var data = [durations.focus, durations.short, durations.long];
+  if (!data.every(function(v){ return typeof v === 'number' && isFinite(v) && v > 0; })) { host.innerHTML = ''; return; }
+  TBKit.chart.bar('#pmChart', {
+    title: en ? 'Duration by timer mode (minutes)' : '各计时模式时长（分钟）',
+    labels: labels,
+    series: [{ name: en ? 'Minutes' : '分钟', data: data }]
+  });
+}
+
 function renderStats(){
   document.getElementById('focusCount').textContent = todayStats.focusCount;
   document.getElementById('focusTime').textContent = todayStats.focusTime;
   document.getElementById('totalCount').textContent = todayStats.totalCount;
+  try { __pmChart(); } catch(e){}
   
   const list = document.getElementById('historyList');
   if(todayStats.history.length === 0){
@@ -523,6 +540,8 @@ function playSound(){
 
 loadStats();
 updateDisplay();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__pmChart();}catch(e){}});}else{try{__pmChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__pmChart();}catch(e){}});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

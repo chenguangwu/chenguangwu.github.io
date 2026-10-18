@@ -248,6 +248,7 @@ s.parentNode.insertBefore(el, s);
     <div id="tab-holidays" class="tab-content">
       <h3>节日倒计时</h3>
       <div id="holidays-list"></div>
+      <div id="cdChart" style="margin-top:12px;"></div>
     </div>
   </div>
 
@@ -474,10 +475,7 @@ function addPreset(name, month, day, isLunar = false) {
   ToolBox.showToast(`已添加${name}倒计时`, 'success');
 }
 
-function renderHolidays() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const holidays = [
+const HOLIDAYS = [
     { name: '元旦', month: 1, day: 1, icon: '🎆' },
     { name: '情人节', month: 2, day: 14, icon: '💝' },
     { name: '妇女节', month: 3, day: 8, icon: '👩' },
@@ -492,9 +490,38 @@ function renderHolidays() {
     { name: '感恩节', month: 11, day: 27, icon: '🦃' },
     { name: '平安夜', month: 12, day: 24, icon: '🍎' },
     { name: '圣诞节', month: 12, day: 25, icon: '🎄' },
-  ];
-  
-  const __h2=holidays.map(h => {
+];
+
+function __cdChart(){
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  const host = document.getElementById('cdChart');
+  if (!host) { return; }
+  const now = new Date();
+  const year = now.getFullYear();
+  const en = TBKit.util.isEn();
+  const EN_NAMES = {
+    '元旦':'New Year','情人节':'Valentine','妇女节':"Women's Day",'劳动节':'Labor Day',
+    '青年节':'Youth Day','儿童节':"Children's Day",'建党节':'Party Day','建军节':'Army Day',
+    '教师节':'Teachers Day','国庆节':'National Day','万圣节':'Halloween','感恩节':'Thanksgiving',
+    '平安夜':'Christmas Eve','圣诞节':'Christmas'
+  };
+  const items = HOLIDAYS.map(function(h){
+    let target = new Date(year, h.month - 1, h.day);
+    if (target < now) target = new Date(year + 1, h.month - 1, h.day);
+    const days = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+    return { name: h.name, en: EN_NAMES[h.name] || h.name, days: days };
+  }).sort(function(a, b){ return a.days - b.days; }).slice(0, 12);
+  TBKit.chart.bar('#cdChart', {
+    title: en ? 'Days remaining until upcoming holidays' : '近期节假日倒计时（天）',
+    labels: items.map(function(i){ return en ? i.en : i.name; }),
+    series: [{ name: en ? 'Days' : '天', data: items.map(function(i){ return i.days; }) }]
+  });
+}
+
+function renderHolidays() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const __h2=HOLIDAYS.map(h => {
     let target = new Date(year, h.month - 1, h.day);
     if (target < now) target = new Date(year + 1, h.month - 1, h.day);
     const days = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
@@ -505,6 +532,7 @@ function renderHolidays() {
       <div class="event-countdown">${isToday ? '就是今天！🎉' : `还有 <strong>${days}</strong> 天`}</div>
     </div>`;
   }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('holidays-list').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('holidays-list').innerHTML=__h2;
+  try { __cdChart(); } catch(e){}
 }
 
 setInterval(() => {
@@ -514,6 +542,8 @@ setInterval(() => {
 
 renderEvents();
 updateTimerDisplay();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__cdChart();}catch(e){}});}else{try{__cdChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__cdChart();}catch(e){}});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

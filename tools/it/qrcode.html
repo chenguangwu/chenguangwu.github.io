@@ -249,6 +249,7 @@ s.parentNode.insertBefore(el, s);
     <div class="card qr-panel qr-preview">
       <h3>🔍 预览与下载</h3>
       <div id="qrcode"><p style="color:#999;">输入内容后自动生成</p></div>
+      <div id="qrChart" style="margin-top:12px;"></div>
       <div class="toolbar" style="margin-top:16px;margin-bottom:0;justify-content:center;">
         <button type="button" class="btn" onclick="downloadQR()">下载 PNG</button>
         <button type="button" class="btn" onclick="downloadSVG()">下载 SVG</button>
@@ -327,13 +328,58 @@ function applyTemplate() {
   generate();
 }
 
+// QR 字节模式容量表（版本 1-10 × 纠错级别 L/M/Q/H），用于估算所需最小版本
+var QR_BYTE_CAP = {
+  L: [17, 32, 53, 78, 106, 134, 154, 192, 230, 271],
+  M: [14, 26, 42, 62, 84, 106, 122, 152, 180, 213],
+  Q: [11, 20, 32, 46, 60, 74, 86, 108, 130, 151],
+  H: [7, 14, 24, 34, 44, 58, 64, 84, 98, 119]
+};
+function __qrBytes(str){
+  var n = 0;
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charCodeAt(i);
+    if (c < 0x80) n += 1;
+    else if (c < 0x800) n += 2;
+    else if (c >= 0xd800 && c <= 0xdbff) { n += 4; i++; }
+    else n += 3;
+  }
+  return n;
+}
+function __qrChart(){
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var host = document.getElementById('qrChart');
+  if (!host) { return; }
+  var text = document.getElementById('textInput').value.trim();
+  if (!text) { host.innerHTML = ''; return; }
+  var bytes = __qrBytes(text);
+  var en = TBKit.util.isEn();
+  var levels = ['L', 'M', 'Q', 'H'];
+  var labels = [], data = [];
+  levels.forEach(function(lv){
+    var cap = QR_BYTE_CAP[lv];
+    var v = 0;
+    for (var i = 0; i < cap.length; i++) { if (cap[i] >= bytes) { v = i + 1; break; } }
+    if (v === 0) v = 10; // 超出版本 10 容量，按 10 标注（自动版本会继续增大）
+    labels.push(lv);
+    data.push(v);
+  });
+  TBKit.chart.bar('#qrChart', {
+    title: (en ? 'Minimum QR version needed per error-correction level (' : '各纠错级别下编码当前内容所需最小版本（')
+      + bytes + (en ? ' bytes)' : ' 字节）'),
+    labels: labels,
+    series: [{ name: en ? 'Version' : '版本', data: data }]
+  });
+}
+
 function generate() {
   var container = document.getElementById('qrcode');
   var text = textInput.value.trim();
 
   if (!text) {
     lastQr = null;
-    const __h0='<p style="color:#999;">输入内容后自动生成二维码</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h0;
+    const __h0='<p style="color:#999;">输入内容后自动生成二维码</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}    container.innerHTML=__h0;
+    try { __qrChart(); } catch(e){}
     return;
   }
 
@@ -373,9 +419,10 @@ function generate() {
       }
     }
 
-    const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h1;
+    const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}    container.innerHTML=__h1;
     container.appendChild(canvas);
     lastQr = qr;
+    try { __qrChart(); } catch(e){}
   } catch (e) {
     lastQr = null;
     const __h2='<p class="err">生成出错：' + e.message + '</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
@@ -431,6 +478,8 @@ function debounce(fn, d) {
 
 // 页面加载后自动生成
 generate();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__qrChart();}catch(e){}});}else{try{__qrChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__qrChart();}catch(e){}});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

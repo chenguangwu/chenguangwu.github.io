@@ -266,6 +266,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>⚠️ 检测结果</h3>
     <div class="issue-list" id="issuesList"></div>
+    <div id="esltChart" style="margin-top:12px;"></div>
   </div>
 
   <div class="card">
@@ -377,6 +378,39 @@ function applyTemplate(name){
   }
 }
 
+// 情感倾向构成（独立重算，不改 analyze 原有计分逻辑）
+function __esltTone(text){
+  var posCount = 0, negCount = 0;
+  positiveWords.forEach(function(w){ if(text.indexOf(w) !== -1) posCount++; });
+  negativeWords.forEach(function(w){ if(text.indexOf(w) !== -1) negCount++; });
+  var total = posCount + negCount;
+  var posPct = 50, neuPct = 50, negPct = 0;
+  if(total > 0){
+    posPct = Math.round((posCount/total)*60 + 20);
+    negPct = Math.round((negCount/total)*60);
+    neuPct = 100 - posPct - negPct;
+  }
+  return { pos: posPct, neu: neuPct, neg: negPct };
+}
+function __esltChart(){
+  if(typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var host = document.getElementById('esltChart');
+  if (!host) { return; }
+  var subject = document.getElementById('subject').value.trim();
+  var fallback = !subject;
+  var tone = __esltTone(fallback ? templates.promo : subject);
+  var en = TBKit.util.isEn();
+  TBKit.chart.pie('#esltChart', {
+    title: (en ? 'Sentiment breakdown of subject' : '标题情感倾向构成')
+      + (fallback ? (en ? ' (built-in sample)' : '（内置示例标题）') : ''),
+    items: [
+      { name: en ? 'Positive' : '积极', value: tone.pos },
+      { name: en ? 'Neutral' : '中性', value: tone.neu },
+      { name: en ? 'Negative' : '消极', value: tone.neg }
+    ]
+  });
+}
+
 function analyze(){
   const subject = document.getElementById('subject').value;
   const preview = document.getElementById('previewText').value;
@@ -412,6 +446,7 @@ function analyze(){
     document.getElementById('neuText').textContent = '0%';
     document.getElementById('negText').textContent = '0%';
     const __h0='<p style="color:var(--text-muted);text-align:center;padding:20px;">输入标题后显示检测结果</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('issuesList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('issuesList').innerHTML=__h0;
+    try { __esltChart(); } catch(e){}
     return;
   }
   
@@ -523,9 +558,12 @@ function analyze(){
     issuesHtml += `<div class="issue-item ${iss.type}"><span class="issue-icon">${iss.icon}</span><span>${iss.text}</span></div>`;
   });
   const __h1=issuesHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){issuesEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}issuesEl.innerHTML=__h1;
+  try { __esltChart(); } catch(e){}
 }
 
 analyze();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__esltChart();}catch(e){}});}else{try{__esltChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__esltChart();}catch(e){}});
 ToolBox.initToolTheme();
 </script><script>
 // tool-intro折叠交互

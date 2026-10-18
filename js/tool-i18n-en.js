@@ -619,6 +619,11 @@ window.__TI18N_EN = {
     '⬇️ 导出抄表台账 CSV':'⬇️ Export Meter Log CSV',
   },
   BODY_PHRASE_MAP: {
+    // —— 批次 F32 顺带修复 pomodoro 预设按钮既有未译 ——
+    '经典 25/5/15': 'Classic 25/5/15',
+    '深度 50/10/30': 'Deep 50/10/30',
+    '快速 15/3/10': 'Quick 15/3/10',
+    '超短 10/2/5': 'Ultra-short 10/2/5',
     // —— 批次 F29 顺带修复 pet/reminder-vaccine-deworming 既有未译 ——
     '📊 各宠物距最近待办到期天数':'📊 Days Until the Nearest Due Task per Pet',
     '各宠物距最近待办到期天数':'Days Until the Nearest Due Task per Pet',
