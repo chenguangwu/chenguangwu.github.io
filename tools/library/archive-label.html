@@ -201,6 +201,27 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" onclick="__archiveExport()">⬇️ 导出标签明细 CSV</button>
     </div>
     <div id="archiveTable"></div>
+
+    <h3 style="font-size:14px;margin:16px 0 8px;color:var(--text-primary);">📦 批量生成与校验</h3>
+    <div style="display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:10px;">
+      <button type="button" class="tab-btn active" id="__alTabBatch" onclick="__alTab('batch')">批量生成</button>
+      <button type="button" class="tab-btn" id="__alTabRef" onclick="__alTab('ref')">保管期限参考</button>
+    </div>
+    <div id="__alBatchPanel">
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div><label style="font-size:12px;">起始盒号</label><input type="number" id="__alFrom" value="1" min="1" style="width:90px;"></div>
+        <div><label style="font-size:12px;">盒数</label><input type="number" id="__alCount" value="5" min="1" max="200" style="width:90px;"></div>
+        <div><label style="font-size:12px;">每盒件数</label><input type="number" id="__alPerBox" value="50" min="1" style="width:90px;"></div>
+        <button type="button" class="btn primary" onclick="__alBatch()">生成批量标签清单</button>
+        <button type="button" class="btn" onclick="__alExportBatch()">导出批量清单 CSV</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin:4px 0;">按当前表单的档号要素批量生成连续盒号的标签清单，件号自动按每盒件数顺延；适用于一个目录下多盒档案的集中打印与移交清点。</p>
+      <div id="__alCheck"></div>
+      <div id="__alBatchTable"></div>
+    </div>
+    <div id="__alRefPanel" style="display:none;">
+      <div id="__alRefTable"></div>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -302,6 +323,116 @@ function copyLabel(){
 }
 
 render();
+</script><script>
+(function(){
+  function EN(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function T(zh,en){ return EN()?en:zh; }
+  function v(id){ return document.getElementById(id).value.trim(); }
+  function pad(n,w){ var s=String(n); while(s.length<w) s='0'+s; return s; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>]/g,function(x){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[x]; }); }
+
+  var batchRows = [];
+
+  window.__alTab = function(which){
+    document.getElementById('__alBatchPanel').style.display = which==='batch'?'':'none';
+    document.getElementById('__alRefPanel').style.display = which==='ref'?'':'none';
+    document.getElementById('__alTabBatch').classList.toggle('active', which==='batch');
+    document.getElementById('__alTabRef').classList.toggle('active', which==='ref');
+    if(which==='ref') __alRef();
+  };
+
+  window.__alBatch = function(){
+    var from=parseInt(v('__alFrom'),10), count=parseInt(v('__alCount'),10), per=parseInt(v('__alPerBox'),10);
+    if(!isFinite(from)||from<1||!isFinite(count)||count<1||!isFinite(per)||per<1) return;
+    var fonds=v('fonds'), catalog=v('catalog'), year=v('year'), retention=v('retention'),
+        org=v('org'), title=v('title'), unit=v('unit');
+    var boxLen = v('boxNo').length || 4;
+    var rangeVal = v('range');
+    var m = rangeVal.match(/^(\d+)/);
+    var firstFrom = m ? parseInt(m[1],10) : 1;
+    var rangeLen = m ? m[1].length : 3;
+    batchRows = [];
+    for(var i=0;i<count;i++){
+      var boxNo = pad(from+i, boxLen);
+      var code = fonds+'-'+catalog+'-'+boxNo;
+      var fromNo = firstFrom + i*per;
+      var rng = pad(fromNo, rangeLen)+'-'+pad(fromNo+per-1, rangeLen);
+      batchRows.push([boxNo, code, title, year+'年 · '+retention, org+' · 件号 '+rng, unit, rng, per]);
+    }
+    __alRenderBatch();
+    __alRenderCheck();
+  };
+
+  function __alRenderBatch(){
+    var box=document.getElementById('__alBatchTable');
+    if(!box) return;
+    if(!batchRows.length){ box.innerHTML=''; return; }
+    var en=EN();
+    var head=[en?'Box No.':'盒号', en?'Archive Code':'档号', en?'Title':'题名', en?'Year / Retention':'年度/期限', en?'Org / Range':'机构/件号', en?'Creator':'立档单位', en?'File Range':'起止件号', en?'Files':'件数'];
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){ return '<th>'+esc(c)+'</th>'; }).join('')+'</tr></thead><tbody>';
+    batchRows.forEach(function(r){
+      h+='<tr>'+r.map(function(c){ return '<td>'+esc(c)+'</td>'; }).join('')+'</tr>';
+    });
+    box.innerHTML=h+'</tbody></table></div>';
+  }
+
+  function __alRenderCheck(){
+    var box=document.getElementById('__alCheck');
+    if(!box) return;
+    var issues=[], codes={};
+    batchRows.forEach(function(r){
+      if(codes[r[1]]) issues.push(T('档号重复：'+r[1], 'Duplicate archive code: '+r[1]));
+      codes[r[1]]=1;
+      var seg=r[6].split('-');
+      if(parseInt(seg[0],10)>parseInt(seg[1],10)) issues.push(T('件号区间颠倒：'+r[6], 'Inverted file range: '+r[6]));
+    });
+    for(var i=1;i<batchRows.length;i++){
+      var prev=batchRows[i-1][6].split('-'), cur=batchRows[i][6].split('-');
+      if(parseInt(cur[0],10) <= parseInt(prev[1],10)) issues.push(T('件号区间重叠：第 '+i+' 盒与第 '+(i+1)+' 盒', 'File range overlap between box '+i+' and '+(i+1)));
+    }
+    var ok = issues.length===0;
+    box.innerHTML = '<div class="tip-box '+(ok?'tip-success':'tip-warning')+'" style="margin:8px 0;">'+
+      (ok ? T('✅ 校验通过：'+batchRows.length+' 枚标签档号唯一、件号区间无重叠', '✅ Check passed: '+batchRows.length+' labels, unique codes, no overlap')
+          : T('⚠ 发现 '+issues.length+' 处问题：', '⚠ '+issues.length+' issue(s): ')+issues.slice(0,5).join('; ')+(issues.length>5?'…':''))+'</div>';
+  }
+
+  window.__alExportBatch = function(){
+    if(typeof TBKit==='undefined') return;
+    if(!batchRows.length) __alBatch();
+    if(!batchRows.length) return;
+    var en=TBKit.util.isEn();
+    var head=[en?'Box No.':'盒号', en?'Archive Code':'档号', en?'Title':'题名', en?'Year / Retention':'年度/期限', en?'Org / Range':'机构/件号', en?'Creator':'立档单位', en?'File Range':'起止件号', en?'Files':'件数'];
+    var t=document.getElementById('__alHidden');
+    if(!t){ t=document.createElement('table'); t.id='__alHidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<thead><tr>'+head.map(function(c){ return '<th>'+esc(c)+'</th>'; }).join('')+'</tr></thead><tbody>'+
+      batchRows.map(function(r){ return '<tr>'+r.map(function(c){ return '<td>'+esc(c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody>';
+    TBKit.util.exportTable('#__alHidden', en?'archive-label-batch.csv':'档案标签批量清单.csv');
+  };
+
+  window.__alRef = function(){
+    var box=document.getElementById('__alRefTable');
+    if(!box) return;
+    var en=EN();
+    var head=[en?'Retention':'保管期限', en?'Scope':'适用范围', en?'Action on Expiry':'到期处置'];
+    var rows=[
+      [en?'Permanent':'永久',
+       en?'Records of long-term value that reflect the unit main functions, or involve ownership, human rights and major interests':'本单位长远利用价值、反映主要职能、涉及产权/人权/重大利益的档案',
+       en?'Keep indefinitely':'无限期保存'],
+      [en?'30 years':'定期30年',
+       en?'Important business vouchers and records needed for reference beyond 30 years':'较重要业务凭证、一般需查考 30 年以上的档案',
+       en?'Appraisal review at year 30':'满 30 年鉴定后处置'],
+      [en?'10 years':'定期10年',
+       en?'Short-term transactional and seasonal materials':'短期查考的事务性、季节性材料',
+       en?'Appraisal review at year 10':'满 10 年鉴定后处置']
+    ];
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){ return '<th>'+esc(c)+'</th>'; }).join('')+'</tr></thead><tbody>';
+    rows.forEach(function(r){ h+='<tr>'+r.map(function(c){ return '<td>'+esc(c)+'</td>'; }).join('')+'</tr>'; });
+    box.innerHTML=h+'</tbody></table></div>'+
+      '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+T('依据《文书档案保管期限表》划分；定期档案到期前须鉴定，或销毁或延期。','Based on the Records Retention Schedule; time-limited records must be appraised before expiry.')+'</p>';
+  };
+
+  __alRef();
+})();
 </script>
 <script>
 (function(){

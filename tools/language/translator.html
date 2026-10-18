@@ -187,6 +187,7 @@ s.parentNode.insertBefore(el, s);
     <div class="action-row">
       <button type="button" class="action-btn" onclick="trans()">🔄 翻译</button>
       <button type="button" class="action-btn secondary" onclick="copyResult()">📋 复制</button>
+      <button type="button" class="action-btn secondary" onclick="__trFavAdd()">⭐ 收藏</button>
       <button type="button" class="action-btn secondary" onclick="clearAll()">🗑️ 清空</button>
     </div>
     
@@ -197,6 +198,29 @@ s.parentNode.insertBefore(el, s);
     
     <h3 style="font-size:14px;margin:16px 0 8px;color:var(--text-primary);">📚 内置词典示例</h3>
     <div class="preset-row" id="preset-row"></div>
+
+    <h3 style="font-size:14px;margin:16px 0 8px;color:var(--text-primary);">🧰 翻译工具</h3>
+    <div style="display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:10px;">
+      <button type="button" class="tab-btn active" id="__trTabHist" onclick="__trTab('hist')">翻译历史</button>
+      <button type="button" class="tab-btn" id="__trTabFav" onclick="__trTab('fav')">收藏夹</button>
+    </div>
+    <div id="__trHistPanel">
+      <div id="__trChart" style="margin:8px 0;"></div>
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input type="search" id="__trSearch" placeholder="搜索原文或译文" style="flex:1;min-width:160px;" oninput="__trRenderHist()">
+        <button type="button" class="btn" onclick="__trExport('hist')">导出翻译历史 CSV</button>
+        <button type="button" class="btn" onclick="__trClearHist()">清空历史</button>
+      </div>
+      <div id="__trHistTable"></div>
+    </div>
+    <div id="__trFavPanel" style="display:none;">
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__trFavAdd()">收藏当前译文</button>
+        <button type="button" class="btn" onclick="__trExport('fav')">导出收藏夹 CSV</button>
+        <button type="button" class="btn" onclick="__trClearFav()">清空收藏</button>
+      </div>
+      <div id="__trFavTable"></div>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -518,6 +542,148 @@ function trans() {
 
 renderPresets();
 renderQuick();
+</script><script>
+(function(){
+  function EN(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function T(zh,en){ return EN()?en:zh; }
+  var HKEY='tb_trans_hist_v1', FKEY='tb_trans_fav_v1';
+  function load(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch(e){ return []; } }
+  function save(k,a){ try{ localStorage.setItem(k, JSON.stringify(a.slice(0,100))); }catch(e){} }
+  var hist = load(HKEY), favs = load(FKEY);
+  var LANG_EN={zh:'Chinese',en:'English',ja:'Japanese',ko:'Korean',fr:'French',de:'German',ru:'Russian',es:'Spanish'};
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function fmtTime(t){ var d=new Date(t); function q(x){return (x<10?'0':'')+x;} return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes()); }
+  function cur(){ return { s:document.getElementById('src-lang').value, t:document.getElementById('tgt-lang').value, src:document.getElementById('src-text').value.trim(), tgt:document.getElementById('tgt-text').value.trim() }; }
+  function langPair(s,t){ var f=EN()?(LANG_EN[s]||s):s, g=EN()?(LANG_EN[t]||t):t; return f+' → '+g; }
+
+  var _trans0 = window.trans;
+  if(typeof _trans0==='function'){
+    window.trans = function(){
+      _trans0.apply(null, arguments);
+      try{ __trRecord(); }catch(e){}
+    };
+  }
+
+  window.__trRecord = function(){
+    var c=cur();
+    if(!c.src||!c.tgt||c.tgt.charAt(0)==='[') return;
+    var exist=-1;
+    for(var i=0;i<hist.length;i++){
+      if(hist[i].src===c.src && hist[i].tgt===c.tgt && hist[i].s===c.s && hist[i].t===c.t){ exist=i; break; }
+    }
+    if(exist>=0) hist.splice(exist,1);
+    hist.unshift({t:Date.now(),s:c.s,t:c.t,src:c.src.slice(0,300),tgt:c.tgt.slice(0,300)});
+    hist=hist.slice(0,100); save(HKEY,hist);
+    __trRenderHist();
+  };
+
+  window.__trTab = function(which){
+    document.getElementById('__trHistPanel').style.display = which==='hist'?'':'none';
+    document.getElementById('__trFavPanel').style.display = which==='fav'?'':'none';
+    document.getElementById('__trTabHist').classList.toggle('active', which==='hist');
+    document.getElementById('__trTabFav').classList.toggle('active', which==='fav');
+  };
+
+  function rowBtns(i,which){
+    return '<td style="white-space:nowrap;">'+
+      '<button type="button" class="btn" data-w="'+which+'" data-i="'+i+'" data-act="back">'+T('回填','Refill')+'</button> '+
+      (which==='hist'?'<button type="button" class="btn" data-w="hist" data-i="'+i+'" data-act="fav">⭐</button> ':'')+
+      '<button type="button" class="btn" data-w="'+which+'" data-i="'+i+'" data-act="del">'+T('删除','Delete')+'</button></td>';
+  }
+  function bindTable(box,which){
+    box.querySelectorAll('button[data-act]').forEach(function(b){
+      b.onclick=function(){
+        var i=+b.getAttribute('data-i'), act=b.getAttribute('data-act'), w=b.getAttribute('data-w');
+        var arr = w==='fav'?favs:hist;
+        if(act==='back' && arr[i]){
+          document.getElementById('src-lang').value=arr[i].s;
+          document.getElementById('tgt-lang').value=arr[i].t;
+          document.getElementById('src-text').value=arr[i].src;
+          window.trans();
+        } else if(act==='fav' && arr[i]){
+          var d={t:Date.now(),s:arr[i].s,t:arr[i].t,src:arr[i].src,tgt:arr[i].tgt};
+          var dup=favs.some(function(f){ return f.src===d.src&&f.tgt===d.tgt&&f.s===d.s&&f.t===d.t; });
+          if(!dup){ favs.unshift(d); save(FKEY,favs); __trRenderFav(); }
+        } else if(act==='del'){
+          arr.splice(i,1); save(w==='fav'?FKEY:HKEY, arr);
+          if(w==='fav') __trRenderFav(); else __trRenderHist();
+        }
+      };
+    });
+  }
+
+  window.__trRenderHist = function(){
+    var box=document.getElementById('__trHistTable');
+    if(!box) return;
+    var kw=(document.getElementById('__trSearch').value||'').trim().toLowerCase();
+    var list=hist.filter(function(h){ return !kw || (h.src+' '+h.tgt).toLowerCase().indexOf(kw)>=0; });
+    if(!list.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+T('暂无翻译记录，翻译后自动保存到这里','No translation history yet')+'</p>';
+    } else {
+      var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr><th>'+T('时间','Time')+'</th><th>'+T('语言对','Pair')+'</th><th>'+T('原文','Source')+'</th><th>'+T('译文','Translation')+'</th><th>'+T('操作','Actions')+'</th></tr></thead><tbody>';
+      list.forEach(function(r,i){
+        h+='<tr><td>'+esc(fmtTime(r.t))+'</td><td>'+esc(langPair(r.s,r.t))+'</td><td>'+esc(r.src)+'</td><td>'+esc(r.tgt)+'</td>'+rowBtns(i,'hist')+'</tr>';
+      });
+      h+='</tbody></table></div>';
+      box.innerHTML=h;
+      bindTable(box,'hist');
+    }
+    if(typeof TBKit!=='undefined' && hist.length){
+      var agg={};
+      hist.forEach(function(x){ var k=langPair(x.s,x.t); agg[k]=(agg[k]||0)+1; });
+      var keys=Object.keys(agg).sort(function(a,b){ return agg[b]-agg[a]; }).slice(0,8);
+      try{ TBKit.chart.bar('#__trChart',{ title:T('语言对使用次数','Language Pair Usage'), labels:keys, series:[{ name:T('次数','Count'), data:keys.map(function(k){ return agg[k]; }) }] }); }catch(e){}
+    }
+  };
+
+  window.__trRenderFav = function(){
+    var box=document.getElementById('__trFavTable');
+    if(!box) return;
+    if(!favs.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+T('收藏夹为空，翻译后点「收藏」把常用译文存到这里','Favorites is empty. Tap Favorite to save translations.')+'</p>';
+    } else {
+      var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr><th>'+T('时间','Time')+'</th><th>'+T('语言对','Pair')+'</th><th>'+T('原文','Source')+'</th><th>'+T('译文','Translation')+'</th><th>'+T('操作','Actions')+'</th></tr></thead><tbody>';
+      favs.forEach(function(r,i){
+        h+='<tr><td>'+esc(fmtTime(r.t))+'</td><td>'+esc(langPair(r.s,r.t))+'</td><td>'+esc(r.src)+'</td><td>'+esc(r.tgt)+'</td>'+rowBtns(i,'fav')+'</tr>';
+      });
+      h+='</tbody></table></div>';
+      box.innerHTML=h;
+      bindTable(box,'fav');
+    }
+  };
+
+  window.__trFavAdd = function(){
+    var c=cur();
+    if(!c.tgt||c.tgt.charAt(0)==='[') return;
+    var d={t:Date.now(),s:c.s,t:c.t,src:c.src.slice(0,300),tgt:c.tgt.slice(0,300)};
+    var dup=favs.some(function(f){ return f.src===d.src&&f.tgt===d.tgt&&f.s===d.s&&f.t===d.t; });
+    if(dup) return;
+    favs.unshift(d); save(FKEY,favs);
+    __trRenderFav();
+    __trTab('fav');
+  };
+
+  window.__trClearHist = function(){ hist=[]; save(HKEY,hist); __trRenderHist(); };
+  window.__trClearFav = function(){ favs=[]; save(FKEY,favs); __trRenderFav(); };
+
+  window.__trExport = function(which){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var arr = which==='fav'?favs:hist;
+    var head=[en?'Time':'时间', en?'Pair':'语言对', en?'Source':'原文', en?'Translation':'译文'];
+    var rows=[head].concat(arr.map(function(r){
+      return [fmtTime(r.t), langPair(r.s,r.t), r.src, r.tgt];
+    }));
+    var t=document.getElementById('__trHidden');
+    if(!t){ t=document.createElement('table'); t.id='__trHidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<thead><tr>'+head.map(function(c){ return '<th>'+esc(c)+'</th>'; }).join('')+'</tr></thead><tbody>'+
+      rows.slice(1).map(function(r){ return '<tr>'+r.map(function(c){ return '<td>'+esc(c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody>';
+    TBKit.util.exportTable('#__trHidden', which==='fav' ? (en?'favorites.csv':'收藏夹.csv') : (en?'translation-history.csv':'翻译历史.csv'));
+  };
+
+  if (document.readyState && document.readyState !== 'loading'){ __trRenderHist(); __trRenderFav(); }
+  else document.addEventListener('DOMContentLoaded', function(){ __trRenderHist(); __trRenderFav(); });
+})();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
