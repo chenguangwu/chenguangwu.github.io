@@ -136,10 +136,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__sound_power_levelExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__sound_power_levelExportDist()">导出距离衰减 CSV</button>
+      <button class="btn" onclick="__sound_power_levelExportSrc()">导出声源参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="sound_power_levelTable"></div>
+    <h3 style="margin:14px 0 8px;">📐 点声源距离衰减（自由场）</h3>
+    <div id="sound_power_levelDist"></div>
+    <div id="sound_power_levelChart"></div>
+    <h3 style="margin:14px 0 8px;">🔊 常见声源功率级参考</h3>
+    <div id="sound_power_levelSrc"></div>
     <div id="sound_power_levelDiff"></div>
     <div id="sound_power_levelHist"></div>
 
@@ -322,6 +329,41 @@ function __sound_power_levelExtras(){
             ['声功率比倒数', (1/Math.max(W/W0,1e-30)).toExponential(4)],
         ]
     });
+    // 点声源距离衰减：球面辐射 Lp=Lw-20lg(r)-11；半球辐射（反射面上）Lp=Lw-20lg(r)-8
+    var __splLw=10*Math.log10(W/W0);
+    var __splDists=[0.5,1,2,5,10,20,50,100];
+    var __splRows=__splDists.map(function(r){
+        return [ r+'', (__splLw-20*Math.log10(r)-11).toFixed(2), (__splLw-20*Math.log10(r)-8).toFixed(2) ];
+    });
+    TBKit.matrix.table('#sound_power_levelDist',{
+        head: en?['Distance (m)','SPL, full sphere (dB)','SPL, half sphere (dB)']:['距离 r (m)','声压级·球面辐射 (dB)','声压级·半球辐射 (dB)'],
+        rows: __splRows
+    });
+    TBKit.chart.line('#sound_power_levelChart',{
+        title: en?'Sound pressure level vs distance (full sphere)':'声压级随距离衰减（球面辐射）',
+        labels: __splDists.map(function(r){return r+'m';}),
+        series: [
+            {name: en?'SPL (dB)':'声压级 (dB)', data: __splRows.map(function(r){return +r[1];})}
+        ]
+    });
+    // 常见声源功率级参考
+    var __splSrc=[
+        ['耳语','Whisper',30],['正常交谈','Normal conversation',60],['办公室环境','Office ambience',65],
+        ['大声交谈','Loud conversation',70],['喊叫','Shouting',80],['小提琴（强奏）','Violin (forte)',90],
+        ['交通干道旁','Roadside traffic',100],['铆钉机','Riveting machine',120],['喷气发动机','Jet engine',150],
+    ];
+    var __splSrcRows=__splSrc.map(function(s){
+        var d=__splLw-s[2];
+        var cmp;
+        if(Math.abs(d)<0.5) cmp=en?'At the same level':'与当前声源相当';
+        else if(d>0) cmp=(en?'Higher by ':'高于 ')+d.toFixed(2)+' dB';
+        else cmp=(en?'Lower by ':'低于 ')+Math.abs(d).toFixed(2)+' dB';
+        return [ en?s[1]:s[0], s[2]+' dB', cmp ];
+    });
+    TBKit.matrix.table('#sound_power_levelSrc',{
+        head: en?['Source','L_W (dB)','vs current']:['声源','功率级 L_W (dB)','与当前声源对比'],
+        rows: __splSrcRows
+    });
     TBKit.history.record({W:__sound_power_levelRaw('W')});
     function __sound_power_levelRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#sound_power_levelHist',function(rec){ __sound_power_levelRestore(rec); calcTool(); });
@@ -329,6 +371,14 @@ function __sound_power_levelExtras(){
 function __sound_power_levelExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#sound_power_levelTable','sound-power-level.csv'); } catch(e){}
+}
+function __sound_power_levelExportDist(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sound_power_levelDist','sound-power-distance-decay.csv'); } catch(e){}
+}
+function __sound_power_levelExportSrc(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sound_power_levelSrc','sound-power-sources.csv'); } catch(e){}
 }
 function __sound_power_levelPresets(){
     if (typeof TBKit === 'undefined') return;

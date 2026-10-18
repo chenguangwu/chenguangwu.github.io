@@ -138,10 +138,14 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__wavelength_from_freqExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__wavelength_from_freqExportBand()">导出倍频程对照 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="wavelength_from_freqTable"></div>
+    <h3 style="margin:14px 0 8px;">🎼 倍频程中心频率波长对照</h3>
+    <div id="wavelength_from_freqBand"></div>
+    <div id="wavelength_from_freqChart"></div>
     <div id="wavelength_from_freqDiff"></div>
     <div id="wavelength_from_freqHist"></div>
 
@@ -312,6 +316,25 @@ function __wavelength_from_freqExtras(){
             ['波数 (1/m)', (f/c).toFixed(4)],
         ]
     });
+    // 倍频程中心频率对照（ISO 优选倍频程）
+    var __wfBands=[[31.5,'31.5'],[63,'63'],[125,'125'],[250,'250'],[500,'500'],[1000,'1k'],[2000,'2k'],[4000,'4k'],[8000,'8k'],[16000,'16k']];
+    function __wfLabel(fr){ return fr>=1000?(fr/1000)+'k':fr+''; }
+    var __wfRows=__wfBands.map(function(b){
+        var lam=c/b[0];
+        var near=(Math.abs(Math.log(f/b[0]))<=Math.log(Math.pow(2,0.25)))?(en?' ◀ nearest':' ◀ 最近'):'';
+        return [ b[1]+' Hz'+near, lam.toFixed(3), (lam/2).toFixed(3), (lam/4).toFixed(3) ];
+    });
+    TBKit.matrix.table('#wavelength_from_freqBand',{
+        head: en?['Center frequency','Wavelength (m)','λ/2 (m)','λ/4 (m)']:['倍频程中心频率','波长 λ (m)','半波 λ/2 (m)','四分之一波长 λ/4 (m)'],
+        rows: __wfRows
+    });
+    TBKit.chart.line('#wavelength_from_freqChart',{
+        title: en?'Wavelength vs octave-band center frequency':'波长随倍频程中心频率变化',
+        labels: __wfBands.map(function(b){return __wfLabel(b[0]);}),
+        series: [
+            {name: en?'Wavelength (m)':'波长 (m)', data: __wfBands.map(function(b){return +(c/b[0]).toFixed(3);})}
+        ]
+    });
     TBKit.history.record({f:__wavelength_from_freqRaw('f'), c:__wavelength_from_freqRaw('c')});
     function __wavelength_from_freqRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#wavelength_from_freqHist',function(rec){ __wavelength_from_freqRestore(rec); calcTool(); });
@@ -319,6 +342,10 @@ function __wavelength_from_freqExtras(){
 function __wavelength_from_freqExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#wavelength_from_freqTable','wavelength-from-freq.csv'); } catch(e){}
+}
+function __wavelength_from_freqExportBand(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wavelength_from_freqBand','wavelength-octave-bands.csv'); } catch(e){}
 }
 function __wavelength_from_freqPresets(){
     if (typeof TBKit === 'undefined') return;

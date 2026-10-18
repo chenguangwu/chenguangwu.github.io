@@ -142,10 +142,14 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__room_axial_modeExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__room_axial_modeExportModes()">导出共振频率表 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="room_axial_modeTable"></div>
+    <h3 style="margin:14px 0 8px;">📊 前 12 阶轴向共振频率</h3>
+    <div id="room_axial_modeModes"></div>
+    <div id="room_axial_modeChart"></div>
     <div id="room_axial_modeDiff"></div>
     <div id="room_axial_modeHist"></div>
 
@@ -315,6 +319,31 @@ function __room_axial_modeExtras(){
             ['二次轴向频率 (Hz)', (n*c/L).toFixed(2)],
         ]
     });
+    // 前 12 阶轴向共振频率（f_n = n·c/(2L)）
+    var __ramF0=c/(2*L);
+    var __ramN=Math.max(1,Math.min(50,Math.round(n)));
+    var __ramOct=[31.5,63,125,250,500,1000,2000,4000,8000,16000];
+    function __ramOctLabel(fr){
+        var best=__ramOct[0],bd=1e9;
+        __ramOct.forEach(function(b){var d=Math.abs(Math.log(fr/b));if(d<bd){bd=d;best=b;}});
+        return best>=1000?(best/1000)+'k':best+'';
+    }
+    var __ramRows=[];
+    for(var k=1;k<=12;k++){
+        var cur=(k===__ramN)?(en?' ◀ current':' ◀ 当前'):'';
+        __ramRows.push([ k+cur, (k*__ramF0).toFixed(2), (2*L/k).toFixed(3), (__ramOctLabel(k*__ramF0)+' Hz') ]);
+    }
+    TBKit.matrix.table('#room_axial_modeModes',{
+        head: en?['Order n','Resonant frequency (Hz)','Wavelength (m)','Nearest octave band']:['阶数 n','共振频率 (Hz)','对应波长 (m)','最近倍频程'],
+        rows: __ramRows
+    });
+    TBKit.chart.line('#room_axial_modeChart',{
+        title: en?'Axial resonance frequency vs order':'轴向共振频率随阶数变化',
+        labels: __ramRows.map(function(r){return r[0].replace(' ◀ current','').replace(' ◀ 当前','');}),
+        series: [
+            {name: en?'Frequency (Hz)':'频率 (Hz)', data: __ramRows.map(function(r){return +r[1];})}
+        ]
+    });
     TBKit.history.record({L:__room_axial_modeRaw('L'), n:__room_axial_modeRaw('n'), c:__room_axial_modeRaw('c')});
     function __room_axial_modeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#room_axial_modeHist',function(rec){ __room_axial_modeRestore(rec); calcTool(); });
@@ -322,6 +351,10 @@ function __room_axial_modeExtras(){
 function __room_axial_modeExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#room_axial_modeTable','room-axial-mode.csv'); } catch(e){}
+}
+function __room_axial_modeExportModes(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#room_axial_modeModes','room-axial-modes.csv'); } catch(e){}
 }
 function __room_axial_modePresets(){
     if (typeof TBKit === 'undefined') return;

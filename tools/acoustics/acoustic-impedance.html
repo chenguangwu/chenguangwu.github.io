@@ -138,10 +138,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__acoustic_impedanceExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__acoustic_impedanceExportMedia()">导出介质参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="acoustic_impedanceTable"></div>
+    <h3 style="margin:14px 0 8px;">🧱 常见介质特性声阻抗与入射反射系数</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">垂直入射反射系数 R = ((Z₂−Z₁)/(Z₂+Z₁))²，透射系数 T = 1−R，Z₁ 为当前介质（ρ·c）。</p>
+    <div id="acoustic_impedanceMedia"></div>
+    <div id="acoustic_impedanceChart"></div>
     <div id="acoustic_impedanceDiff"></div>
     <div id="acoustic_impedanceHist"></div>
 
@@ -256,6 +261,41 @@ function __acoustic_impedanceExtras(){
             ['声速倒数 (s/m)', (1/(c||1)).toExponential(4)],
         ]
     });
+    // 常见介质参考：垂直入射反射系数 R=((Z2-Z1)/(Z2+Z1))^2，Z1 为当前介质
+    var __aiZ1=rho*c;
+    var __aiMedia=[
+        ['空气（20°C）','Air (20°C)',1.2,343],
+        ['水（20°C）','Water (20°C)',998,1483],
+        ['人体软组织','Soft tissue',1050,1540],
+        ['血液','Blood',1060,1570],
+        ['脂肪','Fat',920,1450],
+        ['骨骼','Bone',1700,4100],
+        ['玻璃','Glass',2500,5200],
+        ['铝','Aluminum',2700,6300],
+        ['钢','Steel',7800,5900],
+        ['混凝土','Concrete',2400,3400],
+    ];
+    function __aiFmtR(R){
+        var pct=R*100;
+        if(pct<0.0001) return '<0.0001%';
+        if(pct>=99.999) return '>99.999%';
+        return pct.toFixed(4)+'%';
+    }
+    var __aiRows=__aiMedia.map(function(m){
+        var Z2=m[2]*m[3];
+        var R=((Z2-__aiZ1)/(Z2+__aiZ1||1)); R=R*R;
+        var tag=(Math.abs(Z2-__aiZ1)/Math.max(Z2,1)<0.01)?(en?' ◀ current':' ◀ 当前'):'';
+        return [ (en?m[1]:m[0])+tag, m[2], m[3], Z2.toExponential(2), __aiFmtR(R), __aiFmtR(1-R) ];
+    });
+    TBKit.matrix.table('#acoustic_impedanceMedia',{
+        head: en?['Medium','Density (kg/m³)','Sound speed (m/s)','Z (Rayl)','Reflection R','Transmission T']:['介质','密度 (kg/m³)','声速 (m/s)','特性声阻抗 Z (Rayl)','反射系数 R','透射系数 T'],
+        rows: __aiRows
+    });
+    TBKit.chart.bar('#acoustic_impedanceChart',{
+        title: en?'log10 of characteristic impedance (Rayl)':'介质特性声阻抗 log10（Rayl）',
+        labels: __aiMedia.map(function(m){return en?m[1].split(' (')[0]:m[0].split('（')[0];}),
+        series: [{ name: en?'log10(Z)':'log10(Z)', data: __aiMedia.map(function(m){return +Math.log10(m[2]*m[3]).toFixed(2);}) }]
+    });
     TBKit.history.record({rho:__acoustic_impedanceRaw('rho'), c:__acoustic_impedanceRaw('c')});
     function __acoustic_impedanceRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#acoustic_impedanceHist',function(rec){ __acoustic_impedanceRestore(rec); calcTool(); });
@@ -263,6 +303,10 @@ function __acoustic_impedanceExtras(){
 function __acoustic_impedanceExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#acoustic_impedanceTable','acoustic-impedance.csv'); } catch(e){}
+}
+function __acoustic_impedanceExportMedia(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#acoustic_impedanceMedia','acoustic-impedance-media.csv'); } catch(e){}
 }
 function __acoustic_impedancePresets(){
     if (typeof TBKit === 'undefined') return;
