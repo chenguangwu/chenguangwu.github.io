@@ -233,6 +233,7 @@ s.parentNode.insertBefore(el, s);
     <table id="lmHidden" style="display:none"><thead><tr><th>Side</th><th>Location</th><th>Score</th></tr></thead><tbody></tbody></table>
 
     <div class="result-box" id="result"></div>
+    <div id="lmChart" style="margin-top:12px;"></div>
 
     <h3 style="font-size:14px;margin:20px 0 10px;">Lund-Mackay 评分标准</h3>
     <table class="ref-table">
@@ -310,6 +311,28 @@ function selectSinus(btn){
   calc();
 }
 
+function __lmChart(){
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var en = TBKit.util.isEn();
+  var order = ['maxillary','anterior_ethmoid','posterior_ethmoid','sphenoid','frontal','omc'];
+  var zh = { maxillary:'上颌窦', anterior_ethmoid:'前组筛窦', posterior_ethmoid:'后组筛窦', sphenoid:'蝶窦', frontal:'额窦', omc:'OMC' };
+  var enm = { maxillary:'Maxillary', anterior_ethmoid:'Ant. ethmoid', posterior_ethmoid:'Post. ethmoid', sphenoid:'Sphenoid', frontal:'Frontal', omc:'OMC' };
+  var labels = [], r = [], l = [];
+  order.forEach(function(k){
+    labels.push(en ? enm[k] : zh[k]);
+    r.push(scores.right[k] || 0);
+    l.push(scores.left[k] || 0);
+  });
+  TBKit.chart.bar('#lmChart', {
+    title: en ? 'Per-sinus scores by side (0-2 each)' : '左右侧各鼻窦评分对比',
+    labels: labels,
+    series: [
+      { name: en ? 'Right' : '右侧', data: r },
+      { name: en ? 'Left' : '左侧', data: l }
+    ]
+  });
+}
+
 function calc(){
   var rightTotal = 0, leftTotal = 0;
   for(var k in scores.right) rightTotal += scores.right[k];
@@ -344,6 +367,7 @@ function calc(){
       '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">病变程度 ('+pct.toFixed(0)+'%)</div>' +
       '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%;background:'+sevColor+';"></div></div>' +
     '</div>';document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  try { __lmChart(); } catch (e) {}
 }
 
 function resetScore(){
@@ -392,6 +416,8 @@ function __lmExport() {
 }
 
 calc();
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function(){ try{__lmChart();}catch(e){} }); } else { try{__lmChart();}catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{__lmChart();}catch(e){} });
 </script>
 
 </div>

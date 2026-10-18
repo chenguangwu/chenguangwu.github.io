@@ -181,6 +181,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="tiChart" style="margin-top:12px;"></div>
     <div class="toolbar" style="margin:10px 0;">
       <button type="button" class="btn" onclick="window.__tiExport()">⬇️ 导出评分明细 CSV</button>
     </div>
@@ -266,6 +267,24 @@ function selectOpt(btn){
   calc();
 }
 
+function __tiChart(){
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var en = TBKit.util.isEn();
+  var catOrder = ['composition','echogenicity','shape','margin','echogenic'];
+  var zh = { composition:'成分', echogenicity:'回声', shape:'形态', margin:'边缘', echogenic:'强回声灶' };
+  var enm = { composition:'Composition', echogenicity:'Echogenicity', shape:'Shape', margin:'Margin', echogenic:'Echogenic foci' };
+  var labels = [], data = [];
+  catOrder.forEach(function(c){
+    labels.push(en ? enm[c] : zh[c]);
+    data.push(selections[c] || 0);
+  });
+  TBKit.chart.bar('#tiChart', {
+    title: en ? 'Points contributed by each ultrasound feature' : '各超声特征得分分布',
+    labels: labels,
+    series: [{ name: en ? 'points' : '分', data: data }]
+  });
+}
+
 function calc(){
   var total = 0;
   for(var k in selections) total += selections[k];
@@ -296,6 +315,7 @@ function calc(){
       '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">评分进度</div>' +
       '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%;"></div></div>' +
     '</div>';document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  try { __tiChart(); } catch (e) {}
 }
 
 function __tiExport(){
@@ -340,6 +360,8 @@ function __tiExport(){
 }
 
 calc();
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function(){ try{__tiChart();}catch(e){} }); } else { try{__tiChart();}catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{__tiChart();}catch(e){} });
 </script>
 
 </div>

@@ -619,6 +619,10 @@ window.__TI18N_EN = {
     '⬇️ 导出抄表台账 CSV':'⬇️ Export Meter Log CSV',
   },
   BODY_PHRASE_MAP: {
+    // —— 批次 F27 孵化温湿度曲线卡片 ——
+    '🌡️ 21天目标温湿度曲线':'🌡️ 21-Day Target Temperature & Humidity Curve',
+    '21天目标温湿度曲线':'21-Day Target Temperature & Humidity Curve',
+    '按孵化阶段给出每日目标温度与湿度：第1-18天为发育期，第19天起转入出雏期需略降温并提高湿度。':'Daily target temperature and humidity by stage: days 1-18 are the development phase; from day 19 the hatching phase begins, requiring slightly lower temperature and higher humidity.',
     // —— 批次101 顺带修复 smt-stencil 既有未译 ——
     '🔧 示例场景（一键填充常见元件封装）：':'🔧 Example scenarios (one-tap common packages):',
     // —— 批次98 导出明细表表头（营养/佣金/油漆/照明）——

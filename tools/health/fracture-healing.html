@@ -165,6 +165,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div id="ageCompare"></div>
+    <div id="fracChart" style="margin-top:12px;"></div>
   </div>
 
   <div class="card">
@@ -473,6 +474,33 @@ function renderAgeCompare() {
   html += '</div>';
 
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('ageCompare').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('ageCompare').innerHTML=__h1;
+  try { __fracChart(); } catch (e) {}
+}
+
+function __fracChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var sel = document.getElementById('fractureSelect');
+  if (!sel) { return; }
+  var f = null;
+  fractureDB.forEach(function(x){ if (x.id === sel.value) { f = x; } });
+  if (!f) { return; }
+  var en = TBKit.util.isEn();
+  var ageEn = { child:'Child 0-12', young:'Young 13-35', middle:'Middle 36-60', senior:'Senior 60+' };
+  var ageOrder = ['child','young','middle','senior'];
+  var labels = [], data = [];
+  ageOrder.forEach(function(k){
+    var nums = String(f.healing[k]).match(/\d+/g);
+    var lo = nums ? parseInt(nums[0], 10) : 0;
+    var hi = (nums && nums.length > 1) ? parseInt(nums[1], 10) : lo;
+    if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 0; }
+    labels.push(en ? ageEn[k] : ageNames[k]);
+    data.push(+((lo + hi) / 2).toFixed(1));
+  });
+  TBKit.chart.bar('#fracChart', {
+    title: en ? 'Typical healing time by age group (weeks)' : '各年龄段典型愈合周数',
+    labels: labels,
+    series: [{ name: en ? 'weeks' : '周', data: data }]
+  });
 }
 
 function parseWeeksToDays(str) {
@@ -508,6 +536,8 @@ function applyFracturePreset(kind){
 
 renderFractureList();
 initSelect();
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function(){ try{__fracChart();}catch(e){} }); } else { try{__fracChart();}catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{__fracChart();}catch(e){} });
 </script>
 
 <!-- SEO 介绍区块 -->
