@@ -140,10 +140,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__spring_potentialExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__spring_potentialExportScan()">导出位移扫描 CSV</button>
+      <button class="btn" onclick="__spring_potentialExportRef()">导出弹簧参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="spring_potentialTable"></div>
+    <h3 style="margin:14px 0 8px;">📈 位移扫描：势能随 x² 增长（按当前 k）</h3>
+    <div id="spring_potentialChart"></div>
+    <div id="spring_potentialScan"></div>
+    <h3 style="margin:14px 0 8px;">🔩 常见弹簧劲度系数参考</h3>
+    <div id="spring_potentialRef"></div>
     <div id="spring_potentialDiff"></div>
     <div id="spring_potentialHist"></div>
 
@@ -221,6 +228,41 @@ function __spring_potentialExtras(){
             ['弹性势能 (mJ 毫焦)', (0.5*k*x*x*1000).toFixed(4)],
         ]
     });
+    var __spScan=[0.25,0.5,1,2,4];
+    var __spScanRows=__spScan.map(function(f){
+      var x2=x*f, F=k*x2, U2=0.5*k*x2*x2;
+      var cmp;
+      if(Math.abs(f-1)<1e-9) cmp=en?'◀ current displacement':'◀ 当前位移';
+      else cmp=en?('×'+(f*f).toFixed(2)+' of current U'):('×'+(f*f).toFixed(2)+' 当前势能');
+      return [en?('×'+f+' x'):('×'+f+' 位移'), +x2.toFixed(4), +F.toFixed(3), +U2.toFixed(4), cmp];
+    });
+    TBKit.matrix.table('#spring_potentialScan',{
+        head: en?['Displacement','x (m)','Force F (N)','Energy U (J)','vs current U']:['形变量','x (m)','弹力 F (N)','势能 U (J)','与当前势能比'],
+        rows: __spScanRows
+    });
+    TBKit.chart.bar('#spring_potentialChart',{
+        title: en?'Stored energy vs displacement (U = ½kx²)':'势能随形变量增长（U = ½kx²）',
+        labels: __spScan.map(function(f){return en?('×'+f+' x'):('×'+f+' 位移');}),
+        series: [{ name: en?'U (J)':'势能 (J)', data: __spScan.map(function(f){return +(0.5*k*Math.pow(x*f,2)).toFixed(4);}) }]
+    });
+    var __spRef=[
+      ['机械表游丝','Hairspring (watch)',0.1,1],
+      ['圆珠笔弹簧','Ballpoint pen spring',1,5],
+      ['键盘按键弹簧','Keyboard key spring',3,15],
+      ['弓箭弓片','Bow limbs',200,500],
+      ['蹦床弹簧','Trampoline spring',1000,2500],
+      ['摩托车前叉','Motorcycle fork',8000,15000],
+      ['汽车减震器','Car shock absorber',25000,45000],
+    ];
+    var __spRefRows=__spRef.map(function(s){
+      var km=(s[2]+s[3])/2, F=km*x, U2=0.5*km*x*x;
+      var cmp=(k>=s[2]&&k<=s[3])?(en?'◀ current spring in this range':'◀ 当前弹簧处于该区间'):'';
+      return [en?s[1]:s[0], s[2]+' – '+s[3], +F.toFixed(3), +U2.toFixed(4), cmp];
+    });
+    TBKit.matrix.table('#spring_potentialRef',{
+        head: en?['Spring type','Stiffness range k (N/m)','Force at current x (N)','Energy at current x (J)','Note']:['弹簧类型','劲度系数范围 (N/m)','按当前 x 的弹力 (N)','按当前 x 的势能 (J)','备注'],
+        rows: __spRefRows
+    });
     TBKit.history.record({k:__spring_potentialRaw('k'), x:__spring_potentialRaw('x')});
     function __spring_potentialRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#spring_potentialHist',function(rec){ __spring_potentialRestore(rec); calcTool(); });
@@ -228,6 +270,14 @@ function __spring_potentialExtras(){
 function __spring_potentialExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#spring_potentialTable','spring-potential.csv'); } catch(e){}
+}
+function __spring_potentialExportScan(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spring_potentialScan','spring-potential-scan.csv'); } catch(e){}
+}
+function __spring_potentialExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#spring_potentialRef','spring-potential-reference.csv'); } catch(e){}
 }
 function __spring_potentialPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -242,6 +292,7 @@ calcTool = function(){ __tb_fn0(); try{ __spring_potentialExtras(); }catch(e){} 
 function __spring_potentialBoot(){ try{ __spring_potentialPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __spring_potentialBoot();
 else document.addEventListener('DOMContentLoaded', __spring_potentialBoot);
+document.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

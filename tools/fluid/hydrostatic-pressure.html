@@ -142,10 +142,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__hydrostatic_pressureExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__hydrostatic_pressureExportDepths()">导出深度压强 CSV</button>
+      <button class="btn" onclick="__hydrostatic_pressureExportLiquids()">导出等效水头 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="hydrostatic_pressureTable"></div>
+    <h3 style="margin:14px 0 8px;">🌊 典型深度水压（按当前 ρ 与 g）</h3>
+    <div id="hydrostatic_pressureChart"></div>
+    <div id="hydrostatic_pressureDepths"></div>
+    <h3 style="margin:14px 0 8px;">🧪 产生当前压强所需的各液体等效深度</h3>
+    <div id="hydrostatic_pressureLiquids"></div>
     <div id="hydrostatic_pressureDiff"></div>
     <div id="hydrostatic_pressureHist"></div>
 
@@ -224,6 +231,50 @@ function __hydrostatic_pressureExtras(){
             ['质量水头 ρh (kg/m²)', (rho*h).toFixed(3)],
         ]
     });
+    var P=rho*g*h;
+    var __hpDepths=[
+      ['浅水区 0.5 m','Shallow water 0.5 m',0.5],
+      ['泳池底 2 m','Pool bottom 2 m',2],
+      ['休闲潜水限深 20 m','Recreational diving limit 20 m',20],
+      ['技术潜水 40 m','Technical diving 40 m',40],
+      ['常规作业潜水 60 m','Routine working diving 60 m',60],
+      ['潜艇耐压壳 100 m','Submarine pressure hull 100 m',100],
+      ['深海 500 m','Deep sea 500 m',500],
+      ['马里亚纳海沟 11034 m','Mariana Trench 11034 m',11034],
+    ];
+    var __hpDepthRows=__hpDepths.map(function(d){
+      var dP=rho*g*d[2];
+      var abs=(dP+101325)/1000;
+      var cmp;
+      if(Math.abs(d[2]-h)/Math.max(h,1e-9)<0.005) cmp=en?'◀ current depth':'◀ 当前深度';
+      else cmp=en?('×'+(d[2]/Math.max(h,1e-9)).toFixed(2)+' of current'):('×'+(d[2]/Math.max(h,1e-9)).toFixed(2)+' 当前');
+      return [en?d[1]:d[0], (dP/1000).toFixed(2), abs.toFixed(2), (abs/101.325).toFixed(2), cmp];
+    });
+    TBKit.matrix.table('#hydrostatic_pressureDepths',{
+        head: en?['Scenario / depth','Gauge pressure (kPa)','Absolute pressure (kPa)','≈ atm','vs current depth']:['场景 / 深度','表压 (kPa)','绝对压 (kPa)','约合大气压','与当前深度对比'],
+        rows: __hpDepthRows
+    });
+    TBKit.chart.line('#hydrostatic_pressureChart',{
+        title: en?'Gauge pressure vs depth (current fluid)':'表压随深度变化（当前液体）',
+        labels: __hpDepths.map(function(d){return d[2]>=1000?((d[2]/1000)+' km'):(d[2]+' m');}),
+        series: [{ name: en?'Gauge pressure (kPa)':'表压 (kPa)', data: __hpDepths.map(function(d){return +(rho*g*d[2]/1000).toFixed(2);}) }]
+    });
+    var __hpLiquids=[
+      ['水银','Mercury',13546],['海水','Seawater',1025],['淡水','Fresh water',1000],
+      ['牛奶','Milk',1030],['柴油','Diesel',840],['酒精','Ethanol',789],['汽油','Gasoline',725],
+    ];
+    var __hpLiqRows=__hpLiquids.map(function(l){
+      var den=l[2]*g;
+      var hEq=den>0?P/den:NaN;
+      var cmp;
+      if(Math.abs(l[2]-rho)/Math.max(rho,1e-9)<0.01) cmp=en?'◀ current fluid':'◀ 当前流体';
+      else cmp=en?('×'+(isFinite(hEq)?(hEq/Math.max(h,1e-9)).toFixed(2):'—')+' of current depth'):('×'+(isFinite(hEq)?(hEq/Math.max(h,1e-9)).toFixed(2):'—')+' 当前深度');
+      return [en?l[1]:l[0], l[2], isFinite(hEq)?(+hEq.toFixed(3)):'—', cmp];
+    });
+    TBKit.matrix.table('#hydrostatic_pressureLiquids',{
+        head: en?['Liquid','Density (kg/m³)','Equivalent depth for current P (m)','vs current depth']:['液体','密度 (kg/m³)','当前压强的等效深度 (m)','与当前深度对比'],
+        rows: __hpLiqRows
+    });
     TBKit.history.record({rho:__hydrostatic_pressureRaw('rho'), h:__hydrostatic_pressureRaw('h'), g:__hydrostatic_pressureRaw('g')});
     function __hydrostatic_pressureRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#hydrostatic_pressureHist',function(rec){ __hydrostatic_pressureRestore(rec); calcTool(); });
@@ -231,6 +282,14 @@ function __hydrostatic_pressureExtras(){
 function __hydrostatic_pressureExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#hydrostatic_pressureTable','hydrostatic-pressure.csv'); } catch(e){}
+}
+function __hydrostatic_pressureExportDepths(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hydrostatic_pressureDepths','hydrostatic-depths.csv'); } catch(e){}
+}
+function __hydrostatic_pressureExportLiquids(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#hydrostatic_pressureLiquids','hydrostatic-equiv-depth.csv'); } catch(e){}
 }
 function __hydrostatic_pressurePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -245,6 +304,7 @@ calcTool = function(){ __tb_fn0(); try{ __hydrostatic_pressureExtras(); }catch(e
 function __hydrostatic_pressureBoot(){ try{ __hydrostatic_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __hydrostatic_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __hydrostatic_pressureBoot);
+document.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

@@ -140,10 +140,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__momentumExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__momentumExportRef()">导出典型动量 CSV</button>
+      <button class="btn" onclick="__momentumExportEk()">导出等动量动能 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="momentumTable"></div>
+    <h3 style="margin:14px 0 8px;">📊 典型物体动量参考</h3>
+    <div id="momentumRef"></div>
+    <h3 style="margin:14px 0 8px;">⚖️ 动量相同时，质量越小动能越大（Ek = p²/2m）</h3>
+    <div id="momentumEkChart"></div>
+    <div id="momentumEk"></div>
     <div id="momentumDiff"></div>
     <div id="momentumHist"></div>
 
@@ -221,6 +228,43 @@ function __momentumExtras(){
             ['质量与速度之比 (kg·s/m)', (m/Math.max(v,1e-9)).toFixed(4)],
         ]
     });
+    var pCur=m*v;
+    var __momRef=[
+      ['羽毛球','Badminton shuttle',0.005,60],
+      ['步枪子弹','Rifle bullet',0.004,900],
+      ['棒球','Baseball',0.145,40],
+      ['步行的人','Walking person',70,1.5],
+      ['自行车（含骑手）','Bicycle with rider',80,5],
+      ['轿车（60 km/h）','Sedan (60 km/h)',1500,16.7],
+      ['卡车（72 km/h）','Truck (72 km/h)',20000,20],
+      ['高铁列车（200 km/h）','High-speed train (200 km/h)',500000,55.6],
+    ];
+    function __momFmt(x){ if(!isFinite(x))return '—'; return (+x.toFixed(1)).toLocaleString('en-US'); }
+    var __momRefRows=__momRef.map(function(r){
+      var p=r[2]*r[3], ek=p*p/(2*r[2]);
+      return [en?r[1]:r[0], r[2], r[3], __momFmt(p), __momFmt(ek), pCur>0?('×'+(p/pCur).toFixed(2)):'—'];
+    });
+    TBKit.matrix.table('#momentumRef',{
+        head: en?['Object','Mass (kg)','Speed (m/s)','Momentum p (kg·m/s)','Kinetic energy Ek (J)','vs current p']:['物体','质量 (kg)','速度 (m/s)','动量 p (kg·m/s)','动能 Ek (J)','与当前动量比'],
+        rows: __momRefRows
+    });
+    var __momMults=[0.1,0.25,0.5,1,2,4];
+    var __momEkRows=__momMults.map(function(f){
+      var m2=m*f, v2=m2>0?pCur/m2:NaN, ek=m2>0?pCur*pCur/(2*m2):NaN;
+      var cmp;
+      if(Math.abs(f-1)<1e-9) cmp=en?'◀ current mass':'◀ 当前质量';
+      else cmp=en?('×'+(1/f).toFixed(2)+' of current Ek'):('×'+(1/f).toFixed(2)+' 当前动能');
+      return [en?('×'+f+' m'):('×'+f+' 质量'), +m2.toFixed(3), isFinite(v2)?(+v2.toFixed(3)):'—', isFinite(ek)?__momFmt(ek):'—', cmp];
+    });
+    TBKit.matrix.table('#momentumEk',{
+        head: en?['Mass factor','Mass (kg)','Speed at same p (m/s)','Kinetic energy Ek (J)','vs current Ek']:['质量倍数','质量 (kg)','等动量对应速度 (m/s)','动能 Ek (J)','与当前动能比'],
+        rows: __momEkRows
+    });
+    TBKit.chart.bar('#momentumEkChart',{
+        title: en?'Kinetic energy at fixed momentum (Ek = p²/2m)':'动量相同时的动能（Ek = p²/2m）',
+        labels: __momMults.map(function(f){return en?('×'+f+' m'):('×'+f+' 质量');}),
+        series: [{ name: en?'Ek (J)':'动能 (J)', data: __momMults.map(function(f){ var m2=m*f; return m2>0?+(pCur*pCur/(2*m2)).toFixed(1):0; }) }]
+    });
     TBKit.history.record({m:__momentumRaw('m'), v:__momentumRaw('v')});
     function __momentumRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#momentumHist',function(rec){ __momentumRestore(rec); calcTool(); });
@@ -228,6 +272,14 @@ function __momentumExtras(){
 function __momentumExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#momentumTable','momentum.csv'); } catch(e){}
+}
+function __momentumExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#momentumRef','momentum-reference.csv'); } catch(e){}
+}
+function __momentumExportEk(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#momentumEk','momentum-ke-vs-mass.csv'); } catch(e){}
 }
 function __momentumPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -242,6 +294,7 @@ calcTool = function(){ __tb_fn0(); try{ __momentumExtras(); }catch(e){} };
 function __momentumBoot(){ try{ __momentumPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __momentumBoot();
 else document.addEventListener('DOMContentLoaded', __momentumBoot);
+document.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
