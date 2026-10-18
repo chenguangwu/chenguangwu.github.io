@@ -174,6 +174,15 @@ s.parentNode.insertBefore(el, s);
     <div class="page-tabs" id="tabBar"></div>
 
     <div id="content"></div>
+
+    <div class="panel" style="margin-top:16px;">
+      <h3 style="font-size:14px;margin:0 0 8px;">📋 速查表</h3>
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__fsExport('tab')">导出当前分类 CSV</button>
+        <button type="button" class="btn" onclick="__fsExport('all')">导出全部分类 CSV</button>
+      </div>
+      <div id="__fsTable"></div>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -302,6 +311,55 @@ function render() {
 renderTabs();
 render();
 ToolBox.initToolTheme();
+
+/* ============================================================
+ * 速查表 + 导出（功能增强）
+ * ========================================================== */
+function __fsEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function __fsT(zh,en){ return __fsEn()?en:zh; }
+function __fsEsc(s){ return String(s==null?'':s).replace(/[&<>]/g,function(x){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[x]; }); }
+function __fsCurrentItems(){
+  var q = document.getElementById('searchInput').value.trim();
+  var items = KB[currentTab].items;
+  if(q){ items = items.filter(function(it){ return it.name.includes(q) || it.desc.includes(q); }); }
+  return items;
+}
+function __fsRenderTable(){
+  var box=document.getElementById('__fsTable'); if(!box) return;
+  var items=__fsCurrentItems();
+  var head=[__fsT('分类','Category'),__fsT('条目','Entry'),__fsT('要点','Key Points')];
+  if(!items.length){
+    box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+__fsT('当前筛选无匹配条目','No entries match the current filter.')+'</p>';
+    return;
+  }
+  var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+  items.forEach(function(it){
+    h+='<tr><td>'+__fsEsc(KB[currentTab].title)+'</td><td>'+__fsEsc(it.name)+'</td><td>'+__fsEsc(it.desc)+'</td></tr>';
+  });
+  box.innerHTML=h+'</tbody></table></div>';
+}
+window.__fsExport=function(which){
+  if(typeof TBKit==='undefined') return;
+  var en=TBKit.util.isEn();
+  var head=[en?'Category':'分类',en?'Entry':'条目',en?'Key Points':'要点'];
+  var rows=[head];
+  if(which==='all'){
+    Object.keys(KB).forEach(function(k){
+      KB[k].items.forEach(function(it){ rows.push([KB[k].title, it.name, it.desc]); });
+    });
+  } else {
+    __fsCurrentItems().forEach(function(it){ rows.push([KB[currentTab].title, it.name, it.desc]); });
+  }
+  var t=document.getElementById('__fsHidden');
+  if(!t){ t=document.createElement('table'); t.id='__fsHidden'; t.style.display='none'; document.body.appendChild(t); }
+  t.innerHTML='<thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>'+
+    rows.slice(1).map(function(r){ return '<tr>'+r.map(function(c){ return '<td>'+__fsEsc(c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody>';
+  TBKit.util.exportTable('#__fsHidden', which==='all' ? (en?'fengshui-guide-all.csv':'风水手册全部分类.csv') : (en?'fengshui-guide-tab.csv':'风水手册当前分类.csv'));
+};
+var __fsRender0=render;
+render=function(){ __fsRender0(); try{ __fsRenderTable(); }catch(e){} };
+document.addEventListener('toolbox:langchange', function(){ try{ __fsRenderTable(); }catch(e){} });
+__fsRenderTable();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
