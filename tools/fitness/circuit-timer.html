@@ -191,6 +191,8 @@ s.parentNode.insertBefore(el, s);
       </table>
     </div>
 
+    <div id="circuitChart" style="margin-top:14px;"></div>
+
     <div class="card formula-box">
   <h3>📐 计算公式</h3>
   <div class="formula-eq">单轮时长 = 训练时长 + 休息时长；训练总时长 = (训练时长 + 休息时长) × 轮数；含准备总时长 = 训练总时长 + 准备时长</div>
@@ -445,6 +447,7 @@ function resetTimer(){
   state.sessionSeconds = 0;
   renderStats();
   updateDisplay();
+  try { __circuitChart(); } catch (e) {}
 }
 
 // 简易提示音（Web Audio）
@@ -499,6 +502,27 @@ function __circuitExport(){
 
 load();
 resetTimer();
+
+function __circuitChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var en = TBKit.util.isEn();
+  var single = state.workSec + state.restSec;
+  var n = state.totalRounds;
+  var labels = [], data = [];
+  for (var i = 1; i <= n; i++) { labels.push(String(i)); data.push(i * single); }
+  TBKit.chart.line('#circuitChart', {
+    title: en ? 'Cumulative training time by round (s)' : '累计训练时长随轮次变化 (秒)',
+    labels: labels,
+    series: [{ name: en ? 's' : '秒', data: data }]
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { try { __circuitChart(); } catch (e) {} });
+} else {
+  try { __circuitChart(); } catch (e) {}
+}
+window.addEventListener('toolbox:langchange', function () { try { __circuitChart(); } catch (e) {} });
 </script>
 
 <!-- SEO 介绍区块 -->

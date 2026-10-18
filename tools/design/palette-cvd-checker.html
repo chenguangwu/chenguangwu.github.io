@@ -227,6 +227,7 @@ s.parentNode.insertBefore(el, s);
       <span><i style="background:#10B981"></i><span>≥ 10 可清晰区分</span></span>
     </div>
     <div id="pcSugg"></div>
+    <div id="pcChart" style="margin-top:14px;"></div>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
       <button class="btn" id="pcExport">导出分析报告 JSON</button>
@@ -645,12 +646,39 @@ s.parentNode.insertBefore(el, s);
     });
   }
 
+  function __pcChart() {
+    if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+    var list = S.colors;
+    if (list.length < 2) { return; }
+    var en = TBKit.util.isEn();
+    // 每个视觉通道下，所有配色对中最小的 ΔE（即最易混淆的一对），越低越危险
+    var labels = [], data = [];
+    VISION.forEach(function (t) {
+      labels.push(en ? t.en : t.zh);
+      var labs = list.map(function (c) { return rgbToLab(simulate(c, t.key)); });
+      var worst = Infinity;
+      for (var i = 0; i < labs.length; i++) {
+        for (var j = i + 1; j < labs.length; j++) {
+          var d = distFor(S.metric, labs[i], labs[j]);
+          if (d < worst) { worst = d; }
+        }
+      }
+      data.push(isFinite(worst) ? +worst.toFixed(1) : 0);
+    });
+    TBKit.chart.bar('#pcChart', {
+      title: en ? 'Worst pairwise ΔE by vision channel' : '各视觉通道下最差配色对 ΔE',
+      labels: labels,
+      series: [{ name: en ? 'ΔE' : 'ΔE', data: data }]
+    });
+  }
+
   function rerenderAll() {
     renderChips();
     renderGrayScore();
     renderBars();
     renderMatrix();
     analyzeWarnings();
+    try { __pcChart(); } catch (e) {}
   }
 
   /* ============================================================
@@ -687,7 +715,7 @@ s.parentNode.insertBefore(el, s);
     rerenderAll();
   });
   $('pcType').addEventListener('change', function () { S.type = this.value; renderMatrix(); });
-  $('pcMetric').addEventListener('change', function () { S.metric = this.value; renderMatrix(); analyzeWarnings(); });
+  $('pcMetric').addEventListener('change', function () { S.metric = this.value; renderMatrix(); analyzeWarnings(); try { __pcChart(); } catch (e) {} });
   $('pcOverlay').addEventListener('change', function () { S.overlay = this.checked; renderMatrix(); });
 
   $('pcExport').addEventListener('click', function () {
@@ -763,6 +791,14 @@ s.parentNode.insertBefore(el, s);
    * ========================================================== */
   S.colors = parsePaletteText($('pcInput').value);
   rerenderAll();
+
+  // 图表：首屏绘制（等待 TBKit 就绪）+ 语言切换重绘
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { try { __pcChart(); } catch (e) {} });
+  } else {
+    try { __pcChart(); } catch (e) {}
+  }
+  window.addEventListener('toolbox:langchange', function () { try { __pcChart(); } catch (e) {} });
 
   var _reT = null;
   document.addEventListener('toolbox:langchange', function () {

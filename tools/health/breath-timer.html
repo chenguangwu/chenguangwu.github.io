@@ -240,6 +240,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetBreathing()">重置</button>
       <button type="button" class="btn" onclick="__breathExport()">⬇️ 导出呼吸方案 CSV</button>
     </div>
+    <div id="breathChart" style="margin-top:14px;"></div>
   </div>
 
   <div class="card">
@@ -433,6 +434,7 @@ function resetBreathing() {
   document.getElementById('breathCircle').textContent = '准备';
   document.getElementById('timerDisplay').textContent = '00:00';
   document.getElementById('cycleInfo').textContent = `第 0 / ${document.getElementById('targetCycles').value} 个循环`;
+  try { __breathChart(); } catch (e) {}
 }
 
 function nextPhase() {
@@ -543,6 +545,26 @@ function clearHistory() {
 }
 
 renderHistory();
+
+function __breathChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var t = getTimings();
+  var en = TBKit.util.isEn();
+  var labels = en ? ['Inhale', 'Hold', 'Exhale', 'Hold2'] : ['吸气', '屏息', '呼气', '停'];
+  var data = [t.inhale, t.hold, t.exhale, t.hold2];
+  TBKit.chart.bar('#breathChart', {
+    title: en ? 'Breathing phase durations (s)' : '呼吸相位时长 (秒)',
+    labels: labels,
+    series: [{ name: en ? 's' : '秒', data: data }]
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { try { __breathChart(); } catch (e) {} });
+} else {
+  try { __breathChart(); } catch (e) {}
+}
+window.addEventListener('toolbox:langchange', function () { try { __breathChart(); } catch (e) {} });
 </script>
 <script>
 function __breathExport(){

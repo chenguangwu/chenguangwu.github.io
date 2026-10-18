@@ -149,6 +149,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class='result-box' id='result'><p>请选择项目并输入日期。</p></div>
     <div class='info-box' style='margin-top:12px;'>周期仅供参考，实际应结合用车环境、停车条件与产品说明调整。长期户外停放建议适当缩短周期。</div>
+    <div id='beautyChart' style='margin-top:12px;'></div>
   </div>
 </div>
 
@@ -237,6 +238,7 @@ s.parentNode.insertBefore(el, s);
     const __h1='<p>建议下次护理日期：<strong>' + formatDate(nextDate) + '</strong></p>' +
       '<p>距离下次护理：<strong>' + diffDays + '</strong> 天</p>' + status;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
     save();
+    try { __beautyChart(); } catch (e) {}
   }
   function copyResult(){
     const text = ToolBox.$('result').innerText.replace(/\s+/g, ' ').trim();
@@ -272,6 +274,31 @@ s.parentNode.insertBefore(el, s);
     });
     calculate();
   });
+  function __beautyChart() {
+    if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+    var en = TBKit.util.isEn();
+    var items = [
+      { zh: '打蜡', en: 'Wax', m: 3 },
+      { zh: '封釉', en: 'Sealant', m: 6 },
+      { zh: '镀晶', en: 'Coating', m: 12 },
+      { zh: '车衣', en: 'Film', m: 24 },
+      { zh: '陶瓷', en: 'Ceramic', m: 12 }
+    ];
+    var labels = items.map(function (i) { return en ? i.en : i.zh; });
+    var data = items.map(function (i) { return i.m; });
+    TBKit.chart.bar('#beautyChart', {
+      title: en ? 'Recommended care interval by service (months)' : '各项目建议护理周期 (月)',
+      labels: labels,
+      series: [{ name: en ? 'months' : '月', data: data }]
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { try { __beautyChart(); } catch (e) {} });
+  } else {
+    try { __beautyChart(); } catch (e) {}
+  }
+  window.addEventListener('toolbox:langchange', function () { try { __beautyChart(); } catch (e) {} });
+
   window.calculate = calculate;
   window.copyResult = copyResult;
   window.applyAutoPreset = applyAutoPreset;
