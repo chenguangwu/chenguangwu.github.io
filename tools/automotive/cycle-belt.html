@@ -146,11 +146,13 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn primary" onclick="calc()">🔍 计算更换周期</button>
       <button type="button" class="btn" onclick="saveRecord()">💾 保存记录</button>
       <button type="button" class="btn" onclick="exportResult()">📋 导出</button>
+      <button type="button" class="btn" id="cbExportCsv" onclick="cbExportCsv()">⬇️ 导出正时更换周期 CSV</button>
     </div>
   </div>
 
   <div id="resultArea"></div>
   <div id="savedArea"></div>
+  <table id="cbHidden" style="display:none"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody></tbody></table>
 
   <div class="card">
     <h2>📚 皮带 vs 链条 对比</h2>
@@ -414,6 +416,30 @@ load();
 calc();
 renderSaved();
 renderDB();
+function cbExportCsv(){
+  if(typeof TBKit==='undefined'){return;}
+  var c=window._lastCalc; if(!c){return;}
+  var en=TBKit.util.isEn();
+  var L={type:en?'Type':'类型', interval:en?'Recommended Interval (km)':'建议间隔(km)', cur:en?'Current Mileage (km)':'当前里程(km)', last:en?'Last Replacement (km)':'上次更换里程(km)', year:en?'Annual Mileage (km)':'年均里程(km)', next:en?'Next Due (km)':'下次更换里程', remain:en?'Remaining (km)':'剩余里程(km)', days:en?'Remaining Days':'剩余天数'};
+  var tbody=document.querySelector('#cbHidden tbody');if(!tbody){return;}
+  tbody.innerHTML='';
+  function addRow(k,v){var tr=document.createElement('tr');tr.innerHTML='<td>'+k+'</td><td>'+v+'</td>';tbody.appendChild(tr);}
+  addRow(L.type, c.type==='chain'?'Chain':'Belt');
+  addRow(L.interval, c.interval>0?c.interval:'Maintenance-free');
+  addRow(L.cur, c.curKm);
+  addRow(L.last, c.lastKm);
+  addRow(L.year, c.yearKm);
+  if(!(c.type==='chain'&&c.interval===0)){
+    var nextDue=(c.lastKm||0)+c.interval;
+    var remain=Math.max(0,nextDue-c.curKm);
+    var daily=c.yearKm/365;
+    var days=remain>0?Math.round(remain/daily):0;
+    addRow(L.next, nextDue);
+    addRow(L.remain, remain);
+    addRow(L.days, days);
+  }
+  TBKit.util.exportTable('#cbHidden', en?'timing-belt-replacement.csv':'正时更换周期.csv');
+}
 </script>
 
 <!-- SEO 介绍区块 -->

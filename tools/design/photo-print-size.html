@@ -161,6 +161,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="applyPrintPreset('dslr')">单反原片 6000×4000</button>
       <button type="button" class="btn" onclick="applyPrintPreset('id')">一寸证件照 295×413</button>
       <button type="button" class="btn" onclick="applyPrintPreset('scan')">A4 扫描 2480×3508</button>
+      <button type="button" class="btn" id="ppExportCsv" onclick="ppExportCsv()">⬇️ 导出照片打印尺寸 CSV</button>
     </div>
     <div id="bestSize" style="text-align:center;padding:20px;background:linear-gradient(135deg,#9c27b0,#7b1fa2);color:#fff;border-radius:12px;margin:14px 0;">
       <div style="font-size:36px;font-weight:700;" id="maxSize">-</div>
@@ -168,6 +169,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <h3 style="font-size:14px;margin:14px 0 8px;">📏 标准照片尺寸参考</h3>
     <div id="sizes"></div>
+    <table id="ppHidden" style="display:none"><thead><tr><th>Item</th><th>Width (cm)</th><th>Height (cm)</th><th>Required Px (W×H)</th><th>Sufficient</th></tr></thead><tbody></tbody></table>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -259,6 +261,29 @@ function applyPrintPreset(kind){
   document.getElementById('ph').value=p[1];
   document.getElementById('dpi').value=String(p[2]);
   calc();
+}
+function ppExportCsv(){
+  if(typeof TBKit==='undefined'){return;}
+  var en=TBKit.util.isEn();
+  var pw=+document.getElementById('pw').value||1;
+  var ph=+document.getElementById('ph').value||1;
+  var dpi=+document.getElementById('dpi').value||300;
+  var wCm=pw/dpi*2.54, hCm=ph/dpi*2.54;
+  var tbody=document.querySelector('#ppHidden tbody'); if(!tbody){return;}
+  tbody.innerHTML='';
+  function addRow(a,b,c,d,e){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+a+'</td><td>'+b+'</td><td>'+c+'</td><td>'+d+'</td><td>'+e+'</td>';
+    tbody.appendChild(tr);
+  }
+  addRow('Photo', wCm.toFixed(1), hCm.toFixed(1), '', '');
+  printSizes.forEach(function(s){
+    var reqW=Math.ceil(s.w/2.54*dpi);
+    var reqH=Math.ceil(s.h/2.54*dpi);
+    var ok=(pw>=reqW && ph>=reqH);
+    addRow(s.w+'×'+s.h+' cm', s.w, s.h, reqW+'×'+reqH, en?'Yes':'是');
+  });
+  TBKit.util.exportTable('#ppHidden', en?'photo-print-size.csv':'照片打印尺寸.csv');
 }
 calc();
 </script><script>

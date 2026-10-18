@@ -156,6 +156,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">🔮 预测</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" id="maExportCsv" onclick="maExportCsv()">⬇️ 导出移动平均预测 CSV</button>
     </div>
 
     <div class="forecast-box" id="forecastBox">
@@ -166,6 +167,7 @@ s.parentNode.insertBefore(el, s);
     <canvas class="chart" id="chart" width="800" height="200"></canvas>
 
     <div id="resultTable"></div>
+    <table id="maHidden" style="display:none"><thead><tr><th>Period</th><th>Actual</th><th>MA / Forecast</th></tr></thead><tbody></tbody></table>
 
     <div class="tip-box tip-info">
       <strong>SMA</strong>：最近 N 期算术平均；<strong>WMA</strong>：近期权重更高；<strong>EMA</strong>：α=2/(N+1)，越近期影响越大。移动平均适用于无明显季节波动的平稳序列。
@@ -373,6 +375,41 @@ function getCss(v){ return getComputedStyle(document.body).getPropertyValue(v).t
 
 function copyResult(){
   ToolBox.copyText('销售预测：下一期='+document.getElementById('forecastVal').textContent+'（'+({sma:'SMA',wma:'WMA',ema:'EMA'}[method])+'）');
+}
+function maExportCsv(){
+  if(typeof TBKit==='undefined'){return;}
+  var en=TBKit.util.isEn();
+  var data=parseData();
+  var n=+document.getElementById('window').value||3;
+  var periods=+document.getElementById('periods').value||1;
+  if(data.length<2){return;}
+  var alpha=2/(n+1);
+  var ma=[];
+  if(method==='sma'){for(var i=n-1;i<data.length;i++){var s=0;for(var j=0;j<n;j++)s+=data[i-j];ma.push(s/n);}}
+  else if(method==='wma'){var wSum=n*(n+1)/2;for(var i=n-1;i<data.length;i++){var s=0;for(var j=0;j<n;j++)s+=data[i-j]*(n-j);ma.push(s/wSum);}}
+  else{var ema=data[0];ma.push(ema);for(var k=1;k<data.length;k++){ema=data[k]*alpha+ema*(1-alpha);ma.push(ema);}}
+  var forecasts=[];var lastData=data.slice();
+  for(var p=0;p<periods;p++){
+    var f;
+    if(method==='sma'){var seg=lastData.slice(-n);f=seg.reduce(function(a,b){return a+b;},0)/seg.length;}
+    else if(method==='wma'){var sg=lastData.slice(-n);var ws=0,wt=0;for(var w=0;w<sg.length;w++){ws+=sg[w]*(sg.length-w);wt+=(sg.length-w);}f=ws/wt;}
+    else{var e=lastData[0];for(var q=1;q<lastData.length;q++)e=lastData[q]*alpha+e*(1-alpha);f=e;}
+    forecasts.push(f);lastData.push(f);
+  }
+  var tbody=document.querySelector('#maHidden tbody');if(!tbody){return;}
+  tbody.innerHTML='';
+  var startIdx=method==='ema'?0:(n-1);
+  for(var r=0;r<ma.length;r++){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(startIdx+r+1)+'</td><td>'+fmt(data[startIdx+r])+'</td><td>'+fmt(ma[r])+'</td>';
+    tbody.appendChild(tr);
+  }
+  forecasts.forEach(function(fv,fi){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>'+(en?'Forecast ':'预测 ')+(fi+1)+'</td><td>-</td><td>'+fmt(fv)+'</td>';
+    tbody.appendChild(tr);
+  });
+  TBKit.util.exportTable('#maHidden', en?'moving-average-forecast.csv':'移动平均预测.csv');
 }
 calc();
 window.addEventListener('resize', calc);
