@@ -144,6 +144,21 @@ s.parentNode.insertBefore(el, s);
     <div id="catWrap"></div>
   </div>
 
+  <div class="card">
+    <h2>🎯 窑温反查与温度换算</h2>
+    <div class="input-row">
+      <div><label>目标窑温 (°C)</label><input type="number" id="coneTargetTemp" value="1200" step="10" oninput="__coneLookup()"></div>
+    </div>
+    <div id="coneLookupResult"></div>
+    <h3 style="margin-top:14px;">📈 各锥号弯倒温度分布</h3>
+    <div id="coneChart"></div>
+    <h3 style="margin-top:14px;">🔥 烧成阶段参考</h3>
+    <div id="coneStages"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__coneExportStages()">⬇️ 导出烧成阶段 CSV</button>
+    </div>
+  </div>
+
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -237,6 +252,55 @@ function renderCats(){
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('catWrap').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('catWrap').innerHTML=__h1;
 }
 var __CONE_CAT_EN={'低温':'Low-fire','中温':'Mid-fire','高温':'High-fire'};
+function __coneEn(){ try{ return (typeof TBKit!=='undefined'&&TBKit.util.isEn()); }catch(e){ return false; } }
+function __coneLookup(){
+  var en=__coneEn();
+  var box=document.getElementById('coneLookupResult');
+  if(!box)return;
+  var t=parseFloat(document.getElementById('coneTargetTemp').value);
+  if(!isFinite(t)||t<=0){ box.innerHTML=''; return; }
+  var best=CONES[0],bd=1e9;
+  CONES.forEach(function(c){ var d=Math.abs(c[1]-t); if(d<bd){bd=d;best=c;} });
+  var diff=t-best[1];
+  var f=t*9/5+32;
+  var pos;
+  if(diff===0) pos=en?'Exact match with cone '+best[0]:'与锥号 '+best[0]+' 完全一致';
+  else if(diff>0) pos=en?diff.toFixed(0)+'°C above cone '+best[0]+' ('+best[1]+'°C)':'高于锥号 '+best[0]+'（'+best[1]+'°C）'+diff.toFixed(0)+'°C';
+  else pos=en?Math.abs(diff).toFixed(0)+'°C below cone '+best[0]+' ('+best[1]+'°C)':'低于锥号 '+best[0]+'（'+best[1]+'°C）'+Math.abs(diff).toFixed(0)+'°C';
+  var advice;
+  if(diff>30) advice=en?'Above the cone bend point - risk of over-firing and glaze running; lower the kiln or pick a higher cone.':'高于弯倒温度较多，有过烧流釉风险，建议降温或选更高锥号。';
+  else if(diff<-30) advice=en?'Below the cone bend point - under-firing leaves a matte, dry glaze; raise the temperature or pick a lower cone.':'低于弯倒温度较多，易欠烧釉面无光，建议升温或选更低锥号。';
+  else advice=en?'Within the practical tolerance (±30°C); glaze maturity is controllable.':'在实用容差（±30°C）内，釉面成熟度可控。';
+  var cls=Math.abs(diff)>30?(diff>0?'tip-warn':'tip-info'):'tip-success';
+  var cat=en?({低温:'Low-fire',中温:'Mid-fire',高温:'High-fire'})[best[2]]||best[2]:best[2];
+  box.innerHTML='<div class="tip-box '+cls+'" style="margin:8px 0 0;">'+
+    '<strong>'+(en?'Nearest cone: ':'最接近测温锥：')+best[0]+' · '+best[1]+'°C · '+cat+'</strong>'+
+    '<div style="margin-top:6px;font-size:13px;line-height:1.8;">'+pos+'<br>≈ '+f.toFixed(1)+(en?' °F (Fahrenheit)':' °F（华氏度）')+'<br>'+advice+'</div></div>';
+}
+function __coneRenderExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  TBKit.chart.line('#coneChart',{
+    title: en?'Bend temperature by cone number':'各测温锥弯倒温度',
+    labels: CONES.map(function(c){return c[0];}),
+    series: [{ name: en?'Bend temp (°C)':'弯倒温度 (°C)', data: CONES.map(function(c){return c[1];}) }]
+  });
+  var stages=[
+    [en?'Drying & water smoking':'烘干脱水','室温→200°C',en?'50–80 °C/h':'50–80 °C/h',en?'Drive off residual water slowly to prevent cracking':'缓慢排出残余水分，防止开裂'],
+    [en?'Bisque firing':'素烧','600→950°C',en?'100–150 °C/h':'100–150 °C/h',en?'Burn out organics and chemical water; strengthen the body':'烧除有机物与化学水，提高坯体强度'],
+    [en?'Glaze firing':'釉烧','1000→1200°C',en?'120–180 °C/h':'120–180 °C/h',en?'Melt and vitrify the glaze':'釉料熔融并玻化'],
+    [en?'Hold':'保温','1200→1250°C',en?'hold 20–30 min':'保温 20–30 分钟',en?'Let the glaze level and fully mature':'釉面流平并完全成熟'],
+    [en?'Cooling':'冷却','1250→800°C',en?'fast, then 80–100 °C/h below 800°C':'快冷；800°C 以下 80–100 °C/h',en?'Avoid thermal shock and cracking':'避免热冲击与炸裂'],
+  ];
+  TBKit.matrix.table('#coneStages',{
+    head: en?['Stage','Temperature range','Ramp rate','Key point']:['阶段','温度区间','建议升温速率','要点'],
+    rows: stages
+  });
+}
+function __coneExportStages(){
+  if(typeof TBKit==='undefined')return;
+  try{ TBKit.util.exportTable('#coneStages','firing-stages.csv'); }catch(e){}
+}
 window.__coneExport=function(){
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
@@ -264,6 +328,12 @@ window.__coneExport=function(){
 };
 renderTable();
 renderCats();
+try{ __coneLookup(); }catch(e){}
+try{ __coneRenderExtras(); }catch(e){}
+document.addEventListener('toolbox:langchange',function(){
+  try{ __coneLookup(); }catch(e){}
+  try{ __coneRenderExtras(); }catch(e){}
+});
 </script>
 
 <!-- SEO 介绍区块 -->

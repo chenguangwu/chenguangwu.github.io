@@ -119,6 +119,13 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <label>选择图片</label>
       <input type="file" id="img" accept="image/*" onchange="preview()">
+      <div><label for="icTopk">返回类别数 Top-K</label>
+        <select id="icTopk">
+          <option value="3">Top 3</option>
+          <option value="5" selected>Top 5</option>
+          <option value="10">Top 10</option>
+        </select>
+      </div>
     </div>
 
     <div id="preview" style="margin-bottom:12px;"></div>
@@ -131,12 +138,20 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="status" style="color:var(--text-muted);font-size:13px;"></div>
     <div class="result-box" id="result">
     <div id="icTable"></div>
+    <h3 style="margin:14px 0 8px;">📊 Top-K 置信度分布</h3>
+    <div id="icChart"></div>
     <div id="icDiff"></div>
     <div id="icHist"></div>
 </div>
 
     <div class="formula-box" style="margin-top:14px;font-size:13px;line-height:1.7;">
-      本工具在浏览器本地加载图像分类模型，对上传图片推理并返回置信度最高的前 5 个类别，全程不上传。
+      本工具在浏览器本地加载图像分类模型，对上传图片推理并返回置信度最高的前 K 个类别（可选 3/5/10），全程不上传。
+    </div>
+
+    <h3 style="margin:16px 0 8px;">🧠 常用图像分类模型参考</h3>
+    <div id="icModels"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__icExportModels()">⬇️ 导出模型参考 CSV</button>
     </div>
   </div>
 </div>
@@ -229,8 +244,10 @@ window.runAI = async function () {
   try {
     const pipe = await getPipeline('image-classification', 'Xenova/vit-base-patch16-224', (e) => { status.textContent = progressText(e); });
     status.textContent = '识别中…';
-    const out = await pipe(url, { top_k: 5 });
-    let html = '<p style="margin-bottom:8px;">识别结果（Top 5）：</p>';
+    var topk = 5;
+    try { var tk = parseInt((document.getElementById('icTopk') || {}).value, 10); if (isFinite(tk) && tk >= 1 && tk <= 20) topk = tk; } catch (e) {}
+    const out = await pipe(url, { top_k: topk });
+    let html = '<p style="margin-bottom:8px;">识别结果（Top ' + topk + '）：</p>';
     for (const item of out) {
       const sc = Number(item && item.score);
       const pct = isFinite(sc) ? (sc * 100).toFixed(1) : '0';
@@ -246,14 +263,19 @@ window.runAI = async function () {
     btn.disabled = false;
   }
 };
+</script>
 
+<script>
+// Top-K 统计与结果增强。
+// 注意：本段须为「经典脚本」而非并入上方 module——内联 onclick="__icExport()" 只在全局作用域解析，
+// module 内的函数声明不可见（历史缺陷：导出按钮点击即 ReferenceError）。module 脚本为延迟执行，
+// 故包装与启动放在 DOMContentLoaded，确保 window.runAI 已由 module 赋值。
 function __icT(id){var e=document.getElementById(id);return e?(e.value||''):'';}
 function __icR(id){var e=document.getElementById(id);return e?(e.innerText||e.textContent||''):'';}
 function __icSent(t){return String(t||'').split(/[。！？.!?\n]+/).filter(function(s){return s.trim();}).length;}
 function __icL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
-
-
 function __icExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#icTable','classification-stats.csv');}catch(e){} }
+function __icExportModels(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#icModels','image-classification-models.csv');}catch(e){} }
 function __icExtras(){
     if(typeof TBKit==='undefined')return;
     try{
@@ -264,27 +286,60 @@ function __icExtras(){
             [['top-1 confidence',top],['labels returned',ms.length],['result length',rt.length],['image selected',(document.getElementById('img')&&document.getElementById('img').files&&document.getElementById('img').files.length)?'yes':'no']],
             [['Top1 置信度',top],['返回类别数',ms.length],['结果长度',rt.length],['已选图片',(document.getElementById('img')&&document.getElementById('img').files&&document.getElementById('img').files.length)?'是':'否']]);
         TBKit.matrix.table('#icTable',{head:__icL(['Metric','Value'],['指标','数值']),rows:rows});
+        // Top-K 置信度分布图（从结果区解析 标签/置信度 对）
+        var pairs=[];
+        try{
+          var rh=document.getElementById('result').innerHTML;
+          var re=/<strong>([^<]+)<\/strong>\s*—\s*置信度：([\d.]+)%/g,m;
+          while((m=re.exec(rh))!==null){ pairs.push([m[1],parseFloat(m[2])]); }
+        }catch(e2){}
+        if(pairs.length){
+          TBKit.chart.bar('#icChart',{
+            title:__icL(['Top-K confidence (%)'],['Top-K 置信度（%）'])[0],
+            labels:pairs.map(function(p){return p[0].length>12?p[0].slice(0,12)+'…':p[0];}),
+            series:[{name:__icL(['Confidence (%)'],['置信度（%）'])[0],data:pairs.map(function(p){return p[1];})}],
+            max:100
+          });
+        }
+        // 常用模型参考表
+        var models=[
+          ['ViT-Base/16（本工具默认）','ViT-Base/16 (default here)',86,224,81.1,'通用图像分类，Transformer 架构'],
+          ['ResNet-50','ResNet-50',25.6,224,76.1,'经典基线，迁移学习常用'],
+          ['EfficientNet-B0','EfficientNet-B0',5.3,224,77.1,'轻量高效，端侧友好'],
+          ['MobileNetV3-Large','MobileNetV3-Large',5.4,224,74.0,'移动端实时推理'],
+          ['ConvNeXt-Tiny','ConvNeXt-Tiny',28.6,224,82.1,'现代纯卷积架构'],
+          ['Swin-Tiny','Swin-Tiny',28,224,81.3,'层次化 Transformer，多尺度'],
+        ];
+        TBKit.matrix.table('#icModels',{
+          head:__icL(['模型','参数量 (M)','输入尺寸','ImageNet Top-1 (%)','特点'],['Model','Params (M)','Input size','ImageNet Top-1 (%)','Notes']),
+          rows:models.map(function(m2){return [__icL([m2[1]],[m2[0]])[0],m2[2],m2[3]+'×'+m2[3],m2[4],__icL([m2[5]],[m2[5]])[0]];})
+        });
         TBKit.history.record({top:ms.length?parseFloat(ms[0].replace(/[^\d.]/g,'')):0,n:ms.length});
         TBKit.util.diffBox('#icDiff',['top']);
         TBKit.history.mount('#icHist',function(v){ if(v.top!=null){ runAI(); } });
     }catch(e){}
 }
-
-var __tb_ic0 = runAI;
-runAI = function(){
-  var __p = null;
-  try { __p = __tb_ic0.apply(this, arguments); } catch(e) {}
-  if (__p && typeof __p.then === "function") { __p.then(function(){ setTimeout(function(){ try{ __icExtras(); }catch(e){} }, 80); }); }
-  else { try{ __icExtras(); }catch(e){} }
-  return __p;
-};
-function __icBoot(){ try{ __icPresets(); }catch(e){} try{ __icExtras(); }catch(e){} }
+function __icWrap(){
+  if (typeof window.runAI !== 'function' || window.runAI.__icWrapped) return;
+  var __tb_ic0 = window.runAI;
+  var __wrapped = function(){
+    var __p = null;
+    try { __p = __tb_ic0.apply(this, arguments); } catch(e) {}
+    if (__p && typeof __p.then === 'function') { __p.then(function(){ setTimeout(function(){ try{ __icExtras(); }catch(e){} }, 80); }); }
+    else { try{ __icExtras(); }catch(e){} }
+    return __p;
+  };
+  __wrapped.__icWrapped = true;
+  window.runAI = __wrapped;
+}
+function __icBoot(){ __icWrap(); try{ __icExtras(); }catch(e){} }
 // readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
 // 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
 // ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
 // addEventListener；已加载完（complete/interactive）⇒ 立即启动。
-if (document.readyState && document.readyState !== "loading") __icBoot();
-else document.addEventListener("DOMContentLoaded", __icBoot);
+if (document.readyState && document.readyState !== 'loading') __icBoot();
+else document.addEventListener('DOMContentLoaded', __icBoot);
+document.addEventListener('toolbox:langchange', function(){ try{ __icExtras(); }catch(e){} });
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->
