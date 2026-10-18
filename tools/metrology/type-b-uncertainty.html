@@ -140,10 +140,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__type_b_uncertaintyExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__type_b_uncertaintyExportRef()">导出分布参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="type_b_uncertaintyTable"></div>
+    <h3 style="margin:14px 0 8px;">📊 常见分布包含因子 k 对照（u = a / k）</h3>
+    <div id="type_b_uncertaintyRef"></div>
+    <h3 style="margin:14px 0 8px;">📉 B 类不确定度随 k 变化（u ∝ 1/k）</h3>
+    <div id="type_b_uncertaintyChart"></div>
     <div id="type_b_uncertaintyDiff"></div>
     <div id="type_b_uncertaintyHist"></div>
 
@@ -277,6 +282,26 @@ function __type_b_uncertaintyExtras(){
             ['包含因子倒数', (1/k).toFixed(4)],
         ]
     });
+    var __tbu=[
+      [en?'Rectangular (uniform)':'矩形 (均匀)', Math.sqrt(3)],
+      [en?'Triangular':'三角', Math.sqrt(6)],
+      [en?'Normal (95%)':'正态 (95%)', 1.96],
+      [en?'Normal (99%)':'正态 (99%)', 2.576],
+      [en?'U-shaped':'U 形', Math.sqrt(2)],
+    ];
+    TBKit.matrix.table('#type_b_uncertaintyRef',{
+      head: en?['Distribution','k factor','u_B (a/k)','vs current']:['分布','包含因子 k','u_B (a/k)','与当前对比'],
+      rows: __tbu.map(function(g){
+        var u=a/g[1];
+        var cmp = (Math.abs(g[1]-k)<1e-9) ? (en?'◀ current':'◀ 当前') : (g[1]>k?('×'+(g[1]/k).toFixed(2)+(en?' larger':' 更大')):('×'+(k/g[1]).toFixed(2)+(en?' smaller':' 更小')));
+        return [g[0], +g[1].toFixed(3), +u.toFixed(5), cmp];
+      })
+    });
+    var __tbuX=[1.414,1.732,1.96,2.449,2.576],__tbuY=__tbuX.map(function(kk){return +(a/kk).toFixed(5);});
+    TBKit.chart.line('#type_b_uncertaintyChart',{
+      labels: __tbuX.map(function(v){return v.toFixed(3);}),
+      series:[{name: en?'u_B (a/k)':'u_B (a/k)', data:__tbuY}]
+    });
     TBKit.history.record({a:__type_b_uncertaintyRaw('a'), k:__type_b_uncertaintyRaw('k')});
     function __type_b_uncertaintyRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#type_b_uncertaintyHist',function(rec){ __type_b_uncertaintyRestore(rec); calcTool(); });
@@ -284,6 +309,10 @@ function __type_b_uncertaintyExtras(){
 function __type_b_uncertaintyExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#type_b_uncertaintyTable','type-b-uncertainty.csv'); } catch(e){}
+}
+function __type_b_uncertaintyExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#type_b_uncertaintyRef','type-b-uncertainty-ref.csv'); } catch(e){}
 }
 function __type_b_uncertaintyPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -298,6 +327,7 @@ calcTool = function(){ __tb_fn0(); try{ __type_b_uncertaintyExtras(); }catch(e){
 function __type_b_uncertaintyBoot(){ try{ __type_b_uncertaintyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __type_b_uncertaintyBoot();
 else document.addEventListener('DOMContentLoaded', __type_b_uncertaintyBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

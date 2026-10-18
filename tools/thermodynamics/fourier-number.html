@@ -142,10 +142,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__fourier_numberExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__fourier_numberExportRef()">导出时间尺度 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="fourier_numberTable"></div>
+    <h3 style="margin:14px 0 8px;">⏱️ 达到目标傅里叶数所需时间（t = Fo·L²/α）</h3>
+    <div id="fourier_numberRef"></div>
+    <h3 style="margin:14px 0 8px;">📈 傅里叶数随加热时间变化（Fo ∝ t）</h3>
+    <div id="fourier_numberChart"></div>
     <div id="fourier_numberDiff"></div>
     <div id="fourier_numberHist"></div>
 
@@ -275,6 +280,21 @@ function __fourier_numberExtras(){
             ['傅里叶数倒数', (1/((alpha*t/(L*L))||1)).toFixed(3)],
         ]
     });
+    var __foTargets=[0.2,1,2,5,10];
+    TBKit.matrix.table('#fourier_numberRef',{
+      head: en?['Target Fo','Required time t (s)','vs current']:['目标 Fo','所需时间 t (s)','与当前对比'],
+      rows: __foTargets.map(function(fo){
+        var tt=fo*L*L/(alpha||1e-12);
+        var cmp = (Math.abs(fo-(alpha*t/(L*L)))<1e-9) ? (en?'◀ current':'◀ 当前') : '';
+        return [fo, +tt.toFixed(3), cmp];
+      })
+    });
+    var __foX=[],__foY=[];
+    for (var __ft=0;__ft<=t*2.0001;__ft+=Math.max(t/10,1)){ __foX.push(+__ft.toFixed(1)); __foY.push(+(alpha*__ft/(L*L)).toFixed(3)); }
+    TBKit.chart.line('#fourier_numberChart',{
+      labels: __foX.map(String),
+      series:[{name: en?'Fourier number Fo':'傅里叶数 Fo', data:__foY}]
+    });
     TBKit.history.record({alpha:__fourier_numberRaw('alpha'), t:__fourier_numberRaw('t'), L:__fourier_numberRaw('L')});
     function __fourier_numberRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#fourier_numberHist',function(rec){ __fourier_numberRestore(rec); calcTool(); });
@@ -282,6 +302,10 @@ function __fourier_numberExtras(){
 function __fourier_numberExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#fourier_numberTable','fourier-number.csv'); } catch(e){}
+}
+function __fourier_numberExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#fourier_numberRef','fourier-number-ref.csv'); } catch(e){}
 }
 function __fourier_numberPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -296,6 +320,7 @@ calcTool = function(){ __tb_fn0(); try{ __fourier_numberExtras(); }catch(e){} };
 function __fourier_numberBoot(){ try{ __fourier_numberPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __fourier_numberBoot();
 else document.addEventListener('DOMContentLoaded', __fourier_numberBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

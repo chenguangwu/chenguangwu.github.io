@@ -134,10 +134,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__least_count_errorExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__least_count_errorExportRef()">导出量具参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="least_count_errorTable"></div>
+    <h3 style="margin:14px 0 8px;">📏 典型量具分度值与极限误差（误差 = 分度值 / 2）</h3>
+    <div id="least_count_errorRef"></div>
+    <h3 style="margin:14px 0 8px;">📈 极限误差随分度值变化（±lc/2）</h3>
+    <div id="least_count_errorChart"></div>
     <div id="least_count_errorDiff"></div>
     <div id="least_count_errorHist"></div>
 
@@ -218,6 +223,26 @@ function __least_count_errorExtras(){
             ['1.5 倍分度值', (lc*1.5).toFixed(6)],
         ]
     });
+    var __lce=[
+      [en?'Steel ruler':'钢直尺', 0.5],
+      [en?'Vernier caliper':'游标卡尺', 0.02],
+      [en?'Micrometer':'千分尺', 0.01],
+      [en?'Screw micrometer':'螺旋测微器', 0.001],
+      [en?'Digital height gauge':'数显高度规', 0.01],
+      [en?'Analytical balance (0.1 mg)':'电子天平 (0.1 mg)', 0.0001],
+    ];
+    TBKit.matrix.table('#least_count_errorRef',{
+      head: en?['Instrument','Least count','Limit error (±)']:['量具','分度值','极限误差 (±)'],
+      rows: __lce.map(function(g){
+        var cmp = (Math.abs(g[1]-lc)<1e-12) ? (en?'◀ current':'◀ 当前') : '';
+        return [g[0], g[1], +(g[1]/2).toFixed(6), cmp];
+      })
+    });
+    var __lceX=[0.0001,0.001,0.01,0.02,0.1,0.5,1],__lceY=__lceX.map(function(v){return +(v/2).toFixed(6);});
+    TBKit.chart.line('#least_count_errorChart',{
+      labels: __lceX.map(String),
+      series:[{name: en?'Limit error (±)':'极限误差 (±)', data:__lceY}]
+    });
     TBKit.history.record({lc:__least_count_errorRaw('lc')});
     function __least_count_errorRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#least_count_errorHist',function(rec){ __least_count_errorRestore(rec); calcTool(); });
@@ -225,6 +250,10 @@ function __least_count_errorExtras(){
 function __least_count_errorExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#least_count_errorTable','least-count-error.csv'); } catch(e){}
+}
+function __least_count_errorExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#least_count_errorRef','least-count-error-ref.csv'); } catch(e){}
 }
 function __least_count_errorPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -239,6 +268,7 @@ calcTool = function(){ __tb_fn0(); try{ __least_count_errorExtras(); }catch(e){}
 function __least_count_errorBoot(){ try{ __least_count_errorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __least_count_errorBoot();
 else document.addEventListener('DOMContentLoaded', __least_count_errorBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

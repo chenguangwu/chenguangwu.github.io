@@ -138,10 +138,17 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__modulo_calcExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__modulo_calcExportRef()">导出模数参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="modulo_calcTable"></div>
+    <h3 style="margin:14px 0 8px;">📚 常见模数下的余数（a mod m）</h3>
+    <div id="modulo_calcRef"></div>
+    <h3 style="margin:14px 0 8px;">🔢 同余性质（gcd 与模逆元）</h3>
+    <div id="modulo_calcProp"></div>
+    <h3 style="margin:14px 0 8px;">📈 余数随模数变化（a mod m, m=2..16）</h3>
+    <div id="modulo_calcChart"></div>
     <div id="modulo_calcDiff"></div>
     <div id="modulo_calcHist"></div>
 
@@ -225,6 +232,33 @@ function __modulo_calcExtras(){
             ['除数与被除数之比', (b/Math.max(a,1e-9)).toFixed(6)],
         ]
     });
+    var __mcMods=[[en?'Clock (12 h)':'时钟 (12小时)',12],[en?'Angle (360°)':'角度 (360°)',360],[en?'Weekday (7)':'星期 (7)',7],[en?'Hexadecimal (16)':'十六进制 (16)',16],[en?'Parity (2)':'奇偶 (2)',2],[en?'Percent (100)':'百分 (100)',100]];
+    TBKit.matrix.table('#modulo_calcRef',{
+      head: en?['Modulus m','a mod m','vs current b']:['模数 m','a mod m','与当前 b 对比'],
+      rows: __mcMods.map(function(g){
+        var r=((a%g[1])+g[1])%g[1];
+        var cmp = (g[1]===b) ? (en?'◀ current':'◀ 当前') : '';
+        return [g[0], r, cmp];
+      })
+    });
+    var __mcGcd=function(x,y){x=Math.abs(x);y=Math.abs(y);while(y){var t=y;y=x%y;x=t;}return x||1;};
+    var __mcInv=function(a0,m){a0=((a0%m)+m)%m;var t=0,nt=1,r=m,nr=a0;while(nr!==0){var q=Math.floor(r/nr);var tmp=r-q*nr;r=nr;nr=tmp;tmp=t-q*nt;t=nt;nt=tmp;}if(r>1)return null;if(t<0)t+=m;return t;};
+    var g=__mcGcd(a,b), inv=(g===1)?__mcInv(a,b):null;
+    TBKit.matrix.table('#modulo_calcProp',{
+      head: en?['Property','Value']:['性质','数值'],
+      rows: [
+        [en?'gcd(a, b)':'最大公约数 gcd(a,b)', g],
+        [en?'a, b coprime':'a 与 b 互素', (g===1)?(en?'Yes':'是'):(en?'No':'否')],
+        [en?'Modular inverse of a mod b':'a 模 b 的逆元', inv===null?(en?'— (needs gcd=1)':'—（需 gcd=1）'):inv],
+        [en?'Check a·inv mod b':'校验 a·逆元 mod b', inv===null?'—':(((a*inv)%b+b)%b)],
+      ]
+    });
+    var __mcX=[],__mcY=[];
+    for (var __m=2;__m<=16;__m++){ __mcX.push(__m); __mcY.push(((a%__m)+__m)%__m); }
+    TBKit.chart.line('#modulo_calcChart',{
+      labels: __mcX.map(String),
+      series:[{name: en?'a mod m':'a mod m', data:__mcY}]
+    });
     TBKit.history.record({a:__modulo_calcRaw('a'), b:__modulo_calcRaw('b')});
     function __modulo_calcRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#modulo_calcHist',function(rec){ __modulo_calcRestore(rec); calcTool(); });
@@ -232,6 +266,10 @@ function __modulo_calcExtras(){
 function __modulo_calcExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#modulo_calcTable','modulo-calc.csv'); } catch(e){}
+}
+function __modulo_calcExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#modulo_calcRef','modulo-calc-ref.csv'); } catch(e){}
 }
 function __modulo_calcPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -246,6 +284,7 @@ calcTool = function(){ __tb_fn0(); try{ __modulo_calcExtras(); }catch(e){} };
 function __modulo_calcBoot(){ try{ __modulo_calcPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __modulo_calcBoot();
 else document.addEventListener('DOMContentLoaded', __modulo_calcBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
