@@ -201,8 +201,35 @@ s.parentNode.insertBefore(el, s);
           <button type="button" class="btn" onclick="redo()">↪ 重做</button>
           <button type="button" class="btn danger" onclick="clearCanvas()">🗑 清空</button>
           <button type="button" class="btn success" onclick="exportPNG(1)">⬇ 导出原始</button>
-          <button type="button" class="btn primary" onclick="exportPNG(16)">⬇ 导出放大版</button>
+          <button type="button" class="btn primary" onclick="exportPNG(__paExportScale())">⬇ 导出放大版</button>
         </div>
+      </div>
+
+      <!-- 增强面板（功能增强） -->
+      <div class="tool-panel" style="margin-top:12px;">
+        <label>色板预设</label>
+        <div class="toolbar" style="flex-wrap:wrap;gap:6px;">
+          <button type="button" class="btn" onclick="__paSetPalette('classic')">经典 16 色</button>
+          <button type="button" class="btn" onclick="__paSetPalette('db16')">DB16</button>
+          <button type="button" class="btn" onclick="__paSetPalette('gameboy')">GameBoy 4 色</button>
+          <button type="button" class="btn" onclick="__paSetPalette('cga')">CGA 16 色</button>
+          <button type="button" class="btn" onclick="__paSetPalette('gray4')">灰阶 4 色</button>
+        </div>
+
+        <label style="margin-top:10px;display:block;">镜像与网格</label>
+        <div class="toolbar" style="flex-direction:column;align-items:flex-start;gap:6px;">
+          <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="paMirrorX" onchange="__paSetMirror(this.checked)"> 水平对称绘制</label>
+          <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="paGridOn" checked onchange="__paSetGrid(this.checked)"> 显示网格线</label>
+        </div>
+
+        <label style="margin-top:10px;display:block;">导出倍率（放大版）</label>
+        <div class="toolbar" style="flex-wrap:wrap;gap:6px;align-items:center;">
+          <input type="number" id="paScale" min="1" max="64" value="16" style="width:72px;" onchange="__paRenderInfo()">
+          <button type="button" class="btn" onclick="__paQuickScale(8)">×8</button>
+          <button type="button" class="btn" onclick="__paQuickScale(16)">×16</button>
+          <button type="button" class="btn" onclick="__paQuickScale(32)">×32</button>
+        </div>
+        <div id="paInfo" style="font-size:12px;color:var(--text-muted);margin-top:10px;"></div>
       </div>
 
       <div class="canvas-area">
@@ -273,10 +300,73 @@ let currentColor='#000000';
 let isDrawing=false;
 let history=[];
 let historyIndex=-1;
+let mirrorX=false;
+let showGrid=true;
+let paletteSet='classic';
+
+// 色板预设（复古平台常用色板）
+const PA_PALETTES={
+  classic:PRESET_COLORS,
+  db16:['#140c1c','#442434','#30346d','#4e4a4e','#854c30','#346524','#d04648','#757161','#597dce','#d27d2c','#8595a1','#6daa2c','#d2aa99','#6dc2ca','#dad45e','#deeed6'],
+  gameboy:['#0f380f','#306230','#8bac0f','#9bbc0f'],
+  cga:['#000000','#0000aa','#00aa00','#00aaaa','#aa0000','#aa00aa','#aa5500','#aaaaaa','#555555','#5555ff','#55ff55','#55ffff','#ff5555','#ff55ff','#ffff55','#ffffff'],
+  gray4:['#000000','#555555','#aaaaaa','#ffffff']
+};
+let PALETTE_COLORS=PRESET_COLORS;
+
+function __paEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function __paT(zh,en){ return __paEn()?en:zh; }
+
+window.__paSetPalette = function(name){
+  if(!PA_PALETTES[name])return;
+  paletteSet=name;
+  PALETTE_COLORS=PA_PALETTES[name];
+  initPalette();
+  __paRenderInfo();
+};
+
+window.__paSetMirror = function(on){
+  mirrorX=!!on;
+  __paRenderInfo();
+};
+
+window.__paSetGrid = function(on){
+  showGrid=!!on;
+  redraw();
+  __paRenderInfo();
+};
+
+window.__paQuickScale = function(v){
+  var el=document.getElementById('paScale');
+  if(el)el.value=v;
+  __paRenderInfo();
+};
+
+function __paExportScale(){
+  var el=document.getElementById('paScale');
+  var v=parseInt(el&&el.value)||16;
+  return Math.max(1,Math.min(64,v));
+}
+
+function __paRenderInfo(){
+  var box=document.getElementById('paInfo');
+  if(!box)return;
+  var used=0;
+  const colors=new Set();
+  for(let y=0;y<gridSize;y++){
+    for(let x=0;x<gridSize;x++){
+      if(pixels[y][x]!==null){ used++; colors.add(pixels[y][x]); }
+    }
+  }
+  box.textContent=__paT(
+    '网格 '+gridSize+' × '+gridSize+' ｜ 已上色 '+used+' / '+(gridSize*gridSize)+' 格 ｜ 使用颜色 '+colors.size+' 种 ｜ 镜像 '+(mirrorX?'开':'关')+' ｜ 网格线 '+(showGrid?'开':'关')+' ｜ 放大倍率 ×'+__paExportScale(),
+    'Grid '+gridSize+' x '+gridSize+' | filled '+used+' / '+(gridSize*gridSize)+' cells | '+colors.size+' color(s) used | mirror '+(mirrorX?'on':'off')+' | grid '+(showGrid?'on':'off')+' | scale x'+__paExportScale()
+  );
+}
 
 function initPalette(){
   const pal=document.getElementById('palette');
-  const __h0=PRESET_COLORS.map(c=>'<div class="palette-color'+(c===currentColor?' active':'')+'" style="background:'+c+'" data-color="'+c+'" onclick="setColor(\''+c+'\')"></div>').join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){pal.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}pal.innerHTML=__h0;
+  const __h0=PALETTE_COLORS.map(c=>'<div class="palette-color'+(c===currentColor?' active':'')+'" style="background:'+c+'" data-color="'+c+'" onclick="setColor(\''+c+'\')"></div>').join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){pal.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}pal.innerHTML=__h0;
 }
 
 function setSize(size){
@@ -369,17 +459,29 @@ function endDraw(e){
   if(e)e.preventDefault();
   isDrawing=false;
   saveHistory();
+  __paRenderInfo();
 }
 
 function applyTool(pos){
   if(currentTool==='brush'){
     pixels[pos.y][pos.x]=currentColor;
+    if(mirrorX){
+      const mx=gridSize-1-pos.x;
+      if(mx!==pos.x)pixels[pos.y][mx]=currentColor;
+    }
     redraw();
   }else if(currentTool==='eraser'){
     pixels[pos.y][pos.x]=null;
+    if(mirrorX){
+      const mx=gridSize-1-pos.x;
+      if(mx!==pos.x)pixels[pos.y][mx]=null;
+    }
     redraw();
   }else if(currentTool==='fill'){
     floodFill(pos.x,pos.y,pixels[pos.y][pos.x],currentColor);
+    if(mirrorX){
+      floodFill(gridSize-1-pos.x,pos.y,pixels[pos.y][gridSize-1-pos.x],currentColor);
+    }
     redraw();
     saveHistory();
     isDrawing=false;
@@ -421,8 +523,8 @@ function redraw(){
       }
     }
   }
-  // 网格线（仅在 gridSize <= 32 时显示）
-  if(gridSize<=32&&pixelSize>=8){
+  // 网格线（可手动开关）
+  if(showGrid&&pixelSize>=4){
     ctx.strokeStyle='#e8ecf1';
     ctx.lineWidth=1;
     for(let i=0;i<=gridSize;i++){
@@ -447,6 +549,7 @@ function undo(){
   historyIndex--;
   pixels=history[historyIndex].map(r=>r.slice());
   redraw();
+  __paRenderInfo();
 }
 
 function redo(){
@@ -454,12 +557,14 @@ function redo(){
   historyIndex++;
   pixels=history[historyIndex].map(r=>r.slice());
   redraw();
+  __paRenderInfo();
 }
 
 function clearCanvas(){
   initPixels();
   saveHistory();
   redraw();
+  __paRenderInfo();
 }
 
 function exportPNG(scale){
@@ -480,16 +585,16 @@ function exportPNG(scale){
   const url=tmp.toDataURL('image/png');
   const a=document.createElement('a');
   a.href=url;
-  a.download='pixel-art-'+gridSize+'x'+gridSize+'-'+(scale===1?'original':'x'+scale)+'-'+Date.now()+'.png';
+  a.download='pixel-art-'+gridSize+'x'+gridSize+'-'+(scale===1?__paT('原始','original'):'x'+scale)+'-'+Date.now()+'.png';
   a.click();
 }
 
 // 坐标显示
 canvas.addEventListener('mousemove',e=>{
   const pos=getPixelPos(e);
-  if(pos){document.getElementById('coord').textContent='坐标：('+pos.x+', '+pos.y+')';}
+  if(pos){document.getElementById('coord').textContent=__paT('坐标：','Coord: ')+'('+pos.x+', '+pos.y+')';}
 });
-canvas.addEventListener('mouseleave',()=>{document.getElementById('coord').textContent='坐标：—';});
+canvas.addEventListener('mouseleave',()=>{document.getElementById('coord').textContent=__paT('坐标：—','Coord: —');});
 
 // 事件绑定
 canvas.addEventListener('mousedown',startDraw);
@@ -508,6 +613,15 @@ initPixels();
 resizeCanvas();
 saveHistory();
 redraw();
+__paRenderInfo();
+
+// 语言切换：刷新信息条与坐标
+document.addEventListener('toolbox:langchange',function(){
+  try{
+    __paRenderInfo();
+    document.getElementById('coord').textContent=__paT('坐标：—','Coord: —');
+  }catch(e){}
+});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
