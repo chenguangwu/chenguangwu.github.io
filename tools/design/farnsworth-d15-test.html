@@ -218,6 +218,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" id="fdCheck">✅ 完成并分析</button>
       <button class="btn" id="fdSorted">🎯 填入正确顺序（自检）</button>
       <button class="btn" id="fdExport">⬇ 导出结果 JSON</button>
+      <button class="btn" id="fdExportCsv">⬇️ 导出色相排列 CSV</button>
       <button class="btn" id="fdCopy">📋 复制结论</button>
     </div>
 
@@ -246,6 +247,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="fdResult"><div class="fd-empty">排好顺序后点击「完成并分析」，这里会给出分型结论、指数明细与色帽还原表。</div></div>
+    <table id="fdHidden" style="display:none"><thead><tr><th>Slot</th><th>Cap</th><th>Hue</th><th>HEX</th><th>ΔE to next</th><th>Number span</th></tr></thead><tbody></tbody></table>
 
     <div class="fd-note">
       <b>15 个色帽的色度参数</b><span>（xy 为标准 D-15 近似色度坐标，u′v′ 由 xy 换算，HEX 为等亮度色域映射后的实际显示值）：</span>
@@ -997,6 +999,27 @@ s.parentNode.insertBefore(el, s);
   $('fdCopy').addEventListener('click', function () {
     var res = ST.res || analyze(ST.order);
     copyText(resultText(res));
+  });
+  $('fdExportCsv').addEventListener('click', function () {
+    if (typeof TBKit === 'undefined') { return; }
+    var en = TBKit.util.isEn();
+    var tbody = document.querySelector('#fdHidden tbody');
+    if (!tbody) { return; }
+    var steps = stepsOf(ST.order);
+    tbody.innerHTML = '';
+    ST.order.forEach(function (idx, pos) {
+      var c = CAPS[idx];
+      var s = steps[pos];
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + (pos + 1) + (pos === 0 || pos === 14 ? ' (ref)' : '') + '</td>' +
+        '<td>' + c.n + '</td>' +
+        '<td>' + esc(hueName(c)) + '</td>' +
+        '<td>' + c.hex + '</td>' +
+        '<td>' + (s ? s.len.toFixed(1) : '') + '</td>' +
+        '<td>' + (s ? s.gap : '') + '</td>';
+      tbody.appendChild(tr);
+    });
+    TBKit.util.exportTable('#fdHidden', en ? 'farnsworth-d15-arrangement.csv' : 'Farnsworth-D15色相排列.csv');
   });
 
   $('fdSize').addEventListener('input', function () { $('fdSizeV').textContent = this.value; renderStrip(); });

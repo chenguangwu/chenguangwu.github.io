@@ -192,6 +192,7 @@ s.parentNode.insertBefore(el, s);
 
     <!-- 结果 -->
     <div id="csOut"><div class="cs-loading">点击「生成安全配色」开始</div></div>
+    <table id="csHidden" style="display:none"><thead><tr><th>Index</th><th>HEX</th><th>Contrast vs White</th><th>Contrast vs Black</th><th>AA Text</th><th>AAA Text</th></tr></thead><tbody></tbody></table>
 
     <div class="cs-note"><span>使用边界说明：</span><span>本工具是设计与自查辅助工具，所有模拟基于色彩科学模型的数学推算，</span><b>不等同于医学诊断</b><span>。即便配色在 8 型下 ΔE 充足，真实色觉障碍者仍可能受显示器、环境光与个体差异影响；涉及安全关键信息（如交通、医疗图表）请勿仅依赖颜色，务必配合形状、纹理或文字标签。模型采用线性严重度插值，与真实光谱响应存在偏差。</span></div>
   </div>
@@ -599,6 +600,7 @@ s.parentNode.insertBefore(el, s);
       '<button class="btn" id="csCopyCss">复制 CSS 变量</button>' +
       '<button class="btn" id="csCopyJson">复制 JSON</button>' +
       '<button class="btn" id="csExport">导出 PNG 预览</button>' +
+      '<button class="btn" id="csExportCsv">⬇️ 导出对比度 CSV</button>' +
       '</div>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h6;
 
     drawCanvas(seq);
@@ -615,6 +617,24 @@ s.parentNode.insertBefore(el, s);
     $('csExport').addEventListener('click', function () {
       var cv = $('csCanvas');
       cv.toBlob(function (blob) { if (blob) { downloadBlob(blob, 'cvd-safe-palette.png', 'image/png'); } }, 'image/png');
+    });
+    $('csExportCsv').addEventListener('click', function () {
+      if (typeof TBKit === 'undefined' || !S.result) { return; }
+      var en = TBKit.util.isEn();
+      var tbody = document.querySelector('#csHidden tbody');
+      if (!tbody) { return; }
+      tbody.innerHTML = '';
+      S.result.forEach(function (c, i) {
+        var hex = rgbToHex(c[0], c[1], c[2]);
+        var cw = wcagContrast(c, [255, 255, 255]);
+        var cb = wcagContrast(c, [0, 0, 0]);
+        var aa = (cw >= 4.5 || cb >= 4.5) ? 'Yes' : 'No';
+        var aaa = (cw >= 7 || cb >= 7) ? 'Yes' : 'No';
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + (i + 1) + '</td><td>' + hex + '</td><td>' + cw.toFixed(2) + ':1</td><td>' + cb.toFixed(2) + ':1</td><td>' + aa + '</td><td>' + aaa + '</td>';
+        tbody.appendChild(tr);
+      });
+      TBKit.util.exportTable('#csHidden', en ? 'cvd-safe-palette-contrast.csv' : '色盲安全配色对比度.csv');
     });
   }
 

@@ -234,9 +234,11 @@ s.parentNode.insertBefore(el, s);
         <div class="pt-row">
           <button class="btn" id="ptCopyJson">复制结果 JSON</button>
           <button class="btn" id="ptSaveJson">保存结果文件</button>
+          <button class="btn" id="ptExportCsv">⬇️ 导出听力图数据 CSV</button>
           <button class="btn" id="ptPrint">🖨 打印 / 导出 PDF</button>
           <button class="btn" id="ptReset">重置全部</button>
         </div>
+        <table id="ptHidden" style="display:none"><thead><tr><th>Frequency (Hz)</th><th>Right Ear R (dB)</th><th>Left Ear L (dB)</th></tr></thead><tbody></tbody></table>
       </div>
     </section>
 
@@ -663,6 +665,25 @@ s.parentNode.insertBefore(el, s);
       navigator.clipboard.writeText(txt).then(function () { toast('已复制 JSON'); }, function () { toast('复制失败'); });
     } else { toast('复制失败'); }
   });
+  function ptExportCsv() {
+    if (typeof TBKit === 'undefined') { return; }
+    var en = TBKit.util.isEn();
+    var tbody = document.querySelector('#ptHidden tbody');
+    if (!tbody) { return; }
+    tbody.innerHTML = '';
+    var tbl = document.querySelector('#ptResultTbl');
+    if (!tbl) { return; }
+    var rows = tbl.querySelectorAll('tbody tr');
+    for (var i = 0; i < rows.length; i++) {
+      var cells = rows[i].querySelectorAll('td');
+      if (cells.length < 3) { continue; }
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + cells[0].textContent + '</td><td>' + cells[1].textContent + '</td><td>' + cells[2].textContent + '</td>';
+      tbody.appendChild(tr);
+    }
+    TBKit.util.exportTable('#ptHidden', en ? 'audiogram-data.csv' : '听力图数据.csv');
+  }
+  $('ptExportCsv').addEventListener('click', ptExportCsv);
   $('ptSaveJson').addEventListener('click', function () {
     var txt = JSON.stringify(buildResultObj(), null, 2);
     var blob = new Blob([txt], { type: 'application/json' });
