@@ -201,6 +201,30 @@ s.parentNode.insertBefore(el, s);
     <!-- 结果面板 -->
     <div class="vs-hidden" id="vsResult"></div>
     <div id="vsChart" style="margin-top:14px;"></div>
+    <div id="__vsDiff" style="margin-top:10px;"></div>
+    <h3 style="font-size:14px;margin:16px 0 8px;color:var(--text-primary);">🧰 筛查工具</h3>
+    <div style="display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:10px;">
+      <button type="button" class="tab-btn active" id="__vsTabHist" onclick="__vsTab('hist')">筛查历史</button>
+      <button type="button" class="tab-btn" id="__vsTabRef" onclick="__vsTab('ref')">分级参考</button>
+      <button type="button" class="tab-btn" id="__vsTabDetail" onclick="__vsTab('detail')">答题明细</button>
+    </div>
+    <div id="__vsHistPanel">
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__vsExportHist()">导出筛查历史 CSV</button>
+        <button type="button" class="btn" onclick="__vsClearHist()">清空历史</button>
+      </div>
+      <div id="__vsTrend" style="margin:8px 0;"></div>
+      <div id="__vsHistTable"></div>
+    </div>
+    <div id="__vsRefPanel" style="display:none;">
+      <div id="__vsRefTable"></div>
+    </div>
+    <div id="__vsDetailPanel" style="display:none;">
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__vsExportDetail()">导出答题明细 CSV</button>
+      </div>
+      <div id="__vsDetailTable"></div>
+    </div>
   </div>
 </div>
 
@@ -573,6 +597,7 @@ s.parentNode.insertBefore(el, s);
   // 语言切换后若结果已出，重渲染（动态内容需重建）
   document.addEventListener('toolbox:langchange', function () {
     if (state.last && !$('vsResult').classList.contains('vs-hidden')) { var r = computeEyes(); var box = $('vsResult'); /* 简化：提示刷新 */ }
+    try{ __vsRenderHist(); __vsRenderRef(); __vsRenderDetail(); }catch(e){}
   });
 
   // 常见场景预设：一键驱动完整 21 题自适应流程，给出典型视力估算
@@ -600,9 +625,153 @@ s.parentNode.insertBefore(el, s);
     var res=state.last;
     TBKit.chart.bar('#vsChart',{labels:['左眼','右眼'],series:[{name:'估算近视(度)',data:[res.L.degMid,res.R.degMid]}],height:220,title:'左右眼估算近视等效球镜（度）'});
   }
+
+  /* ============================================================
+   * 8. 筛查历史 / 趋势 / 双眼参差 / 分级参考 / 答题明细（功能增强）
+   * ========================================================== */
+  var VS_HKEY='vs21_hist_v1';
+  var VS_AGE_EN={child:'Child',teen:'Teen',adult:'Adult',senior:'Senior'};
+  var VS_GRADE_EN=[
+    {t:'No strong abnormal signal',d:'Current questionnaire signals are weak; keep an annual eye exam and watch for changes.'},
+    {t:'Attention advised, schedule an exam',d:'Some visual load signals appeared; schedule an optometry exam soon to confirm whether correction is needed.'},
+    {t:'Exam as soon as possible',d:'Symptom load is significant; visit an optical center or ophthalmology clinic promptly.'},
+    {t:'Exam and consultation ASAP',d:'High symptom load; see an eye doctor promptly to avoid affecting driving and daily visual safety.'}
+  ];
+  var VS_CAT_EN={far:'Far',near:'Near',night:'Dark',squint:'Habit',headache:'Headache',strain:'Strain',double:'Diplopia',smalltext:'Small text',stars:'Night vision',rub:'Rubbing',transition:'Accommodation',holdfar:'Reading distance',closeone:'Compensation',ghost:'Distortion',asthenopia:'Reading',light:'Photophobia',swim:'Instability',contrast:'Contrast',morelight:'Lighting',wind:'Dry eye',family:'Heredity'};
+  function vsEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function vsT(zh,en){ return vsEn()?en:zh; }
+  function vsHistLoad(){ try{ return JSON.parse(localStorage.getItem(VS_HKEY)||'[]'); }catch(e){ return []; } }
+  function vsHistSave(a){ try{ localStorage.setItem(VS_HKEY, JSON.stringify(a.slice(0,50))); }catch(e){} }
+  function vsFmtDate(t){ var d=new Date(t); function q(x){return (x<10?'0':'')+x;} return d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate()); }
+  function vsAgeName(a){ return vsEn() ? (VS_AGE_EN[a]||a) : ageName(a); }
+  function vsGradeText(g){ return vsEn() ? VS_GRADE_EN[g].t : GRADE_TEXT[g].t; }
+  function vsGradeDesc(g){ return vsEn() ? VS_GRADE_EN[g].d : GRADE_TEXT[g].d; }
+
+  function __vsHistRecord(){
+    if(!state.last) return;
+    var res=state.last;
+    var rec={ t:Date.now(), age:state.age, grade:res.grade,
+      L:res.L.degMid, R:res.R.degMid, Ld:+res.L.d.toFixed(2), Rd:+res.R.d.toFixed(2),
+      Ll:Math.round(res.L.ratio*100), Rl:Math.round(res.R.ratio*100),
+      La:Math.round(res.L.astig*100), Ra:Math.round(res.R.astig*100) };
+    var a=vsHistLoad();
+    a.unshift(rec); a=a.slice(0,50); vsHistSave(a);
+    __vsRenderHist();
+  }
+
+  function __vsRenderDiff(){
+    var box=document.getElementById('__vsDiff'); if(!box) return;
+    if(!state.last){ box.innerHTML=''; return; }
+    var diff=Math.abs(state.last.L.degMid-state.last.R.degMid);
+    if(diff<150){ box.innerHTML=''; return; }
+    var en=vsEn();
+    box.innerHTML='<div class="tip-box tip-warning" style="margin:8px 0;">'+vsT(
+      '⚠ 双眼估算相差 '+diff+' 度，超过 150 度提示可能存在屈光参差，建议验光时重点关注双眼度数差异。',
+      '⚠ Inter-ocular difference of '+diff+' degrees exceeds 150, suggesting possible anisometropia; ask your optometrist to check both eyes carefully.')+'</div>';
+  }
+
+  window.__vsRenderHist=function(){
+    var box=document.getElementById('__vsHistTable'); if(!box) return;
+    var a=vsHistLoad();
+    if(!a.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+vsT('暂无筛查记录，完成一次筛查后自动保存到这里','No screening records yet. Records appear here after a screening.')+'</p>';
+    } else {
+      var head=[vsT('日期','Date'),vsT('年龄组','Age Group'),vsT('分级','Grade'),vsT('左眼估算(度)','Left Eye (deg)'),vsT('右眼估算(度)','Right Eye (deg)'),vsT('左症状负荷','L Load %'),vsT('右症状负荷','R Load %'),vsT('左散光负荷','L Astig %'),vsT('右散光负荷','R Astig %'),vsT('操作','Actions')];
+      var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+      a.forEach(function(r,i){
+        h+='<tr><td>'+vsFmtDate(r.t)+'</td><td>'+vsAgeName(r.age)+'</td><td>'+vsGradeText(r.grade)+'</td><td>'+r.L+'</td><td>'+r.R+'</td><td>'+r.Ll+'%</td><td>'+r.Rl+'%</td><td>'+r.La+'%</td><td>'+r.Ra+'%</td>'+
+          '<td><button type="button" class="btn" data-i="'+i+'" data-act="del">'+vsT('删除','Delete')+'</button></td></tr>';
+      });
+      box.innerHTML=h+'</tbody></table></div>';
+      box.querySelectorAll('button[data-act="del"]').forEach(function(b){
+        b.onclick=function(){ var arr=vsHistLoad(); arr.splice(+b.getAttribute('data-i'),1); vsHistSave(arr); __vsRenderHist(); };
+      });
+    }
+    if(typeof TBKit!=='undefined' && a.length){
+      var asc=a.slice().reverse();
+      try{
+        if(asc.length>=2){
+          TBKit.chart.line('#__vsTrend',{ title:vsT('历次筛查双眼估算度数趋势（度）','Screening Trend: Estimated Degrees by Eye'),
+            labels:asc.map(function(r){return vsFmtDate(r.t);}),
+            series:[{name:vsT('左眼','Left'),data:asc.map(function(r){return r.L;})},{name:vsT('右眼','Right'),data:asc.map(function(r){return r.R;})}] });
+        } else {
+          TBKit.chart.bar('#__vsTrend',{ title:vsT('最近一次双眼估算（度）','Latest Estimate by Eye'),
+            labels:[vsT('左眼','Left'),vsT('右眼','Right')], series:[{name:vsT('估算(度)','Degrees'),data:[asc[0].L,asc[0].R]}] });
+        }
+      }catch(e){}
+    }
+    __vsRenderDiff();
+  };
+
+  window.__vsTab=function(which){
+    document.getElementById('__vsHistPanel').style.display = which==='hist'?'':'none';
+    document.getElementById('__vsRefPanel').style.display = which==='ref'?'':'none';
+    document.getElementById('__vsDetailPanel').style.display = which==='detail'?'':'none';
+    document.getElementById('__vsTabHist').classList.toggle('active', which==='hist');
+    document.getElementById('__vsTabRef').classList.toggle('active', which==='ref');
+    document.getElementById('__vsTabDetail').classList.toggle('active', which==='detail');
+  };
+
+  window.__vsClearHist=function(){ vsHistSave([]); __vsRenderHist(); };
+
+  window.__vsExportHist=function(){
+    if(typeof TBKit==='undefined') return;
+    var a=vsHistLoad();
+    var en=TBKit.util.isEn();
+    var head=[en?'Date':'日期',en?'Age Group':'年龄组',en?'Grade':'分级',en?'Left Eye (deg)':'左眼估算(度)',en?'Right Eye (deg)':'右眼估算(度)',en?'Left Load %':'左症状负荷',en?'Right Load %':'右症状负荷',en?'Left Astig %':'左散光负荷',en?'Right Astig %':'右散光负荷'];
+    var t=document.getElementById('__vsHistHidden');
+    if(!t){ t=document.createElement('table'); t.id='__vsHistHidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>'+
+      a.map(function(r){ return '<tr><td>'+vsFmtDate(r.t)+'</td><td>'+vsAgeName(r.age)+'</td><td>'+vsGradeText(r.grade)+'</td><td>'+r.L+'</td><td>'+r.R+'</td><td>'+r.Ll+'</td><td>'+r.Rl+'</td><td>'+r.La+'</td><td>'+r.Ra+'</td></tr>'; }).join('')+'</tbody>';
+    TBKit.util.exportTable('#__vsHistHidden', en?'vision-screening-history.csv':'视力筛查历史.csv');
+  };
+
+  window.__vsRenderRef=function(){
+    var box=document.getElementById('__vsRefTable'); if(!box) return;
+    var en=vsEn();
+    var head=[en?'Grade':'分级',en?'Verdict':'结论',en?'Advice':'建议'];
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    for(var g=0; g<GRADE_TEXT.length; g++){
+      h+='<tr><td>'+g+'</td><td>'+vsGradeText(g)+'</td><td>'+vsGradeDesc(g)+'</td></tr>';
+    }
+    box.innerHTML=h+'</tbody></table></div>'+
+      '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+vsT('分级依据：症状负荷比 ≥0.12/0.30/0.55 或散光负荷 ≥0.45 时上调；等级越高越应尽快安排专业验光。','Grading: raised when symptom load reaches 0.12/0.30/0.55 or astigmatism load reaches 0.45; higher grades warrant prompt professional optometry.')+'</p>';
+  };
+
+  window.__vsRenderDetail=function(){
+    var box=document.getElementById('__vsDetailTable'); if(!box) return;
+    var en=vsEn();
+    var head=[en?'No.':'题号',en?'Category':'类别',en?'Question':'题目',en?'Left Eye':'左眼',en?'Right Eye':'右眼'];
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    QUESTIONS.forEach(function(q,i){
+      var a=state.answers[q.id];
+      var lv=a?a.l:null, rv=a?a.r:null;
+      var freq=function(v){ if(v==null) return vsT('未作答','Unanswered'); var f=FREQ[v]; return en ? (f?f.en:String(v)) : (f?f.zh:String(v)); };
+      h+='<tr><td>'+(i+1)+'</td><td>'+(en?(VS_CAT_EN[q.cat]||q.cat):catName(q.cat))+'</td><td>'+q.q+'</td><td>'+freq(lv)+'</td><td>'+freq(rv)+'</td></tr>';
+    });
+    box.innerHTML=h+'</tbody></table></div>';
+  };
+
+  window.__vsExportDetail=function(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var head=[en?'No.':'题号',en?'Category':'类别',en?'Question':'题目',en?'Left Eye':'左眼',en?'Right Eye':'右眼'];
+    var t=document.getElementById('__vsDetailHidden');
+    if(!t){ t=document.createElement('table'); t.id='__vsDetailHidden'; t.style.display='none'; document.body.appendChild(t); }
+    var rows='';
+    QUESTIONS.forEach(function(q,i){
+      var a=state.answers[q.id];
+      var lv=a?a.l:null, rv=a?a.r:null;
+      var freq=function(v){ if(v==null) return en?'Unanswered':'未作答'; var f=FREQ[v]; return en ? (f?f.en:String(v)) : (f?f.zh:String(v)); };
+      rows+='<tr><td>'+(i+1)+'</td><td>'+(en?(VS_CAT_EN[q.cat]||q.cat):catName(q.cat))+'</td><td>'+q.q+'</td><td>'+freq(lv)+'</td><td>'+freq(rv)+'</td></tr>';
+    });
+    t.innerHTML='<thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody>';
+    TBKit.util.exportTable('#__vsDetailHidden', en?'vision-screening-detail.csv':'视力筛查答题明细.csv');
+  };
+
   var __vsFinish=finish;
-  finish=function(){__vsFinish();__vsExtras();};
-  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__vsExtras();});}else{__vsExtras();}
+  finish=function(){__vsFinish();__vsExtras();__vsHistRecord();};
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__vsRenderHist();__vsRenderRef();__vsRenderDetail();});}else{__vsRenderHist();__vsRenderRef();__vsRenderDetail();}
 })();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
