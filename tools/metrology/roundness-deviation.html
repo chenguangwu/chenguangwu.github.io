@@ -138,10 +138,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__roundness_deviationExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__roundness_deviationExportGrade()">导出等级对照 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="roundness_deviationTable"></div>
+    <h3 style="margin:14px 0 8px;">🔧 加工精度等级对照（圆度公差参考）</h3>
+    <div id="roundness_deviationGrade"></div>
+    <h3 style="margin:14px 0 8px;">📉 轮廓示意（半径随角度波动）</h3>
+    <div id="roundness_deviationChart"></div>
     <div id="roundness_deviationDiff"></div>
     <div id="roundness_deviationHist"></div>
 
@@ -219,6 +224,29 @@ function __roundness_deviationExtras(){
             ['相对圆度 (ppm)', ((rmax-rmin)/(((rmax+rmin)/2)||1)*1e6).toFixed(2)],
         ]
     });
+    var __rDelta = rmax - rmin;
+    var __rg = [
+      [en?'Precision lapping / bearing':'精密研磨 / 轴承级', 0.003],
+      [en?'Fine grinding / fine turning':'精磨 / 精车', 0.01],
+      [en?'General turning / CNC':'普通车削 / CNC', 0.02],
+      [en?'General milling':'普通铣削', 0.05],
+      [en?'3D printing (FDM)':'3D 打印 (FDM)', 0.1],
+      [en?'Sand casting':'砂型铸造', 0.2],
+    ];
+    TBKit.matrix.table('#roundness_deviationGrade',{
+      head: en?['Process / Grade','Roundness tol (mm)','vs current Δ']:['加工方式 / 等级','圆度公差 (mm)','与当前 Δ 对比'],
+      rows: __rg.map(function(g){
+        var cmp = __rDelta <= g[1] ? (en?'≤ reachable ✓':'≤ 可达 ✓') : ('×'+(__rDelta/g[1]).toFixed(1)+(en?' over':' 超差'));
+        return [g[0], g[1], cmp];
+      })
+    });
+    var __rMean=(rmax+rmin)/2;
+    var __rPts=[];
+    for (var i=0;i<=36;i++){ var ang=i/36*2*Math.PI; var rad=__rMean + (rmax-__rMean)*Math.cos(ang*2)*0.6 + (__rMean-rmin)*Math.cos(ang*3)*0.4; __rPts.push(+rad.toFixed(4)); }
+    TBKit.chart.line('#roundness_deviationChart',{
+      labels: __rPts.map((_,idx)=> (idx*10)+'°'),
+      series:[{name: en?'Radius (mm)':'半径 (mm)', data:__rPts}]
+    });
     TBKit.history.record({rmax:__roundness_deviationRaw('rmax'), rmin:__roundness_deviationRaw('rmin')});
     function __roundness_deviationRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#roundness_deviationHist',function(rec){ __roundness_deviationRestore(rec); calcTool(); });
@@ -226,6 +254,10 @@ function __roundness_deviationExtras(){
 function __roundness_deviationExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#roundness_deviationTable','roundness-deviation.csv'); } catch(e){}
+}
+function __roundness_deviationExportGrade(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#roundness_deviationGrade','roundness-deviation-grade.csv'); } catch(e){}
 }
 function __roundness_deviationPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -240,6 +272,7 @@ calcTool = function(){ __tb_fn0(); try{ __roundness_deviationExtras(); }catch(e)
 function __roundness_deviationBoot(){ try{ __roundness_deviationPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __roundness_deviationBoot();
 else document.addEventListener('DOMContentLoaded', __roundness_deviationBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

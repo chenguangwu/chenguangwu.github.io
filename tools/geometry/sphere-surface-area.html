@@ -134,10 +134,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__sphere_surface_areaExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__sphere_surface_areaExportEq()">导出等表面积几何体 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="sphere_surface_areaTable"></div>
+    <h3 style="margin:14px 0 8px;">🔵 等表面积几何体对比（立方体 / 圆柱 / 正四面体）</h3>
+    <div id="sphere_surface_areaEq"></div>
+    <h3 style="margin:14px 0 8px;">📈 表面积随半径变化（A ∝ r²）</h3>
+    <div id="sphere_surface_areaChart"></div>
     <div id="sphere_surface_areaDiff"></div>
     <div id="sphere_surface_areaHist"></div>
 
@@ -216,6 +221,22 @@ function __sphere_surface_areaExtras(){
             ['表面积 (cm²)', (4*Math.PI*r*r*1e4).toFixed(3)],
         ]
     });
+    var A = 4*Math.PI*r*r;
+    TBKit.matrix.table('#sphere_surface_areaEq',{
+        head: en?['Shape with same surface area A','Key dimension (m)']:['等表面积几何体','特征尺寸 (m)'],
+        rows: [
+            [en?'Cube edge a=√(A/6)':'立方体 边长 a=√(A/6)', Math.sqrt(A/6).toFixed(3)],
+            [en?'Cylinder (radius=height) r=√(A/4π)':'圆柱(半径=高) 半径 r=√(A/4π)', Math.sqrt(A/(4*Math.PI)).toFixed(3)],
+            [en?'Regular tetrahedron edge a=√(A/√3)':'正四面体 棱长 a=√(A/√3)', Math.sqrt(A/Math.sqrt(3)).toFixed(3)],
+            [en?'Sphere radius r (original)':'球体 半径 r (原始)', r.toFixed(3)],
+        ]
+    });
+    var __ssaPts=[];
+    for (var __i=0;__i<=10;__i++){ var __rr=r*(__i/10*2); __ssaPts.push((4*Math.PI*__rr*__rr)); }
+    TBKit.chart.line('#sphere_surface_areaChart',{
+        labels: __ssaPts.map((_,idx)=> (r*(idx/10*2)).toFixed(2)),
+        series:[{name: en?'Surface area A (m²)':'表面积 A (m²)', data: __ssaPts.map(Number)}]
+    });
     TBKit.history.record({r:__sphere_surface_areaRaw('r')});
     function __sphere_surface_areaRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#sphere_surface_areaHist',function(rec){ __sphere_surface_areaRestore(rec); calcTool(); });
@@ -223,6 +244,10 @@ function __sphere_surface_areaExtras(){
 function __sphere_surface_areaExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#sphere_surface_areaTable','sphere-surface-area.csv'); } catch(e){}
+}
+function __sphere_surface_areaExportEq(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sphere_surface_areaEq','sphere-surface-area-eq.csv'); } catch(e){}
 }
 function __sphere_surface_areaPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -237,6 +262,7 @@ calcTool = function(){ __tb_fn0(); try{ __sphere_surface_areaExtras(); }catch(e)
 function __sphere_surface_areaBoot(){ try{ __sphere_surface_areaPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __sphere_surface_areaBoot();
 else document.addEventListener('DOMContentLoaded', __sphere_surface_areaBoot);
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

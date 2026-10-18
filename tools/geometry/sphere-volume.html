@@ -134,10 +134,15 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__sphere_volumeExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__sphere_volumeExportEq()">导出等体积几何体 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="sphere_volumeTable"></div>
+    <h3 style="margin:14px 0 8px;">🔵 等体积几何体对比（立方体 / 圆柱 / 正四面体 / 正八面体）</h3>
+    <div id="sphere_volumeEq"></div>
+    <h3 style="margin:14px 0 8px;">📈 体积随半径变化（V ∝ r³）</h3>
+    <div id="sphere_volumeChart"></div>
     <div id="sphere_volumeDiff"></div>
     <div id="sphere_volumeHist"></div>
 
@@ -217,6 +222,28 @@ function __sphere_volumeExtras(){
             ['球体积 (cm³)', (4/3*Math.PI*r*r*r*1e6).toFixed(3)],
         ]
     });
+    var __svV=4/3*Math.PI*r*r*r;
+    var __svCube=Math.cbrt(__svV);
+    var __svCyl=Math.cbrt(4*__svV/Math.PI);
+    var __svTet=Math.cbrt(6*Math.SQRT2*__svV);
+    var __svOct=Math.cbrt(3*__svV/Math.SQRT2);
+    TBKit.matrix.table('#sphere_volumeEq',{
+      head: en?['Shape','Characteristic size (m)','Volume (m³)','Note']:['几何体','特征尺寸 (m)','体积 (m³)','说明'],
+      rows: [
+        [en?'Sphere (current)':'球体（当前）', +r.toFixed(3), +__svV.toFixed(3), en?'radius r':'半径 r'],
+        [en?'Cube (same V)':'等体积立方体', en?('edge a='+__svCube.toFixed(4)):('边长 a='+__svCube.toFixed(4)), +__svV.toFixed(3), en?'a=∛V':'a=∛V'],
+        [en?'Cylinder (h=d)':'等体积圆柱(高=直径)', en?('diam d='+__svCyl.toFixed(4)):('直径 d='+__svCyl.toFixed(4)), +__svV.toFixed(3), en?'d=(4V/π)^(1/3)':'d=(4V/π)^(1/3)'],
+        [en?'Tetrahedron':'等体积正四面体', en?('edge t='+__svTet.toFixed(4)):('边长 t='+__svTet.toFixed(4)), +__svV.toFixed(3), en?'t=(6√2·V)^(1/3)':'t=(6√2·V)^(1/3)'],
+        [en?'Octahedron':'等体积正八面体', en?('edge o='+__svOct.toFixed(4)):('边长 o='+__svOct.toFixed(4)), +__svV.toFixed(3), en?'o=(3V/√2)^(1/3)':'o=(3V/√2)^(1/3)'],
+      ]
+    });
+    var __svX=[],__svY=[];
+    for(var __rr=0.5;__rr<=10.0001;__rr+=0.5){__svX.push(+__rr.toFixed(1));__svY.push(+(4/3*Math.PI*__rr*__rr*__rr).toFixed(1));}
+    TBKit.chart.line('#sphere_volumeChart',{
+      labels: __svX.map(String),
+      series:[{name:en?'Volume (m³)':'体积 (m³)',data:__svY}],
+      title: en?'Volume vs radius (V ∝ r³)':'体积随半径变化（V ∝ r³）'
+    });
     TBKit.history.record({r:__sphere_volumeRaw('r')});
     function __sphere_volumeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#sphere_volumeHist',function(rec){ __sphere_volumeRestore(rec); calcTool(); });
@@ -224,6 +251,10 @@ function __sphere_volumeExtras(){
 function __sphere_volumeExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#sphere_volumeTable','sphere-volume.csv'); } catch(e){}
+}
+function __sphere_volumeExportEq(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#sphere_volumeEq','sphere-volume-equal.csv'); } catch(e){}
 }
 function __sphere_volumePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -236,6 +267,7 @@ function __sphere_volumePresets(){
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __sphere_volumeExtras(); }catch(e){} };
 function __sphere_volumeBoot(){ try{ __sphere_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 if (document.readyState && document.readyState !== 'loading') __sphere_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __sphere_volumeBoot);
 </script>
