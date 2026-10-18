@@ -226,6 +226,7 @@ s.parentNode.insertBefore(el, s);
 <button type="button" class="btn" onclick="applyContactPreset('family')">👪 家人紧急</button>
     </div>
     <div id="customList" style="margin-top:12px;"></div>
+    <div id="ecChart" style="margin-top:12px;"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" onclick="__ecExport()">⬇️ 导出全部联系人 CSV</button>
     </div>
@@ -461,7 +462,29 @@ s.parentNode.insertBefore(el, s);
     }
   };
 
+  function __ecChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    var host=document.getElementById('ecChart'); if(!host) return;
+    var en=(typeof TBKit.util!=='undefined'&&TBKit.util.isEn)?TBKit.util.isEn():false;
+    var groups=[
+      {zh:'常用',en:'Core',list:CORE_CONTACTS},
+      {zh:'医疗',en:'Medical',list:MEDICAL_CONTACTS},
+      {zh:'公共事业',en:'Utility',list:UTILITY_CONTACTS},
+      {zh:'自定义',en:'Custom',list:getCustom()}
+    ];
+    var labels=[],data=[];
+    groups.forEach(function(g){
+      labels.push(en?g.en:g.zh);
+      data.push((g.list||[]).length);
+    });
+    TBKit.chart.bar('#ecChart',{
+      title:en?'Contacts per group':'各分组联系人数量',
+      labels:labels,series:[{name:en?'Count':'条数',data:data}],height:260
+    });
+  }
+
   function renderCustom(){
+    try { __ecChart(); } catch(e) {}
     var list = getCustom();
     var container = document.getElementById('customList');
     if(list.length === 0){
@@ -489,6 +512,8 @@ s.parentNode.insertBefore(el, s);
   renderContacts(MEDICAL_CONTACTS, 'medicalContacts');
   renderContacts(UTILITY_CONTACTS, 'utilityContacts');
   renderCustom();
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__ecChart();}catch(e){}});}else{try{__ecChart();}catch(e){}}
+  window.addEventListener('toolbox:langchange',function(){try{__ecChart();}catch(e){}});
 
   window.__ecExport = function(){
     if(typeof TBKit==='undefined') return;

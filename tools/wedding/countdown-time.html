@@ -339,20 +339,40 @@ function render(){
 }
 load();
 
+var __wedKeyEn={engage:'Engagement',license:'License',plan:'Planning',trial:'Fitting',rehearsal:'Rehearsal',wedding:'Wedding Day'};
 function __wedExtras(){
-  if(typeof TBKit==='undefined') return;
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var host=document.getElementById('wedChart'); if(!host) return;
-  if(!state.milestones || !state.milestones.length){host.innerHTML='';return;}
-  var labels=[],data=[];
-  state.milestones.forEach(function(m){
-    labels.push(m.icon+' '+m.name);
-    data.push(dayDiff(parseISO(m.date)));
+  var en=(typeof TBKit.util!=='undefined'&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  if(state.milestones && state.milestones.length){
+    var labels=[],data=[];
+    state.milestones.forEach(function(m){
+      labels.push(en?(__wedKeyEn[m.key]||m.name):m.name);
+      var d=dayDiff(parseISO(m.date));
+      data.push(isFinite(d)?d:0);
+    });
+    TBKit.chart.bar('#wedChart',{
+      title:en?'Days left to the wedding by milestone':'各筹备里程碑距婚礼剩余天数',
+      labels:labels,series:[{name:en?'Days':'天',data:data}],height:260
+    });
+    return;
+  }
+  // 未设定婚期时降级展示模板中各里程碑的建议提前天数（源自 TEMPLATE.offset）
+  var tpl=TEMPLATE.slice().sort(function(a,b){return b.offset-a.offset;});
+  var labels2=[],data2=[];
+  tpl.forEach(function(t){
+    labels2.push(en?(__wedKeyEn[t.key]||t.name):t.name);
+    data2.push(+t.offset||0);
   });
-  TBKit.chart.bar('#wedChart',{labels:labels,series:[{name:'距婚礼剩余天数',data:data}],height:260,title:'各筹备里程碑距婚礼剩余天数'});
+  TBKit.chart.bar('#wedChart',{
+    title:en?'Suggested lead time for each milestone (days before)':'各里程碑建议提前天数（模板）',
+    labels:labels2,series:[{name:en?'Days':'天',data:data2}],height:260
+  });
 }
 var __wedRender=render;
-render=function(){__wedRender();__wedExtras();};
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__wedExtras();});}else{__wedExtras();}
+render=function(){__wedRender();try{__wedExtras();}catch(e){}};
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__wedExtras();}catch(e){}});}else{try{__wedExtras();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__wedExtras();}catch(e){}});
 setInterval(render,60000);
 </script>
 

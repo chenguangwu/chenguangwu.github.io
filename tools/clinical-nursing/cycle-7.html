@@ -212,6 +212,7 @@ s.parentNode.insertBefore(el, s);
     <div class="tab-content" id="tab-daily">
       <div class="stat-grid" id="dailyGrid"></div>
       <div id="dailyDetail"></div>
+      <div id="rstChart" style="margin-top:12px;"></div>
     </div>
 
     <div class="tab-content" id="tab-guide">
@@ -625,7 +626,39 @@ function clearAll(){
   ToolBox.showToast(i18nText('toast.cleared'));
 }
 
+function __rstChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('rstChart'); if(!host) return;
+  var en=(typeof TBKit.util!=='undefined'&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  var today=todayStr();
+  var todaySessions=sessions.filter(function(s){ return s.date===today; });
+  if(todaySessions.length){
+    var byPt={};
+    todaySessions.forEach(function(s){ byPt[s.patient]=(byPt[s.patient]||0)+(+s.duration||0); });
+    var keys=Object.keys(byPt);
+    var labels=[],data=[];
+    keys.forEach(function(pt,i){
+      labels.push(en?('Patient '+(i+1)):pt);
+      data.push(Math.round((byPt[pt]||0)/60));
+    });
+    TBKit.chart.bar('#rstChart',{
+      title:en?'Restraint duration today by patient (minutes)':'今日各患者约束时长 (分钟)',
+      labels:labels,series:[{name:en?'Minutes':'分钟',data:data}],height:260
+    });
+    return;
+  }
+  // 无记录时降级展示护理规范关键时间节点（ALARM_SEC 2h / WARN_SEC 1.5h / 松解 15-30 分钟）
+  var zh=['预警 (1.5小时)','必须松解 (2小时)','单次松解下限','单次松解上限'];
+  var enm=['Warning (1.5h)','Release due (2h)','Release min','Release max'];
+  var mins=[Math.round(WARN_SEC/60),Math.round(ALARM_SEC/60),15,30];
+  TBKit.chart.bar('#rstChart',{
+    title:en?'Key time nodes of restraint care (minutes)':'约束护理关键时间节点 (分钟)',
+    labels:en?enm:zh,series:[{name:en?'Minutes':'分钟',data:mins}],height:260
+  });
+}
+
 function renderDaily(){
+  try { __rstChart(); } catch(e) {}
   var grid = document.getElementById('dailyGrid');
   var detail = document.getElementById('dailyDetail');
   var today = todayStr();
@@ -711,6 +744,8 @@ window.addEventListener('beforeunload', function(){
 });
 
 init();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__rstChart();}catch(e){}});}else{try{__rstChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__rstChart();}catch(e){}});
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
