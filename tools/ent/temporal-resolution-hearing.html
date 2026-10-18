@@ -296,6 +296,7 @@ s.parentNode.insertBefore(el, s);
       <table class="tr-tbl" id="trGapNorm"></table>
       <p style="font-size:12px;color:var(--text-muted);margin-top:6px">表中数值为<b>参考范围</b>（基于公开文献的粗略概括，仅供对照），并非严格诊断界值。</p>
       <div class="tr-canvas" id="trGapCanvas"></div>
+      <div id="trGapChart" style="margin-top:14px;"></div>
 
       <h3 style="font-size:15px;margin:18px 0 6px">调制检测 · 年龄参考范围对照</h3>
       <table class="tr-tbl" id="trModNorm"></table>
@@ -708,6 +709,7 @@ s.parentNode.insertBefore(el, s);
     renderNormTable('trModNorm', AGE_MOD, mTh, '%', true);
     drawTrajectory('trGapCanvas', GAP, 'ms', '#2E7D32');
     drawTrajectory('trModCanvas', MOD, '%', '#2E7D32');
+    try { __trChart(); } catch (e) {}
     // 解读
     var txt = '';
     if (gTh != null) {
@@ -727,6 +729,29 @@ s.parentNode.insertBefore(el, s);
     txt += '<br><span style="color:var(--text-muted);font-size:12px">注：参考范围基于文献粗略概括，仅供娱乐对照；本测试不能替代专业听力与耳科检查。</span>';
     const __h3=txt;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){$('trInterpret').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('trInterpret').innerHTML=__h3;
   }
+
+  var __TR_AGE_EN = {
+    '儿童 (6–12 岁)': 'Children (6-12 y)',
+    '青年 (18–35 岁)': 'Young (18-35 y)',
+    '中年 (36–59 岁)': 'Middle (36-59 y)',
+    '老年 (60+ 岁)': 'Older (60+ y)'
+  };
+  function __trChart() {
+    if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+    var en = TBKit.util.isEn();
+    var labels = AGE_GAP.map(function (r) { return en ? (__TR_AGE_EN[r.g] || r.g) : r.g; });
+    var lo = AGE_GAP.map(function (r) { return r.lo; });
+    var hi = AGE_GAP.map(function (r) { return r.hi; });
+    TBKit.chart.bar('#trGapChart', {
+      title: en ? 'Gap detection reference range by age (ms)' : '间隙检测各年龄参考范围 (ms)',
+      labels: labels,
+      series: [
+        { name: en ? 'Lower' : '下限', data: lo },
+        { name: en ? 'Upper' : '上限', data: hi }
+      ]
+    });
+  }
+  window.addEventListener('toolbox:langchange', function () { try { __trChart(); } catch (e) {} });
 
   /* ============================================================
    * 5. 事件绑定

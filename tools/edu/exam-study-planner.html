@@ -379,6 +379,7 @@ s.parentNode.insertBefore(el, s);
         <div style="font-weight:600;margin-bottom:10px;">🍅 番茄钟记录</div>
         <div id="pomo-stats"></div>
       </div>
+      <div id="planChart" style="margin-top:14px;"></div>
     </div>
   </div>
 
@@ -689,8 +690,34 @@ function renderStats() {
     <div style="padding:6px 0;">完成番茄数: <strong>${stats.pomoCount || 0}</strong> 个</div>
     <div style="padding:6px 0;">累计专注: <strong>${stats.focusMinutes || 0}</strong> 分钟</div>
     <div style="padding:6px 0;">约合 <strong>${((stats.focusMinutes || 0) / 60).toFixed(1)}</strong> 小时</div>
-  `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('pomo-stats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pomo-stats').innerHTML=__h2;
+  `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('pomo-stats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}  document.getElementById('pomo-stats').innerHTML=__h2;
+  try { __planChart(); } catch (e) {}
 }
+
+function __planChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var tasks = getTasks();
+  if (!tasks.length) { return; }
+  var en = TBKit.util.isEn();
+  var map = {};
+  tasks.forEach(function (t) {
+    if (!map[t.subject]) map[t.subject] = 0;
+    map[t.subject] += +t.minutes || 0;
+  });
+  var labels = Object.keys(map);
+  var data = labels.map(function (k) { return map[k]; });
+  TBKit.chart.bar('#planChart', {
+    title: en ? 'Planned study minutes by subject' : '各科计划时长分布 (分钟)',
+    labels: labels,
+    series: [{ name: en ? 'min' : '分钟', data: data }]
+  });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { try { __planChart(); } catch (e) {} });
+} else {
+  try { __planChart(); } catch (e) {}
+}
+window.addEventListener('toolbox:langchange', function () { try { __planChart(); } catch (e) {} });
 
 document.getElementById('focus-mins').addEventListener('change', () => { if (!pomo.running) resetPomo(); });
 document.getElementById('break-mins').addEventListener('change', () => { if (!pomo.running) resetPomo(); });

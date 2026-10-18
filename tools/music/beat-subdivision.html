@@ -240,6 +240,7 @@ s.parentNode.insertBefore(el, s);
 
   <!-- 统计概览 -->
   <div class="stat-grid" id="statGrid"></div>
+  <div id="bsChart" style="margin-top:14px;"></div>
 
   <!-- 选项卡 -->
   <div class="card">
@@ -559,7 +560,24 @@ function calculate() {
 
   renderTable();
   renderVisualization();
+  try { __bsChart(); } catch (e) {}
 }
+
+/* ========== 音符时长图表 ========== */
+function __bsChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var qMs = getQuarterMs();
+  var en = TBKit.util.isEn();
+  var ENNAME = { whole: 'Whole', half: 'Half', quarter: 'Quarter', eighth: 'Eighth', sixteenth: 'Sixteenth', thirtysecond: 'Thirty-second' };
+  var labels = NOTE_TYPES.map(function (nt) { return en ? ENNAME[nt.key] : nt.name; });
+  var data = NOTE_TYPES.map(function (nt) { return +(qMs * nt.msMult).toFixed(2); });
+  TBKit.chart.bar('#bsChart', {
+    title: en ? 'Note duration at current BPM (ms)' : '当前 BPM 下各音符时长 (ms)',
+    labels: labels,
+    series: [{ name: en ? 'ms' : '毫秒', data: data }]
+  });
+}
+window.addEventListener('toolbox:langchange', function () { try { __bsChart(); } catch (e) {} });
 
 /* ========== 音符时值表 ========== */
 function renderTable() {

@@ -197,6 +197,7 @@ s.parentNode.insertBefore(el, s);
 
 <h3 style="margin:16px 0 8px;font-size:14px;color:var(--text-muted);">📊 全部转换结果</h3>
 <div class="unit-group" id="unitGrid"></div>
+<div id="pressChart" style="margin-top:14px;"></div>
 
 <div class="toolbar" style="margin-top:16px;">
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
@@ -401,6 +402,7 @@ function init(){
   const __h0=opts;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('from').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('from').innerHTML=__h0;
   document.getElementById('from').value='kPa';
   convert();
+  try { __pressChart(); } catch (e) {}
 }
 
 function fmtNum(v){
@@ -434,6 +436,27 @@ function convert(){
   const __h1=grid;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('unitGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('unitGrid').innerHTML=__h1;
   lastResult={value:v,from,pa,results};
 }
+
+function __pressChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var en = TBKit.util.isEn();
+  // 海拔与气压关系（kPa），取自页面参考值
+  var pts = [
+    { a: 0, p: 101.325 },
+    { a: 1000, p: 89.9 },
+    { a: 4000, p: 61.6 },
+    { a: 5500, p: 50.7 },
+    { a: 10000, p: 26.4 }
+  ];
+  var labels = pts.map(function (x) { return x.a + (en ? ' m' : ' 米'); });
+  var data = pts.map(function (x) { return x.p; });
+  TBKit.chart.line('#pressChart', {
+    title: en ? 'Atmospheric pressure vs altitude (kPa)' : '海拔与气压关系 (kPa)',
+    labels: labels,
+    series: [{ name: en ? 'kPa' : '千帕', data: data }]
+  });
+}
+window.addEventListener('toolbox:langchange', function () { try { __pressChart(); } catch (e) {} });
 
 function setUnit(k){
   document.getElementById('from').value=k;
