@@ -178,6 +178,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="stat-grid" id="stats" style="margin-top:16px;"></div>
+    <div id="verChart" style="margin-top:12px;"></div>
   </div>
 
   <div class="card">
@@ -361,6 +362,15 @@ function exportCsv(){
   setTimeout(function(){document.body.removeChild(host);},300);
 }
 
+function __verChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart)return;
+  if(versions.length===0)return;
+  var en=TBKit.util.isEn();
+  var major=versions.filter(function(v){return v.type==='major';}).length;
+  var minor=versions.filter(function(v){return v.type==='minor';}).length;
+  var patch=versions.filter(function(v){return v.type==='patch';}).length;
+  TBKit.chart.pie('#verChart',{title:en?'Version type distribution':'版本类型分布',labels:[en?'Major':'主版本',en?'Minor':'次版本',en?'Patch':'修订'],series:[{data:[major,minor,patch]}]});
+}
 function render(){
   document.getElementById('fileName').value=currentFile||document.getElementById('fileName').value;
   var list=document.getElementById('verList');
@@ -392,9 +402,10 @@ function render(){
   const __h2='<div class="stat-card"><div class="val">'+versions.length+'</div><div class="lbl">总版本数</div></div>'+
     '<div class="stat-card"><div class="val" style="color:var(--primary);">'+major+'</div><div class="lbl">主版本</div></div>'+
     '<div class="stat-card"><div class="val" style="color:var(--secondary);">'+minor+'</div><div class="lbl">次版本</div></div>'+
-    '<div class="stat-card"><div class="val" style="color:var(--accent);">'+patch+'</div><div class="lbl">修订</div></div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('stats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('stats').innerHTML=__h2;
+    '<div class="stat-card"><div class="val" style="color:var(--accent);">'+patch+'</div><div class="lbl">修订</div></div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('stats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}  document.getElementById('stats').innerHTML=__h2;
 
   updateSuggestVer();
+  try{ __verChart(); }catch(e){}
 }
 
 load();
@@ -472,7 +483,9 @@ document.addEventListener('DOMContentLoaded',function(){
       this.parentElement.classList.toggle('open');
     });
   });
+  try{ __verChart(); }catch(e){}
 });
+window.addEventListener('toolbox:langchange', function(){ try{ __verChart(); }catch(e){} });
 </script>
 <script>
 function applyVerPreset(kind){
