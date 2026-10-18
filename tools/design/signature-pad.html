@@ -182,6 +182,26 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <!-- 笔触预设 / 画布比例 / 签名信息（功能增强） -->
+    <div class="panel" style="margin:12px 0;">
+      <h3 style="font-size:14px;margin:0 0 8px;">✒️ 笔触预设</h3>
+      <div class="toolbar" style="flex-wrap:wrap;gap:8px;">
+        <button type="button" class="btn" onclick="__spStrokePreset('formal')">🖊️ 合同正式（5px 黑）</button>
+        <button type="button" class="btn" onclick="__spStrokePreset('note')">✏️ 日常便签（3px 黑）</button>
+        <button type="button" class="btn" onclick="__spStrokePreset('redpen')">🖍️ 红笔批注（4px 红）</button>
+        <button type="button" class="btn" onclick="__spStrokePreset('blueart')">💧 艺术蓝签（3px 蓝）</button>
+      </div>
+      <h3 style="font-size:14px;margin:12px 0 8px;">📐 画布比例</h3>
+      <div class="toolbar" style="flex-wrap:wrap;gap:8px;">
+        <button type="button" class="btn" onclick="__spSetRatio('auto')">默认横幅</button>
+        <button type="button" class="btn" onclick="__spSetRatio('wide3')">宽幅 3:1</button>
+        <button type="button" class="btn" onclick="__spSetRatio('std43')">标准 4:3</button>
+        <button type="button" class="btn" onclick="__spSetRatio('square')">方形 1:1</button>
+        <button type="button" class="btn" onclick="__spSetRatio('port34')">竖图 3:4</button>
+      </div>
+      <div id="spInfo" style="font-size:12px;color:var(--text-muted);margin-top:10px;"></div>
+    </div>
+
     <div class="toolbar">
       <button type="button" class="btn" onclick="undo()">↩ 撤销</button>
       <button type="button" class="btn danger" onclick="clearCanvas()">🗑 清空</button>
@@ -261,11 +281,73 @@ let currentStroke=null; // 当前笔画
 let isDrawing=false;
 let strokeColor='#000';
 let strokeWidth=3;
+let spRatio='auto';   // 画布比例模式
+
+function __spEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function __spT(zh,en){ return __spEn()?en:zh; }
+
+// 画布高度按比例模式计算（默认保持原 0.4 横幅逻辑）
+function __spCanvasHeight(w){
+  switch(spRatio){
+    case 'wide3':   return Math.max(160, Math.min(400, w/3));
+    case 'std43':   return Math.max(200, Math.min(480, w*0.75));
+    case 'square':  return Math.max(240, Math.min(520, w));
+    case 'port34':  return Math.max(280, Math.min(600, w*4/3));
+    default:        return Math.max(200, Math.min(360, w*0.4));
+  }
+}
+
+window.__spSetRatio = function(kind){
+  spRatio = kind || 'auto';
+  resizeCanvas();
+  __spRenderInfo();
+};
+
+window.__spStrokePreset = function(kind){
+  var map = {
+    formal:  { w:5, c:'#000000' },
+    note:    { w:3, c:'#000000' },
+    redpen:  { w:4, c:'#e53935' },
+    blueart: { w:3, c:'#1a73e8' }
+  };
+  var p = map[kind];
+  if (!p) return;
+  strokeWidth = p.w;
+  strokeColor = p.c;
+  var sw = document.getElementById('strokeWidth');
+  if (sw) sw.value = p.w;
+  var wv = document.getElementById('widthVal');
+  if (wv) wv.textContent = p.w;
+  var cp = document.getElementById('colorPicker');
+  if (cp) cp.value = p.c;
+  document.querySelectorAll('.color-dot').forEach(function(d){
+    d.classList.toggle('active', (d.dataset.color || '').toLowerCase() === p.c);
+  });
+};
+
+function __spRenderInfo(){
+  var box = document.getElementById('spInfo');
+  if (!box) return;
+  var pts = 0, len = 0;
+  strokes.forEach(function(s){
+    pts += s.points.length;
+    for (var i = 1; i < s.points.length; i++) {
+      var dx = s.points[i].x - s.points[i-1].x;
+      var dy = s.points[i].y - s.points[i-1].y;
+      len += Math.sqrt(dx*dx + dy*dy);
+    }
+  });
+  var ratioLabel = { auto:__spT('默认横幅','Default banner'), wide3:__spT('宽幅 3:1','Wide 3:1'), std43:__spT('标准 4:3','Standard 4:3'), square:__spT('方形 1:1','Square 1:1'), port34:__spT('竖图 3:4','Portrait 3:4') }[spRatio] || spRatio;
+  box.textContent = __spT(
+    '笔画 ' + strokes.length + ' 笔 ｜ 采样点 ' + pts + ' 个 ｜ 笔迹长度 ' + Math.round(len) + ' px ｜ 当前 ' + strokeWidth + 'px / ' + strokeColor + ' ｜ 画布 ' + ratioLabel,
+    strokes.length + ' stroke(s) | ' + pts + ' sample point(s) | trace length ' + Math.round(len) + ' px | current ' + strokeWidth + 'px / ' + strokeColor + ' | canvas ' + ratioLabel
+  );
+}
 
 function resizeCanvas(){
   const wrap=canvas.parentElement;
   const w=wrap.clientWidth;
-  const h=Math.max(200,Math.min(360,w*0.4));
+  const h=__spCanvasHeight(w);
   const dpr=window.devicePixelRatio||1;
   canvas.width=w*dpr;
   canvas.height=h*dpr;
@@ -316,6 +398,7 @@ function endDraw(e){
   }
   currentStroke=null;
   redraw();
+  __spRenderInfo();
 }
 
 function drawStroke(stroke){
@@ -390,17 +473,23 @@ function undo(){
   if(strokes.length===0)return;
   strokes.pop();
   redraw();
+  __spRenderInfo();
 }
 
 function clearCanvas(){
   strokes=[];
   currentStroke=null;
   redraw();
+  __spRenderInfo();
   document.getElementById('previewWrap').style.display='none';
 }
 
 function exportPNG(bgColor){
-  if(strokes.length===0){alert('请先签名');return;}
+  if(strokes.length===0){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(__spT('请先签名','Please sign first'),'warning');
+    else alert(__spT('请先签名','Please sign first'));
+    return;
+  }
   // 临时创建一个 canvas，按设备像素绘制
   const dpr=window.devicePixelRatio||1;
   const tmp=document.createElement('canvas');
@@ -420,7 +509,7 @@ function exportPNG(bgColor){
   // 下载
   const a=document.createElement('a');
   a.href=url;
-  a.download='签名-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.png';
+  a.download=__spT('签名','signature')+'-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.png';
   a.click();
 }
 
@@ -439,6 +528,10 @@ resizeCanvas();
 
 // 背景切换重绘
 document.querySelectorAll('input[name="bg"]').forEach(r=>r.addEventListener('change',redraw));
+
+// 语言切换：刷新签名信息条
+document.addEventListener('toolbox:langchange',function(){ try{ __spRenderInfo(); }catch(e){} });
+__spRenderInfo();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
