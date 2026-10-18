@@ -207,6 +207,19 @@ s.parentNode.insertBefore(el, s);
 
     <div id="g2Result"></div>
 
+    <div class="panel" style="margin-top:14px;">
+      <h3>📊 对局统计</h3>
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__g2Export('stats')">导出对局统计 CSV</button>
+        <button type="button" class="btn" onclick="__g2Export('game')">导出当局猜测明细 CSV</button>
+        <button type="button" class="btn" onclick="__g2ClearGames()">清空对局历史</button>
+      </div>
+      <div id="__g2Trend" style="margin:8px 0;"></div>
+      <div id="__g2StatsTable"></div>
+      <h4 style="font-size:13px;margin:14px 0 6px;color:var(--text-secondary);">当局猜测明细</h4>
+      <div id="__g2GameTable"></div>
+    </div>
+
     <div class="g2-note">技巧：优先用“试探性”组合覆盖更多数字，根据 xAyB 逐步排除；右侧“可能解数量”会随每次有效猜测快速缩小，接近 1 时基本可锁定答案。所有数据仅保存在本地浏览器。</div>
   </div>
 </div>
@@ -550,16 +563,113 @@ s.parentNode.insertBefore(el, s);
   $('g2Guess').addEventListener('keydown',function(e){ if(e.key==='Enter'){ submitGuess(); } });
   $('g2KpOn').addEventListener('change',toggleKeypad);
   $('g2New').addEventListener('click',newGame);
-  $('g2Giveup').addEventListener('click',giveUp);
+  $('g2Giveup').addEventListener('click',function(){ giveUp(); });
   $('g2Clear').addEventListener('click',function(){ setInput(''); });
 
   /* ============================================================
    * 10. 初始化
    * ========================================================== */
+  /* ============================================================
+   * 11. 对局统计 / 当局明细 / 导出（功能增强）
+   * ========================================================== */
+  var G2_GKEY='tb_g2_games_v1';
+  function g2En(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function g2T(zh,en){ return g2En()?en:zh; }
+  function g2GamesLoad(){ try{ var a=JSON.parse(localStorage.getItem(G2_GKEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function g2GamesSave(a){ try{ localStorage.setItem(G2_GKEY, JSON.stringify(a.slice(0,100))); }catch(e){} }
+  function g2FmtDate(t){ var d=new Date(t); function q(x){return (x<10?'0':'')+x;} return d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate()); }
+  function g2ResLabel(r){ if(r.gave) return g2T('放弃','Gave up'); return r.win? g2T('猜中','Won') : g2T('未猜中','Lost'); }
+
+  function __g2RecordGame(win, gave){
+    var a=g2GamesLoad();
+    a.unshift({ t:Date.now(), mode:modeKey, win:!!win, gave:!!gave, steps:steps, secret:secret.join('') });
+    a=a.slice(0,100); g2GamesSave(a);
+    __g2RenderStats();
+  }
+
+  function __g2RenderStats(){
+    var box=document.getElementById('__g2StatsTable'); if(!box) return;
+    var a=g2GamesLoad();
+    if(!a.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+g2T('暂无对局记录，完成一局后自动统计','No games yet. Stats appear after your first game.')+'</p>';
+      var tg=document.getElementById('__g2Trend'); if(tg) tg.innerHTML='';
+      return;
+    }
+    var byMode={};
+    a.forEach(function(r){
+      var s=byMode[r.mode]||(byMode[r.mode]={n:0,win:0,lose:0,gave:0,best:null,stepsSum:0});
+      s.n++;
+      if(r.gave) s.gave++; else if(r.win){ s.win++; s.stepsSum+=r.steps; if(s.best==null||r.steps<s.best) s.best=r.steps; } else s.lose++;
+    });
+    var head=[g2T('模式','Mode'),g2T('总局数','Games'),g2T('猜中','Won'),g2T('未猜中','Lost'),g2T('放弃','Gave up'),g2T('胜率','Win rate'),g2T('最佳步数','Best steps'),g2T('平均步数','Avg steps')];
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    ['4n','4d','5n'].forEach(function(k){
+      var s=byMode[k];
+      if(!s){ h+='<tr><td>'+k.toUpperCase()+'</td><td>0</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td></tr>'; return; }
+      var rate=Math.round((s.win+s.lose>0)? s.win/(s.win+s.lose)*100 : 0);
+      h+='<tr><td>'+k.toUpperCase()+'</td><td>'+s.n+'</td><td>'+s.win+'</td><td>'+s.lose+'</td><td>'+s.gave+'</td><td>'+rate+'%</td><td>'+(s.best==null?'—':s.best)+'</td><td>'+(s.win?Math.round(s.stepsSum/s.win*10)/10:'—')+'</td></tr>';
+    });
+    box.innerHTML=h+'</tbody></table></div>';
+    if(typeof TBKit!=='undefined'){
+      var asc=a.slice().reverse().slice(-20);
+      try{ TBKit.chart.line('#__g2Trend',{ title:g2T('近 20 局所用步数','Steps per Game (last 20)'),
+        labels:asc.map(function(r){ return g2FmtDate(r.t)+' '+r.mode.toUpperCase(); }),
+        series:[{name:g2T('步数','Steps'),data:asc.map(function(r){ return r.steps; })}] }); }catch(e){}
+    }
+  }
+
+  function __g2RenderGame(){
+    var box=document.getElementById('__g2GameTable'); if(!box) return;
+    var head=[g2T('步序','Step'),g2T('猜测','Guess'),g2T('A','A'),g2T('B','B')];
+    if(!history.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+g2T('本局还没有猜测','No guesses in the current game yet.')+'</p>';
+      return;
+    }
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    history.forEach(function(r,i){
+      h+='<tr><td>'+(i+1)+'</td><td>'+r.g.join('')+'</td><td>'+r.a+'</td><td>'+r.b+'</td></tr>';
+    });
+    box.innerHTML=h+'</tbody></table></div>';
+  }
+
+  window.__g2Export=function(which){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var head, rows, fname;
+    if(which==='game'){
+      head=[en?'Step':'步序',en?'Guess':'猜测',en?'A':'A',en?'B':'B'];
+      rows=[head];
+      history.forEach(function(r,i){ rows.push([i+1, r.g.join(''), r.a, r.b]); });
+      fname=en?'current-game-guesses.csv':'当局猜测明细.csv';
+    } else {
+      head=[en?'Date':'日期',en?'Mode':'模式',en?'Result':'结果',en?'Steps':'步数',en?'Secret':'答案'];
+      rows=[head];
+      g2GamesLoad().forEach(function(r){ rows.push([g2FmtDate(r.t), r.mode.toUpperCase(), g2ResLabel(r), r.steps, r.secret]); });
+      fname=en?'game-stats.csv':'对局统计.csv';
+    }
+    var t=document.getElementById('__g2Hidden');
+    if(!t){ t=document.createElement('table'); t.id='__g2Hidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>'+
+      rows.slice(1).map(function(r){ return '<tr>'+r.map(function(c){ return '<td>'+String(c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody>';
+    TBKit.util.exportTable('#__g2Hidden', fname);
+  };
+
+  window.__g2ClearGames=function(){ g2GamesSave([]); __g2RenderStats(); };
+
+  var __g2finish0=finish;
+  finish=function(win){ var wasFinished=finished; __g2finish0(win); if(!wasFinished){ try{ __g2RecordGame(win,false); }catch(e){} } };
+  var __g2giveup0=giveUp;
+  giveUp=function(){ var wasFinished=finished; __g2giveup0(); if(!wasFinished){ try{ __g2RecordGame(false,true); }catch(e){} } };
+  var __g2renderhist0=renderHist;
+  renderHist=function(){ __g2renderhist0(); try{ __g2RenderGame(); }catch(e){} };
+  document.addEventListener('toolbox:langchange', function(){ try{ __g2RenderStats(); __g2RenderGame(); }catch(e){} });
+
   buildKeypad();
   toggleKeypad();
   renderBestPanel();
   newGame();
+  __g2RenderStats();
+  __g2RenderGame();
 })();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->

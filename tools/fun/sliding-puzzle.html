@@ -303,6 +303,17 @@ s.parentNode.insertBefore(el, s);
       <div class="controls-hint">
         点击或方向键移动方块 &middot; 将数字按顺序排列即可获胜
       </div>
+
+      <!-- 对局统计（功能增强） -->
+      <div class="panel" style="margin-top:16px;">
+        <h3 style="font-size:14px;margin:0 0 8px;">📊 对局统计</h3>
+        <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button type="button" class="btn" onclick="__spExport()">导出对局记录 CSV</button>
+          <button type="button" class="btn" onclick="__spClear()">清空对局记录</button>
+        </div>
+        <div id="__spTrend" style="margin:8px 0;"></div>
+        <div id="__spStatsTable"></div>
+      </div>
     </div>
   </div>
 
@@ -879,12 +890,81 @@ s.parentNode.insertBefore(el, s);
     document.getElementById("toolIntro").classList.toggle("open");
   };
 
+  // ===== 对局统计（功能增强） =====
+  var SP_GKEY = "puzzle_games_v1";
+  function spEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function spT(zh,en){ return spEn()?en:zh; }
+  function spGamesLoad(){ try{ var a=JSON.parse(localStorage.getItem(SP_GKEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function spGamesSave(a){ try{ localStorage.setItem(SP_GKEY, JSON.stringify(a.slice(0,100))); }catch(e){} }
+  function spFmtDate(t){ var d=new Date(t); function q(x){return (x<10?'0':'')+x;} return d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate()); }
+  function spModeLabel(m){ return spEn() ? (m==='number'?'Number':'Image') : (m==='number'?'数字':'图片'); }
+  function spSizeLabel(s){ return s+'×'+s; }
+
+  function __spRecord(){
+    var a=spGamesLoad();
+    a.unshift({ t:Date.now(), size:gridSize, mode:mode, moves:moves, time:elapsed });
+    a=a.slice(0,100); spGamesSave(a);
+    __spRenderStats();
+  }
+
+  function __spRenderStats(){
+    var box=document.getElementById('__spStatsTable'); if(!box) return;
+    var a=spGamesLoad();
+    if(!a.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+spT('暂无对局记录，完成一局后自动统计','No games yet. Stats appear after your first win.')+'</p>';
+      var tg=document.getElementById('__spTrend'); if(tg) tg.innerHTML='';
+      return;
+    }
+    var byKey={};
+    a.forEach(function(r){
+      var k=r.size+'_'+r.mode;
+      var s=byKey[k]||(byKey[k]={n:0,bestMoves:null,bestTime:null,sumMoves:0,sumTime:0});
+      s.n++; s.sumMoves+=r.moves; s.sumTime+=r.time;
+      if(s.bestMoves==null||r.moves<s.bestMoves) s.bestMoves=r.moves;
+      if(s.bestTime==null||r.time<s.bestTime) s.bestTime=r.time;
+    });
+    var head=[spT('尺寸','Size'),spT('模式','Mode'),spT('完成局数','Wins'),spT('最佳步数','Best moves'),spT('最佳用时','Best time'),spT('平均步数','Avg moves'),spT('平均用时','Avg time')];
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    [3,4,5].forEach(function(sz){
+      ['number','image'].forEach(function(md){
+        var s=byKey[sz+'_'+md];
+        if(!s){ h+='<tr><td>'+spSizeLabel(sz)+'</td><td>'+spModeLabel(md)+'</td><td>0</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>'; return; }
+        h+='<tr><td>'+spSizeLabel(sz)+'</td><td>'+spModeLabel(md)+'</td><td>'+s.n+'</td><td>'+s.bestMoves+'</td><td>'+formatTime(s.bestTime)+'</td><td>'+Math.round(s.sumMoves/s.n)+'</td><td>'+formatTime(Math.round(s.sumTime/s.n))+'</td></tr>';
+      });
+    });
+    box.innerHTML=h+'</tbody></table></div>';
+    if(typeof TBKit!=='undefined'){
+      var asc=a.slice().reverse().slice(-20);
+      try{ TBKit.chart.line('#__spTrend',{ title:spT('近 20 局用时（秒）','Time per Game, last 20 (s)'),
+        labels:asc.map(function(r){ return spFmtDate(r.t)+' '+spSizeLabel(r.size)+' '+spModeLabel(r.mode); }),
+        series:[{name:spT('用时(秒)','Time (s)'),data:asc.map(function(r){ return r.time; })}] }); }catch(e){}
+    }
+  }
+
+  window.__spExport=function(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var head=[en?'Date':'日期',en?'Size':'尺寸',en?'Mode':'模式',en?'Moves':'步数',en?'Time (s)':'用时(秒)'];
+    var t=document.getElementById('__spHidden');
+    if(!t){ t=document.createElement('table'); t.id='__spHidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>'+
+      spGamesLoad().map(function(r){ return '<tr><td>'+spFmtDate(r.t)+'</td><td>'+spSizeLabel(r.size)+'</td><td>'+spModeLabel(r.mode)+'</td><td>'+r.moves+'</td><td>'+r.time+'</td></tr>'; }).join('')+'</tbody>';
+    TBKit.util.exportTable('#__spHidden', en?'sliding-puzzle-games.csv':'滑块拼图对局记录.csv');
+  };
+
+  window.__spClear=function(){ spGamesSave([]); __spRenderStats(); };
+
+  var __spWin0=celebrateWin;
+  celebrateWin=function(){ var wasWon=won; __spWin0(); if(!wasWon){ try{ __spRecord(); }catch(e){} } };
+  document.addEventListener('toolbox:langchange', function(){ try{ __spRenderStats(); }catch(e){} });
+
   // ===== 启动 =====
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
+  __spRenderStats();
 })();
 </script><script>
 // tool-intro折叠交互
