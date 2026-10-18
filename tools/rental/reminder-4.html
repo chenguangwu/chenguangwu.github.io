@@ -186,6 +186,7 @@ s.parentNode.insertBefore(el, s);
     <h3>到期预警概览</h3>
     <div class="alert-summary" id="alertSummary"></div>
     <div id="leaseList"></div>
+    <div id="leaseChart" style="margin-top:12px;"></div>
   </div>
 </div>
 
@@ -364,6 +365,34 @@ function exportLeases() {
   ToolBox.showToast(i18nText());
 }
 
+function __leaseChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('leaseChart'); if(!host) return;
+  var en=(typeof TBKit.util!=='undefined'&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  if(leases.length){
+    var sorted=leases.slice().sort(function(a,b){return daysUntil(a.endDate)-daysUntil(b.endDate);});
+    var labels=[],data=[];
+    sorted.forEach(function(l,i){
+      labels.push(en?('Lease '+(i+1)):('租约'+(i+1)));
+      var d=daysUntil(l.endDate);
+      data.push(isFinite(d)?d:0);
+    });
+    TBKit.chart.bar('#leaseChart',{
+      title:en?'Days until lease expiry (ascending)':'各租约剩余到期天数（升序）',
+      labels:labels,series:[{name:en?'Days':'天',data:data}],height:260
+    });
+    return;
+  }
+  // 无租约时降级展示各预警等级天数窗口（阈值取自 getAlertLevel：7/30/90 天）
+  var win=[0,7,23,60,275];
+  var zh=['已过期','紧急 (<7天)','预警 (7-30天)','关注 (30-90天)','充足 (>90天)'];
+  var enm=['Expired','Urgent (<7d)','Warning (7-30d)','Watch (30-90d)','Safe (>90d)'];
+  TBKit.chart.bar('#leaseChart',{
+    title:en?'Alert-tier day windows (thresholds 7/30/90)':'各预警等级天数窗口（阈值 7/30/90 天）',
+    labels:en?enm:zh,series:[{name:en?'Days':'天',data:win}],height:260
+  });
+}
+
 function render() {
   // 预警概览
   var counts = { green: 0, yellow: 0, orange: 0, red: 0, expired: 0 };
@@ -380,6 +409,7 @@ function render() {
   sumHtml += '<div class="as-item as-orange"><div class="as-num" style="color:#EA580C;">' + counts.orange + '</div><div class="as-lbl">预警(7-30天)</div></div>';
   sumHtml += '<div class="as-item as-red"><div class="as-num" style="color:var(--danger);">' + (counts.red + counts.expired) + '</div><div class="as-lbl">紧急/过期(&lt;7天)</div></div>';
   const __h0=sumHtml;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('alertSummary').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('alertSummary').innerHTML=__h0;
+  try { __leaseChart(); } catch(e) {}
 
   // 租约列表（按剩余天数排序）
   if (!leases.length) {
@@ -430,6 +460,8 @@ document.getElementById('rStart').value = defaultStart;
 document.getElementById('rEnd').value = defaultEnd;
 
 render();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__leaseChart();}catch(e){}});}else{try{__leaseChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__leaseChart();}catch(e){}});
 </script>
 
 <!-- SEO 介绍区块 -->

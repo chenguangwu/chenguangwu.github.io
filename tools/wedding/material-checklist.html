@@ -154,6 +154,7 @@ s.parentNode.insertBefore(el, s);
 
     <div id="categoryArea"></div>
     <div class="result-box" id="result"></div>
+    <div id="matChart" style="margin-top:12px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -282,6 +283,30 @@ function loadDefault(){
   calc();
 }
 
+var __matCatEn={'首饰礼服':'Jewelry & Attire','布置装饰':'Decoration','喜帖礼品':'Invitations & Gifts','婚宴用品':'Banquet Supplies','摄影道具':'Photo Props'};
+function __matChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('matChart'); if(!host) return;
+  var tot=[];
+  CATEGORIES.forEach(function(cat){
+    var c=0;
+    cat.items.forEach(function(it){ c+=(+it.qty||0)*(+it.price||0); });
+    if(c>0) tot.push({name:cat.name,total:c});
+  });
+  if(!tot.length){ host.innerHTML=''; return; }
+  var en=TBKit.util.isEn();
+  var items=tot.map(function(c){
+    var raw=String(c.name).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2190-\u2BFF\uFE0F\u200D]/g,'').trim();
+    var nm=en?(__matCatEn[raw]||raw):raw;
+    return {name:nm,label:nm,value:Math.round(c.total)};
+  });
+  TBKit.chart.pie('#matChart',{
+    title:en?'Budget share by category (CNY)':'各分类预算占比 (元)',
+    items:items,
+    height:280
+  });
+}
+
 function calc(){
   var totalCost=0;
   var totalItems=0;
@@ -318,6 +343,7 @@ function calc(){
       return '<div class="bar-row"><span class="bar-lbl">'+c.name+'</span>'+
         '<div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;">¥'+ToolBox.formatNumber(Math.round(c.total))+'</div></div></div>';
     }).join('');document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  try { __matChart(); } catch(e) {}
 }
 
 function exportList(){
@@ -343,6 +369,8 @@ function applyWedPreset(kind){
 renderCategories();
 calc();
 ToolBox.initToolTheme();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__matChart();}catch(e){}});}else{try{__matChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__matChart();}catch(e){}});
 </script>
 
 <!-- SEO 介绍区块 -->

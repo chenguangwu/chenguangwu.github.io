@@ -492,17 +492,34 @@ function applySupplyPreset(kind){
 load();
 fillToday();
 function __supplyExtras(){
-  if(typeof TBKit==='undefined') return;
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var host=document.getElementById('supplyChart'); if(!host) return;
-  if(!supplies||supplies.length===0){host.innerHTML='';return;}
+  var en=(typeof TBKit.util!=='undefined'&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  var list=supplies||[];
+  var fb=false;
+  if(!list.length){
+    // 无记录时降级：用内置「家庭场景」预设参数演示（与 applySupplyPreset('home') 一致）
+    list=[
+      {name:'洗洁精',unit:'瓶',stock:3,rate:0.5,period:'month'},
+      {name:'抽纸',unit:'提',stock:6,rate:2,period:'month'},
+      {name:'洗衣液',unit:'瓶',stock:2,rate:0.3,period:'month'}
+    ];
+    fb=true;
+  }
+  var enNames={'洗洁精':'Dish Soap','抽纸':'Tissues','洗衣液':'Laundry Detergent'};
   var labels=[],data=[];
-  supplies.forEach(function(s){
-    labels.push(s.name||'用品');
+  list.forEach(function(s,i){
+    var nm=s.name||'用品';
+    labels.push(en?(fb?(enNames[nm]||('Item '+(i+1))):('Item '+(i+1))):nm);
     var d=getDaysUntilEmpty(s); if(!isFinite(d))d=0;
     if(d>365)d=365;
     data.push(d);
   });
-  TBKit.chart.bar('#supplyChart',{labels:labels,series:[{name:'预计可用(天)',data:data}],height:260,title:'各清洁用品预计耗尽天数（≤365天封顶，未设消耗不计入）'});
+  TBKit.chart.bar('#supplyChart',{
+    labels:labels,height:260,
+    title:en?(fb?'Example: days until empty (home preset)':'Days until empty by supply (capped at 365)'):(fb?'示例：各用品预计耗尽天数（家庭场景预设）':'各清洁用品预计耗尽天数（≤365天封顶）'),
+    series:[{name:en?'Days':'天',data:data}]
+  });
 }
 function __supplyIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
 function __supplyExport(){
@@ -527,7 +544,8 @@ function __supplyExport(){
 }
 var __supplyRender=render;
 render=function(){__supplyRender();__supplyExtras();};
-if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__supplyExtras();});}else{__supplyExtras();}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__supplyExtras();}catch(e){}});}else{try{__supplyExtras();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__supplyExtras();}catch(e){}});
 render();
 </script>
 

@@ -140,6 +140,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="resultBox"></div>
+    <div id="abbrevChart" style="margin-top:12px;"></div>
   </div>
 
   <div class="card">
@@ -314,6 +315,26 @@ function initCats(){
   });
 }
 
+var __abbrevCatEn={'生命体征':'Vital Signs','检验':'Lab Tests','检查':'Imaging & Exams','医嘱':'Prescriptions','给药途径':'Admin Routes','临床':'Clinical','科室':'Departments','其他':'Others'};
+function __abbrevChart(list){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('abbrevChart'); if(!host) return;
+  var src=(list&&list.length)?list:ABBREVS;
+  var order=['生命体征','检验','检查','医嘱','给药途径','临床','科室','其他'];
+  var counts={};
+  src.forEach(function(a){ counts[a.cat]=(counts[a.cat]||0)+1; });
+  var cats=order.filter(function(c){return counts[c];});
+  Object.keys(counts).forEach(function(c){ if(cats.indexOf(c)<0) cats.push(c); });
+  if(!cats.length){ host.innerHTML=''; return; }
+  var en=(typeof TBKit.util!=='undefined'&&TBKit.util.isEn)?TBKit.util.isEn():false;
+  var labels=cats.map(function(c){ return en?(__abbrevCatEn[c]||c):c; });
+  var data=cats.map(function(c){ return counts[c]||0; });
+  TBKit.chart.bar('#abbrevChart',{
+    title:en?'Abbreviations per category':'各分类缩写收录数量',
+    labels:labels,series:[{name:en?'Count':'条数',data:data}],height:260
+  });
+}
+
 function doSearch(){
   var kw = document.getElementById('searchInput').value.trim().toLowerCase();
   var cat = document.getElementById('catFilter').value;
@@ -340,6 +361,7 @@ function doSearch(){
     html += '</tbody></table>';
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
+  try { __abbrevChart(list); } catch(e) {}
 }
 
 function resetSearch(){
@@ -350,6 +372,8 @@ function resetSearch(){
 
 initCats();
 doSearch();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__abbrevChart(null);}catch(e){}});}else{try{__abbrevChart(null);}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__abbrevChart(null);}catch(e){}});
 
 function __abbrevExport() {
   if (typeof TBKit === 'undefined') return;
