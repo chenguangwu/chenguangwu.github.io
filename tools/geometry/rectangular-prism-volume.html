@@ -142,10 +142,14 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__rectangular_prism_volumeExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__rectangular_prism_volumeExportRef()">导出物体参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="rectangular_prism_volumeTable"></div>
+    <h3 style="margin:14px 0 8px;">📦 常见长方体体积参考（体积 V、表面积 A、体对角线 d）</h3>
+    <div id="rectangular_prism_volumeRef"></div>
+    <div id="rectangular_prism_volumeRefChart"></div>
     <div id="rectangular_prism_volumeDiff"></div>
     <div id="rectangular_prism_volumeHist"></div>
 
@@ -224,6 +228,26 @@ function __rectangular_prism_volumeExtras(){
             ['体对角线 (m)', Math.sqrt(l*l+w*w+h*h).toFixed(3)],
         ]
     });
+    var __rvRef=[
+      ['鞋盒','Shoe box',0.33,0.22,0.12],['微波炉','Microwave',0.5,0.4,0.3],['行李箱','Suitcase',0.55,0.35,0.75],['洗衣机','Washer',0.6,0.6,0.85],['单人床垫','Mattress',2.0,0.9,0.25],['标准货柜','Container',6.06,2.44,2.59],['小房间','Small room',4,3,2.8]
+    ];
+    var __rvCur=l*w*h;
+    var __rvRows=__rvRef.map(function(o){
+      var V=o[2]*o[3]*o[4], A=2*(o[2]*o[3]+o[3]*o[4]+o[4]*o[2]), d=Math.sqrt(o[2]*o[2]+o[3]*o[3]+o[4]*o[4]);
+      var cmp='';
+      if(isFinite(__rvCur)&&Math.abs(V-__rvCur)/Math.max(__rvCur,1e-9)<0.15) cmp=en?'◀ similar volume':'◀ 体积相近';
+      return [en?o[1]:o[0], o[2]+'×'+o[3]+'×'+o[4], +V.toFixed(3), +A.toFixed(3), +d.toFixed(3), cmp];
+    });
+    TBKit.matrix.table('#rectangular_prism_volumeRef',{
+      head: en?['Object','Size L×W×H (m)','Volume (m³)','Surface (m²)','Diagonal (m)','']:['物体','尺寸 长×宽×高 (m)','体积 (m³)','表面积 (m²)','体对角线 (m)',''],
+      rows: __rvRows
+    });
+    TBKit.chart.bar('#rectangular_prism_volumeRefChart',{
+      labels: __rvRef.map(function(o){return en?o[1]:o[0];}),
+      series:[{name:en?'Volume (m³)':'体积 (m³)',data:__rvRows.map(function(r){return r[2];})}],
+      title: en?'Volume by common cuboids':'常见长方体体积对比',
+      horizontal:true
+    });
     TBKit.history.record({l:__rectangular_prism_volumeRaw('l'), w:__rectangular_prism_volumeRaw('w'), h:__rectangular_prism_volumeRaw('h')});
     function __rectangular_prism_volumeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#rectangular_prism_volumeHist',function(rec){ __rectangular_prism_volumeRestore(rec); calcTool(); });
@@ -231,6 +255,10 @@ function __rectangular_prism_volumeExtras(){
 function __rectangular_prism_volumeExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#rectangular_prism_volumeTable','rectangular-prism-volume.csv'); } catch(e){}
+}
+function __rectangular_prism_volumeExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#rectangular_prism_volumeRef','rectangular-prism-objects.csv'); } catch(e){}
 }
 function __rectangular_prism_volumePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -243,6 +271,7 @@ function __rectangular_prism_volumePresets(){
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __rectangular_prism_volumeExtras(); }catch(e){} };
 function __rectangular_prism_volumeBoot(){ try{ __rectangular_prism_volumePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 if (document.readyState && document.readyState !== 'loading') __rectangular_prism_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __rectangular_prism_volumeBoot);
 </script>

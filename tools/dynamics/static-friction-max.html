@@ -138,10 +138,14 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__static_friction_maxExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__static_friction_maxExportRef()">导出材料参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="static_friction_maxTable"></div>
+    <h3 style="margin:14px 0 8px;">🧱 常见材料静摩擦系数参考（最大静摩擦 Fs = μs·N，斜面自锁角 α = arctan μs）</h3>
+    <div id="static_friction_maxRef"></div>
+    <div id="static_friction_maxRefChart"></div>
     <div id="static_friction_maxDiff"></div>
     <div id="static_friction_maxHist"></div>
 
@@ -219,6 +223,26 @@ function __static_friction_maxExtras(){
             ['摩擦系数平方的百分数', (mu*mu*100).toFixed(4)],
         ]
     });
+    var __sfRef=[
+      ['橡胶—干路面','Rubber–dry asphalt',0.9],['橡胶—湿路面','Rubber–wet asphalt',0.6],['钢—钢(干)','Steel–steel dry',0.6],['钢—钢(油)','Steel–steel lub.',0.05],['木材—木材','Wood–wood',0.4],['铜—钢','Copper–steel',0.53],['冰—冰','Ice–ice',0.1],['特氟龙—钢','Teflon–steel',0.04]
+    ];
+    var __sfRows=__sfRef.map(function(m){
+      var Fs=m[2]*N;
+      var lock=Math.atan(m[2])*180/Math.PI;
+      var cmp='';
+      if(Math.abs(m[2]-mu)<0.02) cmp=en?'◀ current μs':'◀ 当前 μs';
+      return [en?m[1]:m[0], +m[2].toFixed(2), +Fs.toFixed(2), +lock.toFixed(1), cmp];
+    });
+    TBKit.matrix.table('#static_friction_maxRef',{
+      head: en?['Materials (static μs)','μs','Max static F (N) @ current N','Self-lock angle (°)','']:['材料 (静摩擦 μs)','μs','最大静摩擦 (N) @当前N','自锁角 (°)',''],
+      rows: __sfRows
+    });
+    TBKit.chart.bar('#static_friction_maxRefChart',{
+      labels: __sfRef.map(function(m){return en?m[1]:m[0];}),
+      series:[{name:en?'Max static friction (N)':'最大静摩擦 (N)',data:__sfRows.map(function(r){return r[2];})}],
+      title: en?'Max static friction by material (N='+N.toFixed(0)+')':'各材料最大静摩擦（N='+N.toFixed(0)+'）',
+      horizontal:true
+    });
     TBKit.history.record({mu:__static_friction_maxRaw('mu'), N:__static_friction_maxRaw('N')});
     function __static_friction_maxRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#static_friction_maxHist',function(rec){ __static_friction_maxRestore(rec); calcTool(); });
@@ -226,6 +250,10 @@ function __static_friction_maxExtras(){
 function __static_friction_maxExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#static_friction_maxTable','static-friction-max.csv'); } catch(e){}
+}
+function __static_friction_maxExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#static_friction_maxRef','static-friction-materials.csv'); } catch(e){}
 }
 function __static_friction_maxPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -238,6 +266,7 @@ function __static_friction_maxPresets(){
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __static_friction_maxExtras(); }catch(e){} };
 function __static_friction_maxBoot(){ try{ __static_friction_maxPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 if (document.readyState && document.readyState !== 'loading') __static_friction_maxBoot();
 else document.addEventListener('DOMContentLoaded', __static_friction_maxBoot);
 </script>

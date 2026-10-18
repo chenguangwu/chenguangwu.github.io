@@ -134,10 +134,14 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__polygon_interior_angleExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__polygon_interior_angleExportRef()">导出多边形速查 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="polygon_interior_angleTable"></div>
+    <h3 style="margin:14px 0 8px;">📐 正多边形内角速查（外角和恒为 360°，内角随边数趋近 180°）</h3>
+    <div id="polygon_interior_angleRef"></div>
+    <div id="polygon_interior_angleChart"></div>
     <div id="polygon_interior_angleDiff"></div>
     <div id="polygon_interior_angleHist"></div>
 
@@ -270,6 +274,24 @@ function __polygon_interior_angleExtras(){
             ['中心角 360/n (°)', num('n')>=3?(360/num('n')).toFixed(4):'—'],
         ]
     });
+    var __pgN=[3,4,5,6,7,8,9,10,12];
+    var __pgRows=__pgN.map(function(k){
+      var ang=(k-2)*180/k;
+      var cmp='';
+      if(k===n) cmp=en?'◀ current n':'◀ 当前 n';
+      return [k, +ang.toFixed(2), (k-2)*180, (k*(k-3)/2), cmp];
+    });
+    TBKit.matrix.table('#polygon_interior_angleRef',{
+      head: en?['n (sides)','Interior angle (°)','Sum (°)','Diagonals','']:['边数 n','内角 (°)','内角和 (°)','对角线数',''],
+      rows: __pgRows
+    });
+    var __pgX=[],__pgY=[];
+    for(var __k=3;__k<=20;__k++){__pgX.push(__k);__pgY.push(+((__k-2)*180/__k).toFixed(2));}
+    TBKit.chart.line('#polygon_interior_angleChart',{
+      labels: __pgX.map(String),
+      series:[{name:en?'Interior angle (°)':'内角 (°)',data:__pgY}],
+      title: en?'Interior angle approaches 180° as n grows':'内角随边数趋近 180°'
+    });
     TBKit.history.record({n:__polygon_interior_angleRaw('n'), n:__polygon_interior_angleRaw('n'), n:__polygon_interior_angleRaw('n')});
     function __polygon_interior_angleRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#polygon_interior_angleHist',function(rec){ __polygon_interior_angleRestore(rec); calcTool(); });
@@ -277,6 +299,10 @@ function __polygon_interior_angleExtras(){
 function __polygon_interior_angleExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#polygon_interior_angleTable','polygon-interior-angle.csv'); } catch(e){}
+}
+function __polygon_interior_angleExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#polygon_interior_angleRef','polygon-reference.csv'); } catch(e){}
 }
 function __polygon_interior_anglePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -289,6 +315,7 @@ function __polygon_interior_anglePresets(){
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __polygon_interior_angleExtras(); }catch(e){} };
 function __polygon_interior_angleBoot(){ try{ __polygon_interior_anglePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 if (document.readyState && document.readyState !== 'loading') __polygon_interior_angleBoot();
 else document.addEventListener('DOMContentLoaded', __polygon_interior_angleBoot);
 </script>

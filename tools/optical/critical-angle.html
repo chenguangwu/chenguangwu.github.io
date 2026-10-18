@@ -138,10 +138,16 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__critical_angleExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__critical_angleExportRef()">导出介质参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="critical_angleTable"></div>
+    <h3 style="margin:14px 0 8px;">💎 常见介质对空气的临界角（θc = arcsin(n₂/n₁)，n₂=1.0）</h3>
+    <div id="critical_angleRef"></div>
+    <div id="critical_angleRefChart"></div>
+    <h3 style="margin:14px 0 8px;">📈 入射角—折射角关系（斯涅尔定律，临界角处折射角=90°）</h3>
+    <div id="critical_angleSnell"></div>
     <div id="critical_angleDiff"></div>
     <div id="critical_angleHist"></div>
 
@@ -276,6 +282,38 @@ function __critical_angleExtras(){
             ['相对折射率差 (%)', (((n1-n2)/n1)*100).toFixed(3)],
         ]
     });
+    var __caRef=[
+      ['水','Water',1.333],['冰','Ice',1.31],['乙醇','Ethanol',1.36],['熔石英','Fused silica',1.46],['冕牌玻璃','Crown glass',1.52],['重火石玻璃','Dense flint',1.65],['蓝宝石','Sapphire',1.77],['钻石','Diamond',2.42]
+    ];
+    var __caCurTheta = (n1>n2)?(Math.asin(n2/n1)*180/Math.PI):NaN;
+    var __caRows=__caRef.map(function(m){
+      var thc=Math.asin(1.0/m[2])*180/Math.PI;
+      var cmp='';
+      if(isFinite(__caCurTheta)&&Math.abs(m[2]-n1)<0.04) cmp=en?'◀ current medium':'◀ 当前介质';
+      return [en?m[1]:m[0], +m[2].toFixed(3), +thc.toFixed(2), cmp];
+    });
+    TBKit.matrix.table('#critical_angleRef',{
+      head: en?['Medium (to air)','n₁','Critical angle (°)','']:['介质（→空气）','n₁','临界角 (°)',''],
+      rows: __caRows
+    });
+    TBKit.chart.bar('#critical_angleRefChart',{
+      labels: __caRef.map(function(m){return en?m[1]:m[0];}),
+      series:[{name:en?'Critical angle (°)':'临界角 (°)',data:__caRows.map(function(r){return r[2];})}],
+      title: en?'Critical angle by medium (to air)':'各介质临界角（对空气）',
+      horizontal:true
+    });
+    var __caMax=isFinite(__caCurTheta)?__caCurTheta:85;
+    var __caInc=[],__caRefr=[];
+    for(var __a=0;__a<=Math.min(__caMax,85);__a+=5){
+      __caInc.push(__a);
+      var __s=(n1/n2)*Math.sin(__a*Math.PI/180);
+      __caRefr.push(+(Math.asin(Math.min(1,__s))*180/Math.PI).toFixed(2));
+    }
+    TBKit.chart.line('#critical_angleSnell',{
+      labels: __caInc.map(String),
+      series:[{name:en?'Refraction angle (°)':'折射角 (°)',data:__caRefr}],
+      title: en?'Incidence vs refraction (n₁='+n1.toFixed(2)+', n₂='+n2.toFixed(2)+')':'入射角—折射角（n₁='+n1.toFixed(2)+', n₂='+n2.toFixed(2)+'）'
+    });
     TBKit.history.record({n1:__critical_angleRaw('n1'), n2:__critical_angleRaw('n2')});
     function __critical_angleRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#critical_angleHist',function(rec){ __critical_angleRestore(rec); calcTool(); });
@@ -283,6 +321,10 @@ function __critical_angleExtras(){
 function __critical_angleExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#critical_angleTable','critical-angle.csv'); } catch(e){}
+}
+function __critical_angleExportRef(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#critical_angleRef','critical-angle-media.csv'); } catch(e){}
 }
 function __critical_anglePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -295,6 +337,7 @@ function __critical_anglePresets(){
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __critical_angleExtras(); }catch(e){} };
 function __critical_angleBoot(){ try{ __critical_anglePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+window.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 if (document.readyState && document.readyState !== 'loading') __critical_angleBoot();
 else document.addEventListener('DOMContentLoaded', __critical_angleBoot);
 </script>
