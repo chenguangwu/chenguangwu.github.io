@@ -600,9 +600,14 @@ function render(){
   renderLog();
 }
 
+var __vaxEnLabels={
+  d1:'1st core shot', d2:'2nd core shot', d3:'3rd core shot', rabies:'Rabies',
+  internal:'Internal deworming', external:'External deworming', booster:'Annual booster'
+};
 function __vaxExtras(){
-  if(typeof TBKit==='undefined') return;
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var host=document.getElementById('vaxChart'); if(!host) return;
+  var en=TBKit.util.isEn();
   var labels=[],data=[];
   pets.forEach(function(p){
     var items=computeItems(p);
@@ -613,13 +618,40 @@ function __vaxExtras(){
     });
     if(best!==null){ labels.push(p.name); data.push(best); }
   });
-  if(!labels.length){ host.innerHTML=''; return; }
-  TBKit.chart.bar('#vaxChart',{labels:labels,series:[{name:'距最近到期(天)',data:data}],height:Math.max(220,labels.length*46),title:'各宠物距最近待办到期天数'});
+  if(labels.length){
+    TBKit.chart.bar('#vaxChart',{
+      labels:labels,
+      series:[{name:en?'Days until due':'距最近到期(天)',data:data}],
+      height:Math.max(220,labels.length*46),
+      title:en?'Days until the nearest due task per pet':'各宠物距最近待办到期天数'
+    });
+    return;
+  }
+  // 无宠物时降级展示免疫/驱虫程序周期对照（天）
+  var sel=document.getElementById('petSpecies');
+  var sp=(sel&&sel.value)||'dog';
+  var sched=VACCINE_SCHEDULES[sp]||VACCINE_SCHEDULES.dog||[];
+  var fl=[],fd=[];
+  sched.forEach(function(s){
+    fl.push(en?(__vaxEnLabels[s.key]||s.key):s.name);
+    fd.push((s.ageWeeks||0)*7);
+  });
+  fl.push(en?__vaxEnLabels.internal:DEWORM.internal.name); fd.push(DEWORM.internal.cycleDays);
+  fl.push(en?__vaxEnLabels.external:DEWORM.external.name); fd.push(DEWORM.external.cycleDays);
+  fl.push(en?__vaxEnLabels.booster:BOOSTER.name); fd.push(BOOSTER.cycleDays);
+  if(!fd.length){ host.innerHTML=''; return; }
+  TBKit.chart.bar('#vaxChart',{
+    labels:fl,
+    series:[{name:en?'Cycle (days)':'周期(天)',data:fd}],
+    height:Math.max(220,fl.length*46),
+    title:en?'Immunisation and deworming cycle by item (days)':'各项免疫/驱虫周期对照（天）'
+  });
 }
 
 var __vaxRender=render;
 render=function(){__vaxRender();__vaxExtras();};
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__vaxExtras();});}else{__vaxExtras();}
+window.addEventListener('toolbox:langchange',function(){try{__vaxExtras();}catch(e){}});
 
 render();
 })();

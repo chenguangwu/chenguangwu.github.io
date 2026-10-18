@@ -619,6 +619,9 @@ window.__TI18N_EN = {
     '⬇️ 导出抄表台账 CSV':'⬇️ Export Meter Log CSV',
   },
   BODY_PHRASE_MAP: {
+    // —— 批次 F29 顺带修复 pet/reminder-vaccine-deworming 既有未译 ——
+    '📊 各宠物距最近待办到期天数':'📊 Days Until the Nearest Due Task per Pet',
+    '各宠物距最近待办到期天数':'Days Until the Nearest Due Task per Pet',
     // —— 批次 F27 孵化温湿度曲线卡片 ——
     '🌡️ 21天目标温湿度曲线':'🌡️ 21-Day Target Temperature & Humidity Curve',
     '21天目标温湿度曲线':'21-Day Target Temperature & Humidity Curve',

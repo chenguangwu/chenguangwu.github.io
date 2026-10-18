@@ -123,6 +123,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。">Cycle Elevator</p>
 
     <div class="stat-grid" id="dashStats"></div>
+    <div id="elevChart" style="margin-top:12px;"></div>
 
     <div class="collapse-item open" id="addCollapse">
       <div class="collapse-header" onclick="document.getElementById('addCollapse').classList.toggle('open')">
@@ -394,6 +395,23 @@ function exportLog(){
 }
 window.exportLog = exportLog;
 
+var __elevEnNames={half:'Half-monthly',quarter:'Quarterly',halfYear:'Semi-annual',year:'Annual',inspect:'Statutory inspection'};
+function __elevChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  if(typeof MAINT_TYPES==='undefined'||!MAINT_TYPES.length) return;
+  var en=TBKit.util.isEn();
+  var labels=[],cyc=[];
+  MAINT_TYPES.forEach(function(t){
+    labels.push(en?(__elevEnNames[t.key]||t.key):t.name);
+    cyc.push(t.cycleDays||0);
+  });
+  TBKit.chart.bar('#elevChart',{
+    title:en?'Maintenance cycle by type (days)':'各维保类型周期对照（天）',
+    labels:labels,
+    series:[{name:en?'Cycle (days)':'周期(天)',data:cyc}]
+  });
+}
+
 function renderDash(){
   var overdue=0, soon=0, compliant=0;
   elevators.forEach(function(el){
@@ -409,6 +427,7 @@ function renderDash(){
     statCard(overdue, '逾期不合规', 'var(--danger)') +
     statCard(soon, '即将到期', 'var(--warning)') +
     statCard(compliant, '合规', 'var(--success)');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('dashStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('dashStats').innerHTML=__h0;
+  try { __elevChart(); } catch (e) {}
 }
 function statCard(val, lbl, color){
   return '<div class="stat-card"><div class="val"'+(color?' style="color:'+color+'"':'')+'>'+val+'</div><div class="lbl">'+lbl+'</div></div>';
@@ -500,6 +519,8 @@ function render(){
   renderElevators();
   renderLogSummary();
 }
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__elevChart();}catch(e){}});}else{try{__elevChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__elevChart();}catch(e){}});
 render();
 })();
 </script>

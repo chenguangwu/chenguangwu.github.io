@@ -180,6 +180,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="pwd-list" id="pwdList"></div>
+    <div id="pwdChart" style="margin-top:14px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -280,6 +281,26 @@ function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 
 var allPwds=[];
 
+function __pwdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var pool=null;
+  try{ pool=buildPool(); }catch(e){ pool=null; }
+  if(!pool||!pool.length) return;
+  var en=TBKit.util.isEn();
+  var per=Math.log(pool.length)/Math.LN2;
+  if(!isFinite(per)||per<=0) return;
+  var labels=[],data=[];
+  for(var len=4;len<=32;len+=2){
+    labels.push(String(len));
+    data.push(+(len*per).toFixed(1));
+  }
+  TBKit.chart.line('#pwdChart',{
+    title:en?'Password entropy vs length (bits, current charset)':'密码熵随长度变化（bit，按当前字符集）',
+    labels:labels,
+    series:[{name:en?'Entropy (bits)':'熵(bit)',data:data}]
+  });
+}
+
 function gen(){
   var pool=buildPool();
   var len=Math.max(4,Math.min(64,+document.getElementById('len').value||16));
@@ -309,6 +330,7 @@ function gen(){
     h+='<div class="pwd-item"><span style="color:var(--text-muted);width:24px;">'+(i+1)+'</span><code>'+escHtml(p)+'</code><button type="button" class="btn" style="padding:3px 8px;font-size:11px;" onclick="copySingle('+i+',this)">复制</button></div>';
   });
   const __h2=h;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2;
+  try { __pwdChart(); } catch (e) {}
 }
 
 function getTypes(pwd){
@@ -337,6 +359,8 @@ function copySingle(idx,btn){
 }
 
 gen();
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__pwdChart();}catch(e){}});}else{try{__pwdChart();}catch(e){}}
+window.addEventListener('toolbox:langchange',function(){try{__pwdChart();}catch(e){}});
 </script>
 
 </div>
