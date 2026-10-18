@@ -209,6 +209,8 @@ s.parentNode.insertBefore(el, s);
   <table id="detailTable"></table>
 </div>
 
+<div id="ptwChart" style="margin-top:16px;"></div>
+
 <div class="toolbar" style="margin-top:16px;">
   <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
   <button type="button" class="btn" onclick="resetInput()">🔄 重置</button>
@@ -401,8 +403,33 @@ function calc(){
   </tbody>`;
   const __g5=dtbl;document.getElementById('detailTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   lastResult={current:I,thickness:oz,temp:dT,layer,width_mm:width_mm.toFixed(4),width_mils:width_mils.toFixed(2),area_mm2:area_mm2.toFixed(4),rec_mm};
+  try{ __ptwChart(); }catch(e){}
 }
 
+function __ptwChart(){
+  if(typeof TBKit==='undefined') return;
+  var I=parseFloat(document.getElementById('current').value);
+  var oz=parseFloat(document.getElementById('thickness').value);
+  var dT=parseFloat(document.getElementById('temp').value);
+  var layerEl=document.querySelector('input[name=layer]:checked');
+  var layer=layerEl?layerEl.value:'external';
+  if(!(I>0)||!(oz>0)||!(dT>0)) return;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var k=layer==='external'?0.048:0.024, b=0.44, c=0.725;
+  var labels=[], data=[];
+  for(var i=0;i<9;i++){
+    var iv=I*(0.25+i*0.1875);
+    if(!(iv>0)) continue;
+    var am=Math.pow(iv/(k*Math.pow(dT,b)),1/c);
+    var wm=am/(oz*1.378)*0.0254;
+    labels.push(iv.toFixed(2)+'A');
+    data.push(parseFloat(wm.toFixed(3)));
+  }
+  TBKit.chart.line('#ptwChart',{
+    title: en?'Required trace width vs current':'所需走线宽度随电流变化',
+    labels:labels, series:[{name:en?'Width (mm)':'宽度(mm)', data:data}]
+  });
+}
 function __ptwExport(){
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
@@ -492,6 +519,7 @@ function resetInput(){
 }
 
 calc();
+window.addEventListener('toolbox:langchange', function(){ try{ __ptwChart(); }catch(e){} });
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
