@@ -290,6 +290,20 @@ s.parentNode.insertBefore(el, s);
   </div>
 
   <div class="card">
+    <h2>📐 编码算法对比（按当前输入实测）</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">用当前「文本编码」页输入框的内容（为空时用内置样例）分别按各算法编码，比较输出长度与膨胀率。</p>
+    <div id="b64CompareChart"></div>
+    <h3 style="margin:14px 0 8px;">🧮 算法特性对照</h3>
+    <div id="b64AlgoTable"></div>
+    <h3 style="margin:14px 0 8px;">🔤 字符集参考</h3>
+    <div id="b64CharsetTable"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__b64ExportAlgo()">⬇️ 导出算法对照 CSV</button>
+      <button type="button" class="btn" onclick="window.__b64ExportCharset()">⬇️ 导出字符集 CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>📚 技术说明</h2>
 
     <h3>Base64</h3>
@@ -454,7 +468,8 @@ s.parentNode.insertBefore(el, s);
       bytes = padded;
     }
     for(var i=0;i<bytes.length;i+=4){
-      var value = (bytes[i] << 24) | (bytes[i+1] << 16) | (bytes[i+2] << 8) | bytes[i+3];
+      // >>> 0 转无符号：UTF-8 多字节（≥0x80）时 <<24 会溢出为负数，导致 value%85 为负、字符表取到 undefined
+      var value = (((bytes[i] << 24) | (bytes[i+1] << 16) | (bytes[i+2] << 8) | bytes[i+3]) >>> 0);
       if(value === 0 && i < len){
         result += 'z';
         continue;
@@ -835,6 +850,13 @@ s.parentNode.insertBefore(el, s);
   window.onInputChange = onInputChange;
   window.encodeText = encodeText;
   window.decodeText = decodeText;
+  // 编码算法对比（供对比卡片跨算法实测输出长度）
+  window.__b64Enc = {
+    bytes: utf8ToBytes,
+    base64: function (bytes) { return base64Encode(bytes, false); },
+    base32: base32Encode,
+    base85: base85Encode
+  };
   window.copyOutput = copyOutput;
   window.swapIO = swapIO;
   window.clearAll = clearAll;
@@ -851,6 +873,81 @@ s.parentNode.insertBefore(el, s);
 
   initFileDrop();
   renderHistory();
+})();
+</script>
+<script>
+// 编码算法对比卡片（依赖 IIFE 暴露的 window.__b64Enc 与 TBKit）
+(function(){
+  function __b64L(en,zh){ return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh; }
+  function __b64CurrentText(){
+    var el=document.getElementById('input');
+    var t=el?(el.value||''):'';
+    if(!t) t=__b64L('Hello, World! 你好，世界！','Hello, World! 你好，世界！');
+    return t;
+  }
+  function __b64Encoded(){
+    if(typeof window.__b64Enc!=='object'||!window.__b64Enc) return null;
+    try{
+      var bytes=window.__b64Enc.bytes(__b64CurrentText());
+      return {
+        bytes: bytes.length,
+        base64: window.__b64Enc.base64(bytes).length,
+        base32: window.__b64Enc.base32(bytes).length,
+        base85: window.__b64Enc.base85(bytes).length
+      };
+    }catch(e){ return null; }
+  }
+  function __b64RenderCompare(){
+    if(typeof TBKit==='undefined')return;
+    var en=__b64L(true,false);
+    var enc=__b64Encoded();
+    if(enc){
+      TBKit.chart.bar('#b64CompareChart',{
+        title: __b64L('Output length by algorithm (current input)','各算法输出长度（当前输入实测）'),
+        labels: [__b64L('Input bytes','输入字节'),'Base64','Base32','Base85'],
+        series: [{ name: __b64L('Length (chars)','长度（字符）'), data: [enc.bytes, enc.base64, enc.base32, enc.base85] }]
+      });
+    }
+    var algos=[
+      ['Base64','Base64',64,'+33.3%（3 字节 → 4 字符）','邮件、Data URI、JWT','MIME 标准，最通用'],
+      ['Base32','Base32',32,'+60%（5 字节 → 8 字符）','DNS、人声念读、大小写不敏感场景','无小写混淆，适合口述'],
+      ['Base85 (Ascii85)','Base85 (Ascii85)',85,'+25%（4 字节 → 5 字符）','PDF、PostScript、Git 补丁','效率最高，字符集连续'],
+    ];
+    var algoRows=algos.map(function(a){
+      var actual = enc? (a[0]==='Base64'?enc.base64:(a[0]==='Base32'?enc.base32:enc.base85)) : null;
+      var ratioRaw = (actual!=null&&enc&&enc.bytes>0)?(((actual-enc.bytes)/enc.bytes*100).toFixed(1)):null;
+      var ratio = ratioRaw==null?'—':((ratioRaw>=0?'+':'')+ratioRaw+'%');
+      return [ __b64L(a[1],a[0]), a[2], a[3], actual==null?'—':actual, ratio, __b64L(a[5],a[4]) ];
+    });
+    TBKit.matrix.table('#b64AlgoTable',{
+      head: __b64L(['Algorithm','Charset size','Theoretical overhead','Actual output (chars)','Actual overhead','Notes'],
+                   ['算法','字符集大小','理论膨胀率','实测输出长度','实测膨胀率','适用场景']),
+      rows: algoRows
+    });
+    var charsets=[
+      ['Base64','Base64','A–Z、a–z、0–9、+、/（URL 安全：-、_），= 补尾'],
+      ['Base32','Base32','A–Z、2–7，= 补尾'],
+      ['Base85 (Ascii85)','Base85 (Ascii85)',"ASCII 33–117（'!'–'u'）连续区间，Adobe 变体以 <~ ~> 包裹"],
+    ];
+    TBKit.matrix.table('#b64CharsetTable',{
+      head: __b64L(['Algorithm','Character set'],['算法','字符集']),
+      rows: charsets.map(function(c){ return [ __b64L(c[1],c[0]), c[2] ]; })
+    });
+  }
+  window.__b64ExportAlgo=function(){ if(typeof TBKit==='undefined')return; try{ TBKit.util.exportTable('#b64AlgoTable','base64-algorithms.csv'); }catch(e){} };
+  window.__b64ExportCharset=function(){ if(typeof TBKit==='undefined')return; try{ TBKit.util.exportTable('#b64CharsetTable','base64-charsets.csv'); }catch(e){} };
+  function __b64Boot(){ __b64RenderCompare(); }
+  if (document.readyState && document.readyState !== 'loading') __b64Boot();
+  else document.addEventListener('DOMContentLoaded', __b64Boot);
+  // 输入变化时刷新实测列（节流到 300ms）
+  var __b64Timer=null;
+  document.addEventListener('input', function(e){
+    var t=e.target;
+    if(!t||t.id!=='input') return;
+    if(__b64Timer) clearTimeout(__b64Timer);
+    __b64Timer=setTimeout(__b64RenderCompare,300);
+  });
+  document.addEventListener('toolbox:langchange', function(){ __b64RenderCompare(); });
 })();
 </script>
 <script>

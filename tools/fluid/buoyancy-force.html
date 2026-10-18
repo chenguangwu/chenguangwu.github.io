@@ -142,10 +142,14 @@ s.parentNode.insertBefore(el, s);
       <button class="btn primary" onclick="calcTool()">计算</button>
       <button class="btn" onclick="resetForm()">重置</button>
       <button class="btn" onclick="__buoyancy_forceExport()">导出明细 CSV</button>
+      <button class="btn" onclick="__buoyancy_forceExportLiquids()">导出液体参考 CSV</button>
     </div>
 
     <div class="result-box" id="result"></div>
     <div id="buoyancy_forceTable"></div>
+    <h3 style="margin:14px 0 8px;">🧪 常见液体浮力对比（按当前 V 与 g）</h3>
+    <div id="buoyancy_forceChart"></div>
+    <div id="buoyancy_forceLiquids"></div>
     <div id="buoyancy_forceDiff"></div>
     <div id="buoyancy_forceHist"></div>
 
@@ -223,12 +227,47 @@ function __buoyancy_forceExtras(){
         ]
     });
     TBKit.history.record({rho:__buoyancy_forceRaw('rho'), V:__buoyancy_forceRaw('V'), g:__buoyancy_forceRaw('g')});
+    // 常见液体参考：按当前 V 与 g 实测浮力，并与当前输入流体对比
+    var __bfLiquids=[
+      ['水银','Mercury',13546],
+      ['蜂蜜','Honey',1420],
+      ['甘油','Glycerin',1260],
+      ['海水','Seawater',1025],
+      ['牛奶','Milk',1030],
+      ['淡水（4°C）','Fresh water (4°C)',1000],
+      ['橄榄油','Olive oil',918],
+      ['柴油','Diesel',840],
+      ['酒精','Ethanol',789],
+      ['汽油','Gasoline',725],
+      ['空气（20°C）','Air (20°C)',1.204],
+    ];
+    var __bfRows=__bfLiquids.map(function(l){
+      var F=l[2]*V*g;
+      var cmp;
+      if(Math.abs(l[2]-rho)/Math.max(rho,1e-9)<0.01) cmp=en?'◀ current fluid':'◀ 当前流体';
+      else if(F>rho*V*g) cmp=(en?'+'+(F-rho*V*g).toFixed(2)+' N vs current':'较当前 +')+(F-rho*V*g).toFixed(2)+' N';
+      else cmp=(en?(F-rho*V*g).toFixed(2)+' N vs current':'较当前 ')+(F-rho*V*g).toFixed(2)+' N';
+      return [ en?l[1]:l[0], l[2], F.toFixed(2), (F/g).toFixed(3), cmp ];
+    });
+    TBKit.matrix.table('#buoyancy_forceLiquids',{
+      head: en?['Liquid','Density (kg/m³)','Buoyancy (N)','Displaced mass (kg)','vs current fluid']:['液体','密度 (kg/m³)','浮力 F_b (N)','排开质量 (kg)','与当前流体对比'],
+      rows: __bfRows
+    });
+    TBKit.chart.bar('#buoyancy_forceChart',{
+      title: en?'Buoyancy by liquid (current V and g)':'各液体浮力（按当前 V 与 g）',
+      labels: __bfLiquids.map(function(l){return en?l[1]:l[0];}),
+      series: [{ name: en?'Buoyancy (N)':'浮力 (N)', data: __bfLiquids.map(function(l){return +(l[2]*V*g).toFixed(2);}) }]
+    });
     function __buoyancy_forceRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#buoyancy_forceHist',function(rec){ __buoyancy_forceRestore(rec); calcTool(); });
 }
 function __buoyancy_forceExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#buoyancy_forceTable','buoyancy-force.csv'); } catch(e){}
+}
+function __buoyancy_forceExportLiquids(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#buoyancy_forceLiquids','buoyancy-liquids.csv'); } catch(e){}
 }
 function __buoyancy_forcePresets(){
     if (typeof TBKit === 'undefined') return;
@@ -243,6 +282,7 @@ calcTool = function(){ __tb_fn0(); try{ __buoyancy_forceExtras(); }catch(e){} };
 function __buoyancy_forceBoot(){ try{ __buoyancy_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __buoyancy_forceBoot();
 else document.addEventListener('DOMContentLoaded', __buoyancy_forceBoot);
+document.addEventListener('toolbox:langchange', function(){ try{ calcTool(); }catch(e){} });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
