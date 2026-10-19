@@ -298,6 +298,12 @@ function __otto_efficiencyBoot(){ try{ __otto_efficiencyPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __otto_efficiencyBoot();
 else document.addEventListener('DOMContentLoaded', __otto_efficiencyBoot);
 </script>
+<div class="oe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="oeChart" style="margin-top:8px;"></div>
+<div id="oeTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +339,48 @@ else document.addEventListener('DOMContentLoaded', __otto_efficiencyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __oeSweep(){
+  var r=num('r'), g=num('g');
+  if(!isFinite(r)||!isFinite(g)||r<=1||g<=1)return null;
+  var labels=[],data=[],rows=[];
+  var rs=[6,8,10,12,14,18,24];
+  for(var i=0;i<rs.length;i++){
+    var rr=rs[i], eff=1-1/Math.pow(rr,g-1);
+    labels.push(String(rr)); data.push(Math.round(eff*10000)/10000);
+    rows.push([String(rr), (Math.round(eff*10000)/10000).toFixed(4), (Math.round(eff*10000)/100).toFixed(2)+'%']);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __oeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__oeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#oeChart',{title:en?'Otto Efficiency vs Compression Ratio (η = 1 − 1/r^(γ−1))':'奥托循环效率随压缩比变化 (η = 1 − 1/r^(γ−1))',labels:s.labels,series:[{name:en?'Efficiency η':'热效率 η',data:s.data}]});
+}
+function __oeTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__oeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#oeTable',{head:en?['Compression ratio r','Efficiency η','Percent']:['压缩比 r','热效率 η','百分比'],rows:s.rows});
+}
+
+function __oeShow(which){
+  var c=document.getElementById('oeChart'), t=document.getElementById('oeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __oeTabInit(){
+  var btns=document.querySelectorAll('.oe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__oeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __oeFn=calcTool;calcTool=function(){try{__oeFn();}catch(e){}try{__oeChart();}catch(e){}try{__oeTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__oeChart();}catch(e){}try{__oeTable();}catch(e){}});
+try{__oeTabInit();}catch(e){}
+</script>
 </body>
 </html>

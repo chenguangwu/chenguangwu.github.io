@@ -268,6 +268,12 @@ function resetForm(){document.getElementById('v').value = '120';
       calcTool();}
 calcTool();
 </script>
+<div class="br-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="brChart" style="margin-top:8px;"></div>
+<div id="brTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -363,6 +369,52 @@ calcTool = function(){ __tb_fn0(); try{ __breguet_rangeExtras(); }catch(e){} };
 function __breguet_rangeBoot(){ try{ __breguet_rangePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __breguet_rangeBoot();
 else document.addEventListener('DOMContentLoaded', __breguet_rangeBoot);
+</script>
+<script>
+function __brSweep(){
+  var v=num('v'), ld=num('ld'), wi=num('wi'), wf=num('wf');
+  if(!isFinite(v)||!isFinite(ld)||!isFinite(wi)||!isFinite(wf)||wi<=0||wf<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.3,0.5,0.7,0.85,0.95,1.05,1.15];
+  for(var i=0;i<mults.length;i++){
+    var ratio=mults[i], f=wf*(1/ratio);
+    if(!(f>0)||!(wi>f))continue;
+    var R=v*ld/9.81*Math.log(wi/f);
+    labels.push((Math.round(ratio*1000)/1000).toFixed(3));
+    data.push(Math.round(R/100)/100);
+    rows.push([(Math.round(ratio*1000)/1000).toFixed(3), (Math.round(R/100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __brChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__brSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#brChart',{title:en?'Breguet Range vs Fuel Fraction (R = V·L/D/g · ln(Wi/Wf))':'布雷盖航程随余油比变化 (R = V·L/D/g · ln(Wi/Wf))',labels:s.labels,series:[{name:en?'Range (km)':'航程 (km)',data:s.data}]});
+}
+function __brTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__brSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#brTable',{head:en?['Wf/We ratio','Range (km)']:['剩重比 Wf/We','航程 (km)'],rows:s.rows});
+}
+
+function __brShow(which){
+  var c=document.getElementById('brChart'), t=document.getElementById('brTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __brTabInit(){
+  var btns=document.querySelectorAll('.br-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__brShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __brFn=calcTool;calcTool=function(){try{__brFn();}catch(e){}try{__brChart();}catch(e){}try{__brTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__brChart();}catch(e){}try{__brTable();}catch(e){}});
+try{__brTabInit();}catch(e){}
 </script>
 </body>
 </html>
