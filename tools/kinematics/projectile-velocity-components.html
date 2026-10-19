@@ -244,6 +244,12 @@ function __projectile_velocity_componentsBoot(){ try{ __projectile_velocity_comp
 if (document.readyState && document.readyState !== 'loading') __projectile_velocity_componentsBoot();
 else document.addEventListener('DOMContentLoaded', __projectile_velocity_componentsBoot);
 </script>
+<div class="pv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pvChart" style="margin-top:8px;"></div>
+<div id="pvTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +285,50 @@ else document.addEventListener('DOMContentLoaded', __projectile_velocity_compone
 </dl>
 </div>
 </section>
+<script>
+function __pvSweep(){
+  var v=num('v');
+  if(!isFinite(v)||v<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var angs=[0,15,30,45,60,75,90];
+  for(var i=0;i<angs.length;i++){
+    var th=angs[i]*Math.PI/180;
+    var vx=v*Math.cos(th), vy=v*Math.sin(th);
+    labels.push(String(angs[i]));
+    d1.push(Math.round(vx*1000)/1000); d2.push(Math.round(vy*1000)/1000);
+    rows.push([String(angs[i]), (Math.round(vx*1000)/1000).toFixed(3), (Math.round(vy*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __pvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pvChart',{title:en?'Velocity Components vs Launch Angle (vx = v·cosθ, vy = v·sinθ)':'速度分量随发射角变化 (vx = v·cosθ, vy = v·sinθ)',labels:s.labels,series:[{name:en?'Horizontal vx (m/s)':'水平分量 vx (m/s)',data:s.d1},{name:en?'Vertical vy (m/s)':'竖直分量 vy (m/s)',data:s.d2}]});
+}
+function __pvTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__pvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#pvTable',{head:en?['Angle (°)','Horizontal vx (m/s)','Vertical vy (m/s)']:['发射角 (°)','水平分量 vx (m/s)','竖直分量 vy (m/s)'],rows:s.rows});
+}
+
+function __pvShow(which){
+  var c=document.getElementById('pvChart'), t=document.getElementById('pvTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pvTabInit(){
+  var btns=document.querySelectorAll('.pv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __pvFn=calcTool;calcTool=function(){try{__pvFn();}catch(e){}try{__pvChart();}catch(e){}try{__pvTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pvChart();}catch(e){}try{__pvTable();}catch(e){}});
+try{__pvTabInit();}catch(e){}
+</script>
 </body>
 </html>

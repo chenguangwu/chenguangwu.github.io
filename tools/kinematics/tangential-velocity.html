@@ -244,6 +244,12 @@ function __tangential_velocityBoot(){ try{ __tangential_velocityPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __tangential_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __tangential_velocityBoot);
 </script>
+<div class="tv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tvChart" style="margin-top:8px;"></div>
+<div id="tvTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +285,48 @@ else document.addEventListener('DOMContentLoaded', __tangential_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tvSweep(){
+  var w=num('w'), r=num('r');
+  if(!isFinite(w)||!isFinite(r)||r<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var rr=r*mults[i], v=w*rr;
+    labels.push(String(Math.round(rr*100)/100)); data.push(Math.round(v*1000)/1000);
+    rows.push([String(Math.round(rr*100)/100), (Math.round(v*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __tvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tvChart',{title:en?'Tangential Velocity vs Radius (v = ω·r)':'切向速度随半径变化 (v = ω·r)',labels:s.labels,series:[{name:en?'Velocity v (m/s)':'速度 v (m/s)',data:s.data}]});
+}
+function __tvTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__tvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#tvTable',{head:en?['Radius r (m)','Velocity v (m/s)']:['半径 r (m)','速度 v (m/s)'],rows:s.rows});
+}
+
+function __tvShow(which){
+  var c=document.getElementById('tvChart'), t=document.getElementById('tvTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tvTabInit(){
+  var btns=document.querySelectorAll('.tv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __tvFn=calcTool;calcTool=function(){try{__tvFn();}catch(e){}try{__tvChart();}catch(e){}try{__tvTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tvChart();}catch(e){}try{__tvTable();}catch(e){}});
+try{__tvTabInit();}catch(e){}
+</script>
 </body>
 </html>
