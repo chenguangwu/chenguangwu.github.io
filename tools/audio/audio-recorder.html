@@ -267,6 +267,8 @@ s.parentNode.insertBefore(el, s);
         <p>暂无录音，点击上方"开始录音"按钮录制</p>
       </div>
     </div>
+    <div id="arPresets" style="margin:10px 0;"></div>
+    <div id="arSettingsTbl" style="margin-top:12px;"></div>
   </div>
 
   <!-- 使用说明 -->
@@ -1026,6 +1028,51 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
+// F63: 录音设置预设 + 当前 vs 上次设置对比
+var AR_SKEY='audioRecorderSettings';
+function __arT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}
+var AR_PRESETS=[
+  {key:'voice',zh:'人声清晰',en:'Clear voice',values:{gainSlider:'130',speedSlider:'100'}},
+  {key:'music',zh:'音乐现场',en:'Live music',values:{gainSlider:'100',speedSlider:'100'}},
+  {key:'meeting',zh:'远距离会议',en:'Distant meeting',values:{gainSlider:'180',speedSlider:'90'}},
+  {key:'phone',zh:'电话录音',en:'Phone call',values:{gainSlider:'80',speedSlider:'110'}}
+];
+function __arSave(){try{var g=document.getElementById('gainSlider'),s=document.getElementById('speedSlider');if(g&&s)localStorage.setItem(AR_SKEY,JSON.stringify({gain:g.value,speed:s.value}));}catch(e){}}
+function __arRenderSettings(){
+  var host=document.getElementById('arSettingsTbl');if(!host)return;
+  var g=document.getElementById('gainSlider'),s=document.getElementById('speedSlider');if(!g||!s)return;
+  var last=null;try{last=JSON.parse(localStorage.getItem(AR_SKEY)||'null');}catch(e){}
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[
+    [__arT('增益','Gain'),g.value,last?last.gain:'—',last?(g.value===last.gain?__arT('持平','Same'):__arT('已调整','Changed')):'—'],
+    [__arT('速度','Speed'),s.value,last?last.speed:'—',last?(s.value===last.speed?__arT('持平','Same'):__arT('已调整','Changed')):'—']
+  ];
+  var head=en?['Setting','Current','Last used','Change']:['参数','当前','上次','变化'];
+  var html='<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">'+__arT('录音设置 · 当前 vs 上次','Recording settings · current vs last')+'</h4>'
+    +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function(h){html+='<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">'+h+'</th>';});
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr>';r.forEach(function(c,ci){var col=(ci===3&&(c==='已调整'||c==='Changed'))?'#2e7d32;font-weight:600':'#333';html+='<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;'+(ci===3?'color:'+col+';':'')+'">'+c+'</td>';});html+='</tr>';});
+  html+='</tbody></table></div>';
+  host.innerHTML=html;
+}
+function __arAfter(){
+  try{if(typeof updateGain==='function')updateGain(document.getElementById('gainSlider').value);}catch(e){}
+  try{if(typeof updateSpeed==='function')updateSpeed(document.getElementById('speedSlider').value);}catch(e){}
+  __arSave();__arRenderSettings();
+}
+function __arPresets(){
+  if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar)return;
+  var host=document.getElementById('arPresets');if(!host)return;
+  TBKit.preset.bar(host,AR_PRESETS.map(function(p){return {label:p.zh,labelEn:p.en,values:p.values};}),__arAfter);
+}
+try{
+  ['gainSlider','speedSlider'].forEach(function(id){var el=document.getElementById(id);if(el){el.addEventListener('input',function(){__arSave();__arRenderSettings();});el.addEventListener('change',function(){__arSave();__arRenderSettings();});}});
+  __arPresets();
+  if(typeof TBKit!=='undefined')__arRenderSettings();
+  document.addEventListener('DOMContentLoaded',function(){try{__arPresets();if(typeof TBKit!=='undefined')__arRenderSettings();}catch(e){}});
+  document.addEventListener('toolbox:langchange',function(){try{__arPresets();__arRenderSettings();}catch(e){}});
+}catch(e){}
 }catch(e){}})();
 </script>
 </body>

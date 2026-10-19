@@ -439,6 +439,9 @@ s.parentNode.insertBefore(el, s);
             <input type="color" id="bgColor" value="#1E1E2E" oninput="onParamChange()">
           </div>
         </div>
+        <div id="pgPresets" style="margin:10px 0;"></div>
+        <div id="pgRefTbl" style="margin-top:12px;"></div>
+        <input type="hidden" id="pgSel" value="">
 
         <!-- 发射模式 -->
         <div class="ctrl-group">
@@ -997,6 +1000,47 @@ s.parentNode.insertBefore(el, s);
     init();
   }
 
+// F63: 粒子参数预设 + 预设参数速查表
+var PG_SKEY='particlePreset';
+function __pgT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}
+var PG_PRESETS=[
+  {key:'firework',zh:'烟花',en:'Fireworks',values:{count:'200',gravity:'-0.3',lifetime:'3',linkDist:'0',pColor:'#FFD700',bgColor:'#0B1026'}},
+  {key:'star',zh:'星空',en:'Starry sky',values:{count:'300',gravity:'0',lifetime:'5',linkDist:'60',pColor:'#88CCFF',bgColor:'#05060F'}},
+  {key:'snow',zh:'雪花',en:'Snow',values:{count:'150',gravity:'0.4',lifetime:'4',linkDist:'0',pColor:'#FFFFFF',bgColor:'#1E293B'}},
+  {key:'grid',zh:'网格连线',en:'Grid network',values:{count:'120',gravity:'0',lifetime:'5',linkDist:'120',pColor:'#FF6B35',bgColor:'#111827'}}
+];
+function __pgFind(key){for(var i=0;i<PG_PRESETS.length;i++){if(PG_PRESETS[i].key===key)return PG_PRESETS[i];}return null;}
+function __pgApplyPreset(p){
+  for(var k in p.values){if(!Object.prototype.hasOwnProperty.call(p.values,k))continue;var el=document.getElementById(k);if(el){el.value=p.values[k];}}
+  try{if(typeof readParams==='function')readParams();}catch(e){}
+  try{localStorage.setItem(PG_SKEY,p.key);}catch(e){}
+  if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast(__pgT('已应用粒子预设「'+p.zh+'」','Particle preset "'+p.en+'" applied'),'info');}
+}
+function __pgAfter(){var key=document.getElementById('pgSel').value;var p=__pgFind(key);if(p)__pgApplyPreset(p);}
+function __pgPresets(){
+  if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar)return;
+  var host=document.getElementById('pgPresets');if(!host)return;
+  TBKit.preset.bar(host,PG_PRESETS.map(function(p){return {label:p.zh,labelEn:p.en,values:{pgSel:p.key}};}),__pgAfter);
+}
+function __pgRefTbl(){
+  var host=document.getElementById('pgRefTbl');if(!host)return;
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=PG_PRESETS.map(function(p){return [__pgT(p.zh,p.en),p.values.count,(p.values.gravity.indexOf('-')===0?p.values.gravity:p.values.gravity),p.values.lifetime,p.values.linkDist,p.values.pColor];});
+  var head=en?['Preset','Particles','Gravity','Lifetime(s)','Link dist','Color']:['预设','粒子数','重力','寿命(秒)','连线距离','主色'];
+  var html='<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">'+__pgT('粒子预设参数速查','Particle preset parameters')+'</h4>'
+    +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function(h){html+='<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">'+h+'</th>';});
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr>';r.forEach(function(c){html+='<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">'+c+'</td>';});html+='</tr>';});
+  html+='</tbody></table></div>';
+  host.innerHTML=html;
+}
+try{
+  __pgPresets();
+  if(typeof TBKit!=='undefined')__pgRefTbl();
+  document.addEventListener('DOMContentLoaded',function(){try{__pgPresets();if(typeof TBKit!=='undefined')__pgRefTbl();}catch(e){}});
+  document.addEventListener('toolbox:langchange',function(){try{__pgPresets();__pgRefTbl();}catch(e){}});
+}catch(e){}
 })();
 </script>
 
