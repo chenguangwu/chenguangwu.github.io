@@ -179,6 +179,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="tmTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="tmChart"></div>
+<div class="card" id="tmTableCard" style="display:none">
+  <h3 id="tmTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="tmTh0"></th><th id="tmTh1"></th><th id="tmTh2"></th><th id="tmTh3"></th></tr></thead>
+    <tbody id="tmTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -687,6 +699,33 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function TM__groups(){ return (function(){
+  var m={"会话":"Session","基础":"Basic","窗口":"Window","窗格":"Pane","复制":"Copy","命令":"Command","帮助":"Help","其他":"Other","配置":"Config"};
+  var order=[],map={};
+  COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+  return order.map(function(k){ return {zh:k,en:(m[k]||k),n:map[k],reps:COMMANDS.filter(function(x){return x.cat===k;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ')}; });
+})(); }
+  function tmrender(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('tmChart')) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var groups=TM__groups();
+    TBKit.chart.bar('#tmChart',{labels:groups.map(function(g){return en?g.en:g.zh;}),series:[{name:en?'Count':'数量',data:groups.map(function(g){return g.n;})}],height:300,title:en?'Commands by Category':'命令分类统计'});
+    var t=document.getElementById('tmTbody'); if(!t) return;
+    t.innerHTML=groups.map(function(g,i){ return '<tr><td>'+(i+1)+'</td><td>'+(en?g.en:g.zh)+'</td><td>'+g.n+'</td><td>'+(g.reps||'-')+'</td></tr>'; }).join('');
+    var tt=document.getElementById('tmTableTitle'); if(tt) tt.textContent=en?'Tmux Command Categories':'Tmux 命令分类明细';
+    var hs=[['tmTh0','#'],['tmTh1',en?'Category':'分类'],['tmTh2',en?'Count':'数量'],['tmTh3',en?'Examples':'代表']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function tmfillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#tmTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function tmbindTabs(){ var tabs=document.querySelectorAll('#tmTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('tmChart'); var card=document.getElementById('tmTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function tmall(){try{tmrender();}catch(e){}tmfillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){tmbindTabs();tmall();});
+  document.addEventListener('toolbox:langchange',function(){tmall();});
+})();
 </script>
 </body>
 </html>

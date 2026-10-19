@@ -192,6 +192,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="atQuiz" class="at-grid"></div>
+<div class="tabs" id="atTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="atChart"></div>
+<div class="card" id="atTableCard" style="display:none">
+  <h3 id="atTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="atTh0"></th><th id="atTh1"></th><th id="atTh2"></th><th id="atTh3"></th></tr></thead>
+    <tbody id="atTbody"></tbody>
+  </table>
+</div>
 
     <!-- ================= 结果区 ================= -->
     <div class="at-res" id="atResult">
@@ -306,6 +318,34 @@ s.parentNode.insertBefore(el, s);
     { d: 'avo', q: '我宁愿自己扛下问题，也不愿麻烦伴侣。' },
     { d: 'avo', q: '我很难在关系中完全放下防备。' }
   ];
+  /* F51 injected: dimension distribution chart + table */
+  (function(){
+    function __at_groups(){ return (function(){
+  var m={anx:{zh:'焦虑',en:'Anxiety'},avo:{zh:'回避',en:'Avoidance'}};
+  var order=[],map={};
+  QUESTIONS.forEach(function(q){ if(!map[q.d]){map[q.d]=0;order.push(q.d);} map[q.d]++; });
+  return order.map(function(k){ return {zh:m[k].zh,en:m[k].en,n:map[k],reps:QUESTIONS.filter(function(x){return x.d===k;}).slice(0,2).map(function(x){return x.q;}).join(' / ')}; });
+})(); }
+    function __at_render(){
+      if(typeof TBKit==='undefined'||!TBKit.chart) return;
+      if(!document.getElementById('atChart')) return;
+      var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+      var groups=__at_groups();
+      TBKit.chart.bar('#atChart',{labels:groups.map(function(g){return en?g.en:g.zh;}),series:[{name:en?'Count':'数量',data:groups.map(function(g){return g.n;})}],height:300,title:en?'Question Distribution':'题目维度分布'});
+      var t=document.getElementById('atTbody'); if(!t) return;
+      t.innerHTML=groups.map(function(g,i){ return '<tr><td>'+(i+1)+'</td><td>'+(en?g.en:g.zh)+'</td><td>'+g.n+'</td><td>'+(g.reps||'-')+'</td></tr>'; }).join('');
+      var tt=document.getElementById('atTableTitle'); if(tt) tt.textContent=en?'Attachment Question Distribution':'依恋维度题目分布';
+      var hs=[['atTh0','#'],['atTh1',en?'Dimension':'维度'],['atTh2',en?'Count':'数量'],['atTh3',en?'Examples':'代表题目']];
+      hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+    }
+    function __at_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#atTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+    function __at_bindTabs(){ var tabs=document.querySelectorAll('#atTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('atChart'); var card=document.getElementById('atTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+    function __at_all(){try{__at_render();}catch(e){}__at_fillTabs();}
+    __at_bindTabs(); __at_all();
+    document.addEventListener('DOMContentLoaded',function(){__at_all();});
+    document.addEventListener('toolbox:langchange',function(){__at_all();});
+  })();
+
 
   /* ============================================================
    * 2. 四种依恋风格定义

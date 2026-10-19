@@ -193,6 +193,18 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="hlQuiz" class="hl-grid"></div>
+<div class="tabs" id="hfTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="hfChart"></div>
+<div class="card" id="hfTableCard" style="display:none">
+  <h3 id="hfTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="hfTh0"></th><th id="hfTh1"></th><th id="hfTh2"></th><th id="hfTh3"></th></tr></thead>
+    <tbody id="hfTbody"></tbody>
+  </table>
+</div>
 
     <!-- ================= 结果区 ================= -->
     <div class="hl-res" id="hlResult">
@@ -355,6 +367,34 @@ s.parentNode.insertBefore(el, s);
     { t: 'C', q: '操作办公或财务软件' },
     { t: 'C', q: '把复杂信息归档得井井有条' }
   ];
+  /* F51 injected: dimension distribution chart + table */
+  (function(){
+    function __hf_groups(){ return (function(){
+  var m={R:{zh:'现实型',en:'Realistic'},I:{zh:'研究型',en:'Investigative'},A:{zh:'艺术型',en:'Artistic'},S:{zh:'社会型',en:'Social'},E:{zh:'企业型',en:'Enterprising'},C:{zh:'常规型',en:'Conventional'}};
+  var order=[],map={};
+  QUESTIONS.forEach(function(q){ if(!map[q.t]){map[q.t]=0;order.push(q.t);} map[q.t]++; });
+  return order.map(function(k){ return {zh:m[k].zh,en:m[k].en,n:map[k],reps:QUESTIONS.filter(function(x){return x.t===k;}).slice(0,2).map(function(x){return x.q;}).join(' / ')}; });
+})(); }
+    function __hf_render(){
+      if(typeof TBKit==='undefined'||!TBKit.chart) return;
+      if(!document.getElementById('hfChart')) return;
+      var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+      var groups=__hf_groups();
+      TBKit.chart.bar('#hfChart',{labels:groups.map(function(g){return en?g.en:g.zh;}),series:[{name:en?'Count':'数量',data:groups.map(function(g){return g.n;})}],height:300,title:en?'Question Distribution':'题目类型分布'});
+      var t=document.getElementById('hfTbody'); if(!t) return;
+      t.innerHTML=groups.map(function(g,i){ return '<tr><td>'+(i+1)+'</td><td>'+(en?g.en:g.zh)+'</td><td>'+g.n+'</td><td>'+(g.reps||'-')+'</td></tr>'; }).join('');
+      var tt=document.getElementById('hfTableTitle'); if(tt) tt.textContent=en?'Holland Question Distribution':'霍兰德题目类型分布';
+      var hs=[['hfTh0','#'],['hfTh1',en?'Type':'类型'],['hfTh2',en?'Count':'数量'],['hfTh3',en?'Examples':'代表题目']];
+      hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+    }
+    function __hf_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#hfTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+    function __hf_bindTabs(){ var tabs=document.querySelectorAll('#hfTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('hfChart'); var card=document.getElementById('hfTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+    function __hf_all(){try{__hf_render();}catch(e){}__hf_fillTabs();}
+    __hf_bindTabs(); __hf_all();
+    document.addEventListener('DOMContentLoaded',function(){__hf_all();});
+    document.addEventListener('toolbox:langchange',function(){__hf_all();});
+  })();
+
 
   /* ============================================================
    * 3. 职业库（126 条：[名称, 三字母代码, 学历, 说明]）
