@@ -246,6 +246,12 @@ function __uniform_displacementBoot(){ try{ __uniform_displacementPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __uniform_displacementBoot();
 else document.addEventListener('DOMContentLoaded', __uniform_displacementBoot);
 </script>
+<div class="ud-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="udChart" style="margin-top:8px;"></div>
+<div id="udTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +287,48 @@ else document.addEventListener('DOMContentLoaded', __uniform_displacementBoot);
 </dl>
 </div>
 </section>
+<script>
+function __udSweep(){
+  var v=num('v'), t=num('t');
+  if(!isFinite(v)||!isFinite(t)||t<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0,0.25,0.5,0.75,1,1.5,2];
+  for(var i=0;i<mults.length;i++){
+    var tt=t*mults[i], s=v*tt;
+    labels.push(String(Math.round(tt*100)/100)); data.push(Math.round(s*1000)/1000);
+    rows.push([String(Math.round(tt*100)/100), (Math.round(s*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __udChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__udSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#udChart',{title:en?'Displacement vs Time (s = v·t, uniform motion)':'位移随时间变化 (s = v·t，匀速运动)',labels:s.labels,series:[{name:en?'Displacement s (m)':'位移 s (m)',data:s.data}]});
+}
+function __udTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__udSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#udTable',{head:en?['Time t (s)','Displacement s (m)']:['时间 t (s)','位移 s (m)'],rows:s.rows});
+}
+
+function __udShow(which){
+  var c=document.getElementById('udChart'), t=document.getElementById('udTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __udTabInit(){
+  var btns=document.querySelectorAll('.ud-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__udShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __udFn=calcTool;calcTool=function(){try{__udFn();}catch(e){}try{__udChart();}catch(e){}try{__udTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__udChart();}catch(e){}try{__udTable();}catch(e){}});
+try{__udTabInit();}catch(e){}
+</script>
 </body>
 </html>

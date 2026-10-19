@@ -303,6 +303,12 @@ function __projectile_time_flightBoot(){ try{ __projectile_time_flightPresets();
 if (document.readyState && document.readyState !== 'loading') __projectile_time_flightBoot();
 else document.addEventListener('DOMContentLoaded', __projectile_time_flightBoot);
 </script>
+<div class="tf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tfChart" style="margin-top:8px;"></div>
+<div id="tfTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +344,49 @@ else document.addEventListener('DOMContentLoaded', __projectile_time_flightBoot)
 </dl>
 </div>
 </section>
+<script>
+function __tfSweep(){
+  var v=num('v'), g=num('g');
+  if(!isFinite(v)||!isFinite(g)||v<=0||g<=0)return null;
+  var labels=[],data=[],rows=[];
+  var angs=[0,15,30,45,60,75,90];
+  for(var i=0;i<angs.length;i++){
+    var th=angs[i]*Math.PI/180;
+    var T=2*v*Math.sin(th)/g;
+    labels.push(String(angs[i])); data.push(Math.round(T*1000)/1000);
+    rows.push([String(angs[i]), (Math.round(T*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __tfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tfChart',{title:en?'Time of Flight vs Launch Angle (T = 2v·sinθ/g)':'飞行时间随发射角变化 (T = 2v·sinθ/g)',labels:s.labels,series:[{name:en?'Time T (s)':'飞行时间 T (s)',data:s.data}]});
+}
+function __tfTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__tfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#tfTable',{head:en?['Launch angle (°)','Time T (s)']:['发射角 (°)','飞行时间 T (s)'],rows:s.rows});
+}
+
+function __tfShow(which){
+  var c=document.getElementById('tfChart'), t=document.getElementById('tfTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tfTabInit(){
+  var btns=document.querySelectorAll('.tf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __tfFn=calcTool;calcTool=function(){try{__tfFn();}catch(e){}try{__tfChart();}catch(e){}try{__tfTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tfChart();}catch(e){}try{__tfTable();}catch(e){}});
+try{__tfTabInit();}catch(e){}
+</script>
 </body>
 </html>
