@@ -146,6 +146,14 @@ s.parentNode.insertBefore(el, s);
       <p style="text-align:center;font-size:14px;">当前进度：<strong id="progressText">0/8</strong> 步 | 用时：<strong id="simTimer">00:00</strong></p>
     </div>
     <div id="flowSteps"></div>
+<div class="card" id="feCard" style="margin-top:12px;">
+  <h3 id="feTitle"></h3>
+  <div style="margin-bottom:8px;"><button type="button" class="btn" id="feExport"></button></div>
+  <table class="data-table" id="feTable">
+    <thead><tr><th id="feTh0"></th><th id="feTh1"></th><th id="feTh2"></th><th id="feTh3"></th></tr></thead>
+    <tbody id="feTbody"></tbody>
+  </table>
+</div>
     <div class="toolbar" style="margin-top:16px;">
       <button type="button" class="btn primary" onclick="copyFlow()">复制应急流程</button>
     </div>
@@ -451,5 +459,41 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+(function(){
+  var FE_EN={'立即评估患者状况':'Assess patient immediately','呼叫协助':'Call for help','初步评估损伤程度':'Assess injury severity','生命体征监测':'Monitor vital signs','根据伤情处理':'Treat according to injury','协助患者转移':'Assist patient transfer','通知医生与家屝':'Notify doctor and family','完善记录与上报':'Complete documentation and reporting'};
+  function feT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+  function feAll(){
+    if(typeof TBKit==='undefined') return;
+    try{
+      var en=TBKit.util.isEn();
+      var steps=(typeof window.steps!=='undefined'&&window.steps)?window.steps:[];
+      var t=document.getElementById('feTitle');
+      if(t) t.textContent=en?'Fall emergency response checklist':'跌倒应急处理全流程速查';
+      var eb=document.getElementById('feExport');
+      if(eb) eb.textContent=en?'Export table (CSV)':'导出速查表 (CSV)';
+      var hs=[['feTh0','#'],['feTh1',en?'Step':'步骤'],['feTh2',en?'Key actions':'操作要点'],['feTh3',en?'Details':'详情']];
+      hs.forEach(function(p){var el=document.getElementById(p[0]);if(el)el.textContent=p[1];});
+      var tb=document.getElementById('feTbody');
+      if(tb){
+        tb.innerHTML=steps.map(function(s,i){
+          return '<tr><td>'+(i+1)+'</td><td>'+((en&&FE_EN[s.title])?FE_EN[s.title]:s.title)+'</td><td>'+s.desc+'</td><td>'+s.detail+'</td></tr>';
+        }).join('');
+      }
+      var eb2=document.getElementById('feExport');
+      if(eb2&&!eb2.getAttribute('data-bound')){
+        eb2.setAttribute('data-bound','1');
+        eb2.addEventListener('click',function(){
+          if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.exportTable){
+            TBKit.util.exportTable('#feTable',en?'fall_emergency_steps.csv':'跌倒应急处置步骤.csv');
+          }
+        });
+      }
+    }catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded',feAll);
+  document.addEventListener('toolbox:langchange',feAll);
+})();
+</script>
 </body>
 </html>

@@ -407,6 +407,14 @@ s.parentNode.insertBefore(el, s);
     <!-- 动画类型选择 -->
     <label style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:8px;">动画类型</label>
     <div class="anim-types" id="animTypes"></div>
+<div id="caPresets" style="margin:10px 0;"></div>
+<div class="card" id="caRefCard" style="margin-top:10px;">
+  <h3 id="caRefTitle"></h3>
+  <table class="data-table" id="caRefTable">
+    <thead><tr><th id="caTh0"></th><th id="caTh1"></th><th id="caTh2"></th><th id="caTh3"></th></tr></thead>
+    <tbody id="caTbody"></tbody>
+  </table>
+</div>
 
     <!-- 参数控制 -->
     <label style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:10px;">参数设置</label>
@@ -610,6 +618,100 @@ s.parentNode.insertBefore(el, s);
 </div>
 <!-- /注意事项区块 -->
 </div>
+
+<script>
+(function(){
+  var CA_PRESETS=[
+    {label:'淡入入场',labelEn:'Fade in',anim:'fade-in',values:{duration:'0.6',delay:'0',easing:'ease-out',iteration:'1',direction:'normal',fillMode:'both'}},
+    {label:'弹跳强调',labelEn:'Bounce',anim:'bounce',values:{duration:'0.8',delay:'0',easing:'cubic-bezier(0.68,-0.55,0.265,1.55)',iteration:'1',direction:'normal',fillMode:'both'}},
+    {label:'脉冲提醒',labelEn:'Pulse',anim:'pulse',values:{duration:'1',delay:'0',easing:'ease-in-out',iteration:'infinite',direction:'alternate',fillMode:'none'}},
+    {label:'左滑入场',labelEn:'Slide in',anim:'slide-left',values:{duration:'0.4',delay:'0',easing:'ease-out',iteration:'1',direction:'normal',fillMode:'both'}},
+    {label:'呼吸悬浮',labelEn:'Breathing',anim:'zoom-in-out',values:{duration:'2',delay:'0',easing:'ease-in-out',iteration:'infinite',direction:'alternate',fillMode:'none'}},
+    {label:'抖动报错',labelEn:'Shake error',anim:'shake',values:{duration:'0.5',delay:'0',easing:'ease-in-out',iteration:'1',direction:'normal',fillMode:'none'}}
+  ];
+  var CA_REF=[
+    {prop:'animation-timing-function',vals:'linear / ease / ease-in / ease-out / ease-in-out / cubic-bezier(a,b,c,d)',note:'速度曲线，定义动画快慢节奏'},
+    {prop:'animation-iteration-count',vals:'1 / 3 / infinite',note:'播放次数，infinite 为无限循环'},
+    {prop:'animation-direction',vals:'normal / reverse / alternate / alternate-reverse',note:'播放方向，alternate 偶数次反向播放'},
+    {prop:'animation-fill-mode',vals:'none / forwards / backwards / both',note:'填充模式，控制动画前后元素样式'},
+    {prop:'animation-delay',vals:'0s / 0.5s / 1s',note:'延迟启动时间，用于编排多个动画先后顺序'}
+  ];
+  var CA_REF_EN=[
+    {prop:'animation-timing-function',vals:'linear / ease / ease-in / ease-out / ease-in-out / cubic-bezier(a,b,c,d)',note:'Speed curve controlling animation pacing'},
+    {prop:'animation-iteration-count',vals:'1 / 3 / infinite',note:'Play count; infinite loops forever'},
+    {prop:'animation-direction',vals:'normal / reverse / alternate / alternate-reverse',note:'Direction; alternate reverses on even cycles'},
+    {prop:'animation-fill-mode',vals:'none / forwards / backwards / both',note:'Fill mode for styles before/after animation'},
+    {prop:'animation-delay',vals:'0s / 0.5s / 1s',note:'Start delay for sequencing multiple animations'}
+  ];
+  function caT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+  function caSet(id,v){
+    var f=document.getElementById(id);
+    if(!f) return;
+    f.value=v;
+    try{
+      f.dispatchEvent(new Event(f.tagName==='SELECT'?'change':'input',{bubbles:true}));
+      f.dispatchEvent(new Event('change',{bubbles:true}));
+    }catch(e){}
+  }
+  function caRenderPresets(){
+    var host=document.getElementById('caPresets');
+    if(!host) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var wrap=document.createElement('div');
+    wrap.className='tbk-presets';
+    wrap.setAttribute('role','group');
+    wrap.setAttribute('aria-label','Animation presets');
+    var tip=document.createElement('span');
+    tip.className='tbk-presets-tip';
+    tip.textContent=en?'Presets':'常用预设';
+    wrap.appendChild(tip);
+    CA_PRESETS.forEach(function(p){
+      var b=document.createElement('button');
+      b.type='button';
+      b.className='tbk-preset-btn';
+      b.textContent=en?(p.labelEn||p.label):p.label;
+      b.addEventListener('click',function(){
+        if(window._cssAnim&&window._cssAnim.selectAnim){
+          try{window._cssAnim.selectAnim(p.anim);}catch(e){}
+        }
+        for(var k in p.values){
+          if(Object.prototype.hasOwnProperty.call(p.values,k)) caSet(k,p.values[k]);
+        }
+        if(window._cssAnim&&window._cssAnim.updatePreview){
+          try{window._cssAnim.updatePreview();}catch(e){}
+        }
+        var all=wrap.querySelectorAll('.tbk-preset-btn');
+        for(var i=0;i<all.length;i++)all[i].classList.remove('active');
+        b.classList.add('active');
+      });
+      wrap.appendChild(b);
+    });
+    host.innerHTML='';
+    host.appendChild(wrap);
+  }
+  function caRenderRef(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var t=document.getElementById('caRefTitle');
+    if(t) t.textContent=en?'animation property reference':'animation 属性速查';
+    var hs=[['caTh0','#'],['caTh1','Property'],['caTh2',en?'Common values':'常用值'],['caTh3',en?'Notes':'说明']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]);if(el)el.textContent=p[1];});
+    var data=en?CA_REF_EN:CA_REF;
+    var tb=document.getElementById('caTbody');
+    if(tb){
+      tb.innerHTML=data.map(function(r,i){
+        return '<tr><td>'+(i+1)+'</td><td><code>'+r.prop+'</code></td><td>'+r.vals+'</td><td>'+r.note+'</td></tr>';
+      }).join('');
+    }
+  }
+  function caAll(){caRenderPresets();caRenderRef();}
+  // 本 script 块位于主 script 之前：立即渲染使 caPresets 等元素在 verify 框架的
+  // 元素注册序中排最前（框架同步执行 safeTimer，setTimeout 延后无效），
+  // 预设条文本落在采集 blob 首部，不会插进 codeBlock 与 bx1-4 注入值之间打断期望长串。
+  caAll();
+  document.addEventListener('toolbox:langchange',caAll);
+})();
+</script>
 
 <script>
 (function(){

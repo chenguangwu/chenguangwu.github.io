@@ -133,6 +133,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="window.__vasExport()">⬇️ 导出输精管造影通畅度 CSV</button>
     </div>
     <div class="result-box" id="res"></div>
+<div class="tabs" id="a1Tabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
+<div id="a1Chart"></div>
+<div class="card" id="a1TableCard" style="display:none"><h3 id="a1TableTitle"></h3>
+<table class="data-table"><thead><tr><th id="a1Th0"></th><th id="a1Th1"></th><th id="a1Th2"></th><th id="a1Th3"></th><th id="a1Th4"></th><th id="a1Th5"></th></tr></thead><tbody id="a1Tbody"></tbody></table></div>
     <table id="vasHidden" style="display:none"><thead><tr><th>Segment</th><th>Left</th><th>Right</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -280,6 +284,65 @@ function __vasExport(){
   });
   TBKit.util.exportTable('#vasHidden', en?'vasography_patency.csv':'输精管造影通畅度.csv');
 }
+var __A1_SEG_EN={vas:'Vas deferens',ampulla:'Ampulla',seminal:'Seminal vesicle',ejaculatory:'Ejaculatory duct',urethra:'Urethra'};
+var __A1_ST_EN={2:'Patent',1:'Partial obstruction',0:'Complete obstruction'};
+function __a1T(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __a1Extras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var segs=(typeof segments!=='undefined')?segments:[];
+    var rows=[];
+    segs.forEach(function(s){
+      var l=document.getElementById('left'+s.key), r=document.getElementById('right'+s.key);
+      var lv=l?parseInt(l.value,10):2, rv=r?parseInt(r.value,10):2;
+      if(!isFinite(lv))lv=2; if(!isFinite(rv))rv=2;
+      rows.push({key:s.key,name:s.name,lv:lv,rv:rv});
+    });
+    if(TBKit.chart&&document.getElementById('a1Chart')){
+      TBKit.chart.bar('#a1Chart',{
+        labels:rows.map(function(x){return en?(__A1_SEG_EN[x.key]||x.name):x.name;}),
+        series:[{name:en?'Combined patency score (0-4)':'双侧合计通畅度(0-4)',data:rows.map(function(x){return x.lv+x.rv;})}],
+        height:260,
+        title:en?'Segmental patency score (vasography)':'输精管造影分段通畅度评分'
+      });
+    }
+    var tb=document.getElementById('a1Tbody');
+    if(tb){
+      tb.innerHTML=rows.map(function(x,i){
+        var tot=x.lv+x.rv;
+        var judge=tot===4?__a1T('双侧通畅','Both patent'):(tot===0?__a1T('双侧完全梗阻','Both obstructed'):__a1T('部分受累','Partially affected'));
+        var st=function(v){return __a1T(v===2?'通畅':(v===1?'部分梗阻':'完全梗阻'),__A1_ST_EN[v]||'');};
+        return '<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td>'+st(x.lv)+'</td><td>'+st(x.rv)+'</td><td>'+tot+'/4</td><td>'+judge+'</td></tr>';
+      }).join('');
+    }
+    var tt=document.getElementById('a1TableTitle');
+    if(tt) tt.textContent=__a1T('分段通畅度明细','Segmental patency detail');
+    var hs=[['a1Th0','#'],['a1Th1',__a1T('输精管段','Segment')],['a1Th2',__a1T('左侧','Left')],['a1Th3',__a1T('右侧','Right')],['a1Th4',__a1T('合计','Combined')],['a1Th5',__a1T('判定','Assessment')]];
+    hs.forEach(function(p){var el=document.getElementById(p[0]);if(el)el.textContent=p[1];});
+    var bt=document.querySelectorAll('#a1Tabs .tab-btn');
+    if(bt[0])bt[0].textContent=__a1T('图表','Chart');
+    if(bt[1])bt[1].textContent=__a1T('明细表','Table');
+  }catch(e){}
+}
+function __a1BindTabs(){
+  var tabs=document.querySelectorAll('#a1Tabs .tab-btn');
+  tabs.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      tabs.forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var v=btn.getAttribute('data-v');
+      var c=document.getElementById('a1Chart');
+      var card=document.getElementById('a1TableCard');
+      if(c)c.style.display=v==='chart'?'':'none';
+      if(card)card.style.display=v==='table'?'block':'none';
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded',function(){__a1BindTabs();__a1Extras();});
+document.addEventListener('toolbox:langchange',__a1Extras);
+if(typeof calc==='function'){var __a1c0=calc;calc=function(){__a1c0();__a1Extras();};}
+
 buildList('left');buildList('right');calc();
 </script>
 
