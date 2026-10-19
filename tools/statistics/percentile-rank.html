@@ -258,6 +258,7 @@ if (document.readyState && document.readyState !== "loading") __prBoot();
 else document.addEventListener("DOMContentLoaded", __prBoot);
 
 </script>
+<div id="prChart" style="margin-top:12px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -293,5 +294,26 @@ else document.addEventListener("DOMContentLoaded", __prBoot);
 </dl>
 </div>
 </section>
+<script>
+function __prChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var el=document.getElementById('data'); if(!el)return;
+  var raw=el.value.split(',').map(function(s){return parseFloat(s.trim());}).filter(function(x){return isFinite(x);});
+  var v=parseFloat(document.getElementById('val').value);
+  if(!raw.length||!isFinite(v))return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var sorted=raw.slice().sort(function(a,b){return a-b;});
+  var labels=[],data=[];
+  for(var i=0;i<sorted.length;i++){
+    var b=0,e=0;
+    for(var q=0;q<sorted.length;q++){ if(sorted[q]<sorted[i])b++; else if(sorted[q]===sorted[i])e++; }
+    var pr=(b+0.5*e)/sorted.length*100;
+    labels.push(String(sorted[i])); data.push(Math.round(pr*100)/100);
+  }
+  TBKit.chart.line('#prChart',{title:en?'Percentile Rank Curve (value -> PR%)':'百分等级曲线（值 -> 百分等级）',labels:labels,series:[{name:en?'Percentile %':'百分等级 %',data:data}]});
+}
+var __prFn=calcTool;calcTool=function(){try{__prFn();}catch(e){}try{__prChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__prChart();}catch(e){}});
+</script>
 </body>
 </html>

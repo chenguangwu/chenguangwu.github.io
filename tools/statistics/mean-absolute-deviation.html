@@ -324,6 +324,7 @@ if (document.readyState && document.readyState !== "loading") __mdBoot();
 else document.addEventListener("DOMContentLoaded", __mdBoot);
 
 </script>
+<div id="mdChart" style="margin-top:12px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -371,5 +372,21 @@ else document.addEventListener("DOMContentLoaded", __mdBoot);
 <h3>结果含义</h3><p>平均绝对偏差 MAD=mean(|xᵢ−x̄|)：各数据与均值绝对偏差的平均值，衡量数据离散程度。</p>
 <h3>与标准差区别</h3><p>MAD 对离群值不如标准差敏感（不平方），量纲与原始数据一致，更易直观理解。单位同原数据。</p>
 </div></section>
+<script>
+function __mdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var el=document.getElementById('xs'); if(!el)return;
+  var raw=el.value.split(/[ ,]+/).filter(Boolean).map(parseFloat).filter(function(x){return isFinite(x);});
+  if(!raw.length)return;
+  var mean=raw.reduce(function(a,b){return a+b;},0)/raw.length;
+  var mad=raw.reduce(function(a,b){return a+Math.abs(b-mean);},0)/raw.length;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var labels=[],data=[];
+  for(var i=0;i<raw.length;i++){ labels.push(String(raw[i])); data.push(Math.round(Math.abs(raw[i]-mean)*10000)/10000); }
+  TBKit.chart.bar('#mdChart',{title:en?'Absolute Deviation per Value (MAD = '+Math.round(mad*10000)/10000+')':'各值绝对离差（MAD = '+Math.round(mad*10000)/10000+'）',labels:labels,series:[{name:en?'|x - mean|':'|x - 均值|',data:data}]});
+}
+var __mdFn=calcTool;calcTool=function(){try{__mdFn();}catch(e){}try{__mdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mdChart();}catch(e){}});
+</script>
 </body>
 </html>
