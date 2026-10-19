@@ -150,6 +150,16 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="window.__ptExport()">⬇️ 导出修剪时令 CSV</button>
     </div>
     <div class="plant-grid" id="plantGrid"></div>
+
+    <div class="tabs" id="ptTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="ptChart"></div>
+    <div class="card" id="ptTableCard" style="display:none;margin-top:12px;">
+      <h3 id="ptTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="ptTh0"></th><th id="ptTh1"></th><th id="ptTh2"></th><th id="ptTh3"></th></tr></thead><tbody id="ptTbody"></tbody></table>
+    </div>
     <table id="ptHidden" style="display:none"><thead><tr><th>Plant</th><th>Timing</th><th>Timing Detail</th><th>Guide</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -353,5 +363,62 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+(function(){
+  function __ptChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    var host=document.getElementById('ptChart'); if(!host) return;
+    var en=TBKit.util.isEn();
+    var map={before:0,after:0,dormant:0};
+    PLANTS.forEach(function(p){ if(map[p.timing]!=null) map[p.timing]++; });
+    var labels=[en?'Before bloom':'花前修剪',en?'After bloom':'花后修剪',en?'Dormant':'休眠期修剪'];
+    var data=[map.before,map.after,map.dormant];
+    TBKit.chart.bar('#ptChart',{labels:labels,series:[{name:en?'Count':'数量',data:data}],height:240,title:en?'Pruning timing distribution':'各修剪时令植物数量'});
+  }
+  function __ptTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('ptTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var map={before:[],after:[],dormant:[]};
+    PLANTS.forEach(function(p){ if(map[p.timing]) map[p.timing].push(p.name); });
+    var order=['before','after','dormant'];
+    var labels=[en?'Before bloom':'花前修剪',en?'After bloom':'花后修剪',en?'Dormant':'休眠期修剪'];
+    var rows=order.map(function(k,i){ return [labels[i], map[k].length, map[k].join('、')]; });
+    t.innerHTML=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';}).join('');
+    var tt=document.getElementById('ptTableTitle'); if(tt) tt.textContent=en?'Pruning schedule by timing':'各修剪时令植物一览';
+    var th0=document.getElementById('ptTh0'); if(th0) th0.textContent='#';
+    var th1=document.getElementById('ptTh1'); if(th1) th1.textContent=en?'Timing':'修剪时令';
+    var th2=document.getElementById('ptTh2'); if(th2) th2.textContent=en?'Count':'数量';
+    var th3=document.getElementById('ptTh3'); if(th3) th3.textContent=en?'Plants':'代表植物';
+  }
+  function __ptFillTabs(){
+    var en=window.TBKit&&TBKit.util.isEn();
+    var b=document.querySelectorAll('#ptTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __ptBindTabs(){
+    var tabs=document.querySelectorAll('#ptTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var chart=document.getElementById('ptChart');
+        var card=document.getElementById('ptTableCard');
+        if(chart) chart.style.display = v==='chart'?'':'none';
+        if(card) card.style.display = v==='table'?'block':'none';
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    if(typeof TBKit==='undefined') return;
+    try{__ptChart();}catch(e){}
+    try{__ptTable();}catch(e){}
+    __ptFillTabs(); __ptBindTabs();
+  });
+  document.addEventListener('toolbox:langchange',function(){ __ptFillTabs(); try{__ptTable();}catch(e){} });
+})();
+</script>
 </body>
 </html>

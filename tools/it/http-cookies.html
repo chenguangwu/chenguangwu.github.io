@@ -173,6 +173,16 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+
+    <div class="tabs" id="ckTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="ckChart"></div>
+    <div class="card" id="ckTableCard" style="display:none;margin-top:12px;">
+      <h3 id="ckTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="ckTh0"></th><th id="ckTh1"></th><th id="ckTh2"></th><th id="ckTh3"></th></tr></thead><tbody id="ckTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -593,6 +603,59 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function __ckChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    var host=document.getElementById('ckChart'); if(!host) return;
+    var en=TBKit.util.isEn();
+    var map={};
+    COMMANDS.forEach(function(c){ map[c.cat]=(map[c.cat]||0)+1; });
+    var labels=Object.keys(map);
+    var data=labels.map(function(k){return map[k];});
+    TBKit.chart.bar('#ckChart',{labels:labels,series:[{name:en?'Count':'数量',data:data}],height:280,title:en?'Cookie attributes by category':'各分类 Cookie 属性数量'});
+  }
+  function __ckTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('ckTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var rows=COMMANDS.map(function(c){ return [c.cmd, c.cat, c.desc]; });
+    t.innerHTML=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td><code>'+r[0]+'</code></td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';}).join('');
+    var tt=document.getElementById('ckTableTitle'); if(tt) tt.textContent=en?'Cookie attribute reference':'Cookie 属性速查';
+    var th0=document.getElementById('ckTh0'); if(th0) th0.textContent='#';
+    var th1=document.getElementById('ckTh1'); if(th1) th1.textContent='Attribute';
+    var th2=document.getElementById('ckTh2'); if(th2) th2.textContent=en?'Category':'分类';
+    var th3=document.getElementById('ckTh3'); if(th3) th3.textContent=en?'Description':'说明';
+  }
+  function __ckFillTabs(){
+    var en=window.TBKit&&TBKit.util.isEn();
+    var b=document.querySelectorAll('#ckTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __ckBindTabs(){
+    var tabs=document.querySelectorAll('#ckTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var chart=document.getElementById('ckChart');
+        var card=document.getElementById('ckTableCard');
+        if(chart) chart.style.display = v==='chart'?'':'none';
+        if(card) card.style.display = v==='table'?'block':'none';
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    if(typeof TBKit==='undefined') return;
+    try{__ckChart();}catch(e){}
+    try{__ckTable();}catch(e){}
+    __ckFillTabs(); __ckBindTabs();
+  });
+  document.addEventListener('toolbox:langchange',function(){ __ckFillTabs(); try{__ckTable();}catch(e){} });
+})();
 </script>
 </body>
 </html>
