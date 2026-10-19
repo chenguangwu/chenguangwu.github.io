@@ -301,6 +301,12 @@ function __stopping_distanceBoot(){ try{ __stopping_distancePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __stopping_distanceBoot();
 else document.addEventListener('DOMContentLoaded', __stopping_distanceBoot);
 </script>
+<div class="sd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sdChart" style="margin-top:8px;"></div>
+<div id="sdTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +342,48 @@ else document.addEventListener('DOMContentLoaded', __stopping_distanceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sdSweep(){
+  var v0=num('v0'), tr=num('tr'), a=num('a');
+  if(!isFinite(v0)||!isFinite(tr)||!isFinite(a)||v0<0||a<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2];
+  for(var i=0;i<mults.length;i++){
+    var vv=v0*mults[i], d=vv*tr+vv*vv/(2*a);
+    labels.push(String(Math.round(vv*100)/100)); data.push(Math.round(d*1000)/1000);
+    rows.push([String(Math.round(vv*100)/100), (Math.round(vv*tr*1000)/1000).toFixed(3), (Math.round(d*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __sdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sdChart',{title:en?'Stopping Distance vs Speed (d = v0·tr + v0²/(2a))':'刹车距离随车速变化 (d = v₀·tr + v₀²/(2a))',labels:s.labels,series:[{name:en?'Stopping distance d (m)':'刹车距离 d (m)',data:s.data}]});
+}
+function __sdTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__sdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#sdTable',{head:en?['Speed v0 (m/s)','Reaction distance (m)','Stopping distance d (m)']:['初速 v₀ (m/s)','反应距离 (m)','刹车距离 d (m)'],rows:s.rows});
+}
+
+function __sdShow(which){
+  var c=document.getElementById('sdChart'), t=document.getElementById('sdTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sdTabInit(){
+  var btns=document.querySelectorAll('.sd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __sdFn=calcTool;calcTool=function(){try{__sdFn();}catch(e){}try{__sdChart();}catch(e){}try{__sdTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sdChart();}catch(e){}try{__sdTable();}catch(e){}});
+try{__sdTabInit();}catch(e){}
+</script>
 </body>
 </html>

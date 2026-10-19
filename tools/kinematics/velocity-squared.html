@@ -247,6 +247,12 @@ function __velocity_squaredBoot(){ try{ __velocity_squaredPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __velocity_squaredBoot();
 else document.addEventListener('DOMContentLoaded', __velocity_squaredBoot);
 </script>
+<div class="vs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vsChart" style="margin-top:8px;"></div>
+<div id="vsTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +288,50 @@ else document.addEventListener('DOMContentLoaded', __velocity_squaredBoot);
 </dl>
 </div>
 </section>
+<script>
+function __vsSweep(){
+  var v0=num('v0'), a=num('a'), dx=num('dx');
+  if(!isFinite(v0)||!isFinite(a)||!isFinite(dx)||dx<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0,0.25,0.5,0.75,1,1.5,2];
+  for(var i=0;i<mults.length;i++){
+    var xx=dx*mults[i], inner=v0*v0+2*a*xx;
+    if(inner<0)continue;
+    var v=Math.sqrt(inner);
+    labels.push(String(Math.round(xx*100)/100)); data.push(Math.round(v*1000)/1000);
+    rows.push([String(Math.round(xx*100)/100), (Math.round(v*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __vsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__vsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vsChart',{title:en?'Final Speed vs Displacement (v = sqrt(v0² + 2a·dx))':'末速度随位移变化 (v = √(v₀² + 2a·dx))',labels:s.labels,series:[{name:en?'Speed v (m/s)':'速度 v (m/s)',data:s.data}]});
+}
+function __vsTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__vsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#vsTable',{head:en?['Displacement dx (m)','Speed v (m/s)']:['位移 dx (m)','速度 v (m/s)'],rows:s.rows});
+}
+
+function __vsShow(which){
+  var c=document.getElementById('vsChart'), t=document.getElementById('vsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vsTabInit(){
+  var btns=document.querySelectorAll('.vs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __vsFn=calcTool;calcTool=function(){try{__vsFn();}catch(e){}try{__vsChart();}catch(e){}try{__vsTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__vsChart();}catch(e){}try{__vsTable();}catch(e){}});
+try{__vsTabInit();}catch(e){}
+</script>
 </body>
 </html>

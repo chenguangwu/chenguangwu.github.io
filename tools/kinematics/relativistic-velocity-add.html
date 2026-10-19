@@ -245,6 +245,12 @@ function __relativistic_velocity_addBoot(){ try{ __relativistic_velocity_addPres
 if (document.readyState && document.readyState !== 'loading') __relativistic_velocity_addBoot();
 else document.addEventListener('DOMContentLoaded', __relativistic_velocity_addBoot);
 </script>
+<div class="rv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rvChart" style="margin-top:8px;"></div>
+<div id="rvTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +286,49 @@ else document.addEventListener('DOMContentLoaded', __relativistic_velocity_addBo
 </dl>
 </div>
 </section>
+<script>
+function __rvSweep(){
+  var up=num('up'), v=num('v');
+  if(!isFinite(up)||!isFinite(v))return null;
+  if(up<0||up>=1||v<0||v>=1)return null;
+  var labels=[],data=[],rows=[];
+  var vs=[0,0.1,0.2,0.4,0.6,0.8,0.95];
+  for(var i=0;i<vs.length;i++){
+    var x=vs[i], u=(up+x)/(1+up*x);
+    labels.push(String(x)); data.push(Math.round(u*10000)/10000);
+    rows.push([String(x), (Math.round(u*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __rvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rvChart',{title:en?'Relativistic Sum vs Speed (u = (u′+v)/(1+u′v), never exceeds c)':'相对论速度合成随速度变化（u = (u′+v)/(1+u′v)，永不超 c）',labels:s.labels,series:[{name:en?'Result u (units of c)':'合成速度 u (以 c 为单位)',data:s.data}]});
+}
+function __rvTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__rvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#rvTable',{head:en?['Speed v (units of c)','Result u (units of c)']:['速度 v (以 c 为单位)','合成速度 u (以 c 为单位)'],rows:s.rows});
+}
+
+function __rvShow(which){
+  var c=document.getElementById('rvChart'), t=document.getElementById('rvTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rvTabInit(){
+  var btns=document.querySelectorAll('.rv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __rvFn=calcTool;calcTool=function(){try{__rvFn();}catch(e){}try{__rvChart();}catch(e){}try{__rvTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rvChart();}catch(e){}try{__rvTable();}catch(e){}});
+try{__rvTabInit();}catch(e){}
+</script>
 </body>
 </html>
