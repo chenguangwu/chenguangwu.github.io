@@ -247,6 +247,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="fdResult"><div class="fd-empty">排好顺序后点击「完成并分析」，这里会给出分型结论、指数明细与色帽还原表。</div></div>
+    <div id="fdHistory" style="margin-top:16px;"></div>
     <table id="fdHidden" style="display:none"><thead><tr><th>Slot</th><th>Cap</th><th>Hue</th><th>HEX</th><th>ΔE to next</th><th>Number span</th></tr></thead><tbody></tbody></table>
 
     <div class="fd-note">
@@ -969,9 +970,62 @@ s.parentNode.insertBefore(el, s);
     ST.res = res; ST.done = true;
     renderStrip();
     renderResult(res);
+    try { __fdRecord(res); } catch (e) {}
     var box = $('fdResult');
     if (box && box.scrollIntoView) { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   });
+  // F61: 测试历史记录 + 历次 TES 对比
+  var FD_HKEY = 'farnsworthD15History';
+  var FD_KIND_EN = { perfect: 'Perfect', nearnormal: 'Near normal', nonselective: 'Non-selective', ambiguous: 'Ambiguous', protan: 'Protan (red)', deutan: 'Deutan (green)', tritan: 'Tritan (blue)' };
+  var FD_LEVEL_EN = { mild: 'Mild', moderate: 'Moderate', severe: 'Severe' };
+  function __fdT(zh, en) { return B(zh, en); }
+  function __fdLevel(C) { return C < 1.8 ? 'mild' : (C < 2.8 ? 'moderate' : 'severe'); }
+  function __fdHist() { try { return JSON.parse(localStorage.getItem(FD_HKEY) || '[]') || []; } catch (e) { return []; } }
+  function __fdRecord(res) {
+    var h = __fdHist();
+    var last = h[0];
+    var now = Date.now();
+    if (last && Math.abs(last.tes - res.tes) < 0.005 && now - last.ts < 30000) { __fdRender(); return; }
+    h.unshift({ tes: +res.tes.toFixed(2), C: +res.C.toFixed(2), kind: res.kind, level: __fdLevel(res.C), ts: now, date: new Date().toLocaleString('zh-CN') });
+    if (h.length > 20) h.pop();
+    try { localStorage.setItem(FD_HKEY, JSON.stringify(h)); } catch (e) {}
+    __fdRender();
+  }
+  function __fdRender() {
+    var host = $('fdHistory'); if (!host) return;
+    var h = __fdHist();
+    if (!h.length) { host.innerHTML = ''; return; }
+    var en = !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+    var rows = '';
+    h.slice(0, 10).forEach(function (x, i) {
+      var kind = FD_KIND_EN[x.kind] || x.kind, level = FD_LEVEL_EN[x.level] || x.level;
+      rows += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;">' + (i + 1) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;">' + x.date + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);font-weight:600;">' + x.tes.toFixed(2) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + x.C.toFixed(2) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + (en ? kind : (FD_KIND_ZH[x.kind] || x.kind)) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + (en ? level : (FD_LEVEL_ZH[x.level] || x.level)) + '</td></tr>';
+    });
+    host.innerHTML = '<h4 style="font-size:14px;font-weight:600;margin:18px 0 8px;color:var(--heading,#333);">' + __fdT('历次测试结果对比（总分 TES）', 'Past results comparison (Total Error Score)') + '</h4>'
+      + '<div id="fdHistChart" style="margin-bottom:12px;"></div>'
+      + '<div class="fd-scroll"><table class="fd-tbl"><thead><tr>'
+      + '<th>' + __fdT('#', '#') + '</th><th>' + __fdT('时间', 'Date') + '</th><th>' + __fdT('总分 TES', 'TES') + '</th>'
+      + '<th>' + __fdT('混淆指数 C', 'Confusion C') + '</th><th>' + __fdT('分型', 'Type') + '</th><th>' + __fdT('严重度', 'Severity') + '</th>'
+      + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    if (typeof TBKit !== 'undefined' && TBKit.chart) {
+      var seq = h.slice(0, 10).reverse();
+      try {
+        TBKit.chart.line('#fdHistChart', {
+          title: __fdT('最近 10 次总分趋势（越低越好）', 'Last 10 total scores (lower is better)'),
+          labels: seq.map(function (x, i) { return '#' + (i + 1); }),
+          series: [{ name: __fdT('总分 TES', 'TES'), data: seq.map(function (x) { return x.tes; }) }]
+        });
+      } catch (e) {}
+    }
+  }
+  var FD_KIND_ZH = { perfect: '满分排列', nearnormal: '正常范围', nonselective: '非选择性错误', ambiguous: '轴向不明确', protan: '红色盲倾向', deutan: '绿色盲倾向', tritan: '蓝色盲倾向' };
+  var FD_LEVEL_ZH = { mild: '轻度', moderate: '中度', severe: '重度' };
+  document.addEventListener('toolbox:langchange', function () { try { __fdRender(); } catch (e) {} });
   $('fdExport').addEventListener('click', function () {
     var res = ST.res || analyze(ST.order);
     var payload = {

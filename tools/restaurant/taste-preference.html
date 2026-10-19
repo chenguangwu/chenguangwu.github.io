@@ -135,6 +135,12 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>📈 统计图表</h2>
     <div id="result"></div>
+    <div class="toolbar" style="margin-top:10px;">
+      <span style="font-size:12px;color:var(--text-muted);" id="tpPresetLbl">Business presets:</span>
+    </div>
+    <div id="tpPresets" style="margin-top:4px;"></div>
+    <input type="hidden" id="tpPresetSel" value="">
+    <div id="tpCompare" style="margin-top:14px;overflow-x:auto;"></div>
     <table id="tasteHidden" style="display:none"><thead><tr><th>No.</th><th>Taste Key</th><th>Taste</th><th>Votes</th><th>Percent</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -323,6 +329,83 @@ function renderStats(){
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
 }
 
+// F61: 场景口味基准预设 + 当前 vs 基准对比
+var TP_SCENES = {
+  sichuan: { zh: '川菜馆顾客', en: 'Sichuan restaurant', dist: { spicy: 8, salty: 5, umami: 4, rich: 3, sour: 2, sweet: 1 } },
+  hotpot: { zh: '火锅店顾客', en: 'Hot pot', dist: { spicy: 9, salty: 6, umami: 5, rich: 4, sour: 1 } },
+  yue: { zh: '粤菜馆顾客', en: 'Cantonese restaurant', dist: { umami: 7, light: 5, sweet: 3, salty: 2 } },
+  breakfast: { zh: '早餐店顾客', en: 'Breakfast shop', dist: { sweet: 5, salty: 6, light: 4, rich: 2 } }
+};
+var TP_CMP_KEY = 'tasteCompareScene';
+function __tpT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __tpCounts() {
+  var records = loadRecords();
+  var counts = {};
+  tastes.forEach(function (t) { counts[t.key] = 0; });
+  records.forEach(function (r) { if (counts[r.taste] !== undefined) counts[r.taste]++; });
+  return counts;
+}
+function __tpApply(key) {
+  var s = TP_SCENES[key]; if (!s) return;
+  var records = [];
+  Object.keys(s.dist).forEach(function (k) {
+    for (var i = 0; i < s.dist[k]; i++) records.push({ taste: k, time: new Date().toISOString() });
+  });
+  saveRecords(records);
+  try { localStorage.setItem(TP_CMP_KEY, key); } catch (e) {}
+  renderGrid(); renderStats(); __tpCompare();
+}
+function __tpCompare() {
+  var host = document.getElementById('tpCompare'); if (!host) return;
+  var key = '';
+  try { key = localStorage.getItem(TP_CMP_KEY) || ''; } catch (e) {}
+  var s = TP_SCENES[key];
+  if (!s) { host.innerHTML = ''; return; }
+  var en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var counts = __tpCounts();
+  var total = records_total();
+  var baseTotal = 0;
+  Object.keys(s.dist).forEach(function (k) { baseTotal += s.dist[k]; });
+  var rows = '';
+  tastes.forEach(function (t) {
+    var cur = counts[t.key] || 0, base = s.dist[t.key] || 0;
+    var curPct = total > 0 ? (cur / total * 100) : 0, basePct = baseTotal > 0 ? (base / baseTotal * 100) : 0;
+    var diff = curPct - basePct;
+    var dcol = diff > 0.5 ? 'var(--success)' : (diff < -0.5 ? 'var(--danger)' : 'var(--text-muted)');
+    var dtxt = (diff > 0 ? '+' : '') + diff.toFixed(1) + '%';
+    rows += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;">' + t.icon + ' ' + __tpT(t.name, TP_EN[t.key] || t.name) + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + cur + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + curPct.toFixed(1) + '%</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + base + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + basePct.toFixed(1) + '%</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);color:' + dcol + ';font-weight:600;">' + dtxt + '</td></tr>';
+  });
+  host.innerHTML = '<h4 style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--heading,#333);">' + __tpT('当前记录与「' + s.zh + '」基准对比', 'Current records vs. "' + s.en + '" baseline') + '</h4>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __tpT('口味', 'Taste') + '</th>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __tpT('当前票数', 'Current') + '</th>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __tpT('当前占比', 'Current %') + '</th>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __tpT('基准票数', 'Baseline') + '</th>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __tpT('基准占比', 'Baseline %') + '</th>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __tpT('差异', 'Diff') + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+function records_total() { return loadRecords().length; }
+var TP_EN = { sweet: 'Sweet', salty: 'Salty', spicy: 'Spicy', sour: 'Sour', umami: 'Umami', bitter: 'Bitter', light: 'Light', rich: 'Rich' };
+function __tpPresets() {
+  var l = document.getElementById('tpPresetLbl'); if (l) l.textContent = __tpT('场景基准预设：', 'Baseline presets: ');
+  if (typeof TBKit !== 'undefined' && TBKit.preset && TBKit.preset.bar) {
+    TBKit.preset.bar('#tpPresets', [
+      { label: '🌶️ ' + TP_SCENES.sichuan.zh, labelEn: '🌶️ ' + TP_SCENES.sichuan.en, values: { tpPresetSel: 'sichuan' } },
+      { label: '🍲 ' + TP_SCENES.hotpot.zh, labelEn: '🍲 ' + TP_SCENES.hotpot.en, values: { tpPresetSel: 'hotpot' } },
+      { label: '🦐 ' + TP_SCENES.yue.zh, labelEn: '🦐 ' + TP_SCENES.yue.en, values: { tpPresetSel: 'yue' } },
+      { label: '🥟 ' + TP_SCENES.breakfast.zh, labelEn: '🥟 ' + TP_SCENES.breakfast.en, values: { tpPresetSel: 'breakfast' } }
+    ], function () { var v = document.getElementById('tpPresetSel').value; __tpApply(v); });
+  }
+}
+__tpPresets();
+var __tp_f0 = renderStats;
+renderStats = function () { var r = __tp_f0.apply(null, arguments); try { __tpCompare(); } catch (e) {} return r; };
+window.addEventListener('toolbox:langchange', function () { try { __tpPresets(); __tpCompare(); } catch (e) {} });
 renderGrid();
 renderStats();
 

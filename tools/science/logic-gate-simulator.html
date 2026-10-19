@@ -519,6 +519,11 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="addComboGate()">+ 添加逻辑门</button>
       <button type="button" class="btn danger" onclick="clearCombo()">&#128465; 清空组合</button>
     </div>
+    <div class="toolbar" style="margin:8px 0;">
+      <span style="font-size:12px;color:var(--text-muted);" id="lgPresetLbl">Circuit presets:</span>
+    </div>
+    <div id="lgPresets" style="margin-bottom:10px;"></div>
+    <input type="hidden" id="lgPresetSel" value="">
     <div id="comboResult" style="display:none;">
       <div class="combo-output-label">组合输出</div>
       <div class="combo-output-value" id="comboOutputValue"></div>
@@ -1141,6 +1146,58 @@ window.__truthExport=function(){
   });
   TBKit.util.exportTable('#truthHidden', en?('truth-table-'+currentGate+'.csv'):('真值表-'+currentGate+'.csv'));
 };
+// F61: 经典逻辑链预设 + 组合电路本地持久化
+var LG_PRESETS = {
+  and_or_xor: { zh: 'AND→OR→XOR 链', en: 'AND→OR→XOR chain', chain: ['AND', 'OR', 'XOR'], a: 1, b: 1, noteZh: 'A=1,B=1：与→或→异或，终值 0', noteEn: 'A=1,B=1: AND→OR→XOR, final 0' },
+  nand_not: { zh: 'NAND→NOT 链', en: 'NAND→NOT chain', chain: ['NAND', 'NOT'], a: 1, b: 0, noteZh: 'A=1,B=0：与非后再取反，终值 0', noteEn: 'A=1,B=0: NAND then NOT, final 0' },
+  nor_nor: { zh: 'NOR→NOR 链', en: 'NOR→NOR chain', chain: ['NOR', 'NOR'], a: 1, b: 1, noteZh: 'A=1,B=1：或非两级串联，终值 0', noteEn: 'A=1,B=1: two NORs in series, final 0' },
+  buffer2: { zh: 'BUFFER→BUFFER 链', en: 'BUFFER→BUFFER chain', chain: ['BUFFER', 'BUFFER'], a: 1, b: 0, noteZh: 'A=1,B=0：缓冲器不改变电平，终值 1', noteEn: 'A=1,B=0: buffers keep the level, final 1' },
+  xor_and: { zh: 'XOR→AND 链', en: 'XOR→AND chain', chain: ['XOR', 'AND'], a: 1, b: 0, noteZh: 'A=1,B=0：异或后再与，终值 0', noteEn: 'A=1,B=0: XOR then AND, final 0' }
+};
+var LG_CKEY = 'logicGateCombo';
+function __lgT2(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __lgSave() {
+  try { localStorage.setItem(LG_CKEY, JSON.stringify({ gates: comboGates.slice(), a: inputA, b: inputB })); } catch (e) {}
+}
+function __lgRestore() {
+  try {
+    var raw = localStorage.getItem(LG_CKEY); if (!raw) return;
+    var s = JSON.parse(raw);
+    if (!s || !Array.isArray(s.gates)) return;
+    comboGates = s.gates.filter(function (g) { return GATES[g]; }).slice(0, 6);
+    inputA = s.a === 1 ? 1 : 0;
+    inputB = s.b === 1 ? 1 : 0;
+    updateCombo();
+  } catch (e) {}
+}
+function __lgApply(key) {
+  var p = LG_PRESETS[key]; if (!p) return;
+  comboGates = p.chain.slice();
+  inputA = p.a; inputB = p.b;
+  __lgSave();
+  updateCombo();
+  gateToast(__lgT2(p.noteZh, p.noteEn));
+}
+var __lg_a0 = addComboGate, __lg_r0 = removeComboGate, __lg_c0 = clearCombo, __lg_t0 = toggleInput;
+addComboGate = function () { var r = __lg_a0.apply(null, arguments); __lgSave(); return r; };
+removeComboGate = function () { var r = __lg_r0.apply(null, arguments); __lgSave(); return r; };
+clearCombo = function () { var r = __lg_c0.apply(null, arguments); __lgSave(); return r; };
+toggleInput = function () { var r = __lg_t0.apply(null, arguments); __lgSave(); return r; };
+function __lgPresets() {
+  var l = document.getElementById('lgPresetLbl'); if (l) l.textContent = __lgT2('经典逻辑链预设：', 'Classic chain presets: ');
+  if (typeof TBKit !== 'undefined' && TBKit.preset && TBKit.preset.bar) {
+    TBKit.preset.bar('#lgPresets', [
+      { label: '⛓️ ' + LG_PRESETS.and_or_xor.zh, labelEn: '⛓️ ' + LG_PRESETS.and_or_xor.en, values: { lgPresetSel: 'and_or_xor' } },
+      { label: '⛓️ ' + LG_PRESETS.nand_not.zh, labelEn: '⛓️ ' + LG_PRESETS.nand_not.en, values: { lgPresetSel: 'nand_not' } },
+      { label: '⛓️ ' + LG_PRESETS.nor_nor.zh, labelEn: '⛓️ ' + LG_PRESETS.nor_nor.en, values: { lgPresetSel: 'nor_nor' } },
+      { label: '⛓️ ' + LG_PRESETS.buffer2.zh, labelEn: '⛓️ ' + LG_PRESETS.buffer2.en, values: { lgPresetSel: 'buffer2' } },
+      { label: '⛓️ ' + LG_PRESETS.xor_and.zh, labelEn: '⛓️ ' + LG_PRESETS.xor_and.en, values: { lgPresetSel: 'xor_and' } }
+    ], function () { var v = document.getElementById('lgPresetSel').value; __lgApply(v); });
+  }
+}
+__lgPresets();
+__lgRestore();
+window.addEventListener('toolbox:langchange', function () { try { __lgPresets(); } catch (e) {} });
 // 启动
 init();
 </script><script>

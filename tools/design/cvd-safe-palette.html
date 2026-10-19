@@ -192,7 +192,12 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <!-- 结果 -->
+    <div class="tabs" id="csTabs">
+      <button type="button" class="tab-btn active" data-v="out"></button>
+      <button type="button" class="tab-btn" data-v="guide"></button>
+    </div>
     <div id="csOut"><div class="cs-loading">点击「生成安全配色」开始</div></div>
+    <div id="csGuide" style="display:none;margin-top:12px;"></div>
     <table id="csHidden" style="display:none"><thead><tr><th>Index</th><th>HEX</th><th>Contrast vs White</th><th>Contrast vs Black</th><th>AA Text</th><th>AAA Text</th></tr></thead><tbody></tbody></table>
 
     <div class="cs-note"><span>使用边界说明：</span><span>本工具是设计与自查辅助工具，所有模拟基于色彩科学模型的数学推算，</span><b>不等同于医学诊断</b><span>。即便配色在 8 型下 ΔE 充足，真实色觉障碍者仍可能受显示器、环境光与个体差异影响；涉及安全关键信息（如交通、医疗图表）请勿仅依赖颜色，务必配合形状、纹理或文字标签。模型采用线性严重度插值，与真实光谱响应存在偏差。</span></div>
@@ -767,6 +772,68 @@ document.addEventListener('DOMContentLoaded',function(){
   }
   document.addEventListener('DOMContentLoaded',cvAll);
   document.addEventListener('toolbox:langchange',cvAll);
+  // F61: 配色参数持久化 + WCAG 对比度标准表 tabs
+  var CV_PKEY = 'cvdSafePaletteParams';
+  function cvB(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+  function cvSave() {
+    try {
+      var m = document.getElementById('csMode'), c = document.getElementById('csCount'), s = document.getElementById('csStrategy');
+      if (!m || !c || !s) return;
+      localStorage.setItem(CV_PKEY, JSON.stringify({ mode: m.value, count: c.value, strategy: s.value }));
+    } catch (e) {}
+  }
+  function cvRestore() {
+    try {
+      var raw = localStorage.getItem(CV_PKEY); if (!raw) return;
+      var s = JSON.parse(raw); if (!s) return;
+      var m = document.getElementById('csMode'), c = document.getElementById('csCount'), st = document.getElementById('csStrategy');
+      if (m && s.mode) { m.value = s.mode; m.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (c && s.count) { c.value = s.count; c.dispatchEvent(new Event('input', { bubbles: true })); }
+      if (st && s.strategy) { st.value = s.strategy; st.dispatchEvent(new Event('change', { bubbles: true })); }
+    } catch (e) {}
+  }
+  function cvGuide() {
+    var host = document.getElementById('csGuide'); if (!host) return;
+    var rows = [
+      { zh: ['AA 正文文字', '4.5:1', '普通字号正文的最低合规线'], en: ['AA body text', '4.5:1', 'Minimum for normal-size body text'] },
+      { zh: ['AA 大字文字', '3:1', '≥18pt 或 14pt 粗体的大字文本'], en: ['AA large text', '3:1', 'Large text: 18pt+, or 14pt bold'] },
+      { zh: ['AAA 正文文字', '7:1', '增强合规线，适合长时阅读'], en: ['AAA body text', '7:1', 'Enhanced level for long reading'] },
+      { zh: ['AAA 大字文字', '4.5:1', '大号文本的增强合规线'], en: ['AAA large text', '4.5:1', 'Enhanced level for large text'] },
+      { zh: ['非文本元素', '3:1', '图标、边框、焦点指示器等'], en: ['Non-text elements', '3:1', 'Icons, borders, focus indicators'] }
+    ];
+    var html = '<h4 style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--heading,#333);">' + cvB('WCAG 2.x 对比度标准速查', 'WCAG 2.x contrast quick reference') + '</h4>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>'
+      + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + cvB('级别与用途', 'Level & use') + '</th>'
+      + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + cvB('最低对比度', 'Min contrast') + '</th>'
+      + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + cvB('说明', 'Notes') + '</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      html += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;font-weight:600;">' + cvB(r.zh[0], r.en[0]) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);color:var(--primary);font-weight:700;">' + r.zh[1] + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + cvB(r.zh[2], r.en[2]) + '</td></tr>';
+    });
+    html += '</tbody></table><p style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.7;">'
+      + cvB('对比度按 WCAG 相对亮度公式计算：浅色与深色各取一次，只要有一侧达标即算通过。生成结果中的每个色块都会标注与黑/白的对比度及 AA/AAA 达标情况，可直接用于图表与界面配色选型。', 'Contrast follows the WCAG relative-luminance formula, checked against both white and black; passing either side counts. Each generated swatch is annotated with its black/white contrast and AA/AAA status.') + '</p>';
+    host.innerHTML = html;
+  }
+  function cvTab(v) {
+    var bar = document.getElementById('csTabs'); if (!bar) return;
+    bar.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-v') === v); });
+    var o = document.getElementById('csOut'), g = document.getElementById('csGuide');
+    if (o) o.style.display = (v === 'out') ? '' : 'none';
+    if (g) g.style.display = (v === 'guide') ? '' : 'none';
+    if (v === 'guide') { try { cvGuide(); } catch (e) {} }
+  }
+  function cvTabs() {
+    var bar = document.getElementById('csTabs'); if (!bar) return;
+    var b0 = bar.querySelector('.tab-btn[data-v="out"]'), b1 = bar.querySelector('.tab-btn[data-v="guide"]');
+    if (b0) b0.textContent = '🎨 ' + cvB('当前配色', 'Current palette');
+    if (b1) b1.textContent = '📋 ' + cvB('对比度标准', 'Contrast standard');
+    bar.querySelectorAll('.tab-btn').forEach(function (b) { b.addEventListener('click', function () { try { cvTab(b.getAttribute('data-v')); } catch (e) {} }); });
+  }
+  var genBtn = document.getElementById('csGen');
+  if (genBtn) genBtn.addEventListener('click', function () { setTimeout(cvSave, 60); });
+  document.addEventListener('DOMContentLoaded', function () { cvTabs(); cvRestore(); });
+  document.addEventListener('toolbox:langchange', function () { cvTabs(); try { cvGuide(); } catch (e) {} });
 })();
 </script>
 </body>
