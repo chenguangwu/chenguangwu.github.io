@@ -248,7 +248,12 @@ s.parentNode.insertBefore(el, s);
     <div id="tab-holidays" class="tab-content">
       <h3>节日倒计时</h3>
       <div id="holidays-list"></div>
+      <div class="tabs" id="cdTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
       <div id="cdChart" style="margin-top:12px;"></div>
+      <div class="card" id="cdTableCard" style="display:none;margin-top:12px;">
+        <h3 id="cdTableTitle"></h3>
+        <table><thead><tr><th id="cdTh0"></th><th id="cdTh1"></th><th id="cdTh2"></th></tr></thead><tbody id="cdTbody"></tbody></table>
+      </div>
     </div>
   </div>
 
@@ -516,7 +521,32 @@ function __cdChart(){
     labels: items.map(function(i){ return en ? i.en : i.name; }),
     series: [{ name: en ? 'Days' : '天', data: items.map(function(i){ return i.days; }) }]
   });
+  try{__cdTable();}catch(e){}
 }
+
+function __cdTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('cdTh0'),t1=document.getElementById('cdTh1'),t2=document.getElementById('cdTh2');
+  var title=document.getElementById('cdTableTitle'),tb=document.getElementById('cdTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';
+  t1.textContent=en?'Holiday':'节日';
+  t2.textContent=en?'Days left':'剩余天数';
+  title.textContent=en?'Holiday countdown list':'节假日倒计时明细';
+  var now=new Date(),year=now.getFullYear();
+  var EN_NAMES={'元旦':'New Year','情人节':'Valentine','妇女节':"Women's Day",'劳动节':'Labor Day','青年节':'Youth Day','儿童节':"Children's Day",'建党节':'Party Day','建军节':'Army Day','教师节':'Teachers Day','国庆节':'National Day','万圣节':'Halloween','感恩节':'Thanksgiving','平安夜':'Christmas Eve','圣诞节':'Christmas'};
+  if(!HOLIDAYS||!HOLIDAYS.length){tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">'+(en?'No data':'暂无数据')+'</td></tr>';return;}
+  var items=HOLIDAYS.map(function(h){var target=new Date(year,h.month-1,h.day);if(target<now)target=new Date(year+1,h.month-1,h.day);var days=Math.ceil((target-now)/(1000*60*60*24));return {name:h.name,en:EN_NAMES[h.name]||h.name,days:days};}).sort(function(a,b){return a.days-b.days;}).slice(0,12);
+  tb.innerHTML=items.map(function(i,idx){return '<tr><td>'+(idx+1)+'</td><td>'+ToolBox.escHtml(en?i.en:i.name)+'</td><td>'+i.days+'</td></tr>';}).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('cdTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('cdTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('cdChart'),card=document.getElementById('cdTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__cdTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
 
 function renderHolidays() {
   const now = new Date();

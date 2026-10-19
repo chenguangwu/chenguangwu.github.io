@@ -164,7 +164,12 @@ s.parentNode.insertBefore(el, s);
   </div>
 
   <div id="heroBox"></div>
+  <div class="tabs" id="wedTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
   <div id="wedChart" style="margin-top:14px;"></div>
+  <div class="card" id="wedTableCard" style="display:none;margin-top:14px;">
+    <h3 id="wedTableTitle"></h3>
+    <table><thead><tr><th id="wedTh0"></th><th id="wedTh1"></th><th id="wedTh2"></th></tr></thead><tbody id="wedTbody"></tbody></table>
+  </div>
 
   <div class="card" id="timelineCard" style="display:none;">
     <h3>筹备时间线</h3>
@@ -341,6 +346,7 @@ load();
 
 var __wedKeyEn={engage:'Engagement',license:'License',plan:'Planning',trial:'Fitting',rehearsal:'Rehearsal',wedding:'Wedding Day'};
 function __wedExtras(){
+  try{__wedTable();}catch(e){}
   if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var host=document.getElementById('wedChart'); if(!host) return;
   var en=(typeof TBKit.util!=='undefined'&&TBKit.util.isEn)?TBKit.util.isEn():false;
@@ -373,6 +379,34 @@ var __wedRender=render;
 render=function(){__wedRender();try{__wedExtras();}catch(e){}};
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__wedExtras();}catch(e){}});}else{try{__wedExtras();}catch(e){}}
 window.addEventListener('toolbox:langchange',function(){try{__wedExtras();}catch(e){}});
+
+function __wedTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('wedTh0'),t1=document.getElementById('wedTh1'),t2=document.getElementById('wedTh2');
+  var title=document.getElementById('wedTableTitle'),tb=document.getElementById('wedTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';
+  t1.textContent=en?'Milestone':'里程碑';
+  t2.textContent=en?'Days':'天数';
+  title.textContent=en?'Milestone schedule':'筹备里程碑明细';
+  var rows=[];
+  if(state&&state.milestones&&state.milestones.length){
+    state.milestones.forEach(function(m){var d=dayDiff(parseISO(m.date));rows.push({name:en?(__wedKeyEn[m.key]||m.name):m.name,days:isFinite(d)?d:0});});
+  }else if(TEMPLATE&&TEMPLATE.length){
+    var tpl=TEMPLATE.slice().sort(function(a,b){return b.offset-a.offset;});
+    tpl.forEach(function(t){rows.push({name:en?(__wedKeyEn[t.key]||t.name):t.name,days:+(t.offset||0)});});
+  }
+  if(!rows.length){tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">'+(en?'No data':'暂无数据')+'</td></tr>';return;}
+  tb.innerHTML=rows.map(function(r,idx){return '<tr><td>'+(idx+1)+'</td><td>'+ToolBox.escHtml(r.name)+'</td><td>'+r.days+'</td></tr>';}).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('wedTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('wedTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('wedChart'),card=document.getElementById('wedTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__wedTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
 setInterval(render,60000);
 </script>
 

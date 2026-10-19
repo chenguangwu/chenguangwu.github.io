@@ -258,7 +258,12 @@ s.parentNode.insertBefore(el, s);
     <div class="history">
       <h3>📜 历史记录</h3>
       <div id="historyList"><div class="history-empty">还没有记录，开始第一个番茄吧！</div></div>
+      <div class="tabs" id="pmTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
       <div id="pmChart" style="margin-top:12px;"></div>
+      <div class="card" id="pmTableCard" style="display:none;margin-top:12px;">
+        <h3 id="pmTableTitle"></h3>
+        <table><thead><tr><th id="pmTh0"></th><th id="pmTh1"></th><th id="pmTh2"></th></tr></thead><tbody id="pmTbody"></tbody></table>
+      </div>
     </div>
   </div>
 
@@ -365,7 +370,30 @@ function __pmChart(){
     labels: labels,
     series: [{ name: en ? 'Minutes' : '分钟', data: data }]
   });
+  try{__pmTable();}catch(e){}
 }
+
+function __pmTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('pmTh0'),t1=document.getElementById('pmTh1'),t2=document.getElementById('pmTh2');
+  var title=document.getElementById('pmTableTitle'),tb=document.getElementById('pmTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';
+  t1.textContent=en?'Mode':'模式';
+  t2.textContent=en?'Minutes':'时长(分钟)';
+  title.textContent=en?'Timer mode durations':'计时模式时长';
+  var labels=en?['Focus','Short break','Long break']:['专注','短休','长休'];
+  var data=[durations.focus,durations.short,durations.long];
+  tb.innerHTML=labels.map(function(l,i){return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(l)+'</td><td>'+data[i]+'</td></tr>';}).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('pmTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('pmTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('pmChart'),card=document.getElementById('pmTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__pmTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
 
 function renderStats(){
   document.getElementById('focusCount').textContent = todayStats.focusCount;

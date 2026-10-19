@@ -147,7 +147,12 @@ s.parentNode.insertBefore(el, s);
     <div id="conflictResult"></div>
 
     <div class="stat-grid" id="stats" style="margin-top:14px;"></div>
+    <div class="tabs" id="mcTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
     <div id="mcChart" style="margin-top:14px;"></div>
+    <div class="card" id="mcTableCard" style="display:none;margin-top:14px;">
+      <h3 id="mcTableTitle"></h3>
+      <table><thead><tr><th id="mcTh0"></th><th id="mcTh1"></th><th id="mcTh2"></th><th id="mcTh3"></th></tr></thead><tbody id="mcTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -333,7 +338,34 @@ function __mcExtras(){
     height:240,
     title:en?'Duration of each agenda item (minutes)':'各日程时长（分钟）'
   });
+  try{__mcTable();}catch(e){}
 }
+
+function __mcTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('mcTh0'),t1=document.getElementById('mcTh1'),t2=document.getElementById('mcTh2'),t3=document.getElementById('mcTh3');
+  var title=document.getElementById('mcTableTitle'),tb=document.getElementById('mcTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';
+  t1.textContent=en?'Agenda':'日程';
+  t2.textContent=en?'Time':'起止时间';
+  t3.textContent=en?'Duration (min)':'时长(分钟)';
+  title.textContent=en?'Agenda details':'日程明细';
+  if(!events.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">'+(en?'No agenda':'暂无日程')+'</td></tr>';return;}
+  tb.innerHTML=events.map(function(e,i){
+    var s=toMin(e.start||'0:0'),e2=toMin(e.end||'0:0');
+    var dur=e2>s?e2-s:0;
+    return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(e.name||'未命名')+'</td><td>'+toTime(s)+' - '+toTime(e2)+'</td><td>'+dur+'</td></tr>';
+  }).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('mcTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('mcTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('mcChart'),card=document.getElementById('mcTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__mcTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
 var __mcRender=render;
 render=function(){__mcRender();__mcExtras();};
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__mcExtras();});}else{__mcExtras();}
