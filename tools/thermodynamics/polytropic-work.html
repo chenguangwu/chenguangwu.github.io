@@ -255,6 +255,12 @@ function __polytropic_workBoot(){ try{ __polytropic_workPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __polytropic_workBoot();
 else document.addEventListener('DOMContentLoaded', __polytropic_workBoot);
 </script>
+<div class="pw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pwChart" style="margin-top:8px;"></div>
+<div id="pwTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -290,5 +296,52 @@ else document.addEventListener('DOMContentLoaded', __polytropic_workBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pwSweep(){
+  var p1=num('p1')*1000, v1=num('v1'), p2=num('p2')*1000, v2=num('v2'), n=num('n');
+  if(!isFinite(p1)||!isFinite(v1)||!isFinite(p2)||!isFinite(v2)||!isFinite(n))return null;
+  var base=p2*v2-p1*v1;
+  var labels=[],data=[],rows=[];
+  var ns=[0,0.5,0.8,0.95,1.05,1.2,1.4,1.67];
+  for(var i=0;i<ns.length;i++){
+    var nn=ns[i], W=base/(1-nn);
+    if(!isFinite(W))continue;
+    labels.push(String(nn)); data.push(Math.round(W/10)/100);
+    rows.push([String(nn), (Math.round(W/10)/100).toFixed(2), Math.abs(nn-1)<0.06?'NEAR':'OK']);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __pwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pwChart',{title:en?'Polytropic Work vs Index n (W = (p₂v₂ − p₁v₁)/(1 − n))':'多变过程功随指数 n 变化（n→1 发散）',labels:s.labels,series:[{name:en?'Work W (kJ)':'过程功 W (kJ)',data:s.data}]});
+}
+function __pwTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__pwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[];
+  for(var i=0;i<s.rows.length;i++){rows.push([s.rows[i][0],s.rows[i][1],(s.rows[i][2]==='NEAR')?(en?'near n=1 singular':'接近 n=1 奇点'):(en?'regular':'常规')]);}
+  TBKit.matrix.table('#pwTable',{head:en?['Index n','Work W (kJ)','Note']:['多变指数 n','过程功 W (kJ)','备注'],rows:rows});
+}
+
+function __pwShow(which){
+  var c=document.getElementById('pwChart'), t=document.getElementById('pwTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pwTabInit(){
+  var btns=document.querySelectorAll('.pw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __pwFn=calcTool;calcTool=function(){try{__pwFn();}catch(e){}try{__pwChart();}catch(e){}try{__pwTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pwChart();}catch(e){}try{__pwTable();}catch(e){}});
+try{__pwTabInit();}catch(e){}
+</script>
 </body>
 </html>

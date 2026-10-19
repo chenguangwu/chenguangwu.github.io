@@ -301,6 +301,12 @@ function __ideal_gas_pressureBoot(){ try{ __ideal_gas_pressurePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __ideal_gas_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __ideal_gas_pressureBoot);
 </script>
+<div class="ip-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ipChart" style="margin-top:8px;"></div>
+<div id="ipTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +342,49 @@ else document.addEventListener('DOMContentLoaded', __ideal_gas_pressureBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ipSweep(){
+  var n=num('n'), T=num('T'), V=num('V');
+  if(!isFinite(n)||!isFinite(T)||!isFinite(V)||V<=0||T<=0)return null;
+  var R=8.314;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var vv=V*mults[i], P=n*R*T/vv;
+    labels.push((Math.round(vv*100)/100).toFixed(2)); data.push(Math.round(P*1000)/1000);
+    rows.push([(Math.round(vv*100)/100).toFixed(2), (Math.round(P*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __ipChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ipSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ipChart',{title:en?'Ideal Gas Pressure vs Volume (P = nRT/V)':'理想气体压强随体积变化 (P = nRT/V)',labels:s.labels,series:[{name:en?'Pressure P (kPa)':'压强 P (kPa)',data:s.data}]});
+}
+function __ipTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ipSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ipTable',{head:en?['Volume V (L)','Pressure P (kPa)']:['体积 V (L)','压强 P (kPa)'],rows:s.rows});
+}
+
+function __ipShow(which){
+  var c=document.getElementById('ipChart'), t=document.getElementById('ipTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ipTabInit(){
+  var btns=document.querySelectorAll('.ip-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ipShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ipFn=calcTool;calcTool=function(){try{__ipFn();}catch(e){}try{__ipChart();}catch(e){}try{__ipTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ipChart();}catch(e){}try{__ipTable();}catch(e){}});
+try{__ipTabInit();}catch(e){}
+</script>
 </body>
 </html>

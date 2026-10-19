@@ -246,6 +246,12 @@ function __humid_air_enthalpyBoot(){ try{ __humid_air_enthalpyPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __humid_air_enthalpyBoot();
 else document.addEventListener('DOMContentLoaded', __humid_air_enthalpyBoot);
 </script>
+<div class="he-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="heChart" style="margin-top:8px;"></div>
+<div id="heTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +287,49 @@ else document.addEventListener('DOMContentLoaded', __humid_air_enthalpyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __heSweep(){
+  var t=num('t'), w=num('w');
+  if(!isFinite(t)||!isFinite(w))return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var ww=w*mults[i], dry=1.006*t, vap=ww*(2501+1.86*t), h=dry+vap;
+    labels.push((Math.round(ww*10000)/10000).toFixed(4));
+    d1.push(Math.round(dry*100)/100); d2.push(Math.round(h*100)/100);
+    rows.push([(Math.round(ww*10000)/10000).toFixed(4), (Math.round(dry*100)/100).toFixed(2), (Math.round(vap*100)/100).toFixed(2), (Math.round(h*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __heChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__heSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#heChart',{title:en?'Moist Air Enthalpy vs Humidity Ratio (h = 1.006t + w(2501 + 1.86t))':'湿空气焓随含湿量变化 (h = 1.006t + w(2501 + 1.86t))',labels:s.labels,series:[{name:en?'Dry-air part (kJ/kg)':'干空气部分 (kJ/kg)',data:s.d1},{name:en?'Total enthalpy h (kJ/kg)':'总焓 h (kJ/kg)',data:s.d2}]});
+}
+function __heTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__heSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#heTable',{head:en?['Humidity ratio w','Dry part (kJ/kg)','Vapor part (kJ/kg)','Total h (kJ/kg)']:['含湿量 w','干空气部分 (kJ/kg)','水蒸气部分 (kJ/kg)','总焓 h (kJ/kg)'],rows:s.rows});
+}
+
+function __heShow(which){
+  var c=document.getElementById('heChart'), t=document.getElementById('heTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __heTabInit(){
+  var btns=document.querySelectorAll('.he-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__heShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __heFn=calcTool;calcTool=function(){try{__heFn();}catch(e){}try{__heChart();}catch(e){}try{__heTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__heChart();}catch(e){}try{__heTable();}catch(e){}});
+try{__heTabInit();}catch(e){}
+</script>
 </body>
 </html>

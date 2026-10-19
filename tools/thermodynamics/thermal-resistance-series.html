@@ -311,6 +311,12 @@ function __thermal_resistance_seriesBoot(){ try{ __thermal_resistance_seriesPres
 if (document.readyState && document.readyState !== 'loading') __thermal_resistance_seriesBoot();
 else document.addEventListener('DOMContentLoaded', __thermal_resistance_seriesBoot);
 </script>
+<div class="tr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="trChart" style="margin-top:8px;"></div>
+<div id="trTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +352,49 @@ else document.addEventListener('DOMContentLoaded', __thermal_resistance_seriesBo
 </dl>
 </div>
 </section>
+<script>
+function __trSweep(){
+  var L1=num('L1'), k1=num('k1'), L2=num('L2'), k2=num('k2'), A=num('A');
+  if(!isFinite(L1)||!isFinite(k1)||!isFinite(L2)||!isFinite(k2)||!isFinite(A)||A<=0||k1<=0||k2<=0)return null;
+  var labels=[],d1=[],d2=[],dt=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var l1=L1*mults[i], R1=l1/(k1*A), R2=L2/(k2*A), R=R1+R2;
+    labels.push((Math.round(l1*1000)/1000).toFixed(3));
+    d1.push(Math.round(R1*10000)/10000); d2.push(Math.round(R2*10000)/10000); dt.push(Math.round(R*10000)/10000);
+    rows.push([(Math.round(l1*1000)/1000).toFixed(3), (Math.round(R1*10000)/10000).toFixed(4), (Math.round(R2*10000)/10000).toFixed(4), (Math.round(R*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,dt:dt,rows:rows};
+}
+function __trChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__trSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#trChart',{title:en?'Series Thermal Resistance vs Layer-1 Thickness (R = L₁/k₁A + L₂/k₂A)':'串联热阻随层1厚度变化 (R = L₁/k₁A + L₂/k₂A)',labels:s.labels,series:[{name:en?'Layer 1 R₁':'层1热阻 R₁',data:s.d1},{name:en?'Layer 2 R₂':'层2热阻 R₂',data:s.d2},{name:en?'Total R':'总热阻 R',data:s.dt}]});
+}
+function __trTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__trSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#trTable',{head:en?['L₁ (m)','R₁ (K/W)','R₂ (K/W)','Total R (K/W)']:['层1厚度 L₁ (m)','层1热阻 R₁ (K/W)','层2热阻 R₂ (K/W)','总热阻 R (K/W)'],rows:s.rows});
+}
+
+function __trShow(which){
+  var c=document.getElementById('trChart'), t=document.getElementById('trTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __trTabInit(){
+  var btns=document.querySelectorAll('.tr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__trShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __trFn=calcTool;calcTool=function(){try{__trFn();}catch(e){}try{__trChart();}catch(e){}try{__trTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__trChart();}catch(e){}try{__trTable();}catch(e){}});
+try{__trTabInit();}catch(e){}
+</script>
 </body>
 </html>
