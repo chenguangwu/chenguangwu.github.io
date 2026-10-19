@@ -204,6 +204,12 @@ function resetForm(){document.getElementById('l1').value = '80';
       calcTool();}
 calcTool();
 </script>
+<div class="cs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="csChart" style="margin-top:8px;"></div>
+<div id="csTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,6 +286,52 @@ calcTool = function(){ __tb_fn0(); try{ __combine_two_splExtras(); }catch(e){} }
 function __combine_two_splBoot(){ try{ __combine_two_splPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __combine_two_splBoot();
 else document.addEventListener('DOMContentLoaded', __combine_two_splBoot);
+</script>
+<script>
+function __csSweep(){
+  var l1=num('l1'), l2=num('l2');
+  if(!isFinite(l1)||!isFinite(l2))return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var deltas=[-20,-15,-10,-6,-3,0,3,6,10];
+  for(var i=0;i<deltas.length;i++){
+    var v2=l1+deltas[i];
+    var L=10*Math.log10(Math.pow(10,l1/10)+Math.pow(10,v2/10));
+    labels.push(String(Math.round(v2*10)/10));
+    d1.push(Math.round(L*100)/100);
+    d2.push(Math.round((L-Math.max(l1,v2))*100)/100);
+    rows.push([String(Math.round(v2*10)/10), (Math.round(L*100)/100).toFixed(2), (Math.round((L-Math.max(l1,v2))*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __csChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__csSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#csChart',{title:en?'Combined SPL vs Second Source Level':'合成声压级随第二声源变化',labels:s.labels,series:[{name:en?'Total L (dB)':'总声压级 L (dB)',data:s.d1},{name:en?'Increment over louder (dB)':'比响者高出 (dB)',data:s.d2}]});
+}
+function __csTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__csSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#csTable',{head:en?['L2 (dB)','Total L (dB)','Increment (dB)']:['第二声源 L2 (dB)','总声压级 (dB)','比响者高出 (dB)'],rows:s.rows});
+}
+
+function __csShow(which){
+  var c=document.getElementById('csChart'), t=document.getElementById('csTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __csTabInit(){
+  var btns=document.querySelectorAll('.cs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__csShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __csFn=calcTool;calcTool=function(){try{__csFn();}catch(e){}try{__csChart();}catch(e){}try{__csTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__csChart();}catch(e){}try{__csTable();}catch(e){}});
+try{__csTabInit();}catch(e){}
 </script>
 </body>
 </html>

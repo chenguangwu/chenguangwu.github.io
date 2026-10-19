@@ -260,6 +260,12 @@ function resetForm(){document.getElementById('V').value = '10';
       calcTool();}
 calcTool();
 </script>
+<div class="dv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dvChart" style="margin-top:8px;"></div>
+<div id="dvTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,6 +342,49 @@ calcTool = function(){ __tb_fn0(); try{ __decibel_voltageExtras(); }catch(e){} }
 function __decibel_voltageBoot(){ try{ __decibel_voltagePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __decibel_voltageBoot();
 else document.addEventListener('DOMContentLoaded', __decibel_voltageBoot);
+</script>
+<script>
+function __dvSweep(){
+  var V=num('V'), V0=num('V0');
+  if(!isFinite(V)||!isFinite(V0)||V<=0||V0<=0)return null;
+  var labels=[],data=[],rows=[];
+  var ratios=[0.1,0.25,0.5,1,2,4,10];
+  for(var i=0;i<ratios.length;i++){
+    var vv=V0*ratios[i], L=20*Math.log10(vv/V0);
+    labels.push(ratios[i]+'x'); data.push(Math.round(L*100)/100);
+    rows.push([ratios[i]+'x', (Math.round(vv*1000)/1000).toFixed(3), (Math.round(L*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __dvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dvChart',{title:en?'Level vs Voltage Ratio (L = 20·log10(V/V0))':'电平随电压比变化 (L = 20·log₁₀(V/V₀))',labels:s.labels,series:[{name:en?'L (dB)':'L (dB)',data:s.data}]});
+}
+function __dvTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__dvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#dvTable',{head:en?['Ratio V/V0','V (V)','L (dB)']:['电压比 V/V₀','V (V)','L (dB)'],rows:s.rows});
+}
+
+function __dvShow(which){
+  var c=document.getElementById('dvChart'), t=document.getElementById('dvTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dvTabInit(){
+  var btns=document.querySelectorAll('.dv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __dvFn=calcTool;calcTool=function(){try{__dvFn();}catch(e){}try{__dvChart();}catch(e){}try{__dvTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dvChart();}catch(e){}try{__dvTable();}catch(e){}});
+try{__dvTabInit();}catch(e){}
 </script>
 </body>
 </html>

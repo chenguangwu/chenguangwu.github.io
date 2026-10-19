@@ -263,6 +263,12 @@ function resetForm(){document.getElementById('V').value = '100';
       calcTool();}
 calcTool();
 </script>
+<div class="ac-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="acChart" style="margin-top:8px;"></div>
+<div id="acTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,6 +345,49 @@ calcTool = function(){ __tb_fn0(); try{ __absorption_coeff_sabineExtras(); }catc
 function __absorption_coeff_sabineBoot(){ try{ __absorption_coeff_sabinePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __absorption_coeff_sabineBoot();
 else document.addEventListener('DOMContentLoaded', __absorption_coeff_sabineBoot);
+</script>
+<script>
+function __acSweep(){
+  var V=num('V'),S=num('S'),rt=num('rt');
+  if(!isFinite(V)||!isFinite(S)||!isFinite(rt)||V<=0||S<=0||rt<=0)return null;
+  var labels=[],data=[],rows=[];
+  var rts=[0.2,0.4,0.6,0.8,1.0,1.5,2.0];
+  for(var i=0;i<rts.length;i++){
+    var a=0.161*V/(S*rts[i]);
+    labels.push(String(rts[i])); data.push(Math.round(a*10000)/10000);
+    rows.push([String(rts[i]), (Math.round(a*10000)/10000).toFixed(4), (Math.round(a*S*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __acChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__acSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#acChart',{title:en?'Mean Absorption vs RT60 (a = 0.161·V/(S·RT))':'平均吸声系数随混响时间变化 (ᾱ = 0.161·V/(S·RT))',labels:s.labels,series:[{name:en?'Mean absorption a':'平均吸声系数 ᾱ',data:s.data}]});
+}
+function __acTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__acSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#acTable',{head:en?['RT60 (s)','Mean a','Absorption A (m²)']:['混响 RT60 (s)','平均吸声系数 ᾱ','总吸声量 A (m²)'],rows:s.rows});
+}
+
+function __acShow(which){
+  var c=document.getElementById('acChart'), t=document.getElementById('acTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __acTabInit(){
+  var btns=document.querySelectorAll('.ac-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__acShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __acFn=calcTool;calcTool=function(){try{__acFn();}catch(e){}try{__acChart();}catch(e){}try{__acTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__acChart();}catch(e){}try{__acTable();}catch(e){}});
+try{__acTabInit();}catch(e){}
 </script>
 </body>
 </html>
