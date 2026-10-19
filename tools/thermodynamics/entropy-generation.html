@@ -246,6 +246,12 @@ function __entropy_generationBoot(){ try{ __entropy_generationPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __entropy_generationBoot();
 else document.addEventListener('DOMContentLoaded', __entropy_generationBoot);
 </script>
+<div class="eg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="egChart" style="margin-top:8px;"></div>
+<div id="egTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +287,50 @@ else document.addEventListener('DOMContentLoaded', __entropy_generationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __egSweep(){
+  var a=num('dsSys'), b=num('dsSurr');
+  if(!isFinite(a)||!isFinite(b))return null;
+  var labels=[],data=[],rows=[];
+  var mults=[-2,-1.5,-1,-0.5,0,0.5,1];
+  for(var i=0;i<mults.length;i++){
+    var bb=a*mults[i], s=a+bb;
+    labels.push((Math.round(bb*100)/100).toFixed(2)); data.push(Math.round(s*1000)/1000);
+    rows.push([(Math.round(bb*100)/100).toFixed(2), (Math.round(s*1000)/1000).toFixed(3), s>=0?'OK':'NO']);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __egChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__egSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#egChart',{title:en?'Entropy Generation vs Surroundings ΔS (S_gen = ΔS_sys + ΔS_surr)':'熵产随环境熵变变化 (S_gen = ΔS_sys + ΔS_surr)',labels:s.labels,series:[{name:en?'S_gen (J/K)':'熵产 S_gen (J/K)',data:s.data}]});
+}
+function __egTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__egSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[];
+  for(var i=0;i<s.rows.length;i++){rows.push([s.rows[i][0],s.rows[i][1],(s.rows[i][2]==='OK')?(en?'Satisfies 2nd law':'满足第二定律'):(en?'Violates 2nd law':'违反第二定律')]);}
+  TBKit.matrix.table('#egTable',{head:en?['ΔS_surr (J/K)','S_gen (J/K)','Verdict']:['环境熵变 ΔS_surr (J/K)','熵产 S_gen (J/K)','判定'],rows:rows});
+}
+
+function __egShow(which){
+  var c=document.getElementById('egChart'), t=document.getElementById('egTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __egTabInit(){
+  var btns=document.querySelectorAll('.eg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__egShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __egFn=calcTool;calcTool=function(){try{__egFn();}catch(e){}try{__egChart();}catch(e){}try{__egTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__egChart();}catch(e){}try{__egTable();}catch(e){}});
+try{__egTabInit();}catch(e){}
+</script>
 </body>
 </html>
