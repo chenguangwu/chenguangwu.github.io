@@ -140,7 +140,15 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:14px;">
       <button id="pgExport" class="btn" onclick="__pgExport()">⬇️ 导出全部对照表 CSV</button>
     </div>
+    <div class="tabs" id="pgTabs" style="margin-top:12px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
     <div id="pgChart"></div>
+    <div class="card" id="pgTableCard" style="display:none;margin-top:12px;">
+      <h3 id="pgTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="pgTh0"></th><th id="pgTh1"></th><th id="pgTh2"></th></tr></thead><tbody id="pgTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -257,6 +265,20 @@ function filterTable() {
       title:en?('A-grade brightness of first row by paper type'+(data4[0][1]==='本色'?' (kraft=natural, no brightness)':'')):'各纸类首行(A等)白度对比'+(data4[0][1]==='本色'?'（牛皮纸为本色无白度）':'')
     });
   }
+  function __pgTable(){
+    if(typeof TBKit==='undefined') return;
+    var host=document.getElementById('pgChart'); if(!host) return;
+    var en=TBKit.util.isEn();
+    var t=document.getElementById('pgTbody'); if(!t) return;
+    var names=['铜版纸','胶版纸','白卡纸','牛皮纸'];
+    var data=[data1,data2,data3,data4];
+    var rows=data.map(function(d,i){ return [names[i], __pgWhite(d)]; });
+    t.innerHTML=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+    var tt=document.getElementById('pgTableTitle'); if(tt) tt.textContent=en?'Brightness by paper type (A-grade, first row)':'各纸类白度明细（A等首行）';
+    var th0=document.getElementById('pgTh0'); if(th0) th0.textContent='#';
+    var th1=document.getElementById('pgTh1'); if(th1) th1.textContent=en?'Paper type':'纸类';
+    var th2=document.getElementById('pgTh2'); if(th2) th2.textContent=en?'A-grade brightness ISO(%)':'A等白度ISO(%)';
+  }
   window.__pgExport=function(){
     if(typeof TBKit==='undefined') return;
     var en=TBKit.util.isEn();
@@ -269,10 +291,33 @@ function filterTable() {
     t.innerHTML='<tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
     TBKit.util.exportTable('#pgHidden','paper-grades.csv');
   };
+  function __pgFillTabs(){
+    var en=window.TBKit&&TBKit.util.isEn();
+    var b=document.querySelectorAll('#pgTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __pgBindTabs(){
+    var tabs=document.querySelectorAll('#pgTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var chart=document.getElementById('pgChart');
+        var card=document.getElementById('pgTableCard');
+        if(chart) chart.style.display = v==='chart'?'':'none';
+        if(card) card.style.display = v==='table'?'block':'none';
+      });
+    });
+  }
   document.addEventListener('DOMContentLoaded',function(){
     if(typeof TBKit==='undefined') return;
     __pgChart();
+    try{__pgTable();}catch(e){}
+    __pgFillTabs(); __pgBindTabs();
   });
+  document.addEventListener('toolbox:langchange',function(){ __pgFillTabs(); try{__pgTable();}catch(e){} });
 })();
 </script>
 

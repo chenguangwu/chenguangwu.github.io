@@ -144,7 +144,15 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar" style="margin-top:14px;">
       <button id="eggExport" class="btn" onclick="__eggExport()">⬇️ 导出全部虫卵对照 CSV</button>
     </div>
+    <div class="tabs" id="eggTabs" style="margin-top:12px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
     <div id="eggChart"></div>
+    <div class="card" id="eggTableCard" style="display:none;margin-top:12px;">
+      <h3 id="eggTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="eggTh0"></th><th id="eggTh1"></th><th id="eggTh2"></th></tr></thead><tbody id="eggTbody"></tbody></table>
+    </div>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>识别要点：</strong>虫卵鉴定依据：大小(μm)、形状、颜色、卵壳特征(厚薄/纹理)、卵盖有无、内容物(卵细胞/毛蚴/六钩蚴)。建议用测微尺测量大小，避免与花粉、植物纤维等杂质混淆。
@@ -275,6 +283,24 @@ filterEggs();
       title:en?'Egg categories count':'虫卵类别数量统计'
     });
   }
+  function __eggTable(){
+    if(typeof TBKit==='undefined') return;
+    var host=document.getElementById('eggChart'); if(!host) return;
+    var en=TBKit.util.isEn();
+    var t=document.getElementById('eggTbody'); if(!t) return;
+    var counts={line:0,fluke:0,tape:0};
+    EGGS.forEach(function(e){ if(counts[e.cat]!=null) counts[e.cat]++; });
+    var rows=[
+      [en?'Nematode':'线虫', counts.line],
+      [en?'Trematode':'吸虫', counts.fluke],
+      [en?'Cestode':'绦虫', counts.tape]
+    ];
+    t.innerHTML=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+    var tt=document.getElementById('eggTableTitle'); if(tt) tt.textContent=en?'Egg category breakdown':'虫卵类别明细';
+    var th0=document.getElementById('eggTh0'); if(th0) th0.textContent='#';
+    var th1=document.getElementById('eggTh1'); if(th1) th1.textContent=en?'Category':'类别';
+    var th2=document.getElementById('eggTh2'); if(th2) th2.textContent=en?'Count':'数量';
+  }
   window.__eggExport=function(){
     if(typeof TBKit==='undefined') return;
     var en=TBKit.util.isEn();
@@ -287,10 +313,33 @@ filterEggs();
     t.innerHTML='<tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
     TBKit.util.exportTable('#eggHidden','parasite-eggs.csv');
   };
+  function __eggFillTabs(){
+    var en=window.TBKit&&TBKit.util.isEn();
+    var b=document.querySelectorAll('#eggTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __eggBindTabs(){
+    var tabs=document.querySelectorAll('#eggTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var chart=document.getElementById('eggChart');
+        var card=document.getElementById('eggTableCard');
+        if(chart) chart.style.display = v==='chart'?'':'none';
+        if(card) card.style.display = v==='table'?'block':'none';
+      });
+    });
+  }
   document.addEventListener('DOMContentLoaded',function(){
     if(typeof TBKit==='undefined') return;
     __eggChart();
+    try{__eggTable();}catch(e){}
+    __eggFillTabs(); __eggBindTabs();
   });
+  document.addEventListener('toolbox:langchange',function(){ __eggFillTabs(); try{__eggTable();}catch(e){} });
 })();
 </script>
 

@@ -179,6 +179,16 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+
+    <div class="tabs" id="hmTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="hmChart"></div>
+    <div class="card" id="hmTableCard" style="display:none;margin-top:12px;">
+      <h3 id="hmTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="hmTh0"></th><th id="hmTh1"></th><th id="hmTh2"></th><th id="hmTh3"></th></tr></thead><tbody id="hmTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -631,6 +641,68 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function __hmCounts(){
+    var map={};
+    COMMANDS.forEach(function(c){ map[c.cat]=(map[c.cat]||0)+1; });
+    return map;
+  }
+  function __hmChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    var host=document.getElementById('hmChart'); if(!host) return;
+    var en=TBKit.util.isEn();
+    var map=__hmCounts();
+    var labels=Object.keys(map);
+    var data=labels.map(function(k){return map[k];});
+    TBKit.chart.bar('#hmChart',{
+      labels:labels,
+      series:[{name:en?'Count':'数量',data:data}],
+      height:260,
+      title:en?'HTTP methods by category':'各分类 HTTP 方法数量'
+    });
+  }
+  function __hmTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('hmTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var rows=COMMANDS.map(function(c){ return [c.cmd, c.cat, c.desc]; });
+    t.innerHTML=rows.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td><code>'+r[0]+'</code></td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';}).join('');
+    var tt=document.getElementById('hmTableTitle'); if(tt) tt.textContent=en?'HTTP methods reference':'HTTP 方法速查';
+    var th0=document.getElementById('hmTh0'); if(th0) th0.textContent='#';
+    var th1=document.getElementById('hmTh1'); if(th1) th1.textContent='Method';
+    var th2=document.getElementById('hmTh2'); if(th2) th2.textContent=en?'Category':'分类';
+    var th3=document.getElementById('hmTh3'); if(th3) th3.textContent=en?'Description':'说明';
+  }
+  function __hmFillTabs(){
+    var en=window.TBKit&&TBKit.util.isEn();
+    var b=document.querySelectorAll('#hmTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __hmBindTabs(){
+    var tabs=document.querySelectorAll('#hmTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var chart=document.getElementById('hmChart');
+        var card=document.getElementById('hmTableCard');
+        if(chart) chart.style.display = v==='chart'?'':'none';
+        if(card) card.style.display = v==='table'?'block':'none';
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    if(typeof TBKit==='undefined') return;
+    try{__hmChart();}catch(e){}
+    try{__hmTable();}catch(e){}
+    __hmFillTabs(); __hmBindTabs();
+  });
+  document.addEventListener('toolbox:langchange',function(){ __hmFillTabs(); try{__hmTable();}catch(e){} });
+})();
 </script>
 </body>
 </html>
