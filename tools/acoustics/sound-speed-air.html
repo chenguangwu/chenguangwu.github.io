@@ -202,6 +202,12 @@ function resetForm(){document.getElementById('T').value = '20';
       calcTool();}
 calcTool();
 </script>
+<div class="sa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="saChart" style="margin-top:8px;"></div>
+<div id="saTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,6 +285,49 @@ calcTool = function(){ __tb_fn0(); try{ __sound_speed_airExtras(); }catch(e){} }
 function __sound_speed_airBoot(){ try{ __sound_speed_airPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __sound_speed_airBoot();
 else document.addEventListener('DOMContentLoaded', __sound_speed_airBoot);
+</script>
+<script>
+function __saSweep(){
+  var T=num('T');
+  if(!isFinite(T))return null;
+  var labels=[],data=[],rows=[];
+  var temps=[-20,-10,0,10,20,30,40];
+  for(var i=0;i<temps.length;i++){
+    var v=331.4+0.6*temps[i];
+    labels.push(String(temps[i])); data.push(Math.round(v*100)/100);
+    rows.push([String(temps[i]), (Math.round(v*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __saChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__saSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#saChart',{title:en?'Sound Speed vs Air Temperature (c = 331.4 + 0.6·T)':'声速随气温变化 (c = 331.4 + 0.6·T)',labels:s.labels,series:[{name:en?'Speed c (m/s)':'声速 c (m/s)',data:s.data}]});
+}
+function __saTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__saSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#saTable',{head:en?['Temperature (°C)','Speed c (m/s)']:['气温 (°C)','声速 c (m/s)'],rows:s.rows});
+}
+
+function __saShow(which){
+  var c=document.getElementById('saChart'), t=document.getElementById('saTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __saTabInit(){
+  var btns=document.querySelectorAll('.sa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__saShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __saFn=calcTool;calcTool=function(){try{__saFn();}catch(e){}try{__saChart();}catch(e){}try{__saTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__saChart();}catch(e){}try{__saTable();}catch(e){}});
+try{__saTabInit();}catch(e){}
 </script>
 </body>
 </html>

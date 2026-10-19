@@ -271,6 +271,12 @@ function resetForm(){document.getElementById('P').value = '1';
       calcTool();}
 calcTool();
 </script>
+<div class="ss-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ssChart" style="margin-top:8px;"></div>
+<div id="ssTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -347,6 +353,49 @@ calcTool = function(){ __tb_fn0(); try{ __sound_intensity_sphericalExtras(); }ca
 function __sound_intensity_sphericalBoot(){ try{ __sound_intensity_sphericalPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __sound_intensity_sphericalBoot();
 else document.addEventListener('DOMContentLoaded', __sound_intensity_sphericalBoot);
+</script>
+<script>
+function __ssSweep(){
+  var P=num('P'), r=num('r');
+  if(!isFinite(P)||!isFinite(r)||P<=0||r<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.5,1,2,3,5,8,12];
+  for(var i=0;i<mults.length;i++){
+    var rr=r*mults[i], I=P/(4*Math.PI*rr*rr);
+    labels.push(String(Math.round(rr*100)/100)); data.push(Math.round(I*100000000)/100000000);
+    rows.push([String(Math.round(rr*100)/100), (Math.round(I*100000000)/100000000).toFixed(8)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __ssChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ssSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ssChart',{title:en?'Intensity vs Distance (I = P/(4·π·r²))':'声强随距离变化 (I = P/(4πr²))',labels:s.labels,series:[{name:en?'Intensity I (W/m²)':'声强 I (W/m²)',data:s.data}]});
+}
+function __ssTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ssSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ssTable',{head:en?['Distance r (m)','Intensity I (W/m²)']:['距离 r (m)','声强 I (W/m²)'],rows:s.rows});
+}
+
+function __ssShow(which){
+  var c=document.getElementById('ssChart'), t=document.getElementById('ssTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ssTabInit(){
+  var btns=document.querySelectorAll('.ss-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ssShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ssFn=calcTool;calcTool=function(){try{__ssFn();}catch(e){}try{__ssChart();}catch(e){}try{__ssTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ssChart();}catch(e){}try{__ssTable();}catch(e){}});
+try{__ssTabInit();}catch(e){}
 </script>
 </body>
 </html>
