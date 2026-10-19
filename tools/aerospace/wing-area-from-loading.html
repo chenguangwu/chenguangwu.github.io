@@ -271,6 +271,12 @@ function resetForm(){document.getElementById('W').value = '80000';
       calcTool();}
 calcTool();
 </script>
+<div class="wal-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="walChart" style="margin-top:8px;"></div>
+<div id="walTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -368,6 +374,50 @@ calcTool = function(){ __tb_fn0(); try{ __wing_area_from_loadingExtras(); }catch
 function __wing_area_from_loadingBoot(){ try{ __wing_area_from_loadingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __wing_area_from_loadingBoot();
 else document.addEventListener('DOMContentLoaded', __wing_area_from_loadingBoot);
+</script>
+<script>
+function __walSweep(){
+  var W=num('W'), WL=num('WL');
+  if(!isFinite(W)||!isFinite(WL)||WL<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3];
+  for(var i=0;i<mults.length;i++){
+    var ww=W*mults[i], S=ww/WL;
+    labels.push(String(Math.round(ww*10)/10));
+    data.push(Math.round(S*100)/100);
+    rows.push([String(Math.round(ww*10)/10), (Math.round(S*100)/100).toFixed(2), (Math.round(Math.sqrt(S)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __walChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__walSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#walChart',{title:en?'Wing Area vs Weight (S = W/(W/S))':'机翼面积随重量变化 (S = W/(W/S))',labels:s.labels,series:[{name:en?'Wing area S (m²)':'机翼面积 S (m²)',data:s.data}]});
+}
+function __walTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__walSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#walTable',{head:en?['Weight W (N)','Wing area S (m²)','√S (m)']:['重量 W (N)','机翼面积 S (m²)','面积平方根 √S (m)'],rows:s.rows});
+}
+
+function __walShow(which){
+  var c=document.getElementById('walChart'), t=document.getElementById('walTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __walTabInit(){
+  var btns=document.querySelectorAll('.wal-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__walShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __walFn=calcTool;calcTool=function(){try{__walFn();}catch(e){}try{__walChart();}catch(e){}try{__walTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__walChart();}catch(e){}try{__walTable();}catch(e){}});
+try{__walTabInit();}catch(e){}
 </script>
 </body>
 </html>

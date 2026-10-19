@@ -260,6 +260,12 @@ function resetForm(){document.getElementById('v').value = '100';
       calcTool();}
 calcTool();
 </script>
+<div class="trt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="trtChart" style="margin-top:8px;"></div>
+<div id="trtTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -357,6 +363,50 @@ calcTool = function(){ __tb_fn0(); try{ __turn_rateExtras(); }catch(e){} };
 function __turn_rateBoot(){ try{ __turn_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __turn_rateBoot();
 else document.addEventListener('DOMContentLoaded', __turn_rateBoot);
+</script>
+<script>
+function __trtSweep(){
+  var v=num('v'), phi=num('phi');
+  if(!isFinite(v)||!isFinite(phi)||v<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var i=0;i<mults.length;i++){
+    var vv=v*mults[i], rad=phi*Math.PI/180, w=9.81*Math.tan(rad)/vv;
+    labels.push((Math.round(vv*10)/10).toFixed(1));
+    data.push(Math.round(w*180/Math.PI*1000)/1000);
+    rows.push([(Math.round(vv*10)/10).toFixed(1), (Math.round(w*180/Math.PI*1000)/1000).toFixed(3), (Math.round(60*w*180/Math.PI*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __trtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__trtSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#trtChart',{title:en?'Turn Rate vs Speed (ω = g·tan φ/v)':'转弯率随速度变化 (ω = g·tan φ/v)',labels:s.labels,series:[{name:en?'Turn rate (°/s)':'转弯率 (°/s)',data:s.data}]});
+}
+function __trtTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__trtSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#trtTable',{head:en?['Speed v (m/s)','Turn rate (°/s)','Turn rate (°/min)']:['速度 v (m/s)','转弯率 (°/s)','转弯率 (°/min)'],rows:s.rows});
+}
+
+function __trtShow(which){
+  var c=document.getElementById('trtChart'), t=document.getElementById('trtTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __trtTabInit(){
+  var btns=document.querySelectorAll('.trt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__trtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __trtFn=calcTool;calcTool=function(){try{__trtFn();}catch(e){}try{__trtChart();}catch(e){}try{__trtTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__trtChart();}catch(e){}try{__trtTable();}catch(e){}});
+try{__trtTabInit();}catch(e){}
 </script>
 </body>
 </html>
