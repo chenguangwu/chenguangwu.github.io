@@ -145,6 +145,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="window.__pcosExport()">⬇️ 导出PCOS鹿特丹诊断 CSV</button>
     </div>
     <div class="result-box" id="result"></div>
+<div class="tabs" id="pcTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
+<div id="pcChart"></div>
+<div class="card" id="pcTableCard" style="display:none"><h3 id="pcTableTitle"></h3>
+<table class="data-table"><thead><tr><th id="pcTh0"></th><th id="pcTh1"></th><th id="pcTh2"></th><th id="pcTh3"></th></tr></thead><tbody id="pcTbody"></tbody></table></div>
     <table id="pcosHidden" style="display:none"><thead><tr><th>Criterion</th><th>Selected</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -301,6 +305,71 @@ function __pcosExport(){
   _row([en?'Diagnosis':'诊断结果', diag]);
   TBKit.util.exportTable('#pcosHidden', en?'pcos_rotterdam.csv':'pcos鹿特丹诊断.csv');
 }
+var __PC_LABELS={1:'稠发排卵/无排卵',2:'高雄激素表现',3:'多囊卵巢(超声)'};
+var __PC_LABELS_EN={1:'Oligo/anovulation',2:'Hyperandrogenism',3:'Polycystic ovaries (US)'};
+var __PC_PHENO=[
+  {t:'A型(经典PCOS)',c:'稠发排卵+高雄+多囊卵巢',keys:[1,2,3],m:'代谢风险最高，需全面代谢评估'},
+  {t:'B型(经典无多囊卵巢)',c:'稠发排卵+高雄',keys:[1,2],m:'代谢风险较高'},
+  {t:'C型(排卵型PCOS)',c:'高雄+多囊卵巢',keys:[2,3],m:'代谢风险中等'},
+  {t:'D型(非高雄型)',c:'稠发排卵+多囊卵巢',keys:[1,3],m:'代谢风险相对较低'}
+];
+var __PC_PHENO_EN=[
+  {t:'Type A (classic PCOS)',c:'Oligo/anovulation + hyperandrogenism + PCO',keys:[1,2,3],m:'Highest metabolic risk; full metabolic workup needed'},
+  {t:'Type B (classic, no PCO)',c:'Oligo/anovulation + hyperandrogenism',keys:[1,2],m:'Higher metabolic risk'},
+  {t:'Type C (ovulatory PCOS)',c:'Hyperandrogenism + PCO',keys:[2,3],m:'Moderate metabolic risk'},
+  {t:'Type D (non-hyperandrogenic)',c:'Oligo/anovulation + PCO',keys:[1,3],m:'Relatively lower metabolic risk'}
+];
+function __pcT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __pcExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var keys=Object.keys(crits);
+    var vals=keys.map(function(k){return crits[k]?1:0;});
+    if(TBKit.chart&&document.getElementById('pcChart')){
+      TBKit.chart.bar('#pcChart',{
+        labels:keys.map(function(k){return __pcT(__PC_LABELS[k]||'',__PC_LABELS_EN[k]||'');}),
+        series:[{name:en?'Met (1=yes)':'达成(1=是)',data:vals}],
+        height:240,
+        title:en?'Rotterdam criteria met':'鹿特丹标准达成情况'
+      });
+    }
+    var tb=document.getElementById('pcTbody');
+    if(tb){
+      var data=en?__PC_PHENO_EN:__PC_PHENO;
+      tb.innerHTML=data.map(function(p,i){
+        var hit=p.keys.every(function(k){return crits[k];})&&p.keys.length===keys.filter(function(k){return crits[k];}).length;
+        var mark=hit?(en?' ◀ current':''):'';
+        return '<tr><td>'+(i+1)+'</td><td>'+p.t+mark+'</td><td>'+p.c+'</td><td>'+p.m+'</td></tr>';
+      }).join('');
+    }
+    var tt=document.getElementById('pcTableTitle');
+    if(tt) tt.textContent=__pcT('PCOS 表型参考（满足对应条件组合即诊断）','PCOS phenotype reference');
+    var hs=[['pcTh0','#'],['pcTh1',__pcT('表型','Phenotype')],['pcTh2',__pcT('条件组合','Criteria')],['pcTh3',__pcT('代谢风险/说明','Metabolic risk / notes')]];
+    hs.forEach(function(p){var el=document.getElementById(p[0]);if(el)el.textContent=p[1];});
+    var bt=document.querySelectorAll('#pcTabs .tab-btn');
+    if(bt[0])bt[0].textContent=__pcT('图表','Chart');
+    if(bt[1])bt[1].textContent=__pcT('明细表','Table');
+  }catch(e){}
+}
+function __pcBindTabs(){
+  var tabs=document.querySelectorAll('#pcTabs .tab-btn');
+  tabs.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      tabs.forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      var v=btn.getAttribute('data-v');
+      var c=document.getElementById('pcChart');
+      var card=document.getElementById('pcTableCard');
+      if(c)c.style.display=v==='chart'?'':'none';
+      if(card)card.style.display=v==='table'?'block':'none';
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded',function(){__pcBindTabs();__pcExtras();});
+document.addEventListener('toolbox:langchange',__pcExtras);
+if(typeof calc==='function'){var __pcc0=calc;calc=function(){__pcc0();__pcExtras();};}
+
 calc();
 </script>
 
