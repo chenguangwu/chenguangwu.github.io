@@ -241,6 +241,12 @@ function __guard_band_95Boot(){ try{ __guard_band_95Presets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __guard_band_95Boot();
 else document.addEventListener('DOMContentLoaded', __guard_band_95Boot);
 </script>
+<div class="gb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gbChart" style="margin-top:8px;"></div>
+<div id="gbTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +282,49 @@ else document.addEventListener('DOMContentLoaded', __guard_band_95Boot);
 </dl>
 </div>
 </section>
+<script>
+function __gbSweep(){
+  var U=num('U');
+  if(!isFinite(U)||U<=0)return null;
+  var labels=[],a=[],b=[],c=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var uu=U*mults[i];
+    labels.push((Math.round(uu*1000)/1000).toFixed(3));
+    a.push(Math.round(1.65*uu*10000)/10000); b.push(Math.round(1.96*uu*10000)/10000); c.push(Math.round(2.58*uu*10000)/10000);
+    rows.push([(Math.round(uu*1000)/1000).toFixed(3), (Math.round(1.65*uu*10000)/10000).toFixed(4), (Math.round(1.96*uu*10000)/10000).toFixed(4), (Math.round(2.58*uu*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,a:a,b:b,c:c,rows:rows};
+}
+function __gbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gbChart',{title:en?'Guard Band vs Expanded Uncertainty (GB = k·U)':'保护带随扩展不确定度变化 (GB = k·U)',labels:s.labels,series:[{name:en?'GB k=1.65 (95% one-sided)':'保护带 k=1.65（95% 单侧）',data:s.a},{name:en?'GB k=1.96 (95% two-sided)':'保护带 k=1.96（95% 双侧）',data:s.b},{name:en?'GB k=2.58 (99%)':'保护带 k=2.58（99%）',data:s.c}]});
+}
+function __gbTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__gbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#gbTable',{head:en?['Expanded uncertainty U','GB k=1.65','GB k=1.96','GB k=2.58']:['扩展不确定度 U','保护带 k=1.65','保护带 k=1.96','保护带 k=2.58'],rows:s.rows});
+}
+
+function __gbShow(which){
+  var c=document.getElementById('gbChart'), t=document.getElementById('gbTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gbTabInit(){
+  var btns=document.querySelectorAll('.gb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __gbFn=calcTool;calcTool=function(){try{__gbFn();}catch(e){}try{__gbChart();}catch(e){}try{__gbTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gbChart();}catch(e){}try{__gbTable();}catch(e){}});
+try{__gbTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -298,6 +298,12 @@ function __ndc_numberBoot(){ try{ __ndc_numberPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __ndc_numberBoot();
 else document.addEventListener('DOMContentLoaded', __ndc_numberBoot);
 </script>
+<div class="ndc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ndcChart" style="margin-top:8px;"></div>
+<div id="ndcTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +339,51 @@ else document.addEventListener('DOMContentLoaded', __ndc_numberBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ndcSweep(){
+  var PV=num('PV'), GRR=num('GRR');
+  if(!isFinite(PV)||!isFinite(GRR)||GRR<=0||PV<=0)return null;
+  var labels=[],data=[],ref=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var g=GRR*mults[i], N=1.41*PV/g;
+    labels.push((Math.round(g*10000)/10000).toFixed(4));
+    data.push(Math.round(N*100)/100); ref.push(5);
+    rows.push([(Math.round(g*10000)/10000).toFixed(4), (Math.round(N*100)/100).toFixed(2), N>=5?'OK':'LOW']);
+  }
+  return {labels:labels,data:data,ref:ref,rows:rows};
+}
+function __ndcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ndcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ndcChart',{title:en?'NDC vs GRR (NDC = 1.41·PV/GRR)':'可区分类别数随 GRR 变化 (NDC = 1.41·PV/GRR)',labels:s.labels,series:[{name:en?'NDC':'可区分类别数 NDC',data:s.data},{name:en?'Minimum limit 5':'下限判据 5',data:s.ref}]});
+}
+function __ndcTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ndcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[];
+  for(var i=0;i<s.rows.length;i++){rows.push([s.rows[i][0],s.rows[i][1],(s.rows[i][2]==='OK')?(en?'Adequate':'满足 ≥5'):(en?'Insufficient':'不足 5 类')]);}
+  TBKit.matrix.table('#ndcTable',{head:en?['GRR','NDC','Verdict']:['GRR','可区分类别数 NDC','判定'],rows:rows});
+}
+
+function __ndcShow(which){
+  var c=document.getElementById('ndcChart'), t=document.getElementById('ndcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ndcTabInit(){
+  var btns=document.querySelectorAll('.ndc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ndcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ndcFn=calcTool;calcTool=function(){try{__ndcFn();}catch(e){}try{__ndcChart();}catch(e){}try{__ndcTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ndcChart();}catch(e){}try{__ndcTable();}catch(e){}});
+try{__ndcTabInit();}catch(e){}
+</script>
 </body>
 </html>

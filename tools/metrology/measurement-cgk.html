@@ -304,6 +304,12 @@ function __measurement_cgkBoot(){ try{ __measurement_cgkPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __measurement_cgkBoot();
 else document.addEventListener('DOMContentLoaded', __measurement_cgkBoot);
 </script>
+<div class="cgk-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cgkChart" style="margin-top:8px;"></div>
+<div id="cgkTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +345,52 @@ else document.addEventListener('DOMContentLoaded', __measurement_cgkBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cgkSweep(){
+  var USL=num('USL'), LSL=num('LSL'), xb=num('xbar'), s=num('s');
+  if(!isFinite(USL)||!isFinite(LSL)||!isFinite(xb)||!isFinite(s)||s<=0||USL<=LSL)return null;
+  var mid=(USL+LSL)/2, half=(USL-LSL)/2;
+  var labels=[],data=[],rows=[];
+  var fr=[0,0.15,0.3,0.45,0.5,0.55,0.7,0.85,1];
+  for(var i=0;i<fr.length;i++){
+    var x=LSL+fr[i]*(USL-LSL);
+    if(Math.abs(x-USL)<1e-12||Math.abs(x-LSL)<1e-12)x=LSL+fr[i]*(USL-LSL)+1e-9;
+    var Cgk=Math.min(USL-x,x-LSL)/(3*s);
+    labels.push((Math.round(x*1000)/1000).toFixed(3));
+    data.push(Math.round(Cgk*1000)/1000);
+    rows.push([(Math.round(x*1000)/1000).toFixed(3), (Math.round(Cgk*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __cgkChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cgkSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cgkChart',{title:en?'Cgk vs Measured Mean (Cgk = min(USL − x̄, x̄ − LSL)/(3s))':'偏移修正能力指数随测量均值变化（居中最大）',labels:s.labels,series:[{name:en?'Cgk':'偏移修正能力指数 Cgk',data:s.data}]});
+}
+function __cgkTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__cgkSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#cgkTable',{head:en?['Measured mean x̄','Cgk']:['测量均值 x̄','偏移修正能力指数 Cgk'],rows:s.rows});
+}
+
+function __cgkShow(which){
+  var c=document.getElementById('cgkChart'), t=document.getElementById('cgkTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cgkTabInit(){
+  var btns=document.querySelectorAll('.cgk-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cgkShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __cgkFn=calcTool;calcTool=function(){try{__cgkFn();}catch(e){}try{__cgkChart();}catch(e){}try{__cgkTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cgkChart();}catch(e){}try{__cgkTable();}catch(e){}});
+try{__cgkTabInit();}catch(e){}
+</script>
 </body>
 </html>
