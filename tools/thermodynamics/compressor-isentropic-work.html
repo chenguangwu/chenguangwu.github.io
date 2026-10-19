@@ -307,6 +307,12 @@ function __compressor_isentropic_workBoot(){ try{ __compressor_isentropic_workPr
 if (document.readyState && document.readyState !== 'loading') __compressor_isentropic_workBoot();
 else document.addEventListener('DOMContentLoaded', __compressor_isentropic_workBoot);
 </script>
+<div class="cw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cwChart" style="margin-top:8px;"></div>
+<div id="cwTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -343,5 +349,49 @@ else document.addEventListener('DOMContentLoaded', __compressor_isentropic_workB
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用理想气体单位质量等熵压缩功</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>进气温度 T₁ (K)</li><li>压比 P₂/P₁</li><li>比热比 γ</li><li>气体常数 R (J/(kg·K))</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>理想气体单位质量等熵压缩功是做什么的？</dt><dd>输入初温 T₁、压比 P₂/P₁、比热比 γ 与气体常数 R，计算理想气体单位质量等熵压缩功 w，用于压气机、制冷与气体增压设备的功耗估算。</dd><dt>如何使用理想气体单位质量等熵压缩功？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>理想气体单位质量等熵压缩功适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __cwSweep(){
+  var T1=num('T1'), PR=num('PR'), g=num('g'), Rg=num('Rgas');
+  if(!isFinite(T1)||!isFinite(PR)||!isFinite(g)||!isFinite(Rg)||T1<=0||PR<=1||g<=1)return null;
+  var labels=[],data=[],rows=[];
+  var prs=[1.5,2,3,4,6,8,12];
+  for(var i=0;i<prs.length;i++){
+    var pr=prs[i];
+    var w=(g/(g-1))*Rg*T1*(Math.pow(pr,(g-1)/g)-1);
+    labels.push(String(pr)); data.push(Math.round(w*10)/10);
+    rows.push([String(pr), (Math.round(w*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __cwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cwChart',{title:en?'Compressor Work vs Pressure Ratio (isentropic)':'压气机单位功随压比变化（等熵）',labels:s.labels,series:[{name:en?'Work w (J/kg)':'单位功 w (J/kg)',data:s.data}]});
+}
+function __cwTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__cwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#cwTable',{head:en?['Pressure ratio PR','Work w (J/kg)']:['压比 PR','单位功 w (J/kg)'],rows:s.rows});
+}
+
+function __cwShow(which){
+  var c=document.getElementById('cwChart'), t=document.getElementById('cwTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cwTabInit(){
+  var btns=document.querySelectorAll('.cw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __cwFn=calcTool;calcTool=function(){try{__cwFn();}catch(e){}try{__cwChart();}catch(e){}try{__cwTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cwChart();}catch(e){}try{__cwTable();}catch(e){}});
+try{__cwTabInit();}catch(e){}
+</script>
 </body>
 </html>
