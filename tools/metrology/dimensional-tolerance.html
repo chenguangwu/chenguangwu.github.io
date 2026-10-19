@@ -248,6 +248,12 @@ function __dimensional_toleranceBoot(){ try{ __dimensional_tolerancePresets(); }
 if (document.readyState && document.readyState !== 'loading') __dimensional_toleranceBoot();
 else document.addEventListener('DOMContentLoaded', __dimensional_toleranceBoot);
 </script>
+<div class="dtol-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dtolChart" style="margin-top:8px;"></div>
+<div id="dtolTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +289,50 @@ else document.addEventListener('DOMContentLoaded', __dimensional_toleranceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dtolSweep(){
+  var n=num('nom'), es=num('es'), ei=num('ei');
+  if(!isFinite(n)||!isFinite(es)||!isFinite(ei))return null;
+  var base=Math.abs(es)>1e-12?es:0.025;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[1,0.75,0.5,0.25,0,-0.5,-1];
+  for(var i=0;i<mults.length;i++){
+    var e=base*mults[i], tol=es-e, mid=n+(es+e)/2;
+    labels.push((Math.round(e*10000)/10000).toFixed(4));
+    d1.push(Math.round(tol*10000)/10000); d2.push(Math.round(mid*1000)/1000);
+    rows.push([(Math.round(e*10000)/10000).toFixed(4), (Math.round(tol*10000)/10000).toFixed(4), (Math.round(mid*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __dtolChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dtolSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dtolChart',{title:en?'Tolerance vs Lower Deviation (T = es − ei)':'公差随下偏差变化 (T = es − ei)',labels:s.labels,series:[{name:en?'Tolerance (mm)':'公差 (mm)',data:s.d1},{name:en?'Median size (mm)':'公差带中值 (mm)',data:s.d2}]});
+}
+function __dtolTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__dtolSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#dtolTable',{head:en?['Lower deviation ei (mm)','Tolerance (mm)','Median size (mm)']:['下偏差 ei (mm)','公差 (mm)','公差带中值 (mm)'],rows:s.rows});
+}
+
+function __dtolShow(which){
+  var c=document.getElementById('dtolChart'), t=document.getElementById('dtolTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dtolTabInit(){
+  var btns=document.querySelectorAll('.dtol-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dtolShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __dtolFn=calcTool;calcTool=function(){try{__dtolFn();}catch(e){}try{__dtolChart();}catch(e){}try{__dtolTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dtolChart();}catch(e){}try{__dtolTable();}catch(e){}});
+try{__dtolTabInit();}catch(e){}
+</script>
 </body>
 </html>

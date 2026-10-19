@@ -308,6 +308,12 @@ function __effective_dof_welchBoot(){ try{ __effective_dof_welchPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __effective_dof_welchBoot();
 else document.addEventListener('DOMContentLoaded', __effective_dof_welchBoot);
 </script>
+<div class="edw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="edwChart" style="margin-top:8px;"></div>
+<div id="edwTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -343,5 +349,53 @@ else document.addEventListener('DOMContentLoaded', __effective_dof_welchBoot);
 </dl>
 </div>
 </section>
+<script>
+function __edwSweep(){
+  var u1=num('u1'), v1=num('v1'), u2=num('u2'), v2=num('v2');
+  if(!isFinite(u1)||!isFinite(v1)||!isFinite(u2)||!isFinite(v2)||u1<=0||v1<=0||v2<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.125,0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var uu=u2*mults[i];
+    var numv=Math.pow(u1*u1+uu*uu,2);
+    var den=u1*u1*u1*u1/v1 + uu*uu*uu*uu/v2;
+    if(!(den>0))continue;
+    var ve=numv/den;
+    labels.push((Math.round(uu*10000)/10000).toFixed(4));
+    data.push(Math.round(ve*100)/100);
+    rows.push([(Math.round(uu*10000)/10000).toFixed(4), (Math.round(ve*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __edwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__edwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#edwChart',{title:en?'Welch-Satterthwaite Effective DoF vs Second Component':'有效自由度随第二不确定度分量变化（Welch-Satterthwaite）',labels:s.labels,series:[{name:en?'Effective DoF ν_eff':'有效自由度 ν_eff',data:s.data}]});
+}
+function __edwTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__edwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#edwTable',{head:en?['Component u₂','Effective DoF ν_eff']:['第二分量 u₂','有效自由度 ν_eff'],rows:s.rows});
+}
+
+function __edwShow(which){
+  var c=document.getElementById('edwChart'), t=document.getElementById('edwTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __edwTabInit(){
+  var btns=document.querySelectorAll('.edw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__edwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __edwFn=calcTool;calcTool=function(){try{__edwFn();}catch(e){}try{__edwChart();}catch(e){}try{__edwTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__edwChart();}catch(e){}try{__edwTable();}catch(e){}});
+try{__edwTabInit();}catch(e){}
+</script>
 </body>
 </html>

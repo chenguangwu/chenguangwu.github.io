@@ -301,6 +301,12 @@ function __drift_rateBoot(){ try{ __drift_ratePresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __drift_rateBoot();
 else document.addEventListener('DOMContentLoaded', __drift_rateBoot);
 </script>
+<div class="dr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="drChart" style="margin-top:8px;"></div>
+<div id="drTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +342,49 @@ else document.addEventListener('DOMContentLoaded', __drift_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __drSweep(){
+  var x1=num('x1'), x2=num('x2'), dt=num('dt');
+  if(!isFinite(x1)||!isFinite(x2)||!isFinite(dt)||dt<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var tt=dt*mults[i], d=(x2-x1)/tt;
+    labels.push((Math.round(tt*100)/100).toFixed(2));
+    data.push(Math.round(d*100000)/100000);
+    rows.push([(Math.round(tt*100)/100).toFixed(2), (Math.round(d*100000)/100000).toFixed(5), (Math.round((x2-x1)*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __drChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__drSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#drChart',{title:en?'Drift Rate vs Time Interval (drift = (x₂ − x₁)/Δt)':'漂移率随时间间隔变化 (drift = (x₂ − x₁)/Δt)',labels:s.labels,series:[{name:en?'Drift rate':'漂移率',data:s.data}]});
+}
+function __drTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__drSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#drTable',{head:en?['Interval Δt','Drift rate','Total drift']:['时间间隔 Δt','漂移率','总漂移量'],rows:s.rows});
+}
+
+function __drShow(which){
+  var c=document.getElementById('drChart'), t=document.getElementById('drTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __drTabInit(){
+  var btns=document.querySelectorAll('.dr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__drShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __drFn=calcTool;calcTool=function(){try{__drFn();}catch(e){}try{__drChart();}catch(e){}try{__drTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__drChart();}catch(e){}try{__drTable();}catch(e){}});
+try{__drTabInit();}catch(e){}
+</script>
 </body>
 </html>
