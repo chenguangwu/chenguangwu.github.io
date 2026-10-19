@@ -261,6 +261,12 @@ function resetForm(){document.getElementById('L').value = '0.65';
       calcTool();}
 calcTool();
 </script>
+<div class="sf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sfChart" style="margin-top:8px;"></div>
+<div id="sfTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,6 +341,49 @@ calcTool = function(){ __tb_fn0(); try{ __string_fundamentalExtras(); }catch(e){
 function __string_fundamentalBoot(){ try{ __string_fundamentalPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __string_fundamentalBoot();
 else document.addEventListener('DOMContentLoaded', __string_fundamentalBoot);
+</script>
+<script>
+function __sfSweep(){
+  var L=num('L'), T=num('T'), mu=num('mu');
+  if(!isFinite(L)||!isFinite(T)||!isFinite(mu)||L<=0||T<=0||mu<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3];
+  for(var i=0;i<mults.length;i++){
+    var ll=L*mults[i], f=(1/(2*ll))*Math.sqrt(T/mu);
+    labels.push(String(Math.round(ll*1000)/1000)); data.push(Math.round(f*100)/100);
+    rows.push([String(Math.round(ll*1000)/1000), (Math.round(f*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __sfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sfChart',{title:en?'Fundamental vs String Length (f = (1/2L)·sqrt(T/mu))':'基频随弦长变化 (f = (1/2L)·√(T/μ))',labels:s.labels,series:[{name:en?'Fundamental f1 (Hz)':'基频 f₁ (Hz)',data:s.data}]});
+}
+function __sfTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__sfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#sfTable',{head:en?['Length L (m)','Fundamental f1 (Hz)']:['弦长 L (m)','基频 f₁ (Hz)'],rows:s.rows});
+}
+
+function __sfShow(which){
+  var c=document.getElementById('sfChart'), t=document.getElementById('sfTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sfTabInit(){
+  var btns=document.querySelectorAll('.sf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __sfFn=calcTool;calcTool=function(){try{__sfFn();}catch(e){}try{__sfChart();}catch(e){}try{__sfTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sfChart();}catch(e){}try{__sfTable();}catch(e){}});
+try{__sfTabInit();}catch(e){}
 </script>
 </body>
 </html>
