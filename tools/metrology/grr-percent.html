@@ -298,6 +298,12 @@ function __grr_percentBoot(){ try{ __grr_percentPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __grr_percentBoot();
 else document.addEventListener('DOMContentLoaded', __grr_percentBoot);
 </script>
+<div class="gp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gpChart" style="margin-top:8px;"></div>
+<div id="gpTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +339,54 @@ else document.addEventListener('DOMContentLoaded', __grr_percentBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gpSweep(){
+  var G=num('GRR'), Tol=num('Tol');
+  if(!isFinite(G)||!isFinite(Tol)||Tol<=0||G<=0)return null;
+  var labels=[],data=[],r10=[],r30=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var tt=Tol*mults[i], p=G/tt*100;
+    labels.push((Math.round(tt*1000)/1000).toFixed(3));
+    data.push(Math.round(p*100)/100); r10.push(10); r30.push(30);
+    rows.push([(Math.round(tt*1000)/1000).toFixed(3), (Math.round(p*100)/100).toFixed(2), p<10?'OK':(p<30?'WARN':'BAD')]);
+  }
+  return {labels:labels,data:data,r10:r10,r30:r30,rows:rows};
+}
+function __gpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gpChart',{title:en?'%GRR vs Tolerance (%GRR = GRR/Tol)':'%GRR 随公差带变化 (%GRR = GRR/Tol)',labels:s.labels,series:[{name:en?'%GRR':'%GRR',data:s.data},{name:en?'Accept limit 10%':'可接受上限 10%',data:s.r10},{name:en?'Marginal limit 30%':'临界上限 30%',data:s.r30}]});
+}
+function __gpTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__gpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[];
+  for(var i=0;i<s.rows.length;i++){
+    var t=s.rows[i][2];
+    rows.push([s.rows[i][0],s.rows[i][1],t==='OK'?(en?'Acceptable':'可接受'):(t==='WARN'?(en?'Marginal':'临界'):(en?'Unacceptable':'不可接受'))]);
+  }
+  TBKit.matrix.table('#gpTable',{head:en?['Tolerance Tol','%GRR','Verdict']:['公差带 Tol','%GRR','判定'],rows:rows});
+}
+
+function __gpShow(which){
+  var c=document.getElementById('gpChart'), t=document.getElementById('gpTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gpTabInit(){
+  var btns=document.querySelectorAll('.gp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __gpFn=calcTool;calcTool=function(){try{__gpFn();}catch(e){}try{__gpChart();}catch(e){}try{__gpTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gpChart();}catch(e){}try{__gpTable();}catch(e){}});
+try{__gpTabInit();}catch(e){}
+</script>
 </body>
 </html>

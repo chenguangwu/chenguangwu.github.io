@@ -244,6 +244,12 @@ function __gauge_reproducibilityBoot(){ try{ __gauge_reproducibilityPresets(); }
 if (document.readyState && document.readyState !== 'loading') __gauge_reproducibilityBoot();
 else document.addEventListener('DOMContentLoaded', __gauge_reproducibilityBoot);
 </script>
+<div class="grop-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gropChart" style="margin-top:8px;"></div>
+<div id="gropTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +285,51 @@ else document.addEventListener('DOMContentLoaded', __gauge_reproducibilityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gropSweep(){
+  var R=num('r'), o=num('o');
+  if(!isFinite(R)||R<=0)return null;
+  var map={2:1.128,3:1.693,4:2.059};
+  var d2=map[o]||1.693;
+  var labels=[],d1=[],d2s=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var rr=R*mults[i], so=rr/d2;
+    labels.push((Math.round(rr*10000)/10000).toFixed(4));
+    d1.push(Math.round(so*10000)/10000); d2s.push(Math.round(6*so*10000)/10000);
+    rows.push([(Math.round(rr*10000)/10000).toFixed(4), (Math.round(so*10000)/10000).toFixed(4), (Math.round(6*so*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,d1:d1,d2:d2s,rows:rows};
+}
+function __gropChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gropSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gropChart',{title:en?'Reproducibility vs Range (σ_o = R/d₂*)':'再现性随极差变化 (σ_o = R/d₂*)',labels:s.labels,series:[{name:en?'σ_o':'再现性 σ_o',data:s.d1},{name:en?'6σ spread':'再现性 6σ 扩展',data:s.d2}]});
+}
+function __gropTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__gropSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#gropTable',{head:en?['Range R','σ_o','6σ spread']:['极差 R','再现性 σ_o','6σ 扩展'],rows:s.rows});
+}
+
+function __gropShow(which){
+  var c=document.getElementById('gropChart'), t=document.getElementById('gropTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gropTabInit(){
+  var btns=document.querySelectorAll('.grop-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gropShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __gropFn=calcTool;calcTool=function(){try{__gropFn();}catch(e){}try{__gropChart();}catch(e){}try{__gropTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gropChart();}catch(e){}try{__gropTable();}catch(e){}});
+try{__gropTabInit();}catch(e){}
+</script>
 </body>
 </html>

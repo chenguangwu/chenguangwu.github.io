@@ -244,6 +244,12 @@ function __gauge_repeatabilityBoot(){ try{ __gauge_repeatabilityPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __gauge_repeatabilityBoot();
 else document.addEventListener('DOMContentLoaded', __gauge_repeatabilityBoot);
 </script>
+<div class="gr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="grChart" style="margin-top:8px;"></div>
+<div id="grTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +285,49 @@ else document.addEventListener('DOMContentLoaded', __gauge_repeatabilityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __grSweep(){
+  var R=num('r'), m=num('m');
+  if(!isFinite(R)||R<=0)return null;
+  var map={2:1.128,3:1.693,4:2.059,5:2.326};
+  var labels=[],data=[],rows=[];
+  var ms=[2,3,4,5];
+  for(var i=0;i<ms.length;i++){
+    var mm=ms[i], d2=map[mm]||1.693, sr=R/d2;
+    labels.push(String(mm)); data.push(Math.round(sr*10000)/10000);
+    rows.push([String(mm), String(d2), (Math.round(sr*10000)/10000).toFixed(4), (Math.round(5.15*sr*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __grChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__grSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#grChart',{title:en?'Repeatability vs Number of Trials (σ_r = R/d₂)':'重复性随测量次数变化 (σ_r = R/d₂)',labels:s.labels,series:[{name:en?'σ_r':'重复性 σ_r',data:s.data}]});
+}
+function __grTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__grSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#grTable',{head:en?['Trials m','d₂','σ_r','99% band (5.15σ)']:['测量次数 m','d₂ 系数','重复性 σ_r','99% 过程带宽'],rows:s.rows});
+}
+
+function __grShow(which){
+  var c=document.getElementById('grChart'), t=document.getElementById('grTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __grTabInit(){
+  var btns=document.querySelectorAll('.gr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__grShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __grFn=calcTool;calcTool=function(){try{__grFn();}catch(e){}try{__grChart();}catch(e){}try{__grTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__grChart();}catch(e){}try{__grTable();}catch(e){}});
+try{__grTabInit();}catch(e){}
+</script>
 </body>
 </html>

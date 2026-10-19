@@ -305,6 +305,12 @@ function __grr_studyBoot(){ try{ __grr_studyPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __grr_studyBoot();
 else document.addEventListener('DOMContentLoaded', __grr_studyBoot);
 </script>
+<div class="gs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gsChart" style="margin-top:8px;"></div>
+<div id="gsTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -340,5 +346,54 @@ else document.addEventListener('DOMContentLoaded', __grr_studyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gsSweep(){
+  var sr=num('sr'), so=num('so'), tol=num('tol');
+  if(!isFinite(sr)||!isFinite(so)||!isFinite(tol)||tol<=0||so<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var oo=so*mults[i], grr=6*Math.sqrt(sr*sr+oo*oo), pct=grr/tol*100;
+    labels.push((Math.round(oo*10000)/10000).toFixed(4));
+    data.push(Math.round(pct*100)/100);
+    rows.push([(Math.round(oo*10000)/10000).toFixed(4), (Math.round(grr*10000)/10000).toFixed(4), (Math.round(pct*100)/100).toFixed(2), pct<10?'OK':(pct<30?'WARN':'BAD')]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __gsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gsChart',{title:en?'%GRR vs Reproducibility (GRR = 6√(σ_r² + σ_o²))':'%GRR 随再现性变化 (GRR = 6√(σ_r² + σ_o²))',labels:s.labels,series:[{name:en?'%GRR':'%GRR',data:s.data}]});
+}
+function __gsTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__gsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[];
+  for(var i=0;i<s.rows.length;i++){
+    var t=s.rows[i][3];
+    rows.push([s.rows[i][0],s.rows[i][1],s.rows[i][2],t==='OK'?(en?'Acceptable':'可接受'):(t==='WARN'?(en?'Marginal':'临界'):(en?'Unacceptable':'不可接受'))]);
+  }
+  TBKit.matrix.table('#gsTable',{head:en?['σ_o','GRR band','%GRR','Verdict']:['再现性 σ_o','R&R 带宽','%GRR','判定'],rows:rows});
+}
+
+function __gsShow(which){
+  var c=document.getElementById('gsChart'), t=document.getElementById('gsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gsTabInit(){
+  var btns=document.querySelectorAll('.gs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __gsFn=calcTool;calcTool=function(){try{__gsFn();}catch(e){}try{__gsChart();}catch(e){}try{__gsTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gsChart();}catch(e){}try{__gsTable();}catch(e){}});
+try{__gsTabInit();}catch(e){}
+</script>
 </body>
 </html>
