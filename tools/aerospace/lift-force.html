@@ -214,6 +214,12 @@ function resetForm(){document.getElementById('rho').value = '1.225';
       calcTool();}
 calcTool();
 </script>
+<div class="lf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lfChart" style="margin-top:8px;"></div>
+<div id="lfTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -309,6 +315,50 @@ calcTool = function(){ __tb_fn0(); try{ __lift_forceExtras(); }catch(e){} };
 function __lift_forceBoot(){ try{ __lift_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __lift_forceBoot();
 else document.addEventListener('DOMContentLoaded', __lift_forceBoot);
+</script>
+<script>
+function __lfSweep(){
+  var rho=num('rho'), v=num('v'), S=num('s'), cl=num('cl');
+  if(!isFinite(rho)||!isFinite(v)||!isFinite(S)||!isFinite(cl)||S<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3];
+  for(var i=0;i<mults.length;i++){
+    var ss=S*mults[i], L=0.5*rho*v*v*ss*cl;
+    labels.push((Math.round(ss*100)/100).toFixed(2));
+    d1.push(Math.round(L/1000*100)/100); d2.push(Math.round(L/9.81*10)/10);
+    rows.push([(Math.round(ss*100)/100).toFixed(2), (Math.round(L/1000*100)/100).toFixed(2), (Math.round(L/9.81*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __lfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lfChart',{title:en?'Lift vs Wing Area (L = ½ρv²S·C_L)':'升力随翼面积变化 (L = ½ρv²S·C_L)',labels:s.labels,series:[{name:en?'Lift L (kN)':'升力 L (kN)',data:s.d1},{name:en?'Lift (kgf)':'升力 (kgf)',data:s.d2}]});
+}
+function __lfTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__lfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#lfTable',{head:en?['Wing area S (m²)','Lift L (kN)','Lift (kgf)']:['翼面积 S (m²)','升力 L (kN)','升力 (kgf)'],rows:s.rows});
+}
+
+function __lfShow(which){
+  var c=document.getElementById('lfChart'), t=document.getElementById('lfTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lfTabInit(){
+  var btns=document.querySelectorAll('.lf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __lfFn=calcTool;calcTool=function(){try{__lfFn();}catch(e){}try{__lfChart();}catch(e){}try{__lfTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lfChart();}catch(e){}try{__lfTable();}catch(e){}});
+try{__lfTabInit();}catch(e){}
 </script>
 </body>
 </html>

@@ -202,6 +202,12 @@ function resetForm(){document.getElementById('phi').value = '60';
       calcTool();}
 calcTool();
 </script>
+<div class="lof-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lofChart" style="margin-top:8px;"></div>
+<div id="lofTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -300,6 +306,50 @@ calcTool = function(){ __tb_fn0(); try{ __load_factorExtras(); }catch(e){} };
 function __load_factorBoot(){ try{ __load_factorPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __load_factorBoot();
 else document.addEventListener('DOMContentLoaded', __load_factorBoot);
+</script>
+<script>
+function __lofSweep(){
+  var phi=num('phi');
+  if(!isFinite(phi))return null;
+  var labels=[],data=[],rows=[];
+  var angs=[0,15,30,45,60,70,75];
+  for(var i=0;i<angs.length;i++){
+    var d=angs[i], rad=d*Math.PI/180, n=1/Math.cos(rad);
+    if(!isFinite(n))continue;
+    labels.push(String(d)); data.push(Math.round(n*100)/100);
+    rows.push([String(d), (Math.round(n*100)/100).toFixed(2), (Math.round(n*9.80665*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __lofChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__lofSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#lofChart',{title:en?'Load Factor at Bank Angles (n = 1/cos φ)':'各坡度角下的载荷因子 (n = 1/cos φ)',labels:s.labels,series:[{name:en?'Load factor n':'载荷因子 n',data:s.data}]});
+}
+function __lofTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__lofSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#lofTable',{head:en?['Bank angle φ (°)','Load factor n','Equivalent accel (m/s²)']:['坡度角 φ (°)','载荷因子 n','等效过载加速度 (m/s²)'],rows:s.rows});
+}
+
+function __lofShow(which){
+  var c=document.getElementById('lofChart'), t=document.getElementById('lofTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lofTabInit(){
+  var btns=document.querySelectorAll('.lof-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lofShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __lofFn=calcTool;calcTool=function(){try{__lofFn();}catch(e){}try{__lofChart();}catch(e){}try{__lofTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lofChart();}catch(e){}try{__lofTable();}catch(e){}});
+try{__lofTabInit();}catch(e){}
 </script>
 </body>
 </html>

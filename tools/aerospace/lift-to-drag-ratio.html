@@ -258,6 +258,12 @@ function resetForm(){document.getElementById('cl').value = '1.0';
       calcTool();}
 calcTool();
 </script>
+<div class="ld-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ldChart" style="margin-top:8px;"></div>
+<div id="ldTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -354,6 +360,50 @@ calcTool = function(){ __tb_fn0(); try{ __lift_to_drag_ratioExtras(); }catch(e){
 function __lift_to_drag_ratioBoot(){ try{ __lift_to_drag_ratioPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __lift_to_drag_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __lift_to_drag_ratioBoot);
+</script>
+<script>
+function __ldSweep(){
+  var cl=num('cl'), cd=num('cd');
+  if(!isFinite(cl)||!isFinite(cd)||cd<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var c=cd*mults[i], ld=cl/c, ang=Math.atan(c/cl)*180/Math.PI;
+    labels.push((Math.round(c*10000)/10000).toFixed(4));
+    d1.push(Math.round(ld*100)/100); d2.push(Math.round(ang*100)/100);
+    rows.push([(Math.round(c*10000)/10000).toFixed(4), (Math.round(ld*100)/100).toFixed(2), (Math.round(ang*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __ldChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ldSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ldChart',{title:en?'L/D vs Drag Coefficient (L/D = C_L/C_D)':'升阻比随阻力系数变化 (L/D = C_L/C_D)',labels:s.labels,series:[{name:en?'L/D ratio':'升阻比 L/D',data:s.d1},{name:en?'Glide angle (°)':'下滑角 (°)',data:s.d2}]});
+}
+function __ldTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ldSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ldTable',{head:en?['Drag coefficient C_D','L/D ratio','Glide angle (°)']:['阻力系数 C_D','升阻比 L/D','下滑角 (°)'],rows:s.rows});
+}
+
+function __ldShow(which){
+  var c=document.getElementById('ldChart'), t=document.getElementById('ldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ldTabInit(){
+  var btns=document.querySelectorAll('.ld-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ldShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ldFn=calcTool;calcTool=function(){try{__ldFn();}catch(e){}try{__ldChart();}catch(e){}try{__ldTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ldChart();}catch(e){}try{__ldTable();}catch(e){}});
+try{__ldTabInit();}catch(e){}
 </script>
 </body>
 </html>
