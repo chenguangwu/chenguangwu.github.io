@@ -125,6 +125,18 @@ s.parentNode.insertBefore(el, s);
     </div>
     <table id="esHidden" style="display:none"><thead><tr><th>System</th><th>Weight</th><th>Activity</th><th>Weighted</th></tr></thead><tbody></tbody></table>
     <div class="result-box" id="res"></div>
+<div class="tabs" id="a1Tabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="a1Chart"></div>
+<div class="card" id="a1TableCard" style="display:none">
+  <h3 id="a1TableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="a1Th0"></th><th id="a1Th1"></th><th id="a1Th2"></th><th id="a1Th3"></th></tr></thead>
+    <tbody id="a1Tbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -464,6 +476,30 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var A1_EN={const:'Constitutional',lymph:'Lymph Nodes',gland:'Glands',artic:'Joints',cut:'Skin',pulm:'Lungs',renal:'Kidneys',muscl:'Muscles',pns:'Peripheral Nerve',cns:'CNS',hema:'Hematologic',bio:'Biomarkers'};
+  function a1_groups(){ return domains.map(function(d){ return {zh:d.name,en:(A1_EN[d.key]||d.name),n:d.weight,lv:d.levels.length}; }); }
+  function a1_render(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('a1Chart')) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var g=a1_groups();
+    TBKit.chart.bar('#a1Chart',{labels:g.map(function(x){return en?x.en:x.zh;}),series:[{name:en?'Weight':'权重',data:g.map(function(x){return x.n;})}],height:320,title:en?'Domain Weights':'各领域评分权重'});
+    var t=document.getElementById('a1Tbody'); if(!t) return;
+    t.innerHTML=g.map(function(x,i){ return '<tr><td>'+(i+1)+'</td><td>'+(en?x.en:x.zh)+'</td><td>'+x.n+'</td><td>'+x.lv+'</td></tr>'; }).join('');
+    var tt=document.getElementById('a1TableTitle'); if(tt) tt.textContent=en?'Scoring Domains':'评分领域与权重';
+    var hs=[['a1Th0','#'],['a1Th1',en?'Domain':'领域'],['a1Th2',en?'Weight':'权重'],['a1Th3',en?'Levels':'分级数']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+
+  function a1_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#a1Tabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function a1_bindTabs(){ var tabs=document.querySelectorAll('#a1Tabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('a1Chart'); var card=document.getElementById('a1TableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function a1_all(){try{a1_render();}catch(e){}a1_fillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){a1_bindTabs();a1_all();});
+  document.addEventListener('toolbox:langchange',function(){a1_all();});
+})();
 </script>
 </body>
 </html>

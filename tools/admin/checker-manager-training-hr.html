@@ -128,6 +128,18 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetForm()">全部重置</button>
     </div>
     <div class="result-box" id="res"></div>
+<div class="tabs" id="ckTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="ckChart"></div>
+<div class="card" id="ckTableCard" style="display:none">
+  <h3 id="ckTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="ckTh0"></th><th id="ckTh1"></th><th id="ckTh2"></th><th id="ckTh3"></th></tr></thead>
+    <tbody id="ckTbody"></tbody>
+  </table>
+</div>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常见自查预设：</span>
       <button type="button" class="btn" onclick="applySecPreset('full')">🟢 全部落实</button>
@@ -443,5 +455,29 @@ function applySecPreset(kind){
 }
 </script>
 
+<script>
+(function(){
+  var CK_EN={'一、保密协议管理':'Confidentiality Agreements','二、保密培训管理':'Confidentiality Training','三、保密检查管理':'Confidentiality Inspections'};
+  function ck_groups(){ return MODULES.map(function(m){ return {zh:m.name,en:(CK_EN[m.name]||m.name),n:m.items.length,reps:m.items.slice(0,2).join(' / ')}; }); }
+  function ck_render(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('ckChart')) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var g=ck_groups();
+    TBKit.chart.bar('#ckChart',{labels:g.map(function(x){return en?x.en:x.zh;}),series:[{name:en?'Items':'条目数',data:g.map(function(x){return x.n;})}],height:280,title:en?'Compliance Module Items':'合规模块条目数'});
+    var t=document.getElementById('ckTbody'); if(!t) return;
+    t.innerHTML=g.map(function(x,i){ return '<tr><td>'+(i+1)+'</td><td>'+(en?x.en:x.zh)+'</td><td>'+x.n+'</td><td>'+(x.reps||'-')+'</td></tr>'; }).join('');
+    var tt=document.getElementById('ckTableTitle'); if(tt) tt.textContent=en?'Confidentiality Management Modules':'保密管理模块清单';
+    var hs=[['ckTh0','#'],['ckTh1',en?'Module':'模块'],['ckTh2',en?'Items':'条目数'],['ckTh3',en?'Examples':'代表条目']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+
+  function ck_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#ckTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function ck_bindTabs(){ var tabs=document.querySelectorAll('#ckTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('ckChart'); var card=document.getElementById('ckTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function ck_all(){try{ck_render();}catch(e){}ck_fillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){ck_bindTabs();ck_all();});
+  document.addEventListener('toolbox:langchange',function(){ck_all();});
+})();
+</script>
 </body>
 </html>

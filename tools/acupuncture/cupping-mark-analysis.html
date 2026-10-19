@@ -124,6 +124,18 @@ s.parentNode.insertBefore(el, s);
 
     <h3>① 选择罐印表现</h3>
     <div id="colorList"></div>
+<div class="tabs" id="cpTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="cpChart"></div>
+<div class="card" id="cpTableCard" style="display:none">
+  <h3 id="cpTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="cpTh0"></th><th id="cpTh1"></th><th id="cpTh2"></th><th id="cpTh3"></th><th id="cpTh4"></th></tr></thead>
+    <tbody id="cpTbody"></tbody>
+  </table>
+</div>
 
     <h3 style="margin-top:16px;">② 伴随情况（可多选）</h3>
     <div class="checkbox-row" id="symptomRow"></div>
@@ -499,6 +511,35 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var CP_NATURE={pink:'正常',red:'热证',darkred:'热证',purple:'瘀证',dark:'寒证',pale:'虚证',gray:'虚证',blister:'湿证',itch:'风证',sweat:'湿证'};
+  var CP_NATURE_EN={'正常':'Normal','热证':'Heat','瘀证':'Stasis','寒证':'Cold','虚证':'Deficiency','湿证':'Dampness','风证':'Wind'};
+  function cp_natureGroups(){
+    var order=[],map={};
+    MARKS.forEach(function(m){ var nat=CP_NATURE[m.key]; if(!map[nat]){map[nat]=0;order.push(nat);} map[nat]++; });
+    return order.map(function(k){ return {zh:k,en:(CP_NATURE_EN[k]||k),n:map[k]}; });
+  }
+  function cp_render(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('cpChart')) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var g=cp_natureGroups();
+    TBKit.chart.bar('#cpChart',{labels:g.map(function(x){return en?x.en:x.zh;}),series:[{name:en?'Marks':'罐印数',data:g.map(function(x){return x.n;})}],height:300,title:en?'Mark Pattern Distribution':'罐印证型分布'});
+    var t=document.getElementById('cpTbody'); if(!t) return;
+    t.innerHTML=MARKS.map(function(m,i){ return '<tr><td>'+(i+1)+'</td><td>'+m.name+'</td><td>'+m.hex+'</td><td>'+m.tcm+'</td><td>'+m.advice+'</td></tr>'; }).join('');
+    var tt=document.getElementById('cpTableTitle'); if(tt) tt.textContent=en?'Cupping Mark Reference':'拔罐罐印色卡速查';
+    var hs=[['cpTh0','#'],['cpTh1',en?'Mark':'罐印'],['cpTh2',en?'Color':'色卡'],['cpTh3',en?'Pattern':'证型'],['cpTh4',en?'Advice':'处理建议']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+
+  function cp_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#cpTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function cp_bindTabs(){ var tabs=document.querySelectorAll('#cpTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('cpChart'); var card=document.getElementById('cpTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function cp_all(){try{cp_render();}catch(e){}cp_fillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){cp_bindTabs();cp_all();});
+  document.addEventListener('toolbox:langchange',function(){cp_all();});
+})();
 </script>
 </body>
 </html>
