@@ -260,6 +260,12 @@ function resetForm(){document.getElementById('v').value = '343';
       calcTool();}
 calcTool();
 </script>
+<div class="wf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wfChart" style="margin-top:8px;"></div>
+<div id="wfTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,6 +343,49 @@ calcTool = function(){ __tb_fn0(); try{ __wavelength_frequencyExtras(); }catch(e
 function __wavelength_frequencyBoot(){ try{ __wavelength_frequencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __wavelength_frequencyBoot();
 else document.addEventListener('DOMContentLoaded', __wavelength_frequencyBoot);
+</script>
+<script>
+function __wfSweep(){
+  var v=num('v'), f=num('f');
+  if(!isFinite(v)||!isFinite(f)||v<=0||f<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var ff=f*mults[i], lam=v/ff;
+    labels.push(String(Math.round(ff*10)/10)); data.push(Math.round(lam*10000)/10000);
+    rows.push([String(Math.round(ff*10)/10), (Math.round(lam*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __wfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__wfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wfChart',{title:en?'Wavelength vs Frequency (λ = v/f)':'波长随频率变化 (λ = v/f)',labels:s.labels,series:[{name:en?'Wavelength λ (m)':'波长 λ (m)',data:s.data}]});
+}
+function __wfTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__wfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#wfTable',{head:en?['Frequency (Hz)','Wavelength λ (m)']:['频率 (Hz)','波长 λ (m)'],rows:s.rows});
+}
+
+function __wfShow(which){
+  var c=document.getElementById('wfChart'), t=document.getElementById('wfTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wfTabInit(){
+  var btns=document.querySelectorAll('.wf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __wfFn=calcTool;calcTool=function(){try{__wfFn();}catch(e){}try{__wfChart();}catch(e){}try{__wfTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wfChart();}catch(e){}try{__wfTable();}catch(e){}});
+try{__wfTabInit();}catch(e){}
 </script>
 </body>
 </html>
