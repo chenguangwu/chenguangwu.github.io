@@ -318,6 +318,8 @@ s.parentNode.insertBefore(el, s);
       <canvas id="vizCanvas"></canvas>
       <div class="canvas-placeholder" id="canvasPlaceholder">请先上传音频文件</div>
     </div>
+    <div id="awPresets" style="margin:10px 0;"></div>
+    <div id="awRefTbl" style="margin-top:12px;"></div>
 
     <!-- 参数调节 -->
     <div class="param-grid" id="paramGrid">
@@ -1103,6 +1105,45 @@ drawBg();
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
+// F64: 可视化参数预设 + 预设参数速查表
+function __awT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}
+var AW_PRESETS=[
+  {key:'spectrum',zh:'频谱分析',en:'Spectrum',values:{fftSize:'2048',smoothing:'0.5',waveColor:'#FF6B35'}},
+  {key:'wave',zh:'波形细节',en:'Wave detail',values:{fftSize:'512',smoothing:'0.2',waveColor:'#22D3EE'}},
+  {key:'envelope',zh:'平滑包络',en:'Smooth envelope',values:{fftSize:'4096',smoothing:'0.9',waveColor:'#A855F7'}},
+  {key:'mono',zh:'单色经典',en:'Classic mono',values:{fftSize:'1024',smoothing:'0.6',waveColor:'#FFFFFF'}}
+];
+function __awApply(p){
+  for(var k in p.values){if(!Object.prototype.hasOwnProperty.call(p.values,k))continue;var el=document.getElementById(k);if(el){el.value=p.values[k];}}
+  try{if(typeof updateFFTSize==='function')updateFFTSize();}catch(e){}
+  try{if(typeof updateSmoothing==='function')updateSmoothing(document.getElementById('smoothing').value);}catch(e){}
+  try{if(typeof updateColor==='function')updateColor(document.getElementById('waveColor').value);}catch(e){}
+  if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast(__awT('已应用预设「'+p.zh+'」','Preset "'+p.en+'" applied'),'info');}
+}
+function __awPresets(){
+  if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar)return;
+  var host=document.getElementById('awPresets');if(!host)return;
+  TBKit.preset.bar(host,AW_PRESETS.map(function(p){return {label:p.zh,labelEn:p.en,values:p.values};}),__awApply);
+}
+function __awRefTbl(){
+  var host=document.getElementById('awRefTbl');if(!host)return;
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=AW_PRESETS.map(function(p){return [__awT(p.zh,p.en),p.values.fftSize,p.values.smoothing,p.values.waveColor];});
+  var head=en?['Preset','FFT size','Smoothing','Color']:['预设','FFT 大小','平滑度','主色'];
+  var html='<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">'+__awT('可视化参数预设速查','Visualization presets')+'</h4>'
+    +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function(h){html+='<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">'+h+'</th>';});
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr>';r.forEach(function(c){html+='<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">'+c+'</td>';});html+='</tr>';});
+  html+='</tbody></table></div>';
+  host.innerHTML=html;
+}
+try{
+  __awPresets();
+  if(typeof TBKit!=='undefined')__awRefTbl();
+  document.addEventListener('DOMContentLoaded',function(){try{__awPresets();if(typeof TBKit!=='undefined')__awRefTbl();}catch(e){}});
+  document.addEventListener('toolbox:langchange',function(){try{__awPresets();__awRefTbl();}catch(e){}});
+}catch(e){}
 }catch(e){}})();
 </script>
 </body>

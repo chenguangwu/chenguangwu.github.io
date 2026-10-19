@@ -211,6 +211,8 @@ s.parentNode.insertBefore(el, s);
 
     <div class="canvas-wrap">
       <canvas id="canvas"></canvas>
+      <div id="spPresets" style="margin:10px 0;"></div>
+      <div id="spRefTbl" style="margin-top:12px;"></div>
     </div>
 
     <div class="bg-options">
@@ -630,6 +632,50 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
+// F64: 笔迹样式预设 + 签署场景建议表
+function __spT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}
+var SP_PRESETS=[
+  {key:'pen',zh:'钢笔细',en:'Fine pen',values:{strokeWidth:'1.5',colorPicker:'#000000'}},
+  {key:'sign',zh:'签字笔',en:'Sign pen',values:{strokeWidth:'3',colorPicker:'#1a1a1a'}},
+  {key:'marker',zh:'马克笔粗',en:'Marker',values:{strokeWidth:'8',colorPicker:'#0033cc'}},
+  {key:'red',zh:'红色批注',en:'Red note',values:{strokeWidth:'4',colorPicker:'#cc0000'}}
+];
+function __spApply(p){
+  var w=document.getElementById('strokeWidth'),c=document.getElementById('colorPicker');
+  if(w){w.value=p.values.strokeWidth;try{w.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}}
+  if(c){c.value=p.values.colorPicker;}
+  try{if(typeof setColorFromPicker==='function')setColorFromPicker(p.values.colorPicker);}catch(e){}
+  if(typeof ToolBox!=='undefined'&&ToolBox.showToast){ToolBox.showToast(__spT('已应用笔迹预设「'+p.zh+'」','Pen preset "'+p.en+'" applied'),'info');}
+}
+function __spPresets(){
+  if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar)return;
+  var host=document.getElementById('spPresets');if(!host)return;
+  TBKit.preset.bar(host,SP_PRESETS.map(function(p){return {label:p.zh,labelEn:p.en,values:p.values};}),__spApply);
+}
+function __spRefTbl(){
+  var host=document.getElementById('spRefTbl');if(!host)return;
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[
+    [__spT('正式合同签署','Formal contract'),__spT('1–2 px','1–2 px'),__spT('黑/深蓝','Black / dark blue'),__spT('法律文件要求清晰可辨','Legible for legal docs')],
+    [__spT('日常签字','Daily signing'),__spT('2–3 px','2–3 px'),__spT('黑/蓝','Black / blue'),__spT('常规文档通用','General documents')],
+    [__spT('设计批注','Design markup'),__spT('4–8 px','4–8 px'),__spT('红/橙高亮','Red / orange'),__spT('醒目标记修改点','Highlight edits')],
+    [__spT('艺术签名','Artistic signature'),__spT('6–12 px','6–12 px'),__spT('彩色/渐变','Color / gradient'),__spT('展示性签名','Display signature')]
+  ];
+  var head=en?['Scenario','Width','Color','Note']:['场景','笔宽','颜色','说明'];
+  var html='<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">'+__spT('签署笔迹建议','Signing pen guide')+'</h4>'
+    +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function(h){html+='<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">'+h+'</th>';});
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr>';r.forEach(function(c){html+='<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">'+c+'</td>';});html+='</tr>';});
+  html+='</tbody></table></div>';
+  host.innerHTML=html;
+}
+try{
+  __spPresets();
+  if(typeof TBKit!=='undefined')__spRefTbl();
+  document.addEventListener('DOMContentLoaded',function(){try{__spPresets();if(typeof TBKit!=='undefined')__spRefTbl();}catch(e){}});
+  document.addEventListener('toolbox:langchange',function(){try{__spPresets();__spRefTbl();}catch(e){}});
+}catch(e){}
 }catch(e){}})();
 </script>
 </body>
