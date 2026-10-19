@@ -223,6 +223,12 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3 style="margin-bottom:12px;font-size:15px;">📊 训练记录</h3>
     <div id="historyStats"></div>
+    <div class="tabs" id="nmTabs">
+      <button type="button" class="tab-btn active" data-v="chart"></button>
+      <button type="button" class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="nmChart" style="margin-top:12px;"></div>
+    <div id="nmRef" style="display:none;margin-top:12px;overflow-x:auto;"></div>
     <div style="margin-top:12px;">
       <button type="button" class="btn" onclick="clearHistory()">清空记录</button>
     </div>
@@ -438,6 +444,67 @@ document.getElementById('answerInput').addEventListener('keypress', function(e) 
   if (e.key === 'Enter') checkAnswer();
 });
 
+// F60: 历史位数趋势图 + 记忆广度等级参考表
+var NM_LEVELS = [
+  { range: [1, 4],  zh: '入门', en: 'Beginner',      descZh: '低于常人水平，可先用「分组法」把数字按 3-4 位一组记忆', descEn: 'Below average; try chunking digits into groups of 3-4' },
+  { range: [5, 6],  zh: '平均偏下', en: 'Average-low',  descZh: '接近成人平均水平下限，坚持训练可稳步提升', descEn: 'Near the lower bound of the adult average; steady practice helps' },
+  { range: [7, 9],  zh: '正常水平', en: 'Normal',       descZh: '正常成人短期数字广度（7±2 位）核心区间', descEn: 'Core range of the normal adult digit span (7±2)' },
+  { range: [10, 12], zh: '优于常人', en: 'Above average', descZh: '超过常人水平，可尝试「谐音法/图像法」编故事记忆', descEn: 'Above average; try the mnemonics or imagery method' },
+  { range: [13, 99], zh: '出色', en: 'Excellent',      descZh: '非常出色的数字记忆，可进阶「记忆宫殿」等专业技巧', descEn: 'Excellent span; advanced techniques like the memory palace apply' }
+];
+function __nmT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __nmExtras() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) return;
+  var en = TBKit.util.isEn();
+  if (history.length) {
+    var h = history.slice(0, 10).reverse();
+    TBKit.chart.line('#nmChart', {
+      title: en ? 'Recent 10 challenges (digits reached)' : '最近 10 次挑战位数',
+      labels: h.map(function (x, i) { return '#' + (i + 1); }),
+      series: [{ name: en ? 'Digits' : '位数', data: h.map(function (x) { return x.level; }) }]
+    });
+  }
+  var host = document.getElementById('nmRef');
+  if (!host) return;
+  var rows = '';
+  NM_LEVELS.forEach(function (lv) {
+    var hit = bestRecord >= lv.range[0] && bestRecord <= lv.range[1];
+    var bg = hit ? 'background:var(--bg-hover,#f0f0f0);color:var(--primary,#FF6B35);font-weight:600;' : '';
+    rows += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;' + bg + '">' + (lv.range[1] >= 99 ? lv.range[0] + '+' : (lv.range[0] + ' - ' + lv.range[1])) + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);' + bg + '">' + __nmT(lv.zh, lv.en) + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);' + bg + '">' + __nmT(lv.descZh, lv.descEn) + '</td></tr>';
+  });
+  host.innerHTML = '<h4 style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--heading,#333);">' + __nmT('数字记忆广度等级参考', 'Digit span level reference') + '</h4>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __nmT('位数', 'Digits') + '</th>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __nmT('等级', 'Level') + '</th>'
+    + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __nmT('说明', 'Description') + '</th></tr></thead><tbody>' + rows + '</tbody></table>'
+    + '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">' + __nmT('高亮行对应当前最高记录（' + bestRecord + ' 位）。正常成人短期数字广度约 7±2 位。', 'The highlighted row matches your best record (' + bestRecord + ' digits). The normal adult digit span is about 7±2.') + '</p>';
+}
+function __nmTab(v) {
+  var bar = document.getElementById('nmTabs'); if (!bar) return;
+  bar.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-v') === v); });
+  var c = document.getElementById('nmChart'), t = document.getElementById('nmRef');
+  if (c) c.style.display = (v === 'chart') ? '' : 'none';
+  if (t) t.style.display = (v === 'table') ? '' : 'none';
+  if (v === 'table') { try { __nmExtras(); } catch (e) {} }
+}
+(function () {
+  var bar = document.getElementById('nmTabs'); if (!bar) return;
+  var b0 = bar.querySelector('.tab-btn[data-v="chart"]'), b1 = bar.querySelector('.tab-btn[data-v="table"]');
+  if (b0) b0.textContent = '📈 ' + __nmT('挑战趋势', 'Challenge trend');
+  if (b1) b1.textContent = '📋 ' + __nmT('等级参考', 'Level reference');
+  bar.querySelectorAll('.tab-btn').forEach(function (b) { b.addEventListener('click', function () { try { __nmTab(b.getAttribute('data-v')); } catch (e) {} }); });
+})();
+var __nm_f0 = renderHistory;
+renderHistory = function () { var r = __nm_f0.apply(null, arguments); try { __nmExtras(); } catch (e) {} return r; };
+window.addEventListener('toolbox:langchange', function () {
+  var bar = document.getElementById('nmTabs'); if (!bar) return;
+  var b0 = bar.querySelector('.tab-btn[data-v="chart"]'), b1 = bar.querySelector('.tab-btn[data-v="table"]');
+  if (b0) b0.textContent = '📈 ' + __nmT('挑战趋势', 'Challenge trend');
+  if (b1) b1.textContent = '📋 ' + __nmT('等级参考', 'Level reference');
+  try { __nmExtras(); } catch (e) {}
+});
 renderHistory();
 </script><script>
 // tool-intro折叠交互

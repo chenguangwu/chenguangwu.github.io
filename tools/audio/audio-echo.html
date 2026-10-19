@@ -306,6 +306,16 @@ s.parentNode.insertBefore(el, s);
 
     <div class="signal-chain" id="signalChain"></div>
 
+    <div class="param-group" id="echoGuideBox" style="margin-top:14px;">
+      <h4 id="echoGuideTitle" style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--heading,#333);"></h4>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr id="echoGuideHead"></tr></thead>
+          <tbody id="echoGuideBody"></tbody>
+        </table>
+      </div>
+      <p id="echoGuideNote" style="font-size:12px;color:var(--text-muted,#888);margin-top:8px;line-height:1.7;"></p>
+    </div>
     <div class="info-box" style="margin-top:14px;">
       <p><strong>干信号（Dry）</strong>：原始未处理音频；<strong>湿信号（Wet）</strong>：经过效果处理后的音频。混合比越大，效果越明显。</p>
     </div>
@@ -1085,6 +1095,69 @@ mo.observe(document.body, { attributes:true, attributeFilter:['class'] });
 buildPresets();
 renderSignalChain();
 drawWaveform();
+// F60: 参数效果对照表 + 参数本地持久化
+var ECHO_GUIDE = [
+  { zh: '回声 · 延迟时间', en: 'Echo · Delay time', rngZh: '0.05 - 0.10 s', rngEn: '0.05 - 0.10 s', feelZh: '厚实「加倍」效果（Slapback）', feelEn: 'Thick slapback doubling', useZh: '人声加厚、电台感', useEn: 'Vocal thickening, radio feel' },
+  { zh: '回声 · 延迟时间', en: 'Echo · Delay time', rngZh: '0.10 - 0.30 s', rngEn: '0.10 - 0.30 s', feelZh: '清晰可辨的重复回声', feelEn: 'Clear, distinct repeats', useZh: '歌曲尾句拖音', useEn: 'Trailing notes in songs' },
+  { zh: '回声 · 延迟时间', en: 'Echo · Delay time', rngZh: '0.30 s 以上', rngEn: 'Above 0.30 s', feelZh: '空旷场地的长回声', feelEn: 'Long echoes of open spaces', useZh: '山谷、礼堂氛围', useEn: 'Valley or hall ambience' },
+  { zh: '回声 · 反馈量', en: 'Echo · Feedback', rngZh: '0 - 0.30', rngEn: '0 - 0.30', feelZh: '干净、少量重复', feelEn: 'Clean, few repeats', useZh: '语音消息轻量处理', useEn: 'Light voice-message processing' },
+  { zh: '回声 · 反馈量', en: 'Echo · Feedback', rngZh: '0.30 - 0.60', rngEn: '0.30 - 0.60', feelZh: '多层渐衰回声', feelEn: 'Multi-layer fading echoes', useZh: '音乐氛围铺垫', useEn: 'Musical atmosphere' },
+  { zh: '湿/干混合比', en: 'Wet / dry mix', rngZh: '0 - 20%', rngEn: '0 - 20%', feelZh: '微妙空间感', feelEn: 'Subtle sense of space', useZh: '几乎无感的润色', useEn: 'Barely noticeable polish' },
+  { zh: '湿/干混合比', en: 'Wet / dry mix', rngZh: '20 - 50%', rngEn: '20 - 50%', feelZh: '效果明显、干湿平衡', feelEn: 'Obvious effect, dry/wet balanced', useZh: '大多数音频处理场景', useEn: 'Most audio processing' },
+  { zh: '混响 · 时长', en: 'Reverb · Decay', rngZh: '0.3 - 1.0 s', rngEn: '0.3 - 1.0 s', feelZh: '小房间 / 卧室感', feelEn: 'Small room / bedroom feel', useZh: '播客、语音近场感', useEn: 'Podcasts, intimate voice' },
+  { zh: '混响 · 时长', en: 'Reverb · Decay', rngZh: '1.0 - 3.0 s', rngEn: '1.0 - 3.0 s', feelZh: '大厅 / 礼堂感', feelEn: 'Hall / auditorium feel', useZh: '歌曲主唱空间', useEn: 'Lead vocal space' },
+  { zh: '混响 · 时长', en: 'Reverb · Decay', rngZh: '3.0 s 以上', rngEn: 'Above 3.0 s', feelZh: '教堂 / 山谷长混响', feelEn: 'Church / valley long reverb', useZh: '氛围音乐、音效设计', useEn: 'Ambient music, sound design' }
+];
+function __echoT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __echoGuide() {
+  var head = document.getElementById('echoGuideHead'), body = document.getElementById('echoGuideBody');
+  if (!head || !body) return;
+  var cols = [__echoT('效果与参数', 'Effect & parameter'), __echoT('推荐区间', 'Recommended range'), __echoT('听感特征', 'Character'), __echoT('适用场景', 'Best for')];
+  head.innerHTML = cols.map(function (c) { return '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;white-space:nowrap;">' + c + '</th>'; }).join('');
+  var rows = '';
+  ECHO_GUIDE.forEach(function (g) {
+    rows += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;font-weight:600;">' + __echoT(g.zh, g.en) + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;">' + __echoT(g.rngZh, g.rngEn) + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + __echoT(g.feelZh, g.feelEn) + '</td>'
+      + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + __echoT(g.useZh, g.useEn) + '</td></tr>';
+  });
+  body.innerHTML = rows;
+  document.getElementById('echoGuideTitle').textContent = __echoT('参数效果对照表', 'Parameter effect reference');
+  document.getElementById('echoGuideNote').textContent = __echoT('以上为常用起点区间：先按场景选延迟/混响时长，再用反馈量控制重复层数，最后用湿声比控制效果强度。参数会自动保存在本机浏览器，下次打开继续使用。', 'These are common starting ranges: pick delay/reverb time by scene, feedback for repeat layers, and wet mix for effect strength. Parameters are saved locally in your browser and restored next visit.');
+}
+var ECHO_PKEY = 'audioEchoParams';
+function __echoSave() {
+  try {
+    localStorage.setItem(ECHO_PKEY, JSON.stringify({ type: effectType, delay: delayTime, feedback: feedback, ir: irDuration, mix: mix }));
+  } catch (e) {}
+}
+function __echoRestore() {
+  try {
+    var raw = localStorage.getItem(ECHO_PKEY); if (!raw) return;
+    var s = JSON.parse(raw);
+    if (!s || typeof s !== 'object') return;
+    if (s.type === 'echo' || s.type === 'reverb') { effectType = s.type; setEffectType(effectType); }
+    if (typeof s.delay === 'number') { delayTime = s.delay; delaySlider.value = delayTime; delayVal.textContent = delayTime.toFixed(2) + 's'; }
+    if (typeof s.feedback === 'number') { feedback = s.feedback; feedbackSlider.value = feedback; feedbackVal.textContent = feedback.toFixed(2); }
+    if (typeof s.ir === 'number') { irDuration = s.ir; reverbSlider.value = irDuration; reverbVal.textContent = irDuration.toFixed(1) + 's'; }
+    if (typeof s.mix === 'number') { mix = s.mix; mixSlider.value = mix; mixVal.textContent = mix + '%'; }
+    clearActivePreset();
+    rebuildWetChain();
+    if (effectType === 'echo') { try { applyEchoParams(); } catch (e) {} }
+    drawWaveform();
+  } catch (e) {}
+}
+var __echo_apply0 = applyPreset;
+applyPreset = function (k) { var r = __echo_apply0.apply(null, arguments); try { __echoSave(); } catch (e) {} return r; };
+var __echo_setfx0 = setEffectType;
+setEffectType = function (t) { var r = __echo_setfx0.apply(null, arguments); try { __echoSave(); } catch (e) {} return r; };
+['delaySlider', 'feedbackSlider', 'reverbSlider', 'mixSlider'].forEach(function (id) {
+  var el = $(id);
+  if (el) el.addEventListener('input', function () { try { __echoSave(); } catch (e) {} });
+});
+__echoGuide();
+__echoRestore();
+window.addEventListener('toolbox:langchange', function(){ try{__echoGuide();}catch(e){} });
 // 暴露到全局供 onclick 调用
 window.togglePlay = togglePlay;
 window.stopPlay = stopPlay;

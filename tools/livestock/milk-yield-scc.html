@@ -126,6 +126,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 
     <h3 style="font-size:14px;margin-bottom:8px;">录入测定数据</h3>
+    <div id="myPresets" style="margin-bottom:10px;"></div>
+    <input type="hidden" id="myPresetSel" value="">
     <div id="recordList"></div>
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="addRecord()">+ 添加一条记录</button>
@@ -439,6 +441,49 @@ function __sccExport(){
   TBKit.util.exportTable('#sccHidden', en?'milk-yield-scc.csv':'奶牛产奶量分析.csv');
 }
 
+// F60: 牛群场景预设 + 测定数据本地持久化
+var MY_SCENES = {
+  normal: { zh: '正常泌乳牛群', en: 'Normal lactation', recs: [
+    { day: 1, yield: 28.5, scc: 12 }, { day: 2, yield: 29.8, scc: 14 }, { day: 3, yield: 30.5, scc: 11 },
+    { day: 4, yield: 31.2, scc: 13 }, { day: 5, yield: 32.0, scc: 15 } ] },
+  subclinical: { zh: '隐性乳腺炎', en: 'Subclinical mastitis', recs: [
+    { day: 1, yield: 27.0, scc: 45 }, { day: 2, yield: 26.5, scc: 62 }, { day: 3, yield: 25.8, scc: 78 },
+    { day: 4, yield: 25.0, scc: 95 }, { day: 5, yield: 24.6, scc: 110 } ] },
+  clinical: { zh: '临床乳腺炎', en: 'Clinical mastitis', recs: [
+    { day: 1, yield: 26.0, scc: 180 }, { day: 2, yield: 22.5, scc: 260 }, { day: 3, yield: 19.0, scc: 320 },
+    { day: 4, yield: 17.5, scc: 280 }, { day: 5, yield: 18.2, scc: 240 } ] },
+  dry: { zh: '干奶后期', en: 'Late dry period', recs: [
+    { day: 1, yield: 8.5, scc: 20 }, { day: 2, yield: 8.0, scc: 22 }, { day: 3, yield: 7.5, scc: 25 },
+    { day: 4, yield: 7.0, scc: 28 }, { day: 5, yield: 6.5, scc: 30 } ] }
+};
+var MY_RKEY = 'milkYieldRecords';
+function __myT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __mySave() { try { localStorage.setItem(MY_RKEY, JSON.stringify(records)); } catch (e) {} }
+function __myRestore() {
+  try {
+    var raw = localStorage.getItem(MY_RKEY); if (!raw) return;
+    var a = JSON.parse(raw);
+    if (Array.isArray(a) && a.length && a[0] && typeof a[0].yield === 'number' && typeof a[0].scc === 'number' && typeof a[0].day === 'number') records = a;
+  } catch (e) {}
+}
+function __myApply(key) {
+  var s = MY_SCENES[key]; if (!s) return;
+  records = s.recs.map(function (r) { return { day: r.day, yield: r.yield, scc: r.scc }; });
+  __mySave(); renderRecords(); analyze();
+}
+var __my_u0 = updateRecord, __my_a0 = addRecord, __my_r0 = removeRecord;
+updateRecord = function () { var r = __my_u0.apply(null, arguments); __mySave(); return r; };
+addRecord = function () { var r = __my_a0.apply(null, arguments); __mySave(); return r; };
+removeRecord = function () { var r = __my_r0.apply(null, arguments); __mySave(); return r; };
+__myRestore();
+if (typeof TBKit !== 'undefined' && TBKit.preset && TBKit.preset.bar) {
+  TBKit.preset.bar('#myPresets', [
+    { label: '🐄 ' + MY_SCENES.normal.zh, labelEn: '🐄 ' + MY_SCENES.normal.en, values: { myPresetSel: 'normal' } },
+    { label: '⚠️ ' + MY_SCENES.subclinical.zh, labelEn: '⚠️ ' + MY_SCENES.subclinical.en, values: { myPresetSel: 'subclinical' } },
+    { label: '🔴 ' + MY_SCENES.clinical.zh, labelEn: '🔴 ' + MY_SCENES.clinical.en, values: { myPresetSel: 'clinical' } },
+    { label: '🌙 ' + MY_SCENES.dry.zh, labelEn: '🌙 ' + MY_SCENES.dry.en, values: { myPresetSel: 'dry' } }
+  ], function () { var v = document.getElementById('myPresetSel').value; __myApply(v); });
+}
 renderRecords();
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__sccTrendChart();}catch(e){}});}else{try{__sccTrendChart();}catch(e){}}
 window.addEventListener('toolbox:langchange',function(){try{__sccTrendChart();}catch(e){}});
