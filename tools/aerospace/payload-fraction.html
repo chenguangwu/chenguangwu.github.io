@@ -258,6 +258,12 @@ function resetForm(){document.getElementById('m0').value = '100';
       calcTool();}
 calcTool();
 </script>
+<div class="pf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pfChart" style="margin-top:8px;"></div>
+<div id="pfTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -355,6 +361,50 @@ calcTool = function(){ __tb_fn0(); try{ __payload_fractionExtras(); }catch(e){} 
 function __payload_fractionBoot(){ try{ __payload_fractionPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __payload_fractionBoot();
 else document.addEventListener('DOMContentLoaded', __payload_fractionBoot);
+</script>
+<script>
+function __pfSweep(){
+  var m0=num('m0'), mf=num('mf');
+  if(!isFinite(m0)||!isFinite(mf)||m0<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.2,0.4,0.6,0.8,0.9,0.95,1];
+  for(var i=0;i<mults.length;i++){
+    var ff=m0*mults[i], pfv=(m0-ff)/m0*100;
+    labels.push((Math.round(ff*100)/100).toFixed(2));
+    data.push(Math.round(pfv*100)/100);
+    rows.push([(Math.round(ff*100)/100).toFixed(2), (Math.round(pfv*100)/100).toFixed(2), (Math.round(ff/m0*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __pfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pfChart',{title:en?'Payload Fraction vs Final Mass (pf = (m₀ − m_f)/m₀)':'有效载荷比随末质量变化 (pf = (m₀ − m_f)/m₀)',labels:s.labels,series:[{name:en?'Payload fraction (%)':'有效载荷比 (%)',data:s.data}]});
+}
+function __pfTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__pfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#pfTable',{head:en?['Final mass m_f (t)','Payload fraction (%)','Structure ratio']:['末质量 m_f (吨)','有效载荷比 (%)','结构质量比'],rows:s.rows});
+}
+
+function __pfShow(which){
+  var c=document.getElementById('pfChart'), t=document.getElementById('pfTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pfTabInit(){
+  var btns=document.querySelectorAll('.pf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __pfFn=calcTool;calcTool=function(){try{__pfFn();}catch(e){}try{__pfChart();}catch(e){}try{__pfTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pfChart();}catch(e){}try{__pfTable();}catch(e){}});
+try{__pfTabInit();}catch(e){}
 </script>
 </body>
 </html>
