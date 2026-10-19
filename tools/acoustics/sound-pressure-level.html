@@ -269,6 +269,12 @@ function resetForm(){document.getElementById('p').value = '0.632';
       calcTool();}
 calcTool();
 </script>
+<div class="sp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="spChart" style="margin-top:8px;"></div>
+<div id="spTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,6 +352,49 @@ calcTool = function(){ __tb_fn0(); try{ __sound_pressure_levelExtras(); }catch(e
 function __sound_pressure_levelBoot(){ try{ __sound_pressure_levelPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __sound_pressure_levelBoot();
 else document.addEventListener('DOMContentLoaded', __sound_pressure_levelBoot);
+</script>
+<script>
+function __spSweep(){
+  var p=num('p');
+  if(!isFinite(p)||p<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.001,0.01,0.1,1,10,100,1000];
+  for(var i=0;i<mults.length;i++){
+    var pp=p*mults[i], spl=20*Math.log10(pp/20e-6);
+    labels.push(mults[i]+'x'); data.push(Math.round(spl*100)/100);
+    rows.push([mults[i]+'x', pp.toExponential(3), (Math.round(spl*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __spChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__spSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#spChart',{title:en?'SPL vs Sound Pressure (spl = 20·log10(p/20µPa))':'声压级随声压变化 (spl = 20·log₁₀(p/20µPa))',labels:s.labels,series:[{name:en?'SPL (dB)':'声压级 (dB)',data:s.data}]});
+}
+function __spTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__spSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#spTable',{head:en?['Multiple of p','p (Pa)','SPL (dB)']:['相对倍数','p (Pa)','声压级 (dB)'],rows:s.rows});
+}
+
+function __spShow(which){
+  var c=document.getElementById('spChart'), t=document.getElementById('spTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __spTabInit(){
+  var btns=document.querySelectorAll('.sp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__spShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __spFn=calcTool;calcTool=function(){try{__spFn();}catch(e){}try{__spChart();}catch(e){}try{__spTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__spChart();}catch(e){}try{__spTable();}catch(e){}});
+try{__spTabInit();}catch(e){}
 </script>
 </body>
 </html>

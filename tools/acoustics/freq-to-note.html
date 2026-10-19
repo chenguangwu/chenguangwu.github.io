@@ -270,6 +270,12 @@ function resetForm(){document.getElementById('f').value = '440';
       calcTool();}
 calcTool();
 </script>
+<div class="fn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fnChart" style="margin-top:8px;"></div>
+<div id="fnTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -350,6 +356,49 @@ calcTool = function(){ __tb_fn0(); try{ __freq_to_noteExtras(); }catch(e){} };
 function __freq_to_noteBoot(){ try{ __freq_to_notePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __freq_to_noteBoot();
 else document.addEventListener('DOMContentLoaded', __freq_to_noteBoot);
+</script>
+<script>
+function __fnSweep(){
+  var f=num('f');
+  if(!isFinite(f)||f<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var ff=f*mults[i], midi=69+12*Math.log2(ff/440);
+    labels.push(String(Math.round(ff*10)/10)); data.push(Math.round(midi*100)/100);
+    rows.push([String(Math.round(ff*10)/10), (Math.round(midi*100)/100).toFixed(2), String(Math.round(midi))]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __fnChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fnChart',{title:en?'MIDI Note Number vs Frequency (MIDI = 69 + 12·log2(f/440))':'音高编号随频率变化 (MIDI = 69 + 12·log₂(f/440))',labels:s.labels,series:[{name:en?'MIDI number':'MIDI 音高编号',data:s.data}]});
+}
+function __fnTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__fnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#fnTable',{head:en?['Frequency (Hz)','MIDI number','Nearest MIDI']:['频率 (Hz)','MIDI 音高编号','最接近整数 MIDI'],rows:s.rows});
+}
+
+function __fnShow(which){
+  var c=document.getElementById('fnChart'), t=document.getElementById('fnTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fnTabInit(){
+  var btns=document.querySelectorAll('.fn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fnShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __fnFn=calcTool;calcTool=function(){try{__fnFn();}catch(e){}try{__fnChart();}catch(e){}try{__fnTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fnChart();}catch(e){}try{__fnTable();}catch(e){}});
+try{__fnTabInit();}catch(e){}
 </script>
 </body>
 </html>
