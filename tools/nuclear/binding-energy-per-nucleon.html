@@ -294,6 +294,12 @@ function __binding_energy_per_nucleonBoot(){ try{ __binding_energy_per_nucleonPr
 if (document.readyState && document.readyState !== 'loading') __binding_energy_per_nucleonBoot();
 else document.addEventListener('DOMContentLoaded', __binding_energy_per_nucleonBoot);
 </script>
+<div class="bepn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bepnChart" style="margin-top:8px;"></div>
+<div id="bepnTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -329,5 +335,51 @@ else document.addEventListener('DOMContentLoaded', __binding_energy_per_nucleonB
 </dl>
 </div>
 </section>
+<script>
+function __bepnSweep(){
+  var U=1.66053906660e-27, C=299792458, EV=1.602176634e-19;
+  var dm=num('dm'), a=num('a');
+  if(!isFinite(dm)||!isFinite(a)||a<=0||dm<=0)return null;
+  var be=dm*U*C*C/EV/1e6;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var aa=a*mults[i], per=be/aa;
+    labels.push(String(Math.round(aa*10)/10));
+    data.push(Math.round(per*1000)/1000);
+    rows.push([String(Math.round(aa*10)/10), (Math.round(be*1000)/1000).toFixed(3), (Math.round(per*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __bepnChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bepnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bepnChart',{title:en?'Binding Energy per Nucleon vs Mass Number (BE/A)':'比结合能随核子数变化 (BE/A)',labels:s.labels,series:[{name:en?'BE/A (MeV)':'比结合能 (MeV/核子)',data:s.data}]});
+}
+function __bepnTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__bepnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#bepnTable',{head:en?['Mass number A','BE (MeV)','BE/A (MeV)']:['核子数 A','结合能 BE (MeV)','比结合能 (MeV/核子)'],rows:s.rows});
+}
+
+function __bepnShow(which){
+  var c=document.getElementById('bepnChart'), t=document.getElementById('bepnTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bepnTabInit(){
+  var btns=document.querySelectorAll('.bepn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bepnShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __bepnFn=calcTool;calcTool=function(){try{__bepnFn();}catch(e){}try{__bepnChart();}catch(e){}try{__bepnTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bepnChart();}catch(e){}try{__bepnTable();}catch(e){}});
+try{__bepnTabInit();}catch(e){}
+</script>
 </body>
 </html>

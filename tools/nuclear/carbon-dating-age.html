@@ -307,6 +307,12 @@ function __carbon_dating_ageBoot(){ try{ __carbon_dating_agePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __carbon_dating_ageBoot();
 else document.addEventListener('DOMContentLoaded', __carbon_dating_ageBoot);
 </script>
+<div class="cda-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cdaChart" style="margin-top:8px;"></div>
+<div id="cdaTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +348,49 @@ else document.addEventListener('DOMContentLoaded', __carbon_dating_ageBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cdaSweep(){
+  var LN2=0.69314718056;
+  var th=num('th'), frac=num('frac');
+  if(!isFinite(th)||!isFinite(frac)||th<=0||frac<=0||frac>=1)return null;
+  var labels=[],data=[],rows=[];
+  var fr=[0.9,0.7,0.5,0.3,0.1,0.05,0.01];
+  for(var i=0;i<fr.length;i++){
+    var f=fr[i], t=(th/LN2)*Math.log(1/f);
+    labels.push(String(f)); data.push(Math.round(t*10)/10);
+    rows.push([String(f), (Math.round(t*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __cdaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__cdaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#cdaChart',{title:en?'Carbon Dating Age vs Remaining Fraction (t = (T½/ln2)·ln(1/frac))':'碳定年年代随剩余比例变化',labels:s.labels,series:[{name:en?'Age t (years)':'年代 t (年)',data:s.data}]});
+}
+function __cdaTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__cdaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#cdaTable',{head:en?['Remaining fraction','Age t (years)']:['剩余比例','年代 t (年)'],rows:s.rows});
+}
+
+function __cdaShow(which){
+  var c=document.getElementById('cdaChart'), t=document.getElementById('cdaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cdaTabInit(){
+  var btns=document.querySelectorAll('.cda-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cdaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __cdaFn=calcTool;calcTool=function(){try{__cdaFn();}catch(e){}try{__cdaChart();}catch(e){}try{__cdaTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cdaChart();}catch(e){}try{__cdaTable();}catch(e){}});
+try{__cdaTabInit();}catch(e){}
+</script>
 </body>
 </html>

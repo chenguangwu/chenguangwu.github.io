@@ -301,6 +301,12 @@ function __age_from_activityBoot(){ try{ __age_from_activityPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __age_from_activityBoot();
 else document.addEventListener('DOMContentLoaded', __age_from_activityBoot);
 </script>
+<div class="afa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="afaChart" style="margin-top:8px;"></div>
+<div id="afaTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +342,51 @@ else document.addEventListener('DOMContentLoaded', __age_from_activityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __afaSweep(){
+  var lam=num('lam'), N0=num('N0'), N=num('N');
+  if(!isFinite(lam)||!isFinite(N0)||!isFinite(N)||lam<=0||N0<=0||N<=0)return null;
+  var labels=[],data=[],rows=[];
+  var fr=[0.9,0.7,0.5,0.3,0.1,0.05,0.01];
+  for(var i=0;i<fr.length;i++){
+    var nn=N0*fr[i];
+    if(!(nn>0))continue;
+    var t=(1/lam)*Math.log(N0/nn);
+    labels.push((Math.round(fr[i]*1000)/1000).toFixed(3));
+    data.push(Math.round(t/3.156e7*10)/10);
+    rows.push([(Math.round(fr[i]*1000)/1000).toFixed(3), (Math.round(t/3.156e7*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __afaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__afaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#afaChart',{title:en?'Age vs Remaining Fraction (t = (1/λ)·ln(N₀/N))':'年代随剩余比例变化 (t = (1/λ)·ln(N₀/N))',labels:s.labels,series:[{name:en?'Age t (years)':'年龄 t (年)',data:s.data}]});
+}
+function __afaTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__afaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#afaTable',{head:en?['Remaining N/N₀','Age t (years)']:['剩余比例 N/N₀','年龄 t (年)'],rows:s.rows});
+}
+
+function __afaShow(which){
+  var c=document.getElementById('afaChart'), t=document.getElementById('afaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __afaTabInit(){
+  var btns=document.querySelectorAll('.afa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__afaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __afaFn=calcTool;calcTool=function(){try{__afaFn();}catch(e){}try{__afaChart();}catch(e){}try{__afaTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__afaChart();}catch(e){}try{__afaTable();}catch(e){}});
+try{__afaTabInit();}catch(e){}
+</script>
 </body>
 </html>
