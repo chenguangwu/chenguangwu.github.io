@@ -179,6 +179,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="rxTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="rxChart"></div>
+<div class="card" id="rxTableCard" style="display:none">
+  <h3 id="rxTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="rxTh0"></th><th id="rxTh1"></th><th id="rxTh2"></th><th id="rxTh3"></th></tr></thead>
+    <tbody id="rxTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -799,6 +811,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var RXCAT_EN={"元字符":"Metachar","字符类":"Character Class","量词":"Quantifier","锚点":"Anchor","分组":"Group","断言":"Assertion","分支":"Alternation","回溯":"Backtracking","标志":"Flag","Unicode":"Unicode","特殊":"Special","POSIX":"POSIX","JS 方法":"JS Methods","常用":"Common"};
+  function rxCat(c,en){return en?(RXCAT_EN[c]||c):c;}
+  function rxAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function rxChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('rxChart')) return;
+    var en=TBKit.util.isEn();
+    var a=rxAgg();
+    TBKit.chart.bar('#rxChart',{labels:a.cats.map(function(c){return rxCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by Category':'命令分类统计'});
+  }
+  function rxTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('rxTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=rxAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+rxCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('rxTableTitle'); if(tt) tt.textContent=en?'Regex Command Categories':'正则 命令分类明细';
+    var hs=[['rxTh0','#'],['rxTh1',en?'Category':'分类'],['rxTh2',en?'Commands':'命令数'],['rxTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function rxFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#rxTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function rxBindTabs(){
+    var tabs=document.querySelectorAll('#rxTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('rxChart');
+        var card=document.getElementById('rxTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function rxAll(){try{rxChart();}catch(e){}try{rxTable();}catch(e){}rxFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){rxBindTabs();rxAll();});
+  document.addEventListener('toolbox:langchange',function(){rxAll();});
+})();
 </script>
 </body>
 </html>

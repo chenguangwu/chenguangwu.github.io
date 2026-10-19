@@ -179,6 +179,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="phTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="phChart"></div>
+<div class="card" id="phTableCard" style="display:none">
+  <h3 id="phTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="phTh0"></th><th id="phTh1"></th><th id="phTh2"></th><th id="phTh3"></th></tr></thead>
+    <tbody id="phTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -575,6 +587,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var PHCAT_EN={"基础":"Basics","类型":"Type","字符串":"String","数组":"Array","函数":"Function","面向对象":"OOP","异常":"Exception","Web":"Web","数据":"Data","IO":"IO","数据库":"Database","工程":"Project"};
+  function phCat(c,en){return en?(PHCAT_EN[c]||c):c;}
+  function phAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function phChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('phChart')) return;
+    var en=TBKit.util.isEn();
+    var a=phAgg();
+    TBKit.chart.bar('#phChart',{labels:a.cats.map(function(c){return phCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by Category':'命令分类统计'});
+  }
+  function phTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('phTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=phAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+phCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('phTableTitle'); if(tt) tt.textContent=en?'PHP Command Categories':'PHP 命令分类明细';
+    var hs=[['phTh0','#'],['phTh1',en?'Category':'分类'],['phTh2',en?'Commands':'命令数'],['phTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function phFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#phTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function phBindTabs(){
+    var tabs=document.querySelectorAll('#phTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('phChart');
+        var card=document.getElementById('phTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function phAll(){try{phChart();}catch(e){}try{phTable();}catch(e){}phFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){phBindTabs();phAll();});
+  document.addEventListener('toolbox:langchange',function(){phAll();});
+})();
 </script>
 </body>
 </html>

@@ -179,6 +179,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="raTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="raChart"></div>
+<div class="card" id="raTableCard" style="display:none">
+  <h3 id="raTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="raTh0"></th><th id="raTh1"></th><th id="raTh2"></th><th id="raTh3"></th></tr></thead>
+    <tbody id="raTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -711,6 +723,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var RACAT_EN={"GET":"GET","POST":"POST","PUT":"PUT","PATCH":"PATCH","DELETE":"DELETE","状态码":"Status Code","设计规范":"Design","查询":"Query","超媒体":"Hypermedia","扩展":"Extension","安全":"Security"};
+  function raCat(c,en){return en?(RACAT_EN[c]||c):c;}
+  function raAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function raChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('raChart')) return;
+    var en=TBKit.util.isEn();
+    var a=raAgg();
+    TBKit.chart.bar('#raChart',{labels:a.cats.map(function(c){return raCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by Category':'命令分类统计'});
+  }
+  function raTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('raTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=raAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+raCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('raTableTitle'); if(tt) tt.textContent=en?'REST API Command Categories':'REST API 命令分类明细';
+    var hs=[['raTh0','#'],['raTh1',en?'Category':'分类'],['raTh2',en?'Commands':'命令数'],['raTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function raFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#raTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function raBindTabs(){
+    var tabs=document.querySelectorAll('#raTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('raChart');
+        var card=document.getElementById('raTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function raAll(){try{raChart();}catch(e){}try{raTable();}catch(e){}raFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){raBindTabs();raAll();});
+  document.addEventListener('toolbox:langchange',function(){raAll();});
+})();
 </script>
 </body>
 </html>
