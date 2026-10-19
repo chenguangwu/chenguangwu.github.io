@@ -203,6 +203,16 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="emoji-grid" id="emojiGrid"></div>
+
+    <div class="tabs" id="emjTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="emjChart"></div>
+    <div class="card" id="emjTableCard" style="display:none;margin-top:12px;">
+      <h3 id="emjTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="emjTh0"></th><th id="emjTh1"></th><th id="emjTh2"></th><th id="emjTh3"></th></tr></thead><tbody id="emjTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -924,6 +934,65 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function __emjCatEn(c){
+    var m={'笑脸':'Smileys','动物':'Animals','手势':'Gestures','旅行':'Travel','物品':'Objects','符号':'Symbols','食物':'Food','旗帜':'Flags'};
+    return m[c]||c;
+  }
+  function __emjChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('emjChart')) return;
+    var en=TBKit.util.isEn();
+    var map={},order=[];
+    EMOJIS.forEach(function(e){ if(map[e.cat]==null){map[e.cat]=0;order.push(e.cat);} map[e.cat]++; });
+    TBKit.chart.bar('#emjChart',{
+      labels:order.map(function(k){return en?__emjCatEn(k):k;}),
+      series:[{name:en?'Emojis':'表情数',data:order.map(function(k){return map[k];})}],
+      height:260,
+      title:en?'Emoji count by category':'各分类表情数量'
+    });
+  }
+  function __emjTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('emjTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var map={},order=[];
+    EMOJIS.forEach(function(e){ if(map[e.cat]==null){map[e.cat]=[];order.push(e.cat);} map[e.cat].push(e.emoji); });
+    t.innerHTML=order.map(function(k,i){
+      return '<tr><td>'+(i+1)+'</td><td>'+(en?__emjCatEn(k):k)+'</td><td>'+map[k].length+'</td><td style="font-size:18px;letter-spacing:2px;">'+map[k].slice(0,10).join('')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('emjTableTitle'); if(tt) tt.textContent=en?'Emoji categories overview':'各分类表情一览';
+    var h0=document.getElementById('emjTh0'); if(h0) h0.textContent='#';
+    var h1=document.getElementById('emjTh1'); if(h1) h1.textContent=en?'Category':'分类';
+    var h2=document.getElementById('emjTh2'); if(h2) h2.textContent=en?'Count':'数量';
+    var h3=document.getElementById('emjTh3'); if(h3) h3.textContent=en?'Samples':'代表表情';
+  }
+  function __emjFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#emjTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __emjBindTabs(){
+    var tabs=document.querySelectorAll('#emjTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('emjChart');
+        var card=document.getElementById('emjTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function __emjAll(){try{__emjChart();}catch(e){}try{__emjTable();}catch(e){}__emjFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){__emjBindTabs();__emjAll();});
+  document.addEventListener('toolbox:langchange',function(){__emjAll();});
+})();
 </script>
 </body>
 </html>

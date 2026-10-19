@@ -119,6 +119,16 @@ s.parentNode.insertBefore(el, s);
 
     <div id="foodGrid" class="data-grid"></div>
 
+    <div class="tabs" id="fibTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="fibChart"></div>
+    <div class="card" id="fibTableCard" style="display:none;margin-top:12px;">
+      <h3 id="fibTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="fibTh0"></th><th id="fibTh1"></th><th id="fibTh2"></th></tr></thead><tbody id="fibTbody"></tbody></table>
+    </div>
+
     <div class="toolbar">
       <button class="btn primary" onclick="calculate()">估算摄入量</button>
       <button class="btn" onclick="clearAll()">重置</button>
@@ -364,5 +374,55 @@ function __fiberExport(){
 </dl>
 </div>
 </section>
+<script>
+(function(){
+  function __fibChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('fibChart')) return;
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar('#fibChart',{
+      labels:FOODS.map(function(f){return en?(f.nameEn||f.name):f.name;}),
+      series:[{name:en?'Fiber (g)':'纤维(克)',data:FOODS.map(function(f){return f.fiber;})}],
+      height:300,
+      title:en?'Dietary fiber per serving':'各食物膳食纤维含量（克）'
+    });
+  }
+  function __fibTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('fibTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    t.innerHTML=FOODS.map(function(f,i){
+      return '<tr><td>'+(i+1)+'</td><td>'+(en?(f.nameEn||f.name):f.name)+'</td><td>'+f.fiber+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('fibTableTitle'); if(tt) tt.textContent=en?'Fiber content per serving':'各食物纤维含量明细';
+    var h0=document.getElementById('fibTh0'); if(h0) h0.textContent='#';
+    var h1=document.getElementById('fibTh1'); if(h1) h1.textContent=en?'Food':'食物';
+    var h2=document.getElementById('fibTh2'); if(h2) h2.textContent=en?'Fiber (g)':'纤维(克)';
+  }
+  function __fibFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#fibTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __fibBindTabs(){
+    var tabs=document.querySelectorAll('#fibTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('fibChart');
+        var card=document.getElementById('fibTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function __fibAll(){try{__fibChart();}catch(e){}try{__fibTable();}catch(e){}__fibFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){__fibBindTabs();__fibAll();});
+  document.addEventListener('toolbox:langchange',function(){__fibAll();});
+})();
+</script>
 </body>
 </html>

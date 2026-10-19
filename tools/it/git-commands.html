@@ -187,6 +187,16 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+
+    <div class="tabs" id="gitTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="gitChart"></div>
+    <div class="card" id="gitTableCard" style="display:none;margin-top:12px;">
+      <h3 id="gitTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="gitTh0"></th><th id="gitTh1"></th><th id="gitTh2"></th><th id="gitTh3"></th></tr></thead><tbody id="gitTbody"></tbody></table>
+    </div>
   </div>
 
   <div class="card workflow-card">
@@ -552,6 +562,63 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function __gitCatEn(c){
+    var m={'配置':'Config','初始化':'Init','暂存':'Staging','提交':'Commit','分支':'Branch','远程':'Remote','查看历史':'History','撤销':'Undo','标签':'Tag','子模块':'Submodule','储藏':'Stash','工作流':'Workflow'};
+    return m[c]||c;
+  }
+  function __gitChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('gitChart')) return;
+    var en=TBKit.util.isEn();
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(map[c.cat]==null){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    TBKit.chart.bar('#gitChart',{
+      labels:order.map(function(k){return en?__gitCatEn(k):k;}),
+      series:[{name:en?'Commands':'命令数',data:order.map(function(k){return map[k];})}],
+      height:260,
+      title:en?'Git commands by category':'各分类 Git 命令数量'
+    });
+  }
+  function __gitTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('gitTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(map[c.cat]==null){map[c.cat]=[];order.push(c.cat);} map[c.cat].push(c.cmd); });
+    t.innerHTML=order.map(function(k,i){return '<tr><td>'+(i+1)+'</td><td>'+(en?__gitCatEn(k):k)+'</td><td>'+map[k].length+'</td><td>'+map[k].slice(0,3).join(', ')+'</td></tr>';}).join('');
+    var tt=document.getElementById('gitTableTitle'); if(tt) tt.textContent=en?'Git commands by category':'各分类 Git 命令一览';
+    var h0=document.getElementById('gitTh0'); if(h0) h0.textContent='#';
+    var h1=document.getElementById('gitTh1'); if(h1) h1.textContent=en?'Category':'分类';
+    var h2=document.getElementById('gitTh2'); if(h2) h2.textContent=en?'Count':'数量';
+    var h3=document.getElementById('gitTh3'); if(h3) h3.textContent=en?'Examples':'示例命令';
+  }
+  function __gitFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#gitTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __gitBindTabs(){
+    var tabs=document.querySelectorAll('#gitTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('gitChart');
+        var card=document.getElementById('gitTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function __gitAll(){try{__gitChart();}catch(e){}try{__gitTable();}catch(e){}__gitFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){__gitBindTabs();__gitAll();});
+  document.addEventListener('toolbox:langchange',function(){__gitAll();});
+})();
 </script>
 </body>
 </html>

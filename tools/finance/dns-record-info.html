@@ -183,6 +183,16 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="recordList"></div>
+
+    <div class="tabs" id="dnsTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="dnsChart"></div>
+    <div class="card" id="dnsTableCard" style="display:none;margin-top:12px;">
+      <h3 id="dnsTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="dnsTh0"></th><th id="dnsTh1"></th><th id="dnsTh2"></th><th id="dnsTh3"></th><th id="dnsTh4"></th></tr></thead><tbody id="dnsTbody"></tbody></table>
+    </div>
     <table id="dnsHidden" style="display:none;"><thead><tr><th>Type</th><th>Full Name</th><th>Category</th><th>Example</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -452,5 +462,66 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 <!-- /SEO 介绍区块 -->
 <section class="opt-guide"><h2>如何使用DNS 记录类型速查</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>🔍 搜索记录类型或名称（如 A、MX、邮件）</li></ul><h2>适用场景</h2><p>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>DNS 记录类型速查是做什么的？</dt><dd>纯前端静态工具。如需实际查询 DNS，请使用 dig、nslookup 命令或在线 DNS 查询服务（如 Google DNS、Cloudflare DNS）。</dd><dt>如何使用DNS 记录类型速查？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>DNS 记录类型速查适合哪些场景？</dt><dd>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+(function(){
+  function __dnsCatLabel(k,en){
+    var zh={basic:'基础',mail:'邮件',security:'安全',service:'服务',other:'其他'};
+    if(en) return (typeof __DNS_CAT_EN!=='undefined'&&__DNS_CAT_EN[k])||k;
+    return zh[k]||k;
+  }
+  function __dnsChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('dnsChart')) return;
+    var en=TBKit.util.isEn();
+    var map={},order=[];
+    DNS_RECORDS.forEach(function(r){ if(map[r.cat]==null){map[r.cat]=0;order.push(r.cat);} map[r.cat]++; });
+    TBKit.chart.bar('#dnsChart',{
+      labels:order.map(function(k){return __dnsCatLabel(k,en);}),
+      series:[{name:en?'Records':'记录数',data:order.map(function(k){return map[k];})}],
+      height:250,
+      title:en?'DNS record types by category':'各分类 DNS 记录类型数量'
+    });
+  }
+  function __dnsTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('dnsTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var rows=DNS_RECORDS.map(function(r,i){
+      var nm=en?(r.full||r.type):(r.name||r.type);
+      return '<tr><td>'+(i+1)+'</td><td><strong>'+r.type+'</strong></td><td>'+nm+'</td><td>'+(en?__dnsCatLabel(r.cat,true):__dnsCatLabel(r.cat,false))+'</td><td style="font-family:monospace;font-size:12px;">'+(r.example||'')+'</td></tr>';
+    });
+    t.innerHTML=rows.join('');
+    var tt=document.getElementById('dnsTableTitle'); if(tt) tt.textContent=en?'DNS record type reference':'DNS 记录类型明细';
+    var h0=document.getElementById('dnsTh0'); if(h0) h0.textContent='#';
+    var h1=document.getElementById('dnsTh1'); if(h1) h1.textContent=en?'Record':'记录类型';
+    var h2=document.getElementById('dnsTh2'); if(h2) h2.textContent=en?'Name':'名称';
+    var h3=document.getElementById('dnsTh3'); if(h3) h3.textContent=en?'Category':'分类';
+    var h4=document.getElementById('dnsTh4'); if(h4) h4.textContent=en?'Example':'示例';
+  }
+  function __dnsFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#dnsTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __dnsBindTabs(){
+    var tabs=document.querySelectorAll('#dnsTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('dnsChart');
+        var card=document.getElementById('dnsTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function __dnsAll(){try{__dnsChart();}catch(e){}try{__dnsTable();}catch(e){}__dnsFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){__dnsBindTabs();__dnsAll();});
+  document.addEventListener('toolbox:langchange',function(){__dnsAll();});
+})();
+</script>
 </body>
 </html>
