@@ -301,6 +301,12 @@ function __charles_lawBoot(){ try{ __charles_lawPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __charles_lawBoot();
 else document.addEventListener('DOMContentLoaded', __charles_lawBoot);
 </script>
+<div class="cl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="clChart" style="margin-top:8px;"></div>
+<div id="clTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +342,48 @@ else document.addEventListener('DOMContentLoaded', __charles_lawBoot);
 </dl>
 </div>
 </section>
+<script>
+function __clSweep(){
+  var V1=num('V1'), T1=num('T1'), T2=num('T2');
+  if(!isFinite(V1)||!isFinite(T1)||!isFinite(T2)||T1<=0||T2<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3];
+  for(var i=0;i<mults.length;i++){
+    var tt=T2*mults[i], V2=V1*tt/T1;
+    labels.push(String(Math.round(tt*10)/10)); data.push(Math.round(V2*1000)/1000);
+    rows.push([String(Math.round(tt*10)/10), (Math.round(V2*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __clChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__clSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#clChart',{title:en?'Volume vs Temperature (V2 = V1·T2/T1, Charles)':'体积随温度变化 (V₂ = V₁·T₂/T₁，查理定律)',labels:s.labels,series:[{name:en?'Volume V2':'体积 V₂',data:s.data}]});
+}
+function __clTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__clSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#clTable',{head:en?['Temperature T2 (K)','Volume V2']:['温度 T₂ (K)','体积 V₂'],rows:s.rows});
+}
+
+function __clShow(which){
+  var c=document.getElementById('clChart'), t=document.getElementById('clTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __clTabInit(){
+  var btns=document.querySelectorAll('.cl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__clShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __clFn=calcTool;calcTool=function(){try{__clFn();}catch(e){}try{__clChart();}catch(e){}try{__clTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__clChart();}catch(e){}try{__clTable();}catch(e){}});
+try{__clTabInit();}catch(e){}
+</script>
 </body>
 </html>

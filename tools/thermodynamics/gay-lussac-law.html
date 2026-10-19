@@ -301,6 +301,12 @@ function __gay_lussac_lawBoot(){ try{ __gay_lussac_lawPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __gay_lussac_lawBoot();
 else document.addEventListener('DOMContentLoaded', __gay_lussac_lawBoot);
 </script>
+<div class="gl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="glChart" style="margin-top:8px;"></div>
+<div id="glTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +342,48 @@ else document.addEventListener('DOMContentLoaded', __gay_lussac_lawBoot);
 </dl>
 </div>
 </section>
+<script>
+function __glSweep(){
+  var P1=num('P1'), T1=num('T1'), T2=num('T2');
+  if(!isFinite(P1)||!isFinite(T1)||!isFinite(T2)||T1<=0||T2<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3];
+  for(var i=0;i<mults.length;i++){
+    var tt=T2*mults[i], P2=P1*tt/T1;
+    labels.push(String(Math.round(tt*10)/10)); data.push(Math.round(P2*1000)/1000);
+    rows.push([String(Math.round(tt*10)/10), (Math.round(P2*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __glChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__glSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#glChart',{title:en?'Pressure vs Temperature (P2 = P1·T2/T1, Gay-Lussac)':'压力随温度变化 (P₂ = P₁·T₂/T₁，盖-吕萨克定律)',labels:s.labels,series:[{name:en?'Pressure P2':'压力 P₂',data:s.data}]});
+}
+function __glTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__glSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#glTable',{head:en?['Temperature T2 (K)','Pressure P2']:['温度 T₂ (K)','压力 P₂'],rows:s.rows});
+}
+
+function __glShow(which){
+  var c=document.getElementById('glChart'), t=document.getElementById('glTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __glTabInit(){
+  var btns=document.querySelectorAll('.gl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__glShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __glFn=calcTool;calcTool=function(){try{__glFn();}catch(e){}try{__glChart();}catch(e){}try{__glTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__glChart();}catch(e){}try{__glTable();}catch(e){}});
+try{__glTabInit();}catch(e){}
+</script>
 </body>
 </html>
