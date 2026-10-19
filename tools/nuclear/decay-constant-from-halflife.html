@@ -293,6 +293,12 @@ function __decay_constant_from_halflifeBoot(){ try{ __decay_constant_from_halfli
 if (document.readyState && document.readyState !== 'loading') __decay_constant_from_halflifeBoot();
 else document.addEventListener('DOMContentLoaded', __decay_constant_from_halflifeBoot);
 </script>
+<div class="dcfh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dcfhChart" style="margin-top:8px;"></div>
+<div id="dcfhTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -328,5 +334,49 @@ else document.addEventListener('DOMContentLoaded', __decay_constant_from_halflif
 </dl>
 </div>
 </section>
+<script>
+function __dcfhSweep(){
+  var th=num('th');
+  if(!isFinite(th)||th<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var hh=th*mults[i], lam=Math.LN2/hh, tau=hh/Math.LN2;
+    labels.push((Math.round(hh*1000)/1000).toFixed(3));
+    d1.push(Math.round(lam*1e12)/1e6); d2.push(Math.round(tau*1000)/1000);
+    rows.push([(Math.round(hh*1000)/1000).toFixed(3), lam.toExponential(3), (Math.round(tau*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __dcfhChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dcfhSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dcfhChart',{title:en?'Decay Constant λ and Mean Life τ vs Half-life':'衰变常数 λ 与平均寿命 τ 随半衰期变化',labels:s.labels,series:[{name:en?'λ ×10⁻⁶ (1/s)':'衰变常数 λ (×10⁻⁶/s)',data:s.d1},{name:en?'Mean life τ (s)':'平均寿命 τ (s)',data:s.d2}]});
+}
+function __dcfhTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__dcfhSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#dcfhTable',{head:en?['Half-life t½ (s)','λ (1/s)','Mean life τ (s)']:['半衰期 t½ (s)','衰变常数 λ (1/s)','平均寿命 τ (s)'],rows:s.rows});
+}
+
+function __dcfhShow(which){
+  var c=document.getElementById('dcfhChart'), t=document.getElementById('dcfhTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dcfhTabInit(){
+  var btns=document.querySelectorAll('.dcfh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dcfhShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __dcfhFn=calcTool;calcTool=function(){try{__dcfhFn();}catch(e){}try{__dcfhChart();}catch(e){}try{__dcfhTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dcfhChart();}catch(e){}try{__dcfhTable();}catch(e){}});
+try{__dcfhTabInit();}catch(e){}
+</script>
 </body>
 </html>

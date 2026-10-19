@@ -295,6 +295,12 @@ function __decay_constantBoot(){ try{ __decay_constantPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __decay_constantBoot();
 else document.addEventListener('DOMContentLoaded', __decay_constantBoot);
 </script>
+<div class="dc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dcChart" style="margin-top:8px;"></div>
+<div id="dcTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +336,50 @@ else document.addEventListener('DOMContentLoaded', __decay_constantBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dcSweep(){
+  var LN2=0.69314718056;
+  var th=num('th');
+  if(!isFinite(th)||th<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var hh=th*mults[i], lam=LN2/hh, rem=Math.exp(-lam)*100;
+    labels.push((Math.round(hh*100)/100).toFixed(2));
+    d1.push(Math.round(lam*1e6)/1e6); d2.push(Math.round(rem*100)/100);
+    rows.push([(Math.round(hh*100)/100).toFixed(2), lam.toExponential(4), (Math.round(rem*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __dcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dcChart',{title:en?'Decay Constant vs Half-life (λ = ln2/T½) and 1-year Remaining Activity':'衰变常数随半衰期变化 (λ = ln2/T½) 与 1 年后剩余活度',labels:s.labels,series:[{name:en?'λ (1/yr)':'衰变常数 λ (年⁻¹)',data:s.d1},{name:en?'Remaining after 1 yr (%)':'1 年后剩余活度 (%)',data:s.d2}]});
+}
+function __dcTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__dcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#dcTable',{head:en?['Half-life T½ (yr)','λ (1/yr)','Remaining after 1 yr (%)']:['半衰期 T½ (年)','衰变常数 λ (年⁻¹)','1 年后剩余活度 (%)'],rows:s.rows});
+}
+
+function __dcShow(which){
+  var c=document.getElementById('dcChart'), t=document.getElementById('dcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dcTabInit(){
+  var btns=document.querySelectorAll('.dc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __dcFn=calcTool;calcTool=function(){try{__dcFn();}catch(e){}try{__dcChart();}catch(e){}try{__dcTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dcChart();}catch(e){}try{__dcTable();}catch(e){}});
+try{__dcTabInit();}catch(e){}
+</script>
 </body>
 </html>

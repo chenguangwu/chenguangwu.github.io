@@ -244,6 +244,12 @@ function __dose_equivalentBoot(){ try{ __dose_equivalentPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __dose_equivalentBoot();
 else document.addEventListener('DOMContentLoaded', __dose_equivalentBoot);
 </script>
+<div class="de-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="deChart" style="margin-top:8px;"></div>
+<div id="deTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +285,49 @@ else document.addEventListener('DOMContentLoaded', __dose_equivalentBoot);
 </dl>
 </div>
 </section>
+<script>
+function __deSweep(){
+  var D=num('D'), Q=num('Q');
+  if(!isFinite(D)||!isFinite(Q)||D<=0||Q<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var qs=[1,2,5,10,20,30,50];
+  for(var i=0;i<qs.length;i++){
+    var q=qs[i], H=D*q;
+    labels.push(String(q));
+    d1.push(Math.round(H*100)/100); d2.push(Math.round(H*1000*10)/10);
+    rows.push([String(q), (Math.round(H*100)/100).toFixed(2), (Math.round(H*1000*10)/10).toFixed(1), (Math.round(H*100*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __deChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__deSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#deChart',{title:en?'Dose Equivalent vs Quality Factor (H = D·Q)':'剂量当量随品质因数变化 (H = D·Q)',labels:s.labels,series:[{name:en?'H (Sv)':'剂量当量 H (Sv)',data:s.d1},{name:en?'H (mSv)':'剂量当量 (mSv)',data:s.d2}]});
+}
+function __deTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__deSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#deTable',{head:en?['Quality factor Q','H (Sv)','H (mSv)','H (rem)']:['品质因数 Q','剂量当量 H (Sv)','剂量当量 (mSv)','剂量当量 (rem)'],rows:s.rows});
+}
+
+function __deShow(which){
+  var c=document.getElementById('deChart'), t=document.getElementById('deTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __deTabInit(){
+  var btns=document.querySelectorAll('.de-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__deShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __deFn=calcTool;calcTool=function(){try{__deFn();}catch(e){}try{__deChart();}catch(e){}try{__deTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__deChart();}catch(e){}try{__deTable();}catch(e){}});
+try{__deTabInit();}catch(e){}
+</script>
 </body>
 </html>
