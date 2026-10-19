@@ -181,6 +181,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="sqTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="sqChart"></div>
+    <div class="card" id="sqTableCard" style="display:none;margin-top:12px;">
+      <h3 id="sqTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="sqTh0"></th><th id="sqTh1"></th><th id="sqTh2"></th><th id="sqTh3"></th></tr></thead><tbody id="sqTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -776,6 +785,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var SQCAT_EN={'DDL':'DDL','事务':'Transactions','公用表':'CTE','写入':'Write','函数':'Functions','分页':'Pagination','删除':'Delete','子查询':'Subquery','排序':'Order','更新':'Update','条件':'Condition','查询':'Query','聚合':'Aggregation','聚合函数':'Aggregate Func','视图':'View','过滤':'Filter','连接':'Join','集合':'Set Ops'};
+  function sqCat(c,en){return en?(SQCAT_EN[c]||c):c;}
+  function sqAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function sqChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('sqChart')) return;
+    var en=TBKit.util.isEn();
+    var a=sqAgg();
+    TBKit.chart.bar('#sqChart',{labels:a.cats.map(function(c){return sqCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function sqTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('sqTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=sqAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+sqCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('sqTableTitle'); if(tt) tt.textContent=en?'SQL command categories':'SQL 命令分类明细';
+    var hs=[['sqTh0','#'],['sqTh1',en?'Category':'分类'],['sqTh2',en?'Commands':'命令数'],['sqTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function sqFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#sqTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function sqBindTabs(){
+    var tabs=document.querySelectorAll('#sqTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('sqChart');
+        var card=document.getElementById('sqTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function sqAll(){try{sqChart();}catch(e){}try{sqTable();}catch(e){}sqFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){sqBindTabs();sqAll();});
+  document.addEventListener('toolbox:langchange',function(){sqAll();});
+})();
 </script>
 </body>
 </html>

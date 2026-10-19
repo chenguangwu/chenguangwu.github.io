@@ -179,6 +179,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="ngTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="ngChart"></div>
+    <div class="card" id="ngTableCard" style="display:none;margin-top:12px;">
+      <h3 id="ngTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="ngTh0"></th><th id="ngTh1"></th><th id="ngTh2"></th><th id="ngTh3"></th></tr></thead><tbody id="ngTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -663,6 +672,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var NGCAT_EN={'HTTP':'HTTP','HTTPS':'HTTPS','代理':'Proxy','全局':'Global','压缩':'Compression','变量':'Variables','命令':'Commands','日志':'Logging','条件':'Conditions','结构':'Structure','缓存':'Cache','负载均衡':'Load Balancing','限制':'Limit','限流':'Rate Limiting'};
+  function ngCat(c,en){return en?(NGCAT_EN[c]||c):c;}
+  function ngAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function ngChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('ngChart')) return;
+    var en=TBKit.util.isEn();
+    var a=ngAgg();
+    TBKit.chart.bar('#ngChart',{labels:a.cats.map(function(c){return ngCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function ngTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('ngTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=ngAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+ngCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('ngTableTitle'); if(tt) tt.textContent=en?'Nginx command categories':'Nginx 命令分类明细';
+    var hs=[['ngTh0','#'],['ngTh1',en?'Category':'分类'],['ngTh2',en?'Commands':'命令数'],['ngTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function ngFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#ngTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function ngBindTabs(){
+    var tabs=document.querySelectorAll('#ngTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('ngChart');
+        var card=document.getElementById('ngTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function ngAll(){try{ngChart();}catch(e){}try{ngTable();}catch(e){}ngFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){ngBindTabs();ngAll();});
+  document.addEventListener('toolbox:langchange',function(){ngAll();});
+})();
 </script>
 </body>
 </html>

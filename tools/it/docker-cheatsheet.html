@@ -179,6 +179,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="dkTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="dkChart"></div>
+    <div class="card" id="dkTableCard" style="display:none;margin-top:12px;">
+      <h3 id="dkTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="dkTh0"></th><th id="dkTh1"></th><th id="dkTh2"></th><th id="dkTh3"></th></tr></thead><tbody id="dkTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -863,6 +872,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var DKCAT_EN={'Compose':'Compose','Dockerfile':'Dockerfile','仓库':'Registry','卷':'Volumes','容器':'Containers','清理':'Cleanup','系统':'System','网络':'Network','镜像':'Images'};
+  function dkCat(c,en){return en?(DKCAT_EN[c]||c):c;}
+  function dkAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function dkChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('dkChart')) return;
+    var en=TBKit.util.isEn();
+    var a=dkAgg();
+    TBKit.chart.bar('#dkChart',{labels:a.cats.map(function(c){return dkCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function dkTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('dkTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=dkAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+dkCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('dkTableTitle'); if(tt) tt.textContent=en?'Docker command categories':'Docker 命令分类明细';
+    var hs=[['dkTh0','#'],['dkTh1',en?'Category':'分类'],['dkTh2',en?'Commands':'命令数'],['dkTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function dkFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#dkTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function dkBindTabs(){
+    var tabs=document.querySelectorAll('#dkTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('dkChart');
+        var card=document.getElementById('dkTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function dkAll(){try{dkChart();}catch(e){}try{dkTable();}catch(e){}dkFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){dkBindTabs();dkAll();});
+  document.addEventListener('toolbox:langchange',function(){dkAll();});
+})();
 </script>
 </body>
 </html>
