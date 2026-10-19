@@ -246,6 +246,12 @@ function __latent_heatBoot(){ try{ __latent_heatPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __latent_heatBoot();
 else document.addEventListener('DOMContentLoaded', __latent_heatBoot);
 </script>
+<div class="lt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ltChart" style="margin-top:8px;"></div>
+<div id="ltTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +287,49 @@ else document.addEventListener('DOMContentLoaded', __latent_heatBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ltSweep(){
+  var m=num('m'), L=num('L');
+  if(!isFinite(m)||!isFinite(L)||m<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var mm=m*mults[i], Q=mm*L;
+    labels.push((Math.round(mm*1000)/1000).toFixed(3));
+    data.push(Math.round(Q/1000*100)/100);
+    rows.push([(Math.round(mm*1000)/1000).toFixed(3), (Math.round(Q/1000*100)/100).toFixed(2), (Math.round(Q/1e6*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __ltChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ltSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ltChart',{title:en?'Latent Heat vs Mass (Q = mL)':'相变热量随质量变化 (Q = mL)',labels:s.labels,series:[{name:en?'Heat Q (kJ)':'热量 Q (kJ)',data:s.data}]});
+}
+function __ltTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ltSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ltTable',{head:en?['Mass m (kg)','Heat Q (kJ)','Heat Q (MJ)']:['质量 m (kg)','热量 Q (kJ)','热量 Q (MJ)'],rows:s.rows});
+}
+
+function __ltShow(which){
+  var c=document.getElementById('ltChart'), t=document.getElementById('ltTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ltTabInit(){
+  var btns=document.querySelectorAll('.lt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ltShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ltFn=calcTool;calcTool=function(){try{__ltFn();}catch(e){}try{__ltChart();}catch(e){}try{__ltTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ltChart();}catch(e){}try{__ltTable();}catch(e){}});
+try{__ltTabInit();}catch(e){}
+</script>
 </body>
 </html>

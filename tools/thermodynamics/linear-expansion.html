@@ -245,6 +245,12 @@ function __linear_expansionBoot(){ try{ __linear_expansionPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __linear_expansionBoot();
 else document.addEventListener('DOMContentLoaded', __linear_expansionBoot);
 </script>
+<div class="le-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="leChart" style="margin-top:8px;"></div>
+<div id="leTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +286,49 @@ else document.addEventListener('DOMContentLoaded', __linear_expansionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __leSweep(){
+  var alpha=num('alpha'), L0=num('L0'), dT=num('dT');
+  if(!isFinite(alpha)||!isFinite(L0)||!isFinite(dT))return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var deltas=[-50,-25,0,25,50,100,200];
+  for(var i=0;i<deltas.length;i++){
+    var dt=deltas[i], dL=alpha*L0*dt, L1=L0+dL;
+    labels.push(String(dt));
+    d1.push(Math.round(dL*10000)/10000); d2.push(Math.round(L1*1000)/1000);
+    rows.push([String(dt), (Math.round(dL*10000)/10000).toFixed(4), (Math.round(L1*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __leChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__leSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#leChart',{title:en?'Thermal Expansion vs ΔT (ΔL = αL₀ΔT)':'热膨胀量随温差变化 (ΔL = αL₀ΔT)',labels:s.labels,series:[{name:en?'ΔL (mm)':'伸长量 ΔL (mm)',data:s.d1},{name:en?'Final length (mm)':'末长 (mm)',data:s.d2}]});
+}
+function __leTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__leSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#leTable',{head:en?['ΔT (K)','ΔL (mm)','Final length (mm)']:['温差 ΔT (K)','伸长量 ΔL (mm)','末长 (mm)'],rows:s.rows});
+}
+
+function __leShow(which){
+  var c=document.getElementById('leChart'), t=document.getElementById('leTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __leTabInit(){
+  var btns=document.querySelectorAll('.le-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__leShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __leFn=calcTool;calcTool=function(){try{__leFn();}catch(e){}try{__leChart();}catch(e){}try{__leTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__leChart();}catch(e){}try{__leTable();}catch(e){}});
+try{__leTabInit();}catch(e){}
+</script>
 </body>
 </html>

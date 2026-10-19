@@ -252,6 +252,12 @@ function __specific_heat_qBoot(){ try{ __specific_heat_qPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __specific_heat_qBoot();
 else document.addEventListener('DOMContentLoaded', __specific_heat_qBoot);
 </script>
+<div class="sq-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sqChart" style="margin-top:8px;"></div>
+<div id="sqTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -287,5 +293,54 @@ else document.addEventListener('DOMContentLoaded', __specific_heat_qBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sqSweep(){
+  var m=num('m'), c=num('c'), T1=num('T1'), T2=num('T2');
+  if(!isFinite(m)||!isFinite(c)||!isFinite(T1)||!isFinite(T2))return null;
+  var labels=[],data=[],rows=[];
+  var deltas=[-20,-10,0,10,20,40,80];
+  for(var i=0;i<deltas.length;i++){
+    var t2=T1+deltas[i], Q=m*c*(t2-T1);
+    labels.push(String(Math.round(t2*10)/10));
+    data.push(Math.round(Q*10)/10);
+    rows.push([String(Math.round(t2*10)/10), String(deltas[i]), (Math.round(Q*10)/10).toFixed(1), Q>=0?(i===2?'ZERO':'ABS'):'REL']);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __sqChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sqSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sqChart',{title:en?'Heat vs Final Temperature (Q = mc(T₂ − T₁))':'热量随末温变化 (Q = mc(T₂ − T₁))',labels:s.labels,series:[{name:en?'Heat Q (J)':'热量 Q (J)',data:s.data}]});
+}
+function __sqTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__sqSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[];
+  for(var i=0;i<s.rows.length;i++){
+    var tag=s.rows[i][3];
+    rows.push([s.rows[i][0],s.rows[i][1],s.rows[i][2],tag==='REL'?(en?'Releases heat':'放热'):(tag==='ZERO'?(en?'No change':'无变化'):(en?'Absorbs heat':'吸热'))]);
+  }
+  TBKit.matrix.table('#sqTable',{head:en?['Final temp T₂ (℃)','ΔT (K)','Heat Q (J)','Direction']:['末温 T₂ (℃)','温差 ΔT (K)','热量 Q (J)','热流方向'],rows:rows});
+}
+
+function __sqShow(which){
+  var c=document.getElementById('sqChart'), t=document.getElementById('sqTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sqTabInit(){
+  var btns=document.querySelectorAll('.sq-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sqShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __sqFn=calcTool;calcTool=function(){try{__sqFn();}catch(e){}try{__sqChart();}catch(e){}try{__sqTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sqChart();}catch(e){}try{__sqTable();}catch(e){}});
+try{__sqTabInit();}catch(e){}
+</script>
 </body>
 </html>
