@@ -133,7 +133,12 @@ s.parentNode.insertBefore(el, s);
 
     <div class="risk-meter"><div class="fill" id="riskFill" style="width:0%;"></div></div>
     <div class="result-box" id="resultBox"></div>
+    <div class="tabs" id="fallTabs">
+      <button type="button" class="tab-btn active" data-v="chart"></button>
+      <button type="button" class="tab-btn" data-v="table"></button>
+    </div>
     <div id="fallChart" style="margin-top:14px;"></div>
+    <div id="fallTbl" style="display:none;margin-top:14px;overflow-x:auto;"></div>
 
     <h3 style="margin-top:20px;">一、居家环境评估</h3>
     <div id="envQuestions"></div>
@@ -353,7 +358,75 @@ function __fallExtras(){
   TBKit.chart.bar('#fallChart',{labels:labels,series:[{name:en?'Score':'得分',data:data}],height:260,title:en?'Fall Risk by Item':'各题得分'});
 }
 var __fall_f0=(typeof calcRisk==='function')?calcRisk:null;
-if(__fall_f0){ calcRisk=function(){ var r=__fall_f0.apply(null,arguments); try{__fallExtras();}catch(e){} return r; }; }
+if(__fall_f0){ calcRisk=function(){ var r=__fall_f0.apply(null,arguments); try{__fallExtras();}catch(e){} try{__fallTable();}catch(e){} return r; }; }
+// F59: 环境/身体维度对比明细表
+var FALL_Q_EN = { e1: 'Anti-slip mats (bathroom/kitchen)', e2: 'Grab bars (toilet/shower)', e3: 'Clutter/wires in walkways', e4: 'Indoor lighting & night lights', e5: 'Bed height suitable', e6: 'Daily items within easy reach', b1: 'Falls in the past year', b2: 'Walking aid / assistance needed', b3: 'Dizziness / orthostatic hypotension', b4: 'Clear vision (see obstacles)', b5: 'On 4+ medications', b6: 'Joint pain / leg weakness' };
+function __fallT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __fallQEn(id) { return FALL_Q_EN[id] || id; }
+function __fallTab(v) {
+  var bar = document.getElementById('fallTabs'); if (!bar) return;
+  bar.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-v') === v); });
+  var c = document.getElementById('fallChart'), t = document.getElementById('fallTbl');
+  if (c) c.style.display = (v === 'chart') ? '' : 'none';
+  if (t) t.style.display = (v === 'table') ? '' : 'none';
+  if (v === 'table') { try { __fallTable(); } catch (e) {} }
+}
+function __fallTable() {
+  var host = document.getElementById('fallTbl'); if (!host) return;
+  var en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  function qMax(q) { return Math.max.apply(null, q.opts.map(function (o) { return o.s; })); }
+  function dimSum(list) { var s = 0, ok = true; list.forEach(function (q) { var v = getScore(q.id); if (v === null) ok = false; else s += v; }); return { sum: s, full: ok }; }
+  var eD = dimSum(ENV_QUESTIONS), bD = dimSum(BODY_QUESTIONS);
+  var eMax = 0, bMax = 0;
+  ENV_QUESTIONS.forEach(function (q) { eMax += qMax(q); });
+  BODY_QUESTIONS.forEach(function (q) { bMax += qMax(q); });
+  var h = '<h4 style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--heading,#333);">' + __fallT('环境与身体维度得分对比', 'Environment vs. body dimension comparison') + '</h4>';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;"><thead><tr>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('维度', 'Dimension') + '</th>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('题数', 'Items') + '</th>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('得分', 'Score') + '</th>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('满分', 'Max') + '</th>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('占比', 'Ratio') + '</th></tr></thead><tbody>';
+  function dimRow(name, nameEn, d, mx) {
+    var pct = mx > 0 ? Math.round(d.sum / mx * 100) : 0;
+    var color = pct < 25 ? 'var(--success)' : pct < 50 ? 'var(--warning)' : 'var(--danger)';
+    return '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);font-weight:600;">' + __fallT(name, nameEn) + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + (name === '居家环境' ? ENV_QUESTIONS.length : BODY_QUESTIONS.length) + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + (d.full ? d.sum : '-') + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + mx + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);color:' + color + ';font-weight:600;">' + (d.full ? pct + '%' : '-') + '</td></tr>';
+  }
+  h += dimRow('居家环境', 'Home environment', eD, eMax);
+  h += dimRow('身体与行为', 'Body & behavior', bD, bMax);
+  h += '</tbody></table>';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('维度', 'Dimension') + '</th>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('评估项', 'Item') + '</th>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('得分', 'Score') + '</th>';
+  h += '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + __fallT('满分', 'Max') + '</th></tr></thead><tbody>';
+  function itemRows(list, dimZh, dimEn) {
+    var s = '';
+    list.forEach(function (q) {
+      var v = getScore(q.id);
+      s += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;">' + __fallT(dimZh, dimEn) + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + (en ? __fallQEn(q.id) : q.title) + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);font-weight:600;">' + (v === null ? '-' : v) + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + qMax(q) + '</td></tr>';
+    });
+    return s;
+  }
+  h += itemRows(ENV_QUESTIONS, '居家环境', 'Environment');
+  h += itemRows(BODY_QUESTIONS, '身体与行为', 'Body');
+  h += '</tbody></table>';
+  host.innerHTML = h;
+}
+(function () {
+  var bar = document.getElementById('fallTabs'); if (!bar) return;
+  var b0 = bar.querySelector('.tab-btn[data-v="chart"]'), b1 = bar.querySelector('.tab-btn[data-v="table"]');
+  if (b0) b0.textContent = '📊 ' + __fallT('各题得分', 'Item scores');
+  if (b1) b1.textContent = '📋 ' + __fallT('维度对比明细', 'Dimension detail');
+  bar.querySelectorAll('.tab-btn').forEach(function (b) { b.addEventListener('click', function () { try { __fallTab(b.getAttribute('data-v')); } catch (e) {} }); });
+})();
+window.addEventListener('toolbox:langchange', function () {
+  var bar = document.getElementById('fallTabs'); if (!bar) return;
+  var b0 = bar.querySelector('.tab-btn[data-v="chart"]'), b1 = bar.querySelector('.tab-btn[data-v="table"]');
+  if (b0) b0.textContent = '📊 ' + __fallT('各题得分', 'Item scores');
+  if (b1) b1.textContent = '📋 ' + __fallT('维度对比明细', 'Dimension detail');
+  try { __fallTable(); } catch (e) {}
+});
 
 renderQuestions();
 </script>

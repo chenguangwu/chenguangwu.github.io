@@ -137,6 +137,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div class="tabs" id="iiefTabs" style="margin-top:14px;">
+      <button type="button" class="tab-btn active" data-v="item"></button>
+      <button type="button" class="tab-btn" data-v="trend"></button>
+      <button type="button" class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="iiefItem" style="margin-top:12px;"></div>
+    <div id="iiefTrend" style="display:none;margin-top:12px;"></div>
+    <div id="iiefTbl" style="display:none;margin-top:12px;overflow-x:auto;"></div>
     <table id="iiefHidden" style="display:none"><thead><tr><th>Question</th><th>Score</th></tr></thead><tbody></tbody></table>
 
     <h3 style="margin-top:18px;">IIEF-5 评分分级（ED 严重程度）</h3>
@@ -262,6 +270,82 @@ function __iiefExport(){
   _row(['', en?'Total':'总分', String(total)]);
   TBKit.util.exportTable('#iiefHidden', en?'iief5_score.csv':'iief5评分.csv');
 }
+// F59: 每题得分图 + 历史趋势 + 明细表 + persist
+var __iiefHistKey = 'iief5ScoreHistory';
+var __iiefHist = [];
+try { __iiefHist = JSON.parse(localStorage.getItem(__iiefHistKey) || '[]') || []; } catch (e) { __iiefHist = []; }
+var __iiefGradeEn = { '正常': 'Normal', '轻度 ED': 'Mild ED', '轻中度 ED': 'Mild-moderate ED', '中度 ED': 'Moderate ED', '重度 ED': 'Severe ED', '无性生活/无法评估': 'No activity / N/A' };
+function __iiefT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __iiefG(t) {
+  if (t >= 22) return '正常';
+  if (t >= 17) return '轻度 ED';
+  if (t >= 12) return '轻中度 ED';
+  if (t >= 8) return '中度 ED';
+  if (t >= 5) return '重度 ED';
+  return '无性生活/无法评估';
+}
+function __iiefTotal() { var t = 0; qs.forEach(function (q, i) { t += parseInt(document.getElementById('q' + i).value) || 0; }); return t; }
+function __iiefPushHist(t) {
+  var last = __iiefHist[0], now = Date.now();
+  if (last && last.total === t && now - last.ts < 30000) return;
+  __iiefHist.unshift({ total: t, ts: now, date: new Date().toLocaleString('zh-CN') });
+  if (__iiefHist.length > 30) __iiefHist.pop();
+  try { localStorage.setItem(__iiefHistKey, JSON.stringify(__iiefHist)); } catch (e) {}
+}
+function __iiefRender() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) return;
+  var en = TBKit.util.isEn();
+  var labels = [], data = [];
+  qs.forEach(function (q, i) { labels.push(en ? ('Q' + (i + 1)) : ('第' + (i + 1) + '题')); data.push(parseInt(document.getElementById('q' + i).value) || 0); });
+  TBKit.chart.bar('#iiefItem', { title: en ? 'Score per item (max 5)' : '各题得分（每题满分 5）', labels: labels, series: [{ name: en ? 'Score' : '得分', data: data }] });
+  var h = __iiefHist.slice(0, 10).reverse();
+  if (h.length) {
+    TBKit.chart.line('#iiefTrend', {
+      title: en ? 'Last 10 total scores (follow-up trend)' : '最近 10 次总分趋势（随访）',
+      labels: h.map(function (x) { return (x.date || '').split(' ')[0] || ''; }),
+      series: [{ name: en ? 'Total' : '总分', data: h.map(function (x) { return x.total; }) }]
+    });
+  }
+  var rows = '';
+  __iiefHist.slice(0, 10).forEach(function (x) {
+    var g = __iiefG(x.total);
+    rows += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;">' + x.date + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);font-weight:600;">' + x.total + '</td><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + (en ? (__iiefGradeEn[g] || g) : g) + '</td></tr>';
+  });
+  var host = document.getElementById('iiefTbl');
+  if (host) {
+    host.innerHTML = '<h4 style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--heading,#333);">' + (en ? 'Assessment history (last 10)' : '评估记录（最近 10 次）') + '</h4>' + (rows ? '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + (en ? 'Date' : '时间') + '</th><th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + (en ? 'Total' : '总分') + '</th><th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + (en ? 'Grade' : '分级') + '</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<p style="font-size:13px;color:var(--text-muted);">' + (en ? 'No records yet' : '暂无评估记录') + '</p>');
+  }
+}
+function __iiefTab(v) {
+  var bar = document.getElementById('iiefTabs'); if (!bar) return;
+  bar.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-v') === v); });
+  var a = document.getElementById('iiefItem'), b = document.getElementById('iiefTrend'), c = document.getElementById('iiefTbl');
+  if (a) a.style.display = (v === 'item') ? '' : 'none';
+  if (b) b.style.display = (v === 'trend') ? '' : 'none';
+  if (c) c.style.display = (v === 'table') ? '' : 'none';
+  if (v !== 'item') { try { __iiefRender(); } catch (e) {} }
+}
+(function () {
+  var bar = document.getElementById('iiefTabs'); if (!bar) return;
+  var bs = bar.querySelectorAll('.tab-btn');
+  var zh = ['📊 每题得分', '📈 历史趋势', '📋 评估明细'], ens = ['📊 Per item', '📈 Trend', '📋 History'];
+  bs.forEach(function (b, i) { b.textContent = __iiefT(zh[i], ens[i]); b.addEventListener('click', function () { try { __iiefTab(b.getAttribute('data-v')); } catch (e) {} }); });
+})();
+var __iief_f0 = (typeof calc === 'function') ? calc : null;
+if (__iief_f0) {
+  calc = function () {
+    var r = __iief_f0.apply(null, arguments);
+    try { __iiefPushHist(__iiefTotal()); __iiefRender(); } catch (e) {}
+    return r;
+  };
+}
+window.addEventListener('toolbox:langchange', function () {
+  var bar = document.getElementById('iiefTabs'); if (!bar) return;
+  var bs = bar.querySelectorAll('.tab-btn');
+  var zh = ['📊 每题得分', '📈 历史趋势', '📋 评估明细'], ens = ['📊 Per item', '📈 Trend', '📋 History'];
+  bs.forEach(function (b, i) { b.textContent = __iiefT(zh[i], ens[i]); });
+  try { __iiefRender(); } catch (e) {}
+});
 buildQuestions();
 calc();
 </script>

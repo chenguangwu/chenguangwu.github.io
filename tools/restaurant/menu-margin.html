@@ -141,6 +141,11 @@ s.parentNode.insertBefore(el, s);
     </div>
     <table id="mmHidden" style="display:none"><thead><tr><th>Dish</th><th>Cost</th><th>Price</th><th>Profit</th><th>Margin</th></tr></thead><tbody></tbody></table>
     <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:12px;color:var(--text-muted);" id="mmPresetLbl">Business presets:</span>
+    </div>
+    <div id="mmPresets" style="margin-top:4px;"></div>
+    <input type="hidden" id="mmPresetSel" value="">
+    <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:12px;color:var(--text-muted);">排序：</span>
       <button type="button" class="sort-btn active" onclick="setSort('margin',this)">毛利率↓</button>
       <button type="button" class="sort-btn" onclick="setSort('profit',this)">毛利额↓</button>
@@ -332,6 +337,58 @@ function calc(){
   try { __mmChart(); } catch (e) {}
 }
 
+// F59: 业态菜单预设 + 菜单数据本地持久化
+var MM_PRESETS = {
+  fast: { zh: '中式快餐', en: 'Fast food', dishes: [
+    { name: '宫保鸡丁', cost: 12.5, price: 38 }, { name: '鱼香肉丝', cost: 10.8, price: 32 },
+    { name: '麻婆豆腐', cost: 6, price: 18 }, { name: '番茄炒蛋', cost: 4.5, price: 16 },
+    { name: '米饭', cost: 1.5, price: 3 } ] },
+  dinner: { zh: '正餐宴请', en: 'Full-service dinner', dishes: [
+    { name: '红烧排骨', cost: 18, price: 48 }, { name: '清蒸鲈鱼', cost: 25, price: 78 },
+    { name: '白灼菜心', cost: 6, price: 28 }, { name: '老火靓汤', cost: 12, price: 38 },
+    { name: '米饭', cost: 1.5, price: 3 } ] },
+  hotpot: { zh: '火锅套餐', en: 'Hot pot', dishes: [
+    { name: '肥牛卷', cost: 22, price: 48 }, { name: '虾滑', cost: 18, price: 42 },
+    { name: '鸭肠', cost: 12, price: 28 }, { name: '土豆片', cost: 3, price: 10 },
+    { name: '锅底', cost: 15, price: 28 } ] },
+  cafe: { zh: '咖啡烘焙', en: 'Cafe & bakery', dishes: [
+    { name: '美式咖啡', cost: 3.5, price: 15 }, { name: '拿铁', cost: 5, price: 22 },
+    { name: '可颂', cost: 3.5, price: 12 }, { name: '切片蛋糕', cost: 8, price: 26 },
+    { name: '气泡水', cost: 2.5, price: 12 } ] }
+};
+var MM_HIST_KEY = 'menuMarginDishes';
+function __mmT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __mmSave() { try { localStorage.setItem(MM_HIST_KEY, JSON.stringify(dishes)); } catch (e) {} }
+function __mmRestore() {
+  try {
+    var s = localStorage.getItem(MM_HIST_KEY); if (!s) return;
+    var a = JSON.parse(s);
+    if (Array.isArray(a) && a.length && a[0] && typeof a[0].cost === 'number' && typeof a[0].price === 'number') dishes = a;
+  } catch (e) {}
+}
+function __mmApplyPreset(name) {
+  var p = MM_PRESETS[name]; if (!p) return;
+  dishes = p.dishes.map(function (d) { return { name: d.name, cost: d.cost, price: d.price }; });
+  __mmSave(); renderDishes(); calc();
+}
+var __mm_u0 = updateDish, __mm_a0 = addDish, __mm_d0 = delDish;
+updateDish = function () { var r = __mm_u0.apply(null, arguments); __mmSave(); return r; };
+addDish = function () { var r = __mm_a0.apply(null, arguments); __mmSave(); return r; };
+delDish = function () { var r = __mm_d0.apply(null, arguments); __mmSave(); return r; };
+__mmRestore();
+function __mmPresets() {
+  var l = document.getElementById('mmPresetLbl'); if (l) l.textContent = __mmT('常见业态预设：', 'Business presets: ');
+  if (typeof TBKit !== 'undefined' && TBKit.preset && TBKit.preset.bar) {
+    TBKit.preset.bar('#mmPresets', [
+      { label: '🍔 ' + MM_PRESETS.fast.zh, labelEn: '🍔 ' + MM_PRESETS.fast.en, values: { mmPresetSel: 'fast' } },
+      { label: '🍽️ ' + MM_PRESETS.dinner.zh, labelEn: '🍽️ ' + MM_PRESETS.dinner.en, values: { mmPresetSel: 'dinner' } },
+      { label: '🍲 ' + MM_PRESETS.hotpot.zh, labelEn: '🍲 ' + MM_PRESETS.hotpot.en, values: { mmPresetSel: 'hotpot' } },
+      { label: '☕ ' + MM_PRESETS.cafe.zh, labelEn: '☕ ' + MM_PRESETS.cafe.en, values: { mmPresetSel: 'cafe' } }
+    ], function () { var v = document.getElementById('mmPresetSel').value; __mmApplyPreset(v); });
+  }
+}
+__mmPresets();
+
 renderDishes();
 function __mmExport() {
   if (typeof TBKit === 'undefined') return;
@@ -352,7 +409,7 @@ function __mmExport() {
 
 calc();
 if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function(){ try{__mmChart();}catch(e){} }); } else { try{__mmChart();}catch(e){} }
-window.addEventListener('toolbox:langchange', function(){ try{__mmChart();}catch(e){} });
+window.addEventListener('toolbox:langchange', function(){ try{__mmChart();}catch(e){} try{__mmPresets();}catch(e){} });
 </script>
 
 <!-- SEO 介绍区块 -->

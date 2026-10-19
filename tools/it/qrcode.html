@@ -249,7 +249,16 @@ s.parentNode.insertBefore(el, s);
     <div class="card qr-panel qr-preview">
       <h3>🔍 预览与下载</h3>
       <div id="qrcode"><p style="color:#999;">输入内容后自动生成</p></div>
+      <div class="tabs" id="qrTabs">
+        <button type="button" class="tab-btn active" data-v="chart"></button>
+        <button type="button" class="tab-btn" data-v="table"></button>
+      </div>
       <div id="qrChart" style="margin-top:12px;"></div>
+      <div id="qrTblWrap" style="display:none;margin-top:12px;">
+        <h4 id="qrTblTitle" style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--heading,#333);"></h4>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr id="qrCapHead"></tr></thead><tbody id="qrCapBody"></tbody></table></div>
+        <p id="qrCapNote" style="font-size:12px;color:var(--text-muted,#888);margin-top:8px;line-height:1.7;"></p>
+      </div>
       <div class="toolbar" style="margin-top:16px;margin-bottom:0;justify-content:center;">
         <button type="button" class="btn" onclick="downloadQR()">下载 PNG</button>
         <button type="button" class="btn" onclick="downloadSVG()">下载 SVG</button>
@@ -480,6 +489,57 @@ function debounce(fn, d) {
 generate();
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__qrChart();}catch(e){}});}else{try{__qrChart();}catch(e){}}
 window.addEventListener('toolbox:langchange',function(){try{__qrChart();}catch(e){}});
+// F59: QR 版本容量速查表 + tabs
+var QR_NUM_CAP = {
+  L: [41, 77, 127, 187, 255, 322, 370, 461, 511, 604],
+  M: [34, 63, 101, 149, 202, 255, 293, 365, 432, 513],
+  Q: [27, 48, 77, 111, 144, 178, 207, 259, 312, 364],
+  H: [17, 34, 58, 82, 106, 139, 154, 202, 235, 288]
+};
+function __qrT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __qrTab(v) {
+  var bar = document.getElementById('qrTabs'); if (!bar) return;
+  bar.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-v') === v); });
+  var c = document.getElementById('qrChart'), t = document.getElementById('qrTblWrap');
+  if (c) c.style.display = (v === 'chart') ? '' : 'none';
+  if (t) t.style.display = (v === 'table') ? '' : 'none';
+  if (v === 'table') { try { __qrTable(); } catch (e) {} }
+}
+function __qrTable() {
+  var head = document.getElementById('qrCapHead'), body = document.getElementById('qrCapBody');
+  if (!head || !body) return;
+  var lv = document.getElementById('errorLevel').value;
+  var cols = [__qrT('版本', 'Version'), __qrT('模块数', 'Modules'), __qrT('数字容量', 'Numeric'), 'L', 'M', 'Q', 'H'];
+  head.innerHTML = cols.map(function (c, i) {
+    var hi = (i >= 3 && cols[i] === lv) ? 'background:var(--bg-hover,#f0f0f0);color:var(--primary,#FF6B35);' : '';
+    return '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;white-space:nowrap;' + hi + '">' + c + '</th>';
+  }).join('');
+  var rows = '';
+  for (var v = 1; v <= 10; v++) {
+    var cells = ['v' + v, String(17 + 4 * v), String(QR_NUM_CAP[lv][v - 1]), String(QR_BYTE_CAP.L[v - 1]), String(QR_BYTE_CAP.M[v - 1]), String(QR_BYTE_CAP.Q[v - 1]), String(QR_BYTE_CAP.H[v - 1])];
+    rows += '<tr>' + cells.map(function (c, i) {
+      var hi = (i >= 3 && cols[i] === lv) ? 'background:var(--bg-hover,#f0f0f0);color:var(--primary,#FF6B35);font-weight:600;' : '';
+      return '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;' + hi + '">' + c + '</td>';
+    }).join('') + '</tr>';
+  }
+  body.innerHTML = rows;
+  document.getElementById('qrTblTitle').textContent = __qrT('QR 码版本容量速查（第 1–10 版）', 'QR Code version capacity (v1-v10)');
+  document.getElementById('qrCapNote').textContent = __qrT('「数字容量」为数字模式（0-9）最大字符数；L/M/Q/H 列为字节模式（UTF-8）最大字节数；高亮列为当前纠错级别（' + lv + '）。第 11–40 版容量继续增大，最长约 7,089 位数字 / 2,953 字节。内容越长所需版本越高，相同打印尺寸下模块越小、越难扫。', '"Numeric" = max digits in numeric mode; L/M/Q/H = max bytes in byte (UTF-8) mode; the highlighted column is the current level (' + lv + '). Versions 11-40 grow further, up to ~7,089 digits / 2,953 bytes. Longer content needs a higher version, so at the same print size each module gets smaller and harder to scan.');
+}
+(function () {
+  var bar = document.getElementById('qrTabs'); if (!bar) return;
+  var b0 = bar.querySelector('.tab-btn[data-v="chart"]'), b1 = bar.querySelector('.tab-btn[data-v="table"]');
+  if (b0) b0.textContent = '📊 ' + __qrT('容量图示', 'Capacity chart');
+  if (b1) b1.textContent = '📋 ' + __qrT('版本容量表', 'Version table');
+  bar.querySelectorAll('.tab-btn').forEach(function (b) { b.addEventListener('click', function () { try { __qrTab(b.getAttribute('data-v')); } catch (e) {} }); });
+})();
+window.addEventListener('toolbox:langchange', function () {
+  var bar = document.getElementById('qrTabs'); if (!bar) return;
+  var b0 = bar.querySelector('.tab-btn[data-v="chart"]'), b1 = bar.querySelector('.tab-btn[data-v="table"]');
+  if (b0) b0.textContent = '📊 ' + __qrT('容量图示', 'Capacity chart');
+  if (b1) b1.textContent = '📋 ' + __qrT('版本容量表', 'Version table');
+  try { __qrTable(); } catch (e) {}
+});
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
