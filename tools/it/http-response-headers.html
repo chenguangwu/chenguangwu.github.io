@@ -183,6 +183,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="rhTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="rhChart"></div>
+<div class="card" id="rhTableCard" style="display:none">
+  <h3 id="rhTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="rhTh0"></th><th id="rhTh1"></th><th id="rhTh2"></th><th id="rhTh3"></th></tr></thead>
+    <tbody id="rhTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -915,6 +927,40 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var RHCAT_EN={"CORS":"CORS","安全":"Security","缓存":"Caching","重定向":"Redirect","内容":"Content","通用":"General","认证":"Authentication","Cookie":"Cookie","链接":"Links","方法":"Methods","性能":"Performance","Nginx":"Nginx","校验":"Validation","Alt-Svc":"Alt-Svc"};
+  function rhCat(c,en){return en?(RHCAT_EN[c]||c):c;}
+  function rhAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function rhChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('rhChart')) return;
+    var en=TBKit.util.isEn(); var a=rhAgg();
+    TBKit.chart.bar('#rhChart',{labels:a.cats.map(function(c){return rhCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Response Headers by Category':'响应头分类统计'});
+  }
+  function rhTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('rhTbody'); if(!t) return;
+    var en=TBKit.util.isEn(); var a=rhAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+rhCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('rhTableTitle'); if(tt) tt.textContent=en?'HTTP Response Headers':'HTTP 响应头分类明细';
+    var hs=[['rhTh0','#'],['rhTh1',en?'Category':'分类'],['rhTh2',en?'Commands':'命令数'],['rhTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function rhFillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#rhTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function rhBindTabs(){ var tabs=document.querySelectorAll('#rhTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('rhChart'); var card=document.getElementById('rhTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function rhAll(){try{rhChart();}catch(e){}try{rhTable();}catch(e){}rhFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){rhBindTabs();rhAll();});
+  document.addEventListener('toolbox:langchange',function(){rhAll();});
+})();
 </script>
 </body>
 </html>

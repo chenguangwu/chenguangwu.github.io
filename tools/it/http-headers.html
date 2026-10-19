@@ -179,6 +179,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="hdTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="hdChart"></div>
+<div class="card" id="hdTableCard" style="display:none">
+  <h3 id="hdTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="hdTh0"></th><th id="hdTh1"></th><th id="hdTh2"></th><th id="hdTh3"></th></tr></thead>
+    <tbody id="hdTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -1119,6 +1131,40 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var HDCAT_EN={"内容协商":"Content Negotiation","认证":"Authentication","Cookie":"Cookie","基础":"Basic","连接":"Connection","传输":"Transfer","条件请求":"Conditional","缓存":"Caching","通用":"General","代理":"Proxy","自定义":"Custom","安全":"Security","Fetch 元数据":"Fetch Metadata","WebSocket":"WebSocket","HTTP/2":"HTTP/2","HTTP Alt-Svc":"Alt-Svc","客户端提示":"Client Hints","范围":"Range","方法协商":"Method Negotiation","响应":"Response","性能":"Performance"};
+  function hdCat(c,en){return en?(HDCAT_EN[c]||c):c;}
+  function hdAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function hdChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('hdChart')) return;
+    var en=TBKit.util.isEn(); var a=hdAgg();
+    TBKit.chart.bar('#hdChart',{labels:a.cats.map(function(c){return hdCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Headers by Category':'头部字段分类统计'});
+  }
+  function hdTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('hdTbody'); if(!t) return;
+    var en=TBKit.util.isEn(); var a=hdAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+hdCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('hdTableTitle'); if(tt) tt.textContent=en?'HTTP Request Headers':'HTTP 请求头分类明细';
+    var hs=[['hdTh0','#'],['hdTh1',en?'Category':'分类'],['hdTh2',en?'Commands':'命令数'],['hdTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function hdFillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#hdTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function hdBindTabs(){ var tabs=document.querySelectorAll('#hdTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('hdChart'); var card=document.getElementById('hdTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function hdAll(){try{hdChart();}catch(e){}try{hdTable();}catch(e){}hdFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){hdBindTabs();hdAll();});
+  document.addEventListener('toolbox:langchange',function(){hdAll();});
+})();
 </script>
 </body>
 </html>

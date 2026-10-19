@@ -117,6 +117,18 @@ s.parentNode.insertBefore(el, s);
     <h3 style="margin:16px 0 8px;">活动性临床表现</h3>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">勾选近4周内新发或加重的血管炎相关临床表现，系统按权重自动计算BVAS总分</p>
     <div id="itemList"></div>
+<div class="tabs" id="r7Tabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="r7Chart"></div>
+<div class="card" id="r7TableCard" style="display:none">
+  <h3 id="r7TableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="r7Th0"></th><th id="r7Th1"></th><th id="r7Th2"></th><th id="r7Th3"></th><th id="r7Th4"></th></tr></thead>
+    <tbody id="r7Tbody"></tbody>
+  </table>
+</div>
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">计算BVAS评分</button>
@@ -474,6 +486,31 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var R7_EN={'全身症状':'Constitutional','皮肤病变':'Cutaneous','黏膜/眼部':'Mucous/Eye','耳鼻喉':'ENT','胸部':'Chest','心血管':'Cardiovascular','腹部':'Abdominal','肾脏':'Renal','神经系统':'Neurologic'};
+  function r7_groups(){
+    return groups.map(function(g){ return {name:g.group,max:g.max,n:g.items.length,reps:g.items.slice(0,2).map(function(it){return it.name;}).join(' / ')}; });
+  }
+  function r7_render(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('r7Chart')) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var g=r7_groups();
+    TBKit.chart.bar('#r7Chart',{labels:g.map(function(x){return en?(R7_EN[x.name]||x.name):x.name;}),series:[{name:en?'Items':'条目数',data:g.map(function(x){return x.n;})}],height:300,title:en?'Items by System Group':'系统分组条目数'});
+    var t=document.getElementById('r7Tbody'); if(!t) return;
+    t.innerHTML=g.map(function(x,i){ return '<tr><td>'+(i+1)+'</td><td>'+(en?(R7_EN[x.name]||x.name):x.name)+'</td><td>'+x.n+'</td><td>'+x.max+'</td><td>'+(x.reps||'-')+'</td></tr>'; }).join('');
+    var tt=document.getElementById('r7TableTitle'); if(tt) tt.textContent=en?'Items by System Group':'系统分组条目数';
+    var hs=[['r7Th0','#'],['r7Th1',en?'System Group':'系统分组'],['r7Th2',en?'Items':'条目数'],['r7Th3',en?'Max Score':'满分'],['r7Th4',en?'Examples':'代表条目']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function r7_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#r7Tabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function r7_bindTabs(){ var tabs=document.querySelectorAll('#r7Tabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('r7Chart'); var card=document.getElementById('r7TableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function r7_all(){try{r7_render();}catch(e){}r7_fillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){r7_bindTabs();r7_all();});
+  document.addEventListener('toolbox:langchange',function(){r7_all();});
+})();
 </script>
 </body>
 </html>
