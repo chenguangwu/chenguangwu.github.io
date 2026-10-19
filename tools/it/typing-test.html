@@ -263,6 +263,17 @@ s.parentNode.insertBefore(el, s);
     <button type="button" class="btn danger" onclick="clearHistory()" style="margin-top:8px;">清空历史</button>
   </div>
 
+  <div class="card">
+    <h2 id="ttTitle"></h2>
+    <div id="ttChart"></div>
+    <h3 id="ttRefTitle" style="margin:16px 0 8px;"></h3>
+    <table class="data-table">
+      <thead><tr><th id="ttTh0"></th><th id="ttTh1"></th><th id="ttTh2"></th><th id="ttTh3"></th><th id="ttTh4"></th></tr></thead>
+      <tbody id="ttTbody"></tbody>
+    </table>
+    <p id="ttNote" style="font-size:12px;color:var(--text-muted);margin-top:8px;"></p>
+  </div>
+
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -536,6 +547,51 @@ function loadSampleText(){
 }
 
 changeText();
+var __TT_LEVELS=[
+  {zh:'\u521d\u5b66\u8005',en:'Beginner',wpm:'< 30',cpm:'< 60',nz:'\u521a\u63a5\u89e6\u952e\u76d8\uff0c\u9700\u8981\u770b\u952e\u4f4d\u627e\u5b57\u6bcd',ne:'New to the keyboard; still hunting for keys'},
+  {zh:'\u5165\u95e8',en:'Novice',wpm:'30 \u2013 45',cpm:'60 \u2013 90',nz:'\u80fd\u5b8c\u6210\u65e5\u5e38\u804a\u5929\uff0c\u5076\u5c14\u505c\u987f',ne:'Handles everyday chat with occasional pauses'},
+  {zh:'\u719f\u7ec3',en:'Intermediate',wpm:'45 \u2013 65',cpm:'90 \u2013 130',nz:'\u53ef\u8ddf\u4e0a\u6b63\u5e38\u8bed\u901f\u7684\u542c\u5199\u8bb0\u5f55',ne:'Keeps up with normal-speed dictation and notes'},
+  {zh:'\u9ad8\u6548',en:'Advanced',wpm:'65 \u2013 85',cpm:'130 \u2013 170',nz:'\u9002\u5408\u5927\u91cf\u6587\u5b57\u5f55\u5165\u5de5\u4f5c',ne:'Well suited to high-volume text entry'},
+  {zh:'\u4e13\u4e1a',en:'Professional',wpm:'\u2265 85',cpm:'\u2265 170',nz:'\u901f\u5f55\u5458 / \u4e13\u4e1a\u7a0b\u5e8f\u5458\u6c34\u5e73',ne:'Stenographer or professional programmer level'}
+];
+function __ttT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function __ttExtras(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var hist=[];
+    try{hist=JSON.parse(localStorage.getItem('typingHistory')||'[]');}catch(e){}
+    if(!Array.isArray(hist))hist=[];
+    var recent=hist.slice(0,10).reverse();
+    var host=document.getElementById('ttChart');
+    if(TBKit.chart&&host){
+      if(recent.length){
+        TBKit.chart.line('#ttChart',{
+          labels:recent.map(function(h){return String(h.date||'').slice(5,16);}),
+          series:[{name:en?'Speed (WPM / chars per min)':'\u901f\u5ea6\uff08\u82f1\u6587 WPM / \u4e2d\u6587 \u5b57\u6bcf\u5206\uff09',data:recent.map(function(h){return +h.wpm||0;})}],
+          height:240,
+          title:en?'Recent typing speed (last 10 runs)':'\u6700\u8fd1 10 \u6b21\u6253\u5b57\u901f\u5ea6'
+        });
+      }else{
+        host.innerHTML='<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">'+__ttT('\u5b8c\u6210\u4e00\u6b21\u6d4b\u8bd5\u540e\uff0c\u8fd9\u91cc\u4f1a\u663e\u793a\u901f\u5ea6\u8d8b\u52bf','Your speed trend will appear here after your first test')+'</p>';
+      }
+    }
+    var tb=document.getElementById('ttTbody');
+    if(tb){
+      tb.innerHTML=__TT_LEVELS.map(function(l,i){
+        return '<tr><td>'+(i+1)+'</td><td><strong>'+__ttT(l.zh,l.en)+'</strong></td><td>'+l.wpm+'</td><td>'+l.cpm+'</td><td>'+__ttT(l.nz,l.ne)+'</td></tr>';
+      }).join('');
+    }
+    var hs=[['ttTitle',__ttT('\ud83d\udcc8 \u901f\u5ea6\u8d8b\u52bf','\ud83d\udcc8 Speed Trend')],['ttRefTitle',__ttT('\u2328\ufe0f \u6253\u5b57\u901f\u5ea6\u7b49\u7ea7\u53c2\u8003','\u2328\ufe0f Typing Speed Levels')],
+      ['ttTh0','#'],['ttTh1',__ttT('\u7b49\u7ea7','Level')],['ttTh2',__ttT('\u82f1\u6587 WPM','English WPM')],['ttTh3',__ttT('\u4e2d\u6587\uff08\u5b57/\u5206\u949f\uff09','Chinese (chars/min)')],['ttTh4',__ttT('\u8bf4\u660e','Description')]];
+    hs.forEach(function(p){var el=document.getElementById(p[0]);if(el)el.textContent=p[1];});
+    var nt=document.getElementById('ttNote');
+    if(nt)nt.textContent=__ttT('\u4e2d\u6587\u6309\u300c\u5b57/\u5206\u949f\u300d\u8ba1\uff0c\u7ea6\u4e3a\u540c\u7b49\u7ea7\u82f1\u6587 WPM \u7684 2 \u500d\uff1b\u6bcf\u5b8c\u6210\u4e00\u6b21\u6d4b\u8bd5\u81ea\u52a8\u8bb0\u5f55\uff0c\u8d8b\u52bf\u56fe\u53d6\u6700\u8fd1 10 \u6b21\u3002','Chinese scores are measured in characters per minute, roughly 2x the equivalent English WPM. Every completed test is saved automatically; the trend chart shows the last 10 runs.');
+  }catch(e){}
+}
+var __tt0=renderHistory;
+renderHistory=function(){__tt0();__ttExtras();};
+document.addEventListener('toolbox:langchange',__ttExtras);
 renderHistory();
 </script><script>
 // tool-intro折叠交互
