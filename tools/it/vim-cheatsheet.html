@@ -179,6 +179,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="viTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="viChart"></div>
+<div class="card" id="viTableCard" style="display:none">
+  <h3 id="viTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="viTh0"></th><th id="viTh1"></th><th id="viTh2"></th><th id="viTh3"></th></tr></thead>
+    <tbody id="viTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -687,6 +699,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var VICAT_EN={"启动":"Launch","模式":"Mode","保存退出":"Save/Quit","文件":"File","移动":"Movement","搜索":"Search","替换":"Replace","编辑":"Edit","缩进":"Indent","设置":"Settings","外部":"External","窗口":"Window","标签":"Tab","帮助":"Help","高级":"Advanced","跳转":"Jump"};
+  function viCat(c,en){return en?(VICAT_EN[c]||c):c;}
+  function viAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function viChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('viChart')) return;
+    var en=TBKit.util.isEn();
+    var a=viAgg();
+    TBKit.chart.bar('#viChart',{labels:a.cats.map(function(c){return viCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by Category':'命令分类统计'});
+  }
+  function viTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('viTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=viAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+viCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('viTableTitle'); if(tt) tt.textContent=en?'Vim Command Categories':'Vim 命令分类明细';
+    var hs=[['viTh0','#'],['viTh1',en?'Category':'分类'],['viTh2',en?'Commands':'命令数'],['viTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function viFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#viTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function viBindTabs(){
+    var tabs=document.querySelectorAll('#viTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('viChart');
+        var card=document.getElementById('viTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function viAll(){try{viChart();}catch(e){}try{viTable();}catch(e){}viFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){viBindTabs();viAll();});
+  document.addEventListener('toolbox:langchange',function(){viAll();});
+})();
 </script>
 </body>
 </html>

@@ -179,6 +179,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="ruTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="ruChart"></div>
+<div class="card" id="ruTableCard" style="display:none">
+  <h3 id="ruTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="ruTh0"></th><th id="ruTh1"></th><th id="ruTh2"></th><th id="ruTh3"></th></tr></thead>
+    <tbody id="ruTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -591,6 +603,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var RUCAT_EN={"基础":"Basics","类型":"Type","集合":"Collection","所有权":"Ownership","控制流":"Control Flow","错误":"Error","trait":"Trait","泛型":"Generics","函数":"Function","工程":"Project"};
+  function ruCat(c,en){return en?(RUCAT_EN[c]||c):c;}
+  function ruAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function ruChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('ruChart')) return;
+    var en=TBKit.util.isEn();
+    var a=ruAgg();
+    TBKit.chart.bar('#ruChart',{labels:a.cats.map(function(c){return ruCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by Category':'命令分类统计'});
+  }
+  function ruTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('ruTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=ruAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+ruCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('ruTableTitle'); if(tt) tt.textContent=en?'Rust Command Categories':'Rust 命令分类明细';
+    var hs=[['ruTh0','#'],['ruTh1',en?'Category':'分类'],['ruTh2',en?'Commands':'命令数'],['ruTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function ruFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#ruTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function ruBindTabs(){
+    var tabs=document.querySelectorAll('#ruTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('ruChart');
+        var card=document.getElementById('ruTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function ruAll(){try{ruChart();}catch(e){}try{ruTable();}catch(e){}ruFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){ruBindTabs();ruAll();});
+  document.addEventListener('toolbox:langchange',function(){ruAll();});
+})();
 </script>
 </body>
 </html>

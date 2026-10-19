@@ -179,6 +179,18 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+<div class="tabs" id="emTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="emChart"></div>
+<div class="card" id="emTableCard" style="display:none">
+  <h3 id="emTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="emTh0"></th><th id="emTh1"></th><th id="emTh2"></th><th id="emTh3"></th></tr></thead>
+    <tbody id="emTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -711,6 +723,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var EMCAT_EN={"启动":"Launch","前缀":"Prefix","文件":"File","移动":"Movement","取消":"Cancel","编辑":"Edit","选择":"Select","搜索":"Search","替换":"Replace","缓冲区":"Buffer","窗口":"Window","扩展":"Extension","帮助":"Help","配置":"Config"};
+  function emCat(c,en){return en?(EMCAT_EN[c]||c):c;}
+  function emAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function emChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('emChart')) return;
+    var en=TBKit.util.isEn();
+    var a=emAgg();
+    TBKit.chart.bar('#emChart',{labels:a.cats.map(function(c){return emCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by Category':'命令分类统计'});
+  }
+  function emTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('emTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=emAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+emCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('emTableTitle'); if(tt) tt.textContent=en?'Emacs Command Categories':'Emacs 命令分类明细';
+    var hs=[['emTh0','#'],['emTh1',en?'Category':'分类'],['emTh2',en?'Commands':'命令数'],['emTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function emFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#emTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function emBindTabs(){
+    var tabs=document.querySelectorAll('#emTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('emChart');
+        var card=document.getElementById('emTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function emAll(){try{emChart();}catch(e){}try{emTable();}catch(e){}emFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){emBindTabs();emAll();});
+  document.addEventListener('toolbox:langchange',function(){emAll();});
+})();
 </script>
 </body>
 </html>
