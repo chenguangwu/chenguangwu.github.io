@@ -263,6 +263,12 @@ function resetForm(){document.getElementById('pav').value = '200000';
       calcTool();}
 calcTool();
 </script>
+<div class="cr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="crChart" style="margin-top:8px;"></div>
+<div id="crTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -360,6 +366,50 @@ calcTool = function(){ __tb_fn0(); try{ __climb_rateExtras(); }catch(e){} };
 function __climb_rateBoot(){ try{ __climb_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __climb_rateBoot();
 else document.addEventListener('DOMContentLoaded', __climb_rateBoot);
+</script>
+<script>
+function __crSweep(){
+  var pav=num('pav'), pr=num('preq'), w=num('w');
+  if(!isFinite(pav)||!isFinite(pr)||!isFinite(w)||w<=0||pav<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.6,0.8,0.9,1,1.1,1.25,1.5];
+  for(var i=0;i<mults.length;i++){
+    var pa=pav*mults[i], roc=(pa-pr)/w;
+    labels.push((Math.round(pa/1000*10)/10).toFixed(1));
+    data.push(Math.round(roc*1000)/1000);
+    rows.push([(Math.round(pa/1000*10)/10).toFixed(1), (Math.round((pa-pr)/100)/100).toFixed(2), (Math.round(roc*1000)/1000).toFixed(3), (Math.round(roc*60*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __crChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__crSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#crChart',{title:en?'Climb Rate vs Available Power (ROC = (Pav − Preq)/W)':'爬升率随可用功率变化 (ROC = (Pav − Preq)/W)',labels:s.labels,series:[{name:en?'Climb rate (m/s)':'爬升率 (m/s)',data:s.data}]});
+}
+function __crTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__crSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#crTable',{head:en?['Available power (kW)','Excess power (kW)','Climb rate (m/s)','Climb rate (m/min)']:['可用功率 (kW)','剩余功率 (kW)','爬升率 (m/s)','爬升率 (m/min)'],rows:s.rows});
+}
+
+function __crShow(which){
+  var c=document.getElementById('crChart'), t=document.getElementById('crTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __crTabInit(){
+  var btns=document.querySelectorAll('.cr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__crShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __crFn=calcTool;calcTool=function(){try{__crFn();}catch(e){}try{__crChart();}catch(e){}try{__crTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__crChart();}catch(e){}try{__crTable();}catch(e){}});
+try{__crTabInit();}catch(e){}
 </script>
 </body>
 </html>
