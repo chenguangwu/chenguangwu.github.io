@@ -211,8 +211,13 @@ s.parentNode.insertBefore(el, s);
       • 排水层陶粒重量 = 排水层容积 × 1.5 g/cm³
     </div>
 
-    <h3 style="margin-top:20px;">📊 花盆尺寸标准表</h3>
-    <table>
+    <h3 style="margin-top:20px;" id="potStdHead">📊 花盆尺寸标准表</h3>
+    <div class="tabs" id="potTabs" style="margin-bottom:12px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="potChart"></div>
+    <table id="potStdTable" style="display:none;">
       <thead><tr><th>规格（寸）</th><th>口径 (cm)</th><th>高度 (cm)</th><th>容积约 (L)</th><th>适用植物</th></tr></thead>
       <tbody>
         <tr><td>3 寸</td><td>9</td><td>8</td><td>0.5</td><td>多肉幼苗/育苗</td></tr>
@@ -618,6 +623,66 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function __potRows(){
+    var tb=document.querySelector('#potStdTable tbody');
+    if(!tb) return [];
+    return Array.prototype.slice.call(tb.querySelectorAll('tr')).map(function(tr){
+      var td=tr.querySelectorAll('td');
+      if(td.length<4) return null;
+      var size=td[0].textContent.trim();
+      var vol=parseFloat(td[3].textContent.replace(/[^\d.]/g,''));
+      return {size:size, vol:isFinite(vol)?vol:0};
+    }).filter(Boolean);
+  }
+  function __potSizeLabel(s,en){
+    if(!en) return s;
+    var m=String(s).match(/(\d+(?:\.\d+)?)/);
+    return m?(m[1]+' in'):s;
+  }
+  function __potChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('potChart')) return;
+    var en=TBKit.util.isEn();
+    var rows=__potRows();
+    if(!rows.length) return;
+    TBKit.chart.bar('#potChart',{
+      labels:rows.map(function(r){return __potSizeLabel(r.size,en);}),
+      series:[{name:en?'Volume (L)':'容积 (L)',data:rows.map(function(r){return r.vol;})}],
+      height:260,
+      title:en?'Pot volume by size':'各规格花盆容积对比'
+    });
+  }
+  function __potFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#potTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'规格表';
+  }
+  function __potShow(v){
+    var chart=document.getElementById('potChart');
+    var tb=document.getElementById('potStdTable');
+    var hd=document.getElementById('potStdHead');
+    if(chart) chart.style.display=v==='chart'?'':'none';
+    if(tb) tb.style.display=v==='table'?'':'none';
+    if(hd) hd.style.display=v==='table'?'':'none';
+  }
+  function __potBindTabs(){
+    var tabs=document.querySelectorAll('#potTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        __potShow(btn.getAttribute('data-v'));
+      });
+    });
+  }
+  function __potAll(){try{__potChart();}catch(e){}__potFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){__potBindTabs();__potShow('chart');__potAll();});
+  document.addEventListener('toolbox:langchange',function(){__potAll();});
+})();
 </script>
 </body>
 </html>

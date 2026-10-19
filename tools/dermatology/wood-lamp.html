@@ -129,6 +129,16 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="font-size:14px;margin-bottom:10px;">选择观察到的荧光特征</h3>
     <div class="fluor-grid" id="grid"></div>
+
+    <div class="tabs" id="wlTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="wlChart"></div>
+    <div class="card" id="wlTableCard" style="display:none;margin-top:12px;">
+      <h3 id="wlTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="wlTh0"></th><th id="wlTh1"></th><th id="wlTh2"></th><th id="wlTh3"></th></tr></thead><tbody id="wlTbody"></tbody></table>
+    </div>
     <div class="toolbar" style="margin:10px 0;">
       <button type="button" class="btn" onclick="window.__wlExport()">⬇️ 导出荧光对照 CSV</button>
     </div>
@@ -347,5 +357,57 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+(function(){
+  var __WL_EN={'明亮瓷白/蓝白':'Bright porcelain white / blue-white','亮绿色':'Bright green','淡黄/金黄色':'Pale yellow / golden','珊瑚红/粉红':'Coral red / pink','橙红/橘红':'Orange-red','颜色加深/对比增强':'Darkened / enhanced contrast','无变化/不加深':'No change / not darkened','粉红-红色（体液）':'Pink-red (body fluids)'};
+  function __wlName(n,en){ return en?(__WL_EN[n]||n):n; }
+  function __wlChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('wlChart')) return;
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar('#wlChart',{
+      labels:data.map(function(d){return __wlName(d.name,en);}),
+      series:[{name:en?'Findings':'对应疾病数',data:data.map(function(d){return (d.items||[]).length;})}],
+      height:280,
+      title:en?'Wood lamp findings per fluorescence':'各荧光特征对应疾病数'
+    });
+  }
+  function __wlTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('wlTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    t.innerHTML=data.map(function(d,i){
+      var names=(d.items||[]).slice(0,3).map(function(x){return x.n;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid var(--border);background:'+d.color+';margin-right:6px;"></span>'+__wlName(d.name,en)+'</td><td>'+(d.items||[]).length+'</td><td>'+(names||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('wlTableTitle'); if(tt) tt.textContent=en?'Wood lamp fluorescence reference':'伍德灯荧光特征明细';
+    var hs=[['wlTh0','#'],['wlTh1',en?'Fluorescence':'荧光特征'],['wlTh2',en?'Findings':'疾病数'],['wlTh3',en?'Examples':'代表疾病']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function __wlFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#wlTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __wlBindTabs(){
+    var tabs=document.querySelectorAll('#wlTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('wlChart');
+        var card=document.getElementById('wlTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function __wlAll(){try{__wlChart();}catch(e){}try{__wlTable();}catch(e){}__wlFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){__wlBindTabs();__wlAll();});
+  document.addEventListener('toolbox:langchange',function(){__wlAll();});
+})();
+</script>
 </body>
 </html>

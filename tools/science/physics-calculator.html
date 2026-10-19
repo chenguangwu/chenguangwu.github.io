@@ -187,6 +187,16 @@ s.parentNode.insertBefore(el, s);
     </div>
     <table id="pcHidden" style="display:none"><thead><tr><th>Symbol</th><th>Value</th><th>Unit</th></tr></thead><tbody></tbody></table>
     <div class="result-box" id="output"></div>
+
+    <div class="tabs" id="phyTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="phyChart"></div>
+    <div class="card" id="phyTableCard" style="display:none;margin-top:12px;">
+      <h3 id="phyTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="phyTh0"></th><th id="phyTh1"></th><th id="phyTh2"></th><th id="phyTh3"></th></tr></thead><tbody id="phyTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -746,6 +756,61 @@ function pcExportCsv(){
   }
   TBKit.util.exportTable('#pcHidden', en?'physics-constants.csv':'物理常数表.csv');
 }
+</script>
+<script>
+(function(){
+  function __phyCatEn(id){
+    var m={mechanics:'Mechanics',electromagnetism:'Electromagnetism',thermodynamics:'Thermodynamics',optics:'Optics',modern:'Modern Physics'};
+    return m[id]||id;
+  }
+  function __phyChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('phyChart')) return;
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar('#phyChart',{
+      labels:CATEGORIES.map(function(c){return en?__phyCatEn(c.id):c.name;}),
+      series:[{name:en?'Formulas':'公式数',data:CATEGORIES.map(function(c){return (FORMULAS[c.id]||[]).length;})}],
+      height:250,
+      title:en?'Formulas per category':'各分类物理公式数量'
+    });
+  }
+  function __phyTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('phyTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    t.innerHTML=CATEGORIES.map(function(c,i){
+      var list=FORMULAS[c.id]||[];
+      var exprs=list.slice(0,3).map(function(f){return f.expr;}).join(' ; ');
+      return '<tr><td>'+(i+1)+'</td><td>'+(en?__phyCatEn(c.id):(c.icon+' '+c.name))+'</td><td>'+list.length+'</td><td style="font-family:monospace;font-size:12px;">'+(exprs||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('phyTableTitle'); if(tt) tt.textContent=en?'Physics formulas by category':'各分类物理公式一览';
+    var hs=[['phyTh0','#'],['phyTh1',en?'Category':'分类'],['phyTh2',en?'Formulas':'公式数'],['phyTh3',en?'Sample expressions':'公式示例']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function __phyFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#phyTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __phyBindTabs(){
+    var tabs=document.querySelectorAll('#phyTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('phyChart');
+        var card=document.getElementById('phyTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function __phyAll(){try{__phyChart();}catch(e){}try{__phyTable();}catch(e){}__phyFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){__phyBindTabs();__phyAll();});
+  document.addEventListener('toolbox:langchange',function(){__phyAll();});
+})();
 </script>
 </body>
 </html>

@@ -137,6 +137,16 @@ s.parentNode.insertBefore(el, s);
 
     <div id="subArea"></div>
 
+    <div class="tabs" id="clcTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="clcChart"></div>
+    <div class="card" id="clcTableCard" style="display:none;margin-top:12px;">
+      <h3 id="clcTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="clcTh0"></th><th id="clcTh1"></th><th id="clcTh2"></th><th id="clcTh3"></th><th id="clcTh4"></th></tr></thead><tbody id="clcTbody"></tbody></table>
+    </div>
+
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="copyCode()">复制分类号</button>
       <button type="button" class="btn" onclick="clearSel()">清除选择</button>
@@ -635,6 +645,57 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function __clcChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('clcChart')) return;
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar('#clcChart',{
+      labels:clcData.map(function(c){return c.code;}),
+      series:[{name:en?'Subclasses':'子类数',data:clcData.map(function(c){return (c.subs||[]).length;})}],
+      height:280,
+      title:en?'CLC subclasses per main class':'中图法各大类子类数量'
+    });
+  }
+  function __clcTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('clcTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    t.innerHTML=clcData.map(function(c,i){
+      var subs=c.subs||[];
+      var codes=subs.slice(0,3).map(function(s){return s.code;}).join(', ');
+      return '<tr><td>'+(i+1)+'</td><td><strong>'+c.code+'</strong></td><td>'+c.name+'</td><td>'+subs.length+'</td><td style="font-family:monospace;font-size:12px;">'+(codes||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('clcTableTitle'); if(tt) tt.textContent=en?'CLC main classes and subclass counts':'中图法大类与子类数量';
+    var hs=[['clcTh0','#'],['clcTh1',en?'Code':'代码'],['clcTh2',en?'Class':'类名'],['clcTh3',en?'Subclasses':'子类数'],['clcTh4',en?'Sample subclasses':'子类示例']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function __clcFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#clcTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function __clcBindTabs(){
+    var tabs=document.querySelectorAll('#clcTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('clcChart');
+        var card=document.getElementById('clcTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function __clcAll(){try{__clcChart();}catch(e){}try{__clcTable();}catch(e){}__clcFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){__clcBindTabs();__clcAll();});
+  document.addEventListener('toolbox:langchange',function(){__clcAll();});
+})();
 </script>
 </body>
 </html>
