@@ -298,6 +298,12 @@ function __free_fall_timeBoot(){ try{ __free_fall_timePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __free_fall_timeBoot();
 else document.addEventListener('DOMContentLoaded', __free_fall_timeBoot);
 </script>
+<div class="ft-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ftChart" style="margin-top:8px;"></div>
+<div id="ftTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +339,48 @@ else document.addEventListener('DOMContentLoaded', __free_fall_timeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ftSweep(){
+  var h=num('h'), g=num('g');
+  if(!isFinite(h)||!isFinite(g)||h<0||g<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8,16];
+  for(var i=0;i<mults.length;i++){
+    var hh=h*mults[i], t=Math.sqrt(2*hh/g);
+    labels.push(String(Math.round(hh*100)/100)); data.push(Math.round(t*1000)/1000);
+    rows.push([String(Math.round(hh*100)/100), (Math.round(t*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __ftChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ftSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ftChart',{title:en?'Fall Time vs Height (t = sqrt(2h/g))':'下落时间随高度变化 (t = √(2h/g))',labels:s.labels,series:[{name:en?'Time t (s)':'时间 t (s)',data:s.data}]});
+}
+function __ftTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ftSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ftTable',{head:en?['Height h (m)','Time t (s)']:['高度 h (m)','时间 t (s)'],rows:s.rows});
+}
+
+function __ftShow(which){
+  var c=document.getElementById('ftChart'), t=document.getElementById('ftTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ftTabInit(){
+  var btns=document.querySelectorAll('.ft-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ftShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ftFn=calcTool;calcTool=function(){try{__ftFn();}catch(e){}try{__ftChart();}catch(e){}try{__ftTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ftChart();}catch(e){}try{__ftTable();}catch(e){}});
+try{__ftTabInit();}catch(e){}
+</script>
 </body>
 </html>

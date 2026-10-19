@@ -300,6 +300,12 @@ function __avg_velocityBoot(){ try{ __avg_velocityPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __avg_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __avg_velocityBoot);
 </script>
+<div class="av-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="avChart" style="margin-top:8px;"></div>
+<div id="avTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +341,48 @@ else document.addEventListener('DOMContentLoaded', __avg_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __avSweep(){
+  var dx=num('dx'), dt=num('dt');
+  if(!isFinite(dx)||!isFinite(dt)||dt<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var tt=dt*mults[i], v=dx/tt;
+    labels.push(String(Math.round(tt*100)/100)); data.push(Math.round(v*1000)/1000);
+    rows.push([String(Math.round(tt*100)/100), (Math.round(v*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __avChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__avSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#avChart',{title:en?'Average Velocity vs Duration (v = dx/dt)':'平均速度随用时变化 (v = dx/dt)',labels:s.labels,series:[{name:en?'Velocity v (m/s)':'速度 v (m/s)',data:s.data}]});
+}
+function __avTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__avSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#avTable',{head:en?['Duration dt (s)','Velocity v (m/s)']:['用时 dt (s)','速度 v (m/s)'],rows:s.rows});
+}
+
+function __avShow(which){
+  var c=document.getElementById('avChart'), t=document.getElementById('avTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __avTabInit(){
+  var btns=document.querySelectorAll('.av-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__avShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __avFn=calcTool;calcTool=function(){try{__avFn();}catch(e){}try{__avChart();}catch(e){}try{__avTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__avChart();}catch(e){}try{__avTable();}catch(e){}});
+try{__avTabInit();}catch(e){}
+</script>
 </body>
 </html>
