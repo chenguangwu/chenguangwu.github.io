@@ -180,7 +180,21 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="pwd-list" id="pwdList"></div>
+    <div class="tabs" id="pwdTabs">
+      <button type="button" class="tab-btn active" data-v="chart"></button>
+      <button type="button" class="tab-btn" data-v="table"></button>
+    </div>
     <div id="pwdChart" style="margin-top:14px;"></div>
+  </div>
+  <div class="card" id="pwdTableCard" style="display:none;">
+    <h3 id="pwdTableTitle"></h3>
+    <div class="table-wrap">
+      <table class="data-table" id="pwdTable">
+        <thead><tr><th id="pwdTh0"></th><th id="pwdTh1"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="muted" id="pwdTableNote"></p>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -299,6 +313,30 @@ function __pwdChart(){
     labels:labels,
     series:[{name:en?'Entropy (bits)':'熵(bit)',data:data}]
   });
+  try{__pwdTable(en);}catch(e){}
+}
+function __pwdTable(en){
+  var tb=document.querySelector('#pwdTable tbody'); if(!tb) return;
+  var pool=null; try{ pool=buildPool(); }catch(e){ pool=null; }
+  if(!pool||!pool.length){ tb.innerHTML=''; return; }
+  var per=Math.log(pool.length)/Math.LN2;
+  if(!isFinite(per)||per<=0){ tb.innerHTML=''; return; }
+  var lens=[8,12,16,20,24,32];
+  var rows=lens.map(function(len){ return [len, +(len*per).toFixed(1)]; });
+  tb.innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td><strong>'+r[1]+'</strong></td></tr>';}).join('');
+  var t1=document.querySelector('#pwdTabs .tab-btn[data-v="chart"]'); if(t1)t1.textContent=en?'📊 Chart':'📊 图表';
+  var t2=document.querySelector('#pwdTabs .tab-btn[data-v="table"]'); if(t2)t2.textContent=en?'📋 Entropy table':'📋 熵值明细';
+  var tt=document.getElementById('pwdTableTitle'); if(tt)tt.textContent=en?'Password entropy by length (bits)':'各长度密码熵（bit）';
+  var h0=document.getElementById('pwdTh0'); if(h0)h0.textContent=en?'Length':'长度';
+  var h1=document.getElementById('pwdTh1'); if(h1)h1.textContent=en?'Entropy (bits)':'熵(bit)';
+  var note=document.getElementById('pwdTableNote'); if(note)note.textContent=en?'Entropy = length × log2(charset size). Current charset size: '+pool.length+'.':'熵 = 长度 × log2(字符集大小)。当前字符集大小：'+pool.length+'。';
+}
+function __pwdTab(v){
+  var cv=document.getElementById('pwdChart'); var card=cv?cv.closest('.card'):null;
+  var tv=document.getElementById('pwdTableCard');
+  document.querySelectorAll('#pwdTabs .tab-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===v); });
+  if(card) card.style.display = v==='chart' ? '' : 'none';
+  if(tv) tv.style.display = v==='table' ? '' : 'none';
 }
 
 function gen(){
@@ -361,6 +399,8 @@ function copySingle(idx,btn){
 gen();
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){try{__pwdChart();}catch(e){}});}else{try{__pwdChart();}catch(e){}}
 window.addEventListener('toolbox:langchange',function(){try{__pwdChart();}catch(e){}});
+var __pwdTabsEl=document.getElementById('pwdTabs');
+if(__pwdTabsEl){__pwdTabsEl.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.tab-btn');if(b)__pwdTab(b.getAttribute('data-v'));});}
 </script>
 
 </div>

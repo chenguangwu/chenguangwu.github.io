@@ -150,9 +150,23 @@ s.parentNode.insertBefore(el, s);
   <!-- 宠物列表 -->
   <div id="petList"></div>
 
+  <div class="tabs" id="vaxTabs">
+    <button type="button" class="tab-btn active" data-v="chart"></button>
+    <button type="button" class="tab-btn" data-v="table"></button>
+  </div>
   <div class="card" id="vaxChartCard">
     <h3>📊 各宠物距最近待办到期天数</h3>
     <div id="vaxChart"></div>
+  </div>
+  <div class="card" id="vaxTableCard" style="display:none;">
+    <h3 id="vaxTableTitle"></h3>
+    <div class="table-wrap">
+      <table class="data-table" id="vaxTable">
+        <thead><tr><th id="vaxTh0"></th><th id="vaxTh1"></th><th id="vaxTh2"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="muted" id="vaxTableNote"></p>
   </div>
 
   <!-- 记录日志 -->
@@ -608,6 +622,7 @@ function __vaxExtras(){
   if(typeof TBKit==='undefined'||!TBKit.chart) return;
   var host=document.getElementById('vaxChart'); if(!host) return;
   var en=TBKit.util.isEn();
+  try{__vaxTable(en);}catch(e){}
   var labels=[],data=[];
   pets.forEach(function(p){
     var items=computeItems(p);
@@ -647,11 +662,44 @@ function __vaxExtras(){
     title:en?'Immunisation and deworming cycle by item (days)':'各项免疫/驱虫周期对照（天）'
   });
 }
+function __vaxTable(en){
+  var tb=document.querySelector('#vaxTable tbody'); if(!tb) return;
+  var sp=document.getElementById('petSpecies');
+  var species=(sp&&sp.value)||'dog';
+  var sched=VACCINE_SCHEDULES[species]||VACCINE_SCHEDULES.dog||[];
+  var rows=[];
+  var spName=en?(species==='cat'?'Cat':'Dog'):(species==='cat'?'猫':'犬');
+  sched.forEach(function(s){
+    rows.push([spName, en?(__vaxEnLabels[s.key]||s.key):s.name, (s.ageWeeks||0)+'周']);
+  });
+  rows.push([en?'Dog/Cat':'犬/猫', en?__vaxEnLabels.internal:DEWORM.internal.name, en?'Every ':'每'+DEWORM.internal.cycleDays+'天（首针'+DEWORM.internal.firstWeeks+'周）']);
+  rows.push([en?'Dog/Cat':'犬/猫', en?__vaxEnLabels.external:DEWORM.external.name, en?'Every ':'每'+DEWORM.external.cycleDays+'天（首针'+DEWORM.external.firstWeeks+'周）']);
+  rows.push([en?'Dog/Cat':'犬/猫', en?__vaxEnLabels.booster:BOOSTER.name, en?'Every ':'每'+BOOSTER.cycleDays+'天']);
+  tb.innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';}).join('');
+  var t1=document.querySelector('#vaxTabs .tab-btn[data-v="chart"]'); if(t1)t1.textContent=en?'📊 Chart':'📊 图表';
+  var t2=document.querySelector('#vaxTabs .tab-btn[data-v="table"]'); if(t2)t2.textContent=en?'📋 Schedule':'📋 免疫/驱虫程序';
+  var tt=document.getElementById('vaxTableTitle'); if(tt)tt.textContent=en?'Immunisation & Deworming Schedule':'免疫/驱虫程序参考';
+  var h0=document.getElementById('vaxTh0'); if(h0)h0.textContent=en?'Pet':'宠物';
+  var h1=document.getElementById('vaxTh1'); if(h1)h1.textContent=en?'Item':'项目';
+  var h2=document.getElementById('vaxTh2'); if(h2)h2.textContent=en?'Recommended age / cycle':'推荐周龄 / 周期';
+  var note=document.getElementById('vaxTableNote'); if(note)note.textContent=en?'Default dog. Switch species above to update the schedule.':'默认犬。上方切换宠物类型可更新程序。';
+}
+function __vaxTab(v){
+  var cv=document.getElementById('vaxChartCard'), tv=document.getElementById('vaxTableCard');
+  document.querySelectorAll('#vaxTabs .tab-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===v); });
+  if(cv) cv.style.display = v==='chart' ? '' : 'none';
+  if(tv) tv.style.display = v==='table' ? '' : 'none';
+}
 
 var __vaxRender=render;
 render=function(){__vaxRender();__vaxExtras();};
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__vaxExtras();});}else{__vaxExtras();}
 window.addEventListener('toolbox:langchange',function(){try{__vaxExtras();}catch(e){}});
+
+var __vaxTabsEl=document.getElementById('vaxTabs');
+if(__vaxTabsEl){__vaxTabsEl.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.tab-btn');if(b)__vaxTab(b.getAttribute('data-v'));});}
+var __vaxSp=document.getElementById('petSpecies');
+if(__vaxSp){__vaxSp.addEventListener('change',function(){try{__vaxExtras();}catch(e){}});}
 
 render();
 })();

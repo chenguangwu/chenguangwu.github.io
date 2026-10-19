@@ -155,6 +155,10 @@ s.parentNode.insertBefore(el, s);
     <div id="fractureList"></div>
   </div>
 
+  <div class="tabs" id="fracTabs">
+    <button type="button" class="tab-btn active" data-v="chart"></button>
+    <button type="button" class="tab-btn" data-v="table"></button>
+  </div>
   <div class="card">
     <h3>📊 不同年龄段愈合时间对照</h3>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">选择骨折类型查看各年龄段愈合周期</p>
@@ -166,6 +170,16 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div id="ageCompare"></div>
     <div id="fracChart" style="margin-top:12px;"></div>
+  </div>
+  <div class="card" id="fracTableCard" style="display:none;">
+    <h3 id="fracTableTitle"></h3>
+    <div class="table-wrap">
+      <table class="data-table" id="fracTable">
+        <thead><tr><th id="fracTh0"></th><th id="fracTh1"></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="muted" id="fracTableNote"></p>
   </div>
 
   <div class="card">
@@ -501,6 +515,31 @@ function __fracChart() {
     labels: labels,
     series: [{ name: en ? 'weeks' : '周', data: data }]
   });
+  try{__fracTable();}catch(e){}
+}
+function __fracTable(){
+  var tb=document.querySelector('#fracTable tbody'); if(!tb) return;
+  var sel=document.getElementById('fractureSelect'); if(!sel) return;
+  var f=null; fractureDB.forEach(function(x){ if(x.id===sel.value){ f=x; } });
+  if(!f){ tb.innerHTML=''; return; }
+  var en=TBKit.util.isEn();
+  var ageEn={child:'Child 0-12',young:'Young 13-35',middle:'Middle 36-60',senior:'Senior 60+'};
+  var ageOrder=['child','young','middle','senior'];
+  var rows=ageOrder.map(function(k){ return [en?ageEn[k]:ageNames[k], f.healing[k]]; });
+  tb.innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('');
+  var t1=document.querySelector('#fracTabs .tab-btn[data-v="chart"]'); if(t1)t1.textContent=en?'📊 Chart':'📊 图表';
+  var t2=document.querySelector('#fracTabs .tab-btn[data-v="table"]'); if(t2)t2.textContent=en?'📋 Healing table':'📋 愈合明细';
+  var tt=document.getElementById('fracTableTitle'); if(tt)tt.textContent=en?'Healing weeks by age group — '+(f.name||''):'各年龄段愈合周数 — '+(f.name||'');
+  var h0=document.getElementById('fracTh0'); if(h0)h0.textContent=en?'Age group':'年龄段';
+  var h1=document.getElementById('fracTh1'); if(h1)h1.textContent=en?'Healing period':'愈合周期';
+  var note=document.getElementById('fracTableNote'); if(note)note.textContent=en?'Source: typical clinical healing range; individual recovery varies.':'数据来源：临床典型愈合区间，个体恢复存在差异。';
+}
+function __fracTab(v){
+  var cv=document.getElementById('fracChart'); var card=cv?cv.closest('.card'):null;
+  var tv=document.getElementById('fracTableCard');
+  document.querySelectorAll('#fracTabs .tab-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===v); });
+  if(card) card.style.display = v==='chart' ? '' : 'none';
+  if(tv) tv.style.display = v==='table' ? '' : 'none';
 }
 
 function parseWeeksToDays(str) {
@@ -538,6 +577,8 @@ renderFractureList();
 initSelect();
 if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', function(){ try{__fracChart();}catch(e){} }); } else { try{__fracChart();}catch(e){} }
 window.addEventListener('toolbox:langchange', function(){ try{__fracChart();}catch(e){} });
+var __fracTabsEl=document.getElementById('fracTabs');
+if(__fracTabsEl){__fracTabsEl.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.tab-btn');if(b)__fracTab(b.getAttribute('data-v'));});}
 </script>
 
 <!-- SEO 介绍区块 -->
