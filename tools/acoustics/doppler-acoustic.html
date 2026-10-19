@@ -276,6 +276,12 @@ function resetForm(){document.getElementById('f').value = '440';
       calcTool();}
 calcTool();
 </script>
+<div class="da-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="daChart" style="margin-top:8px;"></div>
+<div id="daTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -352,6 +358,51 @@ calcTool = function(){ __tb_fn0(); try{ __doppler_acousticExtras(); }catch(e){} 
 function __doppler_acousticBoot(){ try{ __doppler_acousticPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __doppler_acousticBoot();
 else document.addEventListener('DOMContentLoaded', __doppler_acousticBoot);
+</script>
+<script>
+function __daSweep(){
+  var f=num('f'), v=num('v'), vs=num('vs');
+  if(!isFinite(f)||!isFinite(v)||!isFinite(vs)||v<=0||f<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var fracs=[0,0.1,0.2,0.3,0.5,0.7,0.9];
+  for(var i=0;i<fracs.length;i++){
+    var s=v*fracs[i];
+    var app=f*v/(v-s), rec=f*v/(v+s);
+    labels.push(String(Math.round(s*10)/10));
+    d1.push(Math.round(app*100)/100); d2.push(Math.round(rec*100)/100);
+    rows.push([String(Math.round(s*10)/10), (Math.round(app*100)/100).toFixed(2), (Math.round(rec*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __daChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__daSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#daChart',{title:en?'Observed Frequency vs Source Speed (Doppler)':'观测频率随声源速度变化（多普勒效应）',labels:s.labels,series:[{name:en?'Approaching f·v/(v−vs) (Hz)':'靠近 f·v/(v−vs) (Hz)',data:s.d1},{name:en?'Receding f·v/(v+vs) (Hz)':'远离 f·v/(v+vs) (Hz)',data:s.d2}]});
+}
+function __daTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__daSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#daTable',{head:en?['Source speed vs (m/s)','Approaching (Hz)','Receding (Hz)']:['声源速度 vs (m/s)','靠近时 (Hz)','远离时 (Hz)'],rows:s.rows});
+}
+
+function __daShow(which){
+  var c=document.getElementById('daChart'), t=document.getElementById('daTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __daTabInit(){
+  var btns=document.querySelectorAll('.da-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__daShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __daFn=calcTool;calcTool=function(){try{__daFn();}catch(e){}try{__daChart();}catch(e){}try{__daTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__daChart();}catch(e){}try{__daTable();}catch(e){}});
+try{__daTabInit();}catch(e){}
 </script>
 </body>
 </html>

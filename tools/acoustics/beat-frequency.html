@@ -273,6 +273,12 @@ function resetForm(){document.getElementById('f1').value = '440';
       calcTool();}
 calcTool();
 </script>
+<div class="bf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bfChart" style="margin-top:8px;"></div>
+<div id="bfTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -349,6 +355,49 @@ calcTool = function(){ __tb_fn0(); try{ __beat_frequencyExtras(); }catch(e){} };
 function __beat_frequencyBoot(){ try{ __beat_frequencyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __beat_frequencyBoot();
 else document.addEventListener('DOMContentLoaded', __beat_frequencyBoot);
+</script>
+<script>
+function __bfSweep(){
+  var f1=num('f1'), f2=num('f2');
+  if(!isFinite(f1)||!isFinite(f2)||f1<=0||f2<=0)return null;
+  var labels=[],data=[],rows=[];
+  var ratios=[0.5,0.7,0.85,1.0,1.15,1.3,1.5];
+  for(var i=0;i<ratios.length;i++){
+    var v2=f1*ratios[i], fb=Math.abs(f1-v2);
+    labels.push(String(Math.round(v2*10)/10)); data.push(Math.round(fb*100)/100);
+    rows.push([String(Math.round(v2*10)/10), (Math.round(fb*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __bfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bfChart',{title:en?'Beat Frequency vs Second Tone (fb = |f1 - f2|)':'拍频随第二频率变化 (fb = |f1 − f2|)',labels:s.labels,series:[{name:en?'Beat fb (Hz)':'拍频 fb (Hz)',data:s.data}]});
+}
+function __bfTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__bfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#bfTable',{head:en?['Second tone f2 (Hz)','Beat fb (Hz)']:['第二频率 f2 (Hz)','拍频 fb (Hz)'],rows:s.rows});
+}
+
+function __bfShow(which){
+  var c=document.getElementById('bfChart'), t=document.getElementById('bfTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bfTabInit(){
+  var btns=document.querySelectorAll('.bf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __bfFn=calcTool;calcTool=function(){try{__bfFn();}catch(e){}try{__bfChart();}catch(e){}try{__bfTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bfChart();}catch(e){}try{__bfTable();}catch(e){}});
+try{__bfTabInit();}catch(e){}
 </script>
 </body>
 </html>
