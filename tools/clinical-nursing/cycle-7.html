@@ -212,7 +212,12 @@ s.parentNode.insertBefore(el, s);
     <div class="tab-content" id="tab-daily">
       <div class="stat-grid" id="dailyGrid"></div>
       <div id="dailyDetail"></div>
+      <div class="tabs" id="rstTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
       <div id="rstChart" style="margin-top:12px;"></div>
+      <div class="card" id="rstTableCard" style="display:none;margin-top:12px;">
+        <h3 id="rstTableTitle"></h3>
+        <table><thead><tr><th id="rstTh0"></th><th id="rstTh1"></th><th id="rstTh2"></th></tr></thead><tbody id="rstTbody"></tbody></table>
+      </div>
     </div>
 
     <div class="tab-content" id="tab-guide">
@@ -655,7 +660,40 @@ function __rstChart(){
     title:en?'Key time nodes of restraint care (minutes)':'约束护理关键时间节点 (分钟)',
     labels:en?enm:zh,series:[{name:en?'Minutes':'分钟',data:mins}],height:260
   });
+  try{__rstTable();}catch(e){}
 }
+
+function __rstTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('rstTh0'),t1=document.getElementById('rstTh1'),t2=document.getElementById('rstTh2');
+  var title=document.getElementById('rstTableTitle'),tb=document.getElementById('rstTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';t1.textContent=en?'Item':'项目';t2.textContent=en?'Minutes':'分钟';
+  title.textContent=en?'Restraint schedule':'约束护理明细';
+  var rows=[];
+  var today=todayStr();
+  var todaySessions=sessions.filter(function(s){return s.date===today;});
+  if(todaySessions.length){
+    var byPt={};
+    todaySessions.forEach(function(s){byPt[s.patient]=(byPt[s.patient]||0)+(+s.duration||0);});
+    Object.keys(byPt).forEach(function(pt,i){rows.push({name:en?('Patient '+(i+1)):pt,val:Math.round((byPt[pt]||0)/60)});});
+  }else{
+    var zh=['预警 (1.5小时)','必须松解 (2小时)','单次松解下限','单次松解上限'];
+    var enm=['Warning (1.5h)','Release due (2h)','Release min','Release max'];
+    var mins=[Math.round(WARN_SEC/60),Math.round(ALARM_SEC/60),15,30];
+    for(var k=0;k<mins.length;k++)rows.push({name:en?enm[k]:zh[k],val:mins[k]});
+  }
+  if(!rows.length){tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">'+(en?'No data':'暂无数据')+'</td></tr>';return;}
+  tb.innerHTML=rows.map(function(r,idx){return '<tr><td>'+(idx+1)+'</td><td>'+ToolBox.escHtml(r.name)+'</td><td>'+r.val+'</td></tr>';}).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('rstTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('rstTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('rstChart'),card=document.getElementById('rstTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__rstTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
 
 function renderDaily(){
   try { __rstChart(); } catch(e) {}

@@ -154,7 +154,12 @@ s.parentNode.insertBefore(el, s);
 
     <div id="categoryArea"></div>
     <div class="result-box" id="result"></div>
+    <div class="tabs" id="matTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
     <div id="matChart" style="margin-top:12px;"></div>
+    <div class="card" id="matTableCard" style="display:none;margin-top:12px;">
+      <h3 id="matTableTitle"></h3>
+      <table><thead><tr><th id="matTh0"></th><th id="matTh1"></th><th id="matTh2"></th></tr></thead><tbody id="matTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -305,7 +310,29 @@ function __matChart(){
     items:items,
     height:280
   });
+  try{__matTable();}catch(e){}
 }
+
+function __matTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('matTh0'),t1=document.getElementById('matTh1'),t2=document.getElementById('matTh2');
+  var title=document.getElementById('matTableTitle'),tb=document.getElementById('matTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';t1.textContent=en?'Category':'分类';t2.textContent=en?'Budget (CNY)':'预算(元)';
+  title.textContent=en?'Budget by category':'各分类预算';
+  var tot=[];
+  CATEGORIES.forEach(function(cat){var c=0;cat.items.forEach(function(it){c+=(+it.qty||0)*(+it.price||0);});if(c>0)tot.push({name:cat.name,total:c});});
+  if(!tot.length){tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">'+(en?'No data':'暂无数据')+'</td></tr>';return;}
+  tb.innerHTML=tot.map(function(c,idx){var raw=String(c.name).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2190-\u2BFF\uFE0F\u200D]/g,'').trim();var nm=en?(__matCatEn[raw]||raw):raw;return '<tr><td>'+(idx+1)+'</td><td>'+ToolBox.escHtml(nm)+'</td><td>'+c.total+'</td></tr>';}).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('matTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('matTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('matChart'),card=document.getElementById('matTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__matTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
 
 function calc(){
   var totalCost=0;

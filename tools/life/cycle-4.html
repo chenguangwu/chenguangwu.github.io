@@ -193,7 +193,12 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>📋 用品清单与补货提醒</h3>
     <div id="supplyList"><div class="empty">暂无清洁用品，请先添加</div></div>
+    <div class="tabs" id="supTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
     <div id="supplyChart"></div>
+    <div class="card" id="supTableCard" style="display:none;margin-top:12px;">
+      <h3 id="supTableTitle"></h3>
+      <table><thead><tr><th id="supTh0"></th><th id="supTh1"></th><th id="supTh2"></th><th id="supTh3"></th><th id="supTh4"></th><th id="supTh5"></th></tr></thead><tbody id="supTbody"></tbody></table>
+    </div>
   </div>
 
   <div class="card">
@@ -520,7 +525,31 @@ function __supplyExtras(){
     title:en?(fb?'Example: days until empty (home preset)':'Days until empty by supply (capped at 365)'):(fb?'示例：各用品预计耗尽天数（家庭场景预设）':'各清洁用品预计耗尽天数（≤365天封顶）'),
     series:[{name:en?'Days':'天',data:data}]
   });
+  try{__supplyTable();}catch(e){}
 }
+
+function __supplyTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('supTh0'),t1=document.getElementById('supTh1'),t2=document.getElementById('supTh2'),t3=document.getElementById('supTh3'),t4=document.getElementById('supTh4'),t5=document.getElementById('supTh5');
+  var title=document.getElementById('supTableTitle'),tb=document.getElementById('supTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';t1.textContent=en?'Item':'用品';t2.textContent=en?'Unit':'单位';t3.textContent=en?'Stock':'库存';t4.textContent=en?'Monthly use':'月消耗';t5.textContent=en?'Days left':'预计耗尽(天)';
+  title.textContent=en?'Supply list':'用品清单';
+  var list=supplies||[];
+  if(!list.length){list=[{name:'洗洁精',unit:'瓶',stock:3,rate:0.5,period:'month'},{name:'抽纸',unit:'提',stock:6,rate:2,period:'month'},{name:'洗衣液',unit:'瓶',stock:2,rate:0.3,period:'month'}];}
+  tb.innerHTML=list.map(function(s,i){
+    var d=getDaysUntilEmpty(s);if(!isFinite(d))d=0;if(d>365)d=365;
+    return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(s.name||'用品')+'</td><td>'+ToolBox.escHtml(s.unit||'')+'</td><td>'+(+s.stock||0)+'</td><td>'+(+s.rate||0)+'</td><td>'+d+'</td></tr>';
+  }).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('supTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('supTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('supplyChart'),card=document.getElementById('supTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__supplyTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
 function __supplyIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
 function __supplyExport(){
   if(typeof TBKit==='undefined')return;

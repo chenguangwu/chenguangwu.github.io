@@ -266,7 +266,12 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>⚠️ 检测结果</h3>
     <div class="issue-list" id="issuesList"></div>
+    <div class="tabs" id="esltTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
     <div id="esltChart" style="margin-top:12px;"></div>
+    <div class="card" id="esltTableCard" style="display:none;margin-top:12px;">
+      <h3 id="esltTableTitle"></h3>
+      <table><thead><tr><th id="esltTh0"></th><th id="esltTh1"></th><th id="esltTh2"></th></tr></thead><tbody id="esltTbody"></tbody></table>
+    </div>
   </div>
 
   <div class="card">
@@ -409,7 +414,30 @@ function __esltChart(){
       { name: en ? 'Negative' : '消极', value: tone.neg }
     ]
   });
+  try{__esltTable();}catch(e){}
 }
+
+function __esltTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('esltTh0'),t1=document.getElementById('esltTh1'),t2=document.getElementById('esltTh2');
+  var title=document.getElementById('esltTableTitle'),tb=document.getElementById('esltTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';t1.textContent=en?'Dimension':'维度';t2.textContent=en?'Score':'分值';
+  title.textContent=en?'Sentiment scores':'情感评分明细';
+  var subject=document.getElementById('subject').value.trim();
+  var fallback=!subject;
+  var tone=__esltTone(fallback?templates.promo:subject);
+  var rows=[{n:en?'Positive':'积极',v:tone.pos},{n:en?'Neutral':'中性',v:tone.neu},{n:en?'Negative':'消极',v:tone.neg}];
+  tb.innerHTML=rows.map(function(r,idx){return '<tr><td>'+(idx+1)+'</td><td>'+ToolBox.escHtml(r.n)+'</td><td>'+r.v+'</td></tr>';}).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('esltTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('esltTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('esltChart'),card=document.getElementById('esltTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__esltTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
 
 function analyze(){
   const subject = document.getElementById('subject').value;
