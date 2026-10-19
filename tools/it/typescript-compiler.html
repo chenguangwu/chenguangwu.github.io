@@ -405,6 +405,8 @@ s.parentNode.insertBefore(el, s);
       <div class="stat-chip">输出大小：<strong id="statSize">-</strong> 字符</div>
     </div>
 
+    <div id="tsPresets" style="margin:14px 0 6px;"></div>
+    <div id="tsRefTbl" style="margin-top:12px;"></div>
     <!-- 诊断信息 -->
     <div class="diag-panel" id="diagPanel">
       <div class="diag-header" onclick="toggleDiag()">
@@ -900,5 +902,46 @@ if (document.readyState === 'loading') {
   else restore();
 }catch(e){}})();
 </script>
+<script>
+(function(){
+  function __tsT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}
+function __mkTable(host,title,head,rows){
+  var html='<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">'+title+'</h4>'
+    +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function(h){html+='<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">'+h+'</th>';});
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr>';r.forEach(function(c){html+='<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">'+c+'</td>';});html+='</tr>';});
+  html+='</tbody></table></div>';
+  host.innerHTML=html;
+}
+
+  var BT_BASIC = '// 基础类型注解\nlet count: number = 42;\nlet name: string = "ToolBox";\nconst active: boolean = true;';
+  var BT_CLASS = 'interface User {\n  id: number;\n  name: string;\n}\nclass Admin implements User {\n  id: number;\n  name: string;\n  constructor(id: number, name: string) {\n    this.id = id;\n    this.name = name;\n  }\n}';
+  var BT_GENERIC = 'function first<T>(arr: T[]): T | undefined {\n  return arr[0];\n}\nconst a = first<number>([1, 2, 3]);';
+  var BT_ASYNC = 'async function load(): Promise<string> {\n  const res = await fetch("/api");\n  return res.text();\n}';
+  var TS_PRESETS=[
+    {label:'基础类型',labelEn:'Basic Types',values:{tsInput:BT_BASIC,optTarget:'ES5',optModule:'CommonJS'},after:function(){if(typeof compile==='function')compile();}},
+    {label:'类与接口',labelEn:'Classes & Interfaces',values:{tsInput:BT_CLASS,optTarget:'ES2017',optModule:'ESNext'},after:function(){if(typeof compile==='function')compile();}},
+    {label:'泛型',labelEn:'Generics',values:{tsInput:BT_GENERIC,optTarget:'ES2015',optModule:'CommonJS'},after:function(){if(typeof compile==='function')compile();}},
+    {label:'异步 Async',labelEn:'Async/Await',values:{tsInput:BT_ASYNC,optTarget:'ES2017',optModule:'ESNext'},after:function(){if(typeof compile==='function')compile();}}
+  ];
+  function __tsPresets(){var host=document.getElementById('tsPresets');if(!host)return;if(typeof TBKit!=='undefined'&&TBKit.preset&&TBKit.preset.bar){TBKit.preset.bar(host,TS_PRESETS,null);}}
+  function __tsRefTbl(){
+    var host=document.getElementById('tsRefTbl');if(!host)return;
+    var head=[__tsT('配置项','Option'),__tsT('常用取值','Common values'),__tsT('说明','Note')];
+    var rows=[
+      [__tsT('目标版本 target','Target version'),__tsT('ES3 / ES5 / ES2015 / ES2017 / ES2020 / ESNext','ES3 / ES5 / ES2015 / ES2017 / ES2020 / ESNext'),__tsT('版本越低兼容性越好，越高语法特性越多','Lower = better compat; higher = more syntax features')],
+      [__tsT('模块系统 module','Module system'),__tsT('None / CommonJS / AMD / UMD / ESNext','None / CommonJS / AMD / UMD / ESNext'),__tsT('Node 用 CommonJS，浏览器用 ESNext','Node uses CommonJS, browser uses ESNext')],
+      [__tsT('严格模式 strict','Strict mode'),__tsT('true / false','true / false'),__tsT('开启后类型检查更严格','Enables stricter type checking')],
+      [__tsT('本工具限制','Tool limitation'),__tsT('仅 transpileModule，移除类型注解','transpileModule only, strips types'),__tsT('不做完整类型检查','No full type checking')]
+    ];
+    __mkTable(host,__tsT('TypeScript 编译选项参考','TypeScript compiler options'),head,rows);
+  }
+  function __tsAll(){try{if(typeof TBKit!=='undefined'){__tsPresets();__tsRefTbl();}}catch(e){}}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',__tsAll);}else{__tsAll();}
+  document.addEventListener('toolbox:langchange',__tsAll);
+})();
+</script>
+
 </body>
 </html>
