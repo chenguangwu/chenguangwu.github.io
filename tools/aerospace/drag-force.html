@@ -215,6 +215,12 @@ function resetForm(){document.getElementById('rho').value = '1.225';
       calcTool();}
 calcTool();
 </script>
+<div class="df-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dfChart" style="margin-top:8px;"></div>
+<div id="dfTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -311,6 +317,50 @@ calcTool = function(){ __tb_fn0(); try{ __drag_forceExtras(); }catch(e){} };
 function __drag_forceBoot(){ try{ __drag_forcePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __drag_forceBoot();
 else document.addEventListener('DOMContentLoaded', __drag_forceBoot);
+</script>
+<script>
+function __dfSweep(){
+  var rho=num('rho'), v=num('v'), CD=num('CD'), A=num('A');
+  if(!isFinite(rho)||!isFinite(v)||!isFinite(CD)||!isFinite(A)||rho<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2];
+  for(var i=0;i<mults.length;i++){
+    var rr=rho*mults[i], q=0.5*rr*v*v, D=q*CD*A;
+    labels.push((Math.round(rr*10000)/10000).toFixed(4));
+    d1.push(Math.round(D*10)/10); d2.push(Math.round(q*10)/10);
+    rows.push([(Math.round(rr*10000)/10000).toFixed(4), (Math.round(q*10)/10).toFixed(1), (Math.round(D*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __dfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dfChart',{title:en?'Drag vs Air Density (D = ½ρv²C_D·A)':'阻力随空气密度变化 (D = ½ρv²C_D·A)',labels:s.labels,series:[{name:en?'Drag D (N)':'阻力 D (N)',data:s.d1},{name:en?'Dynamic pressure q (Pa)':'动压 q (Pa)',data:s.d2}]});
+}
+function __dfTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__dfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#dfTable',{head:en?['Density ρ (kg/m³)','q (Pa)','Drag D (N)']:['空气密度 ρ (kg/m³)','动压 q (Pa)','阻力 D (N)'],rows:s.rows});
+}
+
+function __dfShow(which){
+  var c=document.getElementById('dfChart'), t=document.getElementById('dfTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dfTabInit(){
+  var btns=document.querySelectorAll('.df-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __dfFn=calcTool;calcTool=function(){try{__dfFn();}catch(e){}try{__dfChart();}catch(e){}try{__dfTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dfChart();}catch(e){}try{__dfTable();}catch(e){}});
+try{__dfTabInit();}catch(e){}
 </script>
 </body>
 </html>

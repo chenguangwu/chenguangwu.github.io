@@ -271,6 +271,12 @@ function resetForm(){document.getElementById('rho').value = '1.225';
       calcTool();}
 calcTool();
 </script>
+<div class="dp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dpChart" style="margin-top:8px;"></div>
+<div id="dpTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -368,6 +374,50 @@ calcTool = function(){ __tb_fn0(); try{ __dynamic_pressureExtras(); }catch(e){} 
 function __dynamic_pressureBoot(){ try{ __dynamic_pressurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __dynamic_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __dynamic_pressureBoot);
+</script>
+<script>
+function __dpSweep(){
+  var rho=num('rho'), v=num('v');
+  if(!isFinite(rho)||!isFinite(v)||rho<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3];
+  for(var i=0;i<mults.length;i++){
+    var vv=v*mults[i], q=0.5*rho*vv*vv;
+    labels.push((Math.round(vv*10)/10).toFixed(1));
+    data.push(Math.round(q*10)/10);
+    rows.push([(Math.round(vv*10)/10).toFixed(1), (Math.round(q*10)/10).toFixed(1), (Math.round(q/1000*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __dpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dpChart',{title:en?'Dynamic Pressure vs Speed (q = ½ρv²)':'动压随速度变化 (q = ½ρv²)',labels:s.labels,series:[{name:en?'q (Pa)':'动压 q (Pa)',data:s.data}]});
+}
+function __dpTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__dpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#dpTable',{head:en?['Speed v (m/s)','q (Pa)','q (kPa)']:['速度 v (m/s)','动压 q (Pa)','动压 q (kPa)'],rows:s.rows});
+}
+
+function __dpShow(which){
+  var c=document.getElementById('dpChart'), t=document.getElementById('dpTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dpTabInit(){
+  var btns=document.querySelectorAll('.dp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __dpFn=calcTool;calcTool=function(){try{__dpFn();}catch(e){}try{__dpChart();}catch(e){}try{__dpTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dpChart();}catch(e){}try{__dpTable();}catch(e){}});
+try{__dpTabInit();}catch(e){}
 </script>
 </body>
 </html>

@@ -258,6 +258,12 @@ function resetForm(){document.getElementById('mu').value = '3.986e14';
       calcTool();}
 calcTool();
 </script>
+<div class="ev-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="evChart" style="margin-top:8px;"></div>
+<div id="evTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -355,6 +361,50 @@ calcTool = function(){ __tb_fn0(); try{ __escape_velocityExtras(); }catch(e){} }
 function __escape_velocityBoot(){ try{ __escape_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __escape_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __escape_velocityBoot);
+</script>
+<script>
+function __evSweep(){
+  var mu=num('mu'), r=num('r');
+  if(!isFinite(mu)||!isFinite(r)||r<=0||mu<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var rr=r*mults[i], v=Math.sqrt(2*mu/rr), vc=v/Math.SQRT2;
+    labels.push((Math.round(rr/1000*10)/10).toFixed(1));
+    d1.push(Math.round(v/1000*1000)/1000); d2.push(Math.round(vc/1000*1000)/1000);
+    rows.push([(Math.round(rr/1000*10)/10).toFixed(1), (Math.round(v/1000*1000)/1000).toFixed(3), (Math.round(vc/1000*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __evChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__evSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#evChart',{title:en?'Escape Velocity vs Radius (v = √(2μ/r))':'逃逸速度随半径变化 (v = √(2μ/r))',labels:s.labels,series:[{name:en?'Escape v (km/s)':'逃逸速度 (km/s)',data:s.d1},{name:en?'Circular orbit v (km/s)':'圆轨道速度 (km/s)',data:s.d2}]});
+}
+function __evTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__evSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#evTable',{head:en?['Radius r (km)','Escape v (km/s)','Circular v (km/s)']:['半径 r (km)','逃逸速度 (km/s)','圆轨道速度 (km/s)'],rows:s.rows});
+}
+
+function __evShow(which){
+  var c=document.getElementById('evChart'), t=document.getElementById('evTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __evTabInit(){
+  var btns=document.querySelectorAll('.ev-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__evShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __evFn=calcTool;calcTool=function(){try{__evFn();}catch(e){}try{__evChart();}catch(e){}try{__evTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__evChart();}catch(e){}try{__evTable();}catch(e){}});
+try{__evTabInit();}catch(e){}
 </script>
 </body>
 </html>
