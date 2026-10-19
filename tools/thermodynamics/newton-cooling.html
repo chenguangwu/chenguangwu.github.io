@@ -308,6 +308,12 @@ function __newton_coolingBoot(){ try{ __newton_coolingPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __newton_coolingBoot();
 else document.addEventListener('DOMContentLoaded', __newton_coolingBoot);
 </script>
+<div class="nc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ncChart" style="margin-top:8px;"></div>
+<div id="ncTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -343,5 +349,49 @@ else document.addEventListener('DOMContentLoaded', __newton_coolingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ncSweep(){
+  var T0=num('T0'), Ti=num('Tinf'), k=num('k'), t=num('t');
+  if(!isFinite(T0)||!isFinite(Ti)||!isFinite(k)||!isFinite(t)||k<=0)return null;
+  var labels=[],data=[],ref=[],rows=[];
+  var mults=[0,0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var tt=t*mults[i], T=Ti+(T0-Ti)*Math.exp(-k*tt);
+    labels.push(String(Math.round(tt*100)/100));
+    data.push(Math.round(T*100)/100); ref.push(Math.round(Ti*100)/100);
+    rows.push([String(Math.round(tt*100)/100), (Math.round(T*100)/100).toFixed(2), (Math.round((T-Ti)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,ref:ref,rows:rows};
+}
+function __ncChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ncSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ncChart',{title:en?'Newton Cooling Curve (T = T∞ + (T₀ − T∞)e^{−kt})':'牛顿冷却曲线 (T = T∞ + (T₀ − T∞)e^{−kt})',labels:s.labels,series:[{name:en?'Temperature T (℃)':'温度 T (℃)',data:s.data},{name:en?'Ambient T∞':'环境温度 T∞',data:s.ref}]});
+}
+function __ncTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ncSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ncTable',{head:en?['Time t','Temperature T (℃)','ΔT vs ambient (K)']:['时间 t','温度 T (℃)','与环境温差 ΔT (K)'],rows:s.rows});
+}
+
+function __ncShow(which){
+  var c=document.getElementById('ncChart'), t=document.getElementById('ncTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ncTabInit(){
+  var btns=document.querySelectorAll('.nc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ncShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ncFn=calcTool;calcTool=function(){try{__ncFn();}catch(e){}try{__ncChart();}catch(e){}try{__ncTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ncChart();}catch(e){}try{__ncTable();}catch(e){}});
+try{__ncTabInit();}catch(e){}
+</script>
 </body>
 </html>

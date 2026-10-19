@@ -311,6 +311,12 @@ function __lmtd_heat_exchangerBoot(){ try{ __lmtd_heat_exchangerPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __lmtd_heat_exchangerBoot();
 else document.addEventListener('DOMContentLoaded', __lmtd_heat_exchangerBoot);
 </script>
+<div class="lm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lmChart" style="margin-top:8px;"></div>
+<div id="lmTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +352,51 @@ else document.addEventListener('DOMContentLoaded', __lmtd_heat_exchangerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lmSweep(){
+  var a=num('dt1'), b=num('dt2');
+  if(!isFinite(a)||!isFinite(b)||a<=0||b<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1.5,2,3,4];
+  for(var i=0;i<mults.length;i++){
+    var bb=a*mults[i];
+    if(Math.abs(a-bb)<1e-9)continue;
+    var l=(a-bb)/Math.log(a/bb);
+    if(!isFinite(l))continue;
+    labels.push((Math.round(bb*100)/100).toFixed(2)); data.push(Math.round(l*100)/100);
+    rows.push([(Math.round(bb*100)/100).toFixed(2), (Math.round(l*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __lmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lmChart',{title:en?'LMTD vs End-2 ΔT (LMTD = (ΔT₁−ΔT₂)/ln(ΔT₁/ΔT₂))':'对数平均温差随端2温差变化',labels:s.labels,series:[{name:en?'LMTD (K)':'对数平均温差 (K)',data:s.data}]});
+}
+function __lmTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__lmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#lmTable',{head:en?['End-2 ΔT₂ (K)','LMTD (K)']:['端2温差 ΔT₂ (K)','对数平均温差 LMTD (K)'],rows:s.rows});
+}
+
+function __lmShow(which){
+  var c=document.getElementById('lmChart'), t=document.getElementById('lmTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lmTabInit(){
+  var btns=document.querySelectorAll('.lm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __lmFn=calcTool;calcTool=function(){try{__lmFn();}catch(e){}try{__lmChart();}catch(e){}try{__lmTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lmChart();}catch(e){}try{__lmTable();}catch(e){}});
+try{__lmTabInit();}catch(e){}
+</script>
 </body>
 </html>

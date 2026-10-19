@@ -308,6 +308,12 @@ function __isothermal_workBoot(){ try{ __isothermal_workPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __isothermal_workBoot();
 else document.addEventListener('DOMContentLoaded', __isothermal_workBoot);
 </script>
+<div class="iw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="iwChart" style="margin-top:8px;"></div>
+<div id="iwTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -343,5 +349,51 @@ else document.addEventListener('DOMContentLoaded', __isothermal_workBoot);
 </dl>
 </div>
 </section>
+<script>
+function __iwSweep(){
+  var n=num('n'), T=num('T'), V1=num('V1'), V2=num('V2');
+  if(!isFinite(n)||!isFinite(T)||!isFinite(V1)||!isFinite(V2)||V1<=0||V2<=0)return null;
+  var R=8.314, ratio=V2/V1;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var rr=ratio*mults[i];
+    if(!(rr>0)||Math.abs(rr-1)<1e-9)continue;
+    var W=n*R*T*Math.log(rr);
+    labels.push((Math.round(rr*1000)/1000).toFixed(3)); data.push(Math.round(W*10)/10);
+    rows.push([(Math.round(rr*1000)/1000).toFixed(3), (Math.round(W*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __iwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__iwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#iwChart',{title:en?'Isothermal Work vs Volume Ratio (W = nRT·ln(V₂/V₁))':'等温功随体积比变化 (W = nRT·ln(V₂/V₁))',labels:s.labels,series:[{name:en?'Work W (J)':'膨胀功 W (J)',data:s.data}]});
+}
+function __iwTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__iwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#iwTable',{head:en?['Volume ratio V₂/V₁','Work W (J)']:['体积比 V₂/V₁','膨胀功 W (J)'],rows:s.rows});
+}
+
+function __iwShow(which){
+  var c=document.getElementById('iwChart'), t=document.getElementById('iwTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __iwTabInit(){
+  var btns=document.querySelectorAll('.iw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__iwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __iwFn=calcTool;calcTool=function(){try{__iwFn();}catch(e){}try{__iwChart();}catch(e){}try{__iwTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__iwChart();}catch(e){}try{__iwTable();}catch(e){}});
+try{__iwTabInit();}catch(e){}
+</script>
 </body>
 </html>
