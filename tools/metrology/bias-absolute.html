@@ -244,6 +244,12 @@ function __bias_absoluteBoot(){ try{ __bias_absolutePresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __bias_absoluteBoot();
 else document.addEventListener('DOMContentLoaded', __bias_absoluteBoot);
 </script>
+<div class="ba-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="baChart" style="margin-top:8px;"></div>
+<div id="baTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +285,49 @@ else document.addEventListener('DOMContentLoaded', __bias_absoluteBoot);
 </dl>
 </div>
 </section>
+<script>
+function __baSweep(){
+  var x=num('x'), xr=num('xref');
+  if(!isFinite(x)||!isFinite(xr)||Math.abs(xr)<1e-12)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.9,0.95,0.98,1,1.02,1.05,1.1];
+  for(var i=0;i<mults.length;i++){
+    var xx=xr*mults[i], bias=xx-xr, pct=bias/xr*100;
+    labels.push((Math.round(xx*1000)/1000).toFixed(3));
+    d1.push(Math.round(bias*10000)/10000); d2.push(Math.round(pct*1000)/1000);
+    rows.push([(Math.round(xx*1000)/1000).toFixed(3), (Math.round(bias*10000)/10000).toFixed(4), (Math.round(pct*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __baChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__baSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#baChart',{title:en?'Absolute Bias vs Measured Value (Bias = x − x_ref)':'绝对偏倚随测得值变化 (Bias = x − x_ref)',labels:s.labels,series:[{name:en?'Bias':'绝对偏倚',data:s.d1},{name:en?'Relative bias (%)':'相对偏倚 (%)',data:s.d2}]});
+}
+function __baTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__baSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#baTable',{head:en?['Measured x','Bias','Relative bias (%)']:['测得值 x','绝对偏倚','相对偏倚 (%)'],rows:s.rows});
+}
+
+function __baShow(which){
+  var c=document.getElementById('baChart'), t=document.getElementById('baTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __baTabInit(){
+  var btns=document.querySelectorAll('.ba-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__baShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __baFn=calcTool;calcTool=function(){try{__baFn();}catch(e){}try{__baChart();}catch(e){}try{__baTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__baChart();}catch(e){}try{__baTable();}catch(e){}});
+try{__baTabInit();}catch(e){}
+</script>
 </body>
 </html>

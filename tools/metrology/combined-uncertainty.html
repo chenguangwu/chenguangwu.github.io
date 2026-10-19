@@ -293,6 +293,12 @@ function __combined_uncertaintyBoot(){ try{ __combined_uncertaintyPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __combined_uncertaintyBoot();
 else document.addEventListener('DOMContentLoaded', __combined_uncertaintyBoot);
 </script>
+<div class="cbu-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cbuChart" style="margin-top:8px;"></div>
+<div id="cbuTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -328,5 +334,54 @@ else document.addEventListener('DOMContentLoaded', __combined_uncertaintyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cbuSweep(){
+  var el=document.getElementById('us');
+  if(!el)return null;
+  var parts=String(el.value||'').split(',');
+  var vals=[];
+  for(var i=0;i<parts.length;i++){var v=parseFloat(parts[i]); if(isFinite(v))vals.push(Math.abs(v));}
+  if(!vals.length)return null;
+  var u1=vals[0];
+  if(!isFinite(u1)||u1<=0)return null;
+  var labels=[],data=[],rows=[];
+  var ns=[1,2,3,4,5,6,8];
+  for(var i=0;i<ns.length;i++){
+    var n=ns[i], uc=u1*Math.sqrt(n);
+    labels.push(String(n)); data.push(Math.round(uc*100000)/100000);
+    rows.push([String(n), (Math.round(uc*100000)/100000).toFixed(5), (Math.round(u1*100000)/100000).toFixed(5)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __cbuChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__cbuSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#cbuChart',{title:en?'Combined Uncertainty vs Equal-Component Count (u_c = u₁·√n)':'等权分量个数对合成不确定度的影响 (u_c = u₁·√n)',labels:s.labels,series:[{name:en?'u_c':'合成不确定度 u_c',data:s.data}]});
+}
+function __cbuTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__cbuSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#cbuTable',{head:en?['Component count n','u_c','Single component u₁']:['分量个数 n','合成不确定度 u_c','单个分量 u₁'],rows:s.rows});
+}
+
+function __cbuShow(which){
+  var c=document.getElementById('cbuChart'), t=document.getElementById('cbuTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cbuTabInit(){
+  var btns=document.querySelectorAll('.cbu-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cbuShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __cbuFn=calcTool;calcTool=function(){try{__cbuFn();}catch(e){}try{__cbuChart();}catch(e){}try{__cbuTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cbuChart();}catch(e){}try{__cbuTable();}catch(e){}});
+try{__cbuTabInit();}catch(e){}
+</script>
 </body>
 </html>
