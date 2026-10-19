@@ -318,6 +318,9 @@ s.parentNode.insertBefore(el, s);
       </div>
 
       <div id="outputBox" class="output-box"></div>
+      <div id="tmSummary" style="margin-top:12px;"></div>
+      <div id="tmChart" style="margin-top:12px;"></div>
+      <div id="tmCompare" style="margin-top:12px;"></div>
     </div>
 
     <div id="tab-guide" class="tab-pane">
@@ -501,6 +504,135 @@ function generateRecord() {
   box.classList.add('show');
   ToolBox.showToast(i18nText() );
 }
+
+// F62: 病历结构化摘要表 + 四诊完整度图 + 历史病历对比
+var TM_SKEY = 'tcmRecordSnapshots';
+function __tmT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __tmCut(s) { s = s || ''; return s.length > 40 ? s.slice(0, 40) + '…' : (s || '—'); }
+function __tmFields() {
+  var wang = [v('wangSpirit'), v('wangFace'), v('wangBuild'), v('wangTongueBody'), v('wangTongueShape'), v('wangTongueCoat'), v('wangSublingual')].filter(Boolean).join('，');
+  var wen = [v('wenVoice'), v('wenBreath'), v('wenCough'), v('wenOdor')].filter(Boolean).join('，');
+  var wen2 = [v('wen2Cold'), v('wen2Sweat'), v('wen2Head'), v('wen2Chest'), v('wen2Ear'), v('wen2Diet'), v('wen2Stool'), v('wen2Sleep'), v('wen2Menses')].filter(Boolean).join('；');
+  var qie = [v('qiePulse'), v('qiePalpation')].filter(Boolean).join('，');
+  return {
+    name: v('pName'), gender: v('pGender'), age: v('pAge'), date: v('pDate'), type: v('pType'),
+    chief: v('chief'), present: v('present'), past: v('past'), allergy: v('allergy'),
+    wang: wang, wen: wen, wen2: wen2, qie: qie,
+    analysis: v('analysis'), diagnosis: v('diagnosis'), treatment: v('treatment'), formula: v('formula'), advice: v('advice')
+  };
+}
+function __tmTbl(hostId, title, head, rows, colorCol) {
+  var host = document.getElementById(hostId); if (!host) return;
+  var html = '<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">' + title + '</h4>'
+    + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function (h) { html += '<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">' + h + '</th>'; });
+  html += '</tr></thead><tbody>';
+  rows.forEach(function (r) {
+    html += '<tr>';
+    r.forEach(function (c, ci) {
+      var style = 'border:1px solid var(--border,#eee);padding:6px 8px;';
+      if (colorCol != null && ci === colorCol) {
+        if (c === '✓' || c === '已修改' || c === 'Changed') style += 'color:#2e7d32;font-weight:600;';
+        else if (c === '待补充' || c === 'Missing' || c === '清空' || c === 'Cleared') style += 'color:#c62828;';
+        else if (c === '未变' || c === 'Same') style += 'color:var(--text-muted,#6B7280);';
+      }
+      html += '<td style="' + style + '">' + c + '</td>';
+    });
+    html += '</tr>';
+  });
+  host.innerHTML = html + '</tbody></table></div>';
+}
+function __tmSummary() {
+  var host = document.getElementById('tmSummary'); if (!host) return;
+  var f = __tmFields();
+  var en = !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var ok = function (s) { return s ? '✓' : (en ? 'Missing' : '待补充'); };
+  var rows = [
+    [en ? 'Name' : '姓名', __tmCut(f.name), ok(f.name)],
+    [en ? 'Gender' : '性别', __tmCut(f.gender), ok(f.gender)],
+    [en ? 'Age' : '年龄', __tmCut(f.age), ok(f.age)],
+    [en ? 'Visit date' : '就诊日期', __tmCut(f.date), ok(f.date)],
+    [en ? 'Visit type' : '就诊类型', __tmCut(f.type), ok(f.type)],
+    [en ? 'Chief complaint' : '主诉', __tmCut(f.chief), ok(f.chief)],
+    [en ? 'Present illness' : '现病史', __tmCut(f.present), ok(f.present)],
+    [en ? 'Past history' : '既往史', __tmCut(f.past), ok(f.past)],
+    [en ? 'Allergy' : '过敏史', __tmCut(f.allergy), ok(f.allergy)],
+    [en ? 'Inspection (wang)' : '望诊', __tmCut(f.wang), ok(f.wang)],
+    [en ? 'Listening (wen)' : '闻诊', __tmCut(f.wen), ok(f.wen)],
+    [en ? 'Inquiry (wen)' : '问诊', __tmCut(f.wen2), ok(f.wen2)],
+    [en ? 'Palpation (qie)' : '切诊', __tmCut(f.qie), ok(f.qie)],
+    [en ? 'Pattern analysis' : '辨证分析', __tmCut(f.analysis), ok(f.analysis)],
+    [en ? 'TCM diagnosis' : '中医诊断', __tmCut(f.diagnosis), ok(f.diagnosis)],
+    [en ? 'Treatment principle' : '治法', __tmCut(f.treatment), ok(f.treatment)],
+    [en ? 'Prescription' : '方药', __tmCut(f.formula), ok(f.formula)],
+    [en ? 'Advice' : '医嘱', __tmCut(f.advice), ok(f.advice)]
+  ];
+  host.innerHTML = '<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">' + __tmT('病历结构化摘要', 'Structured record summary') + '</h4>';
+  __tmTbl('tmSummary', __tmT('病历结构化摘要', 'Structured record summary'), en ? ['Field', 'Content', 'Status'] : ['字段', '内容', '状态'], rows, 2);
+}
+function __tmChart() {
+  var host = document.getElementById('tmChart'); if (!host) return;
+  if (typeof TBKit === 'undefined' || !TBKit.chart || !TBKit.chart.bar) { host.innerHTML = ''; return; }
+  var en = !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var secs = [
+    { n: __tmT('基本信息', 'Basic info'), ids: ['pName', 'pGender', 'pAge', 'pDate', 'pType'] },
+    { n: __tmT('病史', 'History'), ids: ['chief', 'present', 'past', 'allergy', 'personal', 'family'] },
+    { n: __tmT('望诊', 'Inspection'), ids: ['wangSpirit', 'wangFace', 'wangBuild', 'wangTongueBody', 'wangTongueShape', 'wangTongueCoat'] },
+    { n: __tmT('闻诊', 'Listening'), ids: ['wenVoice', 'wenBreath', 'wenCough', 'wenOdor'] },
+    { n: __tmT('问诊', 'Inquiry'), ids: ['wen2Cold', 'wen2Sweat', 'wen2Head', 'wen2Chest', 'wen2Ear', 'wen2Diet', 'wen2Stool', 'wen2Sleep'] },
+    { n: __tmT('切诊', 'Palpation'), ids: ['qiePulse', 'qiePalpation'] },
+    { n: __tmT('辨证论治', 'Treatment'), ids: ['analysis', 'diagnosis', 'treatment', 'formula', 'advice'] }
+  ];
+  var data = secs.map(function (s) {
+    var filled = s.ids.filter(function (id) { return v(id); }).length;
+    return Math.round(filled / s.ids.length * 100);
+  });
+  try {
+    TBKit.chart.bar('#tmChart', {
+      title: __tmT('各板块填写完整度（%）', 'Section completeness (%)'),
+      labels: secs.map(function (s) { return s.n; }),
+      series: [{ name: __tmT('完整度', 'Completeness'), data: data }]
+    });
+  } catch (e) {}
+}
+function __tmSnaps() { try { return JSON.parse(localStorage.getItem(TM_SKEY) || '[]') || []; } catch (e) { return []; } }
+function __tmSaveSnap() {
+  var f = __tmFields();
+  var h = __tmSnaps(), now = Date.now();
+  var key = f.chief + '|' + f.diagnosis + '|' + f.formula;
+  var last = h[0];
+  if (last && last.key === key && now - last.ts < 30000) return;
+  h.unshift({ ts: now, key: key, date: new Date().toLocaleString('zh-CN'), f: f });
+  if (h.length > 10) h.pop();
+  try { localStorage.setItem(TM_SKEY, JSON.stringify(h)); } catch (e) {}
+}
+function __tmCompare() {
+  var host = document.getElementById('tmCompare'); if (!host) return;
+  var h = __tmSnaps();
+  if (h.length < 2) { host.innerHTML = ''; return; }
+  var en = !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var a = h[1].f, b = h[0].f;
+  var labels = [
+    ['chief', en ? 'Chief complaint' : '主诉'],
+    ['present', en ? 'Present illness' : '现病史'],
+    ['wang', en ? 'Inspection' : '望诊'],
+    ['qie', en ? 'Palpation' : '切诊'],
+    ['analysis', en ? 'Pattern analysis' : '辨证分析'],
+    ['diagnosis', en ? 'TCM diagnosis' : '中医诊断'],
+    ['treatment', en ? 'Treatment' : '治法'],
+    ['formula', en ? 'Prescription' : '方药']
+  ];
+  var rows = labels.map(function (p) {
+    var av = __tmCut(a[p[0]]), bv = __tmCut(b[p[0]]);
+    var st = (!a[p[0]] && !b[p[0]]) ? '—' : (a[p[0]] === b[p[0]] ? (en ? 'Same' : '未变') : (!a[p[0]] ? (en ? 'Added' : '新增') : (!b[p[0]] ? (en ? 'Cleared' : '清空') : (en ? 'Changed' : '已修改'))));
+    return [p[1], av, bv, st];
+  });
+  host.innerHTML = '<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">' + __tmT('本次 vs 上一份病历', 'Current vs previous record') + '</h4>';
+  __tmTbl('tmCompare', __tmT('本次 vs 上一份病历', 'Current vs previous record'), en ? ['Field', 'Previous', 'Current', 'Change'] : ['字段', '上一份', '本次', '变化'], rows, 3);
+}
+var __tmGR0 = generateRecord;
+generateRecord = function () { __tmGR0(); __tmSaveSnap(); __tmSummary(); __tmChart(); __tmCompare(); };
+document.addEventListener('toolbox:langchange', function () { try { __tmSummary(); __tmChart(); __tmCompare(); } catch (e) {} });
 
 function getRecordText() {
   var box = document.getElementById('outputBox');

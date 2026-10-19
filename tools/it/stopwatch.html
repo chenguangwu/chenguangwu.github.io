@@ -285,6 +285,11 @@ s.parentNode.insertBefore(el, s);
 
     <div id="lapStats" style="font-size:13px;color:var(--text-muted);text-align:center;padding:20px;">暂无记录</div>
     <div id="swChart" style="margin-top:12px;"></div>
+    <div id="swLapTbl" style="margin-top:12px;"></div>
+    <div style="margin-top:10px;text-align:center;">
+      <button type="button" class="btn" id="swExportBtn" data-zh="⬇️ 导出计次 CSV">⬇️ Export lap CSV</button>
+    </div>
+    <div id="swBest" style="margin-top:12px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -473,6 +478,118 @@ function renderLaps(){
   `;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){stats.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}stats.innerHTML=__h5;
   try { __swChart(); } catch(e){}
 }
+
+// F62: 计次明细表 + CSV 导出 + 与历史最佳场次对比
+var SW_BKEY = 'stopwatchSessions';
+var __swRstAt = 0;
+function __swT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __swLaps() { return (typeof swState !== 'undefined' && swState.laps) ? swState.laps : []; }
+function __swSess() { try { return JSON.parse(localStorage.getItem(SW_BKEY) || '[]') || []; } catch (e) { return []; } }
+function __swLapTable() {
+  var host = document.getElementById('swLapTbl'); if (!host) return;
+  var laps = __swLaps();
+  if (!laps.length) { host.innerHTML = ''; return; }
+  var en = !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var times = laps.map(function (l) { return l.lap; });
+  var fastest = Math.min.apply(null, times);
+  var slowest = Math.max.apply(null, times);
+  var head = en ? ['Lap', 'Lap time', 'Total', 'Gap to fastest', 'Note'] : ['圈号', '单圈用时', '累计用时', '与最快差', '备注'];
+  var html = '<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">' + __swT('计次明细', 'Lap breakdown') + '</h4>'
+    + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function (h) { html += '<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">' + h + '</th>'; });
+  html += '</tr></thead><tbody>';
+  laps.forEach(function (l) {
+    var tag = '';
+    if (laps.length > 1 && l.lap === fastest) tag = en ? 'Fastest' : '最快圈';
+    if (laps.length > 1 && l.lap === slowest) tag = en ? 'Slowest' : '最慢圈';
+    var delta = l.lap - fastest;
+    var bg = (laps.length > 1 && l.lap === fastest) ? ' style="background:rgba(46,125,50,.08);"' : '';
+    html += '<tr' + bg + '>'
+      + '<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">' + (en ? 'Lap ' + l.index : '第 ' + l.index + ' 圈') + '</td>'
+      + '<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">' + formatTime(l.lap) + '</td>'
+      + '<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">' + formatTime(l.total) + '</td>'
+      + '<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">' + (delta === 0 ? '—' : '+' + formatTime(delta)) + '</td>'
+      + '<td style="border:1px solid var(--border,#eee);padding:6px 8px;">' + tag + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  host.innerHTML = html;
+}
+function __swExportCsv() {
+  var laps = __swLaps(); if (!laps.length) return;
+  var en = !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var times = laps.map(function (l) { return l.lap; });
+  var fastest = Math.min.apply(null, times);
+  var avg = times.reduce(function (s, x) { return s + x; }, 0) / times.length;
+  var lines = [en ? ['Lap', 'Lap time (s)', 'Total (s)'] : ['圈号', '单圈(秒)', '累计(秒)']];
+  lines[0] = lines[0].join(',');
+  laps.forEach(function (l) { lines.push(l.index + ',' + (l.lap / 1000).toFixed(2) + ',' + (l.total / 1000).toFixed(2)); });
+  lines.push('');
+  lines.push((en ? 'Fastest lap (s)' : '最快单圈(秒)') + ',' + (fastest / 1000).toFixed(2));
+  lines.push((en ? 'Average lap (s)' : '平均单圈(秒)') + ',' + (avg / 1000).toFixed(2));
+  try {
+    var blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = en ? 'stopwatch_laps.csv' : '秒表计次.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch (e) {}
+}
+function __swSaveSess() {
+  var laps = __swLaps(); if (!laps.length) return;
+  var times = laps.map(function (l) { return l.lap; });
+  var fastest = Math.round(Math.min.apply(null, times));
+  var avg = Math.round(times.reduce(function (s, x) { return s + x; }, 0) / times.length);
+  var h = __swSess(), now = Date.now();
+  var cont = !!h[0] && now - h[0].ts < 600000 && !(__swRstAt && now - __swRstAt < 600000) && h[0].n <= laps.length;
+  var rec = { ts: now, n: laps.length, fastest: fastest, avg: avg, date: new Date().toLocaleString('zh-CN') };
+  if (cont) h[0] = rec; else h.unshift(rec);
+  if (h.length > 10) h.pop();
+  try { localStorage.setItem(SW_BKEY, JSON.stringify(h)); } catch (e) {}
+}
+function __swBest() {
+  var host = document.getElementById('swBest'); if (!host) return;
+  var laps = __swLaps(); var h = __swSess();
+  if (!laps.length || !h.length) { host.innerHTML = ''; return; }
+  var en = !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var times = laps.map(function (l) { return l.lap; });
+  var fastest = Math.min.apply(null, times);
+  var avg = times.reduce(function (s, x) { return s + x; }, 0) / times.length;
+  var best = h.slice().sort(function (a, b) { return a.fastest - b.fastest; })[0];
+  var dF = Math.round(fastest) - best.fastest;
+  var dA = Math.round(avg) - best.avg;
+  var gapTxt = function (d) {
+    if (d === 0) return __swT('持平', 'Tie');
+    return (d < 0 ? __swT('领先 ', 'Faster ') : __swT('落后 ', 'Slower ')) + formatTime(Math.abs(d));
+  };
+  var rows = [
+    [__swT('计时圈数', 'Laps'), String(laps.length), String(best.n), ''],
+    [__swT('最快单圈', 'Fastest lap'), formatTime(fastest), formatTime(best.fastest), gapTxt(dF)],
+    [__swT('平均单圈', 'Average lap'), formatTime(avg), formatTime(best.avg), gapTxt(dA)]
+  ];
+  var head = en ? ['Metric', 'This session', 'Best session', 'Gap'] : ['指标', '本次', '历史最佳', '差异'];
+  var html = '<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">' + __swT('本次 vs 历史最佳场次', 'This session vs personal best') + '</h4>'
+    + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function (h2) { html += '<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">' + h2 + '</th>'; });
+  html += '</tr></thead><tbody>';
+  rows.forEach(function (r, ri) {
+    html += '<tr>';
+    r.forEach(function (c, ci) {
+      var color = (ci === 3 && ri > 0) ? (r[3].indexOf('—') === 0 ? '#666' : (r[3].indexOf(en ? 'Faster' : '领先') === 0 || r[3] === (en ? 'Tie' : '持平') ? '#2e7d32' : '#c62828')) : '';
+      html += '<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;' + (color ? 'color:' + color + ';font-weight:600;' : '') + '">' + c + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>'
+    + '<p style="font-size:12px;color:var(--text-muted,#6B7280);margin:6px 0 0;">' + __swT('历史最佳场次日期：', 'Best session date: ') + (best.date || '—') + '</p></div>';
+  host.innerHTML = html;
+}
+var __swRL0 = renderLaps;
+renderLaps = function () { __swRL0(); if (__swLaps().length) { __swSaveSess(); } __swLapTable(); __swBest(); };
+var __swRS0 = swReset;
+swReset = function () { __swRS0(); __swRstAt = Date.now(); __swLapTable(); __swBest(); };
+var __swEb = document.getElementById('swExportBtn');
+if (__swEb) __swEb.addEventListener('click', __swExportCsv);
+document.addEventListener('toolbox:langchange', function () { try { __swLapTable(); __swBest(); } catch (e) {} });
 
 function formatTime(ms){
   const min = Math.floor(ms / 60000);

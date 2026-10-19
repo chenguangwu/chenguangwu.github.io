@@ -145,6 +145,10 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" style="margin-bottom:12px;">
       <p style="text-align:center;font-size:14px;">当前进度：<strong id="progressText">0/8</strong> 步 | 用时：<strong id="simTimer">00:00</strong></p>
     </div>
+    <div style="margin:10px 0;font-size:13px;color:var(--text-muted,#6B7280);"><span id="fePresetLbl" data-zh="常见场景预设：">Common scenarios: </span></div>
+    <div id="fePresets" style="margin:10px 0;"></div>
+    <input type="hidden" id="feSceneSel" value="">
+    <div id="feChart" style="margin:10px 0;"></div>
     <div id="flowSteps"></div>
 <div class="card" id="feCard" style="margin-top:12px;">
   <h3 id="feTitle"></h3>
@@ -390,6 +394,54 @@ var __fnx0=nextStep;
 nextStep=function(){__fnx0();__flowExtras();};
 var __frs0=resetSim;
 resetSim=function(){__frs0();__flowExtras();};
+// F62: 跌倒场景预设 + 处置步骤状态分布图
+var FE_SCENES = [
+  { key: 'bathroom', zh: '夜间卫生间跌倒', en: 'Night bathroom fall', steps: [0, 1, 2, 4, 7] },
+  { key: 'corridor', zh: '走廊湿滑跌倒', en: 'Wet corridor fall', steps: [0, 1, 2, 3, 7] },
+  { key: 'bed', zh: '床旁坠床', en: 'Bed fall', steps: [0, 1, 2, 3, 6, 7] }
+];
+function __feT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+function __feScene(key) { for (var i = 0; i < FE_SCENES.length; i++) { if (FE_SCENES[i].key === key) return FE_SCENES[i]; } return null; }
+function __feApplyScene() {
+  var sel = document.getElementById('feSceneSel'); if (!sel) return;
+  var sc = __feScene(sel.value); if (!sc) return;
+  completedSteps = sc.steps.slice();
+  currentStep = -1;
+  renderSteps();
+  __feChart();
+  if (typeof ToolBox !== 'undefined' && ToolBox.showToast) {
+    ToolBox.showToast(__feT('已载入场景「' + sc.zh + '」，可按实际情况增删步骤', 'Scene "' + sc.en + '" loaded — adjust steps as needed'), 'info');
+  }
+}
+function __fePresets() {
+  if (typeof TBKit === 'undefined' || !TBKit.preset || !TBKit.preset.bar) return;
+  var host = document.getElementById('fePresets'); if (!host) return;
+  TBKit.preset.bar(host, FE_SCENES.map(function (s) {
+    return { label: s.zh, labelEn: s.en, values: { feSceneSel: s.key } };
+  }), __feApplyScene);
+}
+function __feChart() {
+  var host = document.getElementById('feChart'); if (!host) return;
+  if (typeof TBKit === 'undefined' || !TBKit.chart || !TBKit.chart.pie) { host.innerHTML = ''; return; }
+  var done = completedSteps.length;
+  var cur = (currentStep >= 0 && completedSteps.indexOf(currentStep) < 0) ? 1 : 0;
+  var pend = steps.length - done - cur;
+  if (pend < 0) pend = 0;
+  try {
+    TBKit.chart.pie('#feChart', {
+      title: __feT('处置步骤状态分布', 'Step status breakdown'),
+      items: [
+        { label: __feT('已完成', 'Completed'), value: done },
+        { label: __feT('进行中', 'In progress'), value: cur },
+        { label: __feT('待处理', 'Pending'), value: pend }
+      ]
+    });
+  } catch (e) {}
+}
+var __feRS0 = renderSteps;
+renderSteps = function () { __feRS0(); __feChart(); };
+__fePresets();
+document.addEventListener('toolbox:langchange', function () { try { __fePresets(); __feChart(); } catch (e) {} });
 renderSteps();
 __flowMountHist();
 </script>

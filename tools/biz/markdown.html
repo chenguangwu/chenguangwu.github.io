@@ -219,6 +219,14 @@ s.parentNode.insertBefore(el, s);
         <div id="preview"><p style="color:#999;">在左侧输入 Markdown 内容，这里会实时预览...</p></div>
       </div>
     </div>
+    <div class="tabs" id="mdTabs" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+      <button type="button" class="tab-btn" data-zh="基础语法" onclick="__mdTab('mdTabBasic')" style="font-size:13px;padding:6px 14px;border-radius:999px;border:1px solid var(--border,#E5E7EB);background:var(--primary,#FF6B35);color:#fff;cursor:pointer;">Basic syntax</button>
+      <button type="button" class="tab-btn" data-zh="扩展语法" onclick="__mdTab('mdTabExt')" style="font-size:13px;padding:6px 14px;border-radius:999px;border:1px solid var(--border,#E5E7EB);background:var(--card-bg,#fff);color:var(--text,#374151);cursor:pointer;">Extended syntax</button>
+      <button type="button" class="tab-btn" data-zh="编辑技巧" onclick="__mdTab('mdTabKeys')" style="font-size:13px;padding:6px 14px;border-radius:999px;border:1px solid var(--border,#E5E7EB);background:var(--card-bg,#fff);color:var(--text,#374151);cursor:pointer;">Editing tips</button>
+    </div>
+    <div id="mdTabBasic" class="tab-pane" style="margin-top:10px;"></div>
+    <div id="mdTabExt" class="tab-pane" style="margin-top:10px;display:none;"></div>
+    <div id="mdTabKeys" class="tab-pane" style="margin-top:10px;display:none;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -452,6 +460,122 @@ setTimeout(() => {
   try{ var s=localStorage.getItem(KEY); if(s!==null&&!ed.value){ed.value=s;render();} }catch(e){}
   var t; ed.addEventListener('input',function(){clearTimeout(t);t=setTimeout(function(){try{localStorage.setItem(KEY,ed.value);}catch(e){}},500);});
 })();
+</script>
+<script>
+// F62: Markdown 语法速查表（3 tabs，全部真语法速查）
+var MD_GUIDE = {
+  basic: {
+    zh: [['语法', '效果', '示例'],
+      ['# 一级标题', 'H1 标题', '# 报告标题'],
+      ['## 二级标题', 'H2 标题', '## 本章要点'],
+      ['**文字**', '加粗', '**重要**'],
+      ['*文字*', '斜体', '*强调*'],
+      ['~~文字~~', '删除线', '~~过期~~'],
+      ['- 文字', '无序列表', '- 第一项'],
+      ['1. 文字', '有序列表', '1. 第一步'],
+      ['- [ ] / - [x]', '任务列表', '- [x] 已完成'],
+      ['[文字](网址)', '链接', '[官网](https://example.com)'],
+      ['![说明](网址)', '图片', '![图](https://example.com/a.png)'],
+      ['> 文字', '引用块', '> 引用一句'],
+      ['`代码`', '行内代码', '`npm run build`'],
+      ['``` 围栏', '代码块', '```js 开头'],
+      ['---', '分割线', '---']],
+    en: [['Syntax', 'Effect', 'Example'],
+      ['# Heading', 'H1 heading', '# Report title'],
+      ['## Heading', 'H2 heading', '## Key points'],
+      ['**text**', 'Bold', '**Important**'],
+      ['*text*', 'Italic', '*emphasis*'],
+      ['~~text~~', 'Strikethrough', '~~obsolete~~'],
+      ['- item', 'Bullet list', '- First item'],
+      ['1. item', 'Numbered list', '1. Step one'],
+      ['- [ ] / - [x]', 'Task list', '- [x] Done'],
+      ['[text](url)', 'Link', '[Site](https://example.com)'],
+      ['![alt](url)', 'Image', '![img](https://example.com/a.png)'],
+      ['> text', 'Blockquote', '> A quote'],
+      ['`code`', 'Inline code', '`npm run build`'],
+      ['``` fence', 'Code block', '```js'],
+      ['---', 'Horizontal rule', '---']]
+  },
+  ext: {
+    zh: [['语法', '效果', '支持度'],
+      ['| 列 | 列 |', '表格', 'GFM 全支持'],
+      ['|:--:|', '居中列', 'GFM 全支持'],
+      ['|--:| / |:--', '右对齐 / 左对齐列', 'GFM 全支持'],
+      ['<br> / <b>', 'HTML 混排换行 / 加粗', '全支持'],
+      ['\\*', '转义星号（不触发斜体）', '全支持'],
+      ['<https://a.com>', '自动链接', 'GFM'],
+      [':smile:', 'emoji 短代码', '部分编辑器'],
+      ['==文字==', '高亮', '部分编辑器'],
+      ['H~2~O', '下标', '部分编辑器']],
+    en: [['Syntax', 'Effect', 'Support'],
+      ['| col | col |', 'Table', 'GFM'],
+      ['|:--:|', 'Centered column', 'GFM'],
+      ['|--:| / |:--', 'Right / left aligned', 'GFM'],
+      ['<br> / <b>', 'Inline HTML', 'All renderers'],
+      ['\\*', 'Escaped asterisk', 'All renderers'],
+      ['<https://a.com>', 'Autolink', 'GFM'],
+      [':smile:', 'Emoji shortcode', 'Some editors'],
+      ['==text==', 'Highlight', 'Some editors'],
+      ['H~2~O', 'Subscript', 'Some editors']]
+  },
+  keys: {
+    zh: ['标题层级建议从二级（##）开始，一级留给页面主标题。',
+      '列表嵌套用 2 或 4 空格缩进，同级保持一种缩进宽度。',
+      '代码块标注语言（```js）可获得语法高亮，勿用裸围栏。',
+      '表格单元格内的竖线要写成 \\|，否则会被当作列分隔。',
+      '长文档可写目录锚点：[跳转](#章节标题)，标题勿含特殊符号。',
+      '先搭标题骨架再填内容，预览区实时校对，导出前通读一遍。'],
+    en: ['Start headings at level 2 (##); leave H1 for the page title.',
+      'Indent nested lists with 2 or 4 spaces — stay consistent.',
+      'Tag fenced code blocks (```js) for highlighting; avoid bare fences.',
+      'Escape pipes inside table cells as \\|, or they split columns.',
+      'Long docs: build a TOC with anchor links like [Jump](#section).',
+      'Draft the heading skeleton first, fill in content, proofread before export.']
+  }
+};
+function __mdGuideTbl(key) {
+  var en = !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  var gk = (key === 'mdTabBasic') ? 'basic' : ((key === 'mdTabExt') ? 'ext' : 'keys');
+  var d = MD_GUIDE[gk];
+  var html = '';
+  if (key === 'keys') {
+    html = '<ul style="font-size:13px;line-height:2;color:var(--text,#374151);margin:8px 0 0;padding-left:20px;">';
+    (en ? d.en : d.zh).forEach(function (t) { html += '<li>' + t + '</li>'; });
+    return html + '</ul>';
+  }
+  var rows = en ? d.en : d.zh;
+  html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;"><thead><tr>';
+  rows[0].forEach(function (h) { html += '<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">' + h + '</th>'; });
+  html += '</tr></thead><tbody>';
+  rows.slice(1).forEach(function (r) {
+    html += '<tr>';
+    r.forEach(function (c) { html += '<td style="border:1px solid var(--border,#eee);padding:6px 8px;">' + c + '</td>'; });
+    html += '</tr>';
+  });
+  return html + '</tbody></table></div>';
+}
+var __mdCur = 'mdTabBasic';
+function __mdTab(key) {
+  __mdCur = key;
+  var ids = ['mdTabBasic', 'mdTabExt', 'mdTabKeys'];
+  ids.forEach(function (id) {
+    var pane = document.getElementById(id);
+    if (pane) pane.style.display = (id === key) ? '' : 'none';
+  });
+  var btns = document.querySelectorAll('#mdTabs .tab-btn');
+  for (var i = 0; i < btns.length; i++) {
+    var on = btns[i].getAttribute('onclick') || '';
+    var active = on.indexOf("'" + key + "'") >= 0;
+    btns[i].style.background = active ? 'var(--primary,#FF6B35)' : 'var(--card-bg,#fff)';
+    btns[i].style.color = active ? '#fff' : 'var(--text,#374151)';
+  }
+  var pane2 = document.getElementById(key);
+  if (pane2) pane2.innerHTML = __mdGuideTbl(key);
+}
+function __mdInit(){ try{ if (typeof TBKit !== 'undefined') __mdTab(__mdCur); }catch(e){} }
+__mdInit();
+document.addEventListener('DOMContentLoaded', __mdInit);
+document.addEventListener('toolbox:langchange', __mdInit);
 </script>
 <!-- SEO 介绍区块 -->
 
