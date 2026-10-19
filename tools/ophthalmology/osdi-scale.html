@@ -141,6 +141,15 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar"><button type="button" class="btn primary" onclick="calc()">✅ 计算OSDI</button> <button type="button" class="btn" onclick="reset()">重置</button> <button type="button" class="btn" onclick="window.__osdiExport()">⬇️ 导出OSDI量表 CSV</button> <span style="font-size:13px;color:var(--text-muted);">📌 示例答卷：</span><button type="button" class="btn" onclick="applyOsdiPreset('normal')">正常</button><button type="button" class="btn" onclick="applyOsdiPreset('mild')">轻度干眼</button><button type="button" class="btn" onclick="applyOsdiPreset('severe')">重度干眼</button></div>
     <div class="result-box" id="result" style="margin-top:12px;"></div>
     <table id="osdiHidden" style="display:none"><thead><tr><th>Question</th><th>Score</th></tr></thead><tbody></tbody></table>
+    <div class="tabs" id="odTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="odChart"></div>
+    <div class="card" id="odTableCard" style="display:none;margin-top:12px;">
+      <h3 id="odTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="odTh0"></th><th id="odTh1"></th><th id="odTh2"></th><th id="odTh3"></th></tr></thead><tbody id="odTbody"></tbody></table>
+    </div>
   </div>
 
   <div class="card">
@@ -461,6 +470,82 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var OD_G_EN={'眼部症状':'Ocular Symptoms','视功能相关':'Visual Function','环境触发':'Environmental Triggers'};
+  function odG(g,en){return en?(OD_G_EN[g]||g):g;}
+  function odAgg(){
+    var subs={},subsN={},qi=0;
+    QUESTIONS.forEach(function(group){
+      subs[group.g]=0;subsN[group.g]=0;
+      group.items.forEach(function(){
+        var r=document.querySelector('input[name="q'+qi+'"]:checked');
+        if(r){var v=parseInt(r.value);subs[group.g]+=v;subsN[group.g]++;}
+        qi++;
+      });
+    });
+    return {groups:['眼部症状','视功能相关','环境触发'],subs:subs,subsN:subsN};
+  }
+  function odScores(){
+    var a=odAgg();
+    return a.groups.map(function(g){var n=a.subsN[g];return n?Math.round(a.subs[g]*100/(n*4)):0;});
+  }
+  function odChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('odChart')) return;
+    var en=TBKit.util.isEn();
+    var a=odAgg();
+    TBKit.chart.bar('#odChart',{
+      labels:a.groups.map(function(g){return odG(g,en);}),
+      series:[{name:en?'Subscale score':'子维度分',data:odScores()}],
+      height:260,title:en?'OSDI subscale scores (0-100)':'OSDI 子维度得分 (0-100)'
+    });
+  }
+  function odTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('odTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var qi=0,rows=[];
+    QUESTIONS.forEach(function(group){
+      group.items.forEach(function(it){
+        var r=document.querySelector('input[name="q'+qi+'"]:checked');
+        var v=r?parseInt(r.value):0;
+        rows.push('<tr><td>'+(qi+1)+'</td><td>'+it+'</td><td>'+v+'</td><td>'+odG(group.g,en)+'</td></tr>');
+        qi++;
+      });
+    });
+    t.innerHTML=rows.join('');
+    var tt=document.getElementById('odTableTitle'); if(tt) tt.textContent=en?'OSDI questions & scores':'OSDI 题目与得分';
+    var hs=[['odTh0','#'],['odTh1',en?'Question':'题目'],['odTh2',en?'Score':'得分'],['odTh3',en?'Subscale':'子维度']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function odFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#odTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function odBindTabs(){
+    var tabs=document.querySelectorAll('#odTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('odChart');
+        var card=document.getElementById('odTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function odExtras(){try{odChart();}catch(e){}try{odTable();}catch(e){}odFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){odBindTabs();odExtras();});
+  document.addEventListener('toolbox:langchange',function(){odExtras();});
+  if(typeof calc==='function'){var __odc0=calc;calc=function(){__odc0();odExtras();};}
+  if(typeof reset==='function'){var __odr0=reset;reset=function(){__odr0();odExtras();};}
+})();
 </script>
 </body>
 </html>

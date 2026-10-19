@@ -216,6 +216,15 @@ s.parentNode.insertBefore(el, s);
   </ul>
 </div>
 <!-- /注意事项区块 -->
+    <div class="tabs" id="sprTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="sprChart"></div>
+    <div class="card" id="sprTableCard" style="display:none;margin-top:12px;">
+      <h3 id="sprTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="sprTh0"></th><th id="sprTh1"></th><th id="sprTh2"></th><th id="sprTh3"></th><th id="sprTh4"></th><th id="sprTh5"></th></tr></thead><tbody id="sprTbody"></tbody></table>
+    </div>
 </div>
 <script>
 var positions = {
@@ -445,6 +454,68 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+</script>
+
+<script>
+(function(){
+  var SPR_POS_EN={'仰卧位':'Supine','俯卧位':'Prone','侧卧位':'Lateral','截石位':'Lithotomy','坐位':'Sitting'};
+  function sprPosName(k,en){return en?(SPR_POS_EN[k]||k):(positions[k]?positions[k].title:k);}
+  function sprAgg(){
+    return Object.keys(positions).map(function(k){
+      var p=positions[k]; var h=0,m=0,l=0,top='';
+      p.points.forEach(function(pt){ if(pt.risk==='high'){h++; if(!top) top=pt.name+'：'+pt.measure;} else if(pt.risk==='medium')m++; else l++; });
+      return {k:k,points:p.points.length,high:h,med:m,low:l,top:top};
+    });
+  }
+  function sprChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('sprChart')) return;
+    var en=TBKit.util.isEn();
+    var rows=sprAgg();
+    TBKit.chart.bar('#sprChart',{
+      labels:rows.map(function(r){return sprPosName(r.k,en);}),
+      series:[{name:en?'High':'高度风险',data:rows.map(function(r){return r.high;})},
+              {name:en?'Medium':'中度风险',data:rows.map(function(r){return r.med;})},
+              {name:en?'Low':'低度风险',data:rows.map(function(r){return r.low;})}],
+      height:300,title:en?'Pressure-point risk by position':'各体位压力点风险分布'
+    });
+  }
+  function sprTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('sprTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var rows=sprAgg();
+    t.innerHTML=rows.map(function(r){
+      return '<tr><td>'+sprPosName(r.k,en)+'</td><td>'+r.points+'</td><td>'+r.high+'</td><td>'+r.med+'</td><td>'+r.low+'</td><td>'+(r.top||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('sprTableTitle'); if(tt) tt.textContent=en?'Five-position risk summary':'五体位风险概览';
+    var hs=[['sprTh0',en?'Position':'体位'],['sprTh1',en?'Points':'压力点数'],['sprTh2',en?'High':'高度风险'],['sprTh3',en?'Medium':'中度风险'],['sprTh4',en?'Low':'低度风险'],['sprTh5',en?'Key measure':'重点防护']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function sprFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#sprTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function sprBindTabs(){
+    var tabs=document.querySelectorAll('#sprTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('sprChart');
+        var card=document.getElementById('sprTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function sprAll(){try{sprChart();}catch(e){}try{sprTable();}catch(e){}sprFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){sprBindTabs();sprAll();});
+  document.addEventListener('toolbox:langchange',function(){sprAll();});
+})();
 </script>
 
 </body>

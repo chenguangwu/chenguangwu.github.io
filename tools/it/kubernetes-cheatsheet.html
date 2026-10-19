@@ -179,6 +179,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="ksTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="ksChart"></div>
+    <div class="card" id="ksTableCard" style="display:none;margin-top:12px;">
+      <h3 id="ksTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="ksTh0"></th><th id="ksTh1"></th><th id="ksTh2"></th><th id="ksTh3"></th></tr></thead><tbody id="ksTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -644,6 +653,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var KS_CAT_EN={'查询':'Query','操作':'Operate','部署':'Deploy','扩缩容':'Scale','调试':'Debug','监控':'Monitor','节点':'Node','标签':'Label','注解':'Annotate','配置':'Config','集群':'Cluster','文档':'Docs','权限':'Auth','一次性':'One-shot','YAML 示例':'YAML Examples','事件':'Events'};
+  function ksCat(c,en){return en?(KS_CAT_EN[c]||c):c;}
+  function ksAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function ksChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('ksChart')) return;
+    var en=TBKit.util.isEn();
+    var a=ksAgg();
+    TBKit.chart.bar('#ksChart',{labels:a.cats.map(function(c){return ksCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function ksTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('ksTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=ksAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+ksCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('ksTableTitle'); if(tt) tt.textContent=en?'Kubernetes command categories':'Kubernetes 命令分类明细';
+    var hs=[['ksTh0','#'],['ksTh1',en?'Category':'分类'],['ksTh2',en?'Commands':'命令数'],['ksTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function ksFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#ksTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function ksBindTabs(){
+    var tabs=document.querySelectorAll('#ksTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('ksChart');
+        var card=document.getElementById('ksTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function ksAll(){try{ksChart();}catch(e){}try{ksTable();}catch(e){}ksFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){ksBindTabs();ksAll();});
+  document.addEventListener('toolbox:langchange',function(){ksAll();});
+})();
 </script>
 </body>
 </html>
