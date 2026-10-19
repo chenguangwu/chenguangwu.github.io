@@ -294,6 +294,12 @@ function __type_a_uncertaintyBoot(){ try{ __type_a_uncertaintyPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __type_a_uncertaintyBoot();
 else document.addEventListener('DOMContentLoaded', __type_a_uncertaintyBoot);
 </script>
+<div class="tau-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tauChart" style="margin-top:8px;"></div>
+<div id="tauTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -329,5 +335,58 @@ else document.addEventListener('DOMContentLoaded', __type_a_uncertaintyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tauSweep(){
+  var el=document.getElementById('vals');
+  if(!el)return null;
+  var parts=String(el.value||'').split(',');
+  var v=[];
+  for(var i=0;i<parts.length;i++){var x=parseFloat(parts[i]); if(isFinite(x))v.push(x);}
+  if(v.length<2)return null;
+  var n=v.length, m=0, s2=0;
+  for(var i=0;i<n;i++)m+=v[i]; m=m/n;
+  for(var i=0;i<n;i++)s2+=(v[i]-m)*(v[i]-m);
+  var s=Math.sqrt(s2/(n-1));
+  if(!isFinite(s)||s<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var ns=[2,3,4,6,8,12,20,30];
+  for(var i=0;i<ns.length;i++){
+    var nn=ns[i], uA=s/Math.sqrt(nn);
+    labels.push(String(nn));
+    d1.push(Math.round(s*10000)/10000); d2.push(Math.round(uA*10000)/10000);
+    rows.push([String(nn), (Math.round(s*10000)/10000).toFixed(4), (Math.round(uA*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __tauChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tauSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tauChart',{title:en?'Sample Sigma s (stable) vs Type-A u_A = s/√n (decaying)':'样本标准差 s（趋稳）与 A 类不确定度 u_A（衰减）对比',labels:s.labels,series:[{name:en?'Sample sigma s':'样本标准差 s',data:s.d1},{name:en?'u_A':'A 类不确定度 u_A',data:s.d2}]});
+}
+function __tauTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__tauSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#tauTable',{head:en?['Observations n','Sample sigma s','u_A']:['测量次数 n','样本标准差 s','A 类不确定度 u_A'],rows:s.rows});
+}
+
+function __tauShow(which){
+  var c=document.getElementById('tauChart'), t=document.getElementById('tauTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tauTabInit(){
+  var btns=document.querySelectorAll('.tau-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tauShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __tauFn=calcTool;calcTool=function(){try{__tauFn();}catch(e){}try{__tauChart();}catch(e){}try{__tauTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tauChart();}catch(e){}try{__tauTable();}catch(e){}});
+try{__tauTabInit();}catch(e){}
+</script>
 </body>
 </html>

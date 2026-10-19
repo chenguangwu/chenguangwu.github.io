@@ -238,6 +238,12 @@ function __tolerance_stackup_worstBoot(){ try{ __tolerance_stackup_worstPresets(
 if (document.readyState && document.readyState !== 'loading') __tolerance_stackup_worstBoot();
 else document.addEventListener('DOMContentLoaded', __tolerance_stackup_worstBoot);
 </script>
+<div class="tsw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tswChart" style="margin-top:8px;"></div>
+<div id="tswTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -273,5 +279,57 @@ else document.addEventListener('DOMContentLoaded', __tolerance_stackup_worstBoot
 </dl>
 </div>
 </section>
+<script>
+function __tswSweep(){
+  var el=document.getElementById('ts');
+  if(!el)return null;
+  var parts=String(el.value||'').split(',');
+  var vals=[];
+  for(var i=0;i<parts.length;i++){var v=parseFloat(parts[i]); if(isFinite(v))vals.push(Math.abs(v));}
+  if(!vals.length)return null;
+  var s=0, sq=0;
+  for(var i=0;i<vals.length;i++){s+=vals[i]; sq+=vals[i]*vals[i];}
+  var t1=s/vals.length;
+  if(!isFinite(t1)||t1<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var ns=[1,2,3,4,5,6,8,10];
+  for(var i=0;i<ns.length;i++){
+    var n=ns[i], worst=t1*n, rss=t1*Math.sqrt(n);
+    labels.push(String(n));
+    d1.push(Math.round(worst*10000)/10000); d2.push(Math.round(rss*10000)/10000);
+    rows.push([String(n), (Math.round(worst*10000)/10000).toFixed(4), (Math.round(rss*10000)/10000).toFixed(4), (Math.round((worst-rss)*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __tswChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tswSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tswChart',{title:en?'Worst-case (Σ|t|) vs Statistical (√Σt²) Stack-up':'尺寸链叠加：极端法与统计法对比',labels:s.labels,series:[{name:en?'Worst-case (mm)':'极端法总公差 (mm)',data:s.d1},{name:en?'RSS (mm)':'统计法 RSS (mm)',data:s.d2}]});
+}
+function __tswTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__tswSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#tswTable',{head:en?['Links n','Worst-case (mm)','RSS (mm)','Difference']:['尺寸链环数 n','极端法 (mm)','统计法 RSS (mm)','差值'],rows:s.rows});
+}
+
+function __tswShow(which){
+  var c=document.getElementById('tswChart'), t=document.getElementById('tswTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tswTabInit(){
+  var btns=document.querySelectorAll('.tsw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tswShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __tswFn=calcTool;calcTool=function(){try{__tswFn();}catch(e){}try{__tswChart();}catch(e){}try{__tswTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tswChart();}catch(e){}try{__tswTable();}catch(e){}});
+try{__tswTabInit();}catch(e){}
+</script>
 </body>
 </html>
