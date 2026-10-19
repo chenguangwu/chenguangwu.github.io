@@ -179,6 +179,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="myTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="myChart"></div>
+    <div class="card" id="myTableCard" style="display:none;margin-top:12px;">
+      <h3 id="myTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="myTh0"></th><th id="myTh1"></th><th id="myTh2"></th><th id="myTh3"></th></tr></thead><tbody id="myTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -799,6 +808,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var MYCAT_EN={'JSON':'JSON','函数':'Functions','UPSERT':'UPSERT','优化':'Optimization','分页':'Pagination','备份':'Backup','客户端':'Client','导入':'Import','属性':'Properties','数据库':'Database','数据类型':'Data Types','权限':'Privileges','管理':'Admin','约束':'Constraints','表':'Tables'};
+  function myCat(c,en){return en?(MYCAT_EN[c]||c):c;}
+  function myAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function myChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('myChart')) return;
+    var en=TBKit.util.isEn();
+    var a=myAgg();
+    TBKit.chart.bar('#myChart',{labels:a.cats.map(function(c){return myCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function myTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('myTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=myAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+myCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('myTableTitle'); if(tt) tt.textContent=en?'MySQL command categories':'MySQL 命令分类明细';
+    var hs=[['myTh0','#'],['myTh1',en?'Category':'分类'],['myTh2',en?'Commands':'命令数'],['myTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function myFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#myTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function myBindTabs(){
+    var tabs=document.querySelectorAll('#myTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('myChart');
+        var card=document.getElementById('myTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function myAll(){try{myChart();}catch(e){}try{myTable();}catch(e){}myFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){myBindTabs();myAll();});
+  document.addEventListener('toolbox:langchange',function(){myAll();});
+})();
 </script>
 </body>
 </html>

@@ -181,6 +181,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="pgTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="pgChart"></div>
+    <div class="card" id="pgTableCard" style="display:none;margin-top:12px;">
+      <h3 id="pgTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="pgTh0"></th><th id="pgTh1"></th><th id="pgTh2"></th><th id="pgTh3"></th></tr></thead><tbody id="pgTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -776,6 +785,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var PGCAT_EN={'DDL':'DDL','DML':'DML','JSON':'JSON','JSON 函数':'JSON Func','优化':'Optimization','备份':'Backup','客户端':'Client','客户端命令':'Client Cmd','扩展':'Extensions','数据库':'Database','数据类型':'Data Types','查询':'Query','索引':'Index','维护':'Maintenance','聚合':'Aggregation','进程间通信':'IPC','连接':'Connection'};
+  function pgCat(c,en){return en?(PGCAT_EN[c]||c):c;}
+  function pgAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function pgChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('pgChart')) return;
+    var en=TBKit.util.isEn();
+    var a=pgAgg();
+    TBKit.chart.bar('#pgChart',{labels:a.cats.map(function(c){return pgCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function pgTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('pgTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=pgAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+pgCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('pgTableTitle'); if(tt) tt.textContent=en?'PostgreSQL command categories':'PostgreSQL 命令分类明细';
+    var hs=[['pgTh0','#'],['pgTh1',en?'Category':'分类'],['pgTh2',en?'Commands':'命令数'],['pgTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function pgFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#pgTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function pgBindTabs(){
+    var tabs=document.querySelectorAll('#pgTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('pgChart');
+        var card=document.getElementById('pgTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function pgAll(){try{pgChart();}catch(e){}try{pgTable();}catch(e){}pgFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){pgBindTabs();pgAll();});
+  document.addEventListener('toolbox:langchange',function(){pgAll();});
+})();
 </script>
 </body>
 </html>

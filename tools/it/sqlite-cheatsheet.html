@@ -179,6 +179,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="slTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="slChart"></div>
+    <div class="card" id="slTableCard" style="display:none;margin-top:12px;">
+      <h3 id="slTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="slTh0"></th><th id="slTh1"></th><th id="slTh2"></th><th id="slTh3"></th></tr></thead><tbody id="slTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -759,6 +768,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var SLCAT_EN={'CLI':'CLI','命令':'Commands','DDL':'DDL','DML':'DML','FTS':'FTS','FTS 函数':'FTS Func','JSON':'JSON','PRAGMA':'PRAGMA','事务':'Transactions','函数':'Functions','客户端':'Client','工具':'Tools','数据库':'Database','数据类型':'Data Types','系统表':'System Tables'};
+  function slCat(c,en){return en?(SLCAT_EN[c]||c):c;}
+  function slAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function slChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('slChart')) return;
+    var en=TBKit.util.isEn();
+    var a=slAgg();
+    TBKit.chart.bar('#slChart',{labels:a.cats.map(function(c){return slCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function slTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('slTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=slAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+slCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('slTableTitle'); if(tt) tt.textContent=en?'SQLite command categories':'SQLite 命令分类明细';
+    var hs=[['slTh0','#'],['slTh1',en?'Category':'分类'],['slTh2',en?'Commands':'命令数'],['slTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function slFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#slTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function slBindTabs(){
+    var tabs=document.querySelectorAll('#slTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('slChart');
+        var card=document.getElementById('slTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function slAll(){try{slChart();}catch(e){}try{slTable();}catch(e){}slFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){slBindTabs();slAll();});
+  document.addEventListener('toolbox:langchange',function(){slAll();});
+})();
 </script>
 </body>
 </html>
