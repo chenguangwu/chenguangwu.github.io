@@ -298,6 +298,12 @@ function __precision_tolerance_ratioBoot(){ try{ __precision_tolerance_ratioPres
 if (document.readyState && document.readyState !== 'loading') __precision_tolerance_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __precision_tolerance_ratioBoot);
 </script>
+<div class="ptr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ptrChart" style="margin-top:8px;"></div>
+<div id="ptrTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +339,51 @@ else document.addEventListener('DOMContentLoaded', __precision_tolerance_ratioBo
 </dl>
 </div>
 </section>
+<script>
+function __ptrSweep(){
+  var s=num('s'), Tol=num('Tol');
+  if(!isFinite(s)||!isFinite(Tol)||s<=0||Math.abs(Tol)<1e-12)return null;
+  var labels=[],data=[],ref=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var ss=s*mults[i], PTR=6*ss/Tol;
+    labels.push((Math.round(ss*10000)/10000).toFixed(4));
+    data.push(Math.round(PTR*10000)/10000); ref.push(0.1);
+    rows.push([(Math.round(ss*10000)/10000).toFixed(4), (Math.round(PTR*10000)/10000).toFixed(4), PTR<=0.1?'OK':'BAD']);
+  }
+  return {labels:labels,data:data,ref:ref,rows:rows};
+}
+function __ptrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ptrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ptrChart',{title:en?'Precision-to-Tolerance Ratio vs Sigma (PTR = 6s/Tol)':'精度公差比随测量标准差变化 (PTR = 6s/Tol)',labels:s.labels,series:[{name:en?'PTR':'精度公差比 PTR',data:s.data},{name:en?'Limit 0.1':'判据 0.1',data:s.ref}]});
+}
+function __ptrTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ptrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[];
+  for(var i=0;i<s.rows.length;i++){rows.push([s.rows[i][0],s.rows[i][1],(s.rows[i][2]==='OK')?(en?'Acceptable':'可接受'):(en?'Too large':'偏大')]);}
+  TBKit.matrix.table('#ptrTable',{head:en?['Sigma s','PTR','Verdict']:['测量标准差 s','精度公差比 PTR','判定'],rows:rows});
+}
+
+function __ptrShow(which){
+  var c=document.getElementById('ptrChart'), t=document.getElementById('ptrTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ptrTabInit(){
+  var btns=document.querySelectorAll('.ptr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ptrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ptrFn=calcTool;calcTool=function(){try{__ptrFn();}catch(e){}try{__ptrChart();}catch(e){}try{__ptrTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ptrChart();}catch(e){}try{__ptrTable();}catch(e){}});
+try{__ptrTabInit();}catch(e){}
+</script>
 </body>
 </html>

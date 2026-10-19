@@ -243,6 +243,12 @@ function __resolution_uncertaintyBoot(){ try{ __resolution_uncertaintyPresets();
 if (document.readyState && document.readyState !== 'loading') __resolution_uncertaintyBoot();
 else document.addEventListener('DOMContentLoaded', __resolution_uncertaintyBoot);
 </script>
+<div class="resu-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="resuChart" style="margin-top:8px;"></div>
+<div id="resuTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +284,49 @@ else document.addEventListener('DOMContentLoaded', __resolution_uncertaintyBoot)
 </dl>
 </div>
 </section>
+<script>
+function __resuSweep(){
+  var a=num('a');
+  if(!isFinite(a)||a<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var aa=a*mults[i], u=aa/(2*Math.sqrt(3)), U=aa/Math.sqrt(3);
+    labels.push((Math.round(aa*100000)/100000).toFixed(5));
+    d1.push(Math.round(u*1000000)/1000000); d2.push(Math.round(U*1000000)/1000000);
+    rows.push([(Math.round(aa*100000)/100000).toFixed(5), (Math.round(u*1000000)/1000000).toFixed(6), (Math.round(U*1000000)/1000000).toFixed(6)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __resuChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__resuSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#resuChart',{title:en?'Resolution Uncertainty vs Resolution (u = a/(2√3))':'分辨率不确定度随分辨力变化 (u = a/(2√3))',labels:s.labels,series:[{name:en?'u (rectangular)':'不确定度 u（矩形分布）',data:s.d1},{name:en?'U (k=2)':'扩展不确定度 U (k=2)',data:s.d2}]});
+}
+function __resuTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__resuSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#resuTable',{head:en?['Resolution a','u','U (k=2)']:['分辨力 a','不确定度 u','扩展不确定度 U (k=2)'],rows:s.rows});
+}
+
+function __resuShow(which){
+  var c=document.getElementById('resuChart'), t=document.getElementById('resuTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __resuTabInit(){
+  var btns=document.querySelectorAll('.resu-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__resuShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __resuFn=calcTool;calcTool=function(){try{__resuFn();}catch(e){}try{__resuChart();}catch(e){}try{__resuTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__resuChart();}catch(e){}try{__resuTable();}catch(e){}});
+try{__resuTabInit();}catch(e){}
+</script>
 </body>
 </html>

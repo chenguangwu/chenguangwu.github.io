@@ -311,6 +311,12 @@ function __std_dev_type_aBoot(){ try{ __std_dev_type_aPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __std_dev_type_aBoot();
 else document.addEventListener('DOMContentLoaded', __std_dev_type_aBoot);
 </script>
+<div class="sda-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sdaChart" style="margin-top:8px;"></div>
+<div id="sdaTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +352,48 @@ else document.addEventListener('DOMContentLoaded', __std_dev_type_aBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sdaSweep(){
+  var s=num('s'), n=num('n');
+  if(!isFinite(s)||!isFinite(n)||s<=0||n<=0)return null;
+  var labels=[],data=[],rows=[];
+  var ns=[2,3,5,8,10,15,20,30];
+  for(var i=0;i<ns.length;i++){
+    var nn=ns[i], uA=s/Math.sqrt(nn);
+    labels.push(String(nn)); data.push(Math.round(uA*10000)/10000);
+    rows.push([String(nn), (Math.round(uA*10000)/10000).toFixed(4), (Math.round(uA/s*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __sdaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__sdaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#sdaChart',{title:en?'Type-A Uncertainty vs Number of Observations (u_A = s/√n)':'A 类不确定度随测量次数变化 (u_A = s/√n)',labels:s.labels,series:[{name:en?'u_A':'A 类标准不确定度 u_A',data:s.data}]});
+}
+function __sdaTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__sdaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#sdaTable',{head:en?['Observations n','u_A','u_A/s']:['测量次数 n','A 类不确定度 u_A','占标准差比'],rows:s.rows});
+}
+
+function __sdaShow(which){
+  var c=document.getElementById('sdaChart'), t=document.getElementById('sdaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sdaTabInit(){
+  var btns=document.querySelectorAll('.sda-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sdaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __sdaFn=calcTool;calcTool=function(){try{__sdaFn();}catch(e){}try{__sdaChart();}catch(e){}try{__sdaTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sdaChart();}catch(e){}try{__sdaTable();}catch(e){}});
+try{__sdaTabInit();}catch(e){}
+</script>
 </body>
 </html>
