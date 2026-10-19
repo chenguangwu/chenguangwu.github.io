@@ -244,6 +244,12 @@ function __tangential_accelBoot(){ try{ __tangential_accelPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __tangential_accelBoot();
 else document.addEventListener('DOMContentLoaded', __tangential_accelBoot);
 </script>
+<div class="ta-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="taChart" style="margin-top:8px;"></div>
+<div id="taTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +285,48 @@ else document.addEventListener('DOMContentLoaded', __tangential_accelBoot);
 </dl>
 </div>
 </section>
+<script>
+function __taSweep(){
+  var a=num('a'), r=num('r');
+  if(!isFinite(a)||!isFinite(r)||r<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var rr=r*mults[i], at=a*rr;
+    labels.push(String(Math.round(rr*100)/100)); data.push(Math.round(at*1000)/1000);
+    rows.push([String(Math.round(rr*100)/100), (Math.round(at*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __taChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__taSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#taChart',{title:en?'Tangential Acceleration vs Radius (a_t = α·r)':'切向加速度随半径变化 (a_t = α·r)',labels:s.labels,series:[{name:en?'Tangential accel a_t (m/s²)':'切向加速度 a_t (m/s²)',data:s.data}]});
+}
+function __taTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__taSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#taTable',{head:en?['Radius r (m)','Tangential accel a_t (m/s²)']:['半径 r (m)','切向加速度 a_t (m/s²)'],rows:s.rows});
+}
+
+function __taShow(which){
+  var c=document.getElementById('taChart'), t=document.getElementById('taTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __taTabInit(){
+  var btns=document.querySelectorAll('.ta-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__taShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __taFn=calcTool;calcTool=function(){try{__taFn();}catch(e){}try{__taChart();}catch(e){}try{__taTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__taChart();}catch(e){}try{__taTable();}catch(e){}});
+try{__taTabInit();}catch(e){}
+</script>
 </body>
 </html>

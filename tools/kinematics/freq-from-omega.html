@@ -241,6 +241,12 @@ function __freq_from_omegaBoot(){ try{ __freq_from_omegaPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __freq_from_omegaBoot();
 else document.addEventListener('DOMContentLoaded', __freq_from_omegaBoot);
 </script>
+<div class="fw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fwChart" style="margin-top:8px;"></div>
+<div id="fwTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +282,48 @@ else document.addEventListener('DOMContentLoaded', __freq_from_omegaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fwSweep(){
+  var w=num('w');
+  if(!isFinite(w)||w<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var ww=w*mults[i], f=ww/(2*Math.PI);
+    labels.push(String(Math.round(ww*1000)/1000)); data.push(Math.round(f*10000)/10000);
+    rows.push([String(Math.round(ww*1000)/1000), (Math.round(f*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __fwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fwChart',{title:en?'Frequency vs Angular Frequency (f = ω/2π)':'频率随角频率变化 (f = ω/2π)',labels:s.labels,series:[{name:en?'Frequency f (Hz)':'频率 f (Hz)',data:s.data}]});
+}
+function __fwTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__fwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#fwTable',{head:en?['Angular freq ω (rad/s)','Frequency f (Hz)']:['角频率 ω (rad/s)','频率 f (Hz)'],rows:s.rows});
+}
+
+function __fwShow(which){
+  var c=document.getElementById('fwChart'), t=document.getElementById('fwTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fwTabInit(){
+  var btns=document.querySelectorAll('.fw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __fwFn=calcTool;calcTool=function(){try{__fwFn();}catch(e){}try{__fwChart();}catch(e){}try{__fwTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fwChart();}catch(e){}try{__fwTable();}catch(e){}});
+try{__fwTabInit();}catch(e){}
+</script>
 </body>
 </html>

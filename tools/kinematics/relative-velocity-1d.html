@@ -247,6 +247,12 @@ function __relative_velocity_1dBoot(){ try{ __relative_velocity_1dPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __relative_velocity_1dBoot();
 else document.addEventListener('DOMContentLoaded', __relative_velocity_1dBoot);
 </script>
+<div class="r1-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="r1Chart" style="margin-top:8px;"></div>
+<div id="r1Table" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +300,48 @@ else document.addEventListener('DOMContentLoaded', __relative_velocity_1dBoot);
 <h3>结果含义</h3><p>一维相对速度 v_rel=v₁−v₂：以物体 2 为参考系时物体 1 的速度；正负表示方向（同向/反向）。</p>
 <h3>用法</h3><p>同向运动时相对速度相减、反向相加；结果符号代表相对运动方向。常用于会车、追赶问题。</p>
 </div></section>
+<script>
+function __r1Sweep(){
+  var v1=num('v1'), v2=num('v2');
+  if(!isFinite(v1)||!isFinite(v2))return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0,0.5,1,1.5,2,3];
+  for(var i=0;i<mults.length;i++){
+    var vv=v2*mults[i], vr=v1-vv;
+    labels.push(String(Math.round(vv*100)/100)); data.push(Math.round(vr*1000)/1000);
+    rows.push([String(Math.round(vv*100)/100), (Math.round(vr*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __r1Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__r1Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#r1Chart',{title:en?'Relative Velocity vs Second Speed (v_rel = v1 − v2)':'相对速度随第二速度变化 (v_rel = v1 − v2)',labels:s.labels,series:[{name:en?'Relative v (m/s)':'相对速度 (m/s)',data:s.data}]});
+}
+function __r1Table(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__r1Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#r1Table',{head:en?['Second speed v2 (m/s)','Relative v (m/s)']:['第二速度 v2 (m/s)','相对速度 (m/s)'],rows:s.rows});
+}
+
+function __r1Show(which){
+  var c=document.getElementById('r1Chart'), t=document.getElementById('r1Table');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __r1TabInit(){
+  var btns=document.querySelectorAll('.r1-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__r1Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __r1Fn=calcTool;calcTool=function(){try{__r1Fn();}catch(e){}try{__r1Chart();}catch(e){}try{__r1Table();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__r1Chart();}catch(e){}try{__r1Table();}catch(e){}});
+try{__r1TabInit();}catch(e){}
+</script>
 </body>
 </html>

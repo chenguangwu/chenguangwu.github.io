@@ -303,6 +303,12 @@ function __angular_accelBoot(){ try{ __angular_accelPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __angular_accelBoot();
 else document.addEventListener('DOMContentLoaded', __angular_accelBoot);
 </script>
+<div class="ag-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="agChart" style="margin-top:8px;"></div>
+<div id="agTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -350,5 +356,48 @@ else document.addEventListener('DOMContentLoaded', __angular_accelBoot);
 <h3>结果含义</h3><p>角加速度 α=Δω/Δt：角速度随时间的变化率，描述转动快慢的变化。</p>
 <h3>单位</h3><p>SI 单位 rad/s²（弧度/秒²）。与线加速度关系 a_t=α·r（r 为转动半径）。</p>
 </div></section>
+<script>
+function __agSweep(){
+  var dw=num('dw'), dt=num('dt');
+  if(!isFinite(dw)||!isFinite(dt)||dt<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var tt=dt*mults[i], a=dw/tt;
+    labels.push(String(Math.round(tt*100)/100)); data.push(Math.round(a*1000)/1000);
+    rows.push([String(Math.round(tt*100)/100), (Math.round(a*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __agChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__agSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#agChart',{title:en?'Angular Acceleration vs Interval (α = Δω/Δt)':'角加速度随时间间隔变化 (α = Δω/Δt)',labels:s.labels,series:[{name:en?'Angular accel α (rad/s²)':'角加速度 α (rad/s²)',data:s.data}]});
+}
+function __agTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__agSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#agTable',{head:en?['Interval Δt (s)','Angular accel α (rad/s²)']:['时间间隔 Δt (s)','角加速度 α (rad/s²)'],rows:s.rows});
+}
+
+function __agShow(which){
+  var c=document.getElementById('agChart'), t=document.getElementById('agTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __agTabInit(){
+  var btns=document.querySelectorAll('.ag-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__agShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __agFn=calcTool;calcTool=function(){try{__agFn();}catch(e){}try{__agChart();}catch(e){}try{__agTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__agChart();}catch(e){}try{__agTable();}catch(e){}});
+try{__agTabInit();}catch(e){}
+</script>
 </body>
 </html>
