@@ -203,6 +203,18 @@ s.parentNode.insertBefore(el, s);
         <button class="btn" onclick="__hcalExportEvents()">⬇️ 导出历史事件 CSV</button>
       </div>
       <div id="hcalHistory" style="margin-top:14px;"></div>
+<div class="tabs" id="hcTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="hcChart"></div>
+<div class="card" id="hcTableCard" style="display:none">
+  <h3 id="hcTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="hcTh0"></th><th id="hcTh1"></th><th id="hcTh2"></th><th id="hcTh3"></th><th id="hcTh4"></th></tr></thead>
+    <tbody id="hcTbody"></tbody>
+  </table>
+</div>
     </div>
   </div>
 
@@ -610,6 +622,35 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var HC_MONTHS=[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12];
+  var HC_EN={小寒:'Minor Cold',大寒:'Major Cold',立春:'Start of Spring',雨水:'Rain Water',惊蛰:'Awakening of Insects',春分:'Spring Equinox',清明:'Pure Brightness',谷雨:'Grain Rain',立夏:'Start of Summer',小满:'Grain Buds',芒种:'Grain in Ear',夏至:'Summer Solstice',小暑:'Minor Heat',大暑:'Major Heat',立秋:'Start of Autumn',处暑:'End of Heat',白露:'White Dew',秋分:'Autumn Equinox',寒露:'Cold Dew',霜降:'Frost Descent',立冬:'Start of Winter',小雪:'Minor Snow',大雪:'Major Snow',冬至:'Winter Solstice'};
+  var HC_SEASON={1:'冬季',2:'春季',3:'春季',4:'春季',5:'夏季',6:'夏季',7:'夏季',8:'秋季',9:'秋季',10:'秋季',11:'冬季',12:'冬季'};
+  var HC_SEASON_EN={1:'Winter',2:'Spring',3:'Spring',4:'Spring',5:'Summer',6:'Summer',7:'Summer',8:'Autumn',9:'Autumn',10:'Autumn',11:'Winter',12:'Winter'};
+  function hc_groups(){
+    return SOLAR_TERMS.map(function(t,i){ var m=HC_MONTHS[i]; return {zh:t,en:(HC_EN[t]||t),n:TERM_DATES[i],month:m}; });
+  }
+  function hc_render(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('hcChart')) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var g=hc_groups();
+    TBKit.chart.bar('#hcChart',{labels:g.map(function(x){return en?x.en:x.zh;}),series:[{name:en?'Day':'日',data:g.map(function(x){return x.n;})}],height:320,title:en?'Solar Term Dates':'二十四节气公历日期'});
+    var t=document.getElementById('hcTbody'); if(!t) return;
+    t.innerHTML=g.map(function(x,i){ return '<tr><td>'+(i+1)+'</td><td>'+(en?x.en:x.zh)+'</td><td>'+x.month+'月'+x.n+'日</td><td>'+x.month+'</td><td>'+(en?HC_SEASON_EN[x.month]:HC_SEASON[x.month])+'</td></tr>'; }).join('');
+    var tt=document.getElementById('hcTableTitle'); if(tt) tt.textContent=en?'24 Solar Terms':'二十四节气日期表';
+    var hs=[['hcTh0','#'],['hcTh1',en?'Term':'节气'],['hcTh2',en?'Date':'公历日期'],['hcTh3',en?'Month':'月份'],['hcTh4',en?'Season':'季节']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+
+  function hc_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#hcTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function hc_bindTabs(){ var tabs=document.querySelectorAll('#hcTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('hcChart'); var card=document.getElementById('hcTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function hc_all(){try{hc_render();}catch(e){}hc_fillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){hc_bindTabs();hc_all();});
+  document.addEventListener('toolbox:langchange',function(){hc_all();});
+})();
 </script>
 </body>
 </html>

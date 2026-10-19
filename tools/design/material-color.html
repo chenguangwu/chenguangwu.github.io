@@ -188,6 +188,18 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="applyPalettePreset('neutral')">中性色</button>
     </div>
     <div id="colorContainer"></div>
+<div class="tabs" id="mcTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="mcChart"></div>
+<div class="card" id="mcTableCard" style="display:none">
+  <h3 id="mcTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="mcTh0"></th><th id="mcTh1"></th><th id="mcTh2"></th><th id="mcTh3"></th><th id="mcTh4"></th></tr></thead>
+    <tbody id="mcTbody"></tbody>
+  </table>
+</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -487,6 +499,36 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  function mc_hexToRgb(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+  function mc_lum(hex){var c=mc_hexToRgb(hex).map(function(v){v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];}
+  function mc_groups(){
+    return Object.keys(MATERIAL_COLORS).map(function(k){
+      var hex=MATERIAL_COLORS[k][4]; var l=mc_lum(hex);
+      return {name:k,hex:hex,n:Math.round(l*100),lum:l};
+    });
+  }
+  function mc_render(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('mcChart')) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var g=mc_groups();
+    TBKit.chart.bar('#mcChart',{labels:g.map(function(x){return x.name;}),series:[{name:en?'Luminance':'明度',data:g.map(function(x){return x.n;})}],height:320,title:en?'Primary 500 Luminance':'色系主色(500)相对明度'});
+    var t=document.getElementById('mcTbody'); if(!t) return;
+    t.innerHTML=g.map(function(x,i){ return '<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td>'+x.hex+'</td><td>'+x.n+'</td><td>'+(x.lum>0.5?(en?'White text':'白字'):(en?'Black text':'黑字'))+'</td></tr>'; }).join('');
+    var tt=document.getElementById('mcTableTitle'); if(tt) tt.textContent=en?'Material 500 Shades':'Material 500 主色与明度';
+    var hs=[['mcTh0','#'],['mcTh1',en?'Family':'色系'],['mcTh2',en?'Hex(500)':'主色(500)'],['mcTh3',en?'Luminance':'明度(0-100)'],['mcTh4',en?'Text':'建议文字色']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+
+  function mc_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#mcTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function mc_bindTabs(){ var tabs=document.querySelectorAll('#mcTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('mcChart'); var card=document.getElementById('mcTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function mc_all(){try{mc_render();}catch(e){}mc_fillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){mc_bindTabs();mc_all();});
+  document.addEventListener('toolbox:langchange',function(){mc_all();});
+})();
 </script>
 </body>
 </html>

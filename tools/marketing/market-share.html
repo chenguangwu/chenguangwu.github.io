@@ -157,6 +157,18 @@ s.parentNode.insertBefore(el, s);
     <div id="shareBars"></div>
 
     <div id="resultTable"></div>
+<div class="tabs" id="msTabs">
+  <button class="tab-btn active" data-v="chart"></button>
+  <button class="tab-btn" data-v="table"></button>
+</div>
+<div id="msChart"></div>
+<div class="card" id="msTableCard" style="display:none">
+  <h3 id="msTableTitle"></h3>
+  <table class="data-table">
+    <thead><tr><th id="msTh0"></th><th id="msTh1"></th><th id="msTh2"></th><th id="msTh3"></th><th id="msTh4"></th></tr></thead>
+    <tbody id="msTbody"></tbody>
+  </table>
+</div>
 
     <div class="tip-box tip-info" id="tipBox"></div>
   </div>
@@ -455,5 +467,32 @@ function applySharePreset(kind){
 }
 </script>
 
+<script>
+(function(){
+  function ms_groups(){
+    var total=comps.reduce(function(s,c){return s+(+c.value||0);},0)||1;
+    return comps.map(function(c){ var v=(+c.value||0); return {name:c.name,val:v,pct:Math.round(v/total*1000)/10}; });
+  }
+  function ms_render(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('msChart')) return;
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var g=ms_groups();
+    TBKit.chart.bar('#msChart',{labels:g.map(function(x){return x.name;}),series:[{name:en?'Share %':'占比%',data:g.map(function(x){return x.pct;})}],height:300,title:en?'Market Share (%)':'市场占比(%)'});
+    var t=document.getElementById('msTbody'); if(!t) return;
+    var cum=0;
+    t.innerHTML=g.map(function(x,i){ cum+=x.pct; return '<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td>'+x.val+'</td><td>'+x.pct+'%</td><td>'+Math.round(cum*10)/10+'%</td></tr>'; }).join('');
+    var tt=document.getElementById('msTableTitle'); if(tt) tt.textContent=en?'Share Detail':'占比明细';
+    var hs=[['msTh0','#'],['msTh1',en?'Company':'企业'],['msTh2',en?'Value':'数值'],['msTh3',en?'Share':'占比'],['msTh4',en?'Cumulative':'累计']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function ms_fillTabs(){ var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); var b=document.querySelectorAll('#msTabs .tab-btn'); if(b[0])b[0].textContent=en?'Chart':'图表'; if(b[1])b[1].textContent=en?'Table':'明细表'; }
+  function ms_bindTabs(){ var tabs=document.querySelectorAll('#msTabs .tab-btn'); tabs.forEach(function(btn){ btn.addEventListener('click',function(){ tabs.forEach(function(b){b.classList.remove('active');}); btn.classList.add('active'); var v=btn.getAttribute('data-v'); var c=document.getElementById('msChart'); var card=document.getElementById('msTableCard'); if(c)c.style.display=v==='chart'?'':'none'; if(card)card.style.display=v==='table'?'block':'none'; }); }); }
+  function ms_all(){try{ms_render();}catch(e){}ms_fillTabs();}
+  if(typeof calc==='function'){ var __msc0=calc; calc=function(){ __msc0(); ms_all(); }; }
+  document.addEventListener('DOMContentLoaded',function(){ms_bindTabs();ms_all();});
+  document.addEventListener('toolbox:langchange',function(){ms_all();});
+})();
+</script>
 </body>
 </html>
