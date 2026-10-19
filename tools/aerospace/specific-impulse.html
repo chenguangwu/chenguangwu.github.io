@@ -260,6 +260,12 @@ function resetForm(){document.getElementById('f').value = '100000';
       calcTool();}
 calcTool();
 </script>
+<div class="si-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="siChart" style="margin-top:8px;"></div>
+<div id="siTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -357,6 +363,50 @@ calcTool = function(){ __tb_fn0(); try{ __specific_impulseExtras(); }catch(e){} 
 function __specific_impulseBoot(){ try{ __specific_impulsePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __specific_impulseBoot();
 else document.addEventListener('DOMContentLoaded', __specific_impulseBoot);
+</script>
+<script>
+function __siSweep(){
+  var f=num('f'), md=num('mdot');
+  if(!isFinite(f)||!isFinite(md)||md<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var m=md*mults[i], isp=f/(m*9.81), ve=f/m;
+    labels.push((Math.round(m*1000)/1000).toFixed(3));
+    d1.push(Math.round(isp*10)/10); d2.push(Math.round(ve*10)/10);
+    rows.push([(Math.round(m*1000)/1000).toFixed(3), (Math.round(isp*10)/10).toFixed(1), (Math.round(ve*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __siChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__siSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#siChart',{title:en?'Specific Impulse vs Mass Flow (Isp = F/(ṁ·g₀))':'比冲随质量流率变化 (Isp = F/(ṁ·g₀))',labels:s.labels,series:[{name:en?'Isp (s)':'比冲 Isp (s)',data:s.d1},{name:en?'Effective exhaust v (m/s)':'有效排气速度 (m/s)',data:s.d2}]});
+}
+function __siTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__siSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#siTable',{head:en?['Mass flow ṁ (kg/s)','Isp (s)','Exhaust v (m/s)']:['质量流率 ṁ (kg/s)','比冲 Isp (s)','排气速度 (m/s)'],rows:s.rows});
+}
+
+function __siShow(which){
+  var c=document.getElementById('siChart'), t=document.getElementById('siTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __siTabInit(){
+  var btns=document.querySelectorAll('.si-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__siShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __siFn=calcTool;calcTool=function(){try{__siFn();}catch(e){}try{__siChart();}catch(e){}try{__siTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__siChart();}catch(e){}try{__siTable();}catch(e){}});
+try{__siTabInit();}catch(e){}
 </script>
 </body>
 </html>
