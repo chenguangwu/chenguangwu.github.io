@@ -242,6 +242,12 @@ function __activityBoot(){ try{ __activityPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __activityBoot();
 else document.addEventListener('DOMContentLoaded', __activityBoot);
 </script>
+<div class="act-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="actChart" style="margin-top:8px;"></div>
+<div id="actTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +283,49 @@ else document.addEventListener('DOMContentLoaded', __activityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __actSweep(){
+  var lam=num('lam'), n=num('n');
+  if(!isFinite(lam)||!isFinite(n)||lam<=0||n<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var ll=lam*mults[i], A=ll*n;
+    labels.push(ll.toExponential(3));
+    d1.push(A); d2.push(A/3.7e10);
+    rows.push([ll.toExponential(3), A.toExponential(3), (A/3.7e10).toExponential(3)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __actChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__actSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#actChart',{title:en?'Activity vs Decay Constant (A = λN)':'活度随衰变常数变化 (A = λN)',labels:s.labels,series:[{name:en?'Activity A (Bq)':'活度 A (Bq)',data:s.d1},{name:en?'Activity (Ci)':'活度 (Ci)',data:s.d2}]});
+}
+function __actTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__actSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#actTable',{head:en?['Decay constant λ (1/s)','Activity A (Bq)','Activity (Ci)']:['衰变常数 λ (1/s)','活度 A (Bq)','活度 (Ci)'],rows:s.rows});
+}
+
+function __actShow(which){
+  var c=document.getElementById('actChart'), t=document.getElementById('actTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __actTabInit(){
+  var btns=document.querySelectorAll('.act-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__actShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __actFn=calcTool;calcTool=function(){try{__actFn();}catch(e){}try{__actChart();}catch(e){}try{__actTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__actChart();}catch(e){}try{__actTable();}catch(e){}});
+try{__actTabInit();}catch(e){}
+</script>
 </body>
 </html>
