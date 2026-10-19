@@ -179,6 +179,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="csTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="csChart"></div>
+    <div class="card" id="csTableCard" style="display:none;margin-top:12px;">
+      <h3 id="csTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="csTh0"></th><th id="csTh1"></th><th id="csTh2"></th><th id="csTh3"></th></tr></thead><tbody id="csTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -591,6 +600,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var CSCAT_EN={'LINQ':'LINQ','基础':'Basics','工程':'Engineering','异常':'Exceptions','异步':'Async','泛型':'Generics','现代':'Modern','类':'Classes','类型':'Types','集合':'Collections'};
+  function csCat(c,en){return en?(CSCAT_EN[c]||c):c;}
+  function csAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function csChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('csChart')) return;
+    var en=TBKit.util.isEn();
+    var a=csAgg();
+    TBKit.chart.bar('#csChart',{labels:a.cats.map(function(c){return csCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function csTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('csTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=csAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+csCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('csTableTitle'); if(tt) tt.textContent=en?'C# command categories':'C# 命令分类明细';
+    var hs=[['csTh0','#'],['csTh1',en?'Category':'分类'],['csTh2',en?'Commands':'命令数'],['csTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function csFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#csTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function csBindTabs(){
+    var tabs=document.querySelectorAll('#csTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('csChart');
+        var card=document.getElementById('csTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function csAll(){try{csChart();}catch(e){}try{csTable();}catch(e){}csFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){csBindTabs();csAll();});
+  document.addEventListener('toolbox:langchange',function(){csAll();});
+})();
 </script>
 </body>
 </html>

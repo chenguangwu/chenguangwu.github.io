@@ -179,6 +179,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="jvTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="jvChart"></div>
+    <div class="card" id="jvTableCard" style="display:none;margin-top:12px;">
+      <h3 id="jvTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="jvTh0"></th><th id="jvTh1"></th><th id="jvTh2"></th><th id="jvTh3"></th></tr></thead><tbody id="jvTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -647,6 +656,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var JVCAT_EN={'IO':'I/O','函数式':'Functional','基础':'Basics','字符串':'Strings','工程':'Engineering','异常':'Exceptions','循环':'Loops','控制流':'Control Flow','标准库':'Stdlib','泛型':'Generics','类型':'Types','语法':'Syntax','集合':'Collections','面向对象':'OOP'};
+  function jvCat(c,en){return en?(JVCAT_EN[c]||c):c;}
+  function jvAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function jvChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('jvChart')) return;
+    var en=TBKit.util.isEn();
+    var a=jvAgg();
+    TBKit.chart.bar('#jvChart',{labels:a.cats.map(function(c){return jvCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function jvTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('jvTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=jvAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+jvCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('jvTableTitle'); if(tt) tt.textContent=en?'Java command categories':'Java 命令分类明细';
+    var hs=[['jvTh0','#'],['jvTh1',en?'Category':'分类'],['jvTh2',en?'Commands':'命令数'],['jvTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function jvFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#jvTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function jvBindTabs(){
+    var tabs=document.querySelectorAll('#jvTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('jvChart');
+        var card=document.getElementById('jvTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function jvAll(){try{jvChart();}catch(e){}try{jvTable();}catch(e){}jvFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){jvBindTabs();jvAll();});
+  document.addEventListener('toolbox:langchange',function(){jvAll();});
+})();
 </script>
 </body>
 </html>

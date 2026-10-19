@@ -179,6 +179,15 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
     <div class="cmd-list" id="cmdList"></div>
+    <div class="tabs" id="cpTabs" style="margin-top:16px;">
+      <button class="tab-btn active" data-v="chart"></button>
+      <button class="tab-btn" data-v="table"></button>
+    </div>
+    <div id="cpChart"></div>
+    <div class="card" id="cpTableCard" style="display:none;margin-top:12px;">
+      <h3 id="cpTableTitle"></h3>
+      <table class="data-table"><thead><tr><th id="cpTh0"></th><th id="cpTh1"></th><th id="cpTh2"></th><th id="cpTh3"></th></tr></thead><tbody id="cpTbody"></tbody></table>
+    </div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -583,6 +592,60 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>
+(function(){
+  var CPCAT_EN={'IO':'I/O','STL':'STL','内存':'Memory','函数':'Functions','基础':'Basics','工程':'Engineering','异常':'Exceptions','泛型':'Templates','现代':'Modern','类型':'Types','面向对象':'OOP'};
+  function cpCat(c,en){return en?(CPCAT_EN[c]||c):c;}
+  function cpAgg(){
+    var map={},order=[];
+    COMMANDS.forEach(function(c){ if(!map[c.cat]){map[c.cat]=0;order.push(c.cat);} map[c.cat]++; });
+    return {cats:order,counts:order.map(function(k){return map[k];})};
+  }
+  function cpChart(){
+    if(typeof TBKit==='undefined'||!TBKit.chart) return;
+    if(!document.getElementById('cpChart')) return;
+    var en=TBKit.util.isEn();
+    var a=cpAgg();
+    TBKit.chart.bar('#cpChart',{labels:a.cats.map(function(c){return cpCat(c,en);}),series:[{name:en?'Commands':'命令数',data:a.counts}],height:300,title:en?'Commands by category':'各分类命令数'});
+  }
+  function cpTable(){
+    if(typeof TBKit==='undefined') return;
+    var t=document.getElementById('cpTbody'); if(!t) return;
+    var en=TBKit.util.isEn();
+    var a=cpAgg();
+    t.innerHTML=a.cats.map(function(c,i){
+      var reps=COMMANDS.filter(function(x){return x.cat===c;}).slice(0,2).map(function(x){return x.cmd;}).join(' / ');
+      return '<tr><td>'+(i+1)+'</td><td>'+cpCat(c,en)+'</td><td>'+a.counts[i]+'</td><td>'+(reps||'-')+'</td></tr>';
+    }).join('');
+    var tt=document.getElementById('cpTableTitle'); if(tt) tt.textContent=en?'C++ command categories':'C++ 命令分类明细';
+    var hs=[['cpTh0','#'],['cpTh1',en?'Category':'分类'],['cpTh2',en?'Commands':'命令数'],['cpTh3',en?'Examples':'代表命令']];
+    hs.forEach(function(p){var el=document.getElementById(p[0]); if(el) el.textContent=p[1];});
+  }
+  function cpFillTabs(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    var b=document.querySelectorAll('#cpTabs .tab-btn');
+    if(b[0]) b[0].textContent=en?'Chart':'图表';
+    if(b[1]) b[1].textContent=en?'Table':'明细表';
+  }
+  function cpBindTabs(){
+    var tabs=document.querySelectorAll('#cpTabs .tab-btn');
+    tabs.forEach(function(btn){
+      btn.addEventListener('click',function(){
+        tabs.forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        var v=btn.getAttribute('data-v');
+        var c=document.getElementById('cpChart');
+        var card=document.getElementById('cpTableCard');
+        if(c) c.style.display=v==='chart'?'':'none';
+        if(card) card.style.display=v==='table'?'block':'none';
+      });
+    });
+  }
+  function cpAll(){try{cpChart();}catch(e){}try{cpTable();}catch(e){}cpFillTabs();}
+  document.addEventListener('DOMContentLoaded',function(){cpBindTabs();cpAll();});
+  document.addEventListener('toolbox:langchange',function(){cpAll();});
+})();
 </script>
 </body>
 </html>
