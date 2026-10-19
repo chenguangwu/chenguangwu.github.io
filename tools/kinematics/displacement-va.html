@@ -301,6 +301,12 @@ function __displacement_vaBoot(){ try{ __displacement_vaPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __displacement_vaBoot();
 else document.addEventListener('DOMContentLoaded', __displacement_vaBoot);
 </script>
+<div class="dv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dvChart" style="margin-top:8px;"></div>
+<div id="dvTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +342,48 @@ else document.addEventListener('DOMContentLoaded', __displacement_vaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dvSweep(){
+  var v=num('v'), v0=num('v0'), a=num('a');
+  if(!isFinite(v)||!isFinite(v0)||!isFinite(a)||a===0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0,0.25,0.5,0.75,1,1.5,2];
+  for(var i=0;i<mults.length;i++){
+    var vv=v*mults[i], s=(vv*vv-v0*v0)/(2*a);
+    labels.push(String(Math.round(vv*100)/100)); data.push(Math.round(s*1000)/1000);
+    rows.push([String(Math.round(vv*100)/100), (Math.round(s*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __dvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dvChart',{title:en?'Displacement vs Final Velocity (s = (v² − v0²)/(2a))':'位移随末速度变化 (s = (v² − v₀²)/(2a))',labels:s.labels,series:[{name:en?'Displacement s (m)':'位移 s (m)',data:s.data}]});
+}
+function __dvTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__dvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#dvTable',{head:en?['Final velocity v (m/s)','Displacement s (m)']:['末速度 v (m/s)','位移 s (m)'],rows:s.rows});
+}
+
+function __dvShow(which){
+  var c=document.getElementById('dvChart'), t=document.getElementById('dvTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dvTabInit(){
+  var btns=document.querySelectorAll('.dv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __dvFn=calcTool;calcTool=function(){try{__dvFn();}catch(e){}try{__dvChart();}catch(e){}try{__dvTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dvChart();}catch(e){}try{__dvTable();}catch(e){}});
+try{__dvTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -300,6 +300,12 @@ function __angular_velocityBoot(){ try{ __angular_velocityPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __angular_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __angular_velocityBoot);
 </script>
+<div class="aw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="awChart" style="margin-top:8px;"></div>
+<div id="awTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +341,48 @@ else document.addEventListener('DOMContentLoaded', __angular_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __awSweep(){
+  var v=num('v'), r=num('r');
+  if(!isFinite(v)||!isFinite(r)||r<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8];
+  for(var i=0;i<mults.length;i++){
+    var rr=r*mults[i], w=v/rr;
+    labels.push(String(Math.round(rr*100)/100)); data.push(Math.round(w*1000)/1000);
+    rows.push([String(Math.round(rr*100)/100), (Math.round(w*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __awChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__awSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#awChart',{title:en?'Angular Velocity vs Radius (ω = v/r)':'角速度随半径变化 (ω = v/r)',labels:s.labels,series:[{name:en?'Angular velocity ω (rad/s)':'角速度 ω (rad/s)',data:s.data}]});
+}
+function __awTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__awSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#awTable',{head:en?['Radius r (m)','Angular velocity ω (rad/s)']:['半径 r (m)','角速度 ω (rad/s)'],rows:s.rows});
+}
+
+function __awShow(which){
+  var c=document.getElementById('awChart'), t=document.getElementById('awTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __awTabInit(){
+  var btns=document.querySelectorAll('.aw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__awShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __awFn=calcTool;calcTool=function(){try{__awFn();}catch(e){}try{__awChart();}catch(e){}try{__awTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__awChart();}catch(e){}try{__awTable();}catch(e){}});
+try{__awTabInit();}catch(e){}
+</script>
 </body>
 </html>

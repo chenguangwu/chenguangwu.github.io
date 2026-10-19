@@ -247,6 +247,12 @@ function __height_fall_distanceBoot(){ try{ __height_fall_distancePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __height_fall_distanceBoot();
 else document.addEventListener('DOMContentLoaded', __height_fall_distanceBoot);
 </script>
+<div class="hd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hdChart" style="margin-top:8px;"></div>
+<div id="hdTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -295,5 +301,48 @@ else document.addEventListener('DOMContentLoaded', __height_fall_distanceBoot);
 <h3>单位与范围</h3><p>h 单位米(m)、t 单位秒(s)。初速为 0、仅受重力时成立；结果随 t² 增长。</p>
 <h3>适用边界</h3><p>忽略空气阻力与高度变化引起的 g 微小差异；高下落或低密度物体需考虑空气阻力修正。</p>
 </div></section>
+<script>
+function __hdSweep(){
+  var t=num('t'), g=num('g');
+  if(!isFinite(t)||!isFinite(g)||t<0||g<=0)return null;
+  var labels=[],data=[],rows=[];
+  var mults=[0,0.25,0.5,0.75,1,1.5,2];
+  for(var i=0;i<mults.length;i++){
+    var tt=t*mults[i], h=0.5*g*tt*tt;
+    labels.push(String(Math.round(tt*100)/100)); data.push(Math.round(h*1000)/1000);
+    rows.push([String(Math.round(tt*100)/100), (Math.round(h*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,data:data,rows:rows};
+}
+function __hdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__hdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hdChart',{title:en?'Fall Distance vs Time (h = ½g·t²)':'下落距离随时间变化 (h = ½g·t²)',labels:s.labels,series:[{name:en?'Distance h (m)':'距离 h (m)',data:s.data}]});
+}
+function __hdTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__hdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#hdTable',{head:en?['Time t (s)','Distance h (m)']:['时间 t (s)','距离 h (m)'],rows:s.rows});
+}
+
+function __hdShow(which){
+  var c=document.getElementById('hdChart'), t=document.getElementById('hdTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hdTabInit(){
+  var btns=document.querySelectorAll('.hd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __hdFn=calcTool;calcTool=function(){try{__hdFn();}catch(e){}try{__hdChart();}catch(e){}try{__hdTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hdChart();}catch(e){}try{__hdTable();}catch(e){}});
+try{__hdTabInit();}catch(e){}
+</script>
 </body>
 </html>
