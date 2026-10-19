@@ -255,10 +255,19 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="tableResult" style="margin-top:16px;"></div>
 
     <!-- 词频条形图 -->
-    <div class="kw-charts">
+    <div class="tabs" id="kwTabs">
+      <button type="button" class="tab-btn active" data-v="chart"></button>
+      <button type="button" class="tab-btn" data-v="table"></button>
+    </div>
+    <div class="kw-charts" id="kwChartWrap">
       <h3>&#128200; 词频分布</h3>
       <div id="chartResult"></div>
       <div id="kwChart" style="margin-top:12px;"></div>
+    </div>
+    <div class="card" id="kwTableCard" style="margin-top:14px;">
+      <h3 id="kwTableTitle"></h3>
+      <table id="kwTable"><thead><tr><th id="kwTh0"></th><th id="kwTh1"></th></tr></thead><tbody></tbody></table>
+      <p class="muted" id="kwTableNote"></p>
     </div>
   </div>
 
@@ -720,6 +729,27 @@ s.parentNode.insertBefore(el, s);
       labels: labels,
       series: [{ name: en ? 'Frequency' : '词频', data: data }]
     });
+    try { __kwTable(en, labels, data); } catch (e) {}
+  }
+  function __kwTable(en, labels, data) {
+    var tb = document.querySelector('#kwTable tbody'); if (!tb) return;
+    if (!labels || !labels.length) { tb.innerHTML = ''; return; }
+    tb.innerHTML = labels.map(function (lb, i) {
+      var v = (data && data[i] != null) ? data[i] : '';
+      return '<tr><td>' + lb + '</td><td>' + v + '</td></tr>';
+    }).join('');
+    var t1 = document.querySelector('#kwTabs .tab-btn[data-v="chart"]'); if (t1) t1.textContent = en ? '📊 Chart' : '📊 图表';
+    var t2 = document.querySelector('#kwTabs .tab-btn[data-v="table"]'); if (t2) t2.textContent = en ? '📋 Keyword table' : '📋 关键词明细';
+    var tt = document.getElementById('kwTableTitle'); if (tt) tt.textContent = en ? 'Keyword frequency detail' : '关键词词频明细';
+    var h0 = document.getElementById('kwTh0'); if (h0) h0.textContent = en ? 'Keyword' : '关键词';
+    var h1 = document.getElementById('kwTh1'); if (h1) h1.textContent = en ? 'Frequency' : '词频';
+    var note = document.getElementById('kwTableNote'); if (note) note.textContent = en ? 'Top keyword frequency extracted from the input or built-in sample text.' : '输入文本或内置示例文本中提取的关键词词频 Top 明细。';
+  }
+  function __kwTab(v) {
+    var cw = document.getElementById('kwChartWrap'), tv = document.getElementById('kwTableCard');
+    document.querySelectorAll('#kwTabs .tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-v') === v); });
+    if (cw) cw.style.display = v === 'chart' ? '' : 'none';
+    if (tv) tv.style.display = v === 'table' ? '' : 'none';
   }
 
   /* ===== 加载示例 ===== */
@@ -734,6 +764,7 @@ s.parentNode.insertBefore(el, s);
     try { __kwChart(); } catch (e) {}
   }
   window.addEventListener('toolbox:langchange', function() { try { __kwChart(); } catch (e) {} });
+  document.querySelectorAll('#kwTabs .tab-btn').forEach(function (b) { b.addEventListener('click', function () { try { __kwTab(b.getAttribute('data-v')); } catch (e) {} }); });
 
 })();
 </script>

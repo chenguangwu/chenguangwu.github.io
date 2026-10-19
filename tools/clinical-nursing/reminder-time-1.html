@@ -231,7 +231,16 @@ s.parentNode.insertBefore(el, s);
 
     <div class="tab-content" id="tab-stats">
       <div class="stat-grid" id="statGrid"></div>
+      <div class="tabs" id="coldTabs">
+        <button type="button" class="tab-btn active" data-v="chart"></button>
+        <button type="button" class="tab-btn" data-v="table"></button>
+      </div>
       <div id="coldChart" style="margin-top:12px;"></div>
+      <div class="card" id="coldTableCard" style="margin-top:14px;">
+        <h3 id="coldTableTitle"></h3>
+        <table id="coldTable"><thead><tr><th id="coldTh0"></th><th id="coldTh1"></th></tr></thead><tbody></tbody></table>
+        <p class="muted" id="coldTableNote"></p>
+      </div>
     </div>
 
     <div class="tab-content" id="tab-guide">
@@ -653,16 +662,36 @@ function __coldChart(){
       labels:labels,
       series:[{name:en?'Sessions':'次数',data:data}]
     });
+    try{__coldTable(en,labels,data);}catch(e){}
     return;
   }
   // 无记录时降级展示标准冷敷节奏（分钟）：上限20 / 建议15 / 检查间隔5 / 两次间隔休息30
   var zhL=['单次冷敷上限','建议单次时长','皮肤检查间隔','两次间隔休息'];
   var enL=['Max single session','Recommended length','Skin check interval','Rest between sessions'];
+  var cl=en?enL:zhL, cd=[20,15,5,30];
   TBKit.chart.bar('#coldChart',{
     title:en?'Standard cold-compress cadence (minutes)':'标准冷敷节奏对照（分钟）',
-    labels:en?enL:zhL,
-    series:[{name:en?'minutes':'分钟',data:[20,15,5,30]}]
+    labels:cl,
+    series:[{name:en?'minutes':'分钟',data:cd}]
   });
+  try{__coldTable(en,cl,cd);}catch(e){}
+}
+function __coldTable(en,labels,data){
+  var tb=document.querySelector('#coldTable tbody'); if(!tb) return;
+  if(!labels||!labels.length){ tb.innerHTML=''; return; }
+  tb.innerHTML=labels.map(function(lb,i){ var v=(data&&data[i]!=null)?data[i]:''; return '<tr><td>'+lb+'</td><td>'+v+'</td></tr>'; }).join('');
+  var t1=document.querySelector('#coldTabs .tab-btn[data-v="chart"]'); if(t1)t1.textContent=en?'📊 Chart':'📊 图表';
+  var t2=document.querySelector('#coldTabs .tab-btn[data-v="table"]'); if(t2)t2.textContent=en?'📋 Cadence table':'📋 冷敷节奏明细';
+  var tt=document.getElementById('coldTableTitle'); if(tt)tt.textContent=en?'Cold-compress cadence detail':'冷敷节奏明细';
+  var h0=document.getElementById('coldTh0'); if(h0)h0.textContent=en?'Item':'项目';
+  var h1=document.getElementById('coldTh1'); if(h1)h1.textContent=en?'Minutes':'分钟';
+  var note=document.getElementById('coldTableNote'); if(note)note.textContent=en?'Standard cold-compress cadence when no session is recorded.':'无记录时显示标准冷敷节奏参考。';
+}
+function __coldTabs(v){
+  var cv=document.getElementById('coldChart'), tv=document.getElementById('coldTableCard');
+  document.querySelectorAll('#coldTabs .tab-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===v); });
+  if(cv) cv.style.display = v==='chart' ? '' : 'none';
+  if(tv) tv.style.display = v==='table' ? '' : 'none';
 }
 
 function renderStats(){
@@ -719,6 +748,7 @@ window.addEventListener('beforeunload', function(){
 
 init();
 window.addEventListener('toolbox:langchange',function(){try{__coldChart();}catch(e){}});
+  document.querySelectorAll('#coldTabs .tab-btn').forEach(function(b){ b.addEventListener('click',function(){ try{__coldTabs(b.getAttribute('data-v'));}catch(e){} }); });
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

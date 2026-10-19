@@ -177,7 +177,16 @@ s.parentNode.insertBefore(el, s);
       <span><i style="display:inline-block;width:12px;height:12px;border-radius:3px;background:linear-gradient(90deg,var(--warning),var(--primary));"></i> 进行中</span>
     </div>
     <div class="gantt"><div class="gantt-inner"><div id="gantt"></div></div></div>
+    <div class="tabs" id="schedTabs">
+      <button type="button" class="tab-btn active" data-v="chart"></button>
+      <button type="button" class="tab-btn" data-v="table"></button>
+    </div>
     <div id="schedChart" style="margin-top:14px;"></div>
+    <div class="card" id="schedTableCard" style="margin-top:14px;">
+      <h3 id="schedTableTitle"></h3>
+      <table id="schedTable"><thead><tr><th id="schedTh0"></th><th id="schedTh1"></th></tr></thead><tbody></tbody></table>
+      <p class="muted" id="schedTableNote"></p>
+    </div>
   </div>
 
 <div class="tool-notes" style="--tool-accent:#8E24AA;">
@@ -494,11 +503,30 @@ document.addEventListener('DOMContentLoaded',function(){
       height:260,
       title:en?'Duration of each construction phase (days)':'各工序工期（天）'
     });
+    try{__decTable(en,labels,data);}catch(e){}
+  }
+  function __decTable(en,labels,data){
+    var tb=document.querySelector('#schedTable tbody'); if(!tb) return;
+    if(!labels||!labels.length){ tb.innerHTML=''; return; }
+    tb.innerHTML=labels.map(function(lb,i){ var v=(data&&data[i]!=null)?data[i]:''; return '<tr><td>'+lb+'</td><td>'+v+'</td></tr>'; }).join('');
+    var t1=document.querySelector('#schedTabs .tab-btn[data-v="chart"]'); if(t1)t1.textContent=en?'📊 Chart':'📊 图表';
+    var t2=document.querySelector('#schedTabs .tab-btn[data-v="table"]'); if(t2)t2.textContent=en?'📋 Phase table':'📋 工序明细';
+    var tt=document.getElementById('schedTableTitle'); if(tt)tt.textContent=en?'Phase schedule detail':'工序排期明细';
+    var h0=document.getElementById('schedTh0'); if(h0)h0.textContent=en?'Phase':'工序';
+    var h1=document.getElementById('schedTh1'); if(h1)h1.textContent=en?'Duration (days)':'工期(天)';
+    var note=document.getElementById('schedTableNote'); if(note)note.textContent=en?'Duration of each construction phase from the schedule.':'各工序工期取自当前排期。';
+  }
+  function __decTabs(v){
+    var cv=document.getElementById('schedChart'), tv=document.getElementById('schedTableCard');
+    document.querySelectorAll('#schedTabs .tab-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===v); });
+    if(cv) cv.style.display = v==='chart' ? '' : 'none';
+    if(tv) tv.style.display = v==='table' ? '' : 'none';
   }
   var __decRender=render;
   render=function(){__decRender();__decExtras();};
   __decExtras();
   window.addEventListener('toolbox:langchange',function(){try{__decExtras();}catch(e){}});
+  document.querySelectorAll('#schedTabs .tab-btn').forEach(function(b){ b.addEventListener('click',function(){ try{__decTabs(b.getAttribute('data-v'));}catch(e){} }); });
 
   document.querySelectorAll('.tool-intro-header').forEach(function(h){
     h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});

@@ -164,7 +164,16 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>客户概览</h3>
     <div class="stat-grid" id="summaryGrid"></div>
+    <div class="tabs" id="ecoTabs">
+      <button type="button" class="tab-btn active" data-v="chart"></button>
+      <button type="button" class="tab-btn" data-v="table"></button>
+    </div>
     <div id="ecoChart"></div>
+    <div class="card" id="ecoTableCard" style="margin-top:14px;">
+      <h3 id="ecoTableTitle"></h3>
+      <table id="ecoTable"><thead><tr><th id="ecoTh0"></th><th id="ecoTh1"></th></tr></thead><tbody></tbody></table>
+      <p class="muted" id="ecoTableNote"></p>
+    </div>
     <div id="customerList"></div>
   </div>
 
@@ -575,14 +584,17 @@ function __ecoExtras(){
     var thr=90;
     try{ thr=getChurnThreshold(); }catch(e){ thr=90; }
     if(!isFinite(thr)||thr<=0) thr=90;
+    var el=en
+      ? ['High-frequency (<=30d)','Churn alert (>'+thr+'d)','Regular watch (180d)','Annual watch (365d)']
+      : ['高频复购(≤30天)','流失预警(>'+thr+'天)','常规观察(180天)','年度观察(365天)'];
+    var ed=[30,thr,180,365];
     TBKit.chart.bar('#ecoChart',{
       title:en?'Repurchase cycle thresholds (days)':'复购周期判定阈值对照（天）',
-      labels:en
-        ? ['High-frequency (<=30d)','Churn alert (>'+thr+'d)','Regular watch (180d)','Annual watch (365d)']
-        : ['高频复购(≤30天)','流失预警(>'+thr+'天)','常规观察(180天)','年度观察(365天)'],
-      series:[{name:en?'days':'天',data:[30,thr,180,365]}],
+      labels:el,
+      series:[{name:en?'days':'天',data:ed}],
       height:260
     });
+    try{__ecoTable(en,el,ed);}catch(e){}
     return;
   }
   var labels=[],data=[];
@@ -598,10 +610,29 @@ function __ecoExtras(){
     height:260,
     title:en?'Average repurchase cycle by customer':'各客户平均复购周期对比'
   });
+  try{__ecoTable(en,labels,data);}catch(e){}
+}
+function __ecoTable(en,labels,data){
+  var tb=document.querySelector('#ecoTable tbody'); if(!tb) return;
+  if(!labels||!labels.length){ tb.innerHTML=''; return; }
+  tb.innerHTML=labels.map(function(lb,i){ var v=(data&&data[i]!=null)?data[i]:''; return '<tr><td>'+lb+'</td><td>'+v+'</td></tr>'; }).join('');
+  var t1=document.querySelector('#ecoTabs .tab-btn[data-v="chart"]'); if(t1)t1.textContent=en?'📊 Chart':'📊 图表';
+  var t2=document.querySelector('#ecoTabs .tab-btn[data-v="table"]'); if(t2)t2.textContent=en?'📋 Customer table':'📋 客户周期明细';
+  var tt=document.getElementById('ecoTableTitle'); if(tt)tt.textContent=en?'Repurchase cycle detail':'复购周期明细';
+  var h0=document.getElementById('ecoTh0'); if(h0)h0.textContent=en?'Customer':'客户';
+  var h1=document.getElementById('ecoTh1'); if(h1)h1.textContent=en?'Avg cycle (days)':'平均周期(天)';
+  var note=document.getElementById('ecoTableNote'); if(note)note.textContent=en?'Average repurchase cycle per customer, or threshold reference when no data.':'各客户平均复购周期，无数据时显示阈值参照。';
+}
+function __ecoTabs(v){
+  var cv=document.getElementById('ecoChart'), tv=document.getElementById('ecoTableCard');
+  document.querySelectorAll('#ecoTabs .tab-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===v); });
+  if(cv) cv.style.display = v==='chart' ? '' : 'none';
+  if(tv) tv.style.display = v==='table' ? '' : 'none';
 }
 var __ecoRenderSummary=renderSummary;
 renderSummary=function(){__ecoRenderSummary();__ecoExtras();};
 window.addEventListener('toolbox:langchange',function(){try{__ecoExtras();}catch(e){}});
+  document.querySelectorAll('#ecoTabs .tab-btn').forEach(function(b){ b.addEventListener('click',function(){ try{__ecoTabs(b.getAttribute('data-v'));}catch(e){} }); });
 
 renderList();
 renderSummary();
