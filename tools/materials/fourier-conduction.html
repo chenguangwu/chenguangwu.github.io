@@ -308,6 +308,11 @@ function __fourier_conductionBoot(){ try{ __fourier_conductionPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __fourier_conductionBoot();
 else document.addEventListener('DOMContentLoaded', __fourier_conductionBoot);
 </script>
+<div class="fc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,5 +349,43 @@ else document.addEventListener('DOMContentLoaded', __fourier_conductionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fcSweep(){
+  var k=num('k'), A=num('A'), dT=num('dT'), L0=num('L');
+  if(!isFinite(k)||!isFinite(A)||!isFinite(dT)||!isFinite(L0)||L0<=0||k<0)return null;
+  var labels=[],dQ=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k2=0;k2<mults.length;k2++){
+    var L=L0*mults[k2], q=k*A*dT/L;
+    labels.push((Math.round(L*1000)/1000).toFixed(3));
+    dQ.push(Math.round(q*1000)/1000);
+    rows.push([(Math.round(L*1000)/1000).toFixed(3),(Math.round(q*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dQ:dQ,rows:rows};
+}
+function __fcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fcChart',{title:en?'Heat Conduction vs Thickness (q=k·A·ΔT/L, inverse)':'导热热流随厚度反比变化（q=k·A·ΔT/L）',labels:s.labels,series:[{name:en?'Heat flux q':'热流 q',data:s.dQ}]});
+}
+
+function __fcShow(which){
+  var c=document.getElementById('fcChart'), t=document.getElementById('fourier_conductionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fcTabInit(){
+  var btns=document.querySelectorAll('.fc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fcShow('chart');
+}
+var __fcFn=calcTool;calcTool=function(){try{__fcFn();}catch(e){}try{__fcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fcChart();}catch(e){}});
+</script>
 </body>
 </html>

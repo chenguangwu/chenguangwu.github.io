@@ -314,6 +314,11 @@ function __fracture_toughnessBoot(){ try{ __fracture_toughnessPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __fracture_toughnessBoot();
 else document.addEventListener('DOMContentLoaded', __fracture_toughnessBoot);
 </script>
+<div class="ft-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ftChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -350,5 +355,43 @@ else document.addEventListener('DOMContentLoaded', __fracture_toughnessBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ftSweep(){
+  var Y=num('Y'), sig=num('sig'), a0=num('a');
+  if(!isFinite(Y)||!isFinite(sig)||!isFinite(a0)||Y<=0||sig<=0||a0<=0)return null;
+  var labels=[],dK=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var a=a0*mults[k], K=Y*sig*Math.sqrt(Math.PI*a);
+    labels.push((Math.round(a*1000)/1000).toFixed(3));
+    dK.push(Math.round(K/1e6*1000)/1000);
+    rows.push([(Math.round(a*1000)/1000).toFixed(3),(Math.round(K/1e6*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dK:dK,rows:rows};
+}
+function __ftChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ftSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ftChart',{title:en?'Fracture Toughness vs Crack Length (K=Y·σ·√(πa))':'断裂韧性随裂纹长度根号变化（K=Y·σ·√(πa)）',labels:s.labels,series:[{name:en?'K (MPa√m)':'断裂韧性 K (MPa·√m)',data:s.dK}]});
+}
+
+function __ftShow(which){
+  var c=document.getElementById('ftChart'), t=document.getElementById('fracture_toughnessTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ftTabInit(){
+  var btns=document.querySelectorAll('.ft-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ftShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ftShow('chart');
+}
+var __ftFn=calcTool;calcTool=function(){try{__ftFn();}catch(e){}try{__ftChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ftChart();}catch(e){}});
+</script>
 </body>
 </html>

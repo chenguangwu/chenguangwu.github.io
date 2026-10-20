@@ -300,6 +300,11 @@ function __engineering_strainBoot(){ try{ __engineering_strainPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __engineering_strainBoot();
 else document.addEventListener('DOMContentLoaded', __engineering_strainBoot);
 </script>
+<div class="es-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="esChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,43 @@ else document.addEventListener('DOMContentLoaded', __engineering_strainBoot);
 </dl>
 </div>
 </section>
+<script>
+function __esSweep(){
+  var L0=num('L0'), Lc=num('L');
+  if(!isFinite(L0)||!isFinite(Lc)||L0<=0||Lc<=0)return null;
+  var labels=[],dEps=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var L=Lc*mults[k], eps=(L-L0)/L0;
+    labels.push((Math.round(L*100)/100).toFixed(1));
+    dEps.push(Math.round(eps*100000)/100000);
+    rows.push([(Math.round(L*100)/100).toFixed(1),(Math.round(eps*100000)/100000).toFixed(5)]);
+  }
+  return {labels:labels,dEps:dEps,rows:rows};
+}
+function __esChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__esSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#esChart',{title:en?'Engineering Strain vs Length (eps=(L-L0)/L0)':'工程应变随长度线性变化（eps=(L−L0)/L0）',labels:s.labels,series:[{name:en?'Strain eps':'应变 eps',data:s.dEps}]});
+}
+
+function __esShow(which){
+  var c=document.getElementById('esChart'), t=document.getElementById('engineering_strainTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __esTabInit(){
+  var btns=document.querySelectorAll('.es-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__esShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __esShow('chart');
+}
+var __esFn=calcTool;calcTool=function(){try{__esFn();}catch(e){}try{__esChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__esChart();}catch(e){}});
+</script>
 </body>
 </html>

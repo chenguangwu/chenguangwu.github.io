@@ -303,6 +303,11 @@ function __hooke_strainBoot(){ try{ __hooke_strainPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __hooke_strainBoot();
 else document.addEventListener('DOMContentLoaded', __hooke_strainBoot);
 </script>
+<div class="hs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -350,5 +355,43 @@ else document.addEventListener('DOMContentLoaded', __hooke_strainBoot);
 <h3>结果含义</h3><p>线应变 ε=ΔL/L：物体受力后长度相对变化量，无量纲（常以 % 表示）。</p>
 <h3>胡克定律</h3><p>弹性范围内应力 σ=E·ε（E 为杨氏模量）。应变描述变形程度，是强度与刚度分析的基础量。</p>
 </div></section>
+<script>
+function __hsSweep(){
+  var s0=num('s'), E=num('E');
+  if(!isFinite(s0)||!isFinite(E)||s0<=0||E<=0)return null;
+  var labels=[],dEps=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var s=s0*mults[k], eps=s/E;
+    labels.push((Math.round(s/1e6*100)/100).toFixed(0));
+    dEps.push(Math.round(eps*100000)/100000);
+    rows.push([(Math.round(s/1e6*100)/100).toFixed(0),(Math.round(eps*100000)/100000).toFixed(5)]);
+  }
+  return {labels:labels,dEps:dEps,rows:rows};
+}
+function __hsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__hsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hsChart',{title:en?'Hooke Strain vs Stress (eps=s/E)':'胡克应变随应力线性变化（eps=s/E）',labels:s.labels,series:[{name:en?'Strain eps':'应变 eps',data:s.dEps}]});
+}
+
+function __hsShow(which){
+  var c=document.getElementById('hsChart'), t=document.getElementById('hooke_strainTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hsTabInit(){
+  var btns=document.querySelectorAll('.hs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hsShow('chart');
+}
+var __hsFn=calcTool;calcTool=function(){try{__hsFn();}catch(e){}try{__hsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hsChart();}catch(e){}});
+</script>
 </body>
 </html>
