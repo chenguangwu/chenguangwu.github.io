@@ -245,6 +245,11 @@ function __kp_kcBoot(){ try{ __kp_kcPresets(); }catch(e){} try{ calcTool(); }cat
 if (document.readyState && document.readyState !== 'loading') __kp_kcBoot();
 else document.addEventListener('DOMContentLoaded', __kp_kcBoot);
 </script>
+<div class="kpk-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="kpkChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,44 @@ else document.addEventListener('DOMContentLoaded', __kp_kcBoot);
 </dl>
 </div>
 </section>
+<script>
+function __kpkSweep(){
+  var Kc=num('Kc'), dn=num('dn');
+  if(!isFinite(Kc)||!isFinite(dn)||Kc<=0)return null;
+  var labels=[],dKp=[],dRt=[],rows=[];
+  var Ts=[273,298,350,400,500,600,800,1000];
+  for(var k=0;k<Ts.length;k++){
+    var T=Ts[k], Kp=Kc*Math.pow(8.314*T,dn);
+    labels.push(String(T));
+    dKp.push(Math.round(Math.log10(Kp)*1000)/1000);
+    dRt.push(Math.round(Math.log10(8.314*T)*1000)/1000);
+    rows.push([String(T),(Math.log10(Kp)).toFixed(3)]);
+  }
+  return {labels:labels,dKp:dKp,dRt:dRt,rows:rows};
+}
+function __kpkChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__kpkSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#kpkChart',{title:en?'log Kp vs Temperature (Kp=Kc·(RT)^Δn)':'压力平衡常数随温度幂律变化（Kp=Kc·(RT)^Δn，取对数坐标）',labels:s.labels,series:[{name:en?'lg Kp':'lg Kp',data:s.dKp},{name:en?'lg(RT)':'lg(RT)',data:s.dRt}]});
+}
+
+function __kpkShow(which){
+  var c=document.getElementById('kpkChart'), t=document.getElementById('kp_kcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __kpkTabInit(){
+  var btns=document.querySelectorAll('.kpk-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__kpkShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __kpkShow('chart');
+}
+var __kpkFn=calcTool;calcTool=function(){try{__kpkFn();}catch(e){}try{__kpkChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__kpkChart();}catch(e){}});
+</script>
 </body>
 </html>

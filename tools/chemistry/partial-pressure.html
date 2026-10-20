@@ -246,6 +246,11 @@ function __partial_pressureBoot(){ try{ __partial_pressurePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __partial_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __partial_pressureBoot);
 </script>
+<div class="pp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ppChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __partial_pressureBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ppSweep(){
+  var Pt=num('Pt'), x0=num('x');
+  if(!isFinite(Pt)||!isFinite(x0)||Pt<=0||x0<=0)return null;
+  var labels=[],dPi=[],dRest=[],rows=[];
+  var xs=[0.1,0.2,0.25,0.4,0.5,0.6,0.75,0.8,0.9,1];
+  for(var k=0;k<xs.length;k++){
+    var x=xs[k], Pi=x*Pt;
+    labels.push(x.toFixed(2));
+    dPi.push(Math.round(Pi*100)/100);
+    dRest.push(Math.round((Pt-Pi)*100)/100);
+    rows.push([x.toFixed(2),(Math.round(Pi*100)/100).toFixed(2),(Math.round((Pt-Pi)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dPi:dPi,dRest:dRest,rows:rows};
+}
+function __ppChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ppSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ppChart',{title:en?'Partial Pressure vs Mole Fraction (linear Dalton Pi=x·Pt)':'分压随摩尔分数线性增长（道尔顿定律 Pᵢ=xᵢ·P_t）',labels:s.labels,series:[{name:en?'Partial Pi (kPa)':'分压 (kPa)',data:s.dPi},{name:en?'Rest (kPa)':'其余组分 (kPa)',data:s.dRest}]});
+}
+
+function __ppShow(which){
+  var c=document.getElementById('ppChart'), t=document.getElementById('partial_pressureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ppTabInit(){
+  var btns=document.querySelectorAll('.pp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ppShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ppShow('chart');
+}
+var __ppFn=calcTool;calcTool=function(){try{__ppFn();}catch(e){}try{__ppChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ppChart();}catch(e){}});
+</script>
 </body>
 </html>

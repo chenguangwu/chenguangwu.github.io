@@ -319,6 +319,11 @@ function __nernst_equationBoot(){ try{ __nernst_equationPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __nernst_equationBoot();
 else document.addEventListener('DOMContentLoaded', __nernst_equationBoot);
 </script>
+<div class="ne-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="neChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -354,5 +359,45 @@ else document.addEventListener('DOMContentLoaded', __nernst_equationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __neSweep(){
+  var E0=num('E0'), n=num('n'), T=num('T');
+  if(!isFinite(E0)||!isFinite(n)||!isFinite(T)||n<=0||T<=0)return null;
+  var R=8.314, F=96485;
+  var labels=[],dE=[],dStd=[],rows=[];
+  var qs=[1e-4,1e-3,1e-2,0.1,1,10,100,1e3,1e4];
+  for(var k=0;k<qs.length;k++){
+    var Q=qs[k], E=E0-(R*T/(n*F))*Math.log(Q);
+    labels.push('1e'+(k-4));
+    dE.push(Math.round(E*1000)/1000);
+    dStd.push(Math.round(E0*1000)/1000);
+    rows.push(['1e'+(k-4),(Math.round(E*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dE:dE,dStd:dStd,rows:rows};
+}
+function __neChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__neSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#neChart',{title:en?'Cell Potential vs Reaction Quotient (logarithmic Nernst)':'电极电势随反应商对数下降（Nernst 方程 E=E°-RT/nF·lnQ）',labels:s.labels,series:[{name:en?'Potential E (V)':'电极电势 (V)',data:s.dE},{name:en?'Standard E° (V)':'标准电势 (V)',data:s.dStd}]});
+}
+
+function __neShow(which){
+  var c=document.getElementById('neChart'), t=document.getElementById('nernst_equationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __neTabInit(){
+  var btns=document.querySelectorAll('.ne-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__neShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __neShow('chart');
+}
+var __neFn=calcTool;calcTool=function(){try{__neFn();}catch(e){}try{__neChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__neChart();}catch(e){}});
+</script>
 </body>
 </html>

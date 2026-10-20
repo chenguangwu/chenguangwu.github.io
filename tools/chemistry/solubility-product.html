@@ -252,6 +252,11 @@ function __solubility_productBoot(){ try{ __solubility_productPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __solubility_productBoot();
 else document.addEventListener('DOMContentLoaded', __solubility_productBoot);
 </script>
+<div class="sp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="spChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -287,5 +292,44 @@ else document.addEventListener('DOMContentLoaded', __solubility_productBoot);
 </dl>
 </div>
 </section>
+<script>
+function __spSweep(){
+  var mA=num('mA'), cB=num('cB'), mB=num('mB');
+  if(!isFinite(mA)||!isFinite(cB)||!isFinite(mB)||cB<=0)return null;
+  var labels=[],dKsp=[],dS=[],rows=[];
+  var cs=[1e-5,1e-4,1e-3,1e-2,0.1,0.5,1,2];
+  for(var k=0;k<cs.length;k++){
+    var cA=cs[k], Ksp=Math.pow(cA,mA)*Math.pow(cB,mB);
+    labels.push(cA.toExponential(0));
+    dKsp.push(Math.round(Math.log10(Ksp)*1000)/1000);
+    dS.push(Math.round(Math.pow(Ksp,1/(mA+mB))*1e4*1000)/1000);
+    rows.push([cA.toExponential(0),(Math.log10(Ksp)).toFixed(3),(Math.round(Math.pow(Ksp,1/(mA+mB))*1e4*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dKsp:dKsp,dS:dS,rows:rows};
+}
+function __spChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__spSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#spChart',{title:en?'log Ksp vs Ion Concentration (power law Ksp=cA^mA·cB^mB)':'溶度积随离子浓度幂律增长（Ksp=c_A^m_A·c_B^m_B，取对数坐标）',labels:s.labels,series:[{name:en?'lg Ksp':'lg Ksp',data:s.dKsp},{name:en?'Solubility s (×10⁻⁴ mol/L)':'溶解度 s (×10⁻⁴ mol/L)',data:s.dS}]});
+}
+
+function __spShow(which){
+  var c=document.getElementById('spChart'), t=document.getElementById('solubility_productTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __spTabInit(){
+  var btns=document.querySelectorAll('.sp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__spShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __spShow('chart');
+}
+var __spFn=calcTool;calcTool=function(){try{__spFn();}catch(e){}try{__spChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__spChart();}catch(e){}});
+</script>
 </body>
 </html>
