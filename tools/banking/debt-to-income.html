@@ -258,6 +258,11 @@ function resetForm(){document.getElementById('debt').value = '3000';
       calcTool();}
 calcTool();
 </script>
+<div class="dti-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dtiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,6 +339,45 @@ calcTool = function(){ __tb_fn0(); try{ __debt_to_incomeExtras(); }catch(e){} };
 function __debt_to_incomeBoot(){ try{ __debt_to_incomePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __debt_to_incomeBoot();
 else document.addEventListener('DOMContentLoaded', __debt_to_incomeBoot);
+</script>
+<script>
+function __dtiSweep(){
+  var debt=num('debt'), inc0=num('inc');
+  if(!isFinite(debt)||!isFinite(inc0)||debt<=0||inc0<=0)return null;
+  var labels=[],dDti=[],dFree=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var inc=inc0*mults[k], DTI=debt/inc*100;
+    labels.push((Math.round(inc*100)/100).toFixed(2));
+    dDti.push(Math.round(DTI*100)/100);
+    dFree.push(Math.round((inc-debt)*100)/100);
+    rows.push([(Math.round(inc*100)/100).toFixed(2),(Math.round(DTI*100)/100).toFixed(2),(Math.round((inc-debt)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dDti:dDti,dFree:dFree,rows:rows};
+}
+function __dtiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dtiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dtiChart',{title:en?'Debt-to-Income vs Income (inverse DTI=debt/inc)':'债务收入比随收入反比下降（DTI=月债务/月收入）',labels:s.labels,series:[{name:en?'DTI (%)':'债务收入比 (%)',data:s.dDti}]});
+}
+
+function __dtiShow(which){
+  var c=document.getElementById('dtiChart'), t=document.getElementById('debt_to_incomeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dtiTabInit(){
+  var btns=document.querySelectorAll('.dti-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dtiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dtiShow('chart');
+}
+var __dtiFn=calcTool;calcTool=function(){try{__dtiFn();}catch(e){}try{__dtiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dtiChart();}catch(e){}});
 </script>
 </body>
 </html>

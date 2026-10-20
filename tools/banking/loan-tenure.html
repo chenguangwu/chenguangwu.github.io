@@ -262,6 +262,11 @@ function resetForm(){document.getElementById('P').value = '10000';
       calcTool();}
 calcTool();
 </script>
+<div class="lt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ltChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,6 +342,45 @@ calcTool = function(){ __tb_fn0(); try{ __loan_tenureExtras(); }catch(e){} };
 function __loan_tenureBoot(){ try{ __loan_tenurePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __loan_tenureBoot();
 else document.addEventListener('DOMContentLoaded', __loan_tenureBoot);
+</script>
+<script>
+function __ltSweep(){
+  var P=num('P'), r=num('r');
+  if(!isFinite(P)||!isFinite(r)||P<=0||r<=0)return null;
+  var labels=[],dN=[],dInt=[],rows=[];
+  var pmts=[P*0.02,P*0.03,P*0.04,P*0.05,P*0.06,P*0.08,P*0.1,P*0.15];
+  for(var k=0;k<pmts.length;k++){
+    var PMT=pmts[k], n=-Math.log(1-P*r/PMT)/Math.log(1+r);
+    labels.push((Math.round(PMT*100)/100).toFixed(0));
+    dN.push(Math.round(n*100)/100);
+    dInt.push(Math.round((PMT*n-P)*100)/100);
+    rows.push([(Math.round(PMT*100)/100).toFixed(0),(Math.round(n*100)/100).toFixed(2),(Math.round((PMT*n-P)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dN:dN,dInt:dInt,rows:rows};
+}
+function __ltChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ltSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ltChart',{title:en?'Loan Tenure vs Payment (logarithmic decay n=-ln(1-Pr/PMT)/ln(1+r))':'贷款期数随月供对数反比下降（n=-ln(1-Pr/PMT)/ln(1+r)）',labels:s.labels,series:[{name:en?'Periods n':'期数 n',data:s.dN},{name:en?'Total interest (元)':'总利息 (元)',data:s.dInt}]});
+}
+
+function __ltShow(which){
+  var c=document.getElementById('ltChart'), t=document.getElementById('loan_tenureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ltTabInit(){
+  var btns=document.querySelectorAll('.lt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ltShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ltShow('chart');
+}
+var __ltFn=calcTool;calcTool=function(){try{__ltFn();}catch(e){}try{__ltChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ltChart();}catch(e){}});
 </script>
 </body>
 </html>

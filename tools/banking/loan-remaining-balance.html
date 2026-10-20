@@ -269,6 +269,11 @@ function resetForm(){document.getElementById('p').value = '500000';
       calcTool();}
 calcTool();
 </script>
+<div class="lrb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lrbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,6 +349,47 @@ calcTool = function(){ __tb_fn0(); try{ __loan_remaining_balanceExtras(); }catch
 function __loan_remaining_balanceBoot(){ try{ __loan_remaining_balancePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __loan_remaining_balanceBoot();
 else document.addEventListener('DOMContentLoaded', __loan_remaining_balanceBoot);
+</script>
+<script>
+function __lrbSweep(){
+  var P=num('p'), r=num('r')/100/12, N=num('y')*12;
+  if(!isFinite(P)||!isFinite(r)||!isFinite(N)||P<=0||N<=0)return null;
+  var emi = r>0 ? P*r*Math.pow(1+r,N)/(Math.pow(1+r,N)-1) : P/N;
+  var labels=[],dBal=[],dPrin=[],rows=[];
+  var ks=[0,1,3,6,12,24,36,60,84,120,180,240];
+  for(var k2=0;k2<ks.length;k2++){
+    var kk=Math.min(ks[k2],N);
+    var bal = r>0 ? P*(Math.pow(1+r,N)-Math.pow(1+r,kk))/(Math.pow(1+r,N)-1) : P*(1-kk/N);
+    labels.push(String(kk));
+    dBal.push(Math.round(bal*100)/100);
+    dPrin.push(Math.round((emi*kk)*100)/100);
+    rows.push([String(kk),(Math.round(bal*100)/100).toFixed(2),(Math.round(emi*kk*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dBal:dBal,dPrin:dPrin,rows:rows};
+}
+function __lrbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lrbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lrbChart',{title:en?'Remaining Balance vs Payments Made (exponential decay to 0)':'剩余本金随已还期数指数衰减至零（B_k=P·[(1+r)ᴺ-(1+r)ᵏ]/[(1+r)ᴺ-1]）',labels:s.labels,series:[{name:en?'Balance (元)':'剩余本金 (元)',data:s.dBal},{name:en?'Paid so far (元)':'已偿还 (元)',data:s.dPrin}]});
+}
+
+function __lrbShow(which){
+  var c=document.getElementById('lrbChart'), t=document.getElementById('loan_remaining_balanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lrbTabInit(){
+  var btns=document.querySelectorAll('.lrb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lrbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lrbShow('chart');
+}
+var __lrbFn=calcTool;calcTool=function(){try{__lrbFn();}catch(e){}try{__lrbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lrbChart();}catch(e){}});
 </script>
 </body>
 </html>
