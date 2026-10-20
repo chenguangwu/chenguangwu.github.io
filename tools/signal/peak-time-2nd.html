@@ -307,6 +307,11 @@ function __peak_time_2ndBoot(){ try{ __peak_time_2ndPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __peak_time_2ndBoot();
 else document.addEventListener('DOMContentLoaded', __peak_time_2ndBoot);
 </script>
+<div class="pt2-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pt2Chart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,45 @@ else document.addEventListener('DOMContentLoaded', __peak_time_2ndBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pt2Sweep(){
+  var wn=num('wn');
+  if(!isFinite(wn)||wn<=0)return null;
+  var zetas=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8];
+  var labels=[],dTp=[],dOs=[],rows=[];
+  for(var k=0;k<zetas.length;k++){
+    var z=zetas[k], tp=Math.PI/(wn*Math.sqrt(1-z*z));
+    var os=Math.exp(-z*Math.PI/Math.sqrt(1-z*z))*100;
+    labels.push(z.toFixed(1));
+    dTp.push(Math.round(tp*1000*1000)/1000);
+    dOs.push(Math.round(os*1000)/1000);
+    rows.push([z.toFixed(1),(Math.round(tp*1000*1000)/1000).toFixed(3),(Math.round(os*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dTp:dTp,dOs:dOs,rows:rows};
+}
+function __pt2Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pt2Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pt2Chart',{title:en?'Peak Time vs Damping (tp=π/ωn√(1-ζ²), overshoot decays)':'峰值时间随阻尼比根式延后、超调量指数衰减（t_p=π/(ω_n√(1-ζ²))）',labels:s.labels,series:[{name:en?'Peak time tp (ms)':'峰值时间 t_p (ms)',data:s.dTp},{name:en?'Overshoot (%)':'超调量 (%)',data:s.dOs}]});
+}
+
+function __pt2Show(which){
+  var c=document.getElementById('pt2Chart'), t=document.getElementById('peak_time_2ndTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pt2TabInit(){
+  var btns=document.querySelectorAll('.pt2-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pt2Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pt2Show('chart');
+}
+var __pt2Fn=calcTool;calcTool=function(){try{__pt2Fn();}catch(e){}try{__pt2Chart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pt2Chart();}catch(e){}});
+</script>
 </body>
 </html>

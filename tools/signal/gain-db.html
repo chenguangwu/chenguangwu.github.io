@@ -300,6 +300,11 @@ function __gain_dbBoot(){ try{ __gain_dbPresets(); }catch(e){} try{ calcTool(); 
 if (document.readyState && document.readyState !== 'loading') __gain_dbBoot();
 else document.addEventListener('DOMContentLoaded', __gain_dbBoot);
 </script>
+<div class="gd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __gain_dbBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gdSweep(){
+  var vin=num('vin'), vo0=num('vout');
+  if(!isFinite(vin)||!isFinite(vo0)||vin<=0||vo0<=0)return null;
+  var labels=[],dG=[],dLin=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var vout=vo0*mults[k], G=20*Math.log10(vout/vin);
+    labels.push((Math.round(vout*100)/100).toFixed(2));
+    dG.push(Math.round(G*1000)/1000);
+    dLin.push(Math.round(vout/vin*1000)/1000);
+    rows.push([(Math.round(vout*100)/100).toFixed(2),(Math.round(G*1000)/1000).toFixed(3),(Math.round(vout/vin*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dG:dG,dLin:dLin,rows:rows};
+}
+function __gdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gdChart',{title:en?'Gain in dB vs Output (20lg(Vout/Vin), logarithmic)':'增益分贝值随输出电压对数增长（20·lg(V_out/V_in)）',labels:s.labels,series:[{name:en?'Gain G (dB)':'增益 G (dB)',data:s.dG},{name:en?'Voltage ratio':'线性电压比',data:s.dLin}]});
+}
+
+function __gdShow(which){
+  var c=document.getElementById('gdChart'), t=document.getElementById('gain_dbTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gdTabInit(){
+  var btns=document.querySelectorAll('.gd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gdShow('chart');
+}
+var __gdFn=calcTool;calcTool=function(){try{__gdFn();}catch(e){}try{__gdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gdChart();}catch(e){}});
+</script>
 </body>
 </html>

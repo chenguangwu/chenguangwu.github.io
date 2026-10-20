@@ -247,6 +247,11 @@ function __cascade_gain_dbBoot(){ try{ __cascade_gain_dbPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __cascade_gain_dbBoot();
 else document.addEventListener('DOMContentLoaded', __cascade_gain_dbBoot);
 </script>
+<div class="cg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cgChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __cascade_gain_dbBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cgSweep(){
+  var g1=num('g1'), g2=num('g2'), g30=num('g3');
+  if(!isFinite(g1)||!isFinite(g2)||!isFinite(g30))return null;
+  var labels=[],dDb=[],dLin=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var g3=g30*mults[k], total=g1+g2+g3;
+    labels.push((Math.round(g3*100)/100).toFixed(1));
+    dDb.push(Math.round(total*1000)/1000);
+    dLin.push(Math.round(Math.pow(10,total/10)*1000)/1000);
+    rows.push([(Math.round(g3*100)/100).toFixed(1),(Math.round(total*1000)/1000).toFixed(3),(Math.round(Math.pow(10,total/10)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dDb:dDb,dLin:dLin,rows:rows};
+}
+function __cgChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cgSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cgChart',{title:en?'Cascade Gain vs Stage 3 (dB adds linearly, linear gain exponential)':'级联总增益随第三级线性叠加、线性增益指数增长（dB 相加）',labels:s.labels,series:[{name:en?'Total gain (dB)':'总增益 (dB)',data:s.dDb},{name:en?'Linear gain (×10³)':'线性总增益 (×10³)',data:s.dLin}]});
+}
+
+function __cgShow(which){
+  var c=document.getElementById('cgChart'), t=document.getElementById('cascade_gain_dbTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cgTabInit(){
+  var btns=document.querySelectorAll('.cg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cgShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cgShow('chart');
+}
+var __cgFn=calcTool;calcTool=function(){try{__cgFn();}catch(e){}try{__cgChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cgChart();}catch(e){}});
+</script>
 </body>
 </html>

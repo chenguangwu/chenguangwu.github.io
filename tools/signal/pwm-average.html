@@ -316,6 +316,11 @@ function __pwm_averageBoot(){ try{ __pwm_averagePresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __pwm_averageBoot();
 else document.addEventListener('DOMContentLoaded', __pwm_averageBoot);
 </script>
+<div class="pa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="paChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -363,5 +368,45 @@ else document.addEventListener('DOMContentLoaded', __pwm_averageBoot);
 <h3>结果含义</h3><p>PWM 平均电压 V_avg=D·V_sup：占空比 D(0–1) 与电源电压的乘积，即一个周期内输出电压的时间平均值。</p>
 <h3>用法</h3><p>D=高电平时间/周期。用于 LED 调光、电机调速：平均电压决定亮度/转速。低通滤波后可得到近似直流 V_avg。</p>
 </div></section>
+<script>
+function __paSweep(){
+  var D0=num('D'), Vcc=num('Vcc');
+  if(!isFinite(D0)||!isFinite(Vcc)||D0<=0||Vcc<=0)return null;
+  var labels=[],dAvg=[],dRms=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var D=D0*mults[k];
+    if(D>100)continue;
+    labels.push((Math.round(D*100)/100).toFixed(1));
+    dAvg.push(Math.round(D/100*Vcc*1000)/1000);
+    dRms.push(Math.round(Vcc*Math.sqrt(D/100)*1000)/1000);
+    rows.push([(Math.round(D*100)/100).toFixed(1),(Math.round(D/100*Vcc*1000)/1000).toFixed(3),(Math.round(Vcc*Math.sqrt(D/100)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dAvg:dAvg,dRms:dRms,rows:rows};
+}
+function __paChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__paSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#paChart',{title:en?'PWM Average vs Duty Cycle (linear avg, sqrt RMS)':'PWM 平均电压随占空比线性增长、有效值根式增长',labels:s.labels,series:[{name:en?'Average V (V)':'平均电压 V_avg (V)',data:s.dAvg},{name:en?'RMS V (V)':'有效值 V_rms (V)',data:s.dRms}]});
+}
+
+function __paShow(which){
+  var c=document.getElementById('paChart'), t=document.getElementById('pwm_averageTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __paTabInit(){
+  var btns=document.querySelectorAll('.pa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__paShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __paShow('chart');
+}
+var __paFn=calcTool;calcTool=function(){try{__paFn();}catch(e){}try{__paChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__paChart();}catch(e){}});
+</script>
 </body>
 </html>
