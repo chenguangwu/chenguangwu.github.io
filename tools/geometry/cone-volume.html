@@ -246,6 +246,11 @@ function __cone_volumeBoot(){ try{ __cone_volumePresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __cone_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __cone_volumeBoot);
 </script>
+<div class="cnv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cnvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __cone_volumeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cnvSweep(){
+  var h=num('h');
+  if(!isFinite(h)||h<=0)return null;
+  var labels=[], dV=[], dA=[];
+  var rs=[0.5,1,2,3,4,5,6,8];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k], V=Math.PI*rv*rv*h/3;
+    labels.push(rv.toFixed(1));
+    dV.push(Math.round(V*1000)/1000);
+    dA.push(Math.round(Math.PI*rv*Math.sqrt(rv*rv+h*h)*1000)/1000);
+  }
+  return {labels:labels,dV:dV,dA:dA};
+}
+function __cnvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cnvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cnvChart',{title:en?'Cone Volume (quadratic V=πr²h/3) vs Lateral Area':'圆锥体积按 r² 增长与侧面积对照（V=πr²h/3）',labels:s.labels,series:[{name:en?'Volume V (m³)':'体积 V (m³)',data:s.dV},{name:en?'Lateral area (m²)':'侧面积 (m²)',data:s.dA}]});
+}
+
+function __cnvShow(which){
+  var c=document.getElementById('cnvChart'), t=document.getElementById('cone_volumeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cnvTabInit(){
+  var btns=document.querySelectorAll('.cnv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cnvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cnvShow('chart');
+  try{__cnvChart();}catch(e){}
+}
+var __cnvFn=calcTool;calcTool=function(){try{__cnvFn();}catch(e){}try{__cnvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cnvChart();}catch(e){}});try{__cnvTabInit();}catch(e){}
+</script>
 </body>
 </html>

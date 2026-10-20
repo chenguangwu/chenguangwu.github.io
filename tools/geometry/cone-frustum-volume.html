@@ -247,6 +247,11 @@ function __cone_frustum_volumeBoot(){ try{ __cone_frustum_volumePresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __cone_frustum_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __cone_frustum_volumeBoot);
 </script>
+<div class="cfv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cfvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,48 @@ else document.addEventListener('DOMContentLoaded', __cone_frustum_volumeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cfvSweep(){
+  var R=num('R'), h=num('h');
+  if(!isFinite(R)||!isFinite(h)||R<=0||h<=0)return null;
+  var labels=[], dV=[], dL=[];
+  var rs=[0,0.25,0.5,1,1.5,2,2.5,3];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k];
+    if(rv>=R)continue;
+    var V=Math.PI*h/3*(R*R+R*rv+rv*rv);
+    var l=Math.sqrt(h*h+(R-rv)*(R-rv));
+    labels.push(rv.toFixed(2));
+    dV.push(Math.round(V*1000)/1000);
+    dL.push(Math.round(l*1000)/1000);
+  }
+  if(!labels.length)return null;
+  return {labels:labels,dV:dV,dL:dL};
+}
+function __cfvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cfvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cfvChart',{title:en?'Frustum Volume vs Top Radius (quadratic, degenerates to cone at r=0)':'圆台体积随上底半径二次变化（r=0 退化为圆锥）',labels:s.labels,series:[{name:en?'Volume V (m³)':'体积 V (m³)',data:s.dV},{name:en?'Slant height l (m)':'母线长 l (m)',data:s.dL}]});
+}
+
+function __cfvShow(which){
+  var c=document.getElementById('cfvChart'), t=document.getElementById('cone_frustum_volumeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cfvTabInit(){
+  var btns=document.querySelectorAll('.cfv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cfvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cfvShow('chart');
+  try{__cfvChart();}catch(e){}
+}
+var __cfvFn=calcTool;calcTool=function(){try{__cfvFn();}catch(e){}try{__cfvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cfvChart();}catch(e){}});try{__cfvTabInit();}catch(e){}
+</script>
 </body>
 </html>

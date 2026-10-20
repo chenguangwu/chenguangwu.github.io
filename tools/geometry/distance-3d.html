@@ -260,6 +260,11 @@ function __distance_3dBoot(){ try{ __distance_3dPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __distance_3dBoot();
 else document.addEventListener('DOMContentLoaded', __distance_3dBoot);
 </script>
+<div class="d3d-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="d3dChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -295,5 +300,45 @@ else document.addEventListener('DOMContentLoaded', __distance_3dBoot);
 </dl>
 </div>
 </section>
+<script>
+function __d3dSweep(){
+  var x1=num('x1'), y1=num('y1'), z1=num('z1');
+  if(!isFinite(x1)||!isFinite(y1)||!isFinite(z1))return null;
+  var labels=[], dD=[], dS=[];
+  var dxs=[0,1,3,5,8,12,18,25];
+  for(var k=0;k<dxs.length;k++){
+    var dx=dxs[k];
+    var d=Math.sqrt(dx*dx+dx*dx*0.25+dx*dx*0.25);
+    labels.push(dx.toFixed(0));
+    dD.push(Math.round(d*1000)/1000);
+    dS.push(Math.round(dx*1000)/1000);
+  }
+  return {labels:labels,dD:dD,dS:dS};
+}
+function __d3dChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__d3dSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#d3dChart',{title:en?'3D Distance vs Coordinate Offset (linear, slope √(1+k²))':'三维距离随坐标偏移线性增长（斜率 √(1+k²)）',labels:s.labels,series:[{name:en?'3D distance d':'三维距离 d',data:s.dD},{name:en?'X offset Δx':'X 向偏移 Δx',data:s.dS}]});
+}
+
+function __d3dShow(which){
+  var c=document.getElementById('d3dChart'), t=document.getElementById('distance_3dTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __d3dTabInit(){
+  var btns=document.querySelectorAll('.d3d-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__d3dShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __d3dShow('chart');
+  try{__d3dChart();}catch(e){}
+}
+var __d3dFn=calcTool;calcTool=function(){try{__d3dFn();}catch(e){}try{__d3dChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__d3dChart();}catch(e){}});try{__d3dTabInit();}catch(e){}
+</script>
 </body>
 </html>

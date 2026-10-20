@@ -246,6 +246,11 @@ function __cylinder_volumeBoot(){ try{ __cylinder_volumePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __cylinder_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __cylinder_volumeBoot);
 </script>
+<div class="cyv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cyvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __cylinder_volumeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cyvSweep(){
+  var h=num('h');
+  if(!isFinite(h)||h<=0)return null;
+  var labels=[], dV=[], dS=[];
+  var rs=[0.5,1,2,3,4,5,6,8];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k], V=Math.PI*rv*rv*h;
+    labels.push(rv.toFixed(1));
+    dV.push(Math.round(V*1000)/1000);
+    dS.push(Math.round(2*Math.PI*rv*(rv+h)*1000)/1000);
+  }
+  return {labels:labels,dV:dV,dS:dS};
+}
+function __cyvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cyvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cyvChart',{title:en?'Cylinder Volume (quadratic V=πr²h) vs Total Surface Area':'圆柱体积按 r² 增长与总表面积对照（V=πr²h）',labels:s.labels,series:[{name:en?'Volume V (m³)':'体积 V (m³)',data:s.dV},{name:en?'Total surface area (m²)':'总表面积 (m²)',data:s.dS}]});
+}
+
+function __cyvShow(which){
+  var c=document.getElementById('cyvChart'), t=document.getElementById('cylinder_volumeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cyvTabInit(){
+  var btns=document.querySelectorAll('.cyv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cyvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cyvShow('chart');
+  try{__cyvChart();}catch(e){}
+}
+var __cyvFn=calcTool;calcTool=function(){try{__cyvFn();}catch(e){}try{__cyvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cyvChart();}catch(e){}});try{__cyvTabInit();}catch(e){}
+</script>
 </body>
 </html>
