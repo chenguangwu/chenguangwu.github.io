@@ -242,6 +242,12 @@ function __lead_screw_speedBoot(){ try{ __lead_screw_speedPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __lead_screw_speedBoot();
 else document.addEventListener('DOMContentLoaded', __lead_screw_speedBoot);
 </script>
+<div class="lss-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lssChart" style="margin-top:8px;"></div>
+<div id="lssTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +283,49 @@ else document.addEventListener('DOMContentLoaded', __lead_screw_speedBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lssSweep(){
+  var n0=num('n'), p=num('p');
+  if(!isFinite(n0)||!isFinite(p)||n0<=0||p<=0)return null;
+  var labels=[],dV=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var n=n0*mults[k], v=n*p/60;
+    labels.push((Math.round(n*100)/100).toFixed(0));
+    dV.push(Math.round(v*1000)/1000);
+    rows.push([(Math.round(n*100)/100).toFixed(0),(Math.round(v*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dV:dV,rows:rows};
+}
+function __lssChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lssSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lssChart',{title:en?'Lead Screw Linear Speed vs RPM (v = n p / 60)':'丝杠线速度随转速线性变化（v = n·p/60）',labels:s.labels,series:[{name:en?'Linear speed v (m/s)':'线速度 v (m/s)',data:s.dV}]});
+}
+function __lssTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__lssSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#lssTable',{head:en?['Speed n (RPM)','Linear v (m/s)']:['转速 n (RPM)','线速度 v (m/s)'],rows:s.rows});
+}
+
+function __lssShow(which){
+  var c=document.getElementById('lssChart'), t=document.getElementById('lssTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lssTabInit(){
+  var btns=document.querySelectorAll('.lss-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lssShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __lssFn=calcTool;calcTool=function(){try{__lssFn();}catch(e){}try{__lssChart();}catch(e){}try{__lssTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lssChart();}catch(e){}try{__lssTable();}catch(e){}});
+try{__lssTabInit();}catch(e){}
+</script>
 </body>
 </html>

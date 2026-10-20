@@ -296,6 +296,12 @@ function __gripper_forceBoot(){ try{ __gripper_forcePresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __gripper_forceBoot();
 else document.addEventListener('DOMContentLoaded', __gripper_forceBoot);
 </script>
+<div class="gf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gfChart" style="margin-top:8px;"></div>
+<div id="gfTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +337,49 @@ else document.addEventListener('DOMContentLoaded', __gripper_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gfSweep(){
+  var tau=num('tau'), L0=num('L');
+  if(!isFinite(tau)||!isFinite(L0)||tau<=0||L0<=0)return null;
+  var labels=[],dF=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], F=tau/L;
+    labels.push((Math.round(L*1000)/1000).toFixed(4));
+    dF.push(Math.round(F*1000)/1000);
+    rows.push([(Math.round(L*1000)/1000).toFixed(4),(Math.round(F*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dF:dF,rows:rows};
+}
+function __gfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gfChart',{title:en?'Gripper Force vs Lever Arm (F = tau / L)':'夹持力随力臂反比变化（F = τ/L）',labels:s.labels,series:[{name:en?'Force F (N)':'夹持力 F (N)',data:s.dF}]});
+}
+function __gfTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__gfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#gfTable',{head:en?['Lever arm L (m)','Force F (N)']:['力臂 L (m)','夹持力 F (N)'],rows:s.rows});
+}
+
+function __gfShow(which){
+  var c=document.getElementById('gfChart'), t=document.getElementById('gfTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gfTabInit(){
+  var btns=document.querySelectorAll('.gf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __gfFn=calcTool;calcTool=function(){try{__gfFn();}catch(e){}try{__gfChart();}catch(e){}try{__gfTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gfChart();}catch(e){}try{__gfTable();}catch(e){}});
+try{__gfTabInit();}catch(e){}
+</script>
 </body>
 </html>
