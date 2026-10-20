@@ -303,6 +303,11 @@ function __inductance_solenoidBoot(){ try{ __inductance_solenoidPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __inductance_solenoidBoot();
 else document.addEventListener('DOMContentLoaded', __inductance_solenoidBoot);
 </script>
+<div class="is-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="isChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,45 @@ else document.addEventListener('DOMContentLoaded', __inductance_solenoidBoot);
 </dl>
 </div>
 </section>
+<script>
+function __isSweep(){
+  var N=num('N'), A=num('A'), l0=num('l');
+  if(!isFinite(N)||!isFinite(A)||!isFinite(l0)||N<=0||A<=0||l0<=0)return null;
+  var mu0=4*Math.PI*1e-7;
+  var labels=[],dL=[],dN2=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var l=l0*mults[k], L=mu0*N*N*A/l;
+    labels.push((Math.round(l*100)/100).toFixed(2));
+    dL.push(Math.round(L*1e3*1000)/1000);
+    dN2.push(Math.round(mu0*N*N*A*1e3*1000)/1000);
+    rows.push([(Math.round(l*100)/100).toFixed(2),(Math.round(L*1e3*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dL:dL,dN2:dN2,rows:rows};
+}
+function __isChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__isSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#isChart',{title:en?'Solenoid Inductance vs Length (inverse L=μ₀N²A/l)':'螺线管电感随长度反比下降（L=μ₀N²A/l）',labels:s.labels,series:[{name:en?'Inductance L (mH)':'电感 L (mH)',data:s.dL}]});
+}
+
+function __isShow(which){
+  var c=document.getElementById('isChart'), t=document.getElementById('inductance_solenoidTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __isTabInit(){
+  var btns=document.querySelectorAll('.is-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__isShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __isShow('chart');
+}
+var __isFn=calcTool;calcTool=function(){try{__isFn();}catch(e){}try{__isChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__isChart();}catch(e){}});
+</script>
 </body>
 </html>

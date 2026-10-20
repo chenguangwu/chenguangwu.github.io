@@ -300,6 +300,11 @@ function __electric_potential_pointBoot(){ try{ __electric_potential_pointPreset
 if (document.readyState && document.readyState !== 'loading') __electric_potential_pointBoot();
 else document.addEventListener('DOMContentLoaded', __electric_potential_pointBoot);
 </script>
+<div class="epp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="eppChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,45 @@ else document.addEventListener('DOMContentLoaded', __electric_potential_pointBoo
 </dl>
 </div>
 </section>
+<script>
+function __eppSweep(){
+  var q=num('q'), r0=num('r');
+  if(!isFinite(q)||!isFinite(r0)||r0<=0)return null;
+  var k=8.987551787e9;
+  var labels=[],dV=[],dE=[],rows=[];
+  var mults=[0.5,0.75,1,1.5,2,3,5];
+  for(var k2=0;k2<mults.length;k2++){
+    var r=r0*mults[k2], V=k*q/r, Ef=k*q/(r*r);
+    labels.push((Math.round(r*100)/100).toFixed(2));
+    dV.push(Math.round(V*1000)/1000);
+    dE.push(Math.round(Ef*100)/100);
+    rows.push([(Math.round(r*100)/100).toFixed(2),(Math.round(V*1000)/1000).toFixed(3),(Math.round(Ef*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dV:dV,dE:dE,rows:rows};
+}
+function __eppChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__eppSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#eppChart',{title:en?'Point-Charge Potential vs Distance (inverse V=kq/r, field inverse-square)':'点电荷电势随距离反比下降、场强反平方（V=kq/r）',labels:s.labels,series:[{name:en?'Potential V (V)':'电势 V (V)',data:s.dV},{name:en?'Field E (V/m)':'场强 E (V/m)',data:s.dE}]});
+}
+
+function __eppShow(which){
+  var c=document.getElementById('eppChart'), t=document.getElementById('electric_potential_pointTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __eppTabInit(){
+  var btns=document.querySelectorAll('.epp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__eppShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __eppShow('chart');
+}
+var __eppFn=calcTool;calcTool=function(){try{__eppFn();}catch(e){}try{__eppChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__eppChart();}catch(e){}});
+</script>
 </body>
 </html>

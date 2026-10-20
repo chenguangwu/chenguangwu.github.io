@@ -303,6 +303,11 @@ function __capacitance_parallel_plateBoot(){ try{ __capacitance_parallel_platePr
 if (document.readyState && document.readyState !== 'loading') __capacitance_parallel_plateBoot();
 else document.addEventListener('DOMContentLoaded', __capacitance_parallel_plateBoot);
 </script>
+<div class="cpp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cppChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,45 @@ else document.addEventListener('DOMContentLoaded', __capacitance_parallel_plateB
 </dl>
 </div>
 </section>
+<script>
+function __cppSweep(){
+  var er=num('er'), A=num('A'), d0=num('d');
+  if(!isFinite(er)||!isFinite(A)||!isFinite(d0)||er<=0||A<=0||d0<=0)return null;
+  var eps0=8.854187817e-12;
+  var labels=[],dC=[],dE=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k], C=eps0*er*A/d;
+    labels.push((Math.round(d*10000)/10000).toFixed(4));
+    dC.push(Math.round(C*1e12*1000)/1000);
+    dE.push(Math.round(eps0*er*1e12*1000)/1000);
+    rows.push([(Math.round(d*10000)/10000).toFixed(4),(Math.round(C*1e12*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dC:dC,dE:dE,rows:rows};
+}
+function __cppChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cppSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cppChart',{title:en?'Capacitance vs Gap (inverse C=ε₀εrA/d)':'电容随极板间距反比下降（C=ε₀ε_r A/d）',labels:s.labels,series:[{name:en?'Capacitance C (pF)':'电容 C (pF)',data:s.dC}]});
+}
+
+function __cppShow(which){
+  var c=document.getElementById('cppChart'), t=document.getElementById('capacitance_parallel_plateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cppTabInit(){
+  var btns=document.querySelectorAll('.cpp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cppShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cppShow('chart');
+}
+var __cppFn=calcTool;calcTool=function(){try{__cppFn();}catch(e){}try{__cppChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cppChart();}catch(e){}});
+</script>
 </body>
 </html>

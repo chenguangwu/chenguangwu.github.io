@@ -248,6 +248,11 @@ function __solenoid_fieldBoot(){ try{ __solenoid_fieldPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __solenoid_fieldBoot();
 else document.addEventListener('DOMContentLoaded', __solenoid_fieldBoot);
 </script>
+<div class="sf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -284,5 +289,45 @@ else document.addEventListener('DOMContentLoaded', __solenoid_fieldBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sfSweep(){
+  var n=num('n'), I0=num('I');
+  if(!isFinite(n)||!isFinite(I0)||n<=0||I0<=0)return null;
+  var mu0=4*Math.PI*1e-7;
+  var labels=[],dB=[],dG=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var I=I0*mults[k], B=mu0*n*I;
+    labels.push((Math.round(I*100)/100).toFixed(2));
+    dB.push(Math.round(B*1e3*1000)/1000);
+    dG.push(Math.round(B*1e4*1000)/1000);
+    rows.push([(Math.round(I*100)/100).toFixed(2),(Math.round(B*1e3*1000)/1000).toFixed(4),(Math.round(B*1e4*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dB:dB,dG:dG,rows:rows};
+}
+function __sfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sfChart',{title:en?'Solenoid Field vs Current (linear B=μ₀nI)':'螺线管磁场随电流线性增强（B=μ₀nI）',labels:s.labels,series:[{name:en?'Field B (mT)':'磁感应强度 (mT)',data:s.dB},{name:en?'Field B (Gauss)':'磁感应强度 (Gauss)',data:s.dG}]});
+}
+
+function __sfShow(which){
+  var c=document.getElementById('sfChart'), t=document.getElementById('solenoid_fieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sfTabInit(){
+  var btns=document.querySelectorAll('.sf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sfShow('chart');
+}
+var __sfFn=calcTool;calcTool=function(){try{__sfFn();}catch(e){}try{__sfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sfChart();}catch(e){}});
+</script>
 </body>
 </html>
