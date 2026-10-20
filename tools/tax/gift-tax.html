@@ -247,6 +247,11 @@ function __gift_taxBoot(){ try{ __gift_taxPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __gift_taxBoot();
 else document.addEventListener('DOMContentLoaded', __gift_taxBoot);
 </script>
+<div class="gft-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gftChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __gift_taxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gftSweep(){
+  var a0=num('a'), e=num('e'), r=num('r');
+  if(!isFinite(a0)||!isFinite(e)||!isFinite(r)||a0<=0||e<0||r<0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var a=a0*mults[k], T=Math.max(a-e,0)*r;
+    labels.push((Math.round(a*100)/100).toFixed(0));
+    dT.push(Math.round(T*1000)/1000);
+    rows.push([(Math.round(a*100)/100).toFixed(0),(Math.round(T*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __gftChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gftSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gftChart',{title:en?'Gift Tax vs Amount (T=max(a-e,0) x r)':'赠与税随赠与额线性变化（T=max(a−e,0)×r）',labels:s.labels,series:[{name:en?'Gift tax T':'赠与税 T',data:s.dT}]});
+}
+
+function __gftShow(which){
+  var c=document.getElementById('gftChart'), t=document.getElementById('gift_taxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gftTabInit(){
+  var btns=document.querySelectorAll('.gft-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gftShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gftShow('chart');
+}
+var __gftFn=calcTool;calcTool=function(){try{__gftFn();}catch(e){}try{__gftChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gftChart();}catch(e){}});
+try{__gftTabInit();}catch(e){}
+</script>
 </body>
 </html>

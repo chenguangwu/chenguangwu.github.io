@@ -247,6 +247,11 @@ function __excise_taxBoot(){ try{ __excise_taxPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __excise_taxBoot();
 else document.addEventListener('DOMContentLoaded', __excise_taxBoot);
 </script>
+<div class="ext-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="extChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __excise_taxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __extSweep(){
+  var p0=num('p'), q=num('q'), r=num('r');
+  if(!isFinite(p0)||!isFinite(q)||!isFinite(r)||p0<=0||q<=0||r<0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var p=p0*mults[k], T=p*q*r;
+    labels.push((Math.round(p*100)/100).toFixed(0));
+    dT.push(Math.round(T*1000)/1000);
+    rows.push([(Math.round(p*100)/100).toFixed(0),(Math.round(T*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __extChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__extSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#extChart',{title:en?'Excise Tax vs Quantity (T=p q r)':'消费税随数量线性变化（T=p·q·r）',labels:s.labels,series:[{name:en?'Excise T':'消费税 T',data:s.dT}]});
+}
+
+function __extShow(which){
+  var c=document.getElementById('extChart'), t=document.getElementById('excise_taxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __extTabInit(){
+  var btns=document.querySelectorAll('.ext-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__extShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __extShow('chart');
+}
+var __extFn=calcTool;calcTool=function(){try{__extFn();}catch(e){}try{__extChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__extChart();}catch(e){}});
+try{__extTabInit();}catch(e){}
+</script>
 </body>
 </html>

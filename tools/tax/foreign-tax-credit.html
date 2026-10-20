@@ -244,6 +244,11 @@ function __foreign_tax_creditBoot(){ try{ __foreign_tax_creditPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __foreign_tax_creditBoot();
 else document.addEventListener('DOMContentLoaded', __foreign_tax_creditBoot);
 </script>
+<div class="ftc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ftcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __foreign_tax_creditBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ftcSweep(){
+  var ft0=num('ft'), lim=num('lim');
+  if(!isFinite(ft0)||!isFinite(lim)||ft0<=0||lim<0)return null;
+  var labels=[],dCr=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var ft=ft0*mults[k], cr=Math.min(ft,lim);
+    labels.push((Math.round(ft*100)/100).toFixed(0));
+    dCr.push(Math.round(cr*1000)/1000);
+    rows.push([(Math.round(ft*100)/100).toFixed(0),(Math.round(cr*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dCr:dCr,rows:rows};
+}
+function __ftcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ftcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ftcChart',{title:en?'Foreign Tax Credit vs Foreign Tax (cr=min(ft,limit))':'境外税收抵免随境外税额封顶变化（cr=min(ft,限额)）',labels:s.labels,series:[{name:en?'Credit cr':'抵免额 cr',data:s.dCr}]});
+}
+
+function __ftcShow(which){
+  var c=document.getElementById('ftcChart'), t=document.getElementById('foreign_tax_creditTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ftcTabInit(){
+  var btns=document.querySelectorAll('.ftc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ftcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ftcShow('chart');
+}
+var __ftcFn=calcTool;calcTool=function(){try{__ftcFn();}catch(e){}try{__ftcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ftcChart();}catch(e){}});
+try{__ftcTabInit();}catch(e){}
+</script>
 </body>
 </html>

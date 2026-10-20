@@ -244,6 +244,11 @@ function __interest_income_taxBoot(){ try{ __interest_income_taxPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __interest_income_taxBoot();
 else document.addEventListener('DOMContentLoaded', __interest_income_taxBoot);
 </script>
+<div class="iit-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="iitChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __interest_income_taxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __iitSweep(){
+  var i0=num('interest'), r=num('r')/100;
+  if(!isFinite(i0)||!isFinite(r)||i0<=0||r<0)return null;
+  var labels=[],dT=[],dA=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var i=i0*mults[k], tax=i*r, after=i*(1-r);
+    labels.push((Math.round(i*100)/100).toFixed(0));
+    dT.push(Math.round(tax*1000)/1000); dA.push(Math.round(after*1000)/1000);
+    rows.push([(Math.round(i*100)/100).toFixed(0),(Math.round(tax*1000)/1000).toFixed(2),(Math.round(after*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,dA:dA,rows:rows};
+}
+function __iitChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__iitSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#iitChart',{title:en?'Interest Income Tax vs Interest (tax=i x r)':'利息所得税随利息线性变化（tax=利息×r）',labels:s.labels,series:[{name:en?'Tax':'税额',data:s.dT},{name:en?'After-tax':'税后利息',data:s.dA}]});
+}
+
+function __iitShow(which){
+  var c=document.getElementById('iitChart'), t=document.getElementById('interest_income_taxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __iitTabInit(){
+  var btns=document.querySelectorAll('.iit-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__iitShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __iitShow('chart');
+}
+var __iitFn=calcTool;calcTool=function(){try{__iitFn();}catch(e){}try{__iitChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__iitChart();}catch(e){}});
+try{__iitTabInit();}catch(e){}
+</script>
 </body>
 </html>
