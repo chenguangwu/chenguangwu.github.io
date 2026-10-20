@@ -298,6 +298,11 @@ function __gdp_growth_rateBoot(){ try{ __gdp_growth_ratePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __gdp_growth_rateBoot();
 else document.addEventListener('DOMContentLoaded', __gdp_growth_rateBoot);
 </script>
+<div class="gg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ggChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __gdp_growth_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ggSweep(){
+  var gt0=num('gt'), gp=num('gp');
+  if(!isFinite(gt0)||!isFinite(gp)||gt0<=0||gp<=0)return null;
+  var labels=[],dG=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var gt=gt0*mults[k], g=(gt-gp)/gp*100;
+    labels.push((Math.round(gt*100)/100).toFixed(0));
+    dG.push(Math.round(g*1000)/1000);
+    rows.push([(Math.round(gt*100)/100).toFixed(0),(Math.round(g*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dG:dG,rows:rows};
+}
+function __ggChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ggSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ggChart',{title:en?'GDP Growth vs Current GDP (g=(gt-gp)/gp)':'GDP 增长率随本期 GDP 线性变化（g=(gt−gp)/gp）',labels:s.labels,series:[{name:en?'Growth (%)':'增长率 (%)',data:s.dG}]});
+}
+
+function __ggShow(which){
+  var c=document.getElementById('ggChart'), t=document.getElementById('gdp_growth_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ggTabInit(){
+  var btns=document.querySelectorAll('.gg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ggShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ggShow('chart');
+}
+var __ggFn=calcTool;calcTool=function(){try{__ggFn();}catch(e){}try{__ggChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ggChart();}catch(e){}});
+try{__ggTabInit();}catch(e){}
+</script>
 </body>
 </html>

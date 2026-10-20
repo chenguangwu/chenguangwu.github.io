@@ -325,6 +325,11 @@ function __income_elasticityBoot(){ try{ __income_elasticityPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __income_elasticityBoot();
 else document.addEventListener('DOMContentLoaded', __income_elasticityBoot);
 </script>
+<div class="ie-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ieChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -360,5 +365,45 @@ else document.addEventListener('DOMContentLoaded', __income_elasticityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ieSweep(){
+  var q1=num('q1'), q20=num('q2'), i1=num('i1'), i2=num('i2');
+  if(!isFinite(q1)||!isFinite(q20)||!isFinite(i1)||!isFinite(i2)||q1<=0||q20<=0||i1<=0||i2<=0||i1===i2)return null;
+  var labels=[],dE=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var q2=q20*mults[k];
+    var dQ=(q2-q1)/((q1+q2)/2), dI=(i2-i1)/((i1+i2)/2), e=dQ/dI;
+    labels.push((Math.round(q2*100)/100).toFixed(0));
+    dE.push(Math.round(e*10000)/10000);
+    rows.push([(Math.round(q2*100)/100).toFixed(0),(Math.round(e*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dE:dE,rows:rows};
+}
+function __ieChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ieSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ieChart',{title:en?'Income Elasticity vs New Qty (arc midpoint, saturating)':'收入弹性随新数量饱和变化（弧弹性中点法）',labels:s.labels,series:[{name:en?'Income elasticity':'收入弹性',data:s.dE}]});
+}
+
+function __ieShow(which){
+  var c=document.getElementById('ieChart'), t=document.getElementById('income_elasticityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ieTabInit(){
+  var btns=document.querySelectorAll('.ie-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ieShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ieShow('chart');
+}
+var __ieFn=calcTool;calcTool=function(){try{__ieFn();}catch(e){}try{__ieChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ieChart();}catch(e){}});
+try{__ieTabInit();}catch(e){}
+</script>
 </body>
 </html>

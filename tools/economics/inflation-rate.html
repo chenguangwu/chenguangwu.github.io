@@ -303,6 +303,11 @@ function __inflation_rateBoot(){ try{ __inflation_ratePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __inflation_rateBoot();
 else document.addEventListener('DOMContentLoaded', __inflation_rateBoot);
 </script>
+<div class="ir-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="irChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -351,5 +356,44 @@ else document.addEventListener('DOMContentLoaded', __inflation_rateBoot);
 <h3>口径</h3><p>常用 CPI 同比（与去年同月比）或环比（与上月比）。结果为正表示通胀、负表示通缩。</p>
 <h3>注意</h3><p>不同篮子与基期所得结果不同；单月波动受季节性与临时冲击影响，宜结合趋势研判。</p>
 </div></section>
+<script>
+function __irSweep(){
+  var c0=num('cpi0'), c10=num('cpi1');
+  if(!isFinite(c0)||!isFinite(c10)||c0<=0||c10<=0)return null;
+  var labels=[],dP=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var c1=c10*mults[k], p=(c1-c0)/c0*100;
+    labels.push((Math.round(c1*100)/100).toFixed(1));
+    dP.push(Math.round(p*1000)/1000);
+    rows.push([(Math.round(c1*100)/100).toFixed(1),(Math.round(p*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dP:dP,rows:rows};
+}
+function __irChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__irSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#irChart',{title:en?'Inflation vs Report CPI (p=(c1-c0)/c0)':'通胀率随报告期 CPI 线性变化（p=(c1−c0)/c0）',labels:s.labels,series:[{name:en?'Inflation (%)':'通胀率 (%)',data:s.dP}]});
+}
+
+function __irShow(which){
+  var c=document.getElementById('irChart'), t=document.getElementById('inflation_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __irTabInit(){
+  var btns=document.querySelectorAll('.ir-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__irShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __irShow('chart');
+}
+var __irFn=calcTool;calcTool=function(){try{__irFn();}catch(e){}try{__irChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__irChart();}catch(e){}});
+try{__irTabInit();}catch(e){}
+</script>
 </body>
 </html>
