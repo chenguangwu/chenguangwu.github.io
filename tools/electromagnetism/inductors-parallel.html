@@ -300,6 +300,11 @@ function __inductors_parallelBoot(){ try{ __inductors_parallelPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __inductors_parallelBoot();
 else document.addEventListener('DOMContentLoaded', __inductors_parallelBoot);
 </script>
+<div class="ip-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ipChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,44 @@ else document.addEventListener('DOMContentLoaded', __inductors_parallelBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ipSweep(){
+  var L1=num('L1');
+  if(!isFinite(L1)||L1<=0)return null;
+  var labels=[],dL=[],dHalf=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4,8];
+  for(var k=0;k<mults.length;k++){
+    var L2=L1*mults[k], L=1/(1/L1+1/L2);
+    labels.push((Math.round(L2*100)/100).toFixed(2));
+    dL.push(Math.round(L*1000)/1000);
+    dHalf.push(Math.round(L1/2*1000)/1000);
+    rows.push([(Math.round(L2*100)/100).toFixed(2),(Math.round(L*1000)/1000).toFixed(3),(Math.round(L1/2*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dL:dL,dHalf:dHalf,rows:rows};
+}
+function __ipChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ipSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ipChart',{title:en?'Parallel Inductance vs L2 (saturating to L1/2)':'并联电感随单体增大收敛至半值（1/L=1/L₁+1/L₂）',labels:s.labels,series:[{name:en?'Equivalent L (mH)':'等效电感 (mH)',data:s.dL},{name:en?'L1/2 floor (mH)':'半值下限 L₁/2 (mH)',data:s.dHalf}]});
+}
+
+function __ipShow(which){
+  var c=document.getElementById('ipChart'), t=document.getElementById('inductors_parallelTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ipTabInit(){
+  var btns=document.querySelectorAll('.ip-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ipShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ipShow('chart');
+}
+var __ipFn=calcTool;calcTool=function(){try{__ipFn();}catch(e){}try{__ipChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ipChart();}catch(e){}});
+</script>
 </body>
 </html>
