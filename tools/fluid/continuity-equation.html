@@ -301,6 +301,11 @@ function __continuity_equationBoot(){ try{ __continuity_equationPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __continuity_equationBoot();
 else document.addEventListener('DOMContentLoaded', __continuity_equationBoot);
 </script>
+<div class="coe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="coeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,45 @@ else document.addEventListener('DOMContentLoaded', __continuity_equationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __coeSweep(){
+  var a1=num('a1'), v1=num('v1');
+  if(!isFinite(a1)||!isFinite(v1)||a1<=0||v1<=0)return null;
+  var labels=[], dV=[], dT=[];
+  var Q=a1*v1;
+  var rs=[0.25,0.5,0.75,1,1.5,2,3,4];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k], a2=a1*rv;
+    labels.push(rv.toFixed(2)+'\u00d7');
+    dV.push(Math.round(Q/a2*1000)/1000);
+    dT.push(Math.round(Math.sqrt(a2/Math.PI)*1000*100)/100);
+  }
+  return {labels:labels,dV:dV,dT:dT};
+}
+function __coeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__coeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#coeChart',{title:en?'Continuity: Outlet Velocity & Radius vs Area Ratio':'连续性方程：出口流速与等效半径随面积比扫描',labels:s.labels,series:[{name:en?'Outlet velocity v₂ (m/s)':'出口流速 v₂ (m/s)',data:s.dV},{name:en?'Equivalent radius (×10⁻² m)':'等效半径 (×10⁻² m)',data:s.dT}]});
+}
+
+function __coeShow(which){
+  var c=document.getElementById('coeChart'), t=document.getElementById('continuity_equationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __coeTabInit(){
+  var btns=document.querySelectorAll('.coe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__coeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __coeShow('chart');
+  try{__coeChart();}catch(e){}
+}
+var __coeFn=calcTool;calcTool=function(){try{__coeFn();}catch(e){}try{__coeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__coeChart();}catch(e){}});try{__coeTabInit();}catch(e){}
+</script>
 </body>
 </html>

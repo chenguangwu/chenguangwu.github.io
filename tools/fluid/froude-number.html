@@ -301,6 +301,11 @@ function __froude_numberBoot(){ try{ __froude_numberPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __froude_numberBoot();
 else document.addEventListener('DOMContentLoaded', __froude_numberBoot);
 </script>
+<div class="frn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="frnChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __froude_numberBoot);
 </dl>
 </div>
 </section>
+<script>
+function __frnSweep(){
+  var L=num('L'), g=num('g');
+  if(!isFinite(L)||!isFinite(g)||L<=0||g<=0)return null;
+  var labels=[], dF=[], dC=[];
+  var vs=[0.5,1,2,3,5,7,10,14];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], Fr=vv/Math.sqrt(g*L);
+    labels.push(vv.toFixed(1));
+    dF.push(Math.round(Fr*1000)/1000);
+    dC.push(Math.round(Math.sqrt(g*L)*1000)/1000);
+  }
+  return {labels:labels,dF:dF,dC:dC};
+}
+function __frnChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__frnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#frnChart',{title:en?'Froude Number vs Velocity (Fr=1 critical line)':'弗劳德数随流速线性上升（Fr=1 临界分界）',labels:s.labels,series:[{name:en?'Froude number Fr':'弗劳德数 Fr',data:s.dF},{name:en?'Critical velocity √(gL) (m/s)':'临界流速 √(gL) (m/s)',data:s.dC}]});
+}
+
+function __frnShow(which){
+  var c=document.getElementById('frnChart'), t=document.getElementById('froude_numberTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __frnTabInit(){
+  var btns=document.querySelectorAll('.frn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__frnShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __frnShow('chart');
+  try{__frnChart();}catch(e){}
+}
+var __frnFn=calcTool;calcTool=function(){try{__frnFn();}catch(e){}try{__frnChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__frnChart();}catch(e){}});try{__frnTabInit();}catch(e){}
+</script>
 </body>
 </html>

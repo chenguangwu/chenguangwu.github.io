@@ -298,6 +298,11 @@ function __laplace_sphere_pressureBoot(){ try{ __laplace_sphere_pressurePresets(
 if (document.readyState && document.readyState !== 'loading') __laplace_sphere_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __laplace_sphere_pressureBoot);
 </script>
+<div class="lsp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lspChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __laplace_sphere_pressureBoot
 </dl>
 </div>
 </section>
+<script>
+function __lspSweep(){
+  var g=num('g');
+  if(!isFinite(g)||g<=0)return null;
+  var labels=[], dP=[], dH=[];
+  var Rs=[0.0002,0.0005,0.001,0.002,0.005,0.01,0.02,0.05];
+  for(var k=0;k<Rs.length;k++){
+    var rv=Rs[k], dPv=2*g/rv;
+    labels.push((rv*1000).toFixed(2));
+    dP.push(Math.round(dPv*100)/100);
+    dH.push(Math.round(dPv/2*100)/100);
+  }
+  return {labels:labels,dP:dP,dH:dH};
+}
+function __lspChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lspSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lspChart',{title:en?'Laplace Pressure vs Curvature Radius (inverse ΔP=2γ/R)':'拉普拉斯压差随曲率半径反比衰减（ΔP=2γ/R）',labels:s.labels,series:[{name:en?'Pressure difference ΔP (Pa)':'内外压差 ΔP (Pa)',data:s.dP},{name:en?'Half ΔP (Pa)':'单位张力对应压差 ΔP/2 (Pa)',data:s.dH}]});
+}
+
+function __lspShow(which){
+  var c=document.getElementById('lspChart'), t=document.getElementById('laplace_sphere_pressureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lspTabInit(){
+  var btns=document.querySelectorAll('.lsp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lspShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lspShow('chart');
+  try{__lspChart();}catch(e){}
+}
+var __lspFn=calcTool;calcTool=function(){try{__lspFn();}catch(e){}try{__lspChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lspChart();}catch(e){}});try{__lspTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __kinematic_viscosityBoot(){ try{ __kinematic_viscosityPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __kinematic_viscosityBoot();
 else document.addEventListener('DOMContentLoaded', __kinematic_viscosityBoot);
 </script>
+<div class="kvi-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="kviChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __kinematic_viscosityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __kviSweep(){
+  var mu=num('mu');
+  if(!isFinite(mu)||mu<=0)return null;
+  var labels=[], dN=[], dS=[];
+  var rhos=[600,750,850,1000,1100,1250,1400,1600];
+  for(var k=0;k<rhos.length;k++){
+    var rv=rhos[k], nu=mu/rv;
+    labels.push(rv.toFixed(0));
+    dN.push(Math.round(nu*1e6*10000)/10000);
+    dS.push(Math.round(nu*1e6*1000)/1000);
+  }
+  return {labels:labels,dN:dN,dS:dS};
+}
+function __kviChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__kviSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#kviChart',{title:en?'Kinematic Viscosity vs Density (inverse ν=μ/ρ)':'运动黏度随密度反比下降（ν=μ/ρ）',labels:s.labels,series:[{name:en?'Kinematic viscosity ν (mm²/s)':'运动黏度 ν (mm²/s)',data:s.dN},{name:en?'ν in cSt (mm²/s)':'运动黏度 cSt (mm²/s)',data:s.dS}]});
+}
+
+function __kviShow(which){
+  var c=document.getElementById('kviChart'), t=document.getElementById('kinematic_viscosityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __kviTabInit(){
+  var btns=document.querySelectorAll('.kvi-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__kviShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __kviShow('chart');
+  try{__kviChart();}catch(e){}
+}
+var __kviFn=calcTool;calcTool=function(){try{__kviFn();}catch(e){}try{__kviChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__kviChart();}catch(e){}});try{__kviTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __hydraulic_diameterBoot(){ try{ __hydraulic_diameterPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __hydraulic_diameterBoot();
 else document.addEventListener('DOMContentLoaded', __hydraulic_diameterBoot);
 </script>
+<div class="hyd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hydChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __hydraulic_diameterBoot);
 </dl>
 </div>
 </section>
+<script>
+function __hydSweep(){
+  var P=num('P');
+  if(!isFinite(P)||P<=0)return null;
+  var labels=[], dD=[], dR=[];
+  var as=[0.002,0.005,0.01,0.02,0.04,0.08,0.15,0.25];
+  for(var k=0;k<as.length;k++){
+    var av=as[k], Dh=4*av/P;
+    labels.push(av.toFixed(3));
+    dD.push(Math.round(Dh*10000)/10000);
+    dR.push(Math.round(Dh/4*10000)/10000);
+  }
+  return {labels:labels,dD:dD,dR:dR};
+}
+function __hydChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__hydSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hydChart',{title:en?'Hydraulic Diameter & Radius vs Area (Dh=4A/P)':'水力直径与水力半径随面积线性增长（Dh=4A/P）',labels:s.labels,series:[{name:en?'Hydraulic diameter Dh (m)':'水力直径 Dh (m)',data:s.dD},{name:en?'Hydraulic radius Rh (m)':'水力半径 Rh (m)',data:s.dR}]});
+}
+
+function __hydShow(which){
+  var c=document.getElementById('hydChart'), t=document.getElementById('hydraulic_diameterTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hydTabInit(){
+  var btns=document.querySelectorAll('.hyd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hydShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hydShow('chart');
+  try{__hydChart();}catch(e){}
+}
+var __hydFn=calcTool;calcTool=function(){try{__hydFn();}catch(e){}try{__hydChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hydChart();}catch(e){}});try{__hydTabInit();}catch(e){}
+</script>
 </body>
 </html>
