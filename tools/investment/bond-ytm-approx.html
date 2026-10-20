@@ -304,6 +304,11 @@ function __bond_ytm_approxBoot(){ try{ __bond_ytm_approxPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __bond_ytm_approxBoot();
 else document.addEventListener('DOMContentLoaded', __bond_ytm_approxBoot);
 </script>
+<div class="byai-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="byaiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,49 @@ else document.addEventListener('DOMContentLoaded', __bond_ytm_approxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __byaiYtm(C,F,P,n){
+  if(!isFinite(n)||Math.abs(n)<1e-12)return NaN;
+  var den=(F+P)/2;
+  if(!isFinite(den)||Math.abs(den)<1e-12)return NaN;
+  return (C+(F-P)/n)/den*100;
+}
+function __byaiSweep(){
+  var C=num('C'), F=num('F'), nv=num('n');
+  if(!isFinite(C)||!isFinite(F)||!isFinite(nv)||F<=0)return null;
+  var labels=[], dY=[];
+  for(var k=0;k<=10;k++){
+    var P=F*(0.6+0.08*k);
+    var v=__byaiYtm(C,F,P,nv);
+    labels.push(Math.round(P*100)/100+'');
+    dY.push(isFinite(v)?Math.round(v*1000)/1000:null);
+  }
+  return {labels:labels,dY:dY};
+}
+function __byaiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__byaiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#byaiChart',{title:en?'Approximate YTM falls hyperbolically as bond price rises':'近似到期收益率随债券价格上升双曲衰减',labels:s.labels,series:[{name:en?'YTM (%)':'近似到期收益率 YTM (%)',data:s.dY}]});
+}
+
+function __byaiShow(which){
+  var c=document.getElementById('byaiChart'), t=document.getElementById('bond_ytm_approxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __byaiTabInit(){
+  var btns=document.querySelectorAll('.byai-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__byaiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __byaiShow('chart');
+  try{__byaiChart();}catch(e){}
+}
+var __byaiFn=calcTool;calcTool=function(){try{__byaiFn();}catch(e){}try{__byaiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__byaiChart();}catch(e){}});try{__byaiTabInit();}catch(e){}
+</script>
 </body>
 </html>

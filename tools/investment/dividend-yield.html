@@ -296,6 +296,11 @@ function __dividend_yieldBoot(){ try{ __dividend_yieldPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __dividend_yieldBoot();
 else document.addEventListener('DOMContentLoaded', __dividend_yieldBoot);
 </script>
+<div class="dyie-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dyieChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,43 @@ else document.addEventListener('DOMContentLoaded', __dividend_yieldBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dyieSweep(){
+  var d=num('dps');
+  if(!isFinite(d)||d<=0)return null;
+  var labels=[], dY=[], dR=[];
+  for(var k=0;k<=10;k++){
+    var p=d*(2+1.6*k);
+    labels.push(Math.round(p*100)/100+'');
+    dY.push(Math.round(d/p*100*100)/100);
+    dR.push(Math.round(p/d*100)/100);
+  }
+  return {labels:labels,dY:dY,dR:dR};
+}
+function __dyieChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dyieSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dyieChart',{title:en?'Dividend yield decays inversely with price while P/D climbs linearly':'股息率随股价反比衰减，股价股利比线性抬升',labels:s.labels,series:[{name:en?'Dividend yield (%)':'股息率 (%)',data:s.dY},{name:en?'Price / dividend (P/D)':'股价与每股股利之比 (P/D)',data:s.dR}]});
+}
+
+function __dyieShow(which){
+  var c=document.getElementById('dyieChart'), t=document.getElementById('dividend_yieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dyieTabInit(){
+  var btns=document.querySelectorAll('.dyie-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dyieShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dyieShow('chart');
+  try{__dyieChart();}catch(e){}
+}
+var __dyieFn=calcTool;calcTool=function(){try{__dyieFn();}catch(e){}try{__dyieChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dyieChart();}catch(e){}});try{__dyieTabInit();}catch(e){}
+</script>
 </body>
 </html>

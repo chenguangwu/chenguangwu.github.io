@@ -314,6 +314,11 @@ function __annuity_fv_invBoot(){ try{ __annuity_fv_invPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __annuity_fv_invBoot();
 else document.addEventListener('DOMContentLoaded', __annuity_fv_invBoot);
 </script>
+<div class="afvi-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="afviChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -349,5 +354,46 @@ else document.addEventListener('DOMContentLoaded', __annuity_fv_invBoot);
 </dl>
 </div>
 </section>
+<script>
+function __afviFv(P,r,n){
+  if(Math.abs(r)<1e-12)return P*n;
+  return P*(Math.pow(1+r,n)-1)/r;
+}
+function __afviSweep(){
+  var P=num('PMT'), r=num('r');
+  if(!isFinite(P)||!isFinite(r))return null;
+  var labels=[], dF=[], dN=[];
+  for(var n=1;n<=20;n++){
+    labels.push(String(n));
+    dF.push(Math.round(__afviFv(P,r,n)*100)/100);
+    dN.push(Math.round(P*n*100)/100);
+  }
+  return {labels:labels,dF:dF,dN:dN};
+}
+function __afviChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__afviSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#afviChart',{title:en?'Annuity future value vs periods (compound convex vs linear contributions)':'年金终值随期数复利凸增长（对照线性本金累计）',labels:s.labels,series:[{name:en?'Future value FV':'年金终值 FV (元)',data:s.dF},{name:en?'Principal paid PMT*n':'名义付款合计 (元)',data:s.dN}]});
+}
+
+function __afviShow(which){
+  var c=document.getElementById('afviChart'), t=document.getElementById('annuity_fv_invTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __afviTabInit(){
+  var btns=document.querySelectorAll('.afvi-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__afviShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __afviShow('chart');
+  try{__afviChart();}catch(e){}
+}
+var __afviFn=calcTool;calcTool=function(){try{__afviFn();}catch(e){}try{__afviChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__afviChart();}catch(e){}});try{__afviTabInit();}catch(e){}
+</script>
 </body>
 </html>

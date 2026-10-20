@@ -298,6 +298,11 @@ function __dividend_payout_ratioBoot(){ try{ __dividend_payout_ratioPresets(); }
 if (document.readyState && document.readyState !== 'loading') __dividend_payout_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __dividend_payout_ratioBoot);
 </script>
+<div class="dpri-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dpriChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __dividend_payout_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dpriSweep(){
+  var EPS=num('EPS');
+  if(!isFinite(EPS)||Math.abs(EPS)<1e-12)return null;
+  var labels=[], dP=[], dR=[];
+  for(var k=0;k<=10;k++){
+    var dps=EPS*(k/10);
+    var dpr=dps/EPS*100;
+    labels.push(Math.round(dps*100)/100+'');
+    dP.push(Math.round(dpr*100)/100);
+    dR.push(Math.round((100-dpr)*100)/100);
+  }
+  return {labels:labels,dP:dP,dR:dR};
+}
+function __dpriChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dpriSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dpriChart',{title:en?'Payout ratio rises linearly and crosses retention ratio at DPS=EPS/2':'股利支付率线性上行，与留存收益率在 DPS=EPS/2 处交叉',labels:s.labels,series:[{name:en?'Payout ratio (%)':'股利支付率 DPR (%)',data:s.dP},{name:en?'Retention ratio (%)':'留存收益率 (%)',data:s.dR}]});
+}
+
+function __dpriShow(which){
+  var c=document.getElementById('dpriChart'), t=document.getElementById('dividend_payout_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dpriTabInit(){
+  var btns=document.querySelectorAll('.dpri-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dpriShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dpriShow('chart');
+  try{__dpriChart();}catch(e){}
+}
+var __dpriFn=calcTool;calcTool=function(){try{__dpriFn();}catch(e){}try{__dpriChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dpriChart();}catch(e){}});try{__dpriTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -301,6 +301,11 @@ function __annuity_pv_invBoot(){ try{ __annuity_pv_invPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __annuity_pv_invBoot();
 else document.addEventListener('DOMContentLoaded', __annuity_pv_invBoot);
 </script>
+<div class="apvi-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="apviChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,46 @@ else document.addEventListener('DOMContentLoaded', __annuity_pv_invBoot);
 </dl>
 </div>
 </section>
+<script>
+function __apviPv(P,r,n){
+  if(Math.abs(r)<1e-12)return P*n;
+  return P*(1-Math.pow(1+r,-n))/r;
+}
+function __apviSweep(){
+  var P=num('PMT'), r=num('r');
+  if(!isFinite(P)||!isFinite(r))return null;
+  var labels=[], dV=[], dN=[];
+  for(var n=1;n<=20;n++){
+    labels.push(String(n));
+    dV.push(Math.round(__apviPv(P,r,n)*100)/100);
+    dN.push(Math.round(P*n*100)/100);
+  }
+  return {labels:labels,dV:dV,dN:dN};
+}
+function __apviChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__apviSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#apviChart',{title:en?'Annuity present value saturates with periods (vs unlimited nominal total)':'年金现值随期数饱和收敛（对照无上限名义付款）',labels:s.labels,series:[{name:en?'Present value PV':'年金现值 PV (元)',data:s.dV},{name:en?'Nominal total PMT*n':'名义付款合计 (元)',data:s.dN}]});
+}
+
+function __apviShow(which){
+  var c=document.getElementById('apviChart'), t=document.getElementById('annuity_pv_invTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __apviTabInit(){
+  var btns=document.querySelectorAll('.apvi-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__apviShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __apviShow('chart');
+  try{__apviChart();}catch(e){}
+}
+var __apviFn=calcTool;calcTool=function(){try{__apviFn();}catch(e){}try{__apviChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__apviChart();}catch(e){}});try{__apviTabInit();}catch(e){}
+</script>
 </body>
 </html>
