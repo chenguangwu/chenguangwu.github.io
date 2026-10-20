@@ -258,6 +258,11 @@ function resetForm(){document.getElementById('loan').value = '800000';
       calcTool();}
 calcTool();
 </script>
+<div class="ltv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ltvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,6 +339,45 @@ calcTool = function(){ __tb_fn0(); try{ __loan_to_valueExtras(); }catch(e){} };
 function __loan_to_valueBoot(){ try{ __loan_to_valuePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __loan_to_valueBoot();
 else document.addEventListener('DOMContentLoaded', __loan_to_valueBoot);
+</script>
+<script>
+function __ltvSweep(){
+  var loan=num('loan'), val0=num('val');
+  if(!isFinite(loan)||!isFinite(val0)||loan<=0||val0<=0)return null;
+  var labels=[],dLtv=[],dEquity=[],rows=[];
+  var mults=[0.5,0.75,0.9,1,1.1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var val=val0*mults[k], LTV=loan/val;
+    labels.push((Math.round(val*100)/100).toFixed(2));
+    dLtv.push(Math.round(LTV*1e4*1000)/1000);
+    dEquity.push(Math.round((val-loan)*100)/100);
+    rows.push([(Math.round(val*100)/100).toFixed(2),(Math.round(LTV*1e4*1000)/1000).toFixed(3),(Math.round((val-loan)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dLtv:dLtv,dEquity:dEquity,rows:rows};
+}
+function __ltvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ltvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ltvChart',{title:en?'LTV vs Collateral Value (inverse LTV=loan/value)':'贷款价值比随抵押物价值反比下降（LTV=贷款额/抵押价值）',labels:s.labels,series:[{name:en?'LTV (×10⁻⁴)':'贷款价值比 (×10⁻⁴)',data:s.dLtv},{name:en?'Equity (元)':'自有权益 (元)',data:s.dEquity}]});
+}
+
+function __ltvShow(which){
+  var c=document.getElementById('ltvChart'), t=document.getElementById('loan_to_valueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ltvTabInit(){
+  var btns=document.querySelectorAll('.ltv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ltvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ltvShow('chart');
+}
+var __ltvFn=calcTool;calcTool=function(){try{__ltvFn();}catch(e){}try{__ltvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ltvChart();}catch(e){}});
 </script>
 </body>
 </html>

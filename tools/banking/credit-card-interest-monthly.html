@@ -262,6 +262,11 @@ function resetForm(){document.getElementById('bal').value = '1000';
       calcTool();}
 calcTool();
 </script>
+<div class="ccim-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ccimChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,6 +342,45 @@ calcTool = function(){ __tb_fn0(); try{ __credit_card_interest_monthlyExtras(); 
 function __credit_card_interest_monthlyBoot(){ try{ __credit_card_interest_monthlyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __credit_card_interest_monthlyBoot();
 else document.addEventListener('DOMContentLoaded', __credit_card_interest_monthlyBoot);
+</script>
+<script>
+function __ccimSweep(){
+  var bal=num('bal'), dr=num('dr');
+  if(!isFinite(bal)||!isFinite(dr)||bal<=0||dr<=0)return null;
+  var labels=[],dI=[],dRate=[],rows=[];
+  var ds=[1,5,10,15,20,25,30];
+  for(var k=0;k<ds.length;k++){
+    var I=bal*dr*ds[k];
+    labels.push(String(ds[k]));
+    dI.push(Math.round(I*100)/100);
+    dRate.push(Math.round(dr*1e4*1000)/1000);
+    rows.push([String(ds[k]),(Math.round(I*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dI:dI,dRate:dRate,rows:rows};
+}
+function __ccimChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ccimSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ccimChart',{title:en?'Card Interest vs Days (linear I=balance·daily rate·days)':'信用卡利息随天数线性累积（I=余额×日利率×天数）',labels:s.labels,series:[{name:en?'Interest I (元)':'利息 (元)',data:s.dI}]});
+}
+
+function __ccimShow(which){
+  var c=document.getElementById('ccimChart'), t=document.getElementById('credit_card_interest_monthlyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ccimTabInit(){
+  var btns=document.querySelectorAll('.ccim-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ccimShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ccimShow('chart');
+}
+var __ccimFn=calcTool;calcTool=function(){try{__ccimFn();}catch(e){}try{__ccimChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ccimChart();}catch(e){}});
 </script>
 </body>
 </html>
