@@ -242,6 +242,12 @@ function __linear_accel_forceBoot(){ try{ __linear_accel_forcePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __linear_accel_forceBoot();
 else document.addEventListener('DOMContentLoaded', __linear_accel_forceBoot);
 </script>
+<div class="laf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lafChart" style="margin-top:8px;"></div>
+<div id="lafTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +283,49 @@ else document.addEventListener('DOMContentLoaded', __linear_accel_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lafSweep(){
+  var m=num('m'), a0=num('a');
+  if(!isFinite(m)||!isFinite(a0)||m<=0||a0<=0)return null;
+  var labels=[],dF=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var a=a0*mults[k], F=m*a;
+    labels.push((Math.round(a*100)/100).toFixed(2));
+    dF.push(Math.round(F*1000)/1000);
+    rows.push([(Math.round(a*100)/100).toFixed(2),(Math.round(F*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dF:dF,rows:rows};
+}
+function __lafChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lafSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lafChart',{title:en?'Required Force vs Acceleration (F = m a)':'所需力随加速度线性变化（F = m·a）',labels:s.labels,series:[{name:en?'Force F (N)':'力 F (N)',data:s.dF}]});
+}
+function __lafTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__lafSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#lafTable',{head:en?['Acceleration a (m/s^2)','Force F (N)']:['加速度 a (m/s²)','力 F (N)'],rows:s.rows});
+}
+
+function __lafShow(which){
+  var c=document.getElementById('lafChart'), t=document.getElementById('lafTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lafTabInit(){
+  var btns=document.querySelectorAll('.laf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lafShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __lafFn=calcTool;calcTool=function(){try{__lafFn();}catch(e){}try{__lafChart();}catch(e){}try{__lafTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lafChart();}catch(e){}try{__lafTable();}catch(e){}});
+try{__lafTabInit();}catch(e){}
+</script>
 </body>
 </html>

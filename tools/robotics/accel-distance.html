@@ -296,6 +296,12 @@ function __accel_distanceBoot(){ try{ __accel_distancePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __accel_distanceBoot();
 else document.addEventListener('DOMContentLoaded', __accel_distanceBoot);
 </script>
+<div class="ad-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="adChart" style="margin-top:8px;"></div>
+<div id="adTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +337,49 @@ else document.addEventListener('DOMContentLoaded', __accel_distanceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __adSweep(){
+  var v0=num('v'), a=num('a');
+  if(!isFinite(v0)||!isFinite(a)||v0<=0||a<=0)return null;
+  var labels=[],dD=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var v=v0*mults[k], d=v*v/(2*a), t=v/a;
+    labels.push((Math.round(v*100)/100).toFixed(1));
+    dD.push(Math.round(d*1000)/1000); dT.push(Math.round(t*1000)/1000);
+    rows.push([(Math.round(v*100)/100).toFixed(1),(Math.round(d*1000)/1000).toFixed(3),(Math.round(t*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dD:dD,dT:dT,rows:rows};
+}
+function __adChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__adSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#adChart',{title:en?'Distance vs Speed (d = v^2 / 2a, quadratic)':'加速距离随速度平方变化（d = v²/2a，二次）',labels:s.labels,series:[{name:en?'Distance d (m)':'距离 d (m)',data:s.dD},{name:en?'Time t (s)':'加速时间 t (s)',data:s.dT}]});
+}
+function __adTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__adSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#adTable',{head:en?['Speed v (m/s)','Distance d (m)','Time t (s)']:['速度 v (m/s)','距离 d (m)','加速时间 t (s)'],rows:s.rows});
+}
+
+function __adShow(which){
+  var c=document.getElementById('adChart'), t=document.getElementById('adTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __adTabInit(){
+  var btns=document.querySelectorAll('.ad-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__adShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __adFn=calcTool;calcTool=function(){try{__adFn();}catch(e){}try{__adChart();}catch(e){}try{__adTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__adChart();}catch(e){}try{__adTable();}catch(e){}});
+try{__adTabInit();}catch(e){}
+</script>
 </body>
 </html>
