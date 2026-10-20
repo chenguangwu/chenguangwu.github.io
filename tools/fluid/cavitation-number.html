@@ -308,6 +308,11 @@ function __cavitation_numberBoot(){ try{ __cavitation_numberPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __cavitation_numberBoot();
 else document.addEventListener('DOMContentLoaded', __cavitation_numberBoot);
 </script>
+<div class="cav-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cavChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -343,5 +348,44 @@ else document.addEventListener('DOMContentLoaded', __cavitation_numberBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cavSweep(){
+  var p=num('p'), pv=num('pv'), rho=num('rho');
+  if(!isFinite(p)||!isFinite(pv)||!isFinite(rho)||rho<=0)return null;
+  var labels=[],dS=[],dQ=[];
+  var vs=[1,3,6,10,14,18,20];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], q=0.5*rho*vv*vv;
+    labels.push(vv.toFixed(0));
+    dS.push(Math.round((p-pv)/q*1000)/1000);
+    dQ.push(Math.round(q*10)/10);
+  }
+  return {labels:labels,dS:dS,dQ:dQ};
+}
+function __cavChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cavSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cavChart',{title:en?'Cavitation Number vs Velocity (inverse-square vs quadratic)':'空化数随流速反平方下降',labels:s.labels,series:[{name:en?'Cavitation number σ':'空化数 σ',data:s.dS},{name:en?'Dynamic pressure ½ρv² (Pa)':'动压 ½ρv² (Pa)',data:s.dQ}]});
+}
+
+function __cavShow(which){
+  var c=document.getElementById('cavChart'), t=document.getElementById('cavitation_numberTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cavTabInit(){
+  var btns=document.querySelectorAll('.cav-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cavShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cavShow('chart');
+  try{__cavChart();}catch(e){}
+}
+var __cavFn=calcTool;calcTool=function(){try{__cavFn();}catch(e){}try{__cavChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cavChart();}catch(e){}});try{__cavTabInit();}catch(e){}
+</script>
 </body>
 </html>

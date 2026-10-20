@@ -298,6 +298,11 @@ function __capillary_pressureBoot(){ try{ __capillary_pressurePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __capillary_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __capillary_pressureBoot);
 </script>
+<div class="cap-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="capChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __capillary_pressureBoot);
 </dl>
 </div>
 </section>
+<script>
+function __capSweep(){
+  var g=num('g');
+  if(!isFinite(g)||g<=0)return null;
+  var labels=[],dP=[],dR=[];
+  var Ds=[0.0001,0.0003,0.0005,0.001,0.003,0.006,0.01];
+  for(var k=0;k<Ds.length;k++){
+    var dv=Ds[k];
+    labels.push((dv*1000).toFixed(2));
+    dP.push(Math.round(4*g/dv*10)/10);
+    dR.push(Math.round(dv/g*10000)/10000);
+  }
+  return {labels:labels,dP:dP,dR:dR};
+}
+function __capChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__capSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#capChart',{title:en?'Capillary Pressure vs Diameter (inverse/linear)':'毛细压差随管径反比下降',labels:s.labels,series:[{name:en?'Capillary ΔP (Pa)':'毛细压差 ΔP (Pa)',data:s.dP},{name:en?'Diameter/tension ratio (m²/N)':'管径与表面张力比',data:s.dR}]});
+}
+
+function __capShow(which){
+  var c=document.getElementById('capChart'), t=document.getElementById('capillary_pressureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __capTabInit(){
+  var btns=document.querySelectorAll('.cap-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__capShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __capShow('chart');
+  try{__capChart();}catch(e){}
+}
+var __capFn=calcTool;calcTool=function(){try{__capFn();}catch(e){}try{__capChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__capChart();}catch(e){}});try{__capTabInit();}catch(e){}
+</script>
 </body>
 </html>

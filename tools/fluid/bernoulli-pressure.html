@@ -252,6 +252,11 @@ function __bernoulli_pressureBoot(){ try{ __bernoulli_pressurePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __bernoulli_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __bernoulli_pressureBoot);
 </script>
+<div class="bep-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bepChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -287,5 +292,44 @@ else document.addEventListener('DOMContentLoaded', __bernoulli_pressureBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bepSweep(){
+  var p1=num('p1'), v1=num('v1'), rho=num('rho');
+  if(!isFinite(p1)||!isFinite(v1)||!isFinite(rho)||rho<=0)return null;
+  var labels=[],dP=[],dQ=[];
+  var v2s=[1,3,6,10,14,18,20];
+  for(var k=0;k<v2s.length;k++){
+    var vv=v2s[k];
+    labels.push(vv.toFixed(0));
+    dP.push(Math.round((p1+0.5*rho*(v1*v1-vv*vv))*10)/10);
+    dQ.push(Math.round(0.5*rho*vv*vv*10)/10);
+  }
+  return {labels:labels,dP:dP,dQ:dQ};
+}
+function __bepChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bepSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bepChart',{title:en?'Bernoulli Pressure vs Velocity (linear vs quadratic)':'伯努利压力随流速线性下降',labels:s.labels,series:[{name:en?'Pressure P₂ (Pa)':'压力 P₂ (Pa)',data:s.dP},{name:en?'Dynamic pressure ½ρv₂² (Pa)':'动压 ½ρv₂² (Pa)',data:s.dQ}]});
+}
+
+function __bepShow(which){
+  var c=document.getElementById('bepChart'), t=document.getElementById('bernoulli_pressureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bepTabInit(){
+  var btns=document.querySelectorAll('.bep-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bepShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bepShow('chart');
+  try{__bepChart();}catch(e){}
+}
+var __bepFn=calcTool;calcTool=function(){try{__bepFn();}catch(e){}try{__bepChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bepChart();}catch(e){}});try{__bepTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -310,6 +310,11 @@ function __capillary_riseBoot(){ try{ __capillary_risePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __capillary_riseBoot();
 else document.addEventListener('DOMContentLoaded', __capillary_riseBoot);
 </script>
+<div class="car-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="carChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,5 +349,45 @@ else document.addEventListener('DOMContentLoaded', __capillary_riseBoot);
 </dl>
 </div>
 </section>
+<script>
+function __carSweep(){
+  var gamma=num('gamma'), th=num('th')*Math.PI/180, rho=num('rho'), g=num('g');
+  if(!isFinite(gamma)||!isFinite(rho)||!isFinite(g)||gamma<=0||rho<=0||g<=0)return null;
+  var numc=2*gamma*Math.cos(th)/(rho*g);
+  var labels=[],dH=[],dN=[];
+  var rs=[0.0001,0.0002,0.0005,0.001,0.0015,0.002];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k];
+    labels.push((rv*1000).toFixed(2));
+    dH.push(Math.round(numc/rv*10000)/10000);
+    dN.push(Math.round(numc*10000)/10000);
+  }
+  return {labels:labels,dH:dH,dN:dN};
+}
+function __carChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__carSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#carChart',{title:en?'Capillary Rise vs Radius (inverse + numerator ref)':'毛细上升高度随管半径反比下降',labels:s.labels,series:[{name:en?'Rise height h (m)':'上升高度 h (m)',data:s.dH},{name:en?'Numerator 2γcosθ/(ρg) (m²)':'分子常数 (m²)',data:s.dN}]});
+}
+
+function __carShow(which){
+  var c=document.getElementById('carChart'), t=document.getElementById('capillary_riseTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __carTabInit(){
+  var btns=document.querySelectorAll('.car-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__carShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __carShow('chart');
+  try{__carChart();}catch(e){}
+}
+var __carFn=calcTool;calcTool=function(){try{__carFn();}catch(e){}try{__carChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__carChart();}catch(e){}});try{__carTabInit();}catch(e){}
+</script>
 </body>
 </html>

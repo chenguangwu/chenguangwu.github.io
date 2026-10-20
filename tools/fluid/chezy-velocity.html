@@ -247,6 +247,11 @@ function __chezy_velocityBoot(){ try{ __chezy_velocityPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __chezy_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __chezy_velocityBoot);
 </script>
+<div class="chv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="chvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __chezy_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __chvSweep(){
+  var C=num('C'), R=num('R');
+  if(!isFinite(C)||!isFinite(R)||C<=0||R<=0)return null;
+  var labels=[],dV=[],dR=[];
+  var Ss=[0.0001,0.0005,0.001,0.003,0.006,0.01];
+  for(var k=0;k<Ss.length;k++){
+    var sv=Ss[k];
+    labels.push(sv.toFixed(4));
+    dV.push(Math.round(C*Math.sqrt(R*sv)*1000)/1000);
+    dR.push(Math.round(R*sv*100000)/100000);
+  }
+  return {labels:labels,dV:dV,dR:dR};
+}
+function __chvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__chvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#chvChart',{title:en?'Chezy Velocity vs Slope (sqrt power vs linear)':'谢才流速随坡度平方根增长',labels:s.labels,series:[{name:en?'Velocity v (m/s)':'流速 v (m/s)',data:s.dV},{name:en?'RS product':'阻力坡度乘积 RS',data:s.dR}]});
+}
+
+function __chvShow(which){
+  var c=document.getElementById('chvChart'), t=document.getElementById('chezy_velocityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __chvTabInit(){
+  var btns=document.querySelectorAll('.chv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__chvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __chvShow('chart');
+  try{__chvChart();}catch(e){}
+}
+var __chvFn=calcTool;calcTool=function(){try{__chvFn();}catch(e){}try{__chvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__chvChart();}catch(e){}});try{__chvTabInit();}catch(e){}
+</script>
 </body>
 </html>
