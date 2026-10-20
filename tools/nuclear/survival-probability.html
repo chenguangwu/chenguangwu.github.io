@@ -244,6 +244,12 @@ function __survival_probabilityBoot(){ try{ __survival_probabilityPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __survival_probabilityBoot();
 else document.addEventListener('DOMContentLoaded', __survival_probabilityBoot);
 </script>
+<div class="sp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="spChart" style="margin-top:8px;"></div>
+<div id="spTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +285,49 @@ else document.addEventListener('DOMContentLoaded', __survival_probabilityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __spSweep(){
+  var lam=num('lam'), t0=num('t');
+  if(!isFinite(lam)||!isFinite(t0)||lam<=0||t0<=0)return null;
+  var labels=[],dP=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var t=t0*mults[i], P=Math.exp(-lam*t);
+    labels.push(t.toExponential(2));
+    dP.push(Math.round(P*10000)/10000);
+    rows.push([t.toExponential(2),(Math.round(P*10000)/10000).toFixed(4),(Math.round((1-P)*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dP:dP,rows:rows};
+}
+function __spChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__spSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#spChart',{title:en?'Survival Probability vs Time (P = e^{-lambda t})':'存活概率随时间的指数衰减（P = e^{−λt}）',labels:s.labels,series:[{name:en?'Survival P':'存活概率 P',data:s.dP}]});
+}
+function __spTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__spSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#spTable',{head:en?['Time t','Survival P','Decay 1-P']:['时间 t','存活概率 P','衰变概率 1-P'],rows:s.rows});
+}
+
+function __spShow(which){
+  var c=document.getElementById('spChart'), t=document.getElementById('spTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __spTabInit(){
+  var btns=document.querySelectorAll('.sp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__spShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __spFn=calcTool;calcTool=function(){try{__spFn();}catch(e){}try{__spChart();}catch(e){}try{__spTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__spChart();}catch(e){}try{__spTable();}catch(e){}});
+try{__spTabInit();}catch(e){}
+</script>
 </body>
 </html>

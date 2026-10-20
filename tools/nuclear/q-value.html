@@ -242,6 +242,12 @@ function __q_valueBoot(){ try{ __q_valuePresets(); }catch(e){} try{ calcTool(); 
 if (document.readyState && document.readyState !== 'loading') __q_valueBoot();
 else document.addEventListener('DOMContentLoaded', __q_valueBoot);
 </script>
+<div class="qv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="qvChart" style="margin-top:8px;"></div>
+<div id="qvTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +283,50 @@ else document.addEventListener('DOMContentLoaded', __q_valueBoot);
 </dl>
 </div>
 </section>
+<script>
+function __qvSweep(){
+  var mi0=num('mi'), mf=num('mf');
+  if(!isFinite(mi0)||!isFinite(mf)||mi0<=0||mf<=0)return null;
+  var U=1.66053906660e-27,C=299792458,EV=1.602176634e-19;
+  var labels=[],dQ=[],rows=[];
+  var mults=[0.5,0.7,0.85,1,1.15,1.3,1.5];
+  for(var i=0;i<mults.length;i++){
+    var mi=mi0*mults[i], Q=(mi-mf)*U*C*C/EV/1e6;
+    labels.push(mi.toFixed(4));
+    dQ.push(Math.round(Q*1000)/1000);
+    rows.push([mi.toFixed(4),(Math.round(Q*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dQ:dQ,rows:rows};
+}
+function __qvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__qvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#qvChart',{title:en?'Q-value vs Initial Mass (Q = (mi-mf) c^2)':'Q 值随初态质量变化（Q = (mi-mf)c²，线性过零）',labels:s.labels,series:[{name:en?'Q (MeV)':'Q 值 (MeV)',data:s.dQ}]});
+}
+function __qvTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__qvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#qvTable',{head:en?['Initial mass mi (u)','Q (MeV)']:['初态质量 mi (u)','Q 值 (MeV)'],rows:s.rows});
+}
+
+function __qvShow(which){
+  var c=document.getElementById('qvChart'), t=document.getElementById('qvTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __qvTabInit(){
+  var btns=document.querySelectorAll('.qv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__qvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __qvFn=calcTool;calcTool=function(){try{__qvFn();}catch(e){}try{__qvChart();}catch(e){}try{__qvTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__qvChart();}catch(e){}try{__qvTable();}catch(e){}});
+try{__qvTabInit();}catch(e){}
+</script>
 </body>
 </html>

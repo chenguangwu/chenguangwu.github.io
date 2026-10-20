@@ -292,6 +292,12 @@ function __mean_lifeBoot(){ try{ __mean_lifePresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __mean_lifeBoot();
 else document.addEventListener('DOMContentLoaded', __mean_lifeBoot);
 </script>
+<div class="ml-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mlChart" style="margin-top:8px;"></div>
+<div id="mlTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -327,5 +333,49 @@ else document.addEventListener('DOMContentLoaded', __mean_lifeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mlSweep(){
+  var th0=num('th');
+  if(!isFinite(th0)||th0<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var th=th0*mults[i], tau=th/Math.LN2;
+    labels.push((Math.round(th*100)/100).toFixed(0));
+    dT.push(Math.round(tau*1000)/1000);
+    rows.push([(Math.round(th*100)/100).toFixed(0),(Math.round(tau*1000)/1000).toFixed(2),(Math.round(tau/th0*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __mlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mlChart',{title:en?'Mean-life vs Half-life (tau = t1/2 / ln2)':'平均寿命随半衰期变化（τ = t½ / ln2，线性关系）',labels:s.labels,series:[{name:en?'Mean-life tau (yr)':'平均寿命 τ (年)',data:s.dT}]});
+}
+function __mlTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__mlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#mlTable',{head:en?['Half-life t1/2 (yr)','Mean-life tau (yr)','tau / t1/2']:['半衰期 t½ (年)','平均寿命 τ (年)','比值 τ/t½'],rows:s.rows});
+}
+
+function __mlShow(which){
+  var c=document.getElementById('mlChart'), t=document.getElementById('mlTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mlTabInit(){
+  var btns=document.querySelectorAll('.ml-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __mlFn=calcTool;calcTool=function(){try{__mlFn();}catch(e){}try{__mlChart();}catch(e){}try{__mlTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mlChart();}catch(e){}try{__mlTable();}catch(e){}});
+try{__mlTabInit();}catch(e){}
+</script>
 </body>
 </html>
