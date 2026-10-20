@@ -242,6 +242,12 @@ function __motor_torque_currentBoot(){ try{ __motor_torque_currentPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __motor_torque_currentBoot();
 else document.addEventListener('DOMContentLoaded', __motor_torque_currentBoot);
 </script>
+<div class="mtc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mtcChart" style="margin-top:8px;"></div>
+<div id="mtcTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +283,49 @@ else document.addEventListener('DOMContentLoaded', __motor_torque_currentBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mtcSweep(){
+  var kt=num('kt'), I0=num('I');
+  if(!isFinite(kt)||!isFinite(I0)||kt<=0||I0<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var I=I0*mults[k], T=kt*I;
+    labels.push((Math.round(I*100)/100).toFixed(2));
+    dT.push(Math.round(T*1000)/1000);
+    rows.push([(Math.round(I*100)/100).toFixed(2),(Math.round(T*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __mtcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mtcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mtcChart',{title:en?'Motor Torque vs Current (tau = Kt I)':'电机扭矩随电流线性变化（τ = Kt·I）',labels:s.labels,series:[{name:en?'Torque tau (N m)':'扭矩 τ (N·m)',data:s.dT}]});
+}
+function __mtcTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__mtcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#mtcTable',{head:en?['Current I (A)','Torque tau (N m)']:['电流 I (A)','扭矩 τ (N·m)'],rows:s.rows});
+}
+
+function __mtcShow(which){
+  var c=document.getElementById('mtcChart'), t=document.getElementById('mtcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mtcTabInit(){
+  var btns=document.querySelectorAll('.mtc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mtcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __mtcFn=calcTool;calcTool=function(){try{__mtcFn();}catch(e){}try{__mtcChart();}catch(e){}try{__mtcTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mtcChart();}catch(e){}try{__mtcTable();}catch(e){}});
+try{__mtcTabInit();}catch(e){}
+</script>
 </body>
 </html>

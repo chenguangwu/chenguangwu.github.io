@@ -297,6 +297,12 @@ function __battery_runtimeBoot(){ try{ __battery_runtimePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __battery_runtimeBoot();
 else document.addEventListener('DOMContentLoaded', __battery_runtimeBoot);
 </script>
+<div class="br-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="brChart" style="margin-top:8px;"></div>
+<div id="brTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +338,49 @@ else document.addEventListener('DOMContentLoaded', __battery_runtimeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __brSweep(){
+  var ah=num('ah'), V=num('V'), P0=num('P');
+  if(!isFinite(ah)||!isFinite(V)||!isFinite(P0)||ah<=0||V<=0||P0<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var P=P0*mults[k], t=ah*V/P;
+    labels.push((Math.round(P*100)/100).toFixed(1));
+    dT.push(Math.round(t*1000)/1000);
+    rows.push([(Math.round(P*100)/100).toFixed(1),(Math.round(t*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __brChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__brSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#brChart',{title:en?'Battery Runtime vs Load Power (t = Ah V / P)':'续航时间随负载功率反比变化（t = Ah·V/P）',labels:s.labels,series:[{name:en?'Runtime t (h)':'续航 t (h)',data:s.dT}]});
+}
+function __brTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__brSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#brTable',{head:en?['Load power P (W)','Runtime t (h)']:['负载功率 P (W)','续航 t (h)'],rows:s.rows});
+}
+
+function __brShow(which){
+  var c=document.getElementById('brChart'), t=document.getElementById('brTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __brTabInit(){
+  var btns=document.querySelectorAll('.br-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__brShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __brFn=calcTool;calcTool=function(){try{__brFn();}catch(e){}try{__brChart();}catch(e){}try{__brTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__brChart();}catch(e){}try{__brTable();}catch(e){}});
+try{__brTabInit();}catch(e){}
+</script>
 </body>
 </html>

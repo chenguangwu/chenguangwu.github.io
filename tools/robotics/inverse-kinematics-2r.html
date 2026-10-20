@@ -313,6 +313,12 @@ function __inverse_kinematics_2rBoot(){ try{ __inverse_kinematics_2rPresets(); }
 if (document.readyState && document.readyState !== 'loading') __inverse_kinematics_2rBoot();
 else document.addEventListener('DOMContentLoaded', __inverse_kinematics_2rBoot);
 </script>
+<div class="ik-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ikChart" style="margin-top:8px;"></div>
+<div id="ikTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +354,56 @@ else document.addEventListener('DOMContentLoaded', __inverse_kinematics_2rBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ikSweep(){
+  var y=num('y'), L1=num('L1'), L2=num('L2');
+  if(!isFinite(y)||!isFinite(L1)||!isFinite(L2)||L1<=0||L2<=0)return null;
+  var labels=[],dT1=[],dT2=[],rows=[];
+  var xs=[0.4,0.6,0.8,1.0,1.2,1.4,1.5];
+  for(var k=0;k<xs.length;k++){
+    var x=xs[k], r2=x*x+y*y;
+    if(r2 > (L1+L2)*(L1+L2)-1e-9) continue;
+    var c2=(r2-L1*L1-L2*L2)/(2*L1*L2);
+    if(c2>1)c2=1; if(c2<-1)c2=-1;
+    var t2=Math.acos(c2);
+    var t1=Math.atan2(y,x)-Math.atan2(L2*Math.sin(t2),L1+L2*Math.cos(t2));
+    var d1=t1*180/Math.PI, d2=t2*180/Math.PI;
+    labels.push((Math.round(x*100)/100).toFixed(2));
+    dT1.push(Math.round(d1*100)/100); dT2.push(Math.round(d2*100)/100);
+    rows.push([(Math.round(x*100)/100).toFixed(2),(Math.round(d1*100)/100).toFixed(2),(Math.round(d2*100)/100).toFixed(2)]);
+  }
+  if(!labels.length)return null;
+  return {labels:labels,dT1:dT1,dT2:dT2,rows:rows};
+}
+function __ikChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ikSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ikChart',{title:en?'Inverse-Kinematics Joint Angles vs End X (t1,t2 = IK(x,y))':'逆运动学关节角随末端 X 变化（t1,t2 = IK(x,y)）',labels:s.labels,series:[{name:en?'Joint1 t1 (deg)':'关节1 t1 (°)',data:s.dT1},{name:en?'Joint2 t2 (deg)':'关节2 t2 (°)',data:s.dT2}]});
+}
+function __ikTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ikSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ikTable',{head:en?['End X (m)','Joint1 t1 (deg)','Joint2 t2 (deg)']:['末端 X (m)','关节1 t1 (°)','关节2 t2 (°)'],rows:s.rows});
+}
+
+function __ikShow(which){
+  var c=document.getElementById('ikChart'), t=document.getElementById('ikTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ikTabInit(){
+  var btns=document.querySelectorAll('.ik-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ikShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ikFn=calcTool;calcTool=function(){try{__ikFn();}catch(e){}try{__ikChart();}catch(e){}try{__ikTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ikChart();}catch(e){}try{__ikTable();}catch(e){}});
+try{__ikTabInit();}catch(e){}
+</script>
 </body>
 </html>
