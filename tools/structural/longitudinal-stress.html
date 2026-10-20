@@ -301,6 +301,11 @@ function __longitudinal_stressBoot(){ try{ __longitudinal_stressPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __longitudinal_stressBoot();
 else document.addEventListener('DOMContentLoaded', __longitudinal_stressBoot);
 </script>
+<div class="ls-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,44 @@ else document.addEventListener('DOMContentLoaded', __longitudinal_stressBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lsSweep(){
+  var p=num('p'), r=num('r'), t0=num('t');
+  if(!isFinite(p)||!isFinite(r)||!isFinite(t0)||t0<=0)return null;
+  var labels=[],dSl=[],dSh=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var t=t0*mults[k], sl=p*r/(2*t), sh=p*r/t;
+    labels.push((Math.round(t*1000)/1000).toFixed(3));
+    dSl.push(Math.round(sl/1e6*100)/100);
+    dSh.push(Math.round(sh/1e6*100)/100);
+    rows.push([(Math.round(t*1000)/1000).toFixed(3),(Math.round(sl/1e6*100)/100).toFixed(2),(Math.round(sh/1e6*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dSl:dSl,dSh:dSh,rows:rows};
+}
+function __lsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lsChart',{title:en?'Cylinder Stress vs Wall Thickness (inverse σl=pr/2t, hoop=pr/t)':'薄壁圆筒应力随壁厚反比下降（纵向 σ=pr/2t，环向 pr/t）',labels:s.labels,series:[{name:en?'Longitudinal σl (MPa)':'纵向应力 (MPa)',data:s.dSl},{name:en?'Hoop σh (MPa)':'环向应力 (MPa)',data:s.dSh}]});
+}
+
+function __lsShow(which){
+  var c=document.getElementById('lsChart'), t=document.getElementById('longitudinal_stressTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lsTabInit(){
+  var btns=document.querySelectorAll('.ls-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lsShow('chart');
+}
+var __lsFn=calcTool;calcTool=function(){try{__lsFn();}catch(e){}try{__lsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lsChart();}catch(e){}});
+</script>
 </body>
 </html>
