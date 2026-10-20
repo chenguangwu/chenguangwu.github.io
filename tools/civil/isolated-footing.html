@@ -275,6 +275,11 @@ function __isolated_footingBoot(){ try{ __isolated_footingPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __isolated_footingBoot();
 else document.addEventListener('DOMContentLoaded', __isolated_footingBoot);
 </script>
+<div class="isf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="isfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -310,5 +315,47 @@ else document.addEventListener('DOMContentLoaded', __isolated_footingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __isfSweep(){
+  var N=num('N'), M=num('M'), gamma=num('gamma'), d=num('d');
+  if(!isFinite(N)||!isFinite(M)||!isFinite(gamma)||!isFinite(d)||gamma<=0||d<=0)return null;
+  var labels=[], dP=[], dN=[];
+  var Bs=[1.0,1.5,2.0,2.5,3.0,3.5,4.0,5.0];
+  for(var k=0;k<Bs.length;k++){
+    var bv=Bs[k], A=bv*bv;
+    var pav=(N+gamma*A*d)/A;
+    var pmax=pav+M/(bv*bv*bv/6);
+    var pmin=pav-M/(bv*bv*bv/6);
+    labels.push(bv.toFixed(1));
+    dP.push(Math.round(pmax*100)/100);
+    dN.push(Math.round(pmin*100)/100);
+  }
+  return {labels:labels,dP:dP,dN:dN};
+}
+function __isfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__isfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#isfChart',{title:en?'Footing Pressure pmax/pmin vs Base Width (M term decays as B⁻³)':'基础边缘压力随基底宽度变化（弯矩项按 B⁻³ 衰减）',labels:s.labels,series:[{name:en?'Max pressure pmax (kPa)':'最大压力 pmax (kPa)',data:s.dP},{name:en?'Min pressure pmin (kPa)':'最小压力 pmin (kPa)',data:s.dN}]});
+}
+
+function __isfShow(which){
+  var c=document.getElementById('isfChart'), t=document.getElementById('isolated_footingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __isfTabInit(){
+  var btns=document.querySelectorAll('.isf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__isfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __isfShow('chart');
+  try{__isfChart();}catch(e){}
+}
+var __isfFn=calcTool;calcTool=function(){try{__isfFn();}catch(e){}try{__isfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__isfChart();}catch(e){}});try{__isfTabInit();}catch(e){}
+</script>
 </body>
 </html>

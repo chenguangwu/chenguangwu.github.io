@@ -251,6 +251,11 @@ function __load_combinationBoot(){ try{ __load_combinationPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __load_combinationBoot();
 else document.addEventListener('DOMContentLoaded', __load_combinationBoot);
 </script>
+<div class="lcb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lcbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -286,5 +291,44 @@ else document.addEventListener('DOMContentLoaded', __load_combinationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lcbSweep(){
+  var Sg=num('Sg'), gG=num('gG'), gQ=num('gQ');
+  if(!isFinite(Sg)||!isFinite(gG)||!isFinite(gQ))return null;
+  var labels=[], dS=[], dG=[];
+  var Sqs=[0,10,20,30,50,80,120,160];
+  for(var k=0;k<Sqs.length;k++){
+    var qv=Sqs[k], S=gG*Sg+gQ*qv;
+    labels.push(qv.toFixed(0));
+    dS.push(Math.round(S*100)/100);
+    dG.push(Math.round(gG*Sg*100)/100);
+  }
+  return {labels:labels,dS:dS,dG:dG};
+}
+function __lcbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lcbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lcbChart',{title:en?'Load Combination S vs Live Load (linear, dead part constant)':'荷载组合效应随活载线性增长（恒载项为截距）',labels:s.labels,series:[{name:en?'Combined effect S (kN·m)':'组合效应 S (kN·m)',data:s.dS},{name:en?'Dead part γ_G·S_Gk (kN·m)':'恒载分项 γ_G·S_Gk (kN·m)',data:s.dG}]});
+}
+
+function __lcbShow(which){
+  var c=document.getElementById('lcbChart'), t=document.getElementById('load_combinationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lcbTabInit(){
+  var btns=document.querySelectorAll('.lcb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lcbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lcbShow('chart');
+  try{__lcbChart();}catch(e){}
+}
+var __lcbFn=calcTool;calcTool=function(){try{__lcbFn();}catch(e){}try{__lcbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lcbChart();}catch(e){}});try{__lcbTabInit();}catch(e){}
+</script>
 </body>
 </html>

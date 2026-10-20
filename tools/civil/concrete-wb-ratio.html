@@ -250,6 +250,11 @@ function __concrete_wb_ratioBoot(){ try{ __concrete_wb_ratioPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __concrete_wb_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __concrete_wb_ratioBoot);
 </script>
+<div class="cwb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cwbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -285,5 +290,44 @@ else document.addEventListener('DOMContentLoaded', __concrete_wb_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cwbSweep(){
+  var fb=num('fb'), aa=num('aa'), ab=num('ab');
+  if(!isFinite(fb)||!isFinite(aa)||!isFinite(ab)||fb<=0||aa<=0)return null;
+  var labels=[], dW=[], dB=[];
+  var fcus=[20,25,30,35,40,50,60,70];
+  for(var k=0;k<fcus.length;k++){
+    var fv=fcus[k], wb=aa*fb/(fv+aa*ab*fb);
+    labels.push(fv.toFixed(0));
+    dW.push(Math.round(wb*10000)/10000);
+    dB.push(Math.round(1/wb*100)/100);
+  }
+  return {labels:labels,dW:dW,dB:dB};
+}
+function __cwbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cwbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cwbChart',{title:en?'Water-Binder Ratio vs Concrete Strength (inverse)':'水胶比随混凝土强度反比下降',labels:s.labels,series:[{name:en?'Water-binder ratio W/B':'水胶比 W/B',data:s.dW},{name:en?'Binder-water ratio B/W':'胶水比 B/W',data:s.dB}]});
+}
+
+function __cwbShow(which){
+  var c=document.getElementById('cwbChart'), t=document.getElementById('concrete_wb_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cwbTabInit(){
+  var btns=document.querySelectorAll('.cwb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cwbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cwbShow('chart');
+  try{__cwbChart();}catch(e){}
+}
+var __cwbFn=calcTool;calcTool=function(){try{__cwbFn();}catch(e){}try{__cwbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cwbChart();}catch(e){}});try{__cwbTabInit();}catch(e){}
+</script>
 </body>
 </html>

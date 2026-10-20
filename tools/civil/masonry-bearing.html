@@ -253,6 +253,11 @@ function __masonry_bearingBoot(){ try{ __masonry_bearingPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __masonry_bearingBoot();
 else document.addEventListener('DOMContentLoaded', __masonry_bearingBoot);
 </script>
+<div class="msb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="msbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -288,5 +293,44 @@ else document.addEventListener('DOMContentLoaded', __masonry_bearingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __msbSweep(){
+  var f=num('f'), b=num('b'), phi=num('phi');
+  if(!isFinite(f)||!isFinite(b)||!isFinite(phi)||f<=0||b<=0||phi<=0)return null;
+  var labels=[], dN=[], dA=[];
+  var Ls=[500,1000,1500,2400,3000,4000,5000,6000];
+  for(var k=0;k<Ls.length;k++){
+    var lv=Ls[k], A=b*lv, Nn=phi*f*A/1000;
+    labels.push(lv.toFixed(0));
+    dN.push(Math.round(Nn*100)/100);
+    dA.push(Math.round(A/1e6*10000)/10000);
+  }
+  return {labels:labels,dN:dN,dA:dA};
+}
+function __msbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__msbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#msbChart',{title:en?'Masonry Bearing Capacity vs Wall Length (linear N=φfA)':'砌体承压承载力随墙长线性增长（N=φfA）',labels:s.labels,series:[{name:en?'Bearing capacity N (kN)':'承载力 N (kN)',data:s.dN},{name:en?'Section area A (m²)':'截面面积 A (m²)',data:s.dA}]});
+}
+
+function __msbShow(which){
+  var c=document.getElementById('msbChart'), t=document.getElementById('masonry_bearingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __msbTabInit(){
+  var btns=document.querySelectorAll('.msb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__msbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __msbShow('chart');
+  try{__msbChart();}catch(e){}
+}
+var __msbFn=calcTool;calcTool=function(){try{__msbFn();}catch(e){}try{__msbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__msbChart();}catch(e){}});try{__msbTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -257,6 +257,11 @@ function __excavation_earthBoot(){ try{ __excavation_earthPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __excavation_earthBoot();
 else document.addEventListener('DOMContentLoaded', __excavation_earthBoot);
 </script>
+<div class="exe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="exeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -293,5 +298,45 @@ else document.addEventListener('DOMContentLoaded', __excavation_earthBoot);
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用基坑主动土压力估算（土木）</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>土体重度 γ (kN/m³)</li><li>基坑深度 H (m)</li><li>内摩擦角 φ (°)</li><li>地面超载 q (kPa)</li></ul><h2>适用场景</h2><p>适用于地下室、地铁等深基坑支护设计的土压力估算：输入土层参数、墙高与超载，得作用在排桩/地连墙上的土压力分布与合力，辅助支撑轴力与嵌固深度；水土分合算按土质选取。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>基坑主动土压力估算（土木）是做什么的？</dt><dd>基坑主动土压力估算器，按朗金理论估算直立边坡主动土压力合力，用于基坑支护设计。</dd><dt>如何使用基坑主动土压力估算（土木）？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>基坑主动土压力估算（土木）适合哪些场景？</dt><dd>适用于地下室、地铁等深基坑支护设计的土压力估算：输入土层参数、墙高与超载，得作用在排桩/地连墙上的土压力分布与合力，辅助支撑轴力与嵌固深度；水土分合算按土质选取。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __exeSweep(){
+  var g=num('gamma'), phi=num('phi'), q=num('q');
+  if(!isFinite(g)||!isFinite(phi)||!isFinite(q)||g<=0||phi<=0)return null;
+  var pr=phi*Math.PI/180, Ka=Math.pow(Math.tan(Math.PI/4-pr/2),2);
+  var labels=[], dE=[], dS=[];
+  var Hs=[2,3,4,5,6,8,10,12];
+  for(var k=0;k<Hs.length;k++){
+    var hv=Hs[k], Ea=0.5*g*hv*hv*Ka+q*hv*Ka;
+    labels.push(hv.toFixed(0));
+    dE.push(Math.round(Ea*100)/100);
+    dS.push(Math.round((g*hv*Ka+q*Ka)*100)/100);
+  }
+  return {labels:labels,dE:dE,dS:dS};
+}
+function __exeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__exeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#exeChart',{title:en?'Excavation Earth Pressure vs Depth (quadratic + linear surcharge)':'基坑土压力随开挖深度平方增长（含超载线性项）',labels:s.labels,series:[{name:en?'Active thrust Ea (kN/m)':'主动土压力 Ea (kN/m)',data:s.dE},{name:en?'Pressure at wall top (kPa)':'墙顶土压力 (kPa)',data:s.dS}]});
+}
+
+function __exeShow(which){
+  var c=document.getElementById('exeChart'), t=document.getElementById('excavation_earthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __exeTabInit(){
+  var btns=document.querySelectorAll('.exe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__exeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __exeShow('chart');
+  try{__exeChart();}catch(e){}
+}
+var __exeFn=calcTool;calcTool=function(){try{__exeFn();}catch(e){}try{__exeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__exeChart();}catch(e){}});try{__exeTabInit();}catch(e){}
+</script>
 </body>
 </html>
