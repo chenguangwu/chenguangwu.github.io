@@ -261,6 +261,11 @@ function resetForm(){document.getElementById('p').value = '500000';
       calcTool();}
 calcTool();
 </script>
+<div class="eml-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="emlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,6 +340,47 @@ calcTool = function(){ __tb_fn0(); try{ __emi_loanExtras(); }catch(e){} };
 function __emi_loanBoot(){ try{ __emi_loanPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __emi_loanBoot();
 else document.addEventListener('DOMContentLoaded', __emi_loanBoot);
+</script>
+<script>
+function __emlSweep(){
+  var P=num('p'), r=num('r')/100/12;
+  if(!isFinite(P)||!isFinite(r)||P<=0)return null;
+  var labels=[],dEmi=[],dTot=[],rows=[];
+  var yrs=[1,2,3,5,7,10,15,20,30];
+  for(var k=0;k<yrs.length;k++){
+    var N=yrs[k]*12;
+    var emi = r>0 ? P*r*Math.pow(1+r,N)/(Math.pow(1+r,N)-1) : P/N;
+    var tot=emi*N;
+    labels.push(String(yrs[k]));
+    dEmi.push(Math.round(emi*100)/100);
+    dTot.push(Math.round(tot*100)/100);
+    rows.push([String(yrs[k]),(Math.round(emi*100)/100).toFixed(2),(Math.round(tot*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dEmi:dEmi,dTot:dTot,rows:rows};
+}
+function __emlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__emlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#emlChart',{title:en?'EMI vs Tenure (decaying EMI=P·r(1+r)ᴺ/((1+r)ᴺ-1), total grows)':'月供随年限反比衰减、总偿还线性上升（EMI 公式）',labels:s.labels,series:[{name:en?'Monthly EMI (元)':'月供 (元)',data:s.dEmi},{name:en?'Total repaid (元)':'总偿还 (元)',data:s.dTot}]});
+}
+
+function __emlShow(which){
+  var c=document.getElementById('emlChart'), t=document.getElementById('emi_loanTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __emlTabInit(){
+  var btns=document.querySelectorAll('.eml-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__emlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __emlShow('chart');
+}
+var __emlFn=calcTool;calcTool=function(){try{__emlFn();}catch(e){}try{__emlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__emlChart();}catch(e){}});
 </script>
 </body>
 </html>

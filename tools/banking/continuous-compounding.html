@@ -209,6 +209,11 @@ function resetForm(){document.getElementById('p').value = '10000';
       calcTool();}
 calcTool();
 </script>
+<div class="cc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ccChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -285,6 +290,45 @@ calcTool = function(){ __tb_fn0(); try{ __continuous_compoundingExtras(); }catch
 function __continuous_compoundingBoot(){ try{ __continuous_compoundingPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __continuous_compoundingBoot();
 else document.addEventListener('DOMContentLoaded', __continuous_compoundingBoot);
+</script>
+<script>
+function __ccSweep(){
+  var P=num('p'), r=num('r')/100;
+  if(!isFinite(P)||!isFinite(r)||P<=0||r<=0)return null;
+  var labels=[],dA=[],dInt=[],rows=[];
+  var yrs=[1,2,3,5,7,10,15,20,30];
+  for(var k=0;k<yrs.length;k++){
+    var t=yrs[k], A=P*Math.exp(r*t);
+    labels.push(String(t));
+    dA.push(Math.round(A*100)/100);
+    dInt.push(Math.round((A-P)*100)/100);
+    rows.push([String(t),(Math.round(A*100)/100).toFixed(2),(Math.round((A-P)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dA:dA,dInt:dInt,rows:rows};
+}
+function __ccChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ccSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ccChart',{title:en?'Continuous Compounding Value vs Years (exponential A=Pe^rt)':'连续复利终值随年限指数增长（A=Pe^rt）',labels:s.labels,series:[{name:en?'Value A (元)':'终值 A (元)',data:s.dA},{name:en?'Interest earned (元)':'利息 (元)',data:s.dInt}]});
+}
+
+function __ccShow(which){
+  var c=document.getElementById('ccChart'), t=document.getElementById('continuous_compoundingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ccTabInit(){
+  var btns=document.querySelectorAll('.cc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ccShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ccShow('chart');
+}
+var __ccFn=calcTool;calcTool=function(){try{__ccFn();}catch(e){}try{__ccChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ccChart();}catch(e){}});
 </script>
 </body>
 </html>

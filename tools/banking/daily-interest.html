@@ -209,6 +209,11 @@ function resetForm(){document.getElementById('p').value = '100000';
       calcTool();}
 calcTool();
 </script>
+<div class="di-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="diChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -285,6 +290,45 @@ calcTool = function(){ __tb_fn0(); try{ __daily_interestExtras(); }catch(e){} };
 function __daily_interestBoot(){ try{ __daily_interestPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __daily_interestBoot();
 else document.addEventListener('DOMContentLoaded', __daily_interestBoot);
+</script>
+<script>
+function __diSweep(){
+  var P=num('p'), r=num('r');
+  if(!isFinite(P)||!isFinite(r)||P<=0)return null;
+  var labels=[],dI=[],dAnn=[],rows=[];
+  var ds=[30,60,90,180,270,365,540,730];
+  for(var k=0;k<ds.length;k++){
+    var I=P*r/100*ds[k]/365;
+    labels.push(String(ds[k]));
+    dI.push(Math.round(I*100)/100);
+    dAnn.push(Math.round(P*r/100*100)/100);
+    rows.push([String(ds[k]),(Math.round(I*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dI:dI,dAnn:dAnn,rows:rows};
+}
+function __diChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__diSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#diChart',{title:en?'Daily Interest vs Days (linear I=P·r·d/365)':'按日计息随天数线性累积（I=P·r·d/365）',labels:s.labels,series:[{name:en?'Interest I (元)':'利息 (元)',data:s.dI}]});
+}
+
+function __diShow(which){
+  var c=document.getElementById('diChart'), t=document.getElementById('daily_interestTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __diTabInit(){
+  var btns=document.querySelectorAll('.di-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__diShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __diShow('chart');
+}
+var __diFn=calcTool;calcTool=function(){try{__diFn();}catch(e){}try{__diChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__diChart();}catch(e){}});
 </script>
 </body>
 </html>
