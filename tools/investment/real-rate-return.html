@@ -311,6 +311,11 @@ function __real_rate_returnBoot(){ try{ __real_rate_returnPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __real_rate_returnBoot();
 else document.addEventListener('DOMContentLoaded', __real_rate_returnBoot);
 </script>
+<div class="rrrt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rrrtChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,46 @@ else document.addEventListener('DOMContentLoaded', __real_rate_returnBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rrrtSweep(){
+  var nom=num('nom');
+  if(!isFinite(nom))return null;
+  var labels=[], dR=[], dL=[];
+  for(var k=0;k<=10;k++){
+    var inf=-0.02+0.022*k;
+    labels.push((Math.round(inf*1000)/1000)+'');
+    if((1+inf)<=0){ dR.push(null); dL.push(null); }
+    else{
+      dR.push(Math.round(((1+nom)/(1+inf)-1)*100*100)/100);
+      dL.push(Math.round((nom-inf)*100*100)/100);
+    }
+  }
+  return {labels:labels,dR:dR,dL:dL};
+}
+function __rrrtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rrrtSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rrrtChart',{title:en?'Exact real return bends hyperbolically and crosses zero at inflation = nominal':'精确实际收益率随通胀双曲下行并在通胀等于名义处穿越零轴（对照粗略差值）',labels:s.labels,series:[{name:en?'Real return (%)':'实际收益率 (%)',data:s.dR},{name:en?'Nominal minus inflation (%)':'名义收益率减通胀 (%)',data:s.dL}]});
+}
+
+function __rrrtShow(which){
+  var c=document.getElementById('rrrtChart'), t=document.getElementById('real_rate_returnTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rrrtTabInit(){
+  var btns=document.querySelectorAll('.rrrt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rrrtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rrrtShow('chart');
+  try{__rrrtChart();}catch(e){}
+}
+var __rrrtFn=calcTool;calcTool=function(){try{__rrrtFn();}catch(e){}try{__rrrtChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rrrtChart();}catch(e){}});try{__rrrtTabInit();}catch(e){}
+</script>
 </body>
 </html>

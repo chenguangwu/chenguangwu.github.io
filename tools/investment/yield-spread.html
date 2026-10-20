@@ -244,6 +244,11 @@ function __yield_spreadBoot(){ try{ __yield_spreadPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __yield_spreadBoot();
 else document.addEventListener('DOMContentLoaded', __yield_spreadBoot);
 </script>
+<div class="ylsp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ylspChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,43 @@ else document.addEventListener('DOMContentLoaded', __yield_spreadBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ylspSweep(){
+  var yb=num('yb');
+  if(!isFinite(yb))return null;
+  var labels=[], dB=[], dP=[];
+  for(var k=0;k<=10;k++){
+    var ym=yb-0.02+0.004*k;
+    labels.push((Math.round(ym*10000)/10000)+'');
+    dB.push(Math.round((yb-ym)*10000*100)/100);
+    dP.push(Math.round((yb-ym)*100*1000)/1000);
+  }
+  return {labels:labels,dB:dB,dP:dP};
+}
+function __ylspChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ylspSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ylspChart',{title:en?'Yield spread narrows linearly and flips sign when benchmark yield overtakes base':'利差随对比收益率线性收窄并在超过基准时反号',labels:s.labels,series:[{name:en?'Spread (bps)':'利差 Spread (bps)',data:s.dB},{name:en?'Spread (%)':'利差 (%)',data:s.dP}]});
+}
+
+function __ylspShow(which){
+  var c=document.getElementById('ylspChart'), t=document.getElementById('yield_spreadTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ylspTabInit(){
+  var btns=document.querySelectorAll('.ylsp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ylspShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ylspShow('chart');
+  try{__ylspChart();}catch(e){}
+}
+var __ylspFn=calcTool;calcTool=function(){try{__ylspFn();}catch(e){}try{__ylspChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ylspChart();}catch(e){}});try{__ylspTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -247,6 +247,11 @@ function __present_value_invBoot(){ try{ __present_value_invPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __present_value_invBoot();
 else document.addEventListener('DOMContentLoaded', __present_value_invBoot);
 </script>
+<div class="pvin-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pvinChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,43 @@ else document.addEventListener('DOMContentLoaded', __present_value_invBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pvinSweep(){
+  var FV=num('FV'), r=num('r');
+  if(!isFinite(FV)||!isFinite(r)||(1+r)<=0)return null;
+  var labels=[], dV=[], dD=[];
+  for(var k=0;k<=20;k++){
+    var pv=FV/Math.pow(1+r,k);
+    labels.push(String(k));
+    dV.push(Math.round(pv*100)/100);
+    dD.push(Math.round((FV-pv)*100)/100);
+  }
+  return {labels:labels,dV:dV,dD:dD};
+}
+function __pvinChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pvinSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pvinChart',{title:en?'Present value decays with years while total discount saturates toward FV':'现值随年数指数衰减，贴现总额饱和逼近终值',labels:s.labels,series:[{name:en?'Present value PV':'现值 PV (元)',data:s.dV},{name:en?'Total discount':'贴现总额 (元)',data:s.dD}]});
+}
+
+function __pvinShow(which){
+  var c=document.getElementById('pvinChart'), t=document.getElementById('present_value_invTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pvinTabInit(){
+  var btns=document.querySelectorAll('.pvin-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pvinShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pvinShow('chart');
+  try{__pvinChart();}catch(e){}
+}
+var __pvinFn=calcTool;calcTool=function(){try{__pvinFn();}catch(e){}try{__pvinChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pvinChart();}catch(e){}});try{__pvinTabInit();}catch(e){}
+</script>
 </body>
 </html>

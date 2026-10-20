@@ -244,6 +244,11 @@ function __sustainable_growthBoot(){ try{ __sustainable_growthPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __sustainable_growthBoot();
 else document.addEventListener('DOMContentLoaded', __sustainable_growthBoot);
 </script>
+<div class="susg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="susgChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __sustainable_growthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __susgSweep(){
+  var b=num('b');
+  if(!isFinite(b))return null;
+  var payout=100-b;
+  var labels=[], dG=[], dP=[];
+  for(var k=0;k<=10;k++){
+    var roe=k*3;
+    labels.push(String(roe));
+    dG.push(Math.round(roe*b/100*100)/100);
+    dP.push(Math.round(payout*100)/100);
+  }
+  return {labels:labels,dG:dG,dP:dP};
+}
+function __susgChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__susgSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#susgChart',{title:en?'Sustainable growth rises linearly with ROE against a flat payout ratio':'可持续增长率随净资产收益率线性抬升（对照恒定的股利支付率）',labels:s.labels,series:[{name:en?'Sustainable growth g (%)':'可持续增长率 g (%)',data:s.dG},{name:en?'Payout ratio (%)':'股利支付率 (%)',data:s.dP}]});
+}
+
+function __susgShow(which){
+  var c=document.getElementById('susgChart'), t=document.getElementById('sustainable_growthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __susgTabInit(){
+  var btns=document.querySelectorAll('.susg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__susgShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __susgShow('chart');
+  try{__susgChart();}catch(e){}
+}
+var __susgFn=calcTool;calcTool=function(){try{__susgFn();}catch(e){}try{__susgChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__susgChart();}catch(e){}});try{__susgTabInit();}catch(e){}
+</script>
 </body>
 </html>

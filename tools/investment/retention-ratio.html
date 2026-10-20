@@ -241,6 +241,11 @@ function __retention_ratioBoot(){ try{ __retention_ratioPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __retention_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __retention_ratioBoot);
 </script>
+<div class="rtrr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rtrrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,41 @@ else document.addEventListener('DOMContentLoaded', __retention_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rtrrSweep(){
+  var labels=[], dB=[], dR=[];
+  for(var k=0;k<=10;k++){
+    var dpr=k*10;
+    labels.push(String(dpr));
+    dB.push(Math.round((100-dpr)*100)/100);
+    dR.push(dpr<=0?null:Math.round((100-dpr)/dpr*10000)/10000);
+  }
+  return {labels:labels,dB:dB,dR:dR};
+}
+function __rtrrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rtrrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rtrrChart',{title:en?'Retention ratio falls linearly to zero while retention-to-payout blows up at DPR=0':'留存收益率线性降至零，留存支付比在支付率为零处发散断开',labels:s.labels,series:[{name:en?'Retention ratio (%)':'留存收益率 b (%)',data:s.dB},{name:en?'Retention / payout':'留存与支付之比',data:s.dR}]});
+}
+
+function __rtrrShow(which){
+  var c=document.getElementById('rtrrChart'), t=document.getElementById('retention_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rtrrTabInit(){
+  var btns=document.querySelectorAll('.rtrr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rtrrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rtrrShow('chart');
+  try{__rtrrChart();}catch(e){}
+}
+var __rtrrFn=calcTool;calcTool=function(){try{__rtrrFn();}catch(e){}try{__rtrrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rtrrChart();}catch(e){}});try{__rtrrTabInit();}catch(e){}
+</script>
 </body>
 </html>

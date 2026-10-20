@@ -313,6 +313,11 @@ if (document.readyState && document.readyState !== 'loading') __sortino_ratioBoo
 else document.addEventListener('DOMContentLoaded', __sortino_ratioBoot);
 window.addEventListener('toolbox:langchange', function(){ try{ __sortino_ratioExtras(); }catch(e){} });
 </script>
+<div class="srtn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="srtnChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,43 @@ window.addEventListener('toolbox:langchange', function(){ try{ __sortino_ratioEx
 </dl>
 </div>
 </section>
+<script>
+function __srtnSweep(){
+  var rp=num('rp'), rf=num('rf'), dd=num('dd');
+  if(!isFinite(rp)||!isFinite(rf)||!isFinite(dd)||Math.abs(dd)<1e-12)return null;
+  var labels=[], dS=[];
+  var mult=[0.5,0.75,1.0,1.25,1.5];
+  for(var k=0;k<mult.length;k++){
+    var dk=dd*mult[k];
+    labels.push((Math.round(dk*100)/100)+'');
+    dS.push(Math.round((rp-rf)/dk*1000)/1000);
+  }
+  return {labels:labels,dS:dS};
+}
+function __srtnChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__srtnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#srtnChart',{title:en?'Sortino ratio declines across five downside deviation levels':'五档下行标准差下的索提诺比率对照（下行风险越高比率越低）',labels:s.labels,series:[{name:en?'Sortino ratio':'索提诺比率',data:s.dS}]});
+}
+
+function __srtnShow(which){
+  var c=document.getElementById('srtnChart'), t=document.getElementById('sortino_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __srtnTabInit(){
+  var btns=document.querySelectorAll('.srtn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__srtnShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __srtnShow('chart');
+  try{__srtnChart();}catch(e){}
+}
+var __srtnFn=calcTool;calcTool=function(){try{__srtnFn();}catch(e){}try{__srtnChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__srtnChart();}catch(e){}});try{__srtnTabInit();}catch(e){}
+</script>
 </body>
 </html>

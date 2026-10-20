@@ -298,6 +298,11 @@ function __roi_calcBoot(){ try{ __roi_calcPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __roi_calcBoot();
 else document.addEventListener('DOMContentLoaded', __roi_calcBoot);
 </script>
+<div class="roic-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="roicChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,43 @@ else document.addEventListener('DOMContentLoaded', __roi_calcBoot);
 </dl>
 </div>
 </section>
+<script>
+function __roicSweep(){
+  var c=num('cost');
+  if(!isFinite(c)||Math.abs(c)<1e-12)return null;
+  var labels=[], dR=[], dM=[];
+  for(var k=0;k<=10;k++){
+    var g=c*(0.5+0.1*k);
+    labels.push((Math.round(g*100)/100)+'');
+    dR.push(Math.round((g-c)/c*100*100)/100);
+    dM.push(Math.round(g/c*10000)/10000);
+  }
+  return {labels:labels,dR:dR,dM:dM};
+}
+function __roicChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__roicSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#roicChart',{title:en?'ROI climbs linearly through break-even while payback multiple rises through 1x':'投资回报率线性上行穿越盈亏平衡点，回报倍数同时穿过 1 倍',labels:s.labels,series:[{name:en?'ROI (%)':'投资回报率 ROI (%)',data:s.dR},{name:en?'Payback multiple':'投资回报倍数',data:s.dM}]});
+}
+
+function __roicShow(which){
+  var c=document.getElementById('roicChart'), t=document.getElementById('roi_calcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __roicTabInit(){
+  var btns=document.querySelectorAll('.roic-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__roicShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __roicShow('chart');
+  try{__roicChart();}catch(e){}
+}
+var __roicFn=calcTool;calcTool=function(){try{__roicFn();}catch(e){}try{__roicChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__roicChart();}catch(e){}});try{__roicTabInit();}catch(e){}
+</script>
 </body>
 </html>
