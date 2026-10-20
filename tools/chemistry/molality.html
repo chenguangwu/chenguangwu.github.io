@@ -303,6 +303,11 @@ function __molalityBoot(){ try{ __molalityPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __molalityBoot();
 else document.addEventListener('DOMContentLoaded', __molalityBoot);
 </script>
+<div class="mlt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mltChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -350,5 +355,44 @@ else document.addEventListener('DOMContentLoaded', __molalityBoot);
 <h3>结果含义</h3><p>质量摩尔浓度 b=溶质物质的量(mol)/溶剂质量(kg)，单位 mol/kg，表示每千克溶剂中溶质的量。</p>
 <h3>与物质的量浓度的区别</h3><p>物质的量浓度 c=溶质/mol÷溶液体积(L)，随温度（体积膨胀）变化；质量摩尔浓度基于质量，不受温度影响，常用于依数性（沸点升高、凝固点降低）计算。</p>
 </div></section>
+<script>
+function __mltSweep(){
+  var n=num('n'), ms0=num('ms');
+  if(!isFinite(n)||!isFinite(ms0)||n<=0||ms0<=0)return null;
+  var labels=[],dB=[],dNm=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var ms=ms0*mults[k], b=n/ms;
+    labels.push((Math.round(ms*1000)/1000).toFixed(3));
+    dB.push(Math.round(b*1e4*1000)/1000);
+    dNm.push(Math.round(n*1e4*1000)/1000);
+    rows.push([(Math.round(ms*1000)/1000).toFixed(3),(Math.round(b*1e4*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dB:dB,dNm:dNm,rows:rows};
+}
+function __mltChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mltSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mltChart',{title:en?'Molality vs Solvent Mass (inverse b=n/m)':'质量摩尔浓度随溶剂质量反比下降（b=n/m）',labels:s.labels,series:[{name:en?'Molality b (×10⁻⁴ mol/kg)':'质量摩尔浓度 (×10⁻⁴ mol/kg)',data:s.dB}]});
+}
+
+function __mltShow(which){
+  var c=document.getElementById('mltChart'), t=document.getElementById('molalityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mltTabInit(){
+  var btns=document.querySelectorAll('.mlt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mltShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mltShow('chart');
+}
+var __mltFn=calcTool;calcTool=function(){try{__mltFn();}catch(e){}try{__mltChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mltChart();}catch(e){}});
+</script>
 </body>
 </html>

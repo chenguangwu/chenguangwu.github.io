@@ -300,6 +300,11 @@ function __poh_to_phBoot(){ try{ __poh_to_phPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __poh_to_phBoot();
 else document.addEventListener('DOMContentLoaded', __poh_to_phBoot);
 </script>
+<div class="ptp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ptpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,42 @@ else document.addEventListener('DOMContentLoaded', __poh_to_phBoot);
 <h3>适用边界</h3><p>pH+pOH=14 仅在 25℃ 稀溶液中成立；温度变化中性 pH 偏离 7（如 0℃≈7.47、100℃≈6.14）。强酸/强碱高浓度时活度效应明显，需用活度而非浓度。</p>
 <h3>注意事项</h3><p>结果仅供参考，精确测量以 pH 计/试纸为准；腐蚀性液体注意安全。</p>
 </div></section>
+<script>
+function __ptpSweep(){
+  var ohs=[1e-14,1e-12,1e-10,1e-8,1e-6,1e-4,1e-2,0.1,1];
+  var labels=[],dPh=[],dPoh=[],rows=[];
+  for(var k=0;k<ohs.length;k++){
+    var OH=ohs[k], pOH=-Math.log10(OH), pH=14-pOH;
+    labels.push(OH.toExponential(0));
+    dPh.push(Math.round(pH*1000)/1000);
+    dPoh.push(Math.round(pOH*1000)/1000);
+    rows.push([OH.toExponential(0),(Math.round(pH*1000)/1000).toFixed(2),(Math.round(pOH*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dPh:dPh,dPoh:dPoh,rows:rows};
+}
+function __ptpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ptpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ptpChart',{title:en?'pH vs [OH⁻] (logarithmic pH=14+lg[OH⁻])':'pH 随氢氧根浓度对数上升（pH=14-pOH=14+lg[OH⁻]）',labels:s.labels,series:[{name:en?'pH':'pH 值',data:s.dPh},{name:en?'pOH':'pOH 值',data:s.dPoh}]});
+}
+
+function __ptpShow(which){
+  var c=document.getElementById('ptpChart'), t=document.getElementById('poh_to_phTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ptpTabInit(){
+  var btns=document.querySelectorAll('.ptp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ptpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ptpShow('chart');
+}
+var __ptpFn=calcTool;calcTool=function(){try{__ptpFn();}catch(e){}try{__ptpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ptpChart();}catch(e){}});
+</script>
 </body>
 </html>

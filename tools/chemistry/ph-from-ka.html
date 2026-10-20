@@ -313,6 +313,11 @@ function __ph_from_kaBoot(){ try{ __ph_from_kaPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __ph_from_kaBoot();
 else document.addEventListener('DOMContentLoaded', __ph_from_kaBoot);
 </script>
+<div class="pfk-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pfkChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,44 @@ else document.addEventListener('DOMContentLoaded', __ph_from_kaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pfkSweep(){
+  var Ka=num('Ka');
+  if(!isFinite(Ka)||Ka<=0)return null;
+  var labels=[],dPh=[],dH=[],rows=[];
+  var cs=[1e-5,1e-4,1e-3,1e-2,0.05,0.1,0.5,1];
+  for(var k=0;k<cs.length;k++){
+    var C=cs[k], H=Math.sqrt(Ka*C), pH=-Math.log10(H);
+    labels.push(C.toExponential(0));
+    dPh.push(Math.round(pH*1000)/1000);
+    dH.push(Math.round(Math.log10(H)*1000)/1000);
+    rows.push([C.toExponential(0),(Math.round(pH*1000)/1000).toFixed(3),(Math.round(Math.log10(H)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dPh:dPh,dH:dH,rows:rows};
+}
+function __pfkChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pfkSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pfkChart',{title:en?'Weak-Acid pH vs Concentration (half-log slope [H⁺]=√(Ka·C))':'弱酸 pH 随浓度半对数斜率下降（[H⁺]=√(K_a·C)）',labels:s.labels,series:[{name:en?'pH':'pH 值',data:s.dPh},{name:en?'lg[H⁺]':'lg[H⁺]',data:s.dH}]});
+}
+
+function __pfkShow(which){
+  var c=document.getElementById('pfkChart'), t=document.getElementById('ph_from_kaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pfkTabInit(){
+  var btns=document.querySelectorAll('.pfk-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pfkShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pfkShow('chart');
+}
+var __pfkFn=calcTool;calcTool=function(){try{__pfkFn();}catch(e){}try{__pfkChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pfkChart();}catch(e){}});
+</script>
 </body>
 </html>

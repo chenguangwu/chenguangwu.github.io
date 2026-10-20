@@ -300,6 +300,11 @@ function __mass_percentBoot(){ try{ __mass_percentPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __mass_percentBoot();
 else document.addEventListener('DOMContentLoaded', __mass_percentBoot);
 </script>
+<div class="mp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __mass_percentBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mpSweep(){
+  var msol=num('msol'), ms0=num('ms');
+  if(!isFinite(msol)||!isFinite(ms0)||msol<=0)return null;
+  var labels=[],dW=[],dRest=[],rows=[];
+  var mults=[0.05,0.1,0.15,0.2,0.25,0.3,0.4,0.5];
+  for(var k=0;k<mults.length;k++){
+    var ms=msol*mults[k], w=ms/msol*100;
+    labels.push((Math.round(ms*100)/100).toFixed(2));
+    dW.push(Math.round(w*100)/100);
+    dRest.push(Math.round((100-w)*100)/100);
+    rows.push([(Math.round(ms*100)/100).toFixed(2),(Math.round(w*100)/100).toFixed(2),(Math.round((100-w)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dW:dW,dRest:dRest,rows:rows};
+}
+function __mpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mpChart',{title:en?'Mass Percent vs Solute Mass (linear w=ms/msol×100%)':'质量分数随溶质质量线性增长（w=m_s/m_sol×100%）',labels:s.labels,series:[{name:en?'Solute w (%)':'溶质 (%)',data:s.dW},{name:en?'Solvent (%)':'溶剂 (%)',data:s.dRest}]});
+}
+
+function __mpShow(which){
+  var c=document.getElementById('mpChart'), t=document.getElementById('mass_percentTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mpTabInit(){
+  var btns=document.querySelectorAll('.mp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mpShow('chart');
+}
+var __mpFn=calcTool;calcTool=function(){try{__mpFn();}catch(e){}try{__mpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mpChart();}catch(e){}});
+</script>
 </body>
 </html>
