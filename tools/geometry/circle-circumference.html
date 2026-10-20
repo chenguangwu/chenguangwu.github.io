@@ -244,6 +244,11 @@ function __circle_circumferenceBoot(){ try{ __circle_circumferencePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __circle_circumferenceBoot();
 else document.addEventListener('DOMContentLoaded', __circle_circumferenceBoot);
 </script>
+<div class="crc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="crcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,42 @@ else document.addEventListener('DOMContentLoaded', __circle_circumferenceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __crcSweep(){
+  var labels=[], dC=[], dA=[];
+  var rs=[0.5,1,2,3,5,8,12,20];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k];
+    labels.push(rv.toFixed(1));
+    dC.push(Math.round(2*Math.PI*rv*1000)/1000);
+    dA.push(Math.round(Math.PI*rv*rv*1000)/1000);
+  }
+  return {labels:labels,dC:dC,dA:dA};
+}
+function __crcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__crcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#crcChart',{title:en?'Circumference (linear C=2πr) vs Area (quadratic)':'圆周长线性增长与面积平方增长对照（C=2πr）',labels:s.labels,series:[{name:en?'Circumference C (m)':'圆周长 C (m)',data:s.dC},{name:en?'Area (m²)':'圆面积 (m²)',data:s.dA}]});
+}
+
+function __crcShow(which){
+  var c=document.getElementById('crcChart'), t=document.getElementById('circle_circumferenceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __crcTabInit(){
+  var btns=document.querySelectorAll('.crc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__crcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __crcShow('chart');
+  try{__crcChart();}catch(e){}
+}
+var __crcFn=calcTool;calcTool=function(){try{__crcFn();}catch(e){}try{__crcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__crcChart();}catch(e){}});try{__crcTabInit();}catch(e){}
+</script>
 </body>
 </html>

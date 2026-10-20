@@ -247,6 +247,11 @@ function __chord_lengthBoot(){ try{ __chord_lengthPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __chord_lengthBoot();
 else document.addEventListener('DOMContentLoaded', __chord_lengthBoot);
 </script>
+<div class="chl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="chlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __chord_lengthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __chlSweep(){
+  var r=num('r');
+  if(!isFinite(r)||r<=0)return null;
+  var labels=[], dC=[], dL=[];
+  var ds=[15,30,60,90,120,180,240,360];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k], th=dv*Math.PI/180;
+    labels.push(dv.toFixed(0));
+    dC.push(Math.round(2*r*Math.sin(th/2)*10000)/10000);
+    dL.push(Math.round(r*th*10000)/10000);
+  }
+  return {labels:labels,dC:dC,dL:dL};
+}
+function __chlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__chlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#chlChart',{title:en?'Chord Length (sine peak at 180°) vs Arc Length (linear)':'弦长按正弦在 180° 达峰、弧长线性对照',labels:s.labels,series:[{name:en?'Chord length c (m)':'弦长 c (m)',data:s.dC},{name:en?'Arc length (m)':'对应弧长 (m)',data:s.dL}]});
+}
+
+function __chlShow(which){
+  var c=document.getElementById('chlChart'), t=document.getElementById('chord_lengthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __chlTabInit(){
+  var btns=document.querySelectorAll('.chl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__chlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __chlShow('chart');
+  try{__chlChart();}catch(e){}
+}
+var __chlFn=calcTool;calcTool=function(){try{__chlFn();}catch(e){}try{__chlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__chlChart();}catch(e){}});try{__chlTabInit();}catch(e){}
+</script>
 </body>
 </html>

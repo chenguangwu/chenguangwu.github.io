@@ -243,6 +243,11 @@ function __circle_areaBoot(){ try{ __circle_areaPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __circle_areaBoot();
 else document.addEventListener('DOMContentLoaded', __circle_areaBoot);
 </script>
+<div class="cra-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="craChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,42 @@ else document.addEventListener('DOMContentLoaded', __circle_areaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __craSweep(){
+  var labels=[], dA=[], dC=[];
+  var rs=[0.5,1,2,3,5,8,12,20];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k];
+    labels.push(rv.toFixed(1));
+    dA.push(Math.round(Math.PI*rv*rv*1000)/1000);
+    dC.push(Math.round(2*Math.PI*rv*1000)/1000);
+  }
+  return {labels:labels,dA:dA,dC:dC};
+}
+function __craChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__craSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#craChart',{title:en?'Circle Area (quadratic A=πr²) vs Circumference (linear)':'圆面积平方增长与周长线性增长对照（A=πr²）',labels:s.labels,series:[{name:en?'Area A (m²)':'圆面积 A (m²)',data:s.dA},{name:en?'Circumference (m)':'圆周长 (m)',data:s.dC}]});
+}
+
+function __craShow(which){
+  var c=document.getElementById('craChart'), t=document.getElementById('circle_areaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __craTabInit(){
+  var btns=document.querySelectorAll('.cra-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__craShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __craShow('chart');
+  try{__craChart();}catch(e){}
+}
+var __craFn=calcTool;calcTool=function(){try{__craFn();}catch(e){}try{__craChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__craChart();}catch(e){}});try{__craTabInit();}catch(e){}
+</script>
 </body>
 </html>

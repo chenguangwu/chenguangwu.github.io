@@ -259,6 +259,11 @@ function __angle_between_vectorsBoot(){ try{ __angle_between_vectorsPresets(); }
 if (document.readyState && document.readyState !== 'loading') __angle_between_vectorsBoot();
 else document.addEventListener('DOMContentLoaded', __angle_between_vectorsBoot);
 </script>
+<div class="abv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="abvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +299,50 @@ else document.addEventListener('DOMContentLoaded', __angle_between_vectorsBoot);
 </dl>
 </div>
 </section>
+<script>
+function __abvSweep(){
+  var ax=num('ax'), ay=num('ay');
+  if(!isFinite(ax)||!isFinite(ay))return null;
+  var na=Math.hypot(ax,ay);
+  if(na===0)return null;
+  var a0=Math.atan2(ay,ax);
+  var labels=[], dA=[], dC=[];
+  var ds=[0,15,30,45,60,90,120,180];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k]*Math.PI/180;
+    var bx=Math.cos(a0+dv), by=Math.sin(a0+dv);
+    var cosv=(ax*bx+ay*by)/na;
+    if(cosv>1)cosv=1; if(cosv<-1)cosv=-1;
+    labels.push(ds[k].toFixed(0));
+    dA.push(Math.round(Math.acos(cosv)*180/Math.PI*100)/100);
+    dC.push(Math.round(cosv*1000)/1000);
+  }
+  return {labels:labels,dA:dA,dC:dC};
+}
+function __abvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__abvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#abvChart',{title:en?'Angle Between Vectors vs Rotation (linear / cosine)':'向量夹角随旋转角线性增长（余弦对照）',labels:s.labels,series:[{name:en?'Angle θ (°)':'夹角 θ (°)',data:s.dA},{name:en?'cos θ':'余弦 cos θ',data:s.dC}]});
+}
+
+function __abvShow(which){
+  var c=document.getElementById('abvChart'), t=document.getElementById('angle_between_vectorsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __abvTabInit(){
+  var btns=document.querySelectorAll('.abv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__abvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __abvShow('chart');
+  try{__abvChart();}catch(e){}
+}
+var __abvFn=calcTool;calcTool=function(){try{__abvFn();}catch(e){}try{__abvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__abvChart();}catch(e){}});try{__abvTabInit();}catch(e){}
+</script>
 </body>
 </html>

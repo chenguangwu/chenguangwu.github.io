@@ -248,6 +248,11 @@ function __arc_lengthBoot(){ try{ __arc_lengthPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __arc_lengthBoot();
 else document.addEventListener('DOMContentLoaded', __arc_lengthBoot);
 </script>
+<div class="arl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="arlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,44 @@ else document.addEventListener('DOMContentLoaded', __arc_lengthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __arlSweep(){
+  var r=num('r');
+  if(!isFinite(r)||r<=0)return null;
+  var labels=[], dL=[], dA=[];
+  var ds=[15,30,45,90,135,180,270,360];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k], th=dv*Math.PI/180;
+    labels.push(dv.toFixed(0));
+    dL.push(Math.round(r*th*10000)/10000);
+    dA.push(Math.round(Math.PI*r*r*dv/360*10000)/10000);
+  }
+  return {labels:labels,dL:dL,dA:dA};
+}
+function __arlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__arlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#arlChart',{title:en?'Arc Length & Sector Area vs Central Angle (linear)':'弧长与扇形面积随圆心角线性增长',labels:s.labels,series:[{name:en?'Arc length L (m)':'弧长 L (m)',data:s.dL},{name:en?'Sector area (m²)':'扇形面积 (m²)',data:s.dA}]});
+}
+
+function __arlShow(which){
+  var c=document.getElementById('arlChart'), t=document.getElementById('arc_lengthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __arlTabInit(){
+  var btns=document.querySelectorAll('.arl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__arlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __arlShow('chart');
+  try{__arlChart();}catch(e){}
+}
+var __arlFn=calcTool;calcTool=function(){try{__arlFn();}catch(e){}try{__arlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__arlChart();}catch(e){}});try{__arlTabInit();}catch(e){}
+</script>
 </body>
 </html>
