@@ -244,6 +244,11 @@ function __thermal_strainBoot(){ try{ __thermal_strainPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __thermal_strainBoot();
 else document.addEventListener('DOMContentLoaded', __thermal_strainBoot);
 </script>
+<div class="ts-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __thermal_strainBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tsSweep(){
+  var a=num('a'), dT0=num('dT');
+  if(!isFinite(a)||!isFinite(dT0))return null;
+  var labels=[],dEps=[],dPct=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var dT=dT0*mults[k], eps=a*dT;
+    labels.push((Math.round(dT*100)/100).toFixed(1));
+    dEps.push(Math.round(eps*1e6*1000)/1000);
+    dPct.push(Math.round(eps*100*1e6)/1e6);
+    rows.push([(Math.round(dT*100)/100).toFixed(1),(Math.round(eps*1e6*1000)/1000).toFixed(3),(Math.round(eps*100*1e6)/1e6).toFixed(6)]);
+  }
+  return {labels:labels,dEps:dEps,dPct:dPct,rows:rows};
+}
+function __tsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tsChart',{title:en?'Thermal Strain vs Temperature Change (ε=αΔT, linear)':'热应变随温变线性增长（ε=α·ΔT）',labels:s.labels,series:[{name:en?'Strain ε (με)':'热应变 ε (με)',data:s.dEps},{name:en?'Strain (%)':'热应变 (%)',data:s.dPct}]});
+}
+
+function __tsShow(which){
+  var c=document.getElementById('tsChart'), t=document.getElementById('thermal_strainTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tsTabInit(){
+  var btns=document.querySelectorAll('.ts-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tsShow('chart');
+}
+var __tsFn=calcTool;calcTool=function(){try{__tsFn();}catch(e){}try{__tsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tsChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __radius_of_gyrationBoot(){ try{ __radius_of_gyrationPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __radius_of_gyrationBoot();
 else document.addEventListener('DOMContentLoaded', __radius_of_gyrationBoot);
 </script>
+<div class="rog-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rogChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __radius_of_gyrationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rogSweep(){
+  var I0=num('I'), A=num('A');
+  if(!isFinite(I0)||!isFinite(A)||I0<=0||A<=0)return null;
+  var labels=[],dR=[],dIA=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var I=I0*mults[k], r=Math.sqrt(I/A);
+    labels.push((Math.round(I*1e12*100)/100).toFixed(2));
+    dR.push(Math.round(r*1000*1000)/1000);
+    dIA.push(Math.round(I/A*1e6*1000)/1000);
+    rows.push([(Math.round(I*1e12*100)/100).toFixed(2),(Math.round(r*1000*1000)/1000).toFixed(3),(Math.round(I/A*1e6*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dR:dR,dIA:dIA,rows:rows};
+}
+function __rogChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rogSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rogChart',{title:en?'Radius of Gyration vs Inertia (r=√(I/A), square-root)':'回转半径随惯性矩根式增长（r=√(I/A)）',labels:s.labels,series:[{name:en?'Radius r (mm)':'回转半径 r (mm)',data:s.dR},{name:en?'I/A (1e-6 m²)':'I/A (10⁻⁶ m²)',data:s.dIA}]});
+}
+
+function __rogShow(which){
+  var c=document.getElementById('rogChart'), t=document.getElementById('radius_of_gyrationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rogTabInit(){
+  var btns=document.querySelectorAll('.rog-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rogShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rogShow('chart');
+}
+var __rogFn=calcTool;calcTool=function(){try{__rogFn();}catch(e){}try{__rogChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rogChart();}catch(e){}});
+</script>
 </body>
 </html>
