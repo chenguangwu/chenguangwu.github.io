@@ -328,6 +328,11 @@ function __pid_controllerBoot(){ try{ __pid_controllerPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __pid_controllerBoot();
 else document.addEventListener('DOMContentLoaded', __pid_controllerBoot);
 </script>
+<div class="pc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -363,5 +368,45 @@ else document.addEventListener('DOMContentLoaded', __pid_controllerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pcSweep(){
+  var kp=num('kp'), ki=num('ki'), kd=num('kd'), ei=num('ei'), ep=num('ep'), dt=num('dt');
+  var e0=num('e');
+  if(!isFinite(kp)||!isFinite(ki)||!isFinite(kd)||!isFinite(ei)||!isFinite(ep)||!isFinite(dt)||!isFinite(e0)||dt<=0)return null;
+  var labels=[],dP=[],dU=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var e=e0*mults[k], P=kp*e, U=kp*e+ki*ei+kd*(e-ep)/dt;
+    labels.push((Math.round(e*1000)/1000).toFixed(3));
+    dP.push(Math.round(P*10000)/10000); dU.push(Math.round(U*10000)/10000);
+    rows.push([(Math.round(e*1000)/1000).toFixed(3),(Math.round(P*10000)/10000).toFixed(4),(Math.round(U*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dP:dP,dU:dU,rows:rows};
+}
+function __pcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pcChart',{title:en?'PID Output vs Error (P=Kp e, u=Kp e+Ki int e+Kd edot)':'PID 输出随误差变化（P=Kp·e，u=Kp·e+Ki∫e+Kd·ė）',labels:s.labels,series:[{name:en?'Proportional P':'比例项 P',data:s.dP},{name:en?'Total output u':'总输出 u',data:s.dU}]});
+}
+
+function __pcShow(which){
+  var c=document.getElementById('pcChart'), t=document.getElementById('pid_controllerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pcTabInit(){
+  var btns=document.querySelectorAll('.pc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pcShow('chart');
+}
+var __pcFn=calcTool;calcTool=function(){try{__pcFn();}catch(e){}try{__pcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pcChart();}catch(e){}});
+try{__pcTabInit();}catch(e){}
+</script>
 </body>
 </html>

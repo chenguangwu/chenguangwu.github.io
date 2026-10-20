@@ -310,6 +310,11 @@ function __servo_pwm_angleBoot(){ try{ __servo_pwm_anglePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __servo_pwm_angleBoot();
 else document.addEventListener('DOMContentLoaded', __servo_pwm_angleBoot);
 </script>
+<div class="spa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="spaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -345,5 +350,44 @@ else document.addEventListener('DOMContentLoaded', __servo_pwm_angleBoot);
 </dl>
 </div>
 </section>
+<script>
+function __spaSweep(){
+  var pwm0=num('pwm'), pmin=num('pmin'), pmax=num('pmax');
+  if(!isFinite(pwm0)||!isFinite(pmin)||!isFinite(pmax)||pmax<=pmin)return null;
+  var labels=[],dA=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var pwm=pwm0*mults[k], ang=(pwm-pmin)/(pmax-pmin)*180;
+    labels.push((Math.round(pwm*100)/100).toFixed(0));
+    dA.push(Math.round(ang*1000)/1000);
+    rows.push([(Math.round(pwm*100)/100).toFixed(0),(Math.round(ang*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dA:dA,rows:rows};
+}
+function __spaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__spaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#spaChart',{title:en?'Servo Angle vs PWM (ang=(pwm-pmin)/(pmax-pmin)*180)':'舵机转角随脉宽线性变化（ang=(pwm-pmin)/(pmax-pmin)·180）',labels:s.labels,series:[{name:en?'Angle (deg)':'转角 (°)',data:s.dA}]});
+}
+
+function __spaShow(which){
+  var c=document.getElementById('spaChart'), t=document.getElementById('servo_pwm_angleTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __spaTabInit(){
+  var btns=document.querySelectorAll('.spa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__spaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __spaShow('chart');
+}
+var __spaFn=calcTool;calcTool=function(){try{__spaFn();}catch(e){}try{__spaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__spaChart();}catch(e){}});
+try{__spaTabInit();}catch(e){}
+</script>
 </body>
 </html>

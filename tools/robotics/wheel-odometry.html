@@ -299,6 +299,11 @@ function __wheel_odometryBoot(){ try{ __wheel_odometryPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __wheel_odometryBoot();
 else document.addEventListener('DOMContentLoaded', __wheel_odometryBoot);
 </script>
+<div class="wo-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="woChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,44 @@ else document.addEventListener('DOMContentLoaded', __wheel_odometryBoot);
 </dl>
 </div>
 </section>
+<script>
+function __woSweep(){
+  var dl=num('dl'), dr=num('dr'), L0=num('L');
+  if(!isFinite(dl)||!isFinite(dr)||!isFinite(L0)||L0<=0)return null;
+  var labels=[],dDs=[],dDth=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], ds=(dr+dl)/2, dth=(dr-dl)/L;
+    labels.push((Math.round(L*1000)/1000).toFixed(3));
+    dDs.push(Math.round(ds*10000)/10000); dDth.push(Math.round(dth*10000)/10000);
+    rows.push([(Math.round(L*1000)/1000).toFixed(3),(Math.round(ds*10000)/10000).toFixed(4),(Math.round(dth*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dDs:dDs,dDth:dDth,rows:rows};
+}
+function __woChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__woSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#woChart',{title:en?'Wheel Odometry: displacement const, heading dth=Δd/L (inverse)':'轮式里程计：位移 Δs 恒定，航向 dth=Δd/L（随轮距反比）',labels:s.labels,series:[{name:en?'Displacement ds (m)':'位移 Δs (m)',data:s.dDs},{name:en?'Heading dth (rad)':'航向变化 dth (rad)',data:s.dDth}]});
+}
+
+function __woShow(which){
+  var c=document.getElementById('woChart'), t=document.getElementById('wheel_odometryTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __woTabInit(){
+  var btns=document.querySelectorAll('.wo-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__woShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __woShow('chart');
+}
+var __woFn=calcTool;calcTool=function(){try{__woFn();}catch(e){}try{__woChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__woChart();}catch(e){}});
+try{__woTabInit();}catch(e){}
+</script>
 </body>
 </html>
