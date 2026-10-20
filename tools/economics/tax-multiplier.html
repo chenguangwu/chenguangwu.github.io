@@ -241,6 +241,11 @@ function __tax_multiplierBoot(){ try{ __tax_multiplierPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __tax_multiplierBoot();
 else document.addEventListener('DOMContentLoaded', __tax_multiplierBoot);
 </script>
+<div class="tm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,42 @@ else document.addEventListener('DOMContentLoaded', __tax_multiplierBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tmSweep(){
+  var mpcs=[0.5,0.6,0.7,0.75,0.8,0.85,0.9];
+  var labels=[],dKt=[],rows=[];
+  for(var k=0;k<mpcs.length;k++){
+    var mpc=mpcs[k]; if(mpc>=1)continue;
+    var kt=-mpc/(1-mpc);
+    labels.push((Math.round(mpc*100)/100).toFixed(2));
+    dKt.push(Math.round(kt*1000)/1000);
+    rows.push([(Math.round(mpc*100)/100).toFixed(2),(Math.round(kt*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dKt:dKt,rows:rows};
+}
+function __tmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tmSweep(); if(!s||!s.labels.length)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tmChart',{title:en?'Tax Multiplier vs MPC (kt=-mpc/(1-mpc))':'税收乘数随边际消费倾向双曲变化（kt=−mpc/(1−mpc)）',labels:s.labels,series:[{name:en?'Tax multiplier':'税收乘数 kt',data:s.dKt}]});
+}
+
+function __tmShow(which){
+  var c=document.getElementById('tmChart'), t=document.getElementById('tax_multiplierTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tmTabInit(){
+  var btns=document.querySelectorAll('.tm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tmShow('chart');
+}
+var __tmFn=calcTool;calcTool=function(){try{__tmFn();}catch(e){}try{__tmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tmChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -301,6 +301,11 @@ function __velocity_of_moneyBoot(){ try{ __velocity_of_moneyPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __velocity_of_moneyBoot();
 else document.addEventListener('DOMContentLoaded', __velocity_of_moneyBoot);
 </script>
+<div class="vm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,43 @@ else document.addEventListener('DOMContentLoaded', __velocity_of_moneyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __vmSweep(){
+  var P=num('P'), Y=num('Y'), M0=num('M');
+  if(!isFinite(P)||!isFinite(Y)||!isFinite(M0)||M0<=0)return null;
+  var labels=[],dV=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var M=M0*mults[k], V=P*Y/M;
+    labels.push((Math.round(M*100)/100).toFixed(0));
+    dV.push(Math.round(V*1000)/1000);
+    rows.push([(Math.round(M*100)/100).toFixed(0),(Math.round(V*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dV:dV,rows:rows};
+}
+function __vmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__vmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vmChart',{title:en?'Velocity of Money vs Money Supply (V=P·Y/M, inverse)':'货币流通速度随货币供给反比变化（V=P·Y/M）',labels:s.labels,series:[{name:en?'Velocity V':'流通速度 V',data:s.dV}]});
+}
+
+function __vmShow(which){
+  var c=document.getElementById('vmChart'), t=document.getElementById('velocity_of_moneyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vmTabInit(){
+  var btns=document.querySelectorAll('.vm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __vmShow('chart');
+}
+var __vmFn=calcTool;calcTool=function(){try{__vmFn();}catch(e){}try{__vmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__vmChart();}catch(e){}});
+</script>
 </body>
 </html>

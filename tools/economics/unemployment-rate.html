@@ -300,6 +300,11 @@ function __unemployment_rateBoot(){ try{ __unemployment_ratePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __unemployment_rateBoot();
 else document.addEventListener('DOMContentLoaded', __unemployment_rateBoot);
 </script>
+<div class="ur-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="urChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,43 @@ else document.addEventListener('DOMContentLoaded', __unemployment_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __urSweep(){
+  var u=num('unemp'), lf0=num('lf');
+  if(!isFinite(u)||!isFinite(lf0)||u<=0||lf0<=0)return null;
+  var labels=[],dR=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var lf=lf0*mults[k], rate=u/lf*100;
+    labels.push((Math.round(lf*100)/100).toFixed(0));
+    dR.push(Math.round(rate*10000)/10000);
+    rows.push([(Math.round(lf*100)/100).toFixed(0),(Math.round(rate*10000)/10000).toFixed(3)]);
+  }
+  return {labels:labels,dR:dR,rows:rows};
+}
+function __urChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__urSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#urChart',{title:en?'Unemployment Rate vs Labor Force (rate=u/lf, inverse)':'失业率随劳动力反比变化（rate=u/lf）',labels:s.labels,series:[{name:en?'Rate (%)':'失业率 (%)',data:s.dR}]});
+}
+
+function __urShow(which){
+  var c=document.getElementById('urChart'), t=document.getElementById('unemployment_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __urTabInit(){
+  var btns=document.querySelectorAll('.ur-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__urShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __urShow('chart');
+}
+var __urFn=calcTool;calcTool=function(){try{__urFn();}catch(e){}try{__urChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__urChart();}catch(e){}});
+</script>
 </body>
 </html>
