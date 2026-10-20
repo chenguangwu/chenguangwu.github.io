@@ -244,6 +244,11 @@ function __angular_momentum_quantBoot(){ try{ __angular_momentum_quantPresets();
 if (document.readyState && document.readyState !== 'loading') __angular_momentum_quantBoot();
 else document.addEventListener('DOMContentLoaded', __angular_momentum_quantBoot);
 </script>
+<div class="amq-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="amqChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -292,5 +297,42 @@ else document.addEventListener('DOMContentLoaded', __angular_momentum_quantBoot)
 <h3>用途</h3><p>用于原子壳层、光谱项与磁量子数分析；l 决定亚壳层形状（s/p/d/f）。</p>
 <h3>注意</h3><p>结果为标准量子力学模型；具体体系还需结合自旋与耦合方案。</p>
 </div></section>
+<script>
+function __amqSweep(){
+  if(!isFinite(num('n')))return null;
+  var hbar=1.054571817e-34;
+  var labels=[],dL1=[],dL2=[],rows=[];
+  for(var l=0;l<=10;l++){
+    labels.push('l='+l);
+    dL1.push(Math.round(l*hbar*1e34*1000)/1000);
+    dL2.push(Math.round(Math.sqrt(l*(l+1))*hbar*1e34*1000)/1000);
+    rows.push([String(l),(Math.round(l*hbar*1e34*1000)/1000).toFixed(3),(Math.round(Math.sqrt(l*(l+1))*hbar*1e34*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dL1:dL1,dL2:dL2,rows:rows};
+}
+function __amqChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__amqSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#amqChart',{title:en?'Angular Momentum vs l (L=lℏ vs √(l(l+1))ℏ)':'角动量随量子数变化（L=lℏ 与 √(l(l+1))ℏ 对比）',labels:s.labels,series:[{name:en?'L=lℏ (1e-34 J·s)':'角动量 L=lℏ (10⁻³⁴ J·s)',data:s.dL1},{name:en?'|L|=√(l(l+1))ℏ':'轨道角动量 √(l(l+1))ℏ (10⁻³⁴ J·s)',data:s.dL2}]});
+}
+
+function __amqShow(which){
+  var c=document.getElementById('amqChart'), t=document.getElementById('angular_momentum_quantTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __amqTabInit(){
+  var btns=document.querySelectorAll('.amq-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__amqShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __amqShow('chart');
+}
+var __amqFn=calcTool;calcTool=function(){try{__amqFn();}catch(e){}try{__amqChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__amqChart();}catch(e){}});
+</script>
 </body>
 </html>

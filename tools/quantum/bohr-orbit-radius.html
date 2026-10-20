@@ -237,6 +237,11 @@ function __bohr_orbit_radiusBoot(){ try{ __bohr_orbit_radiusPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __bohr_orbit_radiusBoot();
 else document.addEventListener('DOMContentLoaded', __bohr_orbit_radiusBoot);
 </script>
+<div class="bor-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="borChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -272,5 +277,42 @@ else document.addEventListener('DOMContentLoaded', __bohr_orbit_radiusBoot);
 </dl>
 </div>
 </section>
+<script>
+function __borSweep(){
+  if(!isFinite(num('n')))return null;
+  var A0=5.291772109e-11;
+  var labels=[],dR=[],rows=[];
+  for(var n=1;n<=10;n++){
+    var r=A0*n*n;
+    labels.push('n='+n);
+    dR.push(Math.round(r*1e10*10000)/10000);
+    rows.push([String(n),(Math.round(r*1e10*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dR:dR,rows:rows};
+}
+function __borChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__borSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#borChart',{title:en?'Bohr Orbit Radius vs n (r=a0·n², quadratic)':'玻尔轨道半径随主量子数二次方增长（r=a₀·n²）',labels:s.labels,series:[{name:en?'Radius r_n (Å)':'轨道半径 r_n (Å)',data:s.dR}]});
+}
+
+function __borShow(which){
+  var c=document.getElementById('borChart'), t=document.getElementById('bohr_orbit_radiusTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __borTabInit(){
+  var btns=document.querySelectorAll('.bor-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__borShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __borShow('chart');
+}
+var __borFn=calcTool;calcTool=function(){try{__borFn();}catch(e){}try{__borChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__borChart();}catch(e){}});
+</script>
 </body>
 </html>
