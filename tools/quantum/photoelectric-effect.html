@@ -244,6 +244,11 @@ function __photoelectric_effectBoot(){ try{ __photoelectric_effectPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __photoelectric_effectBoot();
 else document.addEventListener('DOMContentLoaded', __photoelectric_effectBoot);
 </script>
+<div class="pet-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="petChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,47 @@ else document.addEventListener('DOMContentLoaded', __photoelectric_effectBoot);
 </dl>
 </div>
 </section>
+<script>
+function __petSweep(){
+  var f0=num('f'), phi0=num('phi');
+  if(!isFinite(f0)||!isFinite(phi0)||f0<=0||phi0<=0)return null;
+  var H=6.62607015e-34, EV=1.602176634e-19;
+  var phi=phi0*EV;
+  var labels=[],dK=[],dHf=[],rows=[];
+  var fs=[0.2,0.4,0.6,0.8,1.0,1.25,1.5,2.0,2.5,3.0];
+  for(var k=0;k<fs.length;k++){
+    var f=f0*fs[k], K=H*f-phi;
+    var lab=(Math.round(f/1e14*100)/100).toFixed(2);
+    labels.push(lab);
+    dK.push(K>0?Math.round(K/EV*10000)/10000:0);
+    dHf.push(Math.round(H*f/EV*10000)/10000);
+    rows.push([lab,(K>0?Math.round(K/EV*10000)/10000:0).toFixed(4),(Math.round(H*f/EV*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dK:dK,dHf:dHf,rows:rows};
+}
+function __petChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__petSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#petChart',{title:en?'Photoelectric KE vs Frequency (K=hf-φ, linear with cutoff)':'光电子最大动能随频率线性变化（K=hf-φ，截止频率处为零）',labels:s.labels,series:[{name:en?'Max KE (eV)':'最大动能 K (eV)',data:s.dK},{name:en?'Photon energy hf (eV)':'光子能量 hf (eV)',data:s.dHf}]});
+}
+
+function __petShow(which){
+  var c=document.getElementById('petChart'), t=document.getElementById('photoelectric_effectTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __petTabInit(){
+  var btns=document.querySelectorAll('.pet-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__petShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __petShow('chart');
+}
+var __petFn=calcTool;calcTool=function(){try{__petFn();}catch(e){}try{__petChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__petChart();}catch(e){}});
+</script>
 </body>
 </html>

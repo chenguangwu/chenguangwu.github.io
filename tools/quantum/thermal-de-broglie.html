@@ -314,6 +314,11 @@ function __thermal_de_broglieBoot(){ try{ __thermal_de_brogliePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __thermal_de_broglieBoot();
 else document.addEventListener('DOMContentLoaded', __thermal_de_broglieBoot);
 </script>
+<div class="tdb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tdbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -361,5 +366,45 @@ else document.addEventListener('DOMContentLoaded', __thermal_de_broglieBoot);
 <h3>结果含义</h3><p>热德布罗意波长 λ_db=h/√(2π·m·k_B·T)：温度为 T 时粒子表现波动性的特征波长。</p>
 <h3>用途</h3><p>当粒子间距接近 λ_db 时出现量子简并（如玻色-爱因斯坦凝聚、费米气体）；常温重粒子 λ_db 极小，经典近似成立。</p>
 </div></section>
+<script>
+function __tdbSweep(){
+  var m0=num('m'), T0=num('T');
+  if(!isFinite(m0)||!isFinite(T0)||m0<=0||T0<=0)return null;
+  var h=6.62607015e-34, kB=1.380649e-23;
+  var labels=[],dL=[],dP=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3,4];
+  for(var k=0;k<mults.length;k++){
+    var T=T0*mults[k], lam=h/Math.sqrt(2*Math.PI*m0*kB*T);
+    labels.push((Math.round(T*100)/100).toFixed(0));
+    dL.push(Math.round(lam*1e9*1e6)/1e6);
+    dP.push(Math.round(h/lam*1e25*1000)/1000);
+    rows.push([(Math.round(T*100)/100).toFixed(0),(Math.round(lam*1e9*1e6)/1e6).toFixed(6),(Math.round(h/lam*1e25*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dL:dL,dP:dP,rows:rows};
+}
+function __tdbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tdbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tdbChart',{title:en?'Thermal de Broglie Wavelength vs Temperature (λ∝1/√T)':'热德布罗意波长随温度根式衰减（λ∝1/√T）',labels:s.labels,series:[{name:en?'Wavelength λ (nm)':'热波长 λ (nm)',data:s.dL},{name:en?'Momentum p (1e-25 kg·m/s)':'热动量 p (10⁻²⁵ kg·m/s)',data:s.dP}]});
+}
+
+function __tdbShow(which){
+  var c=document.getElementById('tdbChart'), t=document.getElementById('thermal_de_broglieTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tdbTabInit(){
+  var btns=document.querySelectorAll('.tdb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tdbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tdbShow('chart');
+}
+var __tdbFn=calcTool;calcTool=function(){try{__tdbFn();}catch(e){}try{__tdbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tdbChart();}catch(e){}});
+</script>
 </body>
 </html>

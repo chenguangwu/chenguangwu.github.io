@@ -298,6 +298,11 @@ function __stefan_boltzmann_powerBoot(){ try{ __stefan_boltzmann_powerPresets();
 if (document.readyState && document.readyState !== 'loading') __stefan_boltzmann_powerBoot();
 else document.addEventListener('DOMContentLoaded', __stefan_boltzmann_powerBoot);
 </script>
+<div class="sb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,45 @@ else document.addEventListener('DOMContentLoaded', __stefan_boltzmann_powerBoot)
 </dl>
 </div>
 </section>
+<script>
+function __sbSweep(){
+  var A0=num('A'), T0=num('T');
+  if(!isFinite(A0)||!isFinite(T0)||A0<=0||T0<=0)return null;
+  var sig=5.670374419e-8;
+  var labels=[],dP=[],dM=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3,4];
+  for(var k=0;k<mults.length;k++){
+    var T=T0*mults[k], P=sig*A0*Math.pow(T,4);
+    labels.push((Math.round(T*100)/100).toFixed(0));
+    dP.push(Math.round(P*1000)/1000);
+    dM.push(Math.round(sig*Math.pow(T,4)*100)/100);
+    rows.push([(Math.round(T*100)/100).toFixed(0),(Math.round(P*1000)/1000).toFixed(3),(Math.round(sig*Math.pow(T,4)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dP:dP,dM:dM,rows:rows};
+}
+function __sbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sbChart',{title:en?'Stefan-Boltzmann Power vs Temperature (P=σAT⁴, quartic)':'辐射功率随温度四次方增长（P=σAT⁴）',labels:s.labels,series:[{name:en?'Power P (W)':'辐射功率 P (W)',data:s.dP},{name:en?'Exitance M (W/m²)':'辐射出射度 M (W/m²)',data:s.dM}]});
+}
+
+function __sbShow(which){
+  var c=document.getElementById('sbChart'), t=document.getElementById('stefan_boltzmann_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sbTabInit(){
+  var btns=document.querySelectorAll('.sb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sbShow('chart');
+}
+var __sbFn=calcTool;calcTool=function(){try{__sbFn();}catch(e){}try{__sbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sbChart();}catch(e){}});
+</script>
 </body>
 </html>

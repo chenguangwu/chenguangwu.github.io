@@ -311,6 +311,11 @@ function __rydberg_wavelengthBoot(){ try{ __rydberg_wavelengthPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __rydberg_wavelengthBoot();
 else document.addEventListener('DOMContentLoaded', __rydberg_wavelengthBoot);
 </script>
+<div class="rw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,46 @@ else document.addEventListener('DOMContentLoaded', __rydberg_wavelengthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rwSweep(){
+  var n1=Math.round(num('n1')), n2=Math.round(num('n2'));
+  if(!isFinite(num('n1'))||!isFinite(num('n2'))||n1<1||n2<1||n1===n2)return null;
+  if(n1>n2){var t=n1;n1=n2;n2=t;}
+  var RY=1.0973731568e7;
+  var labels=[],dL=[],dE=[],rows=[];
+  for(var m=n2+1;m<=n2+8;m++){
+    var inv=RY*(1/(n1*n1)-1/(m*m));
+    var lam=1/inv;
+    labels.push('n='+m);
+    dL.push(Math.round(lam*1e9*100)/100);
+    dE.push(Math.round(13.6*(1/(n1*n1)-1/(m*m))*10000)/10000);
+    rows.push([String(m),(Math.round(lam*1e9*100)/100).toFixed(2),(Math.round(13.6*(1/(n1*n1)-1/(m*m))*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dL:dL,dE:dE,rows:rows};
+}
+function __rwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__rwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#rwChart',{title:en?'Rydberg Series Wavelengths (1/λ=R(1/n1²-1/n2²))':'里德伯谱系波长分布（1/λ=R(1/n₁²-1/n₂²)）',labels:s.labels,series:[{name:en?'Wavelength λ (nm)':'谱线波长 λ (nm)',data:s.dL},{name:en?'Photon energy (eV)':'光子能量 (eV)',data:s.dE}]});
+}
+
+function __rwShow(which){
+  var c=document.getElementById('rwChart'), t=document.getElementById('rydberg_wavelengthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rwTabInit(){
+  var btns=document.querySelectorAll('.rw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rwShow('chart');
+}
+var __rwFn=calcTool;calcTool=function(){try{__rwFn();}catch(e){}try{__rwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rwChart();}catch(e){}});
+</script>
 </body>
 </html>
