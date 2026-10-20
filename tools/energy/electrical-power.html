@@ -247,6 +247,11 @@ function __electrical_powerBoot(){ try{ __electrical_powerPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __electrical_powerBoot();
 else document.addEventListener('DOMContentLoaded', __electrical_powerBoot);
 </script>
+<div class="elp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="elpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +299,44 @@ else document.addEventListener('DOMContentLoaded', __electrical_powerBoot);
 <h3>用途</h3><p>由电压电流估算用电功率与配线/插座负荷；P 越大功耗越高。</p>
 <h3>边界</h3><p>含电抗的交流电路需用视在/有功功率（P=UI·cosφ）；结果仅作估算，电气改造请遵规范并由专业人员施工。</p>
 </div></section>
+<script>
+function __elpSweep(){
+  var U=num('U');
+  if(!isFinite(U)||U<=0)return null;
+  var labels=[],dP=[],dR=[];
+  var is=[0.5,1,1.5,2,3,4,5];
+  for(var k=0;k<is.length;k++){
+    var iv=is[k];
+    labels.push(iv.toFixed(1));
+    dP.push(Math.round(U*iv*100)/100);
+    dR.push(Math.round(U/iv*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dR:dR};
+}
+function __elpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__elpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#elpChart',{title:en?'Electric Power vs Current (linear/inverse dual)':'电功率随电流线性上升',labels:s.labels,series:[{name:en?'Electric power P (W)':'电功率 P (W)',data:s.dP},{name:en?'Equivalent resistance (Ω)':'等效电阻 (Ω)',data:s.dR}]});
+}
+
+function __elpShow(which){
+  var c=document.getElementById('elpChart'), t=document.getElementById('electrical_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __elpTabInit(){
+  var btns=document.querySelectorAll('.elp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__elpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __elpShow('chart');
+  try{__elpChart();}catch(e){}
+}
+var __elpFn=calcTool;calcTool=function(){try{__elpFn();}catch(e){}try{__elpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__elpChart();}catch(e){}});try{__elpTabInit();}catch(e){}
+</script>
 </body>
 </html>

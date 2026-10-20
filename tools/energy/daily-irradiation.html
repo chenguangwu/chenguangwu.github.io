@@ -241,6 +241,11 @@ function __daily_irradiationBoot(){ try{ __daily_irradiationPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __daily_irradiationBoot();
 else document.addEventListener('DOMContentLoaded', __daily_irradiationBoot);
 </script>
+<div class="dai-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="daiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -275,5 +280,44 @@ else document.addEventListener('DOMContentLoaded', __daily_irradiationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __daiSweep(){
+  var g=num('g');
+  if(!isFinite(g)||g<=0)return null;
+  var labels=[],dH=[],dF=[];
+  var ts=[1,2,3,4.5,6,8];
+  for(var k=0;k<ts.length;k++){
+    var tv=ts[k];
+    labels.push(tv.toFixed(1));
+    dH.push(Math.round(g*tv/1000*1000)/1000);
+    dF.push(Math.round(g*24/1000*10000)/10000);
+  }
+  return {labels:labels,dH:dH,dF:dF};
+}
+function __daiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__daiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#daiChart',{title:en?'Daily Irradiation vs Sunshine Hours (linear + 24h ref)':'日辐照量随日照时数线性增长',labels:s.labels,series:[{name:en?'Daily irradiation (kWh/m²)':'日辐照量 (kWh/m²)',data:s.dH},{name:en?'24h equivalent (kWh/m²)':'24 小时折算 (kWh/m²)',data:s.dF}]});
+}
+
+function __daiShow(which){
+  var c=document.getElementById('daiChart'), t=document.getElementById('daily_irradiationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __daiTabInit(){
+  var btns=document.querySelectorAll('.dai-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__daiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __daiShow('chart');
+  try{__daiChart();}catch(e){}
+}
+var __daiFn=calcTool;calcTool=function(){try{__daiFn();}catch(e){}try{__daiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__daiChart();}catch(e){}});try{__daiTabInit();}catch(e){}
+</script>
 </body>
 </html>

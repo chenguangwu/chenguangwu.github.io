@@ -308,6 +308,11 @@ function __conductive_heat_rateBoot(){ try{ __conductive_heat_ratePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __conductive_heat_rateBoot();
 else document.addEventListener('DOMContentLoaded', __conductive_heat_rateBoot);
 </script>
+<div class="chr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="chrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,44 @@ else document.addEventListener('DOMContentLoaded', __conductive_heat_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __chrSweep(){
+  var k=num('k'), A=num('A'), dT=num('dT');
+  if(!isFinite(k)||!isFinite(A)||!isFinite(dT)||k<=0||A<=0)return null;
+  var labels=[],dQ=[],dR=[];
+  var ds=[0.005,0.01,0.02,0.05,0.1,0.2,0.5];
+  for(var k2=0;k2<ds.length;k2++){
+    var dv=ds[k2];
+    labels.push(dv.toFixed(3));
+    dQ.push(Math.round(k*A*dT/dv*100)/100);
+    dR.push(Math.round(dv/k*10000)/10000);
+  }
+  return {labels:labels,dQ:dQ,dR:dR};
+}
+function __chrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__chrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#chrChart',{title:en?'Heat Flow vs Thickness (inverse/linear)':'热流率随厚度反比下降',labels:s.labels,series:[{name:en?'Heat flow rate Q̇ (W)':'热流率 Q̇ (W)',data:s.dQ},{name:en?'Thermal resistance d/k (m²·K/W)':'单位面积热阻 d/k (m²·K/W)',data:s.dR}]});
+}
+
+function __chrShow(which){
+  var c=document.getElementById('chrChart'), t=document.getElementById('conductive_heat_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __chrTabInit(){
+  var btns=document.querySelectorAll('.chr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__chrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __chrShow('chart');
+  try{__chrChart();}catch(e){}
+}
+var __chrFn=calcTool;calcTool=function(){try{__chrFn();}catch(e){}try{__chrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__chrChart();}catch(e){}});try{__chrTabInit();}catch(e){}
+</script>
 </body>
 </html>

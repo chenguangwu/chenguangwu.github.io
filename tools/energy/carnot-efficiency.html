@@ -298,6 +298,11 @@ function __carnot_efficiencyBoot(){ try{ __carnot_efficiencyPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __carnot_efficiencyBoot();
 else document.addEventListener('DOMContentLoaded', __carnot_efficiencyBoot);
 </script>
+<div class="cen-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cenChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __carnot_efficiencyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cenSweep(){
+  var Tc=num('Tc');
+  if(!isFinite(Tc)||Tc<=0)return null;
+  var labels=[],dE=[],dR=[];
+  var ths=[Tc+50,Tc+150,Tc+250,Tc+400,Tc+600,Tc+900];
+  for(var k=0;k<ths.length;k++){
+    var thv=ths[k], eta=1-Tc/thv;
+    labels.push(thv.toFixed(0));
+    dE.push(Math.round(eta*100*100)/100);
+    dR.push(Math.round((1-eta)*100*100)/100);
+  }
+  return {labels:labels,dE:dE,dR:dR};
+}
+function __cenChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cenSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cenChart',{title:en?'Carnot Efficiency vs Hot Temp. (linear cross)':'卡诺效率随高温温度线性上升',labels:s.labels,series:[{name:en?'Carnot efficiency (%)':'卡诺效率 η (%)',data:s.dE},{name:en?'Heat rejection ratio (%)':'热量排弃比 (%)',data:s.dR}]});
+}
+
+function __cenShow(which){
+  var c=document.getElementById('cenChart'), t=document.getElementById('carnot_efficiencyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cenTabInit(){
+  var btns=document.querySelectorAll('.cen-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cenShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cenShow('chart');
+  try{__cenChart();}catch(e){}
+}
+var __cenFn=calcTool;calcTool=function(){try{__cenFn();}catch(e){}try{__cenChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cenChart();}catch(e){}});try{__cenTabInit();}catch(e){}
+</script>
 </body>
 </html>

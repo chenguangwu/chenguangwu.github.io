@@ -303,6 +303,11 @@ function __battery_capacity_whBoot(){ try{ __battery_capacity_whPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __battery_capacity_whBoot();
 else document.addEventListener('DOMContentLoaded', __battery_capacity_whBoot);
 </script>
+<div class="bcw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bcwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,45 @@ else document.addEventListener('DOMContentLoaded', __battery_capacity_whBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bcwSweep(){
+  var ah=num('ah'), v=num('v');
+  if(!isFinite(ah)||!isFinite(v)||ah<=0||v<=0)return null;
+  var wh=ah*v;
+  var labels=[],dH=[],dW=[];
+  var ls=[10,30,50,80,120,160,200];
+  for(var k=0;k<ls.length;k++){
+    var lv=ls[k];
+    labels.push(lv.toFixed(0));
+    dH.push(Math.round(wh/lv*100)/100);
+    dW.push(Math.round(wh*100)/100);
+  }
+  return {labels:labels,dH:dH,dW:dW};
+}
+function __bcwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bcwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bcwChart',{title:en?'Battery Runtime vs Load (inverse + capacity line)':'电池续航随负载功率反比下降',labels:s.labels,series:[{name:en?'Runtime (h)':'续航 (h)',data:s.dH},{name:en?'Energy capacity (Wh)':'能量 (Wh)',data:s.dW}]});
+}
+
+function __bcwShow(which){
+  var c=document.getElementById('bcwChart'), t=document.getElementById('battery_capacity_whTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bcwTabInit(){
+  var btns=document.querySelectorAll('.bcw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bcwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bcwShow('chart');
+  try{__bcwChart();}catch(e){}
+}
+var __bcwFn=calcTool;calcTool=function(){try{__bcwFn();}catch(e){}try{__bcwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bcwChart();}catch(e){}});try{__bcwTabInit();}catch(e){}
+</script>
 </body>
 </html>
