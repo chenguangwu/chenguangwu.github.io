@@ -254,6 +254,11 @@ function __portfolio_betaBoot(){ try{ __portfolio_betaPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __portfolio_betaBoot();
 else document.addEventListener('DOMContentLoaded', __portfolio_betaBoot);
 </script>
+<div class="ptfb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ptfbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -289,5 +294,43 @@ else document.addEventListener('DOMContentLoaded', __portfolio_betaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ptfbSweep(){
+  var b1=num('b1'), b2=num('b2');
+  if(!isFinite(b1)||!isFinite(b2))return null;
+  var labels=[], dP=[], dC=[];
+  for(var k=0;k<=10;k++){
+    var w1=k/10;
+    labels.push(w1.toFixed(1));
+    dP.push(Math.round((w1*b1+(1-w1)*b2)*1000)/1000);
+    dC.push(Math.round(w1*b1*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dC:dC};
+}
+function __ptfbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ptfbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ptfbChart',{title:en?'Portfolio beta interpolates linearly between the two asset betas':'组合贝塔在两资产贝塔之间线性插值（对照资产1贡献）',labels:s.labels,series:[{name:en?'Portfolio beta':'组合 β_p',data:s.dP},{name:en?'Asset 1 contribution':'资产 1 的 β 贡献',data:s.dC}]});
+}
+
+function __ptfbShow(which){
+  var c=document.getElementById('ptfbChart'), t=document.getElementById('portfolio_betaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ptfbTabInit(){
+  var btns=document.querySelectorAll('.ptfb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ptfbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ptfbShow('chart');
+  try{__ptfbChart();}catch(e){}
+}
+var __ptfbFn=calcTool;calcTool=function(){try{__ptfbFn();}catch(e){}try{__ptfbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ptfbChart();}catch(e){}});try{__ptfbTabInit();}catch(e){}
+</script>
 </body>
 </html>

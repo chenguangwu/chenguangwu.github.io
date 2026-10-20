@@ -296,6 +296,11 @@ function __pe_ratioBoot(){ try{ __pe_ratioPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __pe_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __pe_ratioBoot);
 </script>
+<div class="pera-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="peraChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,43 @@ else document.addEventListener('DOMContentLoaded', __pe_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __peraSweep(){
+  var p=num('price'), e=num('eps');
+  if(!isFinite(p)||!isFinite(e)||Math.abs(e)<1e-12)return null;
+  var labels=[], dP=[];
+  var mult=[0.6,0.8,1.0,1.2,1.4];
+  for(var k=0;k<mult.length;k++){
+    var pp=p*mult[k];
+    labels.push((Math.round(pp*100)/100)+'');
+    dP.push(Math.round(pp/e*100)/100);
+  }
+  return {labels:labels,dP:dP};
+}
+function __peraChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__peraSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#peraChart',{title:en?'P/E ratio across five price levels at fixed EPS':'固定每股收益下五档股价对应的市盈率对照',labels:s.labels,series:[{name:en?'P/E':'市盈率 P/E',data:s.dP}]});
+}
+
+function __peraShow(which){
+  var c=document.getElementById('peraChart'), t=document.getElementById('pe_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __peraTabInit(){
+  var btns=document.querySelectorAll('.pera-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__peraShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __peraShow('chart');
+  try{__peraChart();}catch(e){}
+}
+var __peraFn=calcTool;calcTool=function(){try{__peraFn();}catch(e){}try{__peraChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__peraChart();}catch(e){}});try{__peraTabInit();}catch(e){}
+</script>
 </body>
 </html>

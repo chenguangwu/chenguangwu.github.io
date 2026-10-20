@@ -300,6 +300,11 @@ function __holding_period_returnBoot(){ try{ __holding_period_returnPresets(); }
 if (document.readyState && document.readyState !== 'loading') __holding_period_returnBoot();
 else document.addEventListener('DOMContentLoaded', __holding_period_returnBoot);
 </script>
+<div class="hprr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hprrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,43 @@ else document.addEventListener('DOMContentLoaded', __holding_period_returnBoot);
 </dl>
 </div>
 </section>
+<script>
+function __hprrSweep(){
+  var p0=num('p0'), d=num('d');
+  if(!isFinite(p0)||!isFinite(d)||Math.abs(p0)<1e-12)return null;
+  var labels=[], dH=[], dZ=[];
+  for(var k=0;k<=10;k++){
+    var p1=p0*(0.5+0.1*k);
+    labels.push((Math.round(p1*100)/100)+'');
+    dH.push(Math.round((p1-p0+d)/p0*100*100)/100);
+    dZ.push(0);
+  }
+  return {labels:labels,dH:dH,dZ:dZ};
+}
+function __hprrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__hprrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hprrChart',{title:en?'Holding period return crosses zero as exit price rises above cost':'持有期收益率随卖出价线性上行并穿越零轴',labels:s.labels,series:[{name:en?'HPR (%)':'持有期收益率 (%)',data:s.dH},{name:en?'Break-even line':'盈亏平衡线 (%)',data:s.dZ}]});
+}
+
+function __hprrShow(which){
+  var c=document.getElementById('hprrChart'), t=document.getElementById('holding_period_returnTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hprrTabInit(){
+  var btns=document.querySelectorAll('.hprr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hprrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hprrShow('chart');
+  try{__hprrChart();}catch(e){}
+}
+var __hprrFn=calcTool;calcTool=function(){try{__hprrFn();}catch(e){}try{__hprrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hprrChart();}catch(e){}});try{__hprrTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __eps_calcBoot(){ try{ __eps_calcPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __eps_calcBoot();
 else document.addEventListener('DOMContentLoaded', __eps_calcBoot);
 </script>
+<div class="epsc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="epscChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __eps_calcBoot);
 </dl>
 </div>
 </section>
+<script>
+function __epscSweep(){
+  var ni=num('ni'), pref=num('pref'), s=num('shares');
+  if(!isFinite(ni)||!isFinite(pref)||!isFinite(s)||Math.abs(s)<1e-12)return null;
+  var base=ni-pref;
+  var labels=[], dE=[], dB=[];
+  for(var k=0;k<=10;k++){
+    var sh=s*(0.4+0.16*k);
+    labels.push((Math.round(sh*100)/100)+'');
+    dE.push(Math.round(base/sh*10000)/10000);
+    dB.push(Math.round(base*100)/100);
+  }
+  return {labels:labels,dE:dE,dB:dB};
+}
+function __epscChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__epscSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#epscChart',{title:en?'EPS falls inversely with share count against a flat distributable profit':'每股收益随流通股数反比摊薄（对照恒定的归属普通股净利）',labels:s.labels,series:[{name:en?'EPS':'每股收益 EPS (元)',data:s.dE},{name:en?'Net profit to common':'归属普通股净利 (元)',data:s.dB}]});
+}
+
+function __epscShow(which){
+  var c=document.getElementById('epscChart'), t=document.getElementById('eps_calcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __epscTabInit(){
+  var btns=document.querySelectorAll('.epsc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__epscShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __epscShow('chart');
+  try{__epscChart();}catch(e){}
+}
+var __epscFn=calcTool;calcTool=function(){try{__epscFn();}catch(e){}try{__epscChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__epscChart();}catch(e){}});try{__epscTabInit();}catch(e){}
+</script>
 </body>
 </html>
