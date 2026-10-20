@@ -304,6 +304,11 @@ function __orifice_dischargeBoot(){ try{ __orifice_dischargePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __orifice_dischargeBoot();
 else document.addEventListener('DOMContentLoaded', __orifice_dischargeBoot);
 </script>
+<div class="ord-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ordChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +343,44 @@ else document.addEventListener('DOMContentLoaded', __orifice_dischargeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ordSweep(){
+  var cd=num('cd'), a=num('a'), rho=num('rho');
+  if(!isFinite(cd)||!isFinite(a)||!isFinite(rho)||cd<=0||a<=0||rho<=0)return null;
+  var labels=[], dQ=[], dV=[];
+  var dps=[500,1000,2500,5000,10000,20000,40000,80000];
+  for(var k=0;k<dps.length;k++){
+    var pv=dps[k], Q=cd*a*Math.sqrt(2*pv/rho);
+    labels.push(pv.toFixed(0));
+    dQ.push(Math.round(Q*1e6*1000)/1000);
+    dV.push(Math.round(Math.sqrt(2*pv/rho)*1000)/1000);
+  }
+  return {labels:labels,dQ:dQ,dV:dV};
+}
+function __ordChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ordSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ordChart',{title:en?'Orifice Discharge vs Pressure Drop (square-root law)':'孔口流量随压差平方根增长',labels:s.labels,series:[{name:en?'Flow rate Q (×10⁻⁶ m³/s)':'流量 Q (×10⁻⁶ m³/s)',data:s.dQ},{name:en?'Jet velocity (m/s)':'射流速度 (m/s)',data:s.dV}]});
+}
+
+function __ordShow(which){
+  var c=document.getElementById('ordChart'), t=document.getElementById('orifice_dischargeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ordTabInit(){
+  var btns=document.querySelectorAll('.ord-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ordShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ordShow('chart');
+  try{__ordChart();}catch(e){}
+}
+var __ordFn=calcTool;calcTool=function(){try{__ordFn();}catch(e){}try{__ordChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ordChart();}catch(e){}});try{__ordTabInit();}catch(e){}
+</script>
 </body>
 </html>

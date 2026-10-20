@@ -314,6 +314,11 @@ function __manning_velocityBoot(){ try{ __manning_velocityPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __manning_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __manning_velocityBoot);
 </script>
+<div class="mav-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mavChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,44 @@ else document.addEventListener('DOMContentLoaded', __manning_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mavSweep(){
+  var n=num('n'), S=num('S');
+  if(!isFinite(n)||!isFinite(S)||n<=0||S<=0)return null;
+  var labels=[], dV=[], dC=[];
+  var Rs=[0.05,0.1,0.25,0.5,0.75,1,1.5,2];
+  for(var k=0;k<Rs.length;k++){
+    var rv=Rs[k], v=(1/n)*Math.pow(rv,2/3)*Math.sqrt(S);
+    labels.push(rv.toFixed(2));
+    dV.push(Math.round(v*10000)/10000);
+    dC.push(Math.round(Math.pow(rv,1/6)/n*1000)/1000);
+  }
+  return {labels:labels,dV:dV,dC:dC};
+}
+function __mavChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mavSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mavChart',{title:en?'Manning Velocity vs Hydraulic Radius (power 2/3)':'曼宁流速随水力半径幂律上升（指数 2/3）',labels:s.labels,series:[{name:en?'Velocity v (m/s)':'流速 v (m/s)',data:s.dV},{name:en?'Chezy coefficient C':'Chezy 系数 C',data:s.dC}]});
+}
+
+function __mavShow(which){
+  var c=document.getElementById('mavChart'), t=document.getElementById('manning_velocityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mavTabInit(){
+  var btns=document.querySelectorAll('.mav-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mavShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mavShow('chart');
+  try{__mavChart();}catch(e){}
+}
+var __mavFn=calcTool;calcTool=function(){try{__mavFn();}catch(e){}try{__mavChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mavChart();}catch(e){}});try{__mavTabInit();}catch(e){}
+</script>
 </body>
 </html>

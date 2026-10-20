@@ -301,6 +301,11 @@ function __minor_loss_headBoot(){ try{ __minor_loss_headPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __minor_loss_headBoot();
 else document.addEventListener('DOMContentLoaded', __minor_loss_headBoot);
 </script>
+<div class="mlh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mlhChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __minor_loss_headBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mlhSweep(){
+  var K=num('K'), g=num('g');
+  if(!isFinite(K)||!isFinite(g)||K<=0||g<=0)return null;
+  var labels=[], dH=[], dV=[];
+  var vs=[0.5,1,1.5,2,3,4,5,6];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], h=K*vv*vv/(2*g);
+    labels.push(vv.toFixed(1));
+    dH.push(Math.round(h*10000)/10000);
+    dV.push(Math.round(vv*vv/(2*g)*10000)/10000);
+  }
+  return {labels:labels,dH:dH,dV:dV};
+}
+function __mlhChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mlhSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mlhChart',{title:en?'Minor Loss Head vs Velocity (quadratic)':'局部水头损失随流速平方增长',labels:s.labels,series:[{name:en?'Loss head h (m)':'水头损失 h (m)',data:s.dH},{name:en?'Velocity head v²/2g (m)':'速度水头 v²/2g (m)',data:s.dV}]});
+}
+
+function __mlhShow(which){
+  var c=document.getElementById('mlhChart'), t=document.getElementById('minor_loss_headTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mlhTabInit(){
+  var btns=document.querySelectorAll('.mlh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mlhShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mlhShow('chart');
+  try{__mlhChart();}catch(e){}
+}
+var __mlhFn=calcTool;calcTool=function(){try{__mlhFn();}catch(e){}try{__mlhChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mlhChart();}catch(e){}});try{__mlhTabInit();}catch(e){}
+</script>
 </body>
 </html>

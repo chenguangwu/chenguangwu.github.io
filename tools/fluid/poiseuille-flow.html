@@ -306,6 +306,11 @@ function __poiseuille_flowBoot(){ try{ __poiseuille_flowPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __poiseuille_flowBoot();
 else document.addEventListener('DOMContentLoaded', __poiseuille_flowBoot);
 </script>
+<div class="poi-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="poiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -340,5 +345,44 @@ else document.addEventListener('DOMContentLoaded', __poiseuille_flowBoot);
 </dl>
 </div>
 </section>
+<script>
+function __poiSweep(){
+  var dp=num('dp'), mu=num('mu'), L=num('L');
+  if(!isFinite(dp)||!isFinite(mu)||!isFinite(L)||dp<=0||mu<=0||L<=0)return null;
+  var labels=[], dQ=[], dR=[];
+  var rs=[0.001,0.002,0.004,0.006,0.008,0.01,0.015,0.02];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k], Q=Math.PI*dp*Math.pow(rv,4)/(8*mu*L);
+    labels.push((rv*1000).toFixed(1));
+    dQ.push(Math.round(Q*1e6*10000)/10000);
+    dR.push(Math.round(8*mu*L/(Math.PI*Math.pow(rv,4))*1e-6*1000)/1000);
+  }
+  return {labels:labels,dQ:dQ,dR:dR};
+}
+function __poiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__poiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#poiChart',{title:en?'Poiseuille Flow vs Tube Radius (fourth power / inverse)':'泊肃叶流量随管半径四次方增长',labels:s.labels,series:[{name:en?'Flow rate Q (×10⁻⁶ m³/s)':'流量 Q (×10⁻⁶ m³/s)',data:s.dQ},{name:en?'Flow resistance R (×10⁶)':'流阻 R (×10⁶)',data:s.dR}]});
+}
+
+function __poiShow(which){
+  var c=document.getElementById('poiChart'), t=document.getElementById('poiseuille_flowTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __poiTabInit(){
+  var btns=document.querySelectorAll('.poi-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__poiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __poiShow('chart');
+  try{__poiChart();}catch(e){}
+}
+var __poiFn=calcTool;calcTool=function(){try{__poiFn();}catch(e){}try{__poiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__poiChart();}catch(e){}});try{__poiTabInit();}catch(e){}
+</script>
 </body>
 </html>

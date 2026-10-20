@@ -298,6 +298,11 @@ function __pitot_velocityBoot(){ try{ __pitot_velocityPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __pitot_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __pitot_velocityBoot);
 </script>
+<div class="ptv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ptvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __pitot_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ptvSweep(){
+  var rho=num('rho');
+  if(!isFinite(rho)||rho<=0)return null;
+  var labels=[], dV=[], dQ=[];
+  var dps=[10,50,100,250,500,1000,2000,4000];
+  for(var k=0;k<dps.length;k++){
+    var pv=dps[k], v=Math.sqrt(2*pv/rho);
+    labels.push(pv.toFixed(0));
+    dV.push(Math.round(v*1000)/1000);
+    dQ.push(Math.round(v*v*rho/2*100)/100);
+  }
+  return {labels:labels,dV:dV,dQ:dQ};
+}
+function __ptvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ptvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ptvChart',{title:en?'Pitot Velocity vs Dynamic Pressure (square-root / linear dual)':'皮托管流速随动压平方根上升',labels:s.labels,series:[{name:en?'Velocity v (m/s)':'流速 v (m/s)',data:s.dV},{name:en?'Dynamic pressure (Pa)':'动压 (Pa)',data:s.dQ}]});
+}
+
+function __ptvShow(which){
+  var c=document.getElementById('ptvChart'), t=document.getElementById('pitot_velocityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ptvTabInit(){
+  var btns=document.querySelectorAll('.ptv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ptvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ptvShow('chart');
+  try{__ptvChart();}catch(e){}
+}
+var __ptvFn=calcTool;calcTool=function(){try{__ptvFn();}catch(e){}try{__ptvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ptvChart();}catch(e){}});try{__ptvTabInit();}catch(e){}
+</script>
 </body>
 </html>
