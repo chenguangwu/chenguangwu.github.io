@@ -297,6 +297,11 @@ function __rule_of_72Boot(){ try{ __rule_of_72Presets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __rule_of_72Boot();
 else document.addEventListener('DOMContentLoaded', __rule_of_72Boot);
 </script>
+<div class="r72-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="r72Chart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __rule_of_72Boot);
 </dl>
 </div>
 </section>
+<script>
+function __r72Sweep(){
+  var r0=num('rate');
+  if(!isFinite(r0)||r0<=0)return null;
+  var labels=[],dApx=[],dExact=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var r=r0*mults[k]; if(r<=0)continue;
+    var t=72/r, ex=Math.log(2)/Math.log(1+r/100);
+    labels.push((Math.round(r*100)/100).toFixed(1));
+    dApx.push(Math.round(t*1000)/1000); dExact.push(Math.round(ex*1000)/1000);
+    rows.push([(Math.round(r*100)/100).toFixed(1),(Math.round(t*1000)/1000).toFixed(2),(Math.round(ex*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dApx:dApx,dExact:dExact,rows:rows};
+}
+function __r72Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__r72Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#r72Chart',{title:en?'Doubling Time vs Rate (t=72/r, inverse)':'翻倍年限随利率反比变化（t=72/r）',labels:s.labels,series:[{name:en?'Rule of 72':'72 法则',data:s.dApx},{name:en?'Exact':'精确值',data:s.dExact}]});
+}
+
+function __r72Show(which){
+  var c=document.getElementById('r72Chart'), t=document.getElementById('rule_of_72Table');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __r72TabInit(){
+  var btns=document.querySelectorAll('.r72-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__r72Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __r72Show('chart');
+}
+var __r72Fn=calcTool;calcTool=function(){try{__r72Fn();}catch(e){}try{__r72Chart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__r72Chart();}catch(e){}});
+</script>
 </body>
 </html>

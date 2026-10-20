@@ -246,6 +246,11 @@ function __real_gdpBoot(){ try{ __real_gdpPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __real_gdpBoot();
 else document.addEventListener('DOMContentLoaded', __real_gdpBoot);
 </script>
+<div class="rg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rgChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,43 @@ else document.addEventListener('DOMContentLoaded', __real_gdpBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rgSweep(){
+  var nom=num('nominal'), d0=num('defl');
+  if(!isFinite(nom)||!isFinite(d0)||nom<=0)return null;
+  var labels=[],dReal=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k], real=nom/(1+d/100);
+    labels.push((Math.round(d*100)/100).toFixed(1));
+    dReal.push(Math.round(real*1000)/1000);
+    rows.push([(Math.round(d*100)/100).toFixed(1),(Math.round(real*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dReal:dReal,rows:rows};
+}
+function __rgChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rgSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rgChart',{title:en?'Real GDP vs Deflator (real=nom/(1+d/100))':'实际 GDP 随平减指数倒数衰减（real=nom/(1+d/100)）',labels:s.labels,series:[{name:en?'Real GDP':'实际 GDP',data:s.dReal}]});
+}
+
+function __rgShow(which){
+  var c=document.getElementById('rgChart'), t=document.getElementById('real_gdpTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rgTabInit(){
+  var btns=document.querySelectorAll('.rg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rgShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rgShow('chart');
+}
+var __rgFn=calcTool;calcTool=function(){try{__rgFn();}catch(e){}try{__rgChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rgChart();}catch(e){}});
+</script>
 </body>
 </html>

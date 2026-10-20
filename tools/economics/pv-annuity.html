@@ -245,6 +245,11 @@ function __pv_annuityBoot(){ try{ __pv_annuityPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __pv_annuityBoot();
 else document.addEventListener('DOMContentLoaded', __pv_annuityBoot);
 </script>
+<div class="pva-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pvaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,44 @@ else document.addEventListener('DOMContentLoaded', __pv_annuityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pvaSweep(){
+  var pmt=num('pmt'), i=num('i')/100, n0=num('n');
+  if(!isFinite(pmt)||!isFinite(i)||!isFinite(n0)||pmt<=0||i<0||n0<=0)return null;
+  var labels=[],dPv=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var n=Math.max(1,Math.round(n0*mults[k]));
+    var pv=(i===0)?pmt*n:pmt*(1-Math.pow(1+i,-n))/i;
+    labels.push(String(n));
+    dPv.push(Math.round(pv*1000)/1000);
+    rows.push([String(n),(Math.round(pv*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dPv:dPv,rows:rows};
+}
+function __pvaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pvaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pvaChart',{title:en?'PV of Annuity vs Periods (pv=pmt(1-(1+i)^-n)/i, saturating)':'年金现值随期数饱和增长（pv=pmt·(1−(1+i)^−n)/i）',labels:s.labels,series:[{name:en?'Present value':'现值',data:s.dPv}]});
+}
+
+function __pvaShow(which){
+  var c=document.getElementById('pvaChart'), t=document.getElementById('pv_annuityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pvaTabInit(){
+  var btns=document.querySelectorAll('.pva-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pvaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pvaShow('chart');
+}
+var __pvaFn=calcTool;calcTool=function(){try{__pvaFn();}catch(e){}try{__pvaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pvaChart();}catch(e){}});
+</script>
 </body>
 </html>

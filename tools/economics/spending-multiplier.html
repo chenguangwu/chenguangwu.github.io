@@ -243,6 +243,11 @@ function __spending_multiplierBoot(){ try{ __spending_multiplierPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __spending_multiplierBoot();
 else document.addEventListener('DOMContentLoaded', __spending_multiplierBoot);
 </script>
+<div class="sm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="smChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,42 @@ else document.addEventListener('DOMContentLoaded', __spending_multiplierBoot);
 </dl>
 </div>
 </section>
+<script>
+function __smSweep(){
+  var mpcs=[0.5,0.6,0.7,0.75,0.8,0.85,0.9];
+  var labels=[],dK=[],rows=[];
+  for(var k=0;k<mpcs.length;k++){
+    var mpc=mpcs[k]; if(mpc>=1)continue;
+    var K=1/(1-mpc);
+    labels.push((Math.round(mpc*100)/100).toFixed(2));
+    dK.push(Math.round(K*1000)/1000);
+    rows.push([(Math.round(mpc*100)/100).toFixed(2),(Math.round(K*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dK:dK,rows:rows};
+}
+function __smChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__smSweep(); if(!s||!s.labels.length)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#smChart',{title:en?'Spending Multiplier vs MPC (k=1/(1-mpc))':'支出乘数随边际消费倾向双曲爆增（k=1/(1−mpc)）',labels:s.labels,series:[{name:en?'Multiplier k':'乘数 k',data:s.dK}]});
+}
+
+function __smShow(which){
+  var c=document.getElementById('smChart'), t=document.getElementById('spending_multiplierTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __smTabInit(){
+  var btns=document.querySelectorAll('.sm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__smShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __smShow('chart');
+}
+var __smFn=calcTool;calcTool=function(){try{__smFn();}catch(e){}try{__smChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__smChart();}catch(e){}});
+</script>
 </body>
 </html>
