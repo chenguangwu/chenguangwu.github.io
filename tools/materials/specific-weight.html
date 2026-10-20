@@ -243,6 +243,11 @@ function __specific_weightBoot(){ try{ __specific_weightPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __specific_weightBoot();
 else document.addEventListener('DOMContentLoaded', __specific_weightBoot);
 </script>
+<div class="sw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="swChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,43 @@ else document.addEventListener('DOMContentLoaded', __specific_weightBoot);
 </dl>
 </div>
 </section>
+<script>
+function __swSweep(){
+  var rho0=num('rho');
+  if(!isFinite(rho0)||rho0<=0)return null;
+  var labels=[],dGam=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var rho=rho0*mults[k], gamma=rho*9.81;
+    labels.push((Math.round(rho*100)/100).toFixed(0));
+    dGam.push(Math.round(gamma*1000)/1000);
+    rows.push([(Math.round(rho*100)/100).toFixed(0),(Math.round(gamma*1000)/1000).toFixed(1)]);
+  }
+  return {labels:labels,dGam:dGam,rows:rows};
+}
+function __swChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__swSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#swChart',{title:en?'Specific Weight vs Density (gamma=ρ·9.81)':'重度随密度线性变化（γ=ρ·9.81）',labels:s.labels,series:[{name:en?'Specific weight':'重度 γ',data:s.dGam}]});
+}
+
+function __swShow(which){
+  var c=document.getElementById('swChart'), t=document.getElementById('specific_weightTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __swTabInit(){
+  var btns=document.querySelectorAll('.sw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__swShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __swShow('chart');
+}
+var __swFn=calcTool;calcTool=function(){try{__swFn();}catch(e){}try{__swChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__swChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __shear_strainBoot(){ try{ __shear_strainPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __shear_strainBoot();
 else document.addEventListener('DOMContentLoaded', __shear_strainBoot);
 </script>
+<div class="ss-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ssChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,43 @@ else document.addEventListener('DOMContentLoaded', __shear_strainBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ssSweep(){
+  var tau=num('tau'), G0=num('G');
+  if(!isFinite(tau)||!isFinite(G0)||tau<=0||G0<=0)return null;
+  var labels=[],dGam=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var G=G0*mults[k], gam=tau/G;
+    labels.push((Math.round(G/1e9*100)/100).toFixed(0));
+    dGam.push(Math.round(gam*1e6*1000)/1000);
+    rows.push([(Math.round(G/1e9*100)/100).toFixed(0),(Math.round(gam*1e6*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dGam:dGam,rows:rows};
+}
+function __ssChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ssSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ssChart',{title:en?'Shear Strain vs Shear Modulus (gamma=tau/G, inverse)':'剪切应变随剪切模量反比变化（γ=τ/G）',labels:s.labels,series:[{name:en?'Shear strain':'剪切应变',data:s.dGam}]});
+}
+
+function __ssShow(which){
+  var c=document.getElementById('ssChart'), t=document.getElementById('shear_strainTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ssTabInit(){
+  var btns=document.querySelectorAll('.ss-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ssShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ssShow('chart');
+}
+var __ssFn=calcTool;calcTool=function(){try{__ssFn();}catch(e){}try{__ssChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ssChart();}catch(e){}});
+</script>
 </body>
 </html>

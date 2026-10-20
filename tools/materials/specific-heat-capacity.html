@@ -244,6 +244,11 @@ function __specific_heat_capacityBoot(){ try{ __specific_heat_capacityPresets();
 if (document.readyState && document.readyState !== 'loading') __specific_heat_capacityBoot();
 else document.addEventListener('DOMContentLoaded', __specific_heat_capacityBoot);
 </script>
+<div class="shc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="shcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,43 @@ else document.addEventListener('DOMContentLoaded', __specific_heat_capacityBoot)
 </dl>
 </div>
 </section>
+<script>
+function __shcSweep(){
+  var m0=num('m'), c=num('c');
+  if(!isFinite(m0)||!isFinite(c)||m0<=0||c<0)return null;
+  var labels=[],dC=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var m=m0*mults[k], C=m*c;
+    labels.push((Math.round(m*100)/100).toFixed(1));
+    dC.push(Math.round(C*1000)/1000);
+    rows.push([(Math.round(m*100)/100).toFixed(1),(Math.round(C*1000)/1000).toFixed(1)]);
+  }
+  return {labels:labels,dC:dC,rows:rows};
+}
+function __shcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__shcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#shcChart',{title:en?'Heat Capacity vs Mass (C=m·c)':'热容随质量线性变化（C=m·c）',labels:s.labels,series:[{name:en?'Heat capacity C':'热容 C',data:s.dC}]});
+}
+
+function __shcShow(which){
+  var c=document.getElementById('shcChart'), t=document.getElementById('specific_heat_capacityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __shcTabInit(){
+  var btns=document.querySelectorAll('.shc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__shcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __shcShow('chart');
+}
+var __shcFn=calcTool;calcTool=function(){try{__shcFn();}catch(e){}try{__shcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__shcChart();}catch(e){}});
+</script>
 </body>
 </html>

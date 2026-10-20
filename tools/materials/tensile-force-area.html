@@ -246,6 +246,11 @@ function __tensile_force_areaBoot(){ try{ __tensile_force_areaPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __tensile_force_areaBoot();
 else document.addEventListener('DOMContentLoaded', __tensile_force_areaBoot);
 </script>
+<div class="tfa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tfaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,43 @@ else document.addEventListener('DOMContentLoaded', __tensile_force_areaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tfaSweep(){
+  var s=num('s'), A0=num('A');
+  if(!isFinite(s)||!isFinite(A0)||s<=0||A0<=0)return null;
+  var labels=[],dF=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var A=A0*mults[k], F=s*A;
+    labels.push((Math.round(A*1e4*100)/100).toFixed(2));
+    dF.push(Math.round(F/1e3*1000)/1000);
+    rows.push([(Math.round(A*1e4*100)/100).toFixed(2),(Math.round(F/1e3*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dF:dF,rows:rows};
+}
+function __tfaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tfaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tfaChart',{title:en?'Tensile Force vs Area (F=σ·A)':'拉力随截面积线性变化（F=σ·A）',labels:s.labels,series:[{name:en?'Force F (kN)':'拉力 F (kN)',data:s.dF}]});
+}
+
+function __tfaShow(which){
+  var c=document.getElementById('tfaChart'), t=document.getElementById('tensile_force_areaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tfaTabInit(){
+  var btns=document.querySelectorAll('.tfa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tfaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tfaShow('chart');
+}
+var __tfaFn=calcTool;calcTool=function(){try{__tfaFn();}catch(e){}try{__tfaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tfaChart();}catch(e){}});
+</script>
 </body>
 </html>
