@@ -297,6 +297,11 @@ function __centripetal_forceBoot(){ try{ __centripetal_forcePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __centripetal_forceBoot();
 else document.addEventListener('DOMContentLoaded', __centripetal_forceBoot);
 </script>
+<div class="cpfr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cpfrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,43 @@ else document.addEventListener('DOMContentLoaded', __centripetal_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cpfrSweep(){
+  var m=num('m'), v0=num('v'), r=num('r');
+  if(!isFinite(m)||!isFinite(v0)||!isFinite(r)||Math.abs(r)<1e-12)return null;
+  var labels=[], dF=[], dT=[];
+  for(var k=0;k<=10;k++){
+    var vk=v0*(k/5);
+    labels.push((Math.round(vk*1000)/1000)+'');
+    dF.push(Math.round(m*vk*vk/r*1000)/1000);
+    dT.push(Math.abs(vk)<1e-12?null:Math.round(2*Math.PI*r/vk*1000)/1000);
+  }
+  return {labels:labels,dF:dF,dT:dT};
+}
+function __cpfrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cpfrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cpfrChart',{title:en?'Centripetal force grows quadratically with speed while orbital period decays hyperbolically':'向心力随线速度二次增长，圆周运动周期双曲衰减（零速处断开）',labels:s.labels,series:[{name:en?'Centripetal force (N)':'向心力 F (N)',data:s.dF},{name:en?'Orbital period T (s)':'圆周运动周期 T (s)',data:s.dT}]});
+}
+
+function __cpfrShow(which){
+  var c=document.getElementById('cpfrChart'), t=document.getElementById('centripetal_forceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cpfrTabInit(){
+  var btns=document.querySelectorAll('.cpfr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cpfrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cpfrShow('chart');
+  try{__cpfrChart();}catch(e){}
+}
+var __cpfrFn=calcTool;calcTool=function(){try{__cpfrFn();}catch(e){}try{__cpfrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cpfrChart();}catch(e){}});try{__cpfrTabInit();}catch(e){}
+</script>
 </body>
 </html>

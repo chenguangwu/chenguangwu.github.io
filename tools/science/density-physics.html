@@ -294,6 +294,11 @@ function __density_physicsBoot(){ try{ __density_physicsPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __density_physicsBoot();
 else document.addEventListener('DOMContentLoaded', __density_physicsBoot);
 </script>
+<div class="dnph-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dnphChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -327,5 +332,43 @@ else document.addEventListener('DOMContentLoaded', __density_physicsBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dnphSweep(){
+  var m=num('m'), V0=num('V');
+  if(!isFinite(m)||!isFinite(V0)||Math.abs(V0)<1e-12)return null;
+  var labels=[], dR=[], dS=[];
+  for(var k=0;k<=10;k++){
+    var vk=V0*(0.5+0.25*k);
+    labels.push((Math.round(vk*10000)/10000)+'');
+    dR.push(Math.round(m/vk*10000)/10000);
+    dS.push(Math.round(vk/Math.max(m,1e-12)*10000)/10000);
+  }
+  return {labels:labels,dR:dR,dS:dS};
+}
+function __dnphChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dnphSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dnphChart',{title:en?'Density falls inversely with volume while specific volume climbs linearly':'密度随体积反比下降，比容线性抬升',labels:s.labels,series:[{name:en?'Density (kg/m3)':'密度 ρ (kg/m³)',data:s.dR},{name:en?'Specific volume (m3/kg)':'比容 1/ρ (m³/kg)',data:s.dS}]});
+}
+
+function __dnphShow(which){
+  var c=document.getElementById('dnphChart'), t=document.getElementById('density_physicsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dnphTabInit(){
+  var btns=document.querySelectorAll('.dnph-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dnphShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dnphShow('chart');
+  try{__dnphChart();}catch(e){}
+}
+var __dnphFn=calcTool;calcTool=function(){try{__dnphFn();}catch(e){}try{__dnphChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dnphChart();}catch(e){}});try{__dnphTabInit();}catch(e){}
+</script>
 </body>
 </html>

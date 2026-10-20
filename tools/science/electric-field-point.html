@@ -292,6 +292,11 @@ function __electric_field_pointBoot(){ try{ __electric_field_pointPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __electric_field_pointBoot();
 else document.addEventListener('DOMContentLoaded', __electric_field_pointBoot);
 </script>
+<div class="efpt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="efptChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -325,5 +330,43 @@ else document.addEventListener('DOMContentLoaded', __electric_field_pointBoot);
 </dl>
 </div>
 </section>
+<script>
+function __efptSweep(){
+  var kc=8.988e9, q=num('q')*1e-6, r0=num('r');
+  if(!isFinite(q)||!isFinite(r0)||Math.abs(r0)<1e-12)return null;
+  var labels=[], dE=[];
+  var mult=[0.5,0.75,1.0,1.25,1.5];
+  for(var k=0;k<mult.length;k++){
+    var rk=r0*mult[k];
+    labels.push((Math.round(rk*1000)/1000)+'');
+    dE.push(Math.round(kc*q/(rk*rk)*100)/100);
+  }
+  return {labels:labels,dE:dE};
+}
+function __efptChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__efptSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#efptChart',{title:en?'Field strength across five distances from the point charge (inverse-square)':'点电荷五档距离处的电场强度对照（平方反比）',labels:s.labels,series:[{name:en?'Field strength E (N/C)':'电场强度 E (N/C)',data:s.dE}]});
+}
+
+function __efptShow(which){
+  var c=document.getElementById('efptChart'), t=document.getElementById('electric_field_pointTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __efptTabInit(){
+  var btns=document.querySelectorAll('.efpt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__efptShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __efptShow('chart');
+  try{__efptChart();}catch(e){}
+}
+var __efptFn=calcTool;calcTool=function(){try{__efptFn();}catch(e){}try{__efptChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__efptChart();}catch(e){}});try{__efptTabInit();}catch(e){}
+</script>
 </body>
 </html>

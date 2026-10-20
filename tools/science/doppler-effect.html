@@ -315,6 +315,11 @@ function __doppler_effectBoot(){ try{ __doppler_effectPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __doppler_effectBoot();
 else document.addEventListener('DOMContentLoaded', __doppler_effectBoot);
 </script>
+<div class="dpef-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dpefChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,44 @@ else document.addEventListener('DOMContentLoaded', __doppler_effectBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dpefSweep(){
+  var f=num('f'), v=num('v'), vo=num('vo');
+  if(!isFinite(f)||!isFinite(v)||!isFinite(vo)||Math.abs(v)<1e-12)return null;
+  var labels=[], dF=[], dA=[];
+  for(var k=0;k<=10;k++){
+    var vs=v*(k/10);
+    labels.push((Math.round(vs*100)/100)+'');
+    if(Math.abs(v-vs)<1e-12){ dF.push(null); }
+    else { dF.push(Math.round(f*(v+vo)/(v-vs)*100)/100); }
+    dA.push(Math.round(f*(v+vo)/(v+vs)*100)/100);
+  }
+  return {labels:labels,dF:dF,dA:dA};
+}
+function __dpefChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dpefSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dpefChart',{title:en?'Observed frequency blows up as source approaches wave speed; receding branch decays':'声源接近波速时观测频率发散断开，远离分支则衰减',labels:s.labels,series:[{name:en?'Approaching frequency (Hz)':'朝向观测频率 (Hz)',data:s.dF},{name:en?'Receding frequency (Hz)':'远离观测频率 (Hz)',data:s.dA}]});
+}
+
+function __dpefShow(which){
+  var c=document.getElementById('dpefChart'), t=document.getElementById('doppler_effectTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dpefTabInit(){
+  var btns=document.querySelectorAll('.dpef-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dpefShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dpefShow('chart');
+  try{__dpefChart();}catch(e){}
+}
+var __dpefFn=calcTool;calcTool=function(){try{__dpefFn();}catch(e){}try{__dpefChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dpefChart();}catch(e){}});try{__dpefTabInit();}catch(e){}
+</script>
 </body>
 </html>

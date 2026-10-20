@@ -295,6 +295,11 @@ function __coulomb_forceBoot(){ try{ __coulomb_forcePresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __coulomb_forceBoot();
 else document.addEventListener('DOMContentLoaded', __coulomb_forceBoot);
 </script>
+<div class="clfr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="clfrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -328,5 +333,44 @@ else document.addEventListener('DOMContentLoaded', __coulomb_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __clfrSweep(){
+  var kc=8.988e9, q1=num('q1')*1e-6, q2=num('q2')*1e-6, r0=num('r');
+  if(!isFinite(q1)||!isFinite(q2)||!isFinite(r0)||Math.abs(r0)<1e-12)return null;
+  var c=kc*q1*q2;
+  var labels=[], dF=[], dU=[];
+  for(var k=0;k<=10;k++){
+    var rk=r0*(0.5+0.25*k);
+    labels.push((Math.round(rk*1000)/1000)+'');
+    dF.push(Math.round(c/(rk*rk)*10000)/10000);
+    dU.push(Math.round(c/rk*10000)/10000);
+  }
+  return {labels:labels,dF:dF,dU:dU};
+}
+function __clfrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__clfrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#clfrChart',{title:en?'Coulomb force decays as 1/r squared while potential energy decays only as 1/r':'静电力按距离平方反比衰减，电势能仅按距离反比衰减（衰减更慢）',labels:s.labels,series:[{name:en?'Force F (N)':'静电力 F (N)',data:s.dF},{name:en?'Potential energy U (J)':'电势能 U (J)',data:s.dU}]});
+}
+
+function __clfrShow(which){
+  var c=document.getElementById('clfrChart'), t=document.getElementById('coulomb_forceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __clfrTabInit(){
+  var btns=document.querySelectorAll('.clfr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__clfrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __clfrShow('chart');
+  try{__clfrChart();}catch(e){}
+}
+var __clfrFn=calcTool;calcTool=function(){try{__clfrFn();}catch(e){}try{__clfrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__clfrChart();}catch(e){}});try{__clfrTabInit();}catch(e){}
+</script>
 </body>
 </html>
