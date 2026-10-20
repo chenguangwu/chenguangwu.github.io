@@ -245,6 +245,11 @@ function __power_forceBoot(){ try{ __power_forcePresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __power_forceBoot();
 else document.addEventListener('DOMContentLoaded', __power_forceBoot);
 </script>
+<div class="pwf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pwfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,44 @@ else document.addEventListener('DOMContentLoaded', __power_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pwfSweep(){
+  var F=num('F');
+  if(!isFinite(F)||F<=0)return null;
+  var labels=[], dK=[], dH=[];
+  var vs=[0,1,2,5,10,20,30,50];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], P=F*vv;
+    labels.push(vv.toFixed(0));
+    dK.push(Math.round(P/1000*100)/100);
+    dH.push(Math.round(P/735.5*100)/100);
+  }
+  return {labels:labels,dK:dK,dH:dH};
+}
+function __pwfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pwfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pwfChart',{title:en?'Power vs Velocity (linear P=Fv, dual units kW / PS)':'功率随速度线性增长（双单位 kW / 公制马力）',labels:s.labels,series:[{name:en?'Power (kW)':'功率 (kW)',data:s.dK},{name:en?'Power (PS)':'功率 (PS)',data:s.dH}]});
+}
+
+function __pwfShow(which){
+  var c=document.getElementById('pwfChart'), t=document.getElementById('power_forceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pwfTabInit(){
+  var btns=document.querySelectorAll('.pwf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pwfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pwfShow('chart');
+  try{__pwfChart();}catch(e){}
+}
+var __pwfFn=calcTool;calcTool=function(){try{__pwfFn();}catch(e){}try{__pwfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pwfChart();}catch(e){}});try{__pwfTabInit();}catch(e){}
+</script>
 </body>
 </html>

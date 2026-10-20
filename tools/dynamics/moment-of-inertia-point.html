@@ -311,6 +311,11 @@ function __moment_of_inertia_pointBoot(){ try{ __moment_of_inertia_pointPresets(
 if (document.readyState && document.readyState !== 'loading') __moment_of_inertia_pointBoot();
 else document.addEventListener('DOMContentLoaded', __moment_of_inertia_pointBoot);
 </script>
+<div class="mip-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mipChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,44 @@ else document.addEventListener('DOMContentLoaded', __moment_of_inertia_pointBoot
 </dl>
 </div>
 </section>
+<script>
+function __mipSweep(){
+  var m=num('m');
+  if(!isFinite(m)||m<=0)return null;
+  var labels=[], dI=[], dS=[];
+  var rs=[0.05,0.1,0.25,0.5,0.75,1.0,1.5,2.0];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k], I=m*rv*rv;
+    labels.push(rv.toFixed(2));
+    dI.push(Math.round(I*10000)/10000);
+    dS.push(Math.round(Math.sqrt(I/m)*1000)/1000);
+  }
+  return {labels:labels,dI:dI,dS:dS};
+}
+function __mipChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mipSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mipChart',{title:en?'Moment of Inertia vs Radius (quadratic I=mr²)':'质点转动惯量随半径平方增长（I=mr²）',labels:s.labels,series:[{name:en?'Moment of inertia I (kg·m²)':'转动惯量 I (kg·m²)',data:s.dI},{name:en?'Radius of gyration k (m)':'回转半径 k (m)',data:s.dS}]});
+}
+
+function __mipShow(which){
+  var c=document.getElementById('mipChart'), t=document.getElementById('moment_of_inertia_pointTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mipTabInit(){
+  var btns=document.querySelectorAll('.mip-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mipShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mipShow('chart');
+  try{__mipChart();}catch(e){}
+}
+var __mipFn=calcTool;calcTool=function(){try{__mipFn();}catch(e){}try{__mipChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mipChart();}catch(e){}});try{__mipTabInit();}catch(e){}
+</script>
 </body>
 </html>

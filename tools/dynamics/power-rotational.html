@@ -244,6 +244,11 @@ function __power_rotationalBoot(){ try{ __power_rotationalPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __power_rotationalBoot();
 else document.addEventListener('DOMContentLoaded', __power_rotationalBoot);
 </script>
+<div class="pwr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pwrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __power_rotationalBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pwrSweep(){
+  var tau=num('tau');
+  if(!isFinite(tau)||tau<=0)return null;
+  var labels=[], dP=[], dH=[];
+  var ws=[0,1,5,10,25,50,100,200];
+  for(var k=0;k<ws.length;k++){
+    var wv=ws[k], P=tau*wv;
+    labels.push(wv.toFixed(0));
+    dP.push(Math.round(P/1000*10000)/10000);
+    dH.push(Math.round(P/745.7*10000)/10000);
+  }
+  return {labels:labels,dP:dP,dH:dH};
+}
+function __pwrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pwrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pwrChart',{title:en?'Rotational Power vs Angular Velocity (linear P=τω)':'旋转功率随角速度线性增长（P=τω）',labels:s.labels,series:[{name:en?'Power (kW)':'功率 (kW)',data:s.dP},{name:en?'Power (hp)':'功率 (hp)',data:s.dH}]});
+}
+
+function __pwrShow(which){
+  var c=document.getElementById('pwrChart'), t=document.getElementById('power_rotationalTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pwrTabInit(){
+  var btns=document.querySelectorAll('.pwr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pwrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pwrShow('chart');
+  try{__pwrChart();}catch(e){}
+}
+var __pwrFn=calcTool;calcTool=function(){try{__pwrFn();}catch(e){}try{__pwrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pwrChart();}catch(e){}});try{__pwrTabInit();}catch(e){}
+</script>
 </body>
 </html>

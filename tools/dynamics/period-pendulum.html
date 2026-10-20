@@ -311,6 +311,11 @@ function __period_pendulumBoot(){ try{ __period_pendulumPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __period_pendulumBoot();
 else document.addEventListener('DOMContentLoaded', __period_pendulumBoot);
 </script>
+<div class="ppd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ppdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,44 @@ else document.addEventListener('DOMContentLoaded', __period_pendulumBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ppdSweep(){
+  var g=num('g');
+  if(!isFinite(g)||g<=0)return null;
+  var labels=[], dT=[], dF=[];
+  var Ls=[0.05,0.1,0.25,0.5,1,2,5,10];
+  for(var k=0;k<Ls.length;k++){
+    var lv=Ls[k], T=2*Math.PI*Math.sqrt(lv/g);
+    labels.push(lv.toFixed(2));
+    dT.push(Math.round(T*1000)/1000);
+    dF.push(Math.round(1/T*1000)/1000);
+  }
+  return {labels:labels,dT:dT,dF:dF};
+}
+function __ppdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ppdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ppdChart',{title:en?'Pendulum Period vs Length (square-root T=2π√(L/g))':'单摆周期随摆长平方根增长（T=2π√(L/g)）',labels:s.labels,series:[{name:en?'Period T (s)':'周期 T (s)',data:s.dT},{name:en?'Frequency 1/T (Hz)':'频率 1/T (Hz)',data:s.dF}]});
+}
+
+function __ppdShow(which){
+  var c=document.getElementById('ppdChart'), t=document.getElementById('period_pendulumTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ppdTabInit(){
+  var btns=document.querySelectorAll('.ppd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ppdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ppdShow('chart');
+  try{__ppdChart();}catch(e){}
+}
+var __ppdFn=calcTool;calcTool=function(){try{__ppdFn();}catch(e){}try{__ppdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ppdChart();}catch(e){}});try{__ppdTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -304,6 +304,11 @@ function __momentum_conservationBoot(){ try{ __momentum_conservationPresets(); }
 if (document.readyState && document.readyState !== 'loading') __momentum_conservationBoot();
 else document.addEventListener('DOMContentLoaded', __momentum_conservationBoot);
 </script>
+<div class="mcv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mcvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,46 @@ else document.addEventListener('DOMContentLoaded', __momentum_conservationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mcvSweep(){
+  var m1=num('m1'), v1=num('v1'), v2=num('v2');
+  if(!isFinite(m1)||!isFinite(v1)||!isFinite(v2)||m1<=0)return null;
+  var p1=m1*v1;
+  var labels=[], dV=[], dP=[];
+  var m2s=[200,500,1000,1500,2500,4000,6000,10000];
+  for(var k=0;k<m2s.length;k++){
+    var mv=m2s[k], s=m1+mv;
+    var vp=(p1+mv*v2)/s;
+    labels.push(mv.toFixed(0));
+    dV.push(Math.round(vp*1000)/1000);
+    dP.push(Math.round((p1+mv*v2)/1000*100)/100);
+  }
+  return {labels:labels,dV:dV,dP:dP};
+}
+function __mcvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mcvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mcvChart',{title:en?'Momentum Conservation: Final Velocity vs m₂ (inverse decay)':'动量守恒：共速随 m₂ 反比衰减',labels:s.labels,series:[{name:en?'Final velocity v (m/s)':'共速 v (m/s)',data:s.dV},{name:en?'Total momentum (×10³ kg·m/s)':'总动量 (×10³ kg·m/s)',data:s.dP}]});
+}
+
+function __mcvShow(which){
+  var c=document.getElementById('mcvChart'), t=document.getElementById('momentum_conservationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mcvTabInit(){
+  var btns=document.querySelectorAll('.mcv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mcvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mcvShow('chart');
+  try{__mcvChart();}catch(e){}
+}
+var __mcvFn=calcTool;calcTool=function(){try{__mcvFn();}catch(e){}try{__mcvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mcvChart();}catch(e){}});try{__mcvTabInit();}catch(e){}
+</script>
 </body>
 </html>
