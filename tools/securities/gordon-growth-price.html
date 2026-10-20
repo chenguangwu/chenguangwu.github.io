@@ -314,6 +314,11 @@ function __gordon_growth_priceBoot(){ try{ __gordon_growth_pricePresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __gordon_growth_priceBoot();
 else document.addEventListener('DOMContentLoaded', __gordon_growth_priceBoot);
 </script>
+<div class="ggp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ggpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -349,5 +354,47 @@ else document.addEventListener('DOMContentLoaded', __gordon_growth_priceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ggpSweep(){
+  var D1=num('D1'), g=num('g');
+  if(!isFinite(D1)||!isFinite(g)||D1<=0)return null;
+  var labels=[], dP=[], dY=[];
+  var rs=[0.05,0.06,0.07,0.08,0.09,0.10,0.12,0.15];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k], den=rv-g;
+    if(den<=0.0005)continue;
+    var pv=D1/den;
+    labels.push((rv*100).toFixed(1)+'%');
+    dP.push(Math.round(pv*100)/100);
+    dY.push(Math.round(D1/pv*100*1000)/1000);
+  }
+  if(!labels.length)return null;
+  return {labels:labels,dP:dP,dY:dY};
+}
+function __ggpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ggpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ggpChart',{title:en?'Gordon Price vs Required Return (inverse decay, pole at r=g)':'戈登模型定价随要求收益率反比衰减（r→g 处极点）',labels:s.labels,series:[{name:en?'Intrinsic price P (¥)':'内在价值 P (元)',data:s.dP},{name:en?'Dividend yield (%)':'股利收益率 (%)',data:s.dY}]});
+}
+
+function __ggpShow(which){
+  var c=document.getElementById('ggpChart'), t=document.getElementById('gordon_growth_priceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ggpTabInit(){
+  var btns=document.querySelectorAll('.ggp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ggpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ggpShow('chart');
+  try{__ggpChart();}catch(e){}
+}
+var __ggpFn=calcTool;calcTool=function(){try{__ggpFn();}catch(e){}try{__ggpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ggpChart();}catch(e){}});try{__ggpTabInit();}catch(e){}
+</script>
 </body>
 </html>

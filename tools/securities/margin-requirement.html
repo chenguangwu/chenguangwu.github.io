@@ -298,6 +298,11 @@ function __margin_requirementBoot(){ try{ __margin_requirementPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __margin_requirementBoot();
 else document.addEventListener('DOMContentLoaded', __margin_requirementBoot);
 </script>
+<div class="mgr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mgrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __margin_requirementBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mgrSweep(){
+  var eq=num('eq');
+  if(!isFinite(eq)||eq<=0)return null;
+  var labels=[], dM=[], dL=[];
+  var ps=[20000,40000,60000,80000,100000,150000,200000,300000];
+  for(var k=0;k<ps.length;k++){
+    var pv=ps[k], mr=eq/pv*100;
+    labels.push((pv/10000).toFixed(1));
+    dM.push(Math.round(mr*100)/100);
+    dL.push(Math.round(pv/eq*1000)/1000);
+  }
+  return {labels:labels,dM:dM,dL:dL};
+}
+function __mgrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mgrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mgrChart',{title:en?'Margin Ratio vs Position Value (inverse, leverage mirror)':'保证金比例随持仓市值反比下降（杠杆倍数镜像）',labels:s.labels,series:[{name:en?'Margin ratio (%)':'保证金比例 (%)',data:s.dM},{name:en?'Leverage multiple (×)':'杠杆倍数 (×)',data:s.dL}]});
+}
+
+function __mgrShow(which){
+  var c=document.getElementById('mgrChart'), t=document.getElementById('margin_requirementTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mgrTabInit(){
+  var btns=document.querySelectorAll('.mgr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mgrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mgrShow('chart');
+  try{__mgrChart();}catch(e){}
+}
+var __mgrFn=calcTool;calcTool=function(){try{__mgrFn();}catch(e){}try{__mgrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mgrChart();}catch(e){}});try{__mgrTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __fcf_yieldBoot(){ try{ __fcf_yieldPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __fcf_yieldBoot();
 else document.addEventListener('DOMContentLoaded', __fcf_yieldBoot);
 </script>
+<div class="fcy-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fcyChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __fcf_yieldBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fcySweep(){
+  var FCF=num('FCF');
+  if(!isFinite(FCF)||FCF<=0)return null;
+  var labels=[], dY=[], dM=[];
+  var Ps=[20,40,60,80,100,150,200,300];
+  for(var k=0;k<Ps.length;k++){
+    var pv=Ps[k], y=FCF/pv*100;
+    labels.push(pv.toFixed(0));
+    dY.push(Math.round(y*1000)/1000);
+    dM.push(Math.round(pv/FCF*1000)/1000);
+  }
+  return {labels:labels,dY:dY,dM:dM};
+}
+function __fcyChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fcySweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fcyChart',{title:en?'FCF Yield vs Price (inverse y=FCF/P)':'自由现金流收益率随股价反比下降',labels:s.labels,series:[{name:en?'FCF yield (%)':'FCF 收益率 (%)',data:s.dY},{name:en?'Price/FCF multiple':'股价/FCF 倍数',data:s.dM}]});
+}
+
+function __fcyShow(which){
+  var c=document.getElementById('fcyChart'), t=document.getElementById('fcf_yieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fcyTabInit(){
+  var btns=document.querySelectorAll('.fcy-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fcyShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fcyShow('chart');
+  try{__fcyChart();}catch(e){}
+}
+var __fcyFn=calcTool;calcTool=function(){try{__fcyFn();}catch(e){}try{__fcyChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fcyChart();}catch(e){}});try{__fcyTabInit();}catch(e){}
+</script>
 </body>
 </html>

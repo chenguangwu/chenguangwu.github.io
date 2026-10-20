@@ -244,6 +244,11 @@ function __market_capBoot(){ try{ __market_capPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __market_capBoot();
 else document.addEventListener('DOMContentLoaded', __market_capBoot);
 </script>
+<div class="mkc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mkcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __market_capBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mkcSweep(){
+  var price=num('price');
+  if(!isFinite(price)||price<=0)return null;
+  var labels=[], dB=[], dY=[];
+  var shs=[1e8,2e8,5e8,1e9,2e9,5e9,1e10,2e10];
+  for(var k=0;k<shs.length;k++){
+    var sv=shs[k], cap=price*sv;
+    labels.push((sv/1e8).toFixed(2));
+    dB.push(Math.round(cap/1e8*100)/100);
+    dY.push(Math.round(sv/1e8*100)/100);
+  }
+  return {labels:labels,dB:dB,dY:dY};
+}
+function __mkcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mkcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mkcChart',{title:en?'Market Cap vs Shares Outstanding (linear, dual scale)':'总市值随股本线性增长（双标尺：亿元 / 亿股）',labels:s.labels,series:[{name:en?'Market cap (×10⁸ ¥)':'总市值 (亿元)',data:s.dB},{name:en?'Shares (×10⁸)':'股本 (亿股)',data:s.dY}]});
+}
+
+function __mkcShow(which){
+  var c=document.getElementById('mkcChart'), t=document.getElementById('market_capTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mkcTabInit(){
+  var btns=document.querySelectorAll('.mkc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mkcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mkcShow('chart');
+  try{__mkcChart();}catch(e){}
+}
+var __mkcFn=calcTool;calcTool=function(){try{__mkcFn();}catch(e){}try{__mkcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mkcChart();}catch(e){}});try{__mkcTabInit();}catch(e){}
+</script>
 </body>
 </html>

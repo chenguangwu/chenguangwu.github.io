@@ -247,6 +247,11 @@ function __enterprise_valueBoot(){ try{ __enterprise_valuePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __enterprise_valueBoot();
 else document.addEventListener('DOMContentLoaded', __enterprise_valueBoot);
 </script>
+<div class="evl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="evlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __enterprise_valueBoot);
 </dl>
 </div>
 </section>
+<script>
+function __evlSweep(){
+  var MCap=num('MCap'), Cash=num('Cash');
+  if(!isFinite(MCap)||!isFinite(Cash)||MCap<=0)return null;
+  var labels=[], dE=[], dR=[];
+  var Ds=[0,100,200,400,600,800,1200,1600];
+  for(var k=0;k<Ds.length;k++){
+    var dv=Ds[k], EV=MCap+dv-Cash;
+    labels.push(dv.toFixed(0));
+    dE.push(Math.round(EV*100)/100);
+    dR.push(Math.round(dv/MCap*1000)/1000);
+  }
+  return {labels:labels,dE:dE,dR:dR};
+}
+function __evlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__evlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#evlChart',{title:en?'Enterprise Value vs Debt (linear EV=MCap+D-Cash)':'企业价值随债务线性增长（EV=市值+债务−现金）',labels:s.labels,series:[{name:en?'Enterprise value (¥10k)':'企业价值 (万元)',data:s.dE},{name:en?'Debt/market cap ratio':'债务市值比',data:s.dR}]});
+}
+
+function __evlShow(which){
+  var c=document.getElementById('evlChart'), t=document.getElementById('enterprise_valueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __evlTabInit(){
+  var btns=document.querySelectorAll('.evl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__evlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __evlShow('chart');
+  try{__evlChart();}catch(e){}
+}
+var __evlFn=calcTool;calcTool=function(){try{__evlFn();}catch(e){}try{__evlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__evlChart();}catch(e){}});try{__evlTabInit();}catch(e){}
+</script>
 </body>
 </html>
