@@ -246,6 +246,11 @@ function __inductors_seriesBoot(){ try{ __inductors_seriesPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __inductors_seriesBoot();
 else document.addEventListener('DOMContentLoaded', __inductors_seriesBoot);
 </script>
+<div class="isd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="isdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __inductors_seriesBoot);
 </dl>
 </div>
 </section>
+<script>
+function __isdSweep(){
+  var L1=num('L1');
+  if(!isFinite(L1)||L1<=0)return null;
+  var labels=[],dL=[],dPar=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3,4];
+  for(var k=0;k<mults.length;k++){
+    var L2=L1*mults[k], L=L1+L2, Lp=1/(1/L1+1/L2);
+    labels.push((Math.round(L2*100)/100).toFixed(2));
+    dL.push(Math.round(L*100)/100);
+    dPar.push(Math.round(Lp*1000)/1000);
+    rows.push([(Math.round(L2*100)/100).toFixed(2),(Math.round(L*100)/100).toFixed(2),(Math.round(Lp*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dL:dL,dPar:dPar,rows:rows};
+}
+function __isdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__isdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#isdChart',{title:en?'Series Inductance vs L2 (linear sum, parallel saturates)':'串联电感随单体线性累加、并联趋于半值（L=L₁+L₂）',labels:s.labels,series:[{name:en?'Series L (mH)':'串联电感 (mH)',data:s.dL},{name:en?'Parallel L (mH)':'并联电感 (mH)',data:s.dPar}]});
+}
+
+function __isdShow(which){
+  var c=document.getElementById('isdChart'), t=document.getElementById('inductors_seriesTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __isdTabInit(){
+  var btns=document.querySelectorAll('.isd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__isdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __isdShow('chart');
+}
+var __isdFn=calcTool;calcTool=function(){try{__isdFn();}catch(e){}try{__isdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__isdChart();}catch(e){}});
+</script>
 </body>
 </html>

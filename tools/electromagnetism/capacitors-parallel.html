@@ -246,6 +246,11 @@ function __capacitors_parallelBoot(){ try{ __capacitors_parallelPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __capacitors_parallelBoot();
 else document.addEventListener('DOMContentLoaded', __capacitors_parallelBoot);
 </script>
+<div class="cp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __capacitors_parallelBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cpSweep(){
+  var C1=num('C1');
+  if(!isFinite(C1)||C1<=0)return null;
+  var labels=[],dC=[],dRatio=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,3,4];
+  for(var k=0;k<mults.length;k++){
+    var C2=C1*mults[k], C=C1+C2;
+    labels.push((Math.round(C2*100)/100).toFixed(2));
+    dC.push(Math.round(C*100)/100);
+    dRatio.push(Math.round(C/C1*100)/100);
+    rows.push([(Math.round(C2*100)/100).toFixed(2),(Math.round(C*100)/100).toFixed(2),(Math.round(C/C1*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dC:dC,dRatio:dRatio,rows:rows};
+}
+function __cpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cpChart',{title:en?'Parallel Capacitance vs C2 (linear C=C1+C2)':'并联电容随单体线性累加（C=C₁+C₂）',labels:s.labels,series:[{name:en?'Total C (µF)':'总电容 (µF)',data:s.dC},{name:en?'Ratio C/C1':'倍数 C/C₁',data:s.dRatio}]});
+}
+
+function __cpShow(which){
+  var c=document.getElementById('cpChart'), t=document.getElementById('capacitors_parallelTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cpTabInit(){
+  var btns=document.querySelectorAll('.cp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cpShow('chart');
+}
+var __cpFn=calcTool;calcTool=function(){try{__cpFn();}catch(e){}try{__cpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cpChart();}catch(e){}});
+</script>
 </body>
 </html>

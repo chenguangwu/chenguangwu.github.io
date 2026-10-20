@@ -246,6 +246,11 @@ function __capacitors_seriesBoot(){ try{ __capacitors_seriesPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __capacitors_seriesBoot();
 else document.addEventListener('DOMContentLoaded', __capacitors_seriesBoot);
 </script>
+<div class="cs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="csChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __capacitors_seriesBoot);
 </dl>
 </div>
 </section>
+<script>
+function __csSweep(){
+  var C1=num('C1');
+  if(!isFinite(C1)||C1<=0)return null;
+  var labels=[],dC=[],dMin=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4,8];
+  for(var k=0;k<mults.length;k++){
+    var C2=C1*mults[k], C=1/(1/C1+1/C2);
+    labels.push((Math.round(C2*100)/100).toFixed(2));
+    dC.push(Math.round(C*1000)/1000);
+    dMin.push(Math.round(Math.min(C1,C2)*1000)/1000);
+    rows.push([(Math.round(C2*100)/100).toFixed(2),(Math.round(C*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dC:dC,dMin:dMin,rows:rows};
+}
+function __csChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__csSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#csChart',{title:en?'Series Capacitance vs C2 (saturating to smaller cap)':'串联电容随单体增大饱和于较小值（1/C=1/C₁+1/C₂）',labels:s.labels,series:[{name:en?'Equivalent C (µF)':'等效电容 (µF)',data:s.dC},{name:en?'Smaller cap (µF)':'较小电容 (µF)',data:s.dMin}]});
+}
+
+function __csShow(which){
+  var c=document.getElementById('csChart'), t=document.getElementById('capacitors_seriesTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __csTabInit(){
+  var btns=document.querySelectorAll('.cs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__csShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __csShow('chart');
+}
+var __csFn=calcTool;calcTool=function(){try{__csFn();}catch(e){}try{__csChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__csChart();}catch(e){}});
+</script>
 </body>
 </html>

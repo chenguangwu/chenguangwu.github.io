@@ -300,6 +300,11 @@ function __resistors_parallelBoot(){ try{ __resistors_parallelPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __resistors_parallelBoot();
 else document.addEventListener('DOMContentLoaded', __resistors_parallelBoot);
 </script>
+<div class="rp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,44 @@ else document.addEventListener('DOMContentLoaded', __resistors_parallelBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rpSweep(){
+  var R1=num('R1');
+  if(!isFinite(R1)||R1<=0)return null;
+  var labels=[],dR=[],dHalf=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4,8];
+  for(var k=0;k<mults.length;k++){
+    var R2=R1*mults[k], R=1/(1/R1+1/R2);
+    labels.push((Math.round(R2*100)/100).toFixed(2));
+    dR.push(Math.round(R*100)/100);
+    dHalf.push(Math.round(R1/2*100)/100);
+    rows.push([(Math.round(R2*100)/100).toFixed(2),(Math.round(R*100)/100).toFixed(2),(Math.round(R1/2*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dR:dR,dHalf:dHalf,rows:rows};
+}
+function __rpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rpChart',{title:en?'Parallel Resistance vs R2 (saturating to R1/2)':'并联电阻随单体增大收敛至半值（1/R=1/R₁+1/R₂）',labels:s.labels,series:[{name:en?'Equivalent R (Ω)':'等效电阻 (Ω)',data:s.dR},{name:en?'R1/2 floor (Ω)':'半值下限 R₁/2 (Ω)',data:s.dHalf}]});
+}
+
+function __rpShow(which){
+  var c=document.getElementById('rpChart'), t=document.getElementById('resistors_parallelTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rpTabInit(){
+  var btns=document.querySelectorAll('.rp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rpShow('chart');
+}
+var __rpFn=calcTool;calcTool=function(){try{__rpFn();}catch(e){}try{__rpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rpChart();}catch(e){}});
+</script>
 </body>
 </html>
