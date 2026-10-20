@@ -296,6 +296,11 @@ function __expense_ratioBoot(){ try{ __expense_ratioPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __expense_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __expense_ratioBoot);
 </script>
+<div class="exr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="exrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -329,5 +334,45 @@ else document.addEventListener('DOMContentLoaded', __expense_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __exrSweep(){
+  var e=num('exp');
+  if(!isFinite(e)||e<=0)return null;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var labels=[],dR=[],dC=[];
+  var ps=[5000000,7500000,10000000,12500000,15000000,20000000];
+  for(var k=0;k<ps.length;k++){
+    var pv=ps[k];
+    labels.push(en?((pv/10000).toFixed(0)+'\u00d710\u2074'):((pv/10000).toFixed(0)+'\u4e07'));
+    dR.push(Math.round(e/pv*100*100)/100);
+    dC.push(Math.round(pv/e*1000)/1000);
+  }
+  return {labels:labels,dR:dR,dC:dC};
+}
+function __exrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__exrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#exrChart',{title:en?'Expense Ratio vs Premium (inverse mirror)':'费用率随保费反比下降',labels:s.labels,series:[{name:en?'Expense ratio (%)':'费用率 (%)',data:s.dR},{name:en?'Premium/expense cover (×)':'保费与费用比 (×)',data:s.dC}]});
+}
+
+function __exrShow(which){
+  var c=document.getElementById('exrChart'), t=document.getElementById('expense_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __exrTabInit(){
+  var btns=document.querySelectorAll('.exr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__exrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __exrShow('chart');
+  try{__exrChart();}catch(e){}
+}
+var __exrFn=calcTool;calcTool=function(){try{__exrFn();}catch(e){}try{__exrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__exrChart();}catch(e){}});try{__exrTabInit();}catch(e){}
+</script>
 </body>
 </html>

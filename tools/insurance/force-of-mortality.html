@@ -308,6 +308,11 @@ function __force_of_mortalityBoot(){ try{ __force_of_mortalityPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __force_of_mortalityBoot();
 else document.addEventListener('DOMContentLoaded', __force_of_mortalityBoot);
 </script>
+<div class="fom-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fomChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -341,5 +346,42 @@ else document.addEventListener('DOMContentLoaded', __force_of_mortalityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fomSweep(){
+  var labels=[],dM=[],dH=[];
+  var pxs=[0.99,0.97,0.95,0.9,0.85,0.75,0.6,0.5];
+  for(var k=0;k<pxs.length;k++){
+    var pxv=pxs[k], mu=-Math.log(pxv);
+    labels.push(pxv.toFixed(2));
+    dM.push(Math.round(mu*10000)/10000);
+    dH.push(Math.round(Math.log(2)/Math.max(mu,1e-12)*1000)/1000);
+  }
+  return {labels:labels,dM:dM,dH:dH};
+}
+function __fomChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fomSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fomChart',{title:en?'Force of Mortality vs Survival Prob. (log/inverse dual)':'死亡力随生存概率对数上升',labels:s.labels,series:[{name:en?'Force of mortality μ':'死亡力 μ',data:s.dM},{name:en?'Half-life (years)':'半衰期（年）',data:s.dH}]});
+}
+
+function __fomShow(which){
+  var c=document.getElementById('fomChart'), t=document.getElementById('force_of_mortalityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fomTabInit(){
+  var btns=document.querySelectorAll('.fom-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fomShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fomShow('chart');
+  try{__fomChart();}catch(e){}
+}
+var __fomFn=calcTool;calcTool=function(){try{__fomFn();}catch(e){}try{__fomChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fomChart();}catch(e){}});try{__fomTabInit();}catch(e){}
+</script>
 </body>
 </html>

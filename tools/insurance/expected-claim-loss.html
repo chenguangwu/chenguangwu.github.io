@@ -244,6 +244,11 @@ function __expected_claim_lossBoot(){ try{ __expected_claim_lossPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __expected_claim_lossBoot();
 else document.addEventListener('DOMContentLoaded', __expected_claim_lossBoot);
 </script>
+<div class="ecl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="eclChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,44 @@ else document.addEventListener('DOMContentLoaded', __expected_claim_lossBoot);
 </dl>
 </div>
 </section>
+<script>
+function __eclSweep(){
+  var sev=num('sev');
+  if(!isFinite(sev)||sev<=0)return null;
+  var labels=[],dE=[],dG=[];
+  var fs=[0.01,0.03,0.05,0.08,0.12,0.16,0.2];
+  for(var k=0;k<fs.length;k++){
+    var fv=fs[k], ECL=fv*sev;
+    labels.push((fv*100).toFixed(0)+'%');
+    dE.push(Math.round(ECL*100)/100);
+    dG.push(Math.round((1/fv)*100)/100);
+  }
+  return {labels:labels,dE:dE,dG:dG};
+}
+function __eclChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__eclSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#eclChart',{title:en?'Expected Claim Loss vs Frequency (linear/inverse dual)':'期望损失随索赔频率线性上升',labels:s.labels,series:[{name:en?'Expected claim loss (¥)':'期望损失 ECL (元)',data:s.dE},{name:en?'Mean inter-claim gap (periods)':'平均出险间隔（期）',data:s.dG}]});
+}
+
+function __eclShow(which){
+  var c=document.getElementById('eclChart'), t=document.getElementById('expected_claim_lossTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __eclTabInit(){
+  var btns=document.querySelectorAll('.ecl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__eclShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __eclShow('chart');
+  try{__eclChart();}catch(e){}
+}
+var __eclFn=calcTool;calcTool=function(){try{__eclFn();}catch(e){}try{__eclChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__eclChart();}catch(e){}});try{__eclTabInit();}catch(e){}
+</script>
 </body>
 </html>

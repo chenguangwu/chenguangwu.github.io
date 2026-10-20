@@ -311,6 +311,11 @@ function __gross_premium_loadingBoot(){ try{ __gross_premium_loadingPresets(); }
 if (document.readyState && document.readyState !== 'loading') __gross_premium_loadingBoot();
 else document.addEventListener('DOMContentLoaded', __gross_premium_loadingBoot);
 </script>
+<div class="gpl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gplChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,5 +349,44 @@ else document.addEventListener('DOMContentLoaded', __gross_premium_loadingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gplSweep(){
+  var pp=num('pp');
+  if(!isFinite(pp)||pp<=0)return null;
+  var labels=[],dG=[],dL=[];
+  var loads=[0,0.1,0.2,0.3,0.4,0.5,0.6];
+  for(var k=0;k<loads.length;k++){
+    var lv=loads[k], gp=pp*(1+lv);
+    labels.push((lv*100).toFixed(0)+'%');
+    dG.push(Math.round(gp*100)/100);
+    dL.push(Math.round(pp*lv*100)/100);
+  }
+  return {labels:labels,dG:dG,dL:dL};
+}
+function __gplChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gplSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gplChart',{title:en?'Gross Premium vs Loading Rate (dual linear)':'毛保费随附加费率线性上升',labels:s.labels,series:[{name:en?'Gross premium (¥)':'毛保费 (元)',data:s.dG},{name:en?'Loading amount (¥)':'附加费用额 (元)',data:s.dL}]});
+}
+
+function __gplShow(which){
+  var c=document.getElementById('gplChart'), t=document.getElementById('gross_premium_loadingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gplTabInit(){
+  var btns=document.querySelectorAll('.gpl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gplShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gplShow('chart');
+  try{__gplChart();}catch(e){}
+}
+var __gplFn=calcTool;calcTool=function(){try{__gplFn();}catch(e){}try{__gplChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gplChart();}catch(e){}});try{__gplTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -235,6 +235,11 @@ function __complete_life_expectancyBoot(){ try{ __complete_life_expectancyPreset
 if (document.readyState && document.readyState !== 'loading') __complete_life_expectancyBoot();
 else document.addEventListener('DOMContentLoaded', __complete_life_expectancyBoot);
 </script>
+<div class="cle-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cleChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -268,5 +273,46 @@ else document.addEventListener('DOMContentLoaded', __complete_life_expectancyBoo
 </dl>
 </div>
 </section>
+<script>
+function __cleSweep(){
+  var el=document.getElementById('tpx');
+  if(!el)return null;
+  var raw=(el.value||'').split(/[ ,]+/).filter(Boolean).map(parseFloat).filter(function(x){return isFinite(x);});
+  if(!raw.length)return null;
+  var labels=[],dC=[],dT=[];
+  var acc=0;
+  for(var k=0;k<raw.length;k++){
+    acc+=raw[k];
+    labels.push('t'+(k+1));
+    dC.push(Math.round(acc*1000)/1000);
+    dT.push(Math.round(raw[k]*1000)/1000);
+  }
+  return {labels:labels,dC:dC,dT:dT};
+}
+function __cleChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cleSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cleChart',{title:en?'Complete Life Expectancy: Cumulative t_px vs Term':'完全期望寿命：累加值与单项 t_px',labels:s.labels,series:[{name:en?'Cumulative e_x':'完全期望寿命 e_x (累加)',data:s.dC},{name:en?'Term t_px':'单项生存概率 t_px',data:s.dT}]});
+}
+
+function __cleShow(which){
+  var c=document.getElementById('cleChart'), t=document.getElementById('complete_life_expectancyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cleTabInit(){
+  var btns=document.querySelectorAll('.cle-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cleShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cleShow('chart');
+  try{__cleChart();}catch(e){}
+}
+var __cleFn=calcTool;calcTool=function(){try{__cleFn();}catch(e){}try{__cleChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cleChart();}catch(e){}});try{__cleTabInit();}catch(e){}
+</script>
 </body>
 </html>
