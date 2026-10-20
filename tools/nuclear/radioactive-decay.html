@@ -301,6 +301,12 @@ function __radioactive_decayBoot(){ try{ __radioactive_decayPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __radioactive_decayBoot();
 else document.addEventListener('DOMContentLoaded', __radioactive_decayBoot);
 </script>
+<div class="rd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rdChart" style="margin-top:8px;"></div>
+<div id="rdTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +342,49 @@ else document.addEventListener('DOMContentLoaded', __radioactive_decayBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rdSweep(){
+  var n0=num('n0'), lam=num('lam'), t0=num('t');
+  if(!isFinite(n0)||!isFinite(lam)||!isFinite(t0)||n0<=0||lam<=0||t0<=0)return null;
+  var labels=[],dN=[],dP=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var t=t0*mults[i], n=n0*Math.exp(-lam*t), pct=n/n0*100;
+    labels.push((Math.round(t*1000)/1000).toFixed(2));
+    dN.push(Math.round(n*1000)/1000); dP.push(Math.round(pct*1000)/1000);
+    rows.push([(Math.round(t*1000)/1000).toFixed(2),(Math.round(n*1000)/1000).toFixed(2),(Math.round(pct*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dN:dN,dP:dP,rows:rows};
+}
+function __rdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rdChart',{title:en?'Radioactive Decay: Remaining Nuclei vs Time (N = N0 e^{-lambda t})':'放射性衰变：剩余核数随时间的指数衰减（N = N₀e^{−λt}）',labels:s.labels,series:[{name:en?'Remaining N':'剩余核数 N',data:s.dN},{name:en?'Remaining (%)':'剩余比例 (%)',data:s.dP}]});
+}
+function __rdTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__rdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#rdTable',{head:en?['Time t','Remaining N','Remaining (%)']:['时间 t','剩余核数 N','剩余比例 (%)'],rows:s.rows});
+}
+
+function __rdShow(which){
+  var c=document.getElementById('rdChart'), t=document.getElementById('rdTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rdTabInit(){
+  var btns=document.querySelectorAll('.rd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __rdFn=calcTool;calcTool=function(){try{__rdFn();}catch(e){}try{__rdChart();}catch(e){}try{__rdTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rdChart();}catch(e){}try{__rdTable();}catch(e){}});
+try{__rdTabInit();}catch(e){}
+</script>
 </body>
 </html>

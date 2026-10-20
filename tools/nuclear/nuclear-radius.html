@@ -241,6 +241,12 @@ function __nuclear_radiusBoot(){ try{ __nuclear_radiusPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __nuclear_radiusBoot();
 else document.addEventListener('DOMContentLoaded', __nuclear_radiusBoot);
 </script>
+<div class="nr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="nrChart" style="margin-top:8px;"></div>
+<div id="nrTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +282,50 @@ else document.addEventListener('DOMContentLoaded', __nuclear_radiusBoot);
 </dl>
 </div>
 </section>
+<script>
+function __nrSweep(){
+  var A0=num('A');
+  if(!isFinite(A0)||A0<=0)return null;
+  var r0=1.2e-15;
+  var labels=[],dR=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var A=A0*mults[i], R=r0*Math.cbrt(A);
+    labels.push((Math.round(A*100)/100).toFixed(1));
+    dR.push(Math.round(R*1e15*100)/100);
+    rows.push([(Math.round(A*100)/100).toFixed(1),(Math.round(R*1e15*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dR:dR,rows:rows};
+}
+function __nrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__nrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#nrChart',{title:en?'Nuclear Radius vs Mass Number (R = r0 A^{1/3})':'核半径随质量数变化（R = r₀·A^{1/3}，幂律缓增）',labels:s.labels,series:[{name:en?'Radius R (fm)':'半径 R (fm)',data:s.dR}]});
+}
+function __nrTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__nrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#nrTable',{head:en?['Mass number A','Radius R (fm)']:['质量数 A','半径 R (fm)'],rows:s.rows});
+}
+
+function __nrShow(which){
+  var c=document.getElementById('nrChart'), t=document.getElementById('nrTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __nrTabInit(){
+  var btns=document.querySelectorAll('.nr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__nrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __nrFn=calcTool;calcTool=function(){try{__nrFn();}catch(e){}try{__nrChart();}catch(e){}try{__nrTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__nrChart();}catch(e){}try{__nrTable();}catch(e){}});
+try{__nrTabInit();}catch(e){}
+</script>
 </body>
 </html>
