@@ -295,6 +295,11 @@ function __option_breakeven_callBoot(){ try{ __option_breakeven_callPresets(); }
 if (document.readyState && document.readyState !== 'loading') __option_breakeven_callBoot();
 else document.addEventListener('DOMContentLoaded', __option_breakeven_callBoot);
 </script>
+<div class="obc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="obcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,44 @@ else document.addEventListener('DOMContentLoaded', __option_breakeven_callBoot);
 </dl>
 </div>
 </section>
+<script>
+function __obcSweep(){
+  var k=num('k');
+  if(!isFinite(k)||k<=0)return null;
+  var labels=[], dB=[], dR=[];
+  var prs=[1,3,5,8,12,16,20,30];
+  for(var k2=0;k2<prs.length;k2++){
+    var pv=prs[k2], BE=k+pv;
+    labels.push(pv.toFixed(0));
+    dB.push(Math.round(BE*100)/100);
+    dR.push(Math.round(pv/k*100*1000)/1000);
+  }
+  return {labels:labels,dB:dB,dR:dR};
+}
+function __obcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__obcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#obcChart',{title:en?'Call Breakeven vs Premium (linear BE=K+premium)':'看涨盈亏平衡点随权利金线性上移（BE=K+权利金）',labels:s.labels,series:[{name:en?'Breakeven price (¥)':'盈亏平衡价 (元)',data:s.dB},{name:en?'Premium rate (%)':'权利金率 (%)',data:s.dR}]});
+}
+
+function __obcShow(which){
+  var c=document.getElementById('obcChart'), t=document.getElementById('option_breakeven_callTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __obcTabInit(){
+  var btns=document.querySelectorAll('.obc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__obcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __obcShow('chart');
+  try{__obcChart();}catch(e){}
+}
+var __obcFn=calcTool;calcTool=function(){try{__obcFn();}catch(e){}try{__obcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__obcChart();}catch(e){}});try{__obcTabInit();}catch(e){}
+</script>
 </body>
 </html>

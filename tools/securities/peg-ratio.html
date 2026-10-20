@@ -298,6 +298,11 @@ function __peg_ratioBoot(){ try{ __peg_ratioPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __peg_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __peg_ratioBoot);
 </script>
+<div class="peg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pegChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __peg_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pegSweep(){
+  var PE=num('PE');
+  if(!isFinite(PE)||PE<=0)return null;
+  var labels=[], dG=[], dL=[];
+  var gs=[2,5,8,10,15,20,30,50];
+  for(var k=0;k<gs.length;k++){
+    var gv=gs[k], PEG=PE/gv;
+    labels.push(gv.toFixed(0));
+    dG.push(Math.round(PEG*1000)/1000);
+    dL.push(1);
+  }
+  return {labels:labels,dG:dG,dL:dL};
+}
+function __pegChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pegSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pegChart',{title:en?'PEG Ratio vs Growth Rate (inverse, fair-value line at PEG=1)':'PEG 随增长率反比下降（PEG=1 为合理估值线）',labels:s.labels,series:[{name:en?'PEG ratio':'PEG 值',data:s.dG},{name:en?'Fair value PEG=1':'合理估值 PEG=1',data:s.dL}]});
+}
+
+function __pegShow(which){
+  var c=document.getElementById('pegChart'), t=document.getElementById('peg_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pegTabInit(){
+  var btns=document.querySelectorAll('.peg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pegShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pegShow('chart');
+  try{__pegChart();}catch(e){}
+}
+var __pegFn=calcTool;calcTool=function(){try{__pegFn();}catch(e){}try{__pegChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pegChart();}catch(e){}});try{__pegTabInit();}catch(e){}
+</script>
 </body>
 </html>

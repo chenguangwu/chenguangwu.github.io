@@ -296,6 +296,11 @@ function __max_drawdownBoot(){ try{ __max_drawdownPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __max_drawdownBoot();
 else document.addEventListener('DOMContentLoaded', __max_drawdownBoot);
 </script>
+<div class="mdd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mddChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,44 @@ else document.addEventListener('DOMContentLoaded', __max_drawdownBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mddSweep(){
+  var peak=num('peak');
+  if(!isFinite(peak)||peak<=0)return null;
+  var labels=[], dM=[], dR=[];
+  var trs=[95,90,85,80,70,60,50,30];
+  for(var k=0;k<trs.length;k++){
+    var tv=trs[k], md=(peak-tv)/peak*100;
+    labels.push(tv.toFixed(0));
+    dM.push(Math.round(md*100)/100);
+    dR.push(Math.round(peak/Math.max(tv,1e-9)*1000)/1000);
+  }
+  return {labels:labels,dM:dM,dR:dR};
+}
+function __mddChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mddSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mddChart',{title:en?'Max Drawdown vs Trough Value (linear decline)':'最大回撤随谷值线性收窄（附回升倍数）',labels:s.labels,series:[{name:en?'Max drawdown (%)':'最大回撤 (%)',data:s.dM},{name:en?'Recovery multiple peak/trough':'回升倍数 峰值/谷值',data:s.dR}]});
+}
+
+function __mddShow(which){
+  var c=document.getElementById('mddChart'), t=document.getElementById('max_drawdownTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mddTabInit(){
+  var btns=document.querySelectorAll('.mdd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mddShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mddShow('chart');
+  try{__mddChart();}catch(e){}
+}
+var __mddFn=calcTool;calcTool=function(){try{__mddFn();}catch(e){}try{__mddChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mddChart();}catch(e){}});try{__mddTabInit();}catch(e){}
+</script>
 </body>
 </html>
