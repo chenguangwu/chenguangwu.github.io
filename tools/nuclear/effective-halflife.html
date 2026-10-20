@@ -247,6 +247,12 @@ function __effective_halflifeBoot(){ try{ __effective_halflifePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __effective_halflifeBoot();
 else document.addEventListener('DOMContentLoaded', __effective_halflifeBoot);
 </script>
+<div class="eh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ehChart" style="margin-top:8px;"></div>
+<div id="ehTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +300,49 @@ else document.addEventListener('DOMContentLoaded', __effective_halflifeBoot);
 <h3>结果含义</h3><p>有效半衰期 T_e：放射性核素在体内同时被物理衰变与生物排泄清除，满足 1/T_e=1/T_p+1/T_b（T_p 物理半衰期、T_b 生物半衰期）。</p>
 <h3>用途</h3><p>核医学中估算体内放射性存留时间，用于剂量与防护规划；T_e 恒小于 T_p 与 T_b 中较小者。</p>
 </div></section>
+<script>
+function __ehSweep(){
+  var tp=num('tp'), tb=num('tb');
+  if(!isFinite(tp)||!isFinite(tb)||tp<=0||tb<=0)return null;
+  var labels=[],data=[],ref=[],rows=[];
+  var mults=[0.25,0.5,1,2,4,8,20];
+  for(var i=0;i<mults.length;i++){
+    var bb=tb*mults[i], te=1/(1/tp+1/bb);
+    labels.push((Math.round(bb*10)/10).toFixed(1));
+    data.push(Math.round(te*1000)/1000); ref.push(Math.round(tp*1000)/1000);
+    rows.push([(Math.round(bb*10)/10).toFixed(1), (Math.round(te*1000)/1000).toFixed(3), (Math.round(te/tp*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,data:data,ref:ref,rows:rows};
+}
+function __ehChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ehSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ehChart',{title:en?'Effective Half-life vs Biological Half-life (1/t_eff = 1/tp + 1/tb)':'有效半衰期随生物半排期变化（渐近物理半衰期）',labels:s.labels,series:[{name:en?'t_eff (days)':'有效半衰期 t_eff (天)',data:s.data},{name:en?'Physical t_p limit':'物理半衰期上限 tp',data:s.ref}]});
+}
+function __ehTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ehSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ehTable',{head:en?['Biological t_b (days)','t_eff (days)','t_eff/t_p']:['生物半排期 t_b (天)','有效半衰期 t_eff (天)','占比 t_eff/t_p'],rows:s.rows});
+}
+
+function __ehShow(which){
+  var c=document.getElementById('ehChart'), t=document.getElementById('ehTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ehTabInit(){
+  var btns=document.querySelectorAll('.eh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ehShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ehFn=calcTool;calcTool=function(){try{__ehFn();}catch(e){}try{__ehChart();}catch(e){}try{__ehTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ehChart();}catch(e){}try{__ehTable();}catch(e){}});
+try{__ehTabInit();}catch(e){}
+</script>
 </body>
 </html>

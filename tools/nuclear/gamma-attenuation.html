@@ -247,6 +247,12 @@ function __gamma_attenuationBoot(){ try{ __gamma_attenuationPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __gamma_attenuationBoot();
 else document.addEventListener('DOMContentLoaded', __gamma_attenuationBoot);
 </script>
+<div class="ga-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gaChart" style="margin-top:8px;"></div>
+<div id="gaTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +288,49 @@ else document.addEventListener('DOMContentLoaded', __gamma_attenuationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gaSweep(){
+  var I0=num('I0'), mu=num('mu'), x=num('x');
+  if(!isFinite(I0)||!isFinite(mu)||!isFinite(x)||mu<=0||x<=0||I0<=0)return null;
+  var labels=[],d1=[],d2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var xx=x*mults[i], I=I0*Math.exp(-mu*xx);
+    labels.push((Math.round(xx*1000)/1000).toFixed(3));
+    d1.push(Math.round(I*1000)/1000); d2.push(Math.round(mu*xx*1000)/1000);
+    rows.push([(Math.round(xx*1000)/1000).toFixed(3), (Math.round(I*1000)/1000).toFixed(3), (Math.round(mu*xx*1000)/1000).toFixed(3), (Math.round(I/I0*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,d1:d1,d2:d2,rows:rows};
+}
+function __gaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gaChart',{title:en?'Gamma Transmission vs Thickness (I = I₀e^{−μx})':'伽马透射强度随厚度变化 (I = I₀e^{−μx})',labels:s.labels,series:[{name:en?'Transmitted I':'透射强度 I',data:s.d1},{name:en?'Optical depth μx':'光学厚度 μx',data:s.d2}]});
+}
+function __gaTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__gaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#gaTable',{head:en?['Thickness x','Transmitted I','Optical depth μx','I/I₀']:['厚度 x','透射强度 I','光学厚度 μx','透射比 I/I₀'],rows:s.rows});
+}
+
+function __gaShow(which){
+  var c=document.getElementById('gaChart'), t=document.getElementById('gaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gaTabInit(){
+  var btns=document.querySelectorAll('.ga-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __gaFn=calcTool;calcTool=function(){try{__gaFn();}catch(e){}try{__gaChart();}catch(e){}try{__gaTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gaChart();}catch(e){}try{__gaTable();}catch(e){}});
+try{__gaTabInit();}catch(e){}
+</script>
 </body>
 </html>
