@@ -206,6 +206,11 @@ function resetForm(){document.getElementById('r').value = '6';
       calcTool();}
 calcTool();
 </script>
+<div class="ear-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="earChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,6 +287,46 @@ calcTool = function(){ __tb_fn0(); try{ __effective_annual_rateExtras(); }catch(
 function __effective_annual_rateBoot(){ try{ __effective_annual_ratePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __effective_annual_rateBoot();
 else document.addEventListener('DOMContentLoaded', __effective_annual_rateBoot);
+</script>
+<script>
+function __earSweep(){
+  var r=num('r')/100;
+  if(!isFinite(r)||r<=0)return null;
+  var labels=[],dEar=[],dCont=[],dGap=[],rows=[];
+  var ns=[1,2,4,12,52,365,10000];
+  for(var k=0;k<ns.length;k++){
+    var ear=Math.pow(1+r/ns[k],ns[k])-1, c=Math.exp(r)-1;
+    labels.push(ns[k]>=1000?(ns[k]/1000).toFixed(0)+'k':String(ns[k]));
+    dEar.push(Math.round(ear*1e4*1000)/1000);
+    dCont.push(Math.round(c*1e4*1000)/1000);
+    dGap.push(Math.round((ear-r)*1e4*1000)/1000);
+    rows.push([labels[k],(Math.round(ear*1e4*1000)/1000).toFixed(3),(Math.round((ear-r)*1e4*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dEar:dEar,dCont:dCont,dGap:dGap,rows:rows};
+}
+function __earChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__earSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#earChart',{title:en?'EAR vs Compounding Frequency (converging to e^r-1)':'有效年利率随复利次数收敛至连续复利上界（EAR=(1+r/n)ⁿ-1）',labels:s.labels,series:[{name:en?'EAR (×10⁻⁴)':'有效年利率 (×10⁻⁴)',data:s.dEar},{name:en?'Continuous cap (×10⁻⁴)':'连续复利上界 (×10⁻⁴)',data:s.dCont}]});
+}
+
+function __earShow(which){
+  var c=document.getElementById('earChart'), t=document.getElementById('effective_annual_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __earTabInit(){
+  var btns=document.querySelectorAll('.ear-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__earShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __earShow('chart');
+}
+var __earFn=calcTool;calcTool=function(){try{__earFn();}catch(e){}try{__earChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__earChart();}catch(e){}});
 </script>
 </body>
 </html>
