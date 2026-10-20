@@ -303,6 +303,11 @@ function __normalityBoot(){ try{ __normalityPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __normalityBoot();
 else document.addEventListener('DOMContentLoaded', __normalityBoot);
 </script>
+<div class="nm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="nmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +343,44 @@ else document.addEventListener('DOMContentLoaded', __normalityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __nmSweep(){
+  var n=num('n'), z=num('z'), V0=num('V');
+  if(!isFinite(n)||!isFinite(z)||!isFinite(V0)||n<=0||z<=0||V0<=0)return null;
+  var labels=[],dN=[],dC=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var V=V0*mults[k], N=n*z/V;
+    labels.push((Math.round(V*1000)/1000).toFixed(3));
+    dN.push(Math.round(N*1e4*1000)/1000);
+    dC.push(Math.round(n/V*1e4*1000)/1000);
+    rows.push([(Math.round(V*1000)/1000).toFixed(3),(Math.round(N*1e4*1000)/1000).toFixed(3),(Math.round(n/V*1e4*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dN:dN,dC:dC,rows:rows};
+}
+function __nmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__nmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#nmChart',{title:en?'Normality vs Volume (inverse N=n·z/V)':'当量浓度随体积反比下降（N=n·z/V）',labels:s.labels,series:[{name:en?'Normality N (×10⁻⁴ eq/L)':'当量浓度 (×10⁻⁴ eq/L)',data:s.dN},{name:en?'Molarity (×10⁻⁴ mol/L)':'摩尔浓度 (×10⁻⁴ mol/L)',data:s.dC}]});
+}
+
+function __nmShow(which){
+  var c=document.getElementById('nmChart'), t=document.getElementById('normalityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __nmTabInit(){
+  var btns=document.querySelectorAll('.nm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__nmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __nmShow('chart');
+}
+var __nmFn=calcTool;calcTool=function(){try{__nmFn();}catch(e){}try{__nmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__nmChart();}catch(e){}});
+</script>
 </body>
 </html>

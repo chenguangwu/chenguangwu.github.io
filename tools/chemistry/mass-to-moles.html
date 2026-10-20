@@ -300,6 +300,11 @@ function __mass_to_molesBoot(){ try{ __mass_to_molesPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __mass_to_molesBoot();
 else document.addEventListener('DOMContentLoaded', __mass_to_molesBoot);
 </script>
+<div class="mtm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mtmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __mass_to_molesBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mtmSweep(){
+  var M=num('M'), m0=num('m');
+  if(!isFinite(M)||!isFinite(m0)||M<=0||m0<=0)return null;
+  var labels=[],dN=[],dMm=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var m=m0*mults[k], n=m/M;
+    labels.push((Math.round(m*100)/100).toFixed(2));
+    dN.push(Math.round(n*1e4*1000)/1000);
+    dMm.push(Math.round(M*1000)/1000);
+    rows.push([(Math.round(m*100)/100).toFixed(2),(Math.round(n*1e4*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dN:dN,dMm:dMm,rows:rows};
+}
+function __mtmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mtmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mtmChart',{title:en?'Moles vs Mass (linear n=m/M)':'物质的量随质量线性增长（n=m/M）',labels:s.labels,series:[{name:en?'Moles n (×10⁻⁴ mol)':'物质的量 (×10⁻⁴ mol)',data:s.dN}]});
+}
+
+function __mtmShow(which){
+  var c=document.getElementById('mtmChart'), t=document.getElementById('mass_to_molesTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mtmTabInit(){
+  var btns=document.querySelectorAll('.mtm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mtmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mtmShow('chart');
+}
+var __mtmFn=calcTool;calcTool=function(){try{__mtmFn();}catch(e){}try{__mtmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mtmChart();}catch(e){}});
+</script>
 </body>
 </html>

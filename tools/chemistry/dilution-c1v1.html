@@ -309,6 +309,11 @@ function __dilution_c1v1Boot(){ try{ __dilution_c1v1Presets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __dilution_c1v1Boot();
 else document.addEventListener('DOMContentLoaded', __dilution_c1v1Boot);
 </script>
+<div class="dcv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dcvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,5 +349,44 @@ else document.addEventListener('DOMContentLoaded', __dilution_c1v1Boot);
 </dl>
 </div>
 </section>
+<script>
+function __dcvSweep(){
+  var c1=num('c1'), v1=num('v1'), v2=num('v2');
+  if(!isFinite(c1)||!isFinite(v1)||!isFinite(v2)||c1<=0||v1<=0||v2<=0)return null;
+  var labels=[],dV1=[],dTot=[],rows=[];
+  var c2s=[0.05,0.1,0.2,0.5,1,1.5,2];
+  for(var k=0;k<c2s.length;k++){
+    var c2=c2s[k], V1=c2*v2/c1;
+    labels.push(c2.toFixed(2));
+    dV1.push(Math.round(V1*100)/100);
+    dTot.push(Math.round((V1+v2)*100)/100);
+    rows.push([c2.toFixed(2),(Math.round(V1*100)/100).toFixed(2),(Math.round((V1+v2)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dV1:dV1,dTot:dTot,rows:rows};
+}
+function __dcvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dcvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dcvChart',{title:en?'Stock Volume vs Target Concentration (inverse V₁=C₂V₂/C₁)':'所需原液体积随目标浓度反比下降（C₁V₁=C₂V₂）',labels:s.labels,series:[{name:en?'Stock V₁ (mL)':'原液体积 (mL)',data:s.dV1},{name:en?'Total (mL)':'定容总体积 (mL)',data:s.dTot}]});
+}
+
+function __dcvShow(which){
+  var c=document.getElementById('dcvChart'), t=document.getElementById('dilution_c1v1Table');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dcvTabInit(){
+  var btns=document.querySelectorAll('.dcv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dcvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dcvShow('chart');
+}
+var __dcvFn=calcTool;calcTool=function(){try{__dcvFn();}catch(e){}try{__dcvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dcvChart();}catch(e){}});
+</script>
 </body>
 </html>

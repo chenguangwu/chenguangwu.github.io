@@ -301,6 +301,11 @@ function __gas_densityBoot(){ try{ __gas_densityPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __gas_densityBoot();
 else document.addEventListener('DOMContentLoaded', __gas_densityBoot);
 </script>
+<div class="gd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,45 @@ else document.addEventListener('DOMContentLoaded', __gas_densityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gdSweep(){
+  var M=num('M'), T=num('T'), P0=num('P');
+  if(!isFinite(M)||!isFinite(T)||!isFinite(P0)||M<=0||T<=0||P0<=0)return null;
+  var Rr=8.314;
+  var labels=[],dRho=[],dMol=[],rows=[];
+  var ps=[50,101.325,150,200,300,500,800,1000];
+  for(var k=0;k<ps.length;k++){
+    var P=ps[k], rho=P*M/(Rr*T);
+    labels.push(P.toFixed(1));
+    dRho.push(Math.round(rho*1e4*1000)/1000);
+    dMol.push(Math.round(M*1000)/1000);
+    rows.push([P.toFixed(1),(Math.round(rho*1e4*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dRho:dRho,dMol:dMol,rows:rows};
+}
+function __gdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gdChart',{title:en?'Gas Density vs Pressure (linear ρ=PM/RT)':'气体密度随压强线性增长（ρ=PM/RT）',labels:s.labels,series:[{name:en?'Density ρ (×10⁻⁴ g/L)':'气体密度 (×10⁻⁴ g/L)',data:s.dRho}]});
+}
+
+function __gdShow(which){
+  var c=document.getElementById('gdChart'), t=document.getElementById('gas_densityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gdTabInit(){
+  var btns=document.querySelectorAll('.gd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gdShow('chart');
+}
+var __gdFn=calcTool;calcTool=function(){try{__gdFn();}catch(e){}try{__gdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gdChart();}catch(e){}});
+</script>
 </body>
 </html>
