@@ -247,6 +247,11 @@ function __reverse_chargeBoot(){ try{ __reverse_chargePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __reverse_chargeBoot();
 else document.addEventListener('DOMContentLoaded', __reverse_chargeBoot);
 </script>
+<div class="rvc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rvcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +299,44 @@ else document.addEventListener('DOMContentLoaded', __reverse_chargeBoot);
 <h3>结果含义</h3><p>反向征收（逆向计税）：增值税纳税义务由购买方而非销售方申报缴纳，销售方开具不含税发票。</p>
 <h3>适用场景</h3><p>常见于 B2B 跨境服务/货物、以及特定行业的进项抵扣链条；结果说明该笔交易适用反向征收时的计税与申报方。具体以最新增值税法规为准。</p>
 </div></section>
+<script>
+function __rvcSweep(){
+  var a0=num('a'), r=num('r');
+  if(!isFinite(a0)||!isFinite(r)||a0<=0||r<0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var a=a0*mults[k], T=a*r;
+    labels.push((Math.round(a*100)/100).toFixed(0));
+    dT.push(Math.round(T*1000)/1000);
+    rows.push([(Math.round(a*100)/100).toFixed(0),(Math.round(T*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __rvcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rvcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rvcChart',{title:en?'Reverse Charge Tax vs Amount (T=a x r)':'逆向征收税额随金额线性变化（T=a×r）',labels:s.labels,series:[{name:en?'Tax T':'税额 T',data:s.dT}]});
+}
+
+function __rvcShow(which){
+  var c=document.getElementById('rvcChart'), t=document.getElementById('reverse_chargeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rvcTabInit(){
+  var btns=document.querySelectorAll('.rvc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rvcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rvcShow('chart');
+}
+var __rvcFn=calcTool;calcTool=function(){try{__rvcFn();}catch(e){}try{__rvcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rvcChart();}catch(e){}});
+try{__rvcTabInit();}catch(e){}
+</script>
 </body>
 </html>

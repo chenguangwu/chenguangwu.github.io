@@ -244,6 +244,11 @@ function __sales_tax_addonBoot(){ try{ __sales_tax_addonPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __sales_tax_addonBoot();
 else document.addEventListener('DOMContentLoaded', __sales_tax_addonBoot);
 </script>
+<div class="sta-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="staChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __sales_tax_addonBoot);
 </dl>
 </div>
 </section>
+<script>
+function __staSweep(){
+  var p0=num('price'), r=num('r')/100;
+  if(!isFinite(p0)||!isFinite(r)||p0<=0||r<0)return null;
+  var labels=[],dTax=[],dTot=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var p=p0*mults[k], tax=p*r, tot=p*(1+r);
+    labels.push((Math.round(p*100)/100).toFixed(0));
+    dTax.push(Math.round(tax*1000)/1000); dTot.push(Math.round(tot*1000)/1000);
+    rows.push([(Math.round(p*100)/100).toFixed(0),(Math.round(tax*1000)/1000).toFixed(2),(Math.round(tot*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dTax:dTax,dTot:dTot,rows:rows};
+}
+function __staChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__staSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#staChart',{title:en?'Sales Tax vs Price (tax=price x r)':'销售税随价格线性变化（tax=price×r）',labels:s.labels,series:[{name:en?'Tax':'税额',data:s.dTax},{name:en?'Price with tax':'含税价',data:s.dTot}]});
+}
+
+function __staShow(which){
+  var c=document.getElementById('staChart'), t=document.getElementById('sales_tax_addonTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __staTabInit(){
+  var btns=document.querySelectorAll('.sta-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__staShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __staShow('chart');
+}
+var __staFn=calcTool;calcTool=function(){try{__staFn();}catch(e){}try{__staChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__staChart();}catch(e){}});
+try{__staTabInit();}catch(e){}
+</script>
 </body>
 </html>

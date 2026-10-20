@@ -246,6 +246,11 @@ function __specific_dutyBoot(){ try{ __specific_dutyPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __specific_dutyBoot();
 else document.addEventListener('DOMContentLoaded', __specific_dutyBoot);
 </script>
+<div class="spd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="spdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __specific_dutyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __spdSweep(){
+  var q0=num('q'), u=num('u');
+  if(!isFinite(q0)||!isFinite(u)||q0<=0||u<0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var q=q0*mults[k], T=q*u;
+    labels.push((Math.round(q*100)/100).toFixed(0));
+    dT.push(Math.round(T*1000)/1000);
+    rows.push([(Math.round(q*100)/100).toFixed(0),(Math.round(T*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __spdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__spdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#spdChart',{title:en?'Specific Duty vs Quantity (T=q x u)':'从量税随数量线性变化（T=q×u）',labels:s.labels,series:[{name:en?'Duty T':'税额 T',data:s.dT}]});
+}
+
+function __spdShow(which){
+  var c=document.getElementById('spdChart'), t=document.getElementById('specific_dutyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __spdTabInit(){
+  var btns=document.querySelectorAll('.spd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__spdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __spdShow('chart');
+}
+var __spdFn=calcTool;calcTool=function(){try{__spdFn();}catch(e){}try{__spdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__spdChart();}catch(e){}});
+try{__spdTabInit();}catch(e){}
+</script>
 </body>
 </html>
