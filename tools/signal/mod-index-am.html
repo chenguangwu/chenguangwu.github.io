@@ -298,6 +298,11 @@ function __mod_index_amBoot(){ try{ __mod_index_amPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __mod_index_amBoot();
 else document.addEventListener('DOMContentLoaded', __mod_index_amBoot);
 </script>
+<div class="mia-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="miaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __mod_index_amBoot);
 </dl>
 </div>
 </section>
+<script>
+function __miaSweep(){
+  var am0=num('am'), ac=num('ac');
+  if(!isFinite(am0)||!isFinite(ac)||am0<=0||ac<=0)return null;
+  var labels=[],dM=[],dPct=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var am=am0*mults[k], m=am/ac;
+    labels.push((Math.round(am*100)/100).toFixed(2));
+    dM.push(Math.round(m*1000)/1000);
+    dPct.push(Math.round(m*100*100)/100);
+    rows.push([(Math.round(am*100)/100).toFixed(2),(Math.round(m*1000)/1000).toFixed(3),(Math.round(m*100*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dM:dM,dPct:dPct,rows:rows};
+}
+function __miaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__miaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#miaChart',{title:en?'AM Modulation Index vs Amplitude (m=Am/Ac, linear)':'调幅指数随调制幅度线性增长（m=A_m/A_c）',labels:s.labels,series:[{name:en?'Index m':'调制指数 m',data:s.dM},{name:en?'Depth (%)':'调制深度 (%)',data:s.dPct}]});
+}
+
+function __miaShow(which){
+  var c=document.getElementById('miaChart'), t=document.getElementById('mod_index_amTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __miaTabInit(){
+  var btns=document.querySelectorAll('.mia-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__miaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __miaShow('chart');
+}
+var __miaFn=calcTool;calcTool=function(){try{__miaFn();}catch(e){}try{__miaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__miaChart();}catch(e){}});
+</script>
 </body>
 </html>

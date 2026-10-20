@@ -246,6 +246,11 @@ function __first_order_riseBoot(){ try{ __first_order_risePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __first_order_riseBoot();
 else document.addEventListener('DOMContentLoaded', __first_order_riseBoot);
 </script>
+<div class="fo-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="foChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -293,5 +298,43 @@ else document.addEventListener('DOMContentLoaded', __first_order_riseBoot);
 <h3>结果含义</h3><p>一阶系统阶跃响应 V(t)=V_final·(1−e^(−t/τ))：输出按时间常数 τ 指数趋近终值 V_final。</p>
 <h3>用法</h3><p>t=τ 达 63.2%、t=2τ 达 86.5%、t=5τ 达 99.3%。τ=R·C（RC 电路）或 L/R（RL 电路）。</p>
 </div></section>
+<script>
+function __foSweep(){
+  var tau=num('tau');
+  if(!isFinite(tau)||tau<=0)return null;
+  var labels=[],dY=[],dErr=[],rows=[];
+  for(var i=0;i<=10;i++){
+    var t=i*tau/2, y=(1-Math.exp(-t/tau))*100;
+    labels.push((Math.round(t/tau*100)/100).toFixed(1));
+    dY.push(Math.round(y*1000)/1000);
+    dErr.push(Math.round((100-y)*1000)/1000);
+    rows.push([(Math.round(t/tau*100)/100).toFixed(1),(Math.round(y*1000)/1000).toFixed(3),(Math.round((100-y)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dY:dY,dErr:dErr,rows:rows};
+}
+function __foChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__foSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#foChart',{title:en?'First-Order Step Response (1-e^(-t/τ), exponential saturation)':'一阶系统阶跃响应指数饱和（1-e^(-t/τ)）',labels:s.labels,series:[{name:en?'Response (%)':'响应值 (%)',data:s.dY},{name:en?'Remaining error (%)':'剩余误差 (%)',data:s.dErr}]});
+}
+
+function __foShow(which){
+  var c=document.getElementById('foChart'), t=document.getElementById('first_order_riseTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __foTabInit(){
+  var btns=document.querySelectorAll('.fo-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__foShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __foShow('chart');
+}
+var __foFn=calcTool;calcTool=function(){try{__foFn();}catch(e){}try{__foChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__foChart();}catch(e){}});
+</script>
 </body>
 </html>

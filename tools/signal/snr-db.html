@@ -311,6 +311,11 @@ function __snr_dbBoot(){ try{ __snr_dbPresets(); }catch(e){} try{ calcTool(); }c
 if (document.readyState && document.readyState !== 'loading') __snr_dbBoot();
 else document.addEventListener('DOMContentLoaded', __snr_dbBoot);
 </script>
+<div class="sd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,44 @@ else document.addEventListener('DOMContentLoaded', __snr_dbBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sdSweep(){
+  var ps=num('ps'), pn0=num('pn');
+  if(!isFinite(ps)||!isFinite(pn0)||ps<=0||pn0<=0)return null;
+  var labels=[],dDb=[],dLin=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var pn=pn0*mults[k], snr=10*Math.log10(ps/pn);
+    labels.push((Math.round(pn*1e9*100)/100).toFixed(2));
+    dDb.push(Math.round(snr*1000)/1000);
+    dLin.push(Math.round(ps/pn*1000)/1000);
+    rows.push([(Math.round(pn*1e9*100)/100).toFixed(2),(Math.round(snr*1000)/1000).toFixed(3),(Math.round(ps/pn*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dDb:dDb,dLin:dLin,rows:rows};
+}
+function __sdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sdChart',{title:en?'SNR vs Noise Power (10lg(Ps/Pn), logarithmic)':'信噪比随噪声功率对数下降（10·lg(P_s/P_n)）',labels:s.labels,series:[{name:en?'SNR (dB)':'信噪比 SNR (dB)',data:s.dDb},{name:en?'Linear ratio Ps/Pn':'线性功率比 P_s/P_n',data:s.dLin}]});
+}
+
+function __sdShow(which){
+  var c=document.getElementById('sdChart'), t=document.getElementById('snr_dbTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sdTabInit(){
+  var btns=document.querySelectorAll('.sd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sdShow('chart');
+}
+var __sdFn=calcTool;calcTool=function(){try{__sdFn();}catch(e){}try{__sdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sdChart();}catch(e){}});
+</script>
 </body>
 </html>

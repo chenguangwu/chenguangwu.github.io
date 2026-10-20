@@ -300,6 +300,11 @@ function __fft_resolutionBoot(){ try{ __fft_resolutionPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __fft_resolutionBoot();
 else document.addEventListener('DOMContentLoaded', __fft_resolutionBoot);
 </script>
+<div class="fr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="frChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __fft_resolutionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __frSweep(){
+  var fs=num('fs');
+  if(!isFinite(fs)||fs<=0)return null;
+  var sizes=[64,128,256,512,1024,2048,4096];
+  var labels=[],dDf=[],dT=[],rows=[];
+  for(var k=0;k<sizes.length;k++){
+    var N=sizes[k], df=fs/N;
+    labels.push(String(N));
+    dDf.push(Math.round(df*1000)/1000);
+    dT.push(Math.round(N/fs*1000)/1000);
+    rows.push([String(N),(Math.round(df*1000)/1000).toFixed(4),(Math.round(N/fs*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dDf:dDf,dT:dT,rows:rows};
+}
+function __frChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__frSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#frChart',{title:en?'FFT Resolution vs Points (Δf=fs/N, inverse)':'FFT 频率分辨率随点数反比提高（Δf=f_s/N）',labels:s.labels,series:[{name:en?'Resolution Δf (Hz)':'频率分辨率 Δf (Hz)',data:s.dDf},{name:en?'Duration T (s)':'采样时长 T (s)',data:s.dT}]});
+}
+
+function __frShow(which){
+  var c=document.getElementById('frChart'), t=document.getElementById('fft_resolutionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __frTabInit(){
+  var btns=document.querySelectorAll('.fr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__frShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __frShow('chart');
+}
+var __frFn=calcTool;calcTool=function(){try{__frFn();}catch(e){}try{__frChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__frChart();}catch(e){}});
+</script>
 </body>
 </html>
