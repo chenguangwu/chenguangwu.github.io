@@ -303,6 +303,11 @@ function __separated_lenses_focalBoot(){ try{ __separated_lenses_focalPresets();
 if (document.readyState && document.readyState !== 'loading') __separated_lenses_focalBoot();
 else document.addEventListener('DOMContentLoaded', __separated_lenses_focalBoot);
 </script>
+<div class="slf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="slfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +343,45 @@ else document.addEventListener('DOMContentLoaded', __separated_lenses_focalBoot)
 </dl>
 </div>
 </section>
+<script>
+function __slfSweep(){
+  var f1=num('f1'), f2=num('f2');
+  if(!isFinite(f1)||!isFinite(f2)||f1<=0||f2<=0)return null;
+  var labels=[], dF=[], dP=[];
+  var ds=[0,2,5,8,10,12,15,18];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k], invF=1/f1+1/f2-dv/(f1*f2);
+    var F=Math.abs(invF)<1e-9?0:1/invF;
+    labels.push(dv.toFixed(0));
+    dF.push(Math.round(F*1000)/1000);
+    dP.push(Math.round(invF*1000)/1000);
+  }
+  return {labels:labels,dF:dF,dP:dP};
+}
+function __slfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__slfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#slfChart',{title:en?'Separated Lenses: Focal Length vs Spacing (hyperbolic pole)':'分离透镜组合焦距随间距双曲变化',labels:s.labels,series:[{name:en?'Combined focal length F (cm)':'组合焦距 F (cm)',data:s.dF},{name:en?'Inverse focal 1/F (1/cm)':'焦距倒数 1/F (1/cm)',data:s.dP}]});
+}
+
+function __slfShow(which){
+  var c=document.getElementById('slfChart'), t=document.getElementById('separated_lenses_focalTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __slfTabInit(){
+  var btns=document.querySelectorAll('.slf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__slfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __slfShow('chart');
+  try{__slfChart();}catch(e){}
+}
+var __slfFn=calcTool;calcTool=function(){try{__slfFn();}catch(e){}try{__slfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__slfChart();}catch(e){}});try{__slfTabInit();}catch(e){}
+</script>
 </body>
 </html>

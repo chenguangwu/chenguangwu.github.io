@@ -297,6 +297,11 @@ function __refractive_index_speedBoot(){ try{ __refractive_index_speedPresets();
 if (document.readyState && document.readyState !== 'loading') __refractive_index_speedBoot();
 else document.addEventListener('DOMContentLoaded', __refractive_index_speedBoot);
 </script>
+<div class="ris-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="risChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __refractive_index_speedBoot)
 </dl>
 </div>
 </section>
+<script>
+function __risSweep(){
+  var c=num('c');
+  if(!isFinite(c)||c<=0)return null;
+  var labels=[], dN=[], dD=[];
+  var vs=[3e8,2.6e8,2.25e8,2e8,1.8e8,1.5e8,1.25e8,1e8];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], n=c/vv;
+    labels.push((vv/1e8).toFixed(2));
+    dN.push(Math.round(n*10000)/10000);
+    dD.push(Math.round((c-vv)/1e8*100)/100);
+  }
+  return {labels:labels,dN:dN,dD:dD};
+}
+function __risChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__risSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#risChart',{title:en?'Refractive Index vs Light Speed (inverse n=c/v)':'折射率随介质光速反比上升（n=c/v）',labels:s.labels,series:[{name:en?'Refractive index n':'折射率 n',data:s.dN},{name:en?'Speed deficit c-v (×10⁸ m/s)':'光速差 c-v (×10⁸ m/s)',data:s.dD}]});
+}
+
+function __risShow(which){
+  var c=document.getElementById('risChart'), t=document.getElementById('refractive_index_speedTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __risTabInit(){
+  var btns=document.querySelectorAll('.ris-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__risShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __risShow('chart');
+  try{__risChart();}catch(e){}
+}
+var __risFn=calcTool;calcTool=function(){try{__risFn();}catch(e){}try{__risChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__risChart();}catch(e){}});try{__risTabInit();}catch(e){}
+</script>
 </body>
 </html>

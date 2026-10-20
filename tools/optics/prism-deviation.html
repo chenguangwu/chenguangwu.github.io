@@ -244,6 +244,11 @@ function __prism_deviationBoot(){ try{ __prism_deviationPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __prism_deviationBoot();
 else document.addEventListener('DOMContentLoaded', __prism_deviationBoot);
 </script>
+<div class="prd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="prdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __prism_deviationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __prdSweep(){
+  var A=num('A');
+  if(!isFinite(A)||A<=0)return null;
+  var labels=[], dD=[], dR=[];
+  var ns=[1.2,1.33,1.45,1.5,1.6,1.7,1.85,2.0];
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k], dv=(nv-1)*A;
+    labels.push(nv.toFixed(2));
+    dD.push(Math.round(dv*100)/100);
+    dR.push(Math.round(dv/A*1000)/1000);
+  }
+  return {labels:labels,dD:dD,dR:dR};
+}
+function __prdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__prdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#prdChart',{title:en?'Prism Deviation vs Refractive Index (linear δ=(n-1)A)':'棱镜偏向角随折射率线性增长（δ=(n-1)A）',labels:s.labels,series:[{name:en?'Deviation angle δ (°)':'偏向角 δ (°)',data:s.dD},{name:en?'Ratio δ/A':'偏向角与顶角比 δ/A',data:s.dR}]});
+}
+
+function __prdShow(which){
+  var c=document.getElementById('prdChart'), t=document.getElementById('prism_deviationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __prdTabInit(){
+  var btns=document.querySelectorAll('.prd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__prdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __prdShow('chart');
+  try{__prdChart();}catch(e){}
+}
+var __prdFn=calcTool;calcTool=function(){try{__prdFn();}catch(e){}try{__prdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__prdChart();}catch(e){}});try{__prdTabInit();}catch(e){}
+</script>
 </body>
 </html>

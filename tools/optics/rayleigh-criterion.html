@@ -300,6 +300,11 @@ function __rayleigh_criterionBoot(){ try{ __rayleigh_criterionPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __rayleigh_criterionBoot();
 else document.addEventListener('DOMContentLoaded', __rayleigh_criterionBoot);
 </script>
+<div class="ryc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rycChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __rayleigh_criterionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rycSweep(){
+  var lam=num('lam');
+  if(!isFinite(lam)||lam<=0)return null;
+  var labels=[], dT=[], dA=[];
+  var Ds=[0.01,0.02,0.05,0.1,0.2,0.5,1.0,2.0];
+  for(var k=0;k<Ds.length;k++){
+    var dv=Ds[k], th=1.22*lam/dv;
+    labels.push(dv.toFixed(2));
+    dT.push(Math.round(th*1e6*1000)/1000);
+    dA.push(Math.round(th*180/Math.PI*3600*1000)/1000);
+  }
+  return {labels:labels,dT:dT,dA:dA};
+}
+function __rycChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rycSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rycChart',{title:en?'Rayleigh Resolution vs Aperture (inverse θ=1.22λ/D)':'瑞利分辨角随孔径反比下降（θ=1.22λ/D）',labels:s.labels,series:[{name:en?'Min resolvable angle (µrad)':'最小分辨角 (µrad)',data:s.dT},{name:en?'Min resolvable angle (arcsec)':'最小分辨角 (角秒)',data:s.dA}]});
+}
+
+function __rycShow(which){
+  var c=document.getElementById('rycChart'), t=document.getElementById('rayleigh_criterionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rycTabInit(){
+  var btns=document.querySelectorAll('.ryc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rycShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rycShow('chart');
+  try{__rycChart();}catch(e){}
+}
+var __rycFn=calcTool;calcTool=function(){try{__rycFn();}catch(e){}try{__rycChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rycChart();}catch(e){}});try{__rycTabInit();}catch(e){}
+</script>
 </body>
 </html>

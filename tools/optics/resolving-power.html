@@ -301,6 +301,11 @@ function __resolving_powerBoot(){ try{ __resolving_powerPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __resolving_powerBoot();
 else document.addEventListener('DOMContentLoaded', __resolving_powerBoot);
 </script>
+<div class="rsp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rspChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,44 @@ else document.addEventListener('DOMContentLoaded', __resolving_powerBoot);
 <h3>结果含义</h3><p>分辨本领：光学系统能区分两点的最小角距离。瑞利判据 θ_min≈1.22·λ/D（λ 波长、D 孔径）。</p>
 <h3>用法</h3><p>θ_min 越小分辨率越高；增大孔径 D 或使用短波长 λ 可提升分辨极限。 microscopes/telescopes 设计的核心约束。</p>
 </div></section>
+<script>
+function __rspSweep(){
+  var D=num('D');
+  if(!isFinite(D)||D<=0)return null;
+  var labels=[], dR=[], dT=[];
+  var lams=[400,450,500,550,600,650,700,800];
+  for(var k=0;k<lams.length;k++){
+    var lv=lams[k]*1e-9, R=D/(1.22*lv);
+    labels.push(lams[k].toFixed(0));
+    dR.push(Math.round(R/1000*100)/100);
+    dT.push(Math.round(1.22*lv/D*1e6*1000)/1000);
+  }
+  return {labels:labels,dR:dR,dT:dT};
+}
+function __rspChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rspSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rspChart',{title:en?'Resolving Power vs Wavelength (inverse R=D/1.22λ)':'分辨本领随波长反比下降（R=D/1.22λ）',labels:s.labels,series:[{name:en?'Resolving power R (×10³)':'分辨本领 R (×10³)',data:s.dR},{name:en?'Min resolvable angle (µrad)':'最小分辨角 (µrad)',data:s.dT}]});
+}
+
+function __rspShow(which){
+  var c=document.getElementById('rspChart'), t=document.getElementById('resolving_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rspTabInit(){
+  var btns=document.querySelectorAll('.rsp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rspShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rspShow('chart');
+  try{__rspChart();}catch(e){}
+}
+var __rspFn=calcTool;calcTool=function(){try{__rspFn();}catch(e){}try{__rspChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rspChart();}catch(e){}});try{__rspTabInit();}catch(e){}
+</script>
 </body>
 </html>
