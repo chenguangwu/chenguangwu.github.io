@@ -252,6 +252,11 @@ function __capital_gains_taxBoot(){ try{ __capital_gains_taxPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __capital_gains_taxBoot();
 else document.addEventListener('DOMContentLoaded', __capital_gains_taxBoot);
 </script>
+<div class="cgt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cgtChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -288,5 +293,44 @@ else document.addEventListener('DOMContentLoaded', __capital_gains_taxBoot);
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用资本利得税计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>售价</li><li>成本</li><li>税率 (%)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>资本利得税计算器是做什么的？</dt><dd>资本利得税计算器：输入资产买入价、卖出价与适用税率，计算资本利得及应纳税额，用于投资税务核算（参考）。</dd><dt>如何使用资本利得税计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>资本利得税计算器适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __cgtSweep(){
+  var sell0=num('sell'), cost=num('cost'), r=num('r')/100;
+  if(!isFinite(sell0)||!isFinite(cost)||!isFinite(r)||sell0<=0||cost<0||r<0)return null;
+  var labels=[],dGain=[],dTax=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var sell=sell0*mults[k], gain=sell-cost, tax=Math.max(0,gain)*r;
+    labels.push((Math.round(sell*100)/100).toFixed(0));
+    dGain.push(Math.round(gain*1000)/1000); dTax.push(Math.round(tax*1000)/1000);
+    rows.push([(Math.round(sell*100)/100).toFixed(0),(Math.round(gain*1000)/1000).toFixed(2),(Math.round(tax*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dGain:dGain,dTax:dTax,rows:rows};
+}
+function __cgtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cgtSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cgtChart',{title:en?'Capital Gains Tax vs Sell Price (tax=max(0,sell-cost) x r)':'资本利得税随卖出价线性变化（tax=max(0,卖出-成本)×r）',labels:s.labels,series:[{name:en?'Gain':'收益',data:s.dGain},{name:en?'Tax':'税额',data:s.dTax}]});
+}
+
+function __cgtShow(which){
+  var c=document.getElementById('cgtChart'), t=document.getElementById('capital_gains_taxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cgtTabInit(){
+  var btns=document.querySelectorAll('.cgt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cgtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cgtShow('chart');
+}
+var __cgtFn=calcTool;calcTool=function(){try{__cgtFn();}catch(e){}try{__cgtChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cgtChart();}catch(e){}});
+try{__cgtTabInit();}catch(e){}
+</script>
 </body>
 </html>

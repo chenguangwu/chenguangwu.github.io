@@ -244,6 +244,11 @@ function __corporate_income_taxBoot(){ try{ __corporate_income_taxPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __corporate_income_taxBoot();
 else document.addEventListener('DOMContentLoaded', __corporate_income_taxBoot);
 </script>
+<div class="cit-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="citChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __corporate_income_taxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __citSweep(){
+  var p0=num('profit'), r=num('r')/100;
+  if(!isFinite(p0)||!isFinite(r)||p0<=0||r<0)return null;
+  var labels=[],dTax=[],dAfter=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var p=p0*mults[k], tax=p*r, after=p*(1-r);
+    labels.push((Math.round(p*100)/100).toFixed(0));
+    dTax.push(Math.round(tax*1000)/1000); dAfter.push(Math.round(after*1000)/1000);
+    rows.push([(Math.round(p*100)/100).toFixed(0),(Math.round(tax*1000)/1000).toFixed(2),(Math.round(after*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dTax:dTax,dAfter:dAfter,rows:rows};
+}
+function __citChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__citSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#citChart',{title:en?'Corporate Income Tax vs Profit (tax=profit x r)':'企业所得税随利润线性变化（tax=利润×r）',labels:s.labels,series:[{name:en?'Tax':'税额',data:s.dTax},{name:en?'After-tax':'税后利润',data:s.dAfter}]});
+}
+
+function __citShow(which){
+  var c=document.getElementById('citChart'), t=document.getElementById('corporate_income_taxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __citTabInit(){
+  var btns=document.querySelectorAll('.cit-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__citShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __citShow('chart');
+}
+var __citFn=calcTool;calcTool=function(){try{__citFn();}catch(e){}try{__citChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__citChart();}catch(e){}});
+try{__citTabInit();}catch(e){}
+</script>
 </body>
 </html>

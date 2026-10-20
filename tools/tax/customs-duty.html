@@ -244,6 +244,11 @@ function __customs_dutyBoot(){ try{ __customs_dutyPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __customs_dutyBoot();
 else document.addEventListener('DOMContentLoaded', __customs_dutyBoot);
 </script>
+<div class="cud-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cudChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __customs_dutyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cudSweep(){
+  var v0=num('value'), r=num('r')/100;
+  if(!isFinite(v0)||!isFinite(r)||v0<=0||r<0)return null;
+  var labels=[],dDuty=[],dWith=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var v=v0*mults[k], duty=v*r, withtax=v*(1+r);
+    labels.push((Math.round(v*100)/100).toFixed(0));
+    dDuty.push(Math.round(duty*1000)/1000); dWith.push(Math.round(withtax*1000)/1000);
+    rows.push([(Math.round(v*100)/100).toFixed(0),(Math.round(duty*1000)/1000).toFixed(2),(Math.round(withtax*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dDuty:dDuty,dWith:dWith,rows:rows};
+}
+function __cudChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cudSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cudChart',{title:en?'Customs Duty vs Value (duty=value x r)':'进口关税随货值线性变化（duty=货值×r）',labels:s.labels,series:[{name:en?'Duty':'关税',data:s.dDuty},{name:en?'With-tax cost':'含税成本',data:s.dWith}]});
+}
+
+function __cudShow(which){
+  var c=document.getElementById('cudChart'), t=document.getElementById('customs_dutyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cudTabInit(){
+  var btns=document.querySelectorAll('.cud-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cudShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cudShow('chart');
+}
+var __cudFn=calcTool;calcTool=function(){try{__cudFn();}catch(e){}try{__cudChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cudChart();}catch(e){}});
+try{__cudTabInit();}catch(e){}
+</script>
 </body>
 </html>

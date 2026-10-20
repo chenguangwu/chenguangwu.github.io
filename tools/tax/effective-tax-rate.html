@@ -298,6 +298,11 @@ function __effective_tax_rateBoot(){ try{ __effective_tax_ratePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __effective_tax_rateBoot();
 else document.addEventListener('DOMContentLoaded', __effective_tax_rateBoot);
 </script>
+<div class="etr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="etrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __effective_tax_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __etrSweep(){
+  var t=num('tax'), p0=num('pretax');
+  if(!isFinite(t)||!isFinite(p0)||t<=0||p0<=0)return null;
+  var labels=[],dEtr=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var p=p0*mults[k], etr=t/p*100;
+    labels.push((Math.round(p*100)/100).toFixed(0));
+    dEtr.push(Math.round(etr*10000)/10000);
+    rows.push([(Math.round(p*100)/100).toFixed(0),(Math.round(etr*10000)/10000).toFixed(3)]);
+  }
+  return {labels:labels,dEtr:dEtr,rows:rows};
+}
+function __etrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__etrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#etrChart',{title:en?'Effective Tax Rate vs Pre-tax Income (ETR=tax/p, inverse)':'实际税率随税前所得反比变化（ETR=tax/p）',labels:s.labels,series:[{name:en?'ETR (%)':'实际税率 (%)',data:s.dEtr}]});
+}
+
+function __etrShow(which){
+  var c=document.getElementById('etrChart'), t=document.getElementById('effective_tax_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __etrTabInit(){
+  var btns=document.querySelectorAll('.etr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__etrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __etrShow('chart');
+}
+var __etrFn=calcTool;calcTool=function(){try{__etrFn();}catch(e){}try{__etrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__etrChart();}catch(e){}});
+try{__etrTabInit();}catch(e){}
+</script>
 </body>
 </html>
