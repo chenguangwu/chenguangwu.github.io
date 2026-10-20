@@ -244,6 +244,11 @@ function __hooke_forceBoot(){ try{ __hooke_forcePresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __hooke_forceBoot();
 else document.addEventListener('DOMContentLoaded', __hooke_forceBoot);
 </script>
+<div class="hkf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hkfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __hooke_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __hkfSweep(){
+  var k=num('k');
+  if(!isFinite(k)||k<=0)return null;
+  var labels=[], dF=[], dU=[];
+  var xs=[0,0.02,0.05,0.1,0.15,0.2,0.3,0.4];
+  for(var k2=0;k2<xs.length;k2++){
+    var xv=xs[k2];
+    labels.push(xv.toFixed(2));
+    dF.push(Math.round(k*xv*100)/100);
+    dU.push(Math.round(0.5*k*xv*xv*10000)/10000);
+  }
+  return {labels:labels,dF:dF,dU:dU};
+}
+function __hkfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__hkfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hkfChart',{title:en?'Hooke Force (linear) & Elastic PE (quadratic) vs Displacement':'胡克定律：弹力线性、弹性势能平方随位移增长',labels:s.labels,series:[{name:en?'Spring force F (N)':'弹力 F (N)',data:s.dF},{name:en?'Elastic PE U (J)':'弹性势能 U (J)',data:s.dU}]});
+}
+
+function __hkfShow(which){
+  var c=document.getElementById('hkfChart'), t=document.getElementById('hooke_forceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hkfTabInit(){
+  var btns=document.querySelectorAll('.hkf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hkfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hkfShow('chart');
+  try{__hkfChart();}catch(e){}
+}
+var __hkfFn=calcTool;calcTool=function(){try{__hkfFn();}catch(e){}try{__hkfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hkfChart();}catch(e){}});try{__hkfTabInit();}catch(e){}
+</script>
 </body>
 </html>

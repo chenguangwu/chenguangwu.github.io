@@ -245,6 +245,11 @@ function __inclined_plane_accelBoot(){ try{ __inclined_plane_accelPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __inclined_plane_accelBoot();
 else document.addEventListener('DOMContentLoaded', __inclined_plane_accelBoot);
 </script>
+<div class="ipa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ipaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,45 @@ else document.addEventListener('DOMContentLoaded', __inclined_plane_accelBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ipaSweep(){
+  var mu=num('mu'), g=num('g');
+  if(!isFinite(mu)||!isFinite(g)||g<=0)return null;
+  var labels=[], dA=[], dS=[];
+  var ths=[0,5,10,15,20,30,45,60];
+  for(var k=0;k<ths.length;k++){
+    var tv=ths[k]*Math.PI/180;
+    var a=g*(Math.sin(tv)-mu*Math.cos(tv));
+    labels.push(ths[k].toFixed(0));
+    dA.push(Math.round(a*1000)/1000);
+    dS.push(Math.round(g*Math.sin(tv)*1000)/1000);
+  }
+  return {labels:labels,dA:dA,dS:dS};
+}
+function __ipaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ipaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ipaChart',{title:en?'Inclined Plane Acceleration vs Angle (sin - μcos, threshold at tanθ=μ)':'斜面加速度随倾角上升（tanθ=μ 处为起动临界）',labels:s.labels,series:[{name:en?'Acceleration a (m/s²)':'加速度 a (m/s²)',data:s.dA},{name:en?'Gravity component g·sinθ (m/s²)':'重力分量 g·sinθ (m/s²)',data:s.dS}]});
+}
+
+function __ipaShow(which){
+  var c=document.getElementById('ipaChart'), t=document.getElementById('inclined_plane_accelTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ipaTabInit(){
+  var btns=document.querySelectorAll('.ipa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ipaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ipaShow('chart');
+  try{__ipaChart();}catch(e){}
+}
+var __ipaFn=calcTool;calcTool=function(){try{__ipaFn();}catch(e){}try{__ipaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ipaChart();}catch(e){}});try{__ipaTabInit();}catch(e){}
+</script>
 </body>
 </html>

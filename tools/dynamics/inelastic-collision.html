@@ -308,6 +308,11 @@ function __inelastic_collisionBoot(){ try{ __inelastic_collisionPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __inelastic_collisionBoot();
 else document.addEventListener('DOMContentLoaded', __inelastic_collisionBoot);
 </script>
+<div class="inc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="incChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -343,5 +348,47 @@ else document.addEventListener('DOMContentLoaded', __inelastic_collisionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __incSweep(){
+  var m1=num('m1'), v1=num('v1'), v2=num('v2');
+  if(!isFinite(m1)||!isFinite(v1)||!isFinite(v2)||m1<=0)return null;
+  var labels=[], dV=[], dK=[];
+  var m2s=[0.2,0.5,1,2,4,8,16,30];
+  for(var k=0;k<m2s.length;k++){
+    var mv=m2s[k], s=m1+mv;
+    var vf=(m1*v1+mv*v2)/s;
+    var ke0=0.5*m1*v1*v1+0.5*mv*v2*v2;
+    var ke1=0.5*s*vf*vf;
+    labels.push(mv.toFixed(1));
+    dV.push(Math.round(vf*1000)/1000);
+    dK.push(Math.round((ke0-ke1)/Math.max(ke0,1e-9)*100*100)/100);
+  }
+  return {labels:labels,dV:dV,dK:dK};
+}
+function __incChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__incSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#incChart',{title:en?'Inelastic Collision: Final Velocity & KE Loss vs Mass Ratio':'完全非弹性碰撞：共速随质量比变化（附动能损失率）',labels:s.labels,series:[{name:en?'Common velocity v (m/s)':'共速 v (m/s)',data:s.dV},{name:en?'KE loss fraction (%)':'动能损失率 (%)',data:s.dK}]});
+}
+
+function __incShow(which){
+  var c=document.getElementById('incChart'), t=document.getElementById('inelastic_collisionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __incTabInit(){
+  var btns=document.querySelectorAll('.inc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__incShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __incShow('chart');
+  try{__incChart();}catch(e){}
+}
+var __incFn=calcTool;calcTool=function(){try{__incFn();}catch(e){}try{__incChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__incChart();}catch(e){}});try{__incTabInit();}catch(e){}
+</script>
 </body>
 </html>

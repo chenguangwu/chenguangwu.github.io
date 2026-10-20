@@ -243,6 +243,11 @@ function __impulseBoot(){ try{ __impulsePresets(); }catch(e){} try{ calcTool(); 
 if (document.readyState && document.readyState !== 'loading') __impulseBoot();
 else document.addEventListener('DOMContentLoaded', __impulseBoot);
 </script>
+<div class="imp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="impChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,44 @@ else document.addEventListener('DOMContentLoaded', __impulseBoot);
 </dl>
 </div>
 </section>
+<script>
+function __impSweep(){
+  var F=num('F');
+  if(!isFinite(F)||F<=0)return null;
+  var labels=[], dJ=[], dR=[];
+  var dts=[0.01,0.05,0.1,0.2,0.5,1,2,5];
+  for(var k=0;k<dts.length;k++){
+    var dv=dts[k], J=F*dv;
+    labels.push(dv.toFixed(2));
+    dJ.push(Math.round(J*100)/100);
+    dR.push(Math.round(F/dv*100)/100);
+  }
+  return {labels:labels,dJ:dJ,dR:dR};
+}
+function __impChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__impSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#impChart',{title:en?'Impulse vs Duration (linear J=FΔt / inverse F/Δt)':'冲量随作用时间线性增长（对偶：力/时间比反比）',labels:s.labels,series:[{name:en?'Impulse J (N·s)':'冲量 J (N·s)',data:s.dJ},{name:en?'Force/duration ratio (N/s)':'力与时间比 (N/s)',data:s.dR}]});
+}
+
+function __impShow(which){
+  var c=document.getElementById('impChart'), t=document.getElementById('impulseTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __impTabInit(){
+  var btns=document.querySelectorAll('.imp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__impShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __impShow('chart');
+  try{__impChart();}catch(e){}
+}
+var __impFn=calcTool;calcTool=function(){try{__impFn();}catch(e){}try{__impChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__impChart();}catch(e){}});try{__impTabInit();}catch(e){}
+</script>
 </body>
 </html>

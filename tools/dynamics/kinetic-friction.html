@@ -243,6 +243,11 @@ function __kinetic_frictionBoot(){ try{ __kinetic_frictionPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __kinetic_frictionBoot();
 else document.addEventListener('DOMContentLoaded', __kinetic_frictionBoot);
 </script>
+<div class="kfr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="kfrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,44 @@ else document.addEventListener('DOMContentLoaded', __kinetic_frictionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __kfrSweep(){
+  var mu=num('mu');
+  if(!isFinite(mu)||mu<=0)return null;
+  var labels=[], dF=[], dK=[];
+  var Ns=[10,25,50,100,200,400,800,1500];
+  for(var k=0;k<Ns.length;k++){
+    var nv=Ns[k], F=mu*nv;
+    labels.push(nv.toFixed(0));
+    dF.push(Math.round(F*100)/100);
+    dK.push(Math.round(F/9.80665*1000)/1000);
+  }
+  return {labels:labels,dF:dF,dK:dK};
+}
+function __kfrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__kfrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#kfrChart',{title:en?'Kinetic Friction vs Normal Force (linear F=μN)':'动摩擦力随正压力线性增长（F=μN）',labels:s.labels,series:[{name:en?'Friction force F_k (N)':'动摩擦力 F_k (N)',data:s.dF},{name:en?'Friction force (kgf)':'摩擦力 (kgf)',data:s.dK}]});
+}
+
+function __kfrShow(which){
+  var c=document.getElementById('kfrChart'), t=document.getElementById('kinetic_frictionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __kfrTabInit(){
+  var btns=document.querySelectorAll('.kfr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__kfrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __kfrShow('chart');
+  try{__kfrChart();}catch(e){}
+}
+var __kfrFn=calcTool;calcTool=function(){try{__kfrFn();}catch(e){}try{__kfrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__kfrChart();}catch(e){}});try{__kfrTabInit();}catch(e){}
+</script>
 </body>
 </html>
