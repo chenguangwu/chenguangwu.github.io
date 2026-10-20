@@ -314,6 +314,11 @@ function __energy_inductorBoot(){ try{ __energy_inductorPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __energy_inductorBoot();
 else document.addEventListener('DOMContentLoaded', __energy_inductorBoot);
 </script>
+<div class="ei-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="eiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -362,5 +367,44 @@ else document.addEventListener('DOMContentLoaded', __energy_inductorBoot);
 <h3>结果含义</h3><p>电感储能 E=½·L·I²：电流 I 流过电感 L 时磁场中储存的能量。</p>
 <h3>单位</h3><p>E 单位焦(J)、L 单位亨(H)、I 单位安(A)。电流越大储能按平方增长；断电时经二极管/电阻释放。</p>
 </div></section>
+<script>
+function __eiSweep(){
+  var L=num('L'), I0=num('I');
+  if(!isFinite(L)||!isFinite(I0)||L<=0||I0<=0)return null;
+  var labels=[],dE=[],dFlux=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var I=I0*mults[k], E=0.5*L*I*I, Phi=L*I;
+    labels.push((Math.round(I*100)/100).toFixed(2));
+    dE.push(Math.round(E*1000)/1000);
+    dFlux.push(Math.round(Phi*1e3*1000)/1000);
+    rows.push([(Math.round(I*100)/100).toFixed(2),(Math.round(E*1000)/1000).toFixed(4),(Math.round(Phi*1e3*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dE:dE,dFlux:dFlux,rows:rows};
+}
+function __eiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__eiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#eiChart',{title:en?'Inductor Energy vs Current (quadratic E=½LI²)':'电感储能随电流二次方增长（E=½LI²）',labels:s.labels,series:[{name:en?'Energy E (J)':'储能 E (J)',data:s.dE},{name:en?'Flux linkage (mWb)':'磁链 (mWb)',data:s.dFlux}]});
+}
+
+function __eiShow(which){
+  var c=document.getElementById('eiChart'), t=document.getElementById('energy_inductorTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __eiTabInit(){
+  var btns=document.querySelectorAll('.ei-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__eiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __eiShow('chart');
+}
+var __eiFn=calcTool;calcTool=function(){try{__eiFn();}catch(e){}try{__eiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__eiChart();}catch(e){}});
+</script>
 </body>
 </html>

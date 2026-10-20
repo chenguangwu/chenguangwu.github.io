@@ -237,6 +237,11 @@ function __free_space_impedanceBoot(){ try{ __free_space_impedancePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __free_space_impedanceBoot();
 else document.addEventListener('DOMContentLoaded', __free_space_impedanceBoot);
 </script>
+<div class="fsi-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fsiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -273,5 +278,44 @@ else document.addEventListener('DOMContentLoaded', __free_space_impedanceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fsiSweep(){
+  var mu0=4*Math.PI*1e-7, eps0=8.854187817e-12;
+  var Z0=Math.sqrt(mu0/eps0);
+  var eps=[1,1.5,2,2.5,4,4.7,6,9,10,20,50,100];
+  var labels=[],dZ=[],dC=[],rows=[];
+  for(var k=0;k<eps.length;k++){
+    var Z=Z0/Math.sqrt(eps[k]), v=1/Math.sqrt(mu0*eps0*eps[k]);
+    labels.push(eps[k].toFixed(1));
+    dZ.push(Math.round(Z*100)/100);
+    dC.push(Math.round(v/1e6*1000)/1000);
+    rows.push([eps[k].toFixed(1),(Math.round(Z*100)/100).toFixed(2),(Math.round(v/1e6*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dZ:dZ,dC:dC,rows:rows};
+}
+function __fsiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fsiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fsiChart',{title:en?'Wave Impedance vs Relative Permittivity (inverse-square-root Z=Z₀/√εr)':'波阻抗随相对介电常数反平方根下降（Z=Z₀/√ε_r，真空 εr=1）',labels:s.labels,series:[{name:en?'Impedance Z (Ω)':'波阻抗 (Ω)',data:s.dZ},{name:en?'Light speed (×10⁶ m/s)':'介质光速 (×10⁶ m/s)',data:s.dC}]});
+}
+
+function __fsiShow(which){
+  var c=document.getElementById('fsiChart'), t=document.getElementById('free_space_impedanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fsiTabInit(){
+  var btns=document.querySelectorAll('.fsi-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fsiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fsiShow('chart');
+}
+var __fsiFn=calcTool;calcTool=function(){try{__fsiFn();}catch(e){}try{__fsiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fsiChart();}catch(e){}});
+</script>
 </body>
 </html>

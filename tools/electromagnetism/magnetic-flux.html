@@ -249,6 +249,11 @@ function __magnetic_fluxBoot(){ try{ __magnetic_fluxPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __magnetic_fluxBoot();
 else document.addEventListener('DOMContentLoaded', __magnetic_fluxBoot);
 </script>
+<div class="mf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -297,5 +302,44 @@ else document.addEventListener('DOMContentLoaded', __magnetic_fluxBoot);
 <h3>结果含义</h3><p>磁通量 Φ=B·A·cosθ：垂直穿过面积 A 的磁感线总量，θ 为磁场与面法线夹角。</p>
 <h3>单位</h3><p>Φ 单位韦伯(Wb)；B 为特斯拉(T)、A 为平方米(m²)。Φ 变化率决定感应电动势（法拉第定律）。</p>
 </div></section>
+<script>
+function __mfSweep(){
+  var B=num('B'), A0=num('A');
+  if(!isFinite(B)||!isFinite(A0)||A0<=0)return null;
+  var labels=[],dPhi=[],dMu=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var A=A0*mults[k], Phi=B*A;
+    labels.push((Math.round(A*1e4*1000)/1000).toFixed(3));
+    dPhi.push(Math.round(Phi*1e6*1000)/1000);
+    dMu.push(Math.round(Phi*1e3*1000)/1000);
+    rows.push([(Math.round(A*1e4*1000)/1000).toFixed(3),(Math.round(Phi*1e6*1000)/1000).toFixed(3),(Math.round(Phi*1e3*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dPhi:dPhi,dMu:dMu,rows:rows};
+}
+function __mfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mfChart',{title:en?'Magnetic Flux vs Area (linear Φ=B·A)':'磁通量随面积线性增长（Φ=B·A）',labels:s.labels,series:[{name:en?'Flux Φ (µWb)':'磁通 (µWb)',data:s.dPhi},{name:en?'Flux Φ (mWb)':'磁通 (mWb)',data:s.dMu}]});
+}
+
+function __mfShow(which){
+  var c=document.getElementById('mfChart'), t=document.getElementById('magnetic_fluxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mfTabInit(){
+  var btns=document.querySelectorAll('.mf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mfShow('chart');
+}
+var __mfFn=calcTool;calcTool=function(){try{__mfFn();}catch(e){}try{__mfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mfChart();}catch(e){}});
+</script>
 </body>
 </html>

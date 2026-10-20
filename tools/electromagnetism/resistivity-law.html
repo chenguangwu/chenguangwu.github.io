@@ -301,6 +301,11 @@ function __resistivity_lawBoot(){ try{ __resistivity_lawPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __resistivity_lawBoot();
 else document.addEventListener('DOMContentLoaded', __resistivity_lawBoot);
 </script>
+<div class="rl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,44 @@ else document.addEventListener('DOMContentLoaded', __resistivity_lawBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rlSweep(){
+  var rho=num('rho'), A=num('A'), L0=num('L');
+  if(!isFinite(rho)||!isFinite(A)||!isFinite(L0)||A<=0||L0<=0)return null;
+  var labels=[],dR=[],dRho=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], R=rho*L/A;
+    labels.push((Math.round(L*100)/100).toFixed(2));
+    dR.push(Math.round(R*1e4*1000)/1000);
+    dRho.push(Math.round(rho*100)/100);
+    rows.push([(Math.round(L*100)/100).toFixed(2),(Math.round(R*1e4*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dR:dR,dRho:dRho,rows:rows};
+}
+function __rlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rlChart',{title:en?'Resistance vs Length (linear R=ρL/A)':'导线电阻随长度线性增长（R=ρL/A）',labels:s.labels,series:[{name:en?'Resistance R (×10⁻⁴ Ω)':'电阻 (×10⁻⁴ Ω)',data:s.dR}]});
+}
+
+function __rlShow(which){
+  var c=document.getElementById('rlChart'), t=document.getElementById('resistivity_lawTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rlTabInit(){
+  var btns=document.querySelectorAll('.rl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rlShow('chart');
+}
+var __rlFn=calcTool;calcTool=function(){try{__rlFn();}catch(e){}try{__rlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rlChart();}catch(e){}});
+</script>
 </body>
 </html>
