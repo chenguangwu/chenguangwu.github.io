@@ -301,6 +301,11 @@ function __thermal_diffusivityBoot(){ try{ __thermal_diffusivityPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __thermal_diffusivityBoot();
 else document.addEventListener('DOMContentLoaded', __thermal_diffusivityBoot);
 </script>
+<div class="td-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,43 @@ else document.addEventListener('DOMContentLoaded', __thermal_diffusivityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tdSweep(){
+  var k=num('k'), rho0=num('rho'), c=num('c');
+  if(!isFinite(k)||!isFinite(rho0)||!isFinite(c)||k<0||rho0<=0||c<=0)return null;
+  var labels=[],dA=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k2=0;k2<mults.length;k2++){
+    var rho=rho0*mults[k2], alpha=k/(rho*c);
+    labels.push((Math.round(rho*100)/100).toFixed(0));
+    dA.push(Math.round(alpha*1e6*1e6*1000)/1000);
+    rows.push([(Math.round(rho*100)/100).toFixed(0),(Math.round(alpha*1e6*1e6*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dA:dA,rows:rows};
+}
+function __tdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tdChart',{title:en?'Thermal Diffusivity vs Density (alpha=k/(rho c), inverse)':'热扩散率随密度反比变化（α=k/(ρ·c)）',labels:s.labels,series:[{name:en?'alpha (mm²/s)':'热扩散率 α (mm²/s)',data:s.dA}]});
+}
+
+function __tdShow(which){
+  var c=document.getElementById('tdChart'), t=document.getElementById('thermal_diffusivityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tdTabInit(){
+  var btns=document.querySelectorAll('.td-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tdShow('chart');
+}
+var __tdFn=calcTool;calcTool=function(){try{__tdFn();}catch(e){}try{__tdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tdChart();}catch(e){}});
+</script>
 </body>
 </html>

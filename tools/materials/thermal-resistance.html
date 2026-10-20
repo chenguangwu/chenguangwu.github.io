@@ -301,6 +301,11 @@ function __thermal_resistanceBoot(){ try{ __thermal_resistancePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __thermal_resistanceBoot();
 else document.addEventListener('DOMContentLoaded', __thermal_resistanceBoot);
 </script>
+<div class="tr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="trChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,43 @@ else document.addEventListener('DOMContentLoaded', __thermal_resistanceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __trSweep(){
+  var L0=num('L'), k=num('k'), A=num('A');
+  if(!isFinite(L0)||!isFinite(k)||!isFinite(A)||L0<=0||k<=0||A<=0)return null;
+  var labels=[],dR=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k2=0;k2<mults.length;k2++){
+    var L=L0*mults[k2], R=L/(k*A);
+    labels.push((Math.round(L*1000)/1000).toFixed(3));
+    dR.push(Math.round(R*10000)/10000);
+    rows.push([(Math.round(L*1000)/1000).toFixed(3),(Math.round(R*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dR:dR,rows:rows};
+}
+function __trChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__trSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#trChart',{title:en?'Thermal Resistance vs Thickness (R=L/(kA))':'热阻随厚度线性变化（R=L/(k·A)）',labels:s.labels,series:[{name:en?'Resistance R':'热阻 R',data:s.dR}]});
+}
+
+function __trShow(which){
+  var c=document.getElementById('trChart'), t=document.getElementById('thermal_resistanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __trTabInit(){
+  var btns=document.querySelectorAll('.tr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__trShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __trShow('chart');
+}
+var __trFn=calcTool;calcTool=function(){try{__trFn();}catch(e){}try{__trChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__trChart();}catch(e){}});
+</script>
 </body>
 </html>

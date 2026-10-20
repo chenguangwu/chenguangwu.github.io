@@ -299,6 +299,11 @@ function __true_strainBoot(){ try{ __true_strainPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __true_strainBoot();
 else document.addEventListener('DOMContentLoaded', __true_strainBoot);
 </script>
+<div class="ts-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,43 @@ else document.addEventListener('DOMContentLoaded', __true_strainBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tsSweep(){
+  var L0=num('L0'), Lc=num('L');
+  if(!isFinite(L0)||!isFinite(Lc)||L0<=0||Lc<=0)return null;
+  var labels=[],dEt=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var L=Lc*mults[k], et=Math.log(L/L0);
+    labels.push((Math.round(L*100)/100).toFixed(1));
+    dEt.push(Math.round(et*10000)/10000);
+    rows.push([(Math.round(L*100)/100).toFixed(1),(Math.round(et*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dEt:dEt,rows:rows};
+}
+function __tsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tsChart',{title:en?'True Strain vs Length (et=ln(L/L0))':'真应变随长度对数变化（et=ln(L/L0)）',labels:s.labels,series:[{name:en?'True strain':'真应变',data:s.dEt}]});
+}
+
+function __tsShow(which){
+  var c=document.getElementById('tsChart'), t=document.getElementById('true_strainTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tsTabInit(){
+  var btns=document.querySelectorAll('.ts-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tsShow('chart');
+}
+var __tsFn=calcTool;calcTool=function(){try{__tsFn();}catch(e){}try{__tsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tsChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -300,6 +300,11 @@ function __vickers_hardnessBoot(){ try{ __vickers_hardnessPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __vickers_hardnessBoot();
 else document.addEventListener('DOMContentLoaded', __vickers_hardnessBoot);
 </script>
+<div class="vh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vhChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,43 @@ else document.addEventListener('DOMContentLoaded', __vickers_hardnessBoot);
 </dl>
 </div>
 </section>
+<script>
+function __vhSweep(){
+  var F=num('F'), d0=num('d');
+  if(!isFinite(F)||!isFinite(d0)||F<=0||d0<=0)return null;
+  var labels=[],dHV=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k], HV=1.854*(F/9.80665)/(d*d);
+    labels.push((Math.round(d*100)/100).toFixed(2));
+    dHV.push(Math.round(HV*1000)/1000);
+    rows.push([(Math.round(d*100)/100).toFixed(2),(Math.round(HV*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dHV:dHV,rows:rows};
+}
+function __vhChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__vhSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vhChart',{title:en?'Vickers Hardness vs Indent (HV=1.854(F/9.80665)/d², inverse-square)':'维氏硬度随压痕对角线反平方变化（HV=1.854·(F/9.80665)/d²）',labels:s.labels,series:[{name:en?'HV':'维氏硬度 HV',data:s.dHV}]});
+}
+
+function __vhShow(which){
+  var c=document.getElementById('vhChart'), t=document.getElementById('vickers_hardnessTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vhTabInit(){
+  var btns=document.querySelectorAll('.vh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vhShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __vhShow('chart');
+}
+var __vhFn=calcTool;calcTool=function(){try{__vhFn();}catch(e){}try{__vhChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__vhChart();}catch(e){}});
+</script>
 </body>
 </html>
