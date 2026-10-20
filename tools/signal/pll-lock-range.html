@@ -246,6 +246,11 @@ function __pll_lock_rangeBoot(){ try{ __pll_lock_rangePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __pll_lock_rangeBoot();
 else document.addEventListener('DOMContentLoaded', __pll_lock_rangeBoot);
 </script>
+<div class="plr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="plrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __pll_lock_rangeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __plrSweep(){
+  var Kv=num('Kv'), v0=num('Vmax');
+  if(!isFinite(Kv)||!isFinite(v0)||Kv<=0||v0<=0)return null;
+  var labels=[],dDf=[],dHalf=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var V=v0*mults[k], df=Kv*V;
+    labels.push((Math.round(V*100)/100).toFixed(2));
+    dDf.push(Math.round(df/1e3*1000)/1000);
+    dHalf.push(Math.round(df/2/1e3*1000)/1000);
+    rows.push([(Math.round(V*100)/100).toFixed(2),(Math.round(df/1e3*1000)/1000).toFixed(3),(Math.round(df/2/1e3*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dDf:dDf,dHalf:dHalf,rows:rows};
+}
+function __plrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__plrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#plrChart',{title:en?'PLL Lock Range vs Control Voltage (Δf=Kv·Vmax, linear)':'PLL 锁定范围随控制电压线性增长（Δf=K_v·V_max）',labels:s.labels,series:[{name:en?'Lock range Δf (kHz)':'锁定范围 Δf (kHz)',data:s.dDf},{name:en?'Half range (kHz)':'半锁定范围 (kHz)',data:s.dHalf}]});
+}
+
+function __plrShow(which){
+  var c=document.getElementById('plrChart'), t=document.getElementById('pll_lock_rangeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __plrTabInit(){
+  var btns=document.querySelectorAll('.plr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__plrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __plrShow('chart');
+}
+var __plrFn=calcTool;calcTool=function(){try{__plrFn();}catch(e){}try{__plrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__plrChart();}catch(e){}});
+</script>
 </body>
 </html>

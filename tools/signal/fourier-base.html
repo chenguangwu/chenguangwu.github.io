@@ -297,6 +297,11 @@ function __fourier_baseBoot(){ try{ __fourier_basePresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __fourier_baseBoot();
 else document.addEventListener('DOMContentLoaded', __fourier_baseBoot);
 </script>
+<div class="fb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __fourier_baseBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fbSweep(){
+  var T0=num('T');
+  if(!isFinite(T0)||T0<=0)return null;
+  var labels=[],dF0=[],dW=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var T=T0*mults[k], f0=1/T;
+    labels.push((Math.round(T*1000)/1000).toFixed(3));
+    dF0.push(Math.round(f0*1000)/1000);
+    dW.push(Math.round(2*Math.PI*f0*1000)/1000);
+    rows.push([(Math.round(T*1000)/1000).toFixed(3),(Math.round(f0*1000)/1000).toFixed(3),(Math.round(2*Math.PI*f0*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dF0:dF0,dW:dW,rows:rows};
+}
+function __fbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fbChart',{title:en?'Fundamental Frequency vs Period (f0=1/T, inverse)':'基频随周期反比升高（f₀=1/T）',labels:s.labels,series:[{name:en?'Fundamental f0 (Hz)':'基频 f₀ (Hz)',data:s.dF0},{name:en?'Angular ω (rad/s)':'角频率 ω (rad/s)',data:s.dW}]});
+}
+
+function __fbShow(which){
+  var c=document.getElementById('fbChart'), t=document.getElementById('fourier_baseTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fbTabInit(){
+  var btns=document.querySelectorAll('.fb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fbShow('chart');
+}
+var __fbFn=calcTool;calcTool=function(){try{__fbFn();}catch(e){}try{__fbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fbChart();}catch(e){}});
+</script>
 </body>
 </html>

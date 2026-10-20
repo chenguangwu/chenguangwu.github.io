@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label for="s">采样序列 x[n]</label>
-        <input type="number" id="s" value="1 2 3 -1" step="0.1">
+        <input type="text" id="s" value="1 2 3 -1">
       </div>
     </div>
 
@@ -239,6 +239,11 @@ function __energy_discreteBoot(){ try{ __energy_discretePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __energy_discreteBoot();
 else document.addEventListener('DOMContentLoaded', __energy_discreteBoot);
 </script>
+<div class="ed-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="edChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -274,5 +279,47 @@ else document.addEventListener('DOMContentLoaded', __energy_discreteBoot);
 </dl>
 </div>
 </section>
+<script>
+function __edSweep(){
+  var el=document.getElementById('s');
+  if(!el)return null;
+  var s=String(el.value||'').split(/[ ,]+/).filter(Boolean).map(Number);
+  if(!s.length)return null;
+  for(var i=0;i<s.length;i++){ if(!isFinite(s[i]))return null; }
+  var labels=[],dV=[],dAvg=[],rows=[];
+  var cum=0;
+  for(var k=0;k<s.length;k++){
+    cum+=s[k]*s[k];
+    labels.push(String(k+1));
+    dV.push(Math.round(s[k]*1000)/1000);
+    dAvg.push(Math.round(cum/(k+1)*1000)/1000);
+    rows.push([String(k+1),(Math.round(s[k]*1000)/1000).toFixed(3),(Math.round(cum/(k+1)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dV:dV,dAvg:dAvg,rows:rows};
+}
+function __edChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__edSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#edChart',{title:en?'Discrete Signal Samples (E=Σs², cumulative average)':'离散信号样本值（能量 E=Σs²，累积平均功率）',labels:s.labels,series:[{name:en?'Sample value':'样本值',data:s.dV},{name:en?'Cumulative avg power':'累积平均功率',data:s.dAvg}]});
+}
+
+function __edShow(which){
+  var c=document.getElementById('edChart'), t=document.getElementById('energy_discreteTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __edTabInit(){
+  var btns=document.querySelectorAll('.ed-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__edShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __edShow('chart');
+}
+var __edFn=calcTool;calcTool=function(){try{__edFn();}catch(e){}try{__edChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__edChart();}catch(e){}});
+</script>
 </body>
 </html>
