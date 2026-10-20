@@ -288,6 +288,11 @@ function __heisenberg_uncertaintyBoot(){ try{ __heisenberg_uncertaintyPresets();
 if (document.readyState && document.readyState !== 'loading') __heisenberg_uncertaintyBoot();
 else document.addEventListener('DOMContentLoaded', __heisenberg_uncertaintyBoot);
 </script>
+<div class="hu-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="huChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -323,5 +328,46 @@ else document.addEventListener('DOMContentLoaded', __heisenberg_uncertaintyBoot)
 </dl>
 </div>
 </section>
+<script>
+function __huSweep(){
+  var dx0=num('dx');
+  if(!isFinite(dx0)||dx0<=0)return null;
+  var H=6.62607015e-34, ME=9.10938356e-31;
+  var hbar=H/(2*Math.PI);
+  var labels=[],dPm=[],dV=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var dx=dx0*mults[k], dp=hbar/(2*dx);
+    labels.push((Math.round(dx*1e12*1000)/1000).toFixed(2));
+    dPm.push(Math.round(dp*1e24*1000)/1000);
+    dV.push(Math.round(dp/ME*100)/100);
+    rows.push([(Math.round(dx*1e12*1000)/1000).toFixed(2),(Math.round(dp*1e24*1000)/1000).toFixed(3),(Math.round(dp/ME*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dPm:dPm,dV:dV,rows:rows};
+}
+function __huChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__huSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#huChart',{title:en?'Momentum Uncertainty vs Position (Δp=ℏ/2Δx, inverse)':'动量不确定度随位置精度反比增大（Δp=ℏ/(2Δx)）',labels:s.labels,series:[{name:en?'Δp (1e-24 kg·m/s)':'动量不确定度 Δp (10⁻²⁴ kg·m/s)',data:s.dPm},{name:en?'Δv (m/s)':'等效速度不确定 Δv (m/s)',data:s.dV}]});
+}
+
+function __huShow(which){
+  var c=document.getElementById('huChart'), t=document.getElementById('heisenberg_uncertaintyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __huTabInit(){
+  var btns=document.querySelectorAll('.hu-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__huShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __huShow('chart');
+}
+var __huFn=calcTool;calcTool=function(){try{__huFn();}catch(e){}try{__huChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__huChart();}catch(e){}});
+</script>
 </body>
 </html>

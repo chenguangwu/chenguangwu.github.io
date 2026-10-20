@@ -301,6 +301,11 @@ function __fermi_energy_3dBoot(){ try{ __fermi_energy_3dPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __fermi_energy_3dBoot();
 else document.addEventListener('DOMContentLoaded', __fermi_energy_3dBoot);
 </script>
+<div class="fe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="feChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -349,5 +354,46 @@ else document.addEventListener('DOMContentLoaded', __fermi_energy_3dBoot);
 <h3>意义</h3><p>E_F 标志金属中电子的最高动能尺度；温度远低于 T_F=E_F/k_B 时电子气高度简并，需用费米-狄拉克统计。</p>
 <h3>注意</h3><p>结果为理想自由电子模型，真实能带与有效质量会修正；仅供物理估算参考。</p>
 </div></section>
+<script>
+function __feSweep(){
+  var n0=num('n'), m=num('m');
+  if(!isFinite(n0)||!isFinite(m)||n0<=0||m<=0)return null;
+  var hbar=1.054571817e-34, e=1.602176634e-19;
+  var labels=[],dEF=[],dKf=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var n=n0*mults[k], EF=Math.pow(hbar,2)/(2*m)*Math.pow(3*Math.PI*Math.PI*n,2/3);
+    var kf=Math.pow(3*Math.PI*Math.PI*n,1/3);
+    labels.push((Math.round(n/1e28*100)/100).toFixed(2));
+    dEF.push(Math.round(EF/e*1000)/1000);
+    dKf.push(Math.round(kf*1e-10*1000)/1000);
+    rows.push([(Math.round(n/1e28*100)/100).toFixed(2),(Math.round(EF/e*1000)/1000).toFixed(3),(Math.round(kf*1e-10*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dEF:dEF,dKf:dKf,rows:rows};
+}
+function __feChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__feSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#feChart',{title:en?'Fermi Energy vs Density (E_F∝n^(2/3))':'费米能随电子密度 2/3 次幂增长（E_F∝n^⅔）',labels:s.labels,series:[{name:en?'E_F (eV)':'费米能 E_F (eV)',data:s.dEF},{name:en?'k_F (1e-10 m⁻¹)':'费米波矢 k_F (10⁻¹⁰ m⁻¹)',data:s.dKf}]});
+}
+
+function __feShow(which){
+  var c=document.getElementById('feChart'), t=document.getElementById('fermi_energy_3dTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __feTabInit(){
+  var btns=document.querySelectorAll('.fe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__feShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __feShow('chart');
+}
+var __feFn=calcTool;calcTool=function(){try{__feFn();}catch(e){}try{__feChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__feChart();}catch(e){}});
+</script>
 </body>
 </html>

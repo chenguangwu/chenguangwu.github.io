@@ -244,6 +244,11 @@ function __quantum_oscillator_energyBoot(){ try{ __quantum_oscillator_energyPres
 if (document.readyState && document.readyState !== 'loading') __quantum_oscillator_energyBoot();
 else document.addEventListener('DOMContentLoaded', __quantum_oscillator_energyBoot);
 </script>
+<div class="qoe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="qoeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,45 @@ else document.addEventListener('DOMContentLoaded', __quantum_oscillator_energyBo
 </dl>
 </div>
 </section>
+<script>
+function __qoeSweep(){
+  var f=num('f');
+  if(!isFinite(f)||f<=0)return null;
+  var hbar=1.054571817e-34, e=1.602176634e-19;
+  var labels=[],dE=[],dGap=[],rows=[];
+  var hw=hbar*2*Math.PI*f;
+  for(var n=0;n<=10;n++){
+    var E=hw*(n+0.5);
+    labels.push('n='+n);
+    dE.push(Math.round(E/e*10000)/10000);
+    dGap.push(Math.round(hw/e*10000)/10000);
+    rows.push([String(n),(Math.round(E/e*10000)/10000).toFixed(4),(Math.round(hw/e*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dE:dE,dGap:dGap,rows:rows};
+}
+function __qoeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__qoeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#qoeChart',{title:en?'Quantum Oscillator Levels (E_n=ℏω(n+½), equally spaced)':'量子谐振子能级（E_n=ℏω(n+½)，等间距）',labels:s.labels,series:[{name:en?'Level E_n (eV)':'能级 E_n (eV)',data:s.dE},{name:en?'Level gap ℏω (eV)':'能级间距 ℏω (eV)',data:s.dGap}]});
+}
+
+function __qoeShow(which){
+  var c=document.getElementById('qoeChart'), t=document.getElementById('quantum_oscillator_energyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __qoeTabInit(){
+  var btns=document.querySelectorAll('.qoe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__qoeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __qoeShow('chart');
+}
+var __qoeFn=calcTool;calcTool=function(){try{__qoeFn();}catch(e){}try{__qoeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__qoeChart();}catch(e){}});
+</script>
 </body>
 </html>

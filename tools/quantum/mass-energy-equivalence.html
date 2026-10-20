@@ -240,6 +240,11 @@ function __mass_energy_equivalenceBoot(){ try{ __mass_energy_equivalencePresets(
 if (document.readyState && document.readyState !== 'loading') __mass_energy_equivalenceBoot();
 else document.addEventListener('DOMContentLoaded', __mass_energy_equivalenceBoot);
 </script>
+<div class="mee-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="meeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -287,5 +292,44 @@ else document.addEventListener('DOMContentLoaded', __mass_energy_equivalenceBoot
 <h3>结果含义</h3><p>质能等价 E=m·c²：质量 m 对应的能量，c≈2.998×10⁸ m/s 为光速。质量即能量的一种形式。</p>
 <h3>量级</h3><p>1 kg 质量对应约 9×10¹⁶ J（90 拍焦）。核反应与正反物质湮灭中质量差转化为能量。</p>
 </div></section>
+<script>
+function __meeSweep(){
+  var m0=num('m');
+  if(!isFinite(m0)||m0<=0)return null;
+  var C=299792458, EV=1.602176634e-19;
+  var labels=[],dE=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var m=m0*mults[k], E=m*C*C;
+    labels.push((Math.round(m*1e6)/1e6).toFixed(4));
+    dE.push(Math.round(E/EV/1e6*1000)/1000);
+    rows.push([(Math.round(m*1e6)/1e6).toFixed(4),(Math.round(E/EV/1e6*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dE:dE,rows:rows};
+}
+function __meeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__meeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#meeChart',{title:en?'Mass-Energy vs Mass (E=mc², quadratic)':'质能随质量二次方增长（E=mc²）',labels:s.labels,series:[{name:en?'Energy (MeV)':'能量 E (MeV)',data:s.dE}]});
+}
+
+function __meeShow(which){
+  var c=document.getElementById('meeChart'), t=document.getElementById('mass_energy_equivalenceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __meeTabInit(){
+  var btns=document.querySelectorAll('.mee-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__meeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __meeShow('chart');
+}
+var __meeFn=calcTool;calcTool=function(){try{__meeFn();}catch(e){}try{__meeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__meeChart();}catch(e){}});
+</script>
 </body>
 </html>
