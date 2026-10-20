@@ -309,6 +309,11 @@ function __pendulum_periodBoot(){ try{ __pendulum_periodPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __pendulum_periodBoot();
 else document.addEventListener('DOMContentLoaded', __pendulum_periodBoot);
 </script>
+<div class="pdpr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pdprChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,44 @@ else document.addEventListener('DOMContentLoaded', __pendulum_periodBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pdprSweep(){
+  var L0=num('L'), g=num('g');
+  if(!isFinite(L0)||!isFinite(g)||g<=0||L0<=0)return null;
+  var labels=[], dT=[], dF=[];
+  for(var k=0;k<=10;k++){
+    var lk=L0*(0.2+0.16*k);
+    var T=2*Math.PI*Math.sqrt(lk/g);
+    labels.push((Math.round(lk*1000)/1000)+'');
+    dT.push(Math.round(T*10000)/10000);
+    dF.push(Math.round(1/T*10000)/10000);
+  }
+  return {labels:labels,dT:dT,dF:dF};
+}
+function __pdprChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pdprSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pdprChart',{title:en?'Pendulum period follows a square-root curve while frequency decays inversely':'单摆周期随摆长呈平方根凹曲线上升，频率反比衰减',labels:s.labels,series:[{name:en?'Period T (s)':'周期 T (s)',data:s.dT},{name:en?'Frequency f (Hz)':'频率 f (Hz)',data:s.dF}]});
+}
+
+function __pdprShow(which){
+  var c=document.getElementById('pdprChart'), t=document.getElementById('pendulum_periodTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pdprTabInit(){
+  var btns=document.querySelectorAll('.pdpr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pdprShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pdprShow('chart');
+  try{__pdprChart();}catch(e){}
+}
+var __pdprFn=calcTool;calcTool=function(){try{__pdprFn();}catch(e){}try{__pdprChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pdprChart();}catch(e){}});try{__pdprTabInit();}catch(e){}
+</script>
 </body>
 </html>

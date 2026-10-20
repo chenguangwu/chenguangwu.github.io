@@ -240,6 +240,11 @@ function __mechanical_powerBoot(){ try{ __mechanical_powerPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __mechanical_powerBoot();
 else document.addEventListener('DOMContentLoaded', __mechanical_powerBoot);
 </script>
+<div class="mcpw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mcpwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -273,5 +278,43 @@ else document.addEventListener('DOMContentLoaded', __mechanical_powerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mcpwSweep(){
+  var F=num('F'), v0=num('v');
+  if(!isFinite(F)||!isFinite(v0))return null;
+  var labels=[], dP=[];
+  var mult=[0.5,0.75,1.0,1.25,1.5];
+  for(var k=0;k<mult.length;k++){
+    var vk=v0*mult[k];
+    labels.push((Math.round(vk*100)/100)+'');
+    dP.push(Math.round(F*vk*100)/100);
+  }
+  return {labels:labels,dP:dP};
+}
+function __mcpwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__mcpwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#mcpwChart',{title:en?'Mechanical power across five speeds at constant force (linear in v)':'恒定推力下五档速度对应的机械功率对照（与速度成正比）',labels:s.labels,series:[{name:en?'Power P (W)':'功率 P (W)',data:s.dP}]});
+}
+
+function __mcpwShow(which){
+  var c=document.getElementById('mcpwChart'), t=document.getElementById('mechanical_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mcpwTabInit(){
+  var btns=document.querySelectorAll('.mcpw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mcpwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mcpwShow('chart');
+  try{__mcpwChart();}catch(e){}
+}
+var __mcpwFn=calcTool;calcTool=function(){try{__mcpwFn();}catch(e){}try{__mcpwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mcpwChart();}catch(e){}});try{__mcpwTabInit();}catch(e){}
+</script>
 </body>
 </html>

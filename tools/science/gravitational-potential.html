@@ -241,6 +241,11 @@ function __gravitational_potentialBoot(){ try{ __gravitational_potentialPresets(
 if (document.readyState && document.readyState !== 'loading') __gravitational_potentialBoot();
 else document.addEventListener('DOMContentLoaded', __gravitational_potentialBoot);
 </script>
+<div class="gvpt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gvptChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -274,5 +279,43 @@ else document.addEventListener('DOMContentLoaded', __gravitational_potentialBoot
 </dl>
 </div>
 </section>
+<script>
+function __gvptSweep(){
+  var m0=num('m'), g=num('g'), h=num('h');
+  if(!isFinite(m0)||!isFinite(g)||!isFinite(h))return null;
+  var labels=[], dU=[], dH=[];
+  for(var k=0;k<=10;k++){
+    var mk=m0*(0.4+0.16*k);
+    labels.push((Math.round(mk*1000)/1000)+'');
+    dU.push(Math.round(mk*g*h*100)/100);
+    dH.push(Math.round(h*1000)/1000);
+  }
+  return {labels:labels,dU:dU,dH:dH};
+}
+function __gvptChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gvptSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gvptChart',{title:en?'Potential energy rises linearly with mass against a flat back-solved height':'重力势能随质量线性抬升（对照恒定的高度复算值）',labels:s.labels,series:[{name:en?'Potential energy (J)':'重力势能 E_p (J)',data:s.dU},{name:en?'Back-solved height (m)':'高度复算 (m)',data:s.dH}]});
+}
+
+function __gvptShow(which){
+  var c=document.getElementById('gvptChart'), t=document.getElementById('gravitational_potentialTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gvptTabInit(){
+  var btns=document.querySelectorAll('.gvpt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gvptShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gvptShow('chart');
+  try{__gvptChart();}catch(e){}
+}
+var __gvptFn=calcTool;calcTool=function(){try{__gvptFn();}catch(e){}try{__gvptChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gvptChart();}catch(e){}});try{__gvptTabInit();}catch(e){}
+</script>
 </body>
 </html>

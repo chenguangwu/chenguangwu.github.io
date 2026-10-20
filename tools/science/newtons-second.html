@@ -247,6 +247,11 @@ function __newtons_secondBoot(){ try{ __newtons_secondPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __newtons_secondBoot();
 else document.addEventListener('DOMContentLoaded', __newtons_secondBoot);
 </script>
+<div class="nwts-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="nwtsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -293,5 +298,43 @@ else document.addEventListener('DOMContentLoaded', __newtons_secondBoot);
 <h3>单位</h3><p>SI 单位：F 为牛(N)、m 为千克(kg)、a 为米/秒²(m/s²)；1 N=1 kg·m/s²。</p>
 <h3>适用边界</h3><p>适用于惯性参考系；宏观低速（远小于光速）下精度极高。已知其中任意两量可求第三量。</p>
 </div></section>
+<script>
+function __nwtsSweep(){
+  var m=num('m'), a0=num('a');
+  if(!isFinite(m)||!isFinite(a0))return null;
+  var labels=[], dF=[], dK=[];
+  for(var k=0;k<=10;k++){
+    var ak=a0*(-1+0.2*k);
+    labels.push((Math.round(ak*1000)/1000)+'');
+    dF.push(Math.round(m*ak*100)/100);
+    dK.push(Math.round(m*ak/1000*1000000)/1000000);
+  }
+  return {labels:labels,dF:dF,dK:dK};
+}
+function __nwtsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__nwtsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#nwtsChart',{title:en?'Net force sweeps linearly through zero as acceleration flips sign':'合外力随加速度线性扫过零轴（加速度反号时力反向）',labels:s.labels,series:[{name:en?'Net force F (N)':'合外力 F (N)',data:s.dF},{name:en?'Net force (kN)':'合外力 (kN)',data:s.dK}]});
+}
+
+function __nwtsShow(which){
+  var c=document.getElementById('nwtsChart'), t=document.getElementById('newtons_secondTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __nwtsTabInit(){
+  var btns=document.querySelectorAll('.nwts-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__nwtsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __nwtsShow('chart');
+  try{__nwtsChart();}catch(e){}
+}
+var __nwtsFn=calcTool;calcTool=function(){try{__nwtsFn();}catch(e){}try{__nwtsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__nwtsChart();}catch(e){}});try{__nwtsTabInit();}catch(e){}
+</script>
 </body>
 </html>

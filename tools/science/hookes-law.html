@@ -240,6 +240,11 @@ function __hookes_lawBoot(){ try{ __hookes_lawPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __hookes_lawBoot();
 else document.addEventListener('DOMContentLoaded', __hookes_lawBoot);
 </script>
+<div class="hksl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hkslChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -273,5 +278,43 @@ else document.addEventListener('DOMContentLoaded', __hookes_lawBoot);
 </dl>
 </div>
 </section>
+<script>
+function __hkslSweep(){
+  var k=num('k'), x0=num('x');
+  if(!isFinite(k)||!isFinite(x0))return null;
+  var labels=[], dF=[], dU=[];
+  for(var kk=0;kk<=10;kk++){
+    var xk=x0*(kk/5);
+    labels.push((Math.round(xk*1000)/1000)+'');
+    dF.push(Math.round(k*xk*100)/100);
+    dU.push(Math.round(0.5*k*xk*xk*10000)/10000);
+  }
+  return {labels:labels,dF:dF,dU:dU};
+}
+function __hkslChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__hkslSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hkslChart',{title:en?'Spring force grows linearly with displacement while stored energy grows quadratically':'弹簧力随位移线性增长，弹性势能按二次曲线增长',labels:s.labels,series:[{name:en?'Spring force F (N)':'弹簧力 F (N)',data:s.dF},{name:en?'Elastic energy U (J)':'弹性势能 U (J)',data:s.dU}]});
+}
+
+function __hkslShow(which){
+  var c=document.getElementById('hkslChart'), t=document.getElementById('hookes_lawTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hkslTabInit(){
+  var btns=document.querySelectorAll('.hksl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hkslShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hkslShow('chart');
+  try{__hkslChart();}catch(e){}
+}
+var __hkslFn=calcTool;calcTool=function(){try{__hkslFn();}catch(e){}try{__hkslChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hkslChart();}catch(e){}});try{__hkslTabInit();}catch(e){}
+</script>
 </body>
 </html>

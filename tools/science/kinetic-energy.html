@@ -242,6 +242,11 @@ function __kinetic_energyBoot(){ try{ __kinetic_energyPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __kinetic_energyBoot();
 else document.addEventListener('DOMContentLoaded', __kinetic_energyBoot);
 </script>
+<div class="kten-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ktenChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -275,5 +280,44 @@ else document.addEventListener('DOMContentLoaded', __kinetic_energyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ktenSweep(){
+  var m=num('m'), v0=num('v');
+  if(!isFinite(m)||!isFinite(v0))return null;
+  var labels=[], dE=[], dC=[];
+  for(var k=0;k<=10;k++){
+    var vk=v0*(k/5);
+    var E=0.5*m*vk*vk;
+    labels.push((Math.round(vk*1000)/1000)+'');
+    dE.push(Math.round(E*100)/100);
+    dC.push(Math.round(m*E*100)/100);
+  }
+  return {labels:labels,dE:dE,dC:dC};
+}
+function __ktenChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ktenSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ktenChart',{title:en?'Kinetic energy grows as the square of speed while the mass-energy product grows cubically':'动能随速度二次增长，质量与动能之积呈三次曲线',labels:s.labels,series:[{name:en?'Kinetic energy (J)':'动能 E_k (J)',data:s.dE},{name:en?'Mass x energy product':'质量与动能之积',data:s.dC}]});
+}
+
+function __ktenShow(which){
+  var c=document.getElementById('ktenChart'), t=document.getElementById('kinetic_energyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ktenTabInit(){
+  var btns=document.querySelectorAll('.kten-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ktenShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ktenShow('chart');
+  try{__ktenChart();}catch(e){}
+}
+var __ktenFn=calcTool;calcTool=function(){try{__ktenFn();}catch(e){}try{__ktenChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ktenChart();}catch(e){}});try{__ktenTabInit();}catch(e){}
+</script>
 </body>
 </html>
