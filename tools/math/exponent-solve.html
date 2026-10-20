@@ -254,6 +254,11 @@ function __exponent_solveBoot(){ try{ __exponent_solvePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __exponent_solveBoot();
 else document.addEventListener('DOMContentLoaded', __exponent_solveBoot);
 </script>
+<div class="exs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="exsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -289,5 +294,45 @@ else document.addEventListener('DOMContentLoaded', __exponent_solveBoot);
 </dl>
 </div>
 </section>
+<script>
+function __exsSweep(){
+  var a=num('a');
+  if(!isFinite(a)||a<=0||Math.abs(a-1)<1e-12)return null;
+  var la=Math.log(a);
+  var labels=[], dX=[], dP=[];
+  var bs=[0.25,0.5,1,2,4,8,16,64];
+  for(var k=0;k<bs.length;k++){
+    var bv=bs[k], x=Math.log(bv)/la;
+    labels.push(bv.toFixed(2));
+    dX.push(Math.round(x*1000)/1000);
+    dP.push(Math.round(Math.pow(a,x)*1000)/1000);
+  }
+  return {labels:labels,dX:dX,dP:dP};
+}
+function __exsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__exsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#exsChart',{title:en?'Exponent Solution x=log_a(b) vs b (logarithmic)':'指数方程解 x=log_a(b) 随 b 对数增长',labels:s.labels,series:[{name:en?'Exponent x':'指数解 x',data:s.dX},{name:en?'Check: a^x (should equal b)':'校验 aˣ（应等于 b）',data:s.dP}]});
+}
+
+function __exsShow(which){
+  var c=document.getElementById('exsChart'), t=document.getElementById('exponent_solveTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __exsTabInit(){
+  var btns=document.querySelectorAll('.exs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__exsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __exsShow('chart');
+  try{__exsChart();}catch(e){}
+}
+var __exsFn=calcTool;calcTool=function(){try{__exsFn();}catch(e){}try{__exsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__exsChart();}catch(e){}});try{__exsTabInit();}catch(e){}
+</script>
 </body>
 </html>

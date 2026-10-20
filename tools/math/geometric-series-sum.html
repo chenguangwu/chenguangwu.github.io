@@ -302,6 +302,11 @@ function __geometric_series_sumBoot(){ try{ __geometric_series_sumPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __geometric_series_sumBoot();
 else document.addEventListener('DOMContentLoaded', __geometric_series_sumBoot);
 </script>
+<div class="gss-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gssChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,45 @@ else document.addEventListener('DOMContentLoaded', __geometric_series_sumBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gssSweep(){
+  var a=num('a'), r=num('r');
+  if(!isFinite(a)||!isFinite(r))return null;
+  var labels=[], dS=[], dT=[];
+  var ns=[1,2,3,4,6,8,12,16];
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k];
+    var S=Math.abs(r-1)<1e-12?(a*nv):(a*(1-Math.pow(r,nv))/(1-r));
+    labels.push(nv.toFixed(0));
+    dS.push(Math.round(S*10000)/10000);
+    dT.push(Math.round(a*Math.pow(r,nv-1)*10000)/10000);
+  }
+  return {labels:labels,dS:dS,dT:dT};
+}
+function __gssChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gssSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gssChart',{title:en?'Geometric Series Sum vs Term Count (saturating when |r|<1)':'等比数列前 n 项和随项数变化（|r|<1 时饱和收敛）',labels:s.labels,series:[{name:en?'Sum S_n':'前 n 项和 S_n',data:s.dS},{name:en?'nth term a·r^(n-1)':'第 n 项 a·r^(n-1)',data:s.dT}]});
+}
+
+function __gssShow(which){
+  var c=document.getElementById('gssChart'), t=document.getElementById('geometric_series_sumTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gssTabInit(){
+  var btns=document.querySelectorAll('.gss-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gssShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gssShow('chart');
+  try{__gssChart();}catch(e){}
+}
+var __gssFn=calcTool;calcTool=function(){try{__gssFn();}catch(e){}try{__gssChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gssChart();}catch(e){}});try{__gssTabInit();}catch(e){}
+</script>
 </body>
 </html>

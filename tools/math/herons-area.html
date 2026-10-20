@@ -259,6 +259,11 @@ function __herons_areaBoot(){ try{ __herons_areaPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __herons_areaBoot();
 else document.addEventListener('DOMContentLoaded', __herons_areaBoot);
 </script>
+<div class="hra-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hraChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +299,51 @@ else document.addEventListener('DOMContentLoaded', __herons_areaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __hraSweep(){
+  var a=num('a'), b=num('b');
+  if(!isFinite(a)||!isFinite(b)||a<=0||b<=0)return null;
+  var labels=[], dA=[], dS=[];
+  var cs=[];
+  var lo=Math.abs(a-b)+0.05, hi=a+b-0.05;
+  if(hi<=lo)return null;
+  for(var k=0;k<8;k++){
+    cs.push(lo+(hi-lo)*k/7);
+  }
+  for(var j=0;j<cs.length;j++){
+    var cv=cs[j], sp=(a+b+cv)/2;
+    var val=sp*(sp-a)*(sp-b)*(sp-cv);
+    var A=val>0?Math.sqrt(val):0;
+    labels.push((Math.round(cv*100)/100).toFixed(2));
+    dA.push(Math.round(A*1000)/1000);
+    dS.push(Math.round(sp*1000)/1000);
+  }
+  return {labels:labels,dA:dA,dS:dS};
+}
+function __hraChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__hraSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hraChart',{title:en?"Heron's Area vs Third Side (arch, zero at triangle inequality bounds)":'海伦公式面积随第三边拱形变化（三角不等式边界取零）',labels:s.labels,series:[{name:en?'Area A (m²)':'面积 A (m²)',data:s.dA},{name:en?'Semiperimeter s (m)':'半周长 s (m)',data:s.dS}]});
+}
+
+function __hraShow(which){
+  var c=document.getElementById('hraChart'), t=document.getElementById('herons_areaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hraTabInit(){
+  var btns=document.querySelectorAll('.hra-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hraShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hraShow('chart');
+  try{__hraChart();}catch(e){}
+}
+var __hraFn=calcTool;calcTool=function(){try{__hraFn();}catch(e){}try{__hraChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hraChart();}catch(e){}});try{__hraTabInit();}catch(e){}
+</script>
 </body>
 </html>

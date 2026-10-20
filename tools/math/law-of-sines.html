@@ -301,6 +301,11 @@ function __law_of_sinesBoot(){ try{ __law_of_sinesPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __law_of_sinesBoot();
 else document.addEventListener('DOMContentLoaded', __law_of_sinesBoot);
 </script>
+<div class="los-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="losChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,47 @@ else document.addEventListener('DOMContentLoaded', __law_of_sinesBoot);
 </dl>
 </div>
 </section>
+<script>
+function __losSweep(){
+  var b=num('b'), B=num('B');
+  if(!isFinite(b)||!isFinite(B)||b<=0)return null;
+  var sb=Math.sin(B*Math.PI/180);
+  if(Math.abs(sb)<1e-9)return null;
+  var labels=[], dA=[], dR=[];
+  var As=[5,15,30,45,60,75,90,120];
+  for(var k=0;k<As.length;k++){
+    var av=As[k]*Math.PI/180;
+    var a=b*Math.sin(av)/sb;
+    labels.push(As[k].toFixed(0));
+    dA.push(Math.round(a*1000)/1000);
+    dR.push(Math.round(Math.sin(av)/sb*1000)/1000);
+  }
+  return {labels:labels,dA:dA,dR:dR};
+}
+function __losChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__losSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#losChart',{title:en?'Law of Sines: Side a vs Angle A (sine curve, peak at 90°)':'正弦定理：边 a 随角 A 正弦变化（90° 达峰）',labels:s.labels,series:[{name:en?'Side a':'边 a',data:s.dA},{name:en?'Ratio sin A / sin B':'比值 sin A / sin B',data:s.dR}]});
+}
+
+function __losShow(which){
+  var c=document.getElementById('losChart'), t=document.getElementById('law_of_sinesTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __losTabInit(){
+  var btns=document.querySelectorAll('.los-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__losShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __losShow('chart');
+  try{__losChart();}catch(e){}
+}
+var __losFn=calcTool;calcTool=function(){try{__losFn();}catch(e){}try{__losChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__losChart();}catch(e){}});try{__losTabInit();}catch(e){}
+</script>
 </body>
 </html>

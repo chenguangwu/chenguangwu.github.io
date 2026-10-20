@@ -258,6 +258,11 @@ function __law_of_cosinesBoot(){ try{ __law_of_cosinesPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __law_of_cosinesBoot();
 else document.addEventListener('DOMContentLoaded', __law_of_cosinesBoot);
 </script>
+<div class="loc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="locChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -293,5 +298,47 @@ else document.addEventListener('DOMContentLoaded', __law_of_cosinesBoot);
 </dl>
 </div>
 </section>
+<script>
+function __locSweep(){
+  var a=num('a'), b=num('b');
+  if(!isFinite(a)||!isFinite(b)||a<=0||b<=0)return null;
+  var labels=[], dC=[], dA=[];
+  var Cs=[0,15,30,45,60,90,120,180];
+  for(var k=0;k<Cs.length;k++){
+    var cv=Cs[k]*Math.PI/180;
+    var c=Math.sqrt(Math.max(0,a*a+b*b-2*a*b*Math.cos(cv)));
+    var cosA=(b*b+c*c-a*a)/(2*b*c);
+    if(cosA>1)cosA=1; if(cosA<-1)cosA=-1;
+    labels.push(Cs[k].toFixed(0));
+    dC.push(Math.round(c*1000)/1000);
+    dA.push(Math.round(Math.acos(cosA)*180/Math.PI*100)/100);
+  }
+  return {labels:labels,dC:dC,dA:dA};
+}
+function __locChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__locSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#locChart',{title:en?'Law of Cosines: Side c & Angle A vs Included Angle C':'余弦定理：第三边 c 与角 A 随夹角 C 变化',labels:s.labels,series:[{name:en?'Side c':'第三边 c',data:s.dC},{name:en?'Angle A (°)':'角 A (°)',data:s.dA}]});
+}
+
+function __locShow(which){
+  var c=document.getElementById('locChart'), t=document.getElementById('law_of_cosinesTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __locTabInit(){
+  var btns=document.querySelectorAll('.loc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__locShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __locShow('chart');
+  try{__locChart();}catch(e){}
+}
+var __locFn=calcTool;calcTool=function(){try{__locFn();}catch(e){}try{__locChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__locChart();}catch(e){}});try{__locTabInit();}catch(e){}
+</script>
 </body>
 </html>
