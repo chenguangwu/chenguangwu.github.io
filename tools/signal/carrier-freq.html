@@ -244,6 +244,11 @@ function __carrier_freqBoot(){ try{ __carrier_freqPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __carrier_freqBoot();
 else document.addEventListener('DOMContentLoaded', __carrier_freqBoot);
 </script>
+<div class="cfr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cfrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,46 @@ else document.addEventListener('DOMContentLoaded', __carrier_freqBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cfrSweep(){
+  var fl=num('fl'), fu0=num('fu');
+  if(!isFinite(fl)||!isFinite(fu0)||fl<=0||fu0<=0)return null;
+  var labels=[],dFc=[],dBw2=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var fu=fu0*mults[k];
+    if(fu<=fl)continue;
+    var fc=(fu+fl)/2;
+    labels.push((Math.round(fu*100)/100).toFixed(2));
+    dFc.push(Math.round(fc*1000)/1000);
+    dBw2.push(Math.round((fu-fl)*1000)/1000);
+    rows.push([(Math.round(fu*100)/100).toFixed(2),(Math.round(fc*1000)/1000).toFixed(3),(Math.round((fu-fl)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dFc:dFc,dBw2:dBw2,rows:rows};
+}
+function __cfrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cfrSweep(); if(!s||!s.labels.length)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cfrChart',{title:en?'Carrier Frequency vs Upper Edge (fc=(fu+fl)/2, linear)':'载波频率随上边频线性上移（f_c=(f_u+f_l)/2）',labels:s.labels,series:[{name:en?'Carrier fc (kHz)':'载波频率 f_c (kHz)',data:s.dFc},{name:en?'Bandwidth B (kHz)':'带宽 B (kHz)',data:s.dBw2}]});
+}
+
+function __cfrShow(which){
+  var c=document.getElementById('cfrChart'), t=document.getElementById('carrier_freqTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cfrTabInit(){
+  var btns=document.querySelectorAll('.cfr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cfrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cfrShow('chart');
+}
+var __cfrFn=calcTool;calcTool=function(){try{__cfrFn();}catch(e){}try{__cfrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cfrChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -310,6 +310,11 @@ function __steady_state_errorBoot(){ try{ __steady_state_errorPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __steady_state_errorBoot();
 else document.addEventListener('DOMContentLoaded', __steady_state_errorBoot);
 </script>
+<div class="sse-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sseChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -345,5 +350,44 @@ else document.addEventListener('DOMContentLoaded', __steady_state_errorBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sseSweep(){
+  var k0=num('Kp');
+  if(!isFinite(k0)||k0<=0)return null;
+  var kps=[1,2,5,10,20,50,100,1000];
+  var labels=[],dEss=[],dInv=[],rows=[];
+  for(var k=0;k<kps.length;k++){
+    var Kp=kps[k], ess=1/(1+Kp);
+    labels.push(String(Kp));
+    dEss.push(Math.round(ess*100*1000)/1000);
+    dInv.push(Math.round(1/Math.max(ess,1e-12)*1000)/1000);
+    rows.push([String(Kp),(Math.round(ess*100*1000)/1000).toFixed(3),(Math.round(1/Math.max(ess,1e-12)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dEss:dEss,dInv:dInv,rows:rows};
+}
+function __sseChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sseSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sseChart',{title:en?'Steady-State Error vs Gain (ess=1/(1+Kp), inverse saturation)':'稳态误差随增益反比饱和趋零（e_ss=1/(1+K_p)）',labels:s.labels,series:[{name:en?'Error ess (%)':'稳态误差 e_ss (%)',data:s.dEss},{name:en?'Inverse (×10⁻³)':'误差倒数 (×10⁻³)',data:s.dInv}]});
+}
+
+function __sseShow(which){
+  var c=document.getElementById('sseChart'), t=document.getElementById('steady_state_errorTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sseTabInit(){
+  var btns=document.querySelectorAll('.sse-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sseShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sseShow('chart');
+}
+var __sseFn=calcTool;calcTool=function(){try{__sseFn();}catch(e){}try{__sseChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sseChart();}catch(e){}});
+</script>
 </body>
 </html>

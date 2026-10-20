@@ -298,6 +298,11 @@ function __bandwidth_qBoot(){ try{ __bandwidth_qPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __bandwidth_qBoot();
 else document.addEventListener('DOMContentLoaded', __bandwidth_qBoot);
 </script>
+<div class="bq-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bqChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __bandwidth_qBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bqSweep(){
+  var f0=num('f0');
+  if(!isFinite(f0)||f0<=0)return null;
+  var qs=[2,5,10,20,50,100,500];
+  var labels=[],dBw=[],dRBW=[],rows=[];
+  for(var k=0;k<qs.length;k++){
+    var Q=qs[k], bw=f0/Q;
+    labels.push(String(Q));
+    dBw.push(Math.round(bw*1000)/1000);
+    dRBW.push(Math.round(bw/f0*100*1000)/1000);
+    rows.push([String(Q),(Math.round(bw*1000)/1000).toFixed(3),(Math.round(bw/f0*100*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dBw:dBw,dRBW:dRBW,rows:rows};
+}
+function __bqChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bqSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bqChart',{title:en?'Bandwidth vs Q Factor (Δf=f0/Q, inverse)':'带宽随品质因数反比收窄（Δf=f₀/Q）',labels:s.labels,series:[{name:en?'Bandwidth Δf (Hz)':'带宽 Δf (Hz)',data:s.dBw},{name:en?'Relative BW (%)':'相对带宽 (%)',data:s.dRBW}]});
+}
+
+function __bqShow(which){
+  var c=document.getElementById('bqChart'), t=document.getElementById('bandwidth_qTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bqTabInit(){
+  var btns=document.querySelectorAll('.bq-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bqShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bqShow('chart');
+}
+var __bqFn=calcTool;calcTool=function(){try{__bqFn();}catch(e){}try{__bqChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bqChart();}catch(e){}});
+</script>
 </body>
 </html>

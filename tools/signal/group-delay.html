@@ -298,6 +298,11 @@ function __group_delayBoot(){ try{ __group_delayPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __group_delayBoot();
 else document.addEventListener('DOMContentLoaded', __group_delayBoot);
 </script>
+<div class="gdl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gdlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __group_delayBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gdlSweep(){
+  var dp=num('dp'), dw0=num('dw');
+  if(!isFinite(dp)||!isFinite(dw0)||dw0<=0)return null;
+  var labels=[],dTg2=[],dPh=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var dw=dw0*mults[k], tg=-(dp*Math.PI/180)/dw;
+    labels.push((Math.round(dw*100)/100).toFixed(1));
+    dTg2.push(Math.round(tg*1e6*1000)/1000);
+    dPh.push(Math.round(dp*Math.PI/180*1000)/1000);
+    rows.push([(Math.round(dw*100)/100).toFixed(1),(Math.round(tg*1e6*1000)/1000).toFixed(3),(Math.round(dp*Math.PI/180*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dTg2:dTg2,dPh:dPh,rows:rows};
+}
+function __gdlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gdlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gdlChart',{title:en?'Group Delay vs Frequency Span (τg=-Δφ/Δω, inverse)':'群时延随频率跨度反比下降（τ_g=-Δφ/Δω）',labels:s.labels,series:[{name:en?'Group delay τg (μs)':'群时延 τ_g (μs)',data:s.dTg2},{name:en?'Phase Δφ (rad)':'相位差 Δφ (rad)',data:s.dPh}]});
+}
+
+function __gdlShow(which){
+  var c=document.getElementById('gdlChart'), t=document.getElementById('group_delayTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gdlTabInit(){
+  var btns=document.querySelectorAll('.gdl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gdlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gdlShow('chart');
+}
+var __gdlFn=calcTool;calcTool=function(){try{__gdlFn();}catch(e){}try{__gdlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gdlChart();}catch(e){}});
+</script>
 </body>
 </html>
