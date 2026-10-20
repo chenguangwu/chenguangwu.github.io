@@ -244,6 +244,11 @@ function __surrender_valueBoot(){ try{ __surrender_valuePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __surrender_valueBoot();
 else document.addEventListener('DOMContentLoaded', __surrender_valueBoot);
 </script>
+<div class="suv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="suvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,44 @@ else document.addEventListener('DOMContentLoaded', __surrender_valueBoot);
 </dl>
 </div>
 </section>
+<script>
+function __suvSweep(){
+  var res=num('res');
+  if(!isFinite(res)||res<=0)return null;
+  var labels=[],dC=[],dF=[];
+  var rts=[0.5,0.6,0.7,0.8,0.9,1.0];
+  for(var k=0;k<rts.length;k++){
+    var rv=rts[k], cv=res*rv;
+    labels.push((rv*100).toFixed(0)+'%');
+    dC.push(Math.round(cv*100)/100);
+    dF.push(Math.round((res-cv)*100)/100);
+  }
+  return {labels:labels,dC:dC,dF:dF};
+}
+function __suvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__suvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#suvChart',{title:en?'Surrender Value vs Cash Ratio (linear cross)':'现金价值随退保率线性交叉',labels:s.labels,series:[{name:en?'Cash value (¥)':'现金价值 (元)',data:s.dC},{name:en?'Surrender charge (¥)':'退保费用扣减额 (元)',data:s.dF}]});
+}
+
+function __suvShow(which){
+  var c=document.getElementById('suvChart'), t=document.getElementById('surrender_valueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __suvTabInit(){
+  var btns=document.querySelectorAll('.suv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__suvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __suvShow('chart');
+  try{__suvChart();}catch(e){}
+}
+var __suvFn=calcTool;calcTool=function(){try{__suvFn();}catch(e){}try{__suvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__suvChart();}catch(e){}});try{__suvTabInit();}catch(e){}
+</script>
 </body>
 </html>

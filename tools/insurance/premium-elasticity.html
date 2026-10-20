@@ -298,6 +298,11 @@ function __premium_elasticityBoot(){ try{ __premium_elasticityPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __premium_elasticityBoot();
 else document.addEventListener('DOMContentLoaded', __premium_elasticityBoot);
 </script>
+<div class="pre-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="preChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,44 @@ else document.addEventListener('DOMContentLoaded', __premium_elasticityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __preSweep(){
+  var dq=num('dq');
+  if(!isFinite(dq)||dq===0)return null;
+  var labels=[],dE=[],dI=[];
+  var dps=[0.1,0.15,0.2,0.3,0.4,0.5];
+  for(var k=0;k<dps.length;k++){
+    var dpv=dps[k], e=dq/dpv;
+    labels.push((dpv*100).toFixed(0)+'%');
+    dE.push(Math.round(e*1000)/1000);
+    dI.push(Math.round((1/e)*1000)/1000);
+  }
+  return {labels:labels,dE:dE,dI:dI};
+}
+function __preChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__preSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#preChart',{title:en?'Demand Elasticity vs Premium Change (inverse/reciprocal)':'需求弹性随保费变动率反比下降',labels:s.labels,series:[{name:en?'Elasticity e':'需求弹性 e',data:s.dE},{name:en?'Reciprocal 1/e':'弹性倒数 1/e',data:s.dI}]});
+}
+
+function __preShow(which){
+  var c=document.getElementById('preChart'), t=document.getElementById('premium_elasticityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __preTabInit(){
+  var btns=document.querySelectorAll('.pre-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__preShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __preShow('chart');
+  try{__preChart();}catch(e){}
+}
+var __preFn=calcTool;calcTool=function(){try{__preFn();}catch(e){}try{__preChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__preChart();}catch(e){}});try{__preTabInit();}catch(e){}
+</script>
 </body>
 </html>

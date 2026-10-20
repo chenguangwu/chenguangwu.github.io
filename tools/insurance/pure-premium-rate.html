@@ -298,6 +298,11 @@ function __pure_premium_rateBoot(){ try{ __pure_premium_ratePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __pure_premium_rateBoot();
 else document.addEventListener('DOMContentLoaded', __pure_premium_rateBoot);
 </script>
+<div class="ppr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pprChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,44 @@ else document.addEventListener('DOMContentLoaded', __pure_premium_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pprSweep(){
+  var el=num('el');
+  if(!isFinite(el)||el<=0)return null;
+  var labels=[],dR=[],dG=[];
+  var exs=[500,1000,2000,3000,4000,5000];
+  for(var k=0;k<exs.length;k++){
+    var ev=exs[k], rate=el/ev;
+    labels.push(ev.toFixed(0));
+    dR.push(Math.round(rate*1000)/1000);
+    dG.push(Math.round((ev-el)*100)/100);
+  }
+  return {labels:labels,dR:dR,dG:dG};
+}
+function __pprChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pprSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pprChart',{title:en?'Pure Premium Rate vs Exposure (inverse/linear)':'纯费率随风险暴露反比下降',labels:s.labels,series:[{name:en?'Pure rate (¥/unit)':'纯费率 (元/单位)',data:s.dR},{name:en?'Exposure minus loss (units)':'风险单位与损失之差',data:s.dG}]});
+}
+
+function __pprShow(which){
+  var c=document.getElementById('pprChart'), t=document.getElementById('pure_premium_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pprTabInit(){
+  var btns=document.querySelectorAll('.ppr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pprShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pprShow('chart');
+  try{__pprChart();}catch(e){}
+}
+var __pprFn=calcTool;calcTool=function(){try{__pprFn();}catch(e){}try{__pprChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pprChart();}catch(e){}});try{__pprTabInit();}catch(e){}
+</script>
 </body>
 </html>

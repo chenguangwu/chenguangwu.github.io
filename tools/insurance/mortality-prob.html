@@ -315,6 +315,11 @@ function __mortality_probBoot(){ try{ __mortality_probPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __mortality_probBoot();
 else document.addEventListener('DOMContentLoaded', __mortality_probBoot);
 </script>
+<div class="mrp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mrpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,44 @@ else document.addEventListener('DOMContentLoaded', __mortality_probBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mrpSweep(){
+  var p=num('p');
+  if(!isFinite(p)||p<=0||p>=1)return null;
+  var labels=[],dS=[],dD=[];
+  var ns=[1,3,5,8,12,16,20,25,30];
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k], sp=Math.pow(p,nv);
+    labels.push(nv.toFixed(0));
+    dS.push(Math.round(sp*100*1000)/1000);
+    dD.push(Math.round((1-sp)*100*1000)/1000);
+  }
+  return {labels:labels,dS:dS,dD:dD};
+}
+function __mrpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mrpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mrpChart',{title:en?'Survival Prob. vs Years (exponential decay mirror)':'生存概率随年数指数衰减',labels:s.labels,series:[{name:en?'n-year survival (%)':'n 年生存概率 (%)',data:s.dS},{name:en?'n-year death prob. (%)':'n 年内死亡概率 (%)',data:s.dD}]});
+}
+
+function __mrpShow(which){
+  var c=document.getElementById('mrpChart'), t=document.getElementById('mortality_probTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mrpTabInit(){
+  var btns=document.querySelectorAll('.mrp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mrpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mrpShow('chart');
+  try{__mrpChart();}catch(e){}
+}
+var __mrpFn=calcTool;calcTool=function(){try{__mrpFn();}catch(e){}try{__mrpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mrpChart();}catch(e){}});try{__mrpTabInit();}catch(e){}
+</script>
 </body>
 </html>

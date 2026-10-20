@@ -241,6 +241,11 @@ function __pure_premiumBoot(){ try{ __pure_premiumPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __pure_premiumBoot();
 else document.addEventListener('DOMContentLoaded', __pure_premiumBoot);
 </script>
+<div class="ppu-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ppuChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -274,5 +279,44 @@ else document.addEventListener('DOMContentLoaded', __pure_premiumBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ppuSweep(){
+  var f=num('freq');
+  if(!isFinite(f)||f<=0)return null;
+  var labels=[],dP=[],dM=[];
+  var svs=[10000,20000,30000,40000,50000];
+  for(var k=0;k<svs.length;k++){
+    var sv=svs[k], pp=f*sv;
+    labels.push((sv/10000).toFixed(1)+'\u4e07');
+    dP.push(Math.round(pp*100)/100);
+    dM.push(Math.round(pp*1.1*100)/100);
+  }
+  return {labels:labels,dP:dP,dM:dM};
+}
+function __ppuChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ppuSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ppuChart',{title:en?'Pure Premium vs Severity (offset linear, +10% margin)':'纯保费随单次赔付额线性上升',labels:s.labels,series:[{name:en?'Pure premium (¥)':'纯保费 (元/单位)',data:s.dP},{name:en?'With 10% margin (¥)':'含10%安全边际 (元)',data:s.dM}]});
+}
+
+function __ppuShow(which){
+  var c=document.getElementById('ppuChart'), t=document.getElementById('pure_premiumTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ppuTabInit(){
+  var btns=document.querySelectorAll('.ppu-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ppuShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ppuShow('chart');
+  try{__ppuChart();}catch(e){}
+}
+var __ppuFn=calcTool;calcTool=function(){try{__ppuFn();}catch(e){}try{__ppuChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ppuChart();}catch(e){}});try{__ppuTabInit();}catch(e){}
+</script>
 </body>
 </html>
