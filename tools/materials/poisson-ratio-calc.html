@@ -298,6 +298,11 @@ function __poisson_ratio_calcBoot(){ try{ __poisson_ratio_calcPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __poisson_ratio_calcBoot();
 else document.addEventListener('DOMContentLoaded', __poisson_ratio_calcBoot);
 </script>
+<div class="prc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="prcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,43 @@ else document.addEventListener('DOMContentLoaded', __poisson_ratio_calcBoot);
 </dl>
 </div>
 </section>
+<script>
+function __prcSweep(){
+  var el=num('el'), ea0=num('ea');
+  if(!isFinite(el)||!isFinite(ea0)||ea0<=0)return null;
+  var labels=[],dNu=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var ea=ea0*mults[k], nu=-el/ea;
+    labels.push((Math.round(ea*1e5*100)/100).toFixed(1));
+    dNu.push(Math.round(nu*10000)/10000);
+    rows.push([(Math.round(ea*1e5*100)/100).toFixed(1),(Math.round(nu*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dNu:dNu,rows:rows};
+}
+function __prcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__prcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#prcChart',{title:en?'Poisson Ratio vs Axial Strain (nu=-el/ea, inverse)':'泊松比随轴向应变反比变化（nu=−el/ea）',labels:s.labels,series:[{name:en?'Poisson nu':'泊松比 ν',data:s.dNu}]});
+}
+
+function __prcShow(which){
+  var c=document.getElementById('prcChart'), t=document.getElementById('poisson_ratio_calcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __prcTabInit(){
+  var btns=document.querySelectorAll('.prc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__prcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __prcShow('chart');
+}
+var __prcFn=calcTool;calcTool=function(){try{__prcFn();}catch(e){}try{__prcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__prcChart();}catch(e){}});
+</script>
 </body>
 </html>

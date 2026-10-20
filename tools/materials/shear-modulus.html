@@ -313,6 +313,11 @@ function __shear_modulusBoot(){ try{ __shear_modulusPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __shear_modulusBoot();
 else document.addEventListener('DOMContentLoaded', __shear_modulusBoot);
 </script>
+<div class="shm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="shmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,44 @@ else document.addEventListener('DOMContentLoaded', __shear_modulusBoot);
 </dl>
 </div>
 </section>
+<script>
+function __shmSweep(){
+  var E=num('E');
+  if(!isFinite(E)||E<=0)return null;
+  var nus=[0.1,0.15,0.2,0.25,0.3,0.35,0.45];
+  var labels=[],dG=[],rows=[];
+  for(var k=0;k<nus.length;k++){
+    var nu=nus[k];
+    var G=E/(2*(1+nu));
+    labels.push((Math.round(nu*100)/100).toFixed(2));
+    dG.push(Math.round(G/1e9*1000)/1000);
+    rows.push([(Math.round(nu*100)/100).toFixed(2),(Math.round(G/1e9*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dG:dG,rows:rows};
+}
+function __shmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__shmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#shmChart',{title:en?'Shear Modulus vs Poisson Ratio (G=E/(2(1+ν)))':'剪切模量随泊松比衰减变化（G=E/(2(1+ν))）',labels:s.labels,series:[{name:en?'G (GPa)':'剪切模量 G (GPa)',data:s.dG}]});
+}
+
+function __shmShow(which){
+  var c=document.getElementById('shmChart'), t=document.getElementById('shear_modulusTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __shmTabInit(){
+  var btns=document.querySelectorAll('.shm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__shmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __shmShow('chart');
+}
+var __shmFn=calcTool;calcTool=function(){try{__shmFn();}catch(e){}try{__shmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__shmChart();}catch(e){}});
+</script>
 </body>
 </html>

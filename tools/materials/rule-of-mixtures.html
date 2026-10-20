@@ -245,6 +245,11 @@ function __rule_of_mixturesBoot(){ try{ __rule_of_mixturesPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __rule_of_mixturesBoot();
 else document.addEventListener('DOMContentLoaded', __rule_of_mixturesBoot);
 </script>
+<div class="rom-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="romChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,43 @@ else document.addEventListener('DOMContentLoaded', __rule_of_mixturesBoot);
 </dl>
 </div>
 </section>
+<script>
+function __romSweep(){
+  var Ef=num('Ef'), Em=num('Em');
+  if(!isFinite(Ef)||!isFinite(Em)||Ef<=0||Em<=0)return null;
+  var Vfs=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.8];
+  var labels=[],dEc=[],rows=[];
+  for(var k=0;k<Vfs.length;k++){
+    var Vf=Vfs[k], Ec=Vf*Ef+(1-Vf)*Em;
+    labels.push((Math.round(Vf*100)/100).toFixed(2));
+    dEc.push(Math.round(Ec/1e9*1000)/1000);
+    rows.push([(Math.round(Vf*100)/100).toFixed(2),(Math.round(Ec/1e9*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dEc:dEc,rows:rows};
+}
+function __romChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__romSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#romChart',{title:en?'Composite Modulus vs Fiber Fraction (Ec=Vf·Ef+(1-Vf)·Em)':'复合材料模量随纤维体积分数线性变化（Ec=Vf·Ef+(1−Vf)·Em）',labels:s.labels,series:[{name:en?'Ec (GPa)':'复合模量 Ec (GPa)',data:s.dEc}]});
+}
+
+function __romShow(which){
+  var c=document.getElementById('romChart'), t=document.getElementById('rule_of_mixturesTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __romTabInit(){
+  var btns=document.querySelectorAll('.rom-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__romShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __romShow('chart');
+}
+var __romFn=calcTool;calcTool=function(){try{__romFn();}catch(e){}try{__romChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__romChart();}catch(e){}});
+</script>
 </body>
 </html>
