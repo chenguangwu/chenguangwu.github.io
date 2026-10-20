@@ -311,6 +311,11 @@ function __nominal_to_realBoot(){ try{ __nominal_to_realPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __nominal_to_realBoot();
 else document.addEventListener('DOMContentLoaded', __nominal_to_realBoot);
 </script>
+<div class="ntr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ntrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,43 @@ else document.addEventListener('DOMContentLoaded', __nominal_to_realBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ntrSweep(){
+  var nom=num('nom'), pi0=num('pi');
+  if(!isFinite(nom)||!isFinite(pi0)||nom<=0)return null;
+  var labels=[],dReal=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var pi=pi0*mults[k], real=nom/(1+pi);
+    labels.push((Math.round(pi*1000)/1000).toFixed(3));
+    dReal.push(Math.round(real*1000)/1000);
+    rows.push([(Math.round(pi*1000)/1000).toFixed(3),(Math.round(real*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dReal:dReal,rows:rows};
+}
+function __ntrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ntrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ntrChart',{title:en?'Real Value vs Inflation (real=nom/(1+pi))':'实际价值随通胀率倒数衰减（real=nom/(1+π)）',labels:s.labels,series:[{name:en?'Real value':'实际价值',data:s.dReal}]});
+}
+
+function __ntrShow(which){
+  var c=document.getElementById('ntrChart'), t=document.getElementById('nominal_to_realTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ntrTabInit(){
+  var btns=document.querySelectorAll('.ntr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ntrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ntrShow('chart');
+}
+var __ntrFn=calcTool;calcTool=function(){try{__ntrFn();}catch(e){}try{__ntrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ntrChart();}catch(e){}});
+</script>
 </body>
 </html>

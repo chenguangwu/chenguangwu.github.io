@@ -295,6 +295,11 @@ function __mpc_from_multiplierBoot(){ try{ __mpc_from_multiplierPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __mpc_from_multiplierBoot();
 else document.addEventListener('DOMContentLoaded', __mpc_from_multiplierBoot);
 </script>
+<div class="mfm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mfmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,44 @@ else document.addEventListener('DOMContentLoaded', __mpc_from_multiplierBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mfmSweep(){
+  var k0=num('k');
+  if(!isFinite(k0)||k0<=0)return null;
+  var labels=[],dMpc=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var kk=k0*mults[k]; if(kk<=0)continue;
+    var mpc=1-1/kk;
+    labels.push((Math.round(kk*100)/100).toFixed(1));
+    dMpc.push(Math.round(mpc*10000)/10000);
+    rows.push([(Math.round(kk*100)/100).toFixed(1),(Math.round(mpc*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dMpc:dMpc,rows:rows};
+}
+function __mfmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mfmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mfmChart',{title:en?'MPC vs Multiplier (mpc=1-1/k)':'边际消费倾向随乘数双曲变化（mpc=1−1/k）',labels:s.labels,series:[{name:en?'MPC':'边际消费倾向 MPC',data:s.dMpc}]});
+}
+
+function __mfmShow(which){
+  var c=document.getElementById('mfmChart'), t=document.getElementById('mpc_from_multiplierTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mfmTabInit(){
+  var btns=document.querySelectorAll('.mfm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mfmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mfmShow('chart');
+}
+var __mfmFn=calcTool;calcTool=function(){try{__mfmFn();}catch(e){}try{__mfmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mfmChart();}catch(e){}});
+</script>
 </body>
 </html>

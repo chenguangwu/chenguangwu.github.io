@@ -244,6 +244,11 @@ function __okuns_lawBoot(){ try{ __okuns_lawPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __okuns_lawBoot();
 else document.addEventListener('DOMContentLoaded', __okuns_lawBoot);
 </script>
+<div class="ol-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="olChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,43 @@ else document.addEventListener('DOMContentLoaded', __okuns_lawBoot);
 </dl>
 </div>
 </section>
+<script>
+function __olSweep(){
+  var g0=num('g'), gp=num('gp');
+  if(!isFinite(g0)||!isFinite(gp))return null;
+  var labels=[],dDu=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var g=g0*mults[k], du=-0.5*(g-gp);
+    labels.push((Math.round(g*100)/100).toFixed(1));
+    dDu.push(Math.round(du*1000)/1000);
+    rows.push([(Math.round(g*100)/100).toFixed(1),(Math.round(du*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dDu:dDu,rows:rows};
+}
+function __olChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__olSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#olChart',{title:en?'Okun: Unemployment Change vs GDP Growth (du=-0.5(g-gp))':'奥肯定律：失业率变化随 GDP 增长线性变化（du=−0.5(g−gp)）',labels:s.labels,series:[{name:en?'dUnemployment':'失业率变化',data:s.dDu}]});
+}
+
+function __olShow(which){
+  var c=document.getElementById('olChart'), t=document.getElementById('okuns_lawTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __olTabInit(){
+  var btns=document.querySelectorAll('.ol-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__olShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __olShow('chart');
+}
+var __olFn=calcTool;calcTool=function(){try{__olFn();}catch(e){}try{__olChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__olChart();}catch(e){}});
+</script>
 </body>
 </html>

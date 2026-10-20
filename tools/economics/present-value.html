@@ -303,6 +303,11 @@ function __present_valueBoot(){ try{ __present_valuePresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __present_valueBoot();
 else document.addEventListener('DOMContentLoaded', __present_valueBoot);
 </script>
+<div class="pv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +343,43 @@ else document.addEventListener('DOMContentLoaded', __present_valueBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pvSweep(){
+  var fv=num('fv'), r=num('r'), t0=num('t');
+  if(!isFinite(fv)||!isFinite(r)||!isFinite(t0)||fv<=0||t0<=0)return null;
+  var labels=[],dPv=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var t=t0*mults[k], pv=fv/Math.pow(1+r/100,t);
+    labels.push((Math.round(t*100)/100).toFixed(1));
+    dPv.push(Math.round(pv*1000)/1000);
+    rows.push([(Math.round(t*100)/100).toFixed(1),(Math.round(pv*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dPv:dPv,rows:rows};
+}
+function __pvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pvChart',{title:en?'Present Value vs Years (pv=fv/(1+r/100)^t, decay)':'现值随年数指数衰减（pv=fv/(1+r/100)^t）',labels:s.labels,series:[{name:en?'Present value':'现值',data:s.dPv}]});
+}
+
+function __pvShow(which){
+  var c=document.getElementById('pvChart'), t=document.getElementById('present_valueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pvTabInit(){
+  var btns=document.querySelectorAll('.pv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pvShow('chart');
+}
+var __pvFn=calcTool;calcTool=function(){try{__pvFn();}catch(e){}try{__pvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pvChart();}catch(e){}});
+</script>
 </body>
 </html>
