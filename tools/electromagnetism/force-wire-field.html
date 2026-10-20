@@ -254,6 +254,11 @@ function __force_wire_fieldBoot(){ try{ __force_wire_fieldPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __force_wire_fieldBoot();
 else document.addEventListener('DOMContentLoaded', __force_wire_fieldBoot);
 </script>
+<div class="fwf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fwfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -290,5 +295,44 @@ else document.addEventListener('DOMContentLoaded', __force_wire_fieldBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fwfSweep(){
+  var B=num('B'), I=num('I'), L=num('L');
+  if(!isFinite(B)||!isFinite(I)||!isFinite(L))return null;
+  var labels=[],dF=[],dFmax=[],rows=[];
+  var ths=[0,15,30,45,60,75,90,105,120,135,150,165,180];
+  for(var k=0;k<ths.length;k++){
+    var th=ths[k], F=B*I*L*Math.sin(th*Math.PI/180);
+    labels.push(String(th));
+    dF.push(Math.round(F*1e4*1000)/1000);
+    dFmax.push(Math.round(B*I*L*1e4*1000)/1000);
+    rows.push([String(th),(Math.round(F*1e4*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dF:dF,dFmax:dFmax,rows:rows};
+}
+function __fwfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fwfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fwfChart',{title:en?'Ampere Force vs Angle (sine F=BIL·sinθ)':'安培力随夹角正弦变化（F=BIL·sinθ）',labels:s.labels,series:[{name:en?'Force F (×10⁻⁴ N)':'安培力 (×10⁻⁴ N)',data:s.dF}]});
+}
+
+function __fwfShow(which){
+  var c=document.getElementById('fwfChart'), t=document.getElementById('force_wire_fieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fwfTabInit(){
+  var btns=document.querySelectorAll('.fwf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fwfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fwfShow('chart');
+}
+var __fwfFn=calcTool;calcTool=function(){try{__fwfFn();}catch(e){}try{__fwfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fwfChart();}catch(e){}});
+</script>
 </body>
 </html>

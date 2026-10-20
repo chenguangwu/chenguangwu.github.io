@@ -244,6 +244,11 @@ function __energy_capacitorBoot(){ try{ __energy_capacitorPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __energy_capacitorBoot();
 else document.addEventListener('DOMContentLoaded', __energy_capacitorBoot);
 </script>
+<div class="ec-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ecChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,44 @@ else document.addEventListener('DOMContentLoaded', __energy_capacitorBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ecSweep(){
+  var C=num('C'), V0=num('V');
+  if(!isFinite(C)||!isFinite(V0)||C<=0||V0<=0)return null;
+  var labels=[],dE=[],dQ=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var V=V0*mults[k], E=0.5*C*V*V, Q=C*V;
+    labels.push((Math.round(V*100)/100).toFixed(2));
+    dE.push(Math.round(E*1e6*1000)/1000);
+    dQ.push(Math.round(Q*1e3*1000)/1000);
+    rows.push([(Math.round(V*100)/100).toFixed(2),(Math.round(E*1e6*1000)/1000).toFixed(3),(Math.round(Q*1e3*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dE:dE,dQ:dQ,rows:rows};
+}
+function __ecChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ecSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ecChart',{title:en?'Capacitor Energy vs Voltage (quadratic E=½CV²)':'电容储能随电压二次方增长（E=½CV²）',labels:s.labels,series:[{name:en?'Energy E (µJ)':'储能 E (µJ)',data:s.dE},{name:en?'Charge Q (mC)':'电荷量 Q (mC)',data:s.dQ}]});
+}
+
+function __ecShow(which){
+  var c=document.getElementById('ecChart'), t=document.getElementById('energy_capacitorTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ecTabInit(){
+  var btns=document.querySelectorAll('.ec-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ecShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ecShow('chart');
+}
+var __ecFn=calcTool;calcTool=function(){try{__ecFn();}catch(e){}try{__ecChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ecChart();}catch(e){}});
+</script>
 </body>
 </html>

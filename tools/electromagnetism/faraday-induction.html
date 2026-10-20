@@ -299,6 +299,11 @@ function __faraday_inductionBoot(){ try{ __faraday_inductionPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __faraday_inductionBoot();
 else document.addEventListener('DOMContentLoaded', __faraday_inductionBoot);
 </script>
+<div class="fi-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __faraday_inductionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fiSweep(){
+  var N=num('N'), dPhi=num('dPhi'), dt0=num('dt');
+  if(!isFinite(N)||!isFinite(dPhi)||!isFinite(dt0)||dt0<=0)return null;
+  var labels=[],dEps=[],dAvg=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var dt=dt0*mults[k], eps=N*Math.abs(dPhi)/dt;
+    labels.push((Math.round(dt*1e6*1000)/1000).toFixed(3));
+    dEps.push(Math.round(eps*1000)/1000);
+    dAvg.push(Math.round(N*Math.abs(dPhi)*1000)/1000);
+    rows.push([(Math.round(dt*1e6*1000)/1000).toFixed(3),(Math.round(eps*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dEps:dEps,dAvg:dAvg,rows:rows};
+}
+function __fiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fiChart',{title:en?'Induced EMF vs Interval (inverse ε=NΔΦ/Δt)':'感应电动势随磁通变化时间反比增大（ε=NΔΦ/Δt）',labels:s.labels,series:[{name:en?'EMF ε (V)':'感应电动势 (V)',data:s.dEps}]});
+}
+
+function __fiShow(which){
+  var c=document.getElementById('fiChart'), t=document.getElementById('faraday_inductionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fiTabInit(){
+  var btns=document.querySelectorAll('.fi-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fiShow('chart');
+}
+var __fiFn=calcTool;calcTool=function(){try{__fiFn();}catch(e){}try{__fiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fiChart();}catch(e){}});
+</script>
 </body>
 </html>
