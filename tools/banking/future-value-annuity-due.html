@@ -275,6 +275,11 @@ function resetForm(){document.getElementById('PMT').value = '100';
       calcTool();}
 calcTool();
 </script>
+<div class="fvad-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fvadChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -350,6 +355,46 @@ calcTool = function(){ __tb_fn0(); try{ __future_value_annuity_dueExtras(); }cat
 function __future_value_annuity_dueBoot(){ try{ __future_value_annuity_duePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __future_value_annuity_dueBoot();
 else document.addEventListener('DOMContentLoaded', __future_value_annuity_dueBoot);
+</script>
+<script>
+function __fvadSweep(){
+  var PMT=num('PMT'), r=num('r');
+  if(!isFinite(PMT)||!isFinite(r)||PMT<=0)return null;
+  var labels=[],dFv=[],dDep=[],rows=[];
+  var ns=[1,2,3,5,7,10,15,20,30];
+  for(var k=0;k<ns.length;k++){
+    var n=ns[k];
+    var FV = r>0 ? PMT*(Math.pow(1+r,n)-1)/r*(1+r) : PMT*n;
+    labels.push(String(n));
+    dFv.push(Math.round(FV*100)/100);
+    dDep.push(Math.round(PMT*n*100)/100);
+    rows.push([String(n),(Math.round(FV*100)/100).toFixed(2),(Math.round(PMT*n*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dFv:dFv,dDep:dDep,rows:rows};
+}
+function __fvadChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fvadSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fvadChart',{title:en?'Annuity-Due FV vs Periods (exponential PMT·[((1+r)ⁿ-1)/r]·(1+r))':'期初年金终值随期数指数增长（FV=PMT·[((1+r)ⁿ-1)/r]·(1+r)）',labels:s.labels,series:[{name:en?'Future value (元)':'终值 (元)',data:s.dFv},{name:en?'Deposits (元)':'存入本金 (元)',data:s.dDep}]});
+}
+
+function __fvadShow(which){
+  var c=document.getElementById('fvadChart'), t=document.getElementById('future_value_annuity_dueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fvadTabInit(){
+  var btns=document.querySelectorAll('.fvad-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fvadShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fvadShow('chart');
+}
+var __fvadFn=calcTool;calcTool=function(){try{__fvadFn();}catch(e){}try{__fvadChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fvadChart();}catch(e){}});
 </script>
 </body>
 </html>

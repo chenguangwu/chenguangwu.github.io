@@ -204,6 +204,11 @@ function resetForm(){document.getElementById('assets').value = '500000';
       calcTool();}
 calcTool();
 </script>
+<div class="nw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="nwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,6 +285,45 @@ calcTool = function(){ __tb_fn0(); try{ __net_worthExtras(); }catch(e){} };
 function __net_worthBoot(){ try{ __net_worthPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __net_worthBoot();
 else document.addEventListener('DOMContentLoaded', __net_worthBoot);
+</script>
+<script>
+function __nwSweep(){
+  var liab=num('liab'), a0=num('assets');
+  if(!isFinite(liab)||!isFinite(a0)||a0<=0)return null;
+  var labels=[],dNw=[],dCov=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3,4];
+  for(var k=0;k<mults.length;k++){
+    var assets=a0*mults[k], NW=assets-liab;
+    labels.push((Math.round(assets*100)/100).toFixed(2));
+    dNw.push(Math.round(NW*100)/100);
+    dCov.push(Math.round(assets/Math.max(liab,1)*1000)/1000);
+    rows.push([(Math.round(assets*100)/100).toFixed(2),(Math.round(NW*100)/100).toFixed(2),(Math.round(assets/Math.max(liab,1)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dNw:dNw,dCov:dCov,rows:rows};
+}
+function __nwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__nwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#nwChart',{title:en?'Net Worth vs Assets (linear NW=assets−liabilities)':'净资产随资产线性增长（NW=资产−负债）',labels:s.labels,series:[{name:en?'Net worth (元)':'净资产 (元)',data:s.dNw},{name:en?'Coverage ×':'资产覆盖倍数',data:s.dCov}]});
+}
+
+function __nwShow(which){
+  var c=document.getElementById('nwChart'), t=document.getElementById('net_worthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __nwTabInit(){
+  var btns=document.querySelectorAll('.nw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__nwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __nwShow('chart');
+}
+var __nwFn=calcTool;calcTool=function(){try{__nwFn();}catch(e){}try{__nwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__nwChart();}catch(e){}});
 </script>
 </body>
 </html>

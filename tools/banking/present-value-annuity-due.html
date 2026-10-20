@@ -262,6 +262,11 @@ function resetForm(){document.getElementById('PMT').value = '100';
       calcTool();}
 calcTool();
 </script>
+<div class="pvad-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pvadChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,6 +342,45 @@ calcTool = function(){ __tb_fn0(); try{ __present_value_annuity_dueExtras(); }ca
 function __present_value_annuity_dueBoot(){ try{ __present_value_annuity_duePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __present_value_annuity_dueBoot();
 else document.addEventListener('DOMContentLoaded', __present_value_annuity_dueBoot);
+</script>
+<script>
+function __pvadSweep(){
+  var PMT=num('PMT'), r=num('r');
+  if(!isFinite(PMT)||!isFinite(r)||PMT<=0||r<=0)return null;
+  var labels=[],dPv=[],dCap=[],rows=[];
+  var ns=[1,2,3,5,7,10,15,20,30,50];
+  for(var k=0;k<ns.length;k++){
+    var n=ns[k], PV=PMT*(1+r)*(1-Math.pow(1+r,-n))/r;
+    labels.push(String(n));
+    dPv.push(Math.round(PV*100)/100);
+    dCap.push(Math.round(PMT*(1+r)/r*100)/100);
+    rows.push([String(n),(Math.round(PV*100)/100).toFixed(2),(Math.round(PMT*(1+r)/r*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dPv:dPv,dCap:dCap,rows:rows};
+}
+function __pvadChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pvadSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pvadChart',{title:en?'Annuity-Due PV vs Periods (saturating to PMT(1+r)/r)':'期初年金现值随期数饱和于永续极限（PV=PMT·(1+r)·[1-(1+r)⁻ⁿ]/r）',labels:s.labels,series:[{name:en?'Present value (元)':'现值 (元)',data:s.dPv},{name:en?'Perpetuity cap (元)':'永续上限 (元)',data:s.dCap}]});
+}
+
+function __pvadShow(which){
+  var c=document.getElementById('pvadChart'), t=document.getElementById('present_value_annuity_dueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pvadTabInit(){
+  var btns=document.querySelectorAll('.pvad-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pvadShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pvadShow('chart');
+}
+var __pvadFn=calcTool;calcTool=function(){try{__pvadFn();}catch(e){}try{__pvadChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pvadChart();}catch(e){}});
 </script>
 </body>
 </html>
