@@ -308,6 +308,11 @@ function __weber_numberBoot(){ try{ __weber_numberPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __weber_numberBoot();
 else document.addEventListener('DOMContentLoaded', __weber_numberBoot);
 </script>
+<div class="web-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="webChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,44 @@ else document.addEventListener('DOMContentLoaded', __weber_numberBoot);
 </dl>
 </div>
 </section>
+<script>
+function __webSweep(){
+  var rho=num('rho'), L=num('L'), sig=num('sig');
+  if(!isFinite(rho)||!isFinite(L)||!isFinite(sig)||rho<=0||L<=0||sig<=0)return null;
+  var labels=[], dW=[], dV=[];
+  var vs=[0.5,1,2,3,5,7,10,14];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], We=rho*vv*vv*L/sig;
+    labels.push(vv.toFixed(1));
+    dW.push(Math.round(We*100)/100);
+    dV.push(Math.round(Math.sqrt(sig/(rho*L))*1000)/1000);
+  }
+  return {labels:labels,dW:dW,dV:dV};
+}
+function __webChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__webSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#webChart',{title:en?'Weber Number vs Velocity (quadratic, We=1 critical)':'韦伯数随流速平方上升（We=1 临界）',labels:s.labels,series:[{name:en?'Weber number We':'韦伯数 We',data:s.dW},{name:en?'Critical velocity √(σ/ρL) (m/s)':'临界流速 √(σ/ρL) (m/s)',data:s.dV}]});
+}
+
+function __webShow(which){
+  var c=document.getElementById('webChart'), t=document.getElementById('weber_numberTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __webTabInit(){
+  var btns=document.querySelectorAll('.web-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__webShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __webShow('chart');
+  try{__webChart();}catch(e){}
+}
+var __webFn=calcTool;calcTool=function(){try{__webFn();}catch(e){}try{__webChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__webChart();}catch(e){}});try{__webTabInit();}catch(e){}
+</script>
 </body>
 </html>

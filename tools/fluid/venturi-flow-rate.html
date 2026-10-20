@@ -317,6 +317,11 @@ function __venturi_flow_rateBoot(){ try{ __venturi_flow_ratePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __venturi_flow_rateBoot();
 else document.addEventListener('DOMContentLoaded', __venturi_flow_rateBoot);
 </script>
+<div class="vfr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vfrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -352,5 +357,45 @@ else document.addEventListener('DOMContentLoaded', __venturi_flow_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __vfrSweep(){
+  var A1=num('A1'), A2=num('A2'), rho=num('rho');
+  if(!isFinite(A1)||!isFinite(A2)||!isFinite(rho)||A1<=0||A2<=0||rho<=0||A2>=A1)return null;
+  var beta=A2/A1, den=1-beta*beta;
+  var labels=[], dQ=[], dB=[];
+  var dps=[50,100,250,500,1000,2000,4000,8000];
+  for(var k=0;k<dps.length;k++){
+    var pv=dps[k], Q=A2*Math.sqrt(2*pv/(rho*den));
+    labels.push(pv.toFixed(0));
+    dQ.push(Math.round(Q*1e6*1000)/1000);
+    dB.push(Math.round(Math.sqrt(2*pv/(rho*den))*1000)/1000);
+  }
+  return {labels:labels,dQ:dQ,dB:dB};
+}
+function __vfrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__vfrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vfrChart',{title:en?'Venturi Flow Rate vs Pressure Drop (square-root law)':'文丘里流量随压差平方根增长',labels:s.labels,series:[{name:en?'Flow rate Q (×10⁻⁶ m³/s)':'流量 Q (×10⁻⁶ m³/s)',data:s.dQ},{name:en?'Throat velocity (m/s)':'喉部流速 (m/s)',data:s.dB}]});
+}
+
+function __vfrShow(which){
+  var c=document.getElementById('vfrChart'), t=document.getElementById('venturi_flow_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vfrTabInit(){
+  var btns=document.querySelectorAll('.vfr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vfrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __vfrShow('chart');
+  try{__vfrChart();}catch(e){}
+}
+var __vfrFn=calcTool;calcTool=function(){try{__vfrFn();}catch(e){}try{__vfrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__vfrChart();}catch(e){}});try{__vfrTabInit();}catch(e){}
+</script>
 </body>
 </html>

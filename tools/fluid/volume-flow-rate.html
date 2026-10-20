@@ -246,6 +246,11 @@ function __volume_flow_rateBoot(){ try{ __volume_flow_ratePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __volume_flow_rateBoot();
 else document.addEventListener('DOMContentLoaded', __volume_flow_rateBoot);
 </script>
+<div class="vof-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vofChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,44 @@ else document.addEventListener('DOMContentLoaded', __volume_flow_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __vofSweep(){
+  var a=num('a');
+  if(!isFinite(a)||a<=0)return null;
+  var labels=[], dQ=[], dH=[];
+  var vs=[0.5,1,1.5,2,3,4,5,6];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], Q=a*vv;
+    labels.push(vv.toFixed(1));
+    dQ.push(Math.round(Q*1000*100)/100);
+    dH.push(Math.round(Q*3600*100)/100);
+  }
+  return {labels:labels,dQ:dQ,dH:dH};
+}
+function __vofChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__vofSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vofChart',{title:en?'Volume Flow Rate vs Velocity (linear dual scale)':'体积流量随流速线性增长',labels:s.labels,series:[{name:en?'Flow rate Q (L/s)':'流量 Q (L/s)',data:s.dQ},{name:en?'Flow rate Q (m³/h)':'流量 Q (m³/h)',data:s.dH}]});
+}
+
+function __vofShow(which){
+  var c=document.getElementById('vofChart'), t=document.getElementById('volume_flow_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vofTabInit(){
+  var btns=document.querySelectorAll('.vof-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vofShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __vofShow('chart');
+  try{__vofChart();}catch(e){}
+}
+var __vofFn=calcTool;calcTool=function(){try{__vofFn();}catch(e){}try{__vofChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__vofChart();}catch(e){}});try{__vofTabInit();}catch(e){}
+</script>
 </body>
 </html>

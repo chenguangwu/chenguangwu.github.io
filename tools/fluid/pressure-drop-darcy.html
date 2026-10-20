@@ -309,6 +309,11 @@ function __pressure_drop_darcyBoot(){ try{ __pressure_drop_darcyPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __pressure_drop_darcyBoot();
 else document.addEventListener('DOMContentLoaded', __pressure_drop_darcyBoot);
 </script>
+<div class="pdd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pddChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -343,5 +348,44 @@ else document.addEventListener('DOMContentLoaded', __pressure_drop_darcyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pddSweep(){
+  var f=num('f'), L=num('L'), D=num('D'), rho=num('rho');
+  if(!isFinite(f)||!isFinite(L)||!isFinite(D)||!isFinite(rho)||f<=0||L<=0||D<=0||rho<=0)return null;
+  var labels=[], dP=[], dQ=[];
+  var vs=[0.5,1,1.5,2,3,4,5,6];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], pv=f*(L/D)*(rho*vv*vv/2);
+    labels.push(vv.toFixed(1));
+    dP.push(Math.round(pv/1000*100)/100);
+    dQ.push(Math.round(rho*vv*vv/2/1000*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dQ:dQ};
+}
+function __pddChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pddSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pddChart',{title:en?'Darcy Pressure Drop vs Velocity (quadratic)':'达西压降随流速平方增长',labels:s.labels,series:[{name:en?'Pressure drop ΔP (kPa)':'压降 ΔP (kPa)',data:s.dP},{name:en?'Dynamic pressure (kPa)':'动压 (kPa)',data:s.dQ}]});
+}
+
+function __pddShow(which){
+  var c=document.getElementById('pddChart'), t=document.getElementById('pressure_drop_darcyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pddTabInit(){
+  var btns=document.querySelectorAll('.pdd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pddShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pddShow('chart');
+  try{__pddChart();}catch(e){}
+}
+var __pddFn=calcTool;calcTool=function(){try{__pddFn();}catch(e){}try{__pddChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pddChart();}catch(e){}});try{__pddTabInit();}catch(e){}
+</script>
 </body>
 </html>

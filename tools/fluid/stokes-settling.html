@@ -310,6 +310,11 @@ function __stokes_settlingBoot(){ try{ __stokes_settlingPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __stokes_settlingBoot();
 else document.addEventListener('DOMContentLoaded', __stokes_settlingBoot);
 </script>
+<div class="sts-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="stsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,5 +349,45 @@ else document.addEventListener('DOMContentLoaded', __stokes_settlingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __stsSweep(){
+  var rhop=num('rhop'), rhof=num('rhof'), mu=num('mu'), g=num('g');
+  if(!isFinite(rhop)||!isFinite(rhof)||!isFinite(mu)||!isFinite(g)||mu<=0)return null;
+  var dr=rhop-rhof;
+  var labels=[], dV=[], dT=[];
+  var rs=[2e-5,5e-5,1e-4,2e-4,4e-4,6e-4,8e-4,1e-3];
+  for(var k=0;k<rs.length;k++){
+    var rv=rs[k], v=2*rv*rv*dr*g/(9*mu);
+    labels.push((rv*1e6).toFixed(0));
+    dV.push(Math.round(v*1e6*100)/100);
+    dT.push(Math.round(1/Math.max(v,1e-12)*100)/100);
+  }
+  return {labels:labels,dV:dV,dT:dT};
+}
+function __stsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__stsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#stsChart',{title:en?'Stokes Settling Velocity vs Particle Radius (square law)':'斯托克斯沉降速度随颗粒半径平方增长',labels:s.labels,series:[{name:en?'Settling velocity (×10⁻⁶ m/s)':'沉降速度 (×10⁻⁶ m/s)',data:s.dV},{name:en?'Time to settle 1 m (s)':'沉降 1 m 耗时 (s)',data:s.dT}]});
+}
+
+function __stsShow(which){
+  var c=document.getElementById('stsChart'), t=document.getElementById('stokes_settlingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __stsTabInit(){
+  var btns=document.querySelectorAll('.sts-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__stsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __stsShow('chart');
+  try{__stsChart();}catch(e){}
+}
+var __stsFn=calcTool;calcTool=function(){try{__stsFn();}catch(e){}try{__stsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__stsChart();}catch(e){}});try{__stsTabInit();}catch(e){}
+</script>
 </body>
 </html>

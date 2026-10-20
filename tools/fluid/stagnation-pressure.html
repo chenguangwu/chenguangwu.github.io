@@ -246,6 +246,11 @@ function __stagnation_pressureBoot(){ try{ __stagnation_pressurePresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __stagnation_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __stagnation_pressureBoot);
 </script>
+<div class="stp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="stpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,44 @@ else document.addEventListener('DOMContentLoaded', __stagnation_pressureBoot);
 </dl>
 </div>
 </section>
+<script>
+function __stpSweep(){
+  var p=num('p'), rho=num('rho');
+  if(!isFinite(p)||!isFinite(rho)||rho<=0)return null;
+  var labels=[], dP=[], dR=[];
+  var vs=[0,5,10,20,30,45,60,80];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k], p0=p+0.5*rho*vv*vv;
+    labels.push(vv.toFixed(0));
+    dP.push(Math.round(p0/1000*1000)/1000);
+    dR.push(Math.round(p0/p*10000)/10000);
+  }
+  return {labels:labels,dP:dP,dR:dR};
+}
+function __stpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__stpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#stpChart',{title:en?'Stagnation Pressure vs Velocity (quadratic rise)':'驻点压力随流速平方上升',labels:s.labels,series:[{name:en?'Stagnation pressure p₀ (kPa)':'驻点压力 p₀ (kPa)',data:s.dP},{name:en?'Pressure ratio p₀/p':'驻点压比 p₀/p',data:s.dR}]});
+}
+
+function __stpShow(which){
+  var c=document.getElementById('stpChart'), t=document.getElementById('stagnation_pressureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __stpTabInit(){
+  var btns=document.querySelectorAll('.stp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__stpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __stpShow('chart');
+  try{__stpChart();}catch(e){}
+}
+var __stpFn=calcTool;calcTool=function(){try{__stpFn();}catch(e){}try{__stpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__stpChart();}catch(e){}});try{__stpTabInit();}catch(e){}
+</script>
 </body>
 </html>
