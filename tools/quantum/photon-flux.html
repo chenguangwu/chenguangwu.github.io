@@ -244,6 +244,11 @@ function __photon_fluxBoot(){ try{ __photon_fluxPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __photon_fluxBoot();
 else document.addEventListener('DOMContentLoaded', __photon_fluxBoot);
 </script>
+<div class="pf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,45 @@ else document.addEventListener('DOMContentLoaded', __photon_fluxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pfSweep(){
+  var P0=num('P'), lam=num('lam');
+  if(!isFinite(P0)||!isFinite(lam)||P0<=0||lam<=0)return null;
+  var h=6.62607015e-34, c=2.99792458e8;
+  var labels=[],dN=[],dEeV=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var P=P0*mults[k], N=P*lam/(h*c);
+    labels.push((Math.round(P*1000)/1000).toFixed(3));
+    dN.push(Math.round(N/1e18*1000)/1000);
+    dEeV.push(Math.round(h*c/lam/1.602176634e-19*10000)/10000);
+    rows.push([(Math.round(P*1000)/1000).toFixed(3),(Math.round(N/1e18*1000)/1000).toFixed(3),(Math.round(h*c/lam/1.602176634e-19*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dN:dN,dEeV:dEeV,rows:rows};
+}
+function __pfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pfChart',{title:en?'Photon Flux vs Power (N=Pλ/hc, linear)':'光子通量随功率线性增长（N=Pλ/(hc)）',labels:s.labels,series:[{name:en?'Flux N (1e18 /s)':'光子通量 N (10¹⁸ /s)',data:s.dN},{name:en?'Single photon E (eV)':'单光子能量 (eV)',data:s.dEeV}]});
+}
+
+function __pfShow(which){
+  var c=document.getElementById('pfChart'), t=document.getElementById('photon_fluxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pfTabInit(){
+  var btns=document.querySelectorAll('.pf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pfShow('chart');
+}
+var __pfFn=calcTool;calcTool=function(){try{__pfFn();}catch(e){}try{__pfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pfChart();}catch(e){}});
+</script>
 </body>
 </html>

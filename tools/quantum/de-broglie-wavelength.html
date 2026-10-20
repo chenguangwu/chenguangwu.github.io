@@ -296,6 +296,11 @@ function __de_broglie_wavelengthBoot(){ try{ __de_broglie_wavelengthPresets(); }
 if (document.readyState && document.readyState !== 'loading') __de_broglie_wavelengthBoot();
 else document.addEventListener('DOMContentLoaded', __de_broglie_wavelengthBoot);
 </script>
+<div class="dbw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dbwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,45 @@ else document.addEventListener('DOMContentLoaded', __de_broglie_wavelengthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dbwSweep(){
+  var m=num('m'), v0=num('v');
+  if(!isFinite(m)||!isFinite(v0)||m<=0||v0<=0)return null;
+  var H=6.62607015e-34;
+  var labels=[],dL=[],dP=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var v=v0*mults[k], lam=H/(m*v);
+    labels.push((Math.round(v/1e6*100)/100).toFixed(2));
+    dL.push(Math.round(lam*1e9*1e6)/1e6);
+    dP.push(Math.round(H/lam*1e24*1000)/1000);
+    rows.push([(Math.round(v/1e6*100)/100).toFixed(2),(Math.round(lam*1e9*1e6)/1e6).toFixed(6),(Math.round(H/lam*1e24*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dL:dL,dP:dP,rows:rows};
+}
+function __dbwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dbwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dbwChart',{title:en?'de Broglie Wavelength vs Velocity (λ=h/mv, inverse)':'德布罗意波长随速度反比缩短（λ=h/(mv)）',labels:s.labels,series:[{name:en?'Wavelength λ (nm)':'波长 λ (nm)',data:s.dL},{name:en?'Momentum p (1e-24 kg·m/s)':'动量 p (10⁻²⁴ kg·m/s)',data:s.dP}]});
+}
+
+function __dbwShow(which){
+  var c=document.getElementById('dbwChart'), t=document.getElementById('de_broglie_wavelengthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dbwTabInit(){
+  var btns=document.querySelectorAll('.dbw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dbwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dbwShow('chart');
+}
+var __dbwFn=calcTool;calcTool=function(){try{__dbwFn();}catch(e){}try{__dbwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dbwChart();}catch(e){}});
+</script>
 </body>
 </html>

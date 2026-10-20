@@ -241,6 +241,11 @@ function __zeeman_splittingBoot(){ try{ __zeeman_splittingPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __zeeman_splittingBoot();
 else document.addEventListener('DOMContentLoaded', __zeeman_splittingBoot);
 </script>
+<div class="zs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="zsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,45 @@ else document.addEventListener('DOMContentLoaded', __zeeman_splittingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __zsSweep(){
+  var B0=num('B');
+  if(!isFinite(B0)||B0<=0)return null;
+  var muB=9.2740100783e-24, e=1.602176634e-19;
+  var labels=[],dUeV=[],dJ24=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var B=B0*mults[k], dE=muB*B;
+    labels.push((Math.round(B*1000)/1000).toFixed(3));
+    dUeV.push(Math.round(dE/e*1e6*1000)/1000);
+    dJ24.push(Math.round(dE*1e24*1e6)/1e6);
+    rows.push([(Math.round(B*1000)/1000).toFixed(3),(Math.round(dE/e*1e6*1000)/1000).toFixed(3),(Math.round(dE*1e24*1e6)/1e6).toFixed(4)]);
+  }
+  return {labels:labels,dUeV:dUeV,dJ24:dJ24,rows:rows};
+}
+function __zsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__zsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#zsChart',{title:en?'Zeeman Splitting vs B-field (ΔE=μB·B, linear)':'塞曼分裂能随磁场线性增长（ΔE=μ_B·B）',labels:s.labels,series:[{name:en?'ΔE (μeV)':'分裂能 ΔE (μeV)',data:s.dUeV},{name:en?'ΔE (1e-24 J)':'分裂能 ΔE (10⁻²⁴ J)',data:s.dJ24}]});
+}
+
+function __zsShow(which){
+  var c=document.getElementById('zsChart'), t=document.getElementById('zeeman_splittingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __zsTabInit(){
+  var btns=document.querySelectorAll('.zs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__zsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __zsShow('chart');
+}
+var __zsFn=calcTool;calcTool=function(){try{__zsFn();}catch(e){}try{__zsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__zsChart();}catch(e){}});
+</script>
 </body>
 </html>

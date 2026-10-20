@@ -241,6 +241,11 @@ function __spin_magnetic_momentBoot(){ try{ __spin_magnetic_momentPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __spin_magnetic_momentBoot();
 else document.addEventListener('DOMContentLoaded', __spin_magnetic_momentBoot);
 </script>
+<div class="smm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="smmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,42 @@ else document.addEventListener('DOMContentLoaded', __spin_magnetic_momentBoot);
 </dl>
 </div>
 </section>
+<script>
+function __smmSweep(){
+  if(!isFinite(num('ml')))return null;
+  var muB=9.2740100783e-24;
+  var labels=[],dMu=[],dZeev=[],rows=[];
+  for(var ml=-3;ml<=3;ml++){
+    labels.push('ml='+ml);
+    dMu.push(ml);
+    dZeev.push(Math.round(muB*ml*5.7883818e-5*1e5*1000)/1000);
+    rows.push([String(ml),String(ml),(Math.round(muB*ml*5.7883818e-5*1e5*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dMu:dMu,dZeev:dZeev,rows:rows};
+}
+function __smmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__smmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#smmChart',{title:en?'Spin Magnetic Moment vs ml (μ=μB·ml, symmetric)':'自旋磁矩随磁量子数对称分布（μ=μ_B·m_l）',labels:s.labels,series:[{name:en?'Moment μ (μB)':'磁矩 μ (μ_B)',data:s.dMu},{name:en?'Zeeman shift (1e-5 eV/T)':'每特斯拉塞曼能移 (10⁻⁵ eV)',data:s.dZeev}]});
+}
+
+function __smmShow(which){
+  var c=document.getElementById('smmChart'), t=document.getElementById('spin_magnetic_momentTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __smmTabInit(){
+  var btns=document.querySelectorAll('.smm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__smmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __smmShow('chart');
+}
+var __smmFn=calcTool;calcTool=function(){try{__smmFn();}catch(e){}try{__smmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__smmChart();}catch(e){}});
+</script>
 </body>
 </html>
