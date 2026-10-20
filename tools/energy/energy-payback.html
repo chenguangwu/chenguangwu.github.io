@@ -295,6 +295,11 @@ function __energy_paybackBoot(){ try{ __energy_paybackPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __energy_paybackBoot();
 else document.addEventListener('DOMContentLoaded', __energy_paybackBoot);
 </script>
+<div class="epb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="epbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -329,5 +334,44 @@ else document.addEventListener('DOMContentLoaded', __energy_paybackBoot);
 </dl>
 </div>
 </section>
+<script>
+function __epbSweep(){
+  var inv=num('inv');
+  if(!isFinite(inv)||inv<=0)return null;
+  var labels=[],dY=[],dR=[];
+  var svs=[inv*0.05,inv*0.1,inv*0.15,inv*0.2,inv*0.25,inv*0.3];
+  for(var k=0;k<svs.length;k++){
+    var sv=svs[k];
+    labels.push((inv/sv).toFixed(0));
+    dY.push(Math.round(inv/sv*100)/100);
+    dR.push(Math.round(sv/inv*100*10)/10);
+  }
+  return {labels:labels,dY:dY,dR:dR};
+}
+function __epbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__epbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#epbChart',{title:en?'Payback vs Annual Saving (inverse/linear)':'回收期随年节约反比下降',labels:s.labels,series:[{name:en?'Payback period (years)':'回收期 (年)',data:s.dY},{name:en?'Annual return (%)':'年回报率 (%)',data:s.dR}]});
+}
+
+function __epbShow(which){
+  var c=document.getElementById('epbChart'), t=document.getElementById('energy_paybackTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __epbTabInit(){
+  var btns=document.querySelectorAll('.epb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__epbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __epbShow('chart');
+  try{__epbChart();}catch(e){}
+}
+var __epbFn=calcTool;calcTool=function(){try{__epbFn();}catch(e){}try{__epbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__epbChart();}catch(e){}});try{__epbTabInit();}catch(e){}
+</script>
 </body>
 </html>

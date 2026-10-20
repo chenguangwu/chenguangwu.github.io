@@ -295,6 +295,11 @@ function __energy_densityBoot(){ try{ __energy_densityPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __energy_densityBoot();
 else document.addEventListener('DOMContentLoaded', __energy_densityBoot);
 </script>
+<div class="edn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ednChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -329,5 +334,44 @@ else document.addEventListener('DOMContentLoaded', __energy_densityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ednSweep(){
+  var e=num('e');
+  if(!isFinite(e)||e<=0)return null;
+  var labels=[],dD=[],dT=[];
+  var ms=[0.5,1,2,3,4,5];
+  for(var k=0;k<ms.length;k++){
+    var mv=ms[k], ed=e/mv;
+    labels.push(mv.toFixed(1));
+    dD.push(Math.round(ed/1000*100)/100);
+    dT.push(Math.round(e/1e6*10000)/10000);
+  }
+  return {labels:labels,dD:dD,dT:dT};
+}
+function __ednChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ednSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ednChart',{title:en?'Energy Density vs Mass (inverse + total ref)':'能量密度随质量反比下降',labels:s.labels,series:[{name:en?'Energy density (kJ/kg)':'能量密度 (kJ/kg)',data:s.dD},{name:en?'Total energy (MJ)':'总能量 (MJ)',data:s.dT}]});
+}
+
+function __ednShow(which){
+  var c=document.getElementById('ednChart'), t=document.getElementById('energy_densityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ednTabInit(){
+  var btns=document.querySelectorAll('.edn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ednShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ednShow('chart');
+  try{__ednChart();}catch(e){}
+}
+var __ednFn=calcTool;calcTool=function(){try{__ednFn();}catch(e){}try{__ednChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ednChart();}catch(e){}});try{__ednTabInit();}catch(e){}
+</script>
 </body>
 </html>

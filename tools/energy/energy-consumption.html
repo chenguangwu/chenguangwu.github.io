@@ -249,6 +249,11 @@ function __energy_consumptionBoot(){ try{ __energy_consumptionPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __energy_consumptionBoot();
 else document.addEventListener('DOMContentLoaded', __energy_consumptionBoot);
 </script>
+<div class="ecs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ecsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,45 @@ else document.addEventListener('DOMContentLoaded', __energy_consumptionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ecsSweep(){
+  var p=num('p'), pr=num('price');
+  if(!isFinite(p)||!isFinite(pr)||p<=0)return null;
+  var labels=[],dK=[],dC=[],dP=[];
+  var ts=[0.5,1,2,3,5,8,12];
+  for(var k=0;k<ts.length;k++){
+    var tv=ts[k], kwh=p*tv/1000;
+    labels.push(tv.toFixed(1));
+    dK.push(Math.round(kwh*1000)/1000);
+    dC.push(Math.round(kwh*pr*100)/100);
+    dP.push(Math.round(p/1000*1000)/1000);
+  }
+  return {labels:labels,dK:dK,dC:dC,dP:dP};
+}
+function __ecsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ecsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ecsChart',{title:en?'Energy Consumption vs Hours (linear + power ref)':'耗电量随使用时长线性增长',labels:s.labels,series:[{name:en?'Consumption (kWh)':'耗电量 (kWh)',data:s.dK},{name:en?'Electricity cost (¥)':'电费 (元)',data:s.dC},{name:en?'Average power (kW)':'平均功率 (kW)',data:s.dP}]});
+}
+
+function __ecsShow(which){
+  var c=document.getElementById('ecsChart'), t=document.getElementById('energy_consumptionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ecsTabInit(){
+  var btns=document.querySelectorAll('.ecs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ecsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ecsShow('chart');
+  try{__ecsChart();}catch(e){}
+}
+var __ecsFn=calcTool;calcTool=function(){try{__ecsFn();}catch(e){}try{__ecsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ecsChart();}catch(e){}});try{__ecsTabInit();}catch(e){}
+</script>
 </body>
 </html>

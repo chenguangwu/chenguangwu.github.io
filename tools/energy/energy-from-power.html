@@ -244,6 +244,11 @@ function __energy_from_powerBoot(){ try{ __energy_from_powerPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __energy_from_powerBoot();
 else document.addEventListener('DOMContentLoaded', __energy_from_powerBoot);
 </script>
+<div class="efp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="efpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,44 @@ else document.addEventListener('DOMContentLoaded', __energy_from_powerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __efpSweep(){
+  var P=num('P');
+  if(!isFinite(P)||P<=0)return null;
+  var labels=[],dE=[],dM=[];
+  var ts=[0.5,1,2,3,5,8];
+  for(var k=0;k<ts.length;k++){
+    var tv=ts[k], E=P/1000*tv;
+    labels.push(tv.toFixed(1));
+    dE.push(Math.round(E*1000)/1000);
+    dM.push(Math.round(E*3.6*1000)/1000);
+  }
+  return {labels:labels,dE:dE,dM:dM};
+}
+function __efpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__efpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#efpChart',{title:en?'Energy from Power vs Time (linear, kWh/MJ)':'电能随时长线性增长',labels:s.labels,series:[{name:en?'Energy (kWh)':'电能 (kWh)',data:s.dE},{name:en?'Energy (MJ)':'电能 (MJ)',data:s.dM}]});
+}
+
+function __efpShow(which){
+  var c=document.getElementById('efpChart'), t=document.getElementById('energy_from_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __efpTabInit(){
+  var btns=document.querySelectorAll('.efp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__efpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __efpShow('chart');
+  try{__efpChart();}catch(e){}
+}
+var __efpFn=calcTool;calcTool=function(){try{__efpFn();}catch(e){}try{__efpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__efpChart();}catch(e){}});try{__efpTabInit();}catch(e){}
+</script>
 </body>
 </html>

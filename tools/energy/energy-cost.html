@@ -247,6 +247,11 @@ function __energy_costBoot(){ try{ __energy_costPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __energy_costBoot();
 else document.addEventListener('DOMContentLoaded', __energy_costBoot);
 </script>
+<div class="ect-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ectChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __energy_costBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ectSweep(){
+  var P=num('P'), rate=num('rate');
+  if(!isFinite(P)||!isFinite(rate)||P<=0||rate<=0)return null;
+  var labels=[],dC=[],dK=[];
+  var hs=[1,4,8,12,18,24];
+  for(var k=0;k<hs.length;k++){
+    var hv=hs[k], cost=P/1000*hv*rate;
+    labels.push(hv.toFixed(0));
+    dC.push(Math.round(cost*100)/100);
+    dK.push(Math.round(P/1000*hv*1000)/1000);
+  }
+  return {labels:labels,dC:dC,dK:dK};
+}
+function __ectChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ectSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ectChart',{title:en?'Energy Cost vs Hours (dual linear)':'电费随使用时长线性上升',labels:s.labels,series:[{name:en?'Electricity cost (¥)':'电费 (元)',data:s.dC},{name:en?'Consumption (kWh)':'耗电量 (kWh)',data:s.dK}]});
+}
+
+function __ectShow(which){
+  var c=document.getElementById('ectChart'), t=document.getElementById('energy_costTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ectTabInit(){
+  var btns=document.querySelectorAll('.ect-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ectShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ectShow('chart');
+  try{__ectChart();}catch(e){}
+}
+var __ectFn=calcTool;calcTool=function(){try{__ectFn();}catch(e){}try{__ectChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ectChart();}catch(e){}});try{__ectTabInit();}catch(e){}
+</script>
 </body>
 </html>
