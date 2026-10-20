@@ -244,6 +244,11 @@ function __capital_gains_effectiveBoot(){ try{ __capital_gains_effectivePresets(
 if (document.readyState && document.readyState !== 'loading') __capital_gains_effectiveBoot();
 else document.addEventListener('DOMContentLoaded', __capital_gains_effectiveBoot);
 </script>
+<div class="cge-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cgeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __capital_gains_effectiveBoot
 </dl>
 </div>
 </section>
+<script>
+function __cgeSweep(){
+  var g0=num('g'), r=num('r');
+  if(!isFinite(g0)||!isFinite(r)||g0<=0||r<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var g=g0*mults[k], T=g*r;
+    labels.push((Math.round(g*100)/100).toFixed(0));
+    dT.push(Math.round(T*1000)/1000);
+    rows.push([(Math.round(g*100)/100).toFixed(0),(Math.round(T*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __cgeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cgeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cgeChart',{title:en?'Capital Gains Tax vs Gain (T=g x r)':'资本利得税随收益线性变化（T=g×r）',labels:s.labels,series:[{name:en?'Tax T':'税额 T',data:s.dT}]});
+}
+
+function __cgeShow(which){
+  var c=document.getElementById('cgeChart'), t=document.getElementById('capital_gains_effectiveTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cgeTabInit(){
+  var btns=document.querySelectorAll('.cge-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cgeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cgeShow('chart');
+}
+var __cgeFn=calcTool;calcTool=function(){try{__cgeFn();}catch(e){}try{__cgeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cgeChart();}catch(e){}});
+try{__cgeTabInit();}catch(e){}
+</script>
 </body>
 </html>

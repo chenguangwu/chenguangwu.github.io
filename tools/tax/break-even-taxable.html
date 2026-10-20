@@ -245,6 +245,11 @@ function __break_even_taxableBoot(){ try{ __break_even_taxablePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __break_even_taxableBoot();
 else document.addEventListener('DOMContentLoaded', __break_even_taxableBoot);
 </script>
+<div class="bet-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="betChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,45 @@ else document.addEventListener('DOMContentLoaded', __break_even_taxableBoot);
 </dl>
 </div>
 </section>
+<script>
+function __betSweep(){
+  var t=num('target'), d=num('deduct'), r0=num('r');
+  if(!isFinite(t)||!isFinite(d)||!isFinite(r0)||r0<0||r0>=100)return null;
+  var labels=[],dX=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,1.75,2];
+  for(var k=0;k<mults.length;k++){
+    var r=r0*mults[k]; if(r>=100)continue;
+    var taxable=(t+d)/(1-r/100);
+    labels.push((Math.round(r*100)/100).toFixed(1));
+    dX.push(Math.round(taxable*1000)/1000);
+    rows.push([(Math.round(r*100)/100).toFixed(1),(Math.round(taxable*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dX:dX,rows:rows};
+}
+function __betChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__betSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#betChart',{title:en?'Break-even Taxable vs Rate (taxable=(t+d)/(1-r))':'盈亏平衡应税所得随税率非线性变化（taxable=(t+d)/(1-r)）',labels:s.labels,series:[{name:en?'Taxable income':'应税所得',data:s.dX}]});
+}
+
+function __betShow(which){
+  var c=document.getElementById('betChart'), t=document.getElementById('break_even_taxableTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __betTabInit(){
+  var btns=document.querySelectorAll('.bet-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__betShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __betShow('chart');
+}
+var __betFn=calcTool;calcTool=function(){try{__betFn();}catch(e){}try{__betChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__betChart();}catch(e){}});
+try{__betTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -244,6 +244,11 @@ function __ad_valorem_dutyBoot(){ try{ __ad_valorem_dutyPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __ad_valorem_dutyBoot();
 else document.addEventListener('DOMContentLoaded', __ad_valorem_dutyBoot);
 </script>
+<div class="avd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="avdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __ad_valorem_dutyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __avdSweep(){
+  var p0=num('p'), r=num('r');
+  if(!isFinite(p0)||!isFinite(r)||p0<=0||r<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var p=p0*mults[k], T=p*r;
+    labels.push((Math.round(p*100)/100).toFixed(0));
+    dT.push(Math.round(T*1000)/1000);
+    rows.push([(Math.round(p*100)/100).toFixed(0),(Math.round(T*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __avdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__avdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#avdChart',{title:en?'Ad Valorem Duty vs Price (T=p x r)':'从价税随价格线性变化（T=p×r）',labels:s.labels,series:[{name:en?'Duty T':'税额 T',data:s.dT}]});
+}
+
+function __avdShow(which){
+  var c=document.getElementById('avdChart'), t=document.getElementById('ad_valorem_dutyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __avdTabInit(){
+  var btns=document.querySelectorAll('.avd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__avdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __avdShow('chart');
+}
+var __avdFn=calcTool;calcTool=function(){try{__avdFn();}catch(e){}try{__avdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__avdChart();}catch(e){}});
+try{__avdTabInit();}catch(e){}
+</script>
 </body>
 </html>

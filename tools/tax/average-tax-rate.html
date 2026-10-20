@@ -298,6 +298,11 @@ function __average_tax_rateBoot(){ try{ __average_tax_ratePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __average_tax_rateBoot();
 else document.addEventListener('DOMContentLoaded', __average_tax_rateBoot);
 </script>
+<div class="atr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="atrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __average_tax_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __atrSweep(){
+  var T0=num('T'), Y=num('Y');
+  if(!isFinite(T0)||!isFinite(Y)||T0<=0||Y<=0)return null;
+  var labels=[],dA=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var T=T0*mults[k], ATR=T/Y;
+    labels.push((Math.round(T*100)/100).toFixed(0));
+    dA.push(Math.round(ATR*100000)/100000);
+    rows.push([(Math.round(T*100)/100).toFixed(0),(Math.round(ATR*100000)/100000).toFixed(4)]);
+  }
+  return {labels:labels,dA:dA,rows:rows};
+}
+function __atrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__atrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#atrChart',{title:en?'Average Tax Rate vs Tax (ATR=T/Y)':'平均税率随税额线性变化（ATR=T/Y）',labels:s.labels,series:[{name:en?'ATR':'平均税率 ATR',data:s.dA}]});
+}
+
+function __atrShow(which){
+  var c=document.getElementById('atrChart'), t=document.getElementById('average_tax_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __atrTabInit(){
+  var btns=document.querySelectorAll('.atr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__atrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __atrShow('chart');
+}
+var __atrFn=calcTool;calcTool=function(){try{__atrFn();}catch(e){}try{__atrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__atrChart();}catch(e){}});
+try{__atrTabInit();}catch(e){}
+</script>
 </body>
 </html>
