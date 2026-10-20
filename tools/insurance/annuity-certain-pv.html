@@ -306,6 +306,11 @@ function __annuity_certain_pvBoot(){ try{ __annuity_certain_pvPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __annuity_certain_pvBoot();
 else document.addEventListener('DOMContentLoaded', __annuity_certain_pvBoot);
 </script>
+<div class="acp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="acpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,45 @@ else document.addEventListener('DOMContentLoaded', __annuity_certain_pvBoot);
 </dl>
 </div>
 </section>
+<script>
+function __acpSweep(){
+  var P=num('P'), n=num('n');
+  if(!isFinite(P)||!isFinite(n)||P<=0||n<=0)return null;
+  var labels=[],dEnd=[],dBeg=[];
+  var irs=[0.005,0.01,0.02,0.03,0.04,0.05,0.065,0.08];
+  for(var k=0;k<irs.length;k++){
+    var ir=irs[k], v=1/(1+ir);
+    var aE=(1-Math.pow(v,n))/ir;
+    labels.push((ir*100).toFixed(1)+'%');
+    dEnd.push(Math.round(P*aE*100)/100);
+    dBeg.push(Math.round(P*aE*(1+ir)*100)/100);
+  }
+  return {labels:labels,dEnd:dEnd,dBeg:dBeg};
+}
+function __acpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__acpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#acpChart',{title:en?'Annuity PV vs Interest Rate (exponential decay)':'年金现值随利率指数衰减',labels:s.labels,series:[{name:en?'PV, ordinary annuity (¥)':'期末付现值 (元)',data:s.dEnd},{name:en?'PV, annuity due (¥)':'期初付现值 (元)',data:s.dBeg}]});
+}
+
+function __acpShow(which){
+  var c=document.getElementById('acpChart'), t=document.getElementById('annuity_certain_pvTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __acpTabInit(){
+  var btns=document.querySelectorAll('.acp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__acpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __acpShow('chart');
+  try{__acpChart();}catch(e){}
+}
+var __acpFn=calcTool;calcTool=function(){try{__acpFn();}catch(e){}try{__acpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__acpChart();}catch(e){}});try{__acpTabInit();}catch(e){}
+</script>
 </body>
 </html>

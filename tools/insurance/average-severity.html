@@ -298,6 +298,11 @@ function __average_severityBoot(){ try{ __average_severityPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __average_severityBoot();
 else document.addEventListener('DOMContentLoaded', __average_severityBoot);
 </script>
+<div class="ase-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="aseChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,44 @@ else document.addEventListener('DOMContentLoaded', __average_severityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __aseSweep(){
+  var tot=num('tot');
+  if(!isFinite(tot)||tot<=0)return null;
+  var labels=[],dS=[],dP=[];
+  var ns=[5,10,20,35,50,75,100];
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k], sev=tot/nv;
+    labels.push(nv.toFixed(0));
+    dS.push(Math.round(sev*100)/100);
+    dP.push(Math.round(sev/nv*100)/100);
+  }
+  return {labels:labels,dS:dS,dP:dP};
+}
+function __aseChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__aseSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#aseChart',{title:en?'Average Severity vs Claim Count (inverse)':'平均赔付额随索赔件数反比下降',labels:s.labels,series:[{name:en?'Average severity (¥)':'平均赔付额 (元)',data:s.dS},{name:en?'Per-claim share (¥)':'平均赔付按次摊分',data:s.dP}]});
+}
+
+function __aseShow(which){
+  var c=document.getElementById('aseChart'), t=document.getElementById('average_severityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __aseTabInit(){
+  var btns=document.querySelectorAll('.ase-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__aseShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __aseShow('chart');
+  try{__aseChart();}catch(e){}
+}
+var __aseFn=calcTool;calcTool=function(){try{__aseFn();}catch(e){}try{__aseChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__aseChart();}catch(e){}});try{__aseTabInit();}catch(e){}
+</script>
 </body>
 </html>

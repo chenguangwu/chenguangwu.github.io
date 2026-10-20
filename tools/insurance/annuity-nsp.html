@@ -244,6 +244,11 @@ function __annuity_nspBoot(){ try{ __annuity_nspPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __annuity_nspBoot();
 else document.addEventListener('DOMContentLoaded', __annuity_nspBoot);
 </script>
+<div class="anp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="anpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,44 @@ else document.addEventListener('DOMContentLoaded', __annuity_nspBoot);
 </dl>
 </div>
 </section>
+<script>
+function __anpSweep(){
+  var b=num('b');
+  if(!isFinite(b)||b<=0)return null;
+  var labels=[],dN=[],dM=[];
+  var axs=[5,10,15,20,25];
+  for(var k=0;k<axs.length;k++){
+    var axv=axs[k], NSP=b*axv;
+    labels.push(axv.toFixed(0));
+    dN.push(Math.round(NSP*100)/100);
+    dM.push(Math.round(NSP/12*100)/100);
+  }
+  return {labels:labels,dN:dN,dM:dM};
+}
+function __anpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__anpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#anpChart',{title:en?'Net Single Premium vs Annuity Factor (linear)':'净单保费随年金系数线性增长',labels:s.labels,series:[{name:en?'Net single premium (¥)':'净单保费 NSP (元)',data:s.dN},{name:en?'Monthly equivalent (¥)':'月均摊保费 (元)',data:s.dM}]});
+}
+
+function __anpShow(which){
+  var c=document.getElementById('anpChart'), t=document.getElementById('annuity_nspTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __anpTabInit(){
+  var btns=document.querySelectorAll('.anp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__anpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __anpShow('chart');
+  try{__anpChart();}catch(e){}
+}
+var __anpFn=calcTool;calcTool=function(){try{__anpFn();}catch(e){}try{__anpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__anpChart();}catch(e){}});try{__anpTabInit();}catch(e){}
+</script>
 </body>
 </html>

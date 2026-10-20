@@ -298,6 +298,11 @@ function __claim_frequencyBoot(){ try{ __claim_frequencyPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __claim_frequencyBoot();
 else document.addEventListener('DOMContentLoaded', __claim_frequencyBoot);
 </script>
+<div class="clf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="clfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,44 @@ else document.addEventListener('DOMContentLoaded', __claim_frequencyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __clfSweep(){
+  var e=num('exposure');
+  if(!isFinite(e)||e<=0)return null;
+  var labels=[],dF=[],dI=[];
+  var cs=[10,50,100,150,200,250,300];
+  for(var k=0;k<cs.length;k++){
+    var cv=cs[k], f=cv/e;
+    labels.push(cv.toFixed(0));
+    dF.push(Math.round(f*10000)/10000);
+    dI.push(Math.round((1/(f||1e-9))*1000)/1000);
+  }
+  return {labels:labels,dF:dF,dI:dI};
+}
+function __clfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__clfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#clfChart',{title:en?'Claim Frequency vs Claim Count (linear/inverse dual)':'理赔频率随理赔件数线性上升',labels:s.labels,series:[{name:en?'Claim frequency (per exposure)':'理赔频率 (次/暴露单位)',data:s.dF},{name:en?'Mean inter-claim gap (exposure/claim)':'平均出险间隔 (暴露单位/次)',data:s.dI}]});
+}
+
+function __clfShow(which){
+  var c=document.getElementById('clfChart'), t=document.getElementById('claim_frequencyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __clfTabInit(){
+  var btns=document.querySelectorAll('.clf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__clfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __clfShow('chart');
+  try{__clfChart();}catch(e){}
+}
+var __clfFn=calcTool;calcTool=function(){try{__clfFn();}catch(e){}try{__clfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__clfChart();}catch(e){}});try{__clfTabInit();}catch(e){}
+</script>
 </body>
 </html>

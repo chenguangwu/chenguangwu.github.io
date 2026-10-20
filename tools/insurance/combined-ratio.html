@@ -299,6 +299,11 @@ function __combined_ratioBoot(){ try{ __combined_ratioPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __combined_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __combined_ratioBoot);
 </script>
+<div class="cor-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="corChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,45 @@ else document.addEventListener('DOMContentLoaded', __combined_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __corSweep(){
+  var c=num('claims'), e=num('exp');
+  if(!isFinite(c)||!isFinite(e)||c<0||e<0)return null;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var labels=[],dC=[],dM=[];
+  var ps=[5000000,7500000,10000000,12500000,15000000,20000000];
+  for(var k=0;k<ps.length;k++){
+    var pv=ps[k], cr=(c+e)/pv*100;
+    labels.push(en?((pv/10000).toFixed(0)+'\u00d710\u2074'):((pv/10000).toFixed(0)+'\u4e07'));
+    dC.push(Math.round(cr*100)/100);
+    dM.push(Math.round((100-cr)*100)/100);
+  }
+  return {labels:labels,dC:dC,dM:dM};
+}
+function __corChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__corSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#corChart',{title:en?'Combined Ratio vs Premium (100% break-even)':'综合成本率随保费反比（100% 盈亏分界）',labels:s.labels,series:[{name:en?'Combined ratio (%)':'综合成本率 (%)',data:s.dC},{name:en?'Underwriting margin (%)':'承保利润率 (%)',data:s.dM}]});
+}
+
+function __corShow(which){
+  var c=document.getElementById('corChart'), t=document.getElementById('combined_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __corTabInit(){
+  var btns=document.querySelectorAll('.cor-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__corShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __corShow('chart');
+  try{__corChart();}catch(e){}
+}
+var __corFn=calcTool;calcTool=function(){try{__corFn();}catch(e){}try{__corChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__corChart();}catch(e){}});try{__corTabInit();}catch(e){}
+</script>
 </body>
 </html>
