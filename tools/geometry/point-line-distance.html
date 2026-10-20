@@ -261,6 +261,11 @@ function __point_line_distanceBoot(){ try{ __point_line_distancePresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __point_line_distanceBoot();
 else document.addEventListener('DOMContentLoaded', __point_line_distanceBoot);
 </script>
+<div class="pld-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pldChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -296,5 +301,47 @@ else document.addEventListener('DOMContentLoaded', __point_line_distanceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pldSweep(){
+  var A=num('A'), B=num('B'), C=num('C');
+  if(!isFinite(A)||!isFinite(B)||!isFinite(C))return null;
+  var den=Math.sqrt(A*A+B*B);
+  if(den===0)return null;
+  var labels=[], dD=[], dS=[];
+  var xs=[-3,-2,-1,0,1,2,3,4];
+  for(var k=0;k<xs.length;k++){
+    var xv=xs[k];
+    var d=Math.abs(A*xv+B*xv+C)/den;
+    labels.push(xv.toFixed(0));
+    dD.push(Math.round(d*1000)/1000);
+    dS.push(Math.round((A*xv+B*xv+C)*1000)/1000);
+  }
+  return {labels:labels,dD:dD,dS:dS};
+}
+function __pldChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pldSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pldChart',{title:en?'Point-Line Distance vs Point Coordinate (V-shape, zero on the line)':'点到直线距离随坐标 V 形变化（直线上取零）',labels:s.labels,series:[{name:en?'Distance d':'距离 d',data:s.dD},{name:en?'Signed numerator Ax+By+C':'有符号分子 Ax+By+C',data:s.dS}]});
+}
+
+function __pldShow(which){
+  var c=document.getElementById('pldChart'), t=document.getElementById('point_line_distanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pldTabInit(){
+  var btns=document.querySelectorAll('.pld-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pldShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pldShow('chart');
+  try{__pldChart();}catch(e){}
+}
+var __pldFn=calcTool;calcTool=function(){try{__pldFn();}catch(e){}try{__pldChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pldChart();}catch(e){}});try{__pldTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -299,6 +299,11 @@ function __rectangle_diagonalBoot(){ try{ __rectangle_diagonalPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __rectangle_diagonalBoot();
 else document.addEventListener('DOMContentLoaded', __rectangle_diagonalBoot);
 </script>
+<div class="rtd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rtdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,44 @@ else document.addEventListener('DOMContentLoaded', __rectangle_diagonalBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rtdSweep(){
+  var w=num('w');
+  if(!isFinite(w)||w<=0)return null;
+  var labels=[], dD=[], dR=[];
+  var hs=[0.5,1,2,3,4,6,8,12];
+  for(var k=0;k<hs.length;k++){
+    var hv=hs[k], d=Math.sqrt(w*w+hv*hv);
+    labels.push(hv.toFixed(1));
+    dD.push(Math.round(d*1000)/1000);
+    dR.push(Math.round(hv/w*1000)/1000);
+  }
+  return {labels:labels,dD:dD,dR:dR};
+}
+function __rtdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rtdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rtdChart',{title:en?'Rectangle Diagonal vs Height (square-root, aspect ratio line)':'矩形对角线随高度平方根增长（附高宽比）',labels:s.labels,series:[{name:en?'Diagonal d (m)':'对角线 d (m)',data:s.dD},{name:en?'Aspect ratio h/w':'高宽比 h/w',data:s.dR}]});
+}
+
+function __rtdShow(which){
+  var c=document.getElementById('rtdChart'), t=document.getElementById('rectangle_diagonalTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rtdTabInit(){
+  var btns=document.querySelectorAll('.rtd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rtdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rtdShow('chart');
+  try{__rtdChart();}catch(e){}
+}
+var __rtdFn=calcTool;calcTool=function(){try{__rtdFn();}catch(e){}try{__rtdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rtdChart();}catch(e){}});try{__rtdTabInit();}catch(e){}
+</script>
 </body>
 </html>

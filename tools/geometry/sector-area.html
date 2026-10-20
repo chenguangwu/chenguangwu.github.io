@@ -246,6 +246,11 @@ function __sector_areaBoot(){ try{ __sector_areaPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __sector_areaBoot();
 else document.addEventListener('DOMContentLoaded', __sector_areaBoot);
 </script>
+<div class="sca-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="scaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,45 @@ else document.addEventListener('DOMContentLoaded', __sector_areaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __scaSweep(){
+  var r=num('r');
+  if(!isFinite(r)||r<=0)return null;
+  var labels=[], dA=[], dL=[];
+  var ds=[15,30,45,90,135,180,270,360];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k];
+    var A=Math.PI*r*r*dv/360;
+    labels.push(dv.toFixed(0));
+    dA.push(Math.round(A*10000)/10000);
+    dL.push(Math.round(r*dv*Math.PI/180*10000)/10000);
+  }
+  return {labels:labels,dA:dA,dL:dL};
+}
+function __scaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__scaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#scaChart',{title:en?'Sector Area & Arc Length vs Central Angle (linear)':'扇形面积与弧长随圆心角线性增长',labels:s.labels,series:[{name:en?'Sector area (m²)':'扇形面积 (m²)',data:s.dA},{name:en?'Arc length (m)':'弧长 (m)',data:s.dL}]});
+}
+
+function __scaShow(which){
+  var c=document.getElementById('scaChart'), t=document.getElementById('sector_areaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __scaTabInit(){
+  var btns=document.querySelectorAll('.sca-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__scaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __scaShow('chart');
+  try{__scaChart();}catch(e){}
+}
+var __scaFn=calcTool;calcTool=function(){try{__scaFn();}catch(e){}try{__scaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__scaChart();}catch(e){}});try{__scaTabInit();}catch(e){}
+</script>
 </body>
 </html>

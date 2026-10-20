@@ -247,6 +247,11 @@ function __pythagoreanBoot(){ try{ __pythagoreanPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __pythagoreanBoot();
 else document.addEventListener('DOMContentLoaded', __pythagoreanBoot);
 </script>
+<div class="pyt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pytChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __pythagoreanBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pytSweep(){
+  var a=num('a');
+  if(!isFinite(a)||a<0)return null;
+  var labels=[], dC=[], dA=[];
+  var bs=[0.5,1,2,3,4,6,9,12];
+  for(var k=0;k<bs.length;k++){
+    var bv=bs[k], c=Math.sqrt(a*a+bv*bv);
+    labels.push(bv.toFixed(1));
+    dC.push(Math.round(c*1000)/1000);
+    dA.push(Math.round(Math.atan2(a,bv)*180/Math.PI*100)/100);
+  }
+  return {labels:labels,dC:dC,dA:dA};
+}
+function __pytChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pytSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pytChart',{title:en?'Hypotenuse (square-root growth) & Angle A (inverse decay) vs Side b':'斜边按平方根增长、∠A 随直角边反比衰减',labels:s.labels,series:[{name:en?'Hypotenuse c (m)':'斜边 c (m)',data:s.dC},{name:en?'Angle A (°)':'锐角 ∠A (°)',data:s.dA}]});
+}
+
+function __pytShow(which){
+  var c=document.getElementById('pytChart'), t=document.getElementById('pythagoreanTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pytTabInit(){
+  var btns=document.querySelectorAll('.pyt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pytShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pytShow('chart');
+  try{__pytChart();}catch(e){}
+}
+var __pytFn=calcTool;calcTool=function(){try{__pytFn();}catch(e){}try{__pytChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pytChart();}catch(e){}});try{__pytTabInit();}catch(e){}
+</script>
 </body>
 </html>

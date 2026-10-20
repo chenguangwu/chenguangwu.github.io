@@ -249,6 +249,11 @@ function __trapezoid_areaBoot(){ try{ __trapezoid_areaPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __trapezoid_areaBoot();
 else document.addEventListener('DOMContentLoaded', __trapezoid_areaBoot);
 </script>
+<div class="tza-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tzaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -284,5 +289,44 @@ else document.addEventListener('DOMContentLoaded', __trapezoid_areaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tzaSweep(){
+  var a=num('a'), h=num('h');
+  if(!isFinite(a)||!isFinite(h)||a<0||h<=0)return null;
+  var labels=[], dA=[], dM=[];
+  var bs=[0,1,2,3,5,8,12,20];
+  for(var k=0;k<bs.length;k++){
+    var bv=bs[k], A=(a+bv)/2*h;
+    labels.push(bv.toFixed(0));
+    dA.push(Math.round(A*1000)/1000);
+    dM.push(Math.round((a+bv)/2*1000)/1000);
+  }
+  return {labels:labels,dA:dA,dM:dM};
+}
+function __tzaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tzaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tzaChart',{title:en?'Trapezoid Area vs Bottom Base (linear A=(a+b)h/2)':'梯形面积随下底线性增长（A=(a+b)h/2）',labels:s.labels,series:[{name:en?'Area A (m²)':'面积 A (m²)',data:s.dA},{name:en?'Midline (a+b)/2 (m)':'中位线 (a+b)/2 (m)',data:s.dM}]});
+}
+
+function __tzaShow(which){
+  var c=document.getElementById('tzaChart'), t=document.getElementById('trapezoid_areaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tzaTabInit(){
+  var btns=document.querySelectorAll('.tza-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tzaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tzaShow('chart');
+  try{__tzaChart();}catch(e){}
+}
+var __tzaFn=calcTool;calcTool=function(){try{__tzaFn();}catch(e){}try{__tzaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tzaChart();}catch(e){}});try{__tzaTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -250,6 +250,11 @@ function __regular_polygon_areaBoot(){ try{ __regular_polygon_areaPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __regular_polygon_areaBoot();
 else document.addEventListener('DOMContentLoaded', __regular_polygon_areaBoot);
 </script>
+<div class="rpa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rpaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -285,5 +290,45 @@ else document.addEventListener('DOMContentLoaded', __regular_polygon_areaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rpaSweep(){
+  var s=num('s');
+  if(!isFinite(s)||s<=0)return null;
+  var labels=[], dA=[], dR=[];
+  var ns=[3,4,5,6,8,10,16,32];
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k];
+    var A=nv*s*s/(4*Math.tan(Math.PI/nv));
+    labels.push(nv.toFixed(0));
+    dA.push(Math.round(A*10000)/10000);
+    dR.push(Math.round(A/(Math.PI*s*s)*10000)/10000);
+  }
+  return {labels:labels,dA:dA,dR:dR};
+}
+function __rpaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rpaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rpaChart',{title:en?'Regular Polygon Area vs Number of Sides (saturating toward circle)':'正多边形面积随边数增加饱和趋近圆面积',labels:s.labels,series:[{name:en?'Area A (m²)':'面积 A (m²)',data:s.dA},{name:en?'Area / circle area ratio':'与等半径圆面积比',data:s.dR}]});
+}
+
+function __rpaShow(which){
+  var c=document.getElementById('rpaChart'), t=document.getElementById('regular_polygon_areaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rpaTabInit(){
+  var btns=document.querySelectorAll('.rpa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rpaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rpaShow('chart');
+  try{__rpaChart();}catch(e){}
+}
+var __rpaFn=calcTool;calcTool=function(){try{__rpaFn();}catch(e){}try{__rpaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rpaChart();}catch(e){}});try{__rpaTabInit();}catch(e){}
+</script>
 </body>
 </html>

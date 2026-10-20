@@ -251,6 +251,11 @@ function __parabola_vertexBoot(){ try{ __parabola_vertexPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __parabola_vertexBoot();
 else document.addEventListener('DOMContentLoaded', __parabola_vertexBoot);
 </script>
+<div class="pvt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pvtChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -286,5 +291,45 @@ else document.addEventListener('DOMContentLoaded', __parabola_vertexBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pvtSweep(){
+  var a=num('a'), b=num('b'), c=num('c');
+  if(!isFinite(a)||!isFinite(b)||!isFinite(c)||a===0)return null;
+  var xv=-b/(2*a), yv=a*xv*xv+b*xv+c;
+  var labels=[], dY=[], dV=[];
+  for(var k=-4;k<=4;k++){
+    var x=xv+k*0.75;
+    var y=a*x*x+b*x+c;
+    labels.push((Math.round(x*100)/100).toFixed(2));
+    dY.push(Math.round(y*1000)/1000);
+    dV.push(Math.round(yv*1000)/1000);
+  }
+  return {labels:labels,dY:dY,dV:dV};
+}
+function __pvtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pvtSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pvtChart',{title:en?'Parabola y=ax²+bx+c Around Its Vertex (minimum/maximum line)':'抛物线顶点邻域取值（顶点水平线对照）',labels:s.labels,series:[{name:en?'y value':'函数值 y',data:s.dY},{name:en?'Vertex y-coordinate y_v':'顶点纵坐标 y_v',data:s.dV}]});
+}
+
+function __pvtShow(which){
+  var c=document.getElementById('pvtChart'), t=document.getElementById('parabola_vertexTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pvtTabInit(){
+  var btns=document.querySelectorAll('.pvt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pvtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pvtShow('chart');
+  try{__pvtChart();}catch(e){}
+}
+var __pvtFn=calcTool;calcTool=function(){try{__pvtFn();}catch(e){}try{__pvtChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pvtChart();}catch(e){}});try{__pvtTabInit();}catch(e){}
+</script>
 </body>
 </html>
