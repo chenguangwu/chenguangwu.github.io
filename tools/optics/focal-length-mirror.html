@@ -241,6 +241,11 @@ function __focal_length_mirrorBoot(){ try{ __focal_length_mirrorPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __focal_length_mirrorBoot();
 else document.addEventListener('DOMContentLoaded', __focal_length_mirrorBoot);
 </script>
+<div class="flm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="flmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,42 @@ else document.addEventListener('DOMContentLoaded', __focal_length_mirrorBoot);
 </dl>
 </div>
 </section>
+<script>
+function __flmSweep(){
+  var labels=[], dF=[], dP=[];
+  var Rs=[2,5,10,20,40,80,150,300];
+  for(var k=0;k<Rs.length;k++){
+    var rv=Rs[k], f=rv/2;
+    labels.push(rv.toFixed(0));
+    dF.push(Math.round(f*100)/100);
+    dP.push(Math.round(100/f*100)/100);
+  }
+  return {labels:labels,dF:dF,dP:dP};
+}
+function __flmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__flmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#flmChart',{title:en?'Mirror Focal Length vs Radius (linear f=R/2)':'球面镜焦距随曲率半径线性增长（f=R/2）',labels:s.labels,series:[{name:en?'Focal length f (cm)':'焦距 f (cm)',data:s.dF},{name:en?'Optical power (D)':'光焦度 (D)',data:s.dP}]});
+}
+
+function __flmShow(which){
+  var c=document.getElementById('flmChart'), t=document.getElementById('focal_length_mirrorTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __flmTabInit(){
+  var btns=document.querySelectorAll('.flm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__flmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __flmShow('chart');
+  try{__flmChart();}catch(e){}
+}
+var __flmFn=calcTool;calcTool=function(){try{__flmFn();}catch(e){}try{__flmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__flmChart();}catch(e){}});try{__flmTabInit();}catch(e){}
+</script>
 </body>
 </html>

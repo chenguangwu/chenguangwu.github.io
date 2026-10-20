@@ -296,6 +296,11 @@ function __doppler_opticalBoot(){ try{ __doppler_opticalPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __doppler_opticalBoot();
 else document.addEventListener('DOMContentLoaded', __doppler_opticalBoot);
 </script>
+<div class="dop-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dopChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,44 @@ else document.addEventListener('DOMContentLoaded', __doppler_opticalBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dopSweep(){
+  var f=num('f'), c=num('c');
+  if(!isFinite(f)||!isFinite(c)||f<=0||c<=0)return null;
+  var labels=[], dS=[], dZ=[];
+  var vs=[-0.006,-0.003,-0.001,0,0.001,0.003,0.006,0.01];
+  for(var k=0;k<vs.length;k++){
+    var bv=vs[k], fp=f*(1+bv);
+    labels.push((bv*100).toFixed(1)+'%');
+    dS.push(Math.round(fp/1e14*10000)/10000);
+    dZ.push(Math.round((fp-f)/1e12*100)/100);
+  }
+  return {labels:labels,dS:dS,dZ:dZ};
+}
+function __dopChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dopSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dopChart',{title:en?'Optical Doppler Shift vs β=v/c (linear)':'光学多普勒频移随 β=v/c 线性变化',labels:s.labels,series:[{name:en?'Observed frequency (×10¹⁴ Hz)':'观测频率 (×10¹⁴ Hz)',data:s.dS},{name:en?'Frequency shift (×10¹² Hz)':'频移量 (×10¹² Hz)',data:s.dZ}]});
+}
+
+function __dopShow(which){
+  var c=document.getElementById('dopChart'), t=document.getElementById('doppler_opticalTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dopTabInit(){
+  var btns=document.querySelectorAll('.dop-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dopShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dopShow('chart');
+  try{__dopChart();}catch(e){}
+}
+var __dopFn=calcTool;calcTool=function(){try{__dopFn();}catch(e){}try{__dopChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dopChart();}catch(e){}});try{__dopTabInit();}catch(e){}
+</script>
 </body>
 </html>

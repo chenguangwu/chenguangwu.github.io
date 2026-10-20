@@ -301,6 +301,11 @@ function __angular_magnificationBoot(){ try{ __angular_magnificationPresets(); }
 if (document.readyState && document.readyState !== 'loading') __angular_magnificationBoot();
 else document.addEventListener('DOMContentLoaded', __angular_magnificationBoot);
 </script>
+<div class="agm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="agmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,44 @@ else document.addEventListener('DOMContentLoaded', __angular_magnificationBoot);
 <h3>结果含义</h3><p>角放大率 M=θ′/θ：像对眼睛的张角 θ′ 与物在明视距离张角 θ 之比，描述放大镜/目镜使物体"显得多大"。</p>
 <h3>近似</h3><p>简单放大镜 M≈25 cm / f（f 焦距，单位 cm）。M&gt;1 为正立放大；望远镜角放大率≈−f_obj/f_eye。</p>
 </div></section>
+<script>
+function __agmSweep(){
+  var N=num('N');
+  if(!isFinite(N)||N<=0)return null;
+  var labels=[], dM=[], dP=[];
+  var fs=[5,10,15,25,40,60,100,150];
+  for(var k=0;k<fs.length;k++){
+    var fv=fs[k], M=N/fv;
+    labels.push(fv.toFixed(0));
+    dM.push(Math.round(M*100)/100);
+    dP.push(Math.round(1000/fv*100)/100);
+  }
+  return {labels:labels,dM:dM,dP:dP};
+}
+function __agmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__agmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#agmChart',{title:en?'Angular Magnification vs Focal Length (inverse M=N/f)':'角放大率随焦距反比衰减（M=N/f）',labels:s.labels,series:[{name:en?'Magnification M (×)':'角放大率 M (×)',data:s.dM},{name:en?'Optical power (D)':'光焦度 (D)',data:s.dP}]});
+}
+
+function __agmShow(which){
+  var c=document.getElementById('agmChart'), t=document.getElementById('angular_magnificationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __agmTabInit(){
+  var btns=document.querySelectorAll('.agm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__agmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __agmShow('chart');
+  try{__agmChart();}catch(e){}
+}
+var __agmFn=calcTool;calcTool=function(){try{__agmFn();}catch(e){}try{__agmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__agmChart();}catch(e){}});try{__agmTabInit();}catch(e){}
+</script>
 </body>
 </html>

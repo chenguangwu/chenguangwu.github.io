@@ -300,6 +300,11 @@ function __combined_lens_focalBoot(){ try{ __combined_lens_focalPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __combined_lens_focalBoot();
 else document.addEventListener('DOMContentLoaded', __combined_lens_focalBoot);
 </script>
+<div class="clf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="clfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __combined_lens_focalBoot);
 </dl>
 </div>
 </section>
+<script>
+function __clfSweep(){
+  var f1=num('f1');
+  if(!isFinite(f1)||f1<=0)return null;
+  var labels=[], dF=[], dP=[];
+  var f2s=[0.02,0.05,0.1,0.2,0.5,1,2,5];
+  for(var k=0;k<f2s.length;k++){
+    var fv=f2s[k], F=1/(1/f1+1/fv);
+    labels.push(fv.toFixed(2));
+    dF.push(Math.round(F*10000)/10000);
+    dP.push(Math.round((1/f1+1/fv)*100)/100);
+  }
+  return {labels:labels,dF:dF,dP:dP};
+}
+function __clfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__clfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#clfChart',{title:en?'Combined Focal Length vs f₂ (saturation to f₁)':'组合焦距随 f₂ 增大饱和趋近 f₁',labels:s.labels,series:[{name:en?'Equivalent focal length F (m)':'等效焦距 F (m)',data:s.dF},{name:en?'Summed optical power (1/m)':'光焦度之和 (1/m)',data:s.dP}]});
+}
+
+function __clfShow(which){
+  var c=document.getElementById('clfChart'), t=document.getElementById('combined_lens_focalTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __clfTabInit(){
+  var btns=document.querySelectorAll('.clf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__clfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __clfShow('chart');
+  try{__clfChart();}catch(e){}
+}
+var __clfFn=calcTool;calcTool=function(){try{__clfFn();}catch(e){}try{__clfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__clfChart();}catch(e){}});try{__clfTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __brewster_angleBoot(){ try{ __brewster_anglePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __brewster_angleBoot();
 else document.addEventListener('DOMContentLoaded', __brewster_angleBoot);
 </script>
+<div class="brw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="brwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __brewster_angleBoot);
 </dl>
 </div>
 </section>
+<script>
+function __brwSweep(){
+  var n1=num('n1');
+  if(!isFinite(n1)||n1<=0)return null;
+  var labels=[], dB=[], dR=[];
+  var n2s=[1.0,1.33,1.5,1.6,1.8,2.0,2.4,3.0];
+  for(var k=0;k<n2s.length;k++){
+    var nv=n2s[k], tb=Math.atan(nv/n1)*180/Math.PI;
+    labels.push(nv.toFixed(2));
+    dB.push(Math.round(tb*1000)/1000);
+    dR.push(Math.round(nv/n1*1000)/1000);
+  }
+  return {labels:labels,dB:dB,dR:dR};
+}
+function __brwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__brwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#brwChart',{title:en?'Brewster Angle vs Refractive Index (arctan saturation)':'布儒斯特角随折射率比反正切饱和',labels:s.labels,series:[{name:en?'Brewster angle θ_B (°)':'布儒斯特角 θ_B (°)',data:s.dB},{name:en?'Index ratio n₂/n₁':'折射率比 n₂/n₁',data:s.dR}]});
+}
+
+function __brwShow(which){
+  var c=document.getElementById('brwChart'), t=document.getElementById('brewster_angleTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __brwTabInit(){
+  var btns=document.querySelectorAll('.brw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__brwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __brwShow('chart');
+  try{__brwChart();}catch(e){}
+}
+var __brwFn=calcTool;calcTool=function(){try{__brwFn();}catch(e){}try{__brwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__brwChart();}catch(e){}});try{__brwTabInit();}catch(e){}
+</script>
 </body>
 </html>
