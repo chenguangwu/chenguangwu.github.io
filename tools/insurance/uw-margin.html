@@ -244,6 +244,11 @@ function __uw_marginBoot(){ try{ __uw_marginPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __uw_marginBoot();
 else document.addEventListener('DOMContentLoaded', __uw_marginBoot);
 </script>
+<div class="uwm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="uwmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,44 @@ else document.addEventListener('DOMContentLoaded', __uw_marginBoot);
 </dl>
 </div>
 </section>
+<script>
+function __uwmSweep(){
+  var ER=num('ER');
+  if(!isFinite(ER)||ER<0)return null;
+  var labels=[],dM=[],dC=[];
+  var lrs=[30,40,50,60,70,80];
+  for(var k=0;k<lrs.length;k++){
+    var lrv=lrs[k];
+    labels.push(lrv.toFixed(0)+'%');
+    dM.push(Math.round((100-(lrv+ER))*10)/10);
+    dC.push(Math.round((lrv+ER)*10)/10);
+  }
+  return {labels:labels,dM:dM,dC:dC};
+}
+function __uwmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__uwmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#uwmChart',{title:en?'Underwriting Margin vs Loss Ratio (linear cross)':'承保利润率随赔付率线性交叉',labels:s.labels,series:[{name:en?'Underwriting margin (%)':'承保利润率 (%)',data:s.dM},{name:en?'Loss + expense (%)':'赔付与费用合计 (%)',data:s.dC}]});
+}
+
+function __uwmShow(which){
+  var c=document.getElementById('uwmChart'), t=document.getElementById('uw_marginTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __uwmTabInit(){
+  var btns=document.querySelectorAll('.uwm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__uwmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __uwmShow('chart');
+  try{__uwmChart();}catch(e){}
+}
+var __uwmFn=calcTool;calcTool=function(){try{__uwmFn();}catch(e){}try{__uwmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__uwmChart();}catch(e){}});try{__uwmTabInit();}catch(e){}
+</script>
 </body>
 </html>

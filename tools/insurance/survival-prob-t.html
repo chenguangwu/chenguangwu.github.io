@@ -298,6 +298,11 @@ function __survival_prob_tBoot(){ try{ __survival_prob_tPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __survival_prob_tBoot();
 else document.addEventListener('DOMContentLoaded', __survival_prob_tBoot);
 </script>
+<div class="spt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sptChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,44 @@ else document.addEventListener('DOMContentLoaded', __survival_prob_tBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sptSweep(){
+  var lx=num('lx');
+  if(!isFinite(lx)||lx<=0)return null;
+  var labels=[],dS=[],dD=[];
+  var rts=[0.3,0.45,0.6,0.75,0.9,1.0];
+  for(var k=0;k<rts.length;k++){
+    var rv=rts[k], lxt=lx*rv, tpx=lxt/lx;
+    labels.push(lxt.toFixed(0));
+    dS.push(Math.round(tpx*10000)/10000);
+    dD.push(Math.round((1-tpx)*10000)/10000);
+  }
+  return {labels:labels,dS:dS,dD:dD};
+}
+function __sptChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sptSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sptChart',{title:en?'Survival Prob. vs Survivors (linear cross)':'生存概率随存活人数线性交叉',labels:s.labels,series:[{name:en?'t-year survival tpx':'t 年生存概率 ₜp_x',data:s.dS},{name:en?'t-year death prob.':'t 年死亡概率',data:s.dD}]});
+}
+
+function __sptShow(which){
+  var c=document.getElementById('sptChart'), t=document.getElementById('survival_prob_tTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sptTabInit(){
+  var btns=document.querySelectorAll('.spt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sptShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sptShow('chart');
+  try{__sptChart();}catch(e){}
+}
+var __sptFn=calcTool;calcTool=function(){try{__sptFn();}catch(e){}try{__sptChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sptChart();}catch(e){}});try{__sptTabInit();}catch(e){}
+</script>
 </body>
 </html>
