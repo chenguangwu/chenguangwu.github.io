@@ -294,6 +294,11 @@ function __sine_rmsBoot(){ try{ __sine_rmsPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __sine_rmsBoot();
 else document.addEventListener('DOMContentLoaded', __sine_rmsBoot);
 </script>
+<div class="sr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="srChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -329,5 +334,45 @@ else document.addEventListener('DOMContentLoaded', __sine_rmsBoot);
 </dl>
 </div>
 </section>
+<script>
+function __srSweep(){
+  var V0=num('Vpk');
+  if(!isFinite(V0)||V0<=0)return null;
+  var labels=[],dRms=[],dPp=[],dAvg=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var V=V0*mults[k];
+    labels.push((Math.round(V*100)/100).toFixed(2));
+    dRms.push(Math.round(V/Math.SQRT2*10000)/10000);
+    dPp.push(Math.round(2*V*10000)/10000);
+    dAvg.push(Math.round(2*V/Math.PI*10000)/10000);
+    rows.push([(Math.round(V*100)/100).toFixed(2),(Math.round(V/Math.SQRT2*10000)/10000).toFixed(4),(Math.round(2*V*10000)/10000).toFixed(4),(Math.round(2*V/Math.PI*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dRms:dRms,dPp:dPp,dAvg:dAvg,rows:rows};
+}
+function __srChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__srSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#srChart',{title:en?'Sine Wave Measures vs Peak (Vrms=Vpk/√2, Vpp, avg)':'正弦波各度量随峰值变化（V_rms=V_pk/√2，V_pp，半波平均）',labels:s.labels,series:[{name:en?'RMS V (V)':'有效值 V_rms (V)',data:s.dRms},{name:en?'Peak-to-peak (V)':'峰峰值 V_pp (V)',data:s.dPp},{name:en?'Half-wave avg (V)':'半波平均值 (V)',data:s.dAvg}]});
+}
+
+function __srShow(which){
+  var c=document.getElementById('srChart'), t=document.getElementById('sine_rmsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __srTabInit(){
+  var btns=document.querySelectorAll('.sr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__srShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __srShow('chart');
+}
+var __srFn=calcTool;calcTool=function(){try{__srFn();}catch(e){}try{__srChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__srChart();}catch(e){}});
+</script>
 </body>
 </html>

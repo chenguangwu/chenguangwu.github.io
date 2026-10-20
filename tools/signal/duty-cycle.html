@@ -298,6 +298,11 @@ function __duty_cycleBoot(){ try{ __duty_cyclePresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __duty_cycleBoot();
 else document.addEventListener('DOMContentLoaded', __duty_cycleBoot);
 </script>
+<div class="dc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,45 @@ else document.addEventListener('DOMContentLoaded', __duty_cycleBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dcSweep(){
+  var ton0=num('ton'), T=num('T');
+  if(!isFinite(ton0)||!isFinite(T)||ton0<=0||T<=0)return null;
+  var labels=[],dD=[],dOff=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var ton=ton0*mults[k], D=ton/T*100;
+    var off=T-ton>0?T-ton:0;
+    labels.push((Math.round(ton*100)/100).toFixed(2));
+    dD.push(Math.round(Math.min(D,100)*100)/100);
+    dOff.push(Math.round(off*10000)/10000);
+    rows.push([(Math.round(ton*100)/100).toFixed(2),(Math.round(Math.min(D,100)*100)/100).toFixed(2),String(Math.round(off*10000)/10000)]);
+  }
+  return {labels:labels,dD:dD,dOff:dOff,rows:rows};
+}
+function __dcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dcChart',{title:en?'Duty Cycle vs On-Time (D=ton/T, linear)':'占空比随导通时间线性增长（D=t_on/T）',labels:s.labels,series:[{name:en?'Duty D (%)':'占空比 D (%)',data:s.dD},{name:en?'Off time (ms)':'关断时间 (ms)',data:s.dOff}]});
+}
+
+function __dcShow(which){
+  var c=document.getElementById('dcChart'), t=document.getElementById('duty_cycleTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dcTabInit(){
+  var btns=document.querySelectorAll('.dc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dcShow('chart');
+}
+var __dcFn=calcTool;calcTool=function(){try{__dcFn();}catch(e){}try{__dcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dcChart();}catch(e){}});
+</script>
 </body>
 </html>

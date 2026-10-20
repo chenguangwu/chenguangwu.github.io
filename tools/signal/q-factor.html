@@ -298,6 +298,11 @@ function __q_factorBoot(){ try{ __q_factorPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __q_factorBoot();
 else document.addEventListener('DOMContentLoaded', __q_factorBoot);
 </script>
+<div class="qf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="qfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __q_factorBoot);
 </dl>
 </div>
 </section>
+<script>
+function __qfSweep(){
+  var f0=num('f0'), bw0=num('bw');
+  if(!isFinite(f0)||!isFinite(bw0)||f0<=0||bw0<=0)return null;
+  var labels=[],dQ=[],dRBW=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var bw=bw0*mults[k], Q=f0/bw;
+    labels.push((Math.round(bw*100)/100).toFixed(1));
+    dQ.push(Math.round(Q*1000)/1000);
+    dRBW.push(Math.round(bw/f0*100*1000)/1000);
+    rows.push([(Math.round(bw*100)/100).toFixed(1),(Math.round(Q*1000)/1000).toFixed(3),(Math.round(bw/f0*100*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dQ:dQ,dRBW:dRBW,rows:rows};
+}
+function __qfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__qfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#qfChart',{title:en?'Q Factor vs Bandwidth (Q=f0/Δf, inverse)':'品质因数随带宽反比下降（Q=f₀/Δf）',labels:s.labels,series:[{name:en?'Quality factor Q':'品质因数 Q',data:s.dQ},{name:en?'Relative BW (%)':'相对带宽 (%)',data:s.dRBW}]});
+}
+
+function __qfShow(which){
+  var c=document.getElementById('qfChart'), t=document.getElementById('q_factorTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __qfTabInit(){
+  var btns=document.querySelectorAll('.qf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__qfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __qfShow('chart');
+}
+var __qfFn=calcTool;calcTool=function(){try{__qfFn();}catch(e){}try{__qfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__qfChart();}catch(e){}});
+</script>
 </body>
 </html>
