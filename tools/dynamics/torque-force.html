@@ -244,6 +244,11 @@ function __torque_forceBoot(){ try{ __torque_forcePresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __torque_forceBoot();
 else document.addEventListener('DOMContentLoaded', __torque_forceBoot);
 </script>
+<div class="tqf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tqfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __torque_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tqfSweep(){
+  var r=num('r'), F=num('F');
+  if(!isFinite(r)||!isFinite(F)||r<=0||F<=0)return null;
+  var labels=[], dT=[], dA=[];
+  var ths=[0,15,30,45,60,75,90];
+  for(var k=0;k<ths.length;k++){
+    var tv=ths[k]*Math.PI/180;
+    labels.push(ths[k].toFixed(0));
+    dT.push(Math.round(r*F*Math.sin(tv)*100)/100);
+    dA.push(Math.round(r*Math.sin(tv)*10000)/10000);
+  }
+  return {labels:labels,dT:dT,dA:dA};
+}
+function __tqfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tqfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tqfChart',{title:en?'Torque vs Force Angle (sine curve, max at 90°)':'力矩随力与力臂夹角正弦变化（90° 最大）',labels:s.labels,series:[{name:en?'Torque τ (N·m)':'力矩 τ (N·m)',data:s.dT},{name:en?'Effective lever arm (m)':'有效力臂 (m)',data:s.dA}]});
+}
+
+function __tqfShow(which){
+  var c=document.getElementById('tqfChart'), t=document.getElementById('torque_forceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tqfTabInit(){
+  var btns=document.querySelectorAll('.tqf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tqfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tqfShow('chart');
+  try{__tqfChart();}catch(e){}
+}
+var __tqfFn=calcTool;calcTool=function(){try{__tqfFn();}catch(e){}try{__tqfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tqfChart();}catch(e){}});try{__tqfTabInit();}catch(e){}
+</script>
 </body>
 </html>

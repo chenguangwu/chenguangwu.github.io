@@ -322,6 +322,11 @@ function __terminal_velocityBoot(){ try{ __terminal_velocityPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __terminal_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __terminal_velocityBoot);
 </script>
+<div class="tmv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tmvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -357,5 +362,44 @@ else document.addEventListener('DOMContentLoaded', __terminal_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tmvSweep(){
+  var m=num('m'), g=num('g'), rho=num('rho'), cd=num('cd');
+  if(!isFinite(m)||!isFinite(g)||!isFinite(rho)||!isFinite(cd)||m<=0||g<=0||rho<=0||cd<=0)return null;
+  var labels=[], dV=[], dT=[];
+  var As=[0.05,0.1,0.2,0.4,0.7,1.0,1.5,2.5];
+  for(var k=0;k<As.length;k++){
+    var av=As[k], vt=Math.sqrt(2*m*g/(rho*cd*av));
+    labels.push(av.toFixed(2));
+    dV.push(Math.round(vt*1000)/1000);
+    dT.push(Math.round(vt*3.6*100)/100);
+  }
+  return {labels:labels,dV:dV,dT:dT};
+}
+function __tmvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tmvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tmvChart',{title:en?'Terminal Velocity vs Cross-Section Area (inverse square-root)':'终端速度随迎风面积反比平方根下降',labels:s.labels,series:[{name:en?'Terminal velocity (m/s)':'终端速度 (m/s)',data:s.dV},{name:en?'Terminal velocity (km/h)':'终端速度 (km/h)',data:s.dT}]});
+}
+
+function __tmvShow(which){
+  var c=document.getElementById('tmvChart'), t=document.getElementById('terminal_velocityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tmvTabInit(){
+  var btns=document.querySelectorAll('.tmv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tmvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tmvShow('chart');
+  try{__tmvChart();}catch(e){}
+}
+var __tmvFn=calcTool;calcTool=function(){try{__tmvFn();}catch(e){}try{__tmvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tmvChart();}catch(e){}});try{__tmvTabInit();}catch(e){}
+</script>
 </body>
 </html>

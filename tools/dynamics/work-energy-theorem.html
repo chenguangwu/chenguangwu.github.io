@@ -247,6 +247,11 @@ function __work_energy_theoremBoot(){ try{ __work_energy_theoremPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __work_energy_theoremBoot();
 else document.addEventListener('DOMContentLoaded', __work_energy_theoremBoot);
 </script>
+<div class="wet-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wetChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,45 @@ else document.addEventListener('DOMContentLoaded', __work_energy_theoremBoot);
 </dl>
 </div>
 </section>
+<script>
+function __wetSweep(){
+  var m=num('m'), v1=num('v1');
+  if(!isFinite(m)||!isFinite(v1)||m<=0)return null;
+  var ke1=0.5*m*v1*v1;
+  var labels=[], dW=[], dK=[];
+  var v2s=[0,2,5,10,15,20,30,40];
+  for(var k=0;k<v2s.length;k++){
+    var vv=v2s[k], W=0.5*m*(vv*vv-v1*v1);
+    labels.push(vv.toFixed(0));
+    dW.push(Math.round(W*100)/100);
+    dK.push(Math.round(0.5*m*vv*vv*100)/100);
+  }
+  return {labels:labels,dW:dW,dK:dK};
+}
+function __wetChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__wetSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wetChart',{title:en?'Work-Energy: Net Work & Final KE vs v₂ (quadratic, offset by v₁)':'动能定理：合外力功与末动能随 v₂ 平方增长（v₁ 为截距）',labels:s.labels,series:[{name:en?'Net work W (J)':'合外力功 W (J)',data:s.dW},{name:en?'Final KE (J)':'末动能 (J)',data:s.dK}]});
+}
+
+function __wetShow(which){
+  var c=document.getElementById('wetChart'), t=document.getElementById('work_energy_theoremTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wetTabInit(){
+  var btns=document.querySelectorAll('.wet-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wetShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __wetShow('chart');
+  try{__wetChart();}catch(e){}
+}
+var __wetFn=calcTool;calcTool=function(){try{__wetFn();}catch(e){}try{__wetChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wetChart();}catch(e){}});try{__wetTabInit();}catch(e){}
+</script>
 </body>
 </html>

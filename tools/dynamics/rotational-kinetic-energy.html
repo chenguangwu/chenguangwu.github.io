@@ -244,6 +244,11 @@ function __rotational_kinetic_energyBoot(){ try{ __rotational_kinetic_energyPres
 if (document.readyState && document.readyState !== 'loading') __rotational_kinetic_energyBoot();
 else document.addEventListener('DOMContentLoaded', __rotational_kinetic_energyBoot);
 </script>
+<div class="rke-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rkeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __rotational_kinetic_energyBo
 </dl>
 </div>
 </section>
+<script>
+function __rkeSweep(){
+  var I=num('I');
+  if(!isFinite(I)||I<=0)return null;
+  var labels=[], dE=[], dL=[];
+  var ws=[0,2,5,10,20,35,50,70];
+  for(var k=0;k<ws.length;k++){
+    var wv=ws[k], E=0.5*I*wv*wv;
+    labels.push(wv.toFixed(0));
+    dE.push(Math.round(E*100)/100);
+    dL.push(Math.round(I*wv*1000)/1000);
+  }
+  return {labels:labels,dE:dE,dL:dL};
+}
+function __rkeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rkeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rkeChart',{title:en?'Rotational KE (quadratic) & Angular Momentum (linear) vs ω':'转动动能平方、角动量线性随角速度增长',labels:s.labels,series:[{name:en?'Rotational KE (J)':'转动动能 (J)',data:s.dE},{name:en?'Angular momentum L (kg·m²/s)':'角动量 L (kg·m²/s)',data:s.dL}]});
+}
+
+function __rkeShow(which){
+  var c=document.getElementById('rkeChart'), t=document.getElementById('rotational_kinetic_energyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rkeTabInit(){
+  var btns=document.querySelectorAll('.rke-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rkeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rkeShow('chart');
+  try{__rkeChart();}catch(e){}
+}
+var __rkeFn=calcTool;calcTool=function(){try{__rkeFn();}catch(e){}try{__rkeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rkeChart();}catch(e){}});try{__rkeTabInit();}catch(e){}
+</script>
 </body>
 </html>
