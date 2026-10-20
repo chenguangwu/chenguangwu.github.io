@@ -307,6 +307,11 @@ function __microscope_magnificationBoot(){ try{ __microscope_magnificationPreset
 if (document.readyState && document.readyState !== 'loading') __microscope_magnificationBoot();
 else document.addEventListener('DOMContentLoaded', __microscope_magnificationBoot);
 </script>
+<div class="mcmp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mcmpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,43 @@ else document.addEventListener('DOMContentLoaded', __microscope_magnificationBoo
 </dl>
 </div>
 </section>
+<script>
+function __mcmpSweep(){
+  var fo0=num('fo'), fe=num('fe'), L=num('L'), D=num('D');
+  if(!isFinite(fo0)||!isFinite(fe)||!isFinite(L)||!isFinite(D)||Math.abs(fo0)<1e-12||Math.abs(fe)<1e-12)return null;
+  var labels=[], dM=[], dE=[];
+  for(var k=0;k<=10;k++){
+    var fok=fo0*(0.5+0.15*k);
+    labels.push((Math.round(fok*100)/100)+'');
+    dM.push(Math.round((L/fok)*(D/fe)*100)/100);
+    dE.push(Math.round(D/fe*100)/100);
+  }
+  return {labels:labels,dM:dM,dE:dE};
+}
+function __mcmpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mcmpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mcmpChart',{title:en?'Total magnification falls inversely with objective focal length against a flat eyepiece factor':'总放大率随物镜焦距反比下降（对照恒定的目镜放大率）',labels:s.labels,series:[{name:en?'Total magnification':'总放大率 M (×)',data:s.dM},{name:en?'Eyepiece magnification':'目镜放大率 (×)',data:s.dE}]});
+}
+
+function __mcmpShow(which){
+  var c=document.getElementById('mcmpChart'), t=document.getElementById('microscope_magnificationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mcmpTabInit(){
+  var btns=document.querySelectorAll('.mcmp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mcmpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mcmpShow('chart');
+  try{__mcmpChart();}catch(e){}
+}
+var __mcmpFn=calcTool;calcTool=function(){try{__mcmpFn();}catch(e){}try{__mcmpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mcmpChart();}catch(e){}});try{__mcmpTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -242,6 +242,11 @@ function __optical_path_lengthBoot(){ try{ __optical_path_lengthPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __optical_path_lengthBoot();
 else document.addEventListener('DOMContentLoaded', __optical_path_lengthBoot);
 </script>
+<div class="oppl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="opplChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,43 @@ else document.addEventListener('DOMContentLoaded', __optical_path_lengthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __opplSweep(){
+  var L=num('L');
+  if(!isFinite(L))return null;
+  var labels=[], dO=[], dR=[];
+  for(var k=0;k<=10;k++){
+    var nk=1+0.1*k;
+    labels.push((Math.round(nk*100)/100)+'');
+    dO.push(Math.round(nk*L*100)/100);
+    dR.push(Math.round(nk*L/(nk+1)*100)/100);
+  }
+  return {labels:labels,dO:dO,dR:dR};
+}
+function __opplChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__opplSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#opplChart',{title:en?'Optical path grows linearly with index while the ratio to (n+1) bends toward saturation':'光程随折射率线性增长，与（n+1）之比呈饱和凹曲线',labels:s.labels,series:[{name:en?'Optical path (mm)':'光程 (mm)',data:s.dO},{name:en?'Ratio to (n+1)':'光程与（n+1）之比',data:s.dR}]});
+}
+
+function __opplShow(which){
+  var c=document.getElementById('opplChart'), t=document.getElementById('optical_path_lengthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __opplTabInit(){
+  var btns=document.querySelectorAll('.oppl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__opplShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __opplShow('chart');
+  try{__opplChart();}catch(e){}
+}
+var __opplFn=calcTool;calcTool=function(){try{__opplFn();}catch(e){}try{__opplChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__opplChart();}catch(e){}});try{__opplTabInit();}catch(e){}
+</script>
 </body>
 </html>

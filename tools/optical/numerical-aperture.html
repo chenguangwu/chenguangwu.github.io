@@ -243,6 +243,11 @@ function __numerical_apertureBoot(){ try{ __numerical_aperturePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __numerical_apertureBoot();
 else document.addEventListener('DOMContentLoaded', __numerical_apertureBoot);
 </script>
+<div class="nmap-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="nmapChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,44 @@ else document.addEventListener('DOMContentLoaded', __numerical_apertureBoot);
 </dl>
 </div>
 </section>
+<script>
+function __nmapSweep(){
+  var n=num('n');
+  if(!isFinite(n))return null;
+  var labels=[], dA=[], dS=[];
+  for(var k=0;k<=12;k++){
+    var deg=k*7.5, t=deg*Math.PI/180;
+    var na=n*Math.sin(t);
+    labels.push(String(Math.round(deg*10)/10));
+    dA.push(Math.round(na*10000)/10000);
+    dS.push(Math.round(na*na*100000)/100000);
+  }
+  return {labels:labels,dA:dA,dS:dS};
+}
+function __nmapChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__nmapSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#nmapChart',{title:en?'Numerical aperture saturates as a sine of half-angle while its square climbs quadratically':'数值孔径随半角正弦饱和上升，其平方按二次曲线增长',labels:s.labels,series:[{name:en?'Numerical aperture NA':'数值孔径 NA',data:s.dA},{name:en?'NA squared':'NA 平方',data:s.dS}]});
+}
+
+function __nmapShow(which){
+  var c=document.getElementById('nmapChart'), t=document.getElementById('numerical_apertureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __nmapTabInit(){
+  var btns=document.querySelectorAll('.nmap-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__nmapShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __nmapShow('chart');
+  try{__nmapChart();}catch(e){}
+}
+var __nmapFn=calcTool;calcTool=function(){try{__nmapFn();}catch(e){}try{__nmapChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__nmapChart();}catch(e){}});try{__nmapTabInit();}catch(e){}
+</script>
 </body>
 </html>

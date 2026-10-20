@@ -300,6 +300,11 @@ function __rayleigh_resolutionBoot(){ try{ __rayleigh_resolutionPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __rayleigh_resolutionBoot();
 else document.addEventListener('DOMContentLoaded', __rayleigh_resolutionBoot);
 </script>
+<div class="ryrs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ryrsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,43 @@ else document.addEventListener('DOMContentLoaded', __rayleigh_resolutionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ryrsSweep(){
+  var lam=num('lam')*1e-9, D0=num('D')/1000;
+  if(!isFinite(lam)||!isFinite(D0)||Math.abs(D0)<1e-15)return null;
+  var labels=[], dT=[];
+  var mult=[0.5,0.75,1.0,1.5,2.0];
+  for(var k=0;k<mult.length;k++){
+    var dk=D0*mult[k];
+    labels.push((Math.round(dk*1000*100)/100)+'');
+    dT.push(Math.round(1.22*lam/dk*1e6*100)/100);
+  }
+  return {labels:labels,dT:dT};
+}
+function __ryrsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__ryrsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#ryrsChart',{title:en?'Minimum resolvable angle across five aperture diameters (inverse of D)':'五档孔径下的最小分辨角对照（与孔径成反比）',labels:s.labels,series:[{name:en?'Resolvable angle (urad)':'最小分辨角 (μrad)',data:s.dT}]});
+}
+
+function __ryrsShow(which){
+  var c=document.getElementById('ryrsChart'), t=document.getElementById('rayleigh_resolutionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ryrsTabInit(){
+  var btns=document.querySelectorAll('.ryrs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ryrsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ryrsShow('chart');
+  try{__ryrsChart();}catch(e){}
+}
+var __ryrsFn=calcTool;calcTool=function(){try{__ryrsFn();}catch(e){}try{__ryrsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ryrsChart();}catch(e){}});try{__ryrsTabInit();}catch(e){}
+</script>
 </body>
 </html>

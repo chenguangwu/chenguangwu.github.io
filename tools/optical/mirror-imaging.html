@@ -299,6 +299,11 @@ function __mirror_imagingBoot(){ try{ __mirror_imagingPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __mirror_imagingBoot();
 else document.addEventListener('DOMContentLoaded', __mirror_imagingBoot);
 </script>
+<div class="mrig-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mrigChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,49 @@ else document.addEventListener('DOMContentLoaded', __mirror_imagingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mrigSweep(){
+  var u0=num('u'), R=num('R');
+  if(!isFinite(u0)||!isFinite(R)||Math.abs(u0)<1e-12||Math.abs(R)<1e-12)return null;
+  var f=R/2;
+  var labels=[], dV=[], dM=[];
+  for(var k=0;k<=10;k++){
+    var uk=u0*(0.4+0.12*k);
+    var den=1/f-1/uk;
+    labels.push((Math.round(uk*100)/100)+'');
+    if(Math.abs(den)<1e-12){ dV.push(null); dM.push(null); }
+    else{
+      var v=1/den;
+      dV.push(Math.round(v*100)/100);
+      dM.push(Math.round(-v/uk*10000)/10000);
+    }
+  }
+  return {labels:labels,dV:dV,dM:dM};
+}
+function __mrigChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mrigSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mrigChart',{title:en?'Image distance flips sign across the focal point while magnification breaks the same point':'像距在焦点处双曲断开并反号，放大率同步翻转',labels:s.labels,series:[{name:en?'Image distance v (mm)':'像距 v (mm)',data:s.dV},{name:en?'Magnification m':'放大率 m',data:s.dM}]});
+}
+
+function __mrigShow(which){
+  var c=document.getElementById('mrigChart'), t=document.getElementById('mirror_imagingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mrigTabInit(){
+  var btns=document.querySelectorAll('.mrig-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mrigShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mrigShow('chart');
+  try{__mrigChart();}catch(e){}
+}
+var __mrigFn=calcTool;calcTool=function(){try{__mrigFn();}catch(e){}try{__mrigChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mrigChart();}catch(e){}});try{__mrigTabInit();}catch(e){}
+</script>
 </body>
 </html>
