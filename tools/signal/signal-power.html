@@ -298,6 +298,11 @@ function __signal_powerBoot(){ try{ __signal_powerPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __signal_powerBoot();
 else document.addEventListener('DOMContentLoaded', __signal_powerBoot);
 </script>
+<div class="sp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="spChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __signal_powerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __spSweep(){
+  var v0=num('v'), R=num('R');
+  if(!isFinite(v0)||!isFinite(R)||v0<=0||R<=0)return null;
+  var labels=[],dP=[],dI=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var v=v0*mults[k], P=v*v/R;
+    labels.push((Math.round(v*100)/100).toFixed(2));
+    dP.push(Math.round(P*10000)/10000);
+    dI.push(Math.round(v/R*10000)/10000);
+    rows.push([(Math.round(v*100)/100).toFixed(2),(Math.round(P*10000)/10000).toFixed(4),(Math.round(v/R*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dP:dP,dI:dI,rows:rows};
+}
+function __spChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__spSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#spChart',{title:en?'Signal Power vs Voltage (P=V²/R quadratic vs I=V/R linear)':'信号功率随电压二次方增长、电流线性增长（P=V²/R）',labels:s.labels,series:[{name:en?'Power P (W)':'功率 P (W)',data:s.dP},{name:en?'Current I (A)':'电流 I (A)',data:s.dI}]});
+}
+
+function __spShow(which){
+  var c=document.getElementById('spChart'), t=document.getElementById('signal_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __spTabInit(){
+  var btns=document.querySelectorAll('.sp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__spShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __spShow('chart');
+}
+var __spFn=calcTool;calcTool=function(){try{__spFn();}catch(e){}try{__spChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__spChart();}catch(e){}});
+</script>
 </body>
 </html>

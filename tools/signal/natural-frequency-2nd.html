@@ -300,6 +300,11 @@ function __natural_frequency_2ndBoot(){ try{ __natural_frequency_2ndPresets(); }
 if (document.readyState && document.readyState !== 'loading') __natural_frequency_2ndBoot();
 else document.addEventListener('DOMContentLoaded', __natural_frequency_2ndBoot);
 </script>
+<div class="nf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="nfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __natural_frequency_2ndBoot);
 </dl>
 </div>
 </section>
+<script>
+function __nfSweep(){
+  var k=num('k'), m0=num('m');
+  if(!isFinite(k)||!isFinite(m0)||k<=0||m0<=0)return null;
+  var labels=[],dWn=[],dFn=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var m=m0*mults[i], wn=Math.sqrt(k/m), fn=wn/(2*Math.PI);
+    labels.push((Math.round(m*1000)/1000).toFixed(3));
+    dWn.push(Math.round(wn*1000)/1000);
+    dFn.push(Math.round(fn*1000)/1000);
+    rows.push([(Math.round(m*1000)/1000).toFixed(3),(Math.round(wn*1000)/1000).toFixed(3),(Math.round(fn*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dWn:dWn,dFn:dFn,rows:rows};
+}
+function __nfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__nfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#nfChart',{title:en?'Natural Frequency vs Mass (ωn=√(k/m), square-root)':'固有频率随质量根式衰减（ω_n=√(k/m)）',labels:s.labels,series:[{name:en?'Angular ωn (rad/s)':'固有角频率 ω_n (rad/s)',data:s.dWn},{name:en?'Frequency fn (Hz)':'固有频率 f_n (Hz)',data:s.dFn}]});
+}
+
+function __nfShow(which){
+  var c=document.getElementById('nfChart'), t=document.getElementById('natural_frequency_2ndTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __nfTabInit(){
+  var btns=document.querySelectorAll('.nf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__nfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __nfShow('chart');
+}
+var __nfFn=calcTool;calcTool=function(){try{__nfFn();}catch(e){}try{__nfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__nfChart();}catch(e){}});
+</script>
 </body>
 </html>

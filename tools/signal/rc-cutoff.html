@@ -300,6 +300,11 @@ function __rc_cutoffBoot(){ try{ __rc_cutoffPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __rc_cutoffBoot();
 else document.addEventListener('DOMContentLoaded', __rc_cutoffBoot);
 </script>
+<div class="rc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __rc_cutoffBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rcSweep(){
+  var R=num('R'), C0=num('C');
+  if(!isFinite(R)||!isFinite(C0)||R<=0||C0<=0)return null;
+  var labels=[],dFc=[],dTau=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var C=C0*mults[k], fc=1/(2*Math.PI*R*C);
+    labels.push((Math.round(C*1e6*1000)/1000).toFixed(3));
+    dFc.push(Math.round(fc/1e3*1000)/1000);
+    dTau.push(Math.round(R*C*1e3*1000)/1000);
+    rows.push([(Math.round(C*1e6*1000)/1000).toFixed(3),(Math.round(fc/1e3*1000)/1000).toFixed(4),(Math.round(R*C*1e3*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dFc:dFc,dTau:dTau,rows:rows};
+}
+function __rcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rcChart',{title:en?'RC Cutoff Frequency vs Capacitance (fc=1/2πRC, inverse)':'RC 截止频率随电容反比下降（f_c=1/(2πRC)）',labels:s.labels,series:[{name:en?'Cutoff fc (kHz)':'截止频率 f_c (kHz)',data:s.dFc},{name:en?'Time constant τ (ms)':'时间常数 τ=RC (ms)',data:s.dTau}]});
+}
+
+function __rcShow(which){
+  var c=document.getElementById('rcChart'), t=document.getElementById('rc_cutoffTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rcTabInit(){
+  var btns=document.querySelectorAll('.rc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rcShow('chart');
+}
+var __rcFn=calcTool;calcTool=function(){try{__rcFn();}catch(e){}try{__rcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rcChart();}catch(e){}});
+</script>
 </body>
 </html>

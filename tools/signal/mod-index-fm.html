@@ -298,6 +298,11 @@ function __mod_index_fmBoot(){ try{ __mod_index_fmPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __mod_index_fmBoot();
 else document.addEventListener('DOMContentLoaded', __mod_index_fmBoot);
 </script>
+<div class="mif-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mifChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __mod_index_fmBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mifSweep(){
+  var df=num('df'), fm0=num('fm');
+  if(!isFinite(df)||!isFinite(fm0)||df<=0||fm0<=0)return null;
+  var labels=[],dBeta=[],dBw=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var fm=fm0*mults[k], beta=df/fm;
+    labels.push((Math.round(fm*100)/100).toFixed(2));
+    dBeta.push(Math.round(beta*1000)/1000);
+    dBw.push(Math.round(2*(df+fm)*100)/100);
+    rows.push([(Math.round(fm*100)/100).toFixed(2),(Math.round(beta*1000)/1000).toFixed(3),(Math.round(2*(df+fm)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dBeta:dBeta,dBw:dBw,rows:rows};
+}
+function __mifChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mifSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mifChart',{title:en?'FM Modulation Index vs Modulating Freq (β=Δf/fm, inverse)':'调频指数随调制频率反比下降（β=Δf/f_m）',labels:s.labels,series:[{name:en?'Index β':'调频指数 β',data:s.dBeta},{name:en?'Carson BW (kHz)':'卡森带宽 (kHz)',data:s.dBw}]});
+}
+
+function __mifShow(which){
+  var c=document.getElementById('mifChart'), t=document.getElementById('mod_index_fmTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mifTabInit(){
+  var btns=document.querySelectorAll('.mif-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mifShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mifShow('chart');
+}
+var __mifFn=calcTool;calcTool=function(){try{__mifFn();}catch(e){}try{__mifChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mifChart();}catch(e){}});
+</script>
 </body>
 </html>
