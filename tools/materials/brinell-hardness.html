@@ -304,6 +304,11 @@ function __brinell_hardnessBoot(){ try{ __brinell_hardnessPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __brinell_hardnessBoot();
 else document.addEventListener('DOMContentLoaded', __brinell_hardnessBoot);
 </script>
+<div class="bh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bhChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,44 @@ else document.addEventListener('DOMContentLoaded', __brinell_hardnessBoot);
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用由压痕载荷与直径求布氏硬度</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>载荷 F (N)</li><li>压头直径 D (mm)</li><li>压痕直径 d (mm)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>由压痕载荷与直径求布氏硬度是做什么的？</dt><dd>输入试验载荷F、压头直径D与压痕直径d，按 BHN = 2F / [πD(D−√(D²−d²))] 计算布氏硬度值，用于金属材料硬度检测。</dd><dt>如何使用由压痕载荷与直径求布氏硬度？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>由压痕载荷与直径求布氏硬度适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __bhSweep(){
+  var F=num('F'), D=num('D'), d0=num('d');
+  if(!isFinite(F)||!isFinite(D)||!isFinite(d0)||F<=0||D<=0||d0<=0)return null;
+  var labels=[],dH=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k]; if(d>=D)continue;
+    var BHN=2*F/(Math.PI*D*(D-Math.sqrt(D*D-d*d)));
+    labels.push((Math.round(d*100)/100).toFixed(2));
+    dH.push(Math.round(BHN*1000)/1000);
+    rows.push([(Math.round(d*100)/100).toFixed(2),(Math.round(BHN*1000)/1000).toFixed(1)]);
+  }
+  return {labels:labels,dH:dH,rows:rows};
+}
+function __bhChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bhSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bhChart',{title:en?'Brinell Hardness vs Indent Diameter (BHN=2F/(πD(D-√(D²-d²))))':'布氏硬度随压痕直径非线性变化（BHN=2F/(π·D·(D−√(D²−d²)))）',labels:s.labels,series:[{name:en?'BHN':'布氏硬度 BHN',data:s.dH}]});
+}
+
+function __bhShow(which){
+  var c=document.getElementById('bhChart'), t=document.getElementById('brinell_hardnessTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bhTabInit(){
+  var btns=document.querySelectorAll('.bh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bhShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bhShow('chart');
+}
+var __bhFn=calcTool;calcTool=function(){try{__bhFn();}catch(e){}try{__bhChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bhChart();}catch(e){}});
+</script>
 </body>
 </html>

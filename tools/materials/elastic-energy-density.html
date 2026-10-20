@@ -298,6 +298,11 @@ function __elastic_energy_densityBoot(){ try{ __elastic_energy_densityPresets();
 if (document.readyState && document.readyState !== 'loading') __elastic_energy_densityBoot();
 else document.addEventListener('DOMContentLoaded', __elastic_energy_densityBoot);
 </script>
+<div class="eed-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="eedChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,43 @@ else document.addEventListener('DOMContentLoaded', __elastic_energy_densityBoot)
 </dl>
 </div>
 </section>
+<script>
+function __eedSweep(){
+  var s0=num('sig'), E=num('E');
+  if(!isFinite(s0)||!isFinite(E)||s0<=0||E<=0)return null;
+  var labels=[],dU=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var sig=s0*mults[k], u=sig*sig/(2*E);
+    labels.push((Math.round(sig/1e6*100)/100).toFixed(0));
+    dU.push(Math.round(u/1e3*1000)/1000);
+    rows.push([(Math.round(sig/1e6*100)/100).toFixed(0),(Math.round(u/1e3*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dU:dU,rows:rows};
+}
+function __eedChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__eedSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#eedChart',{title:en?'Elastic Energy Density vs Stress (u=σ²/(2E), quadratic)':'弹性能密度随应力二次变化（u=σ²/(2E)）',labels:s.labels,series:[{name:en?'u (kJ/m³)':'能量密度 u (kJ/m³)',data:s.dU}]});
+}
+
+function __eedShow(which){
+  var c=document.getElementById('eedChart'), t=document.getElementById('elastic_energy_densityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __eedTabInit(){
+  var btns=document.querySelectorAll('.eed-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__eedShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __eedShow('chart');
+}
+var __eedFn=calcTool;calcTool=function(){try{__eedFn();}catch(e){}try{__eedChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__eedChart();}catch(e){}});
+</script>
 </body>
 </html>

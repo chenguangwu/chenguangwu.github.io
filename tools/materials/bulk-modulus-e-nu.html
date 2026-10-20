@@ -311,6 +311,11 @@ function __bulk_modulus_e_nuBoot(){ try{ __bulk_modulus_e_nuPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __bulk_modulus_e_nuBoot();
 else document.addEventListener('DOMContentLoaded', __bulk_modulus_e_nuBoot);
 </script>
+<div class="bme-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bmeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,43 @@ else document.addEventListener('DOMContentLoaded', __bulk_modulus_e_nuBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bmeSweep(){
+  var E0=num('E'), nu=num('nu');
+  if(!isFinite(E0)||!isFinite(nu)||E0<=0||nu>=0.5)return null;
+  var labels=[],dK=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var E=E0*mults[k], K=E/(3*(1-2*nu));
+    labels.push((Math.round(E/1e9*100)/100).toFixed(0));
+    dK.push(Math.round(K/1e9*1000)/1000);
+    rows.push([(Math.round(E/1e9*100)/100).toFixed(0),(Math.round(K/1e9*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dK:dK,rows:rows};
+}
+function __bmeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bmeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bmeChart',{title:en?'Bulk Modulus vs Young Modulus (K=E/(3(1-2ν)))':'体积模量随弹性模量线性变化（K=E/(3(1−2ν))）',labels:s.labels,series:[{name:en?'K (GPa)':'体积模量 K (GPa)',data:s.dK}]});
+}
+
+function __bmeShow(which){
+  var c=document.getElementById('bmeChart'), t=document.getElementById('bulk_modulus_e_nuTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bmeTabInit(){
+  var btns=document.querySelectorAll('.bme-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bmeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bmeShow('chart');
+}
+var __bmeFn=calcTool;calcTool=function(){try{__bmeFn();}catch(e){}try{__bmeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bmeChart();}catch(e){}});
+</script>
 </body>
 </html>

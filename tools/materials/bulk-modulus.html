@@ -316,6 +316,11 @@ function __bulk_modulusBoot(){ try{ __bulk_modulusPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __bulk_modulusBoot();
 else document.addEventListener('DOMContentLoaded', __bulk_modulusBoot);
 </script>
+<div class="bm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -363,5 +368,44 @@ else document.addEventListener('DOMContentLoaded', __bulk_modulusBoot);
 <h3>结果含义</h3><p>体积模量 K=−V·dp/dV：材料抵抗均匀压缩的能力，单位帕(Pa)。K 越大越难压缩。</p>
 <h3>关联</h3><p>与杨氏模量 E、泊松比 ν 关系 K=E/(3(1−2ν))。流体（液体/气体）常用体积模量描述可压缩性。</p>
 </div></section>
+<script>
+function __bmSweep(){
+  var E=num('E');
+  if(!isFinite(E)||E<=0)return null;
+  var nus=[0.1,0.15,0.2,0.25,0.3,0.4,0.45];
+  var labels=[],dK=[],rows=[];
+  for(var k=0;k<nus.length;k++){
+    var nu=nus[k]; if(nu>=0.5)continue;
+    var K=E/(3*(1-2*nu));
+    labels.push((Math.round(nu*100)/100).toFixed(2));
+    dK.push(Math.round(K/1e9*1000)/1000);
+    rows.push([(Math.round(nu*100)/100).toFixed(2),(Math.round(K/1e9*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dK:dK,rows:rows};
+}
+function __bmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bmChart',{title:en?'Bulk Modulus vs Poisson Ratio (K=E/(3(1-2ν)))':'体积模量随泊松比双曲变化（K=E/(3(1−2ν))）',labels:s.labels,series:[{name:en?'K (GPa)':'体积模量 K (GPa)',data:s.dK}]});
+}
+
+function __bmShow(which){
+  var c=document.getElementById('bmChart'), t=document.getElementById('bulk_modulusTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bmTabInit(){
+  var btns=document.querySelectorAll('.bm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bmShow('chart');
+}
+var __bmFn=calcTool;calcTool=function(){try{__bmFn();}catch(e){}try{__bmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bmChart();}catch(e){}});
+</script>
 </body>
 </html>
