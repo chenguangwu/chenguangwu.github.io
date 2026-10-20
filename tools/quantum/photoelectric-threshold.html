@@ -295,6 +295,11 @@ function __photoelectric_thresholdBoot(){ try{ __photoelectric_thresholdPresets(
 if (document.readyState && document.readyState !== 'loading') __photoelectric_thresholdBoot();
 else document.addEventListener('DOMContentLoaded', __photoelectric_thresholdBoot);
 </script>
+<div class="pt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ptChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,45 @@ else document.addEventListener('DOMContentLoaded', __photoelectric_thresholdBoot
 </dl>
 </div>
 </section>
+<script>
+function __ptSweep(){
+  var phi0=num('phi');
+  if(!isFinite(phi0)||phi0<=0)return null;
+  var h=6.62607015e-34, e=1.602176634e-19, c=2.99792458e8;
+  var labels=[],dF0=[],dLmax=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var phi=phi0*mults[k], f0=phi*e/h, lmax=c/f0;
+    labels.push((Math.round(phi*1000)/1000).toFixed(3));
+    dF0.push(Math.round(f0/1e15*1000)/1000);
+    dLmax.push(Math.round(lmax*1e9*100)/100);
+    rows.push([(Math.round(phi*1000)/1000).toFixed(3),(Math.round(f0/1e15*1000)/1000).toFixed(4),(Math.round(lmax*1e9*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dF0:dF0,dLmax:dLmax,rows:rows};
+}
+function __ptChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ptSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ptChart',{title:en?'Threshold vs Work Function (f0=φ/h linear, λmax=hc/φ inverse)':'截止频率随逸出功线性增大、截止波长反比缩短（f₀=φ/h，λ_max=hc/φ）',labels:s.labels,series:[{name:en?'Cutoff f0 (PHz)':'截止频率 f₀ (PHz)',data:s.dF0},{name:en?'Cutoff λmax (nm)':'截止波长 λ_max (nm)',data:s.dLmax}]});
+}
+
+function __ptShow(which){
+  var c=document.getElementById('ptChart'), t=document.getElementById('photoelectric_thresholdTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ptTabInit(){
+  var btns=document.querySelectorAll('.pt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ptShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ptShow('chart');
+}
+var __ptFn=calcTool;calcTool=function(){try{__ptFn();}catch(e){}try{__ptChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ptChart();}catch(e){}});
+</script>
 </body>
 </html>

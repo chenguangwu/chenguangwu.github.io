@@ -295,6 +295,11 @@ function __compton_wavelengthBoot(){ try{ __compton_wavelengthPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __compton_wavelengthBoot();
 else document.addEventListener('DOMContentLoaded', __compton_wavelengthBoot);
 </script>
+<div class="cw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,45 @@ else document.addEventListener('DOMContentLoaded', __compton_wavelengthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cwSweep(){
+  var m0=num('m');
+  if(!isFinite(m0)||m0<=0)return null;
+  var h=6.62607015e-34, c=2.99792458e8;
+  var labels=[],dPm=[],dFm=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var m=m0*mults[k], lc=h/(m*c);
+    labels.push((Math.round(m/9.109e-31*1000)/1000).toFixed(3));
+    dPm.push(Math.round(lc*1e12*1e6)/1e6);
+    dFm.push(Math.round(lc*1e15*1000)/1000);
+    rows.push([(Math.round(m/9.109e-31*1000)/1000).toFixed(3),(Math.round(lc*1e12*1e6)/1e6).toFixed(6),(Math.round(lc*1e15*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dPm:dPm,dFm:dFm,rows:rows};
+}
+function __cwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cwChart',{title:en?'Compton Wavelength vs Mass (λc=h/mc, inverse)':'康普顿波长随质量反比缩短（λ_c=h/(mc)）',labels:s.labels,series:[{name:en?'λc (pm)':'康普顿波长 λ_c (pm)',data:s.dPm},{name:en?'λc (fm)':'康普顿波长 λ_c (fm)',data:s.dFm}]});
+}
+
+function __cwShow(which){
+  var c=document.getElementById('cwChart'), t=document.getElementById('compton_wavelengthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cwTabInit(){
+  var btns=document.querySelectorAll('.cw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cwShow('chart');
+}
+var __cwFn=calcTool;calcTool=function(){try{__cwFn();}catch(e){}try{__cwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cwChart();}catch(e){}});
+</script>
 </body>
 </html>

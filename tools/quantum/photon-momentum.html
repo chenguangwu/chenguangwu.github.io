@@ -295,6 +295,11 @@ function __photon_momentumBoot(){ try{ __photon_momentumPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __photon_momentumBoot();
 else document.addEventListener('DOMContentLoaded', __photon_momentumBoot);
 </script>
+<div class="pm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,45 @@ else document.addEventListener('DOMContentLoaded', __photon_momentumBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pmSweep(){
+  var lam0=num('lam');
+  if(!isFinite(lam0)||lam0<=0)return null;
+  var H=6.62607015e-34,C=299792458,EV=1.602176634e-19;
+  var labels=[],dP24=[],dEeV=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var lam=lam0*mults[k], p=H/lam;
+    labels.push((Math.round(lam*1e9*100)/100).toFixed(0));
+    dP24.push(Math.round(p*1e24*1e6)/1e6);
+    dEeV.push(Math.round(H*C/lam/EV*10000)/10000);
+    rows.push([(Math.round(lam*1e9*100)/100).toFixed(0),(Math.round(p*1e24*1e6)/1e6).toFixed(6),(Math.round(H*C/lam/EV*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dP24:dP24,dEeV:dEeV,rows:rows};
+}
+function __pmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pmChart',{title:en?'Photon Momentum vs Wavelength (p=h/λ, inverse)':'光子动量随波长反比增大（p=h/λ）',labels:s.labels,series:[{name:en?'Momentum p (1e-24 kg·m/s)':'动量 p (10⁻²⁴ kg·m/s)',data:s.dP24},{name:en?'Energy (eV)':'光子能量 (eV)',data:s.dEeV}]});
+}
+
+function __pmShow(which){
+  var c=document.getElementById('pmChart'), t=document.getElementById('photon_momentumTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pmTabInit(){
+  var btns=document.querySelectorAll('.pm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pmShow('chart');
+}
+var __pmFn=calcTool;calcTool=function(){try{__pmFn();}catch(e){}try{__pmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pmChart();}catch(e){}});
+</script>
 </body>
 </html>
