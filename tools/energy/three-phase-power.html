@@ -247,6 +247,11 @@ function __three_phase_powerBoot(){ try{ __three_phase_powerPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __three_phase_powerBoot();
 else document.addEventListener('DOMContentLoaded', __three_phase_powerBoot);
 </script>
+<div class="thp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="thpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __three_phase_powerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __thpSweep(){
+  var u=num('u'), pf=num('pf');
+  if(!isFinite(u)||!isFinite(pf)||u<=0||pf<=0||pf>1)return null;
+  var labels=[],dP=[],dQ=[];
+  var is=[5,15,30,50,75,100];
+  for(var k=0;k<is.length;k++){
+    var iv=is[k];
+    labels.push(iv.toFixed(0));
+    dP.push(Math.round(Math.sqrt(3)*u*iv*pf/1000*1000)/1000);
+    dQ.push(Math.round(Math.sqrt(3)*u*iv*Math.sqrt(Math.max(0,1-pf*pf))/1000*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dQ:dQ};
+}
+function __thpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__thpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#thpChart',{title:en?'Three-Phase Active & Reactive vs Current (dual linear)':'三相有功与无功功率随电流线性上升',labels:s.labels,series:[{name:en?'Active power (kW)':'有功功率 (kW)',data:s.dP},{name:en?'Reactive power (kvar)':'无功功率 (kvar)',data:s.dQ}]});
+}
+
+function __thpShow(which){
+  var c=document.getElementById('thpChart'), t=document.getElementById('three_phase_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __thpTabInit(){
+  var btns=document.querySelectorAll('.thp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__thpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __thpShow('chart');
+  try{__thpChart();}catch(e){}
+}
+var __thpFn=calcTool;calcTool=function(){try{__thpFn();}catch(e){}try{__thpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__thpChart();}catch(e){}});try{__thpTabInit();}catch(e){}
+</script>
 </body>
 </html>

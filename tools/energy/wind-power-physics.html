@@ -247,6 +247,11 @@ function __wind_power_physicsBoot(){ try{ __wind_power_physicsPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __wind_power_physicsBoot();
 else document.addEventListener('DOMContentLoaded', __wind_power_physicsBoot);
 </script>
+<div class="wpp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wppChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __wind_power_physicsBoot);
 </dl>
 </div>
 </section>
+<script>
+function __wppSweep(){
+  var rho=num('rho'), A=num('A');
+  if(!isFinite(rho)||!isFinite(A)||rho<=0||A<=0)return null;
+  var labels=[],dP=[],dQ=[];
+  var vs=[3,5,6,8,10,12];
+  for(var k=0;k<vs.length;k++){
+    var vv=vs[k];
+    labels.push(vv.toFixed(0));
+    dP.push(Math.round(0.5*rho*A*vv*vv*vv*100)/100);
+    dQ.push(Math.round(0.5*rho*vv*vv*100)/100);
+  }
+  return {labels:labels,dP:dP,dQ:dQ};
+}
+function __wppChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__wppSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wppChart',{title:en?'Wind Power vs Wind Speed (cubic vs quadratic)':'风能功率随风速三次方增长',labels:s.labels,series:[{name:en?'Wind power P (W)':'风能功率 P (W)',data:s.dP},{name:en?'Dynamic pressure (Pa)':'动压 (Pa)',data:s.dQ}]});
+}
+
+function __wppShow(which){
+  var c=document.getElementById('wppChart'), t=document.getElementById('wind_power_physicsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wppTabInit(){
+  var btns=document.querySelectorAll('.wpp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wppShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __wppShow('chart');
+  try{__wppChart();}catch(e){}
+}
+var __wppFn=calcTool;calcTool=function(){try{__wppFn();}catch(e){}try{__wppChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wppChart();}catch(e){}});try{__wppTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __power_factor_calcBoot(){ try{ __power_factor_calcPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __power_factor_calcBoot();
 else document.addEventListener('DOMContentLoaded', __power_factor_calcBoot);
 </script>
+<div class="pfc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pfcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __power_factor_calcBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pfcSweep(){
+  var s=num('s');
+  if(!isFinite(s)||s<=0)return null;
+  var labels=[],dF=[],dA=[];
+  var ps=[s*0.2,s*0.35,s*0.5,s*0.65,s*0.8,s*0.9,s];
+  for(var k=0;k<ps.length;k++){
+    var pv=ps[k], pf=pv/s;
+    labels.push(pv.toFixed(0));
+    dF.push(Math.round(pf*1000)/1000);
+    dA.push(Math.round(Math.acos(Math.min(1,pf))*180/Math.PI*100)/100);
+  }
+  return {labels:labels,dF:dF,dA:dA};
+}
+function __pfcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pfcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pfcChart',{title:en?'Power Factor & Phase Angle vs Active Power':'功率因数与相位角随有功功率变化',labels:s.labels,series:[{name:en?'Power factor PF':'功率因数 PF',data:s.dF},{name:en?'Phase angle (°)':'相位角 φ (°)',data:s.dA}]});
+}
+
+function __pfcShow(which){
+  var c=document.getElementById('pfcChart'), t=document.getElementById('power_factor_calcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pfcTabInit(){
+  var btns=document.querySelectorAll('.pfc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pfcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pfcShow('chart');
+  try{__pfcChart();}catch(e){}
+}
+var __pfcFn=calcTool;calcTool=function(){try{__pfcFn();}catch(e){}try{__pfcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pfcChart();}catch(e){}});try{__pfcTabInit();}catch(e){}
+</script>
 </body>
 </html>

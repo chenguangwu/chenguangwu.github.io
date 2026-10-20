@@ -249,6 +249,11 @@ function __solar_panel_powerBoot(){ try{ __solar_panel_powerPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __solar_panel_powerBoot();
 else document.addEventListener('DOMContentLoaded', __solar_panel_powerBoot);
 </script>
+<div class="spp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sppChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,44 @@ else document.addEventListener('DOMContentLoaded', __solar_panel_powerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sppSweep(){
+  var A=num('a'), eta=num('eta');
+  if(!isFinite(A)||!isFinite(eta)||A<=0||eta<=0)return null;
+  var labels=[],dO=[],dI=[];
+  var gs=[200,400,600,800,1000,1200];
+  for(var k=0;k<gs.length;k++){
+    var gv=gs[k];
+    labels.push(gv.toFixed(0));
+    dO.push(Math.round(A*gv*eta/1000*1000)/1000);
+    dI.push(Math.round(A*gv/1000*1000)/1000);
+  }
+  return {labels:labels,dO:dO,dI:dI};
+}
+function __sppChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sppSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sppChart',{title:en?'Solar Output vs Irradiance (output/input linear)':'光伏输出随辐照度线性增长',labels:s.labels,series:[{name:en?'Panel output (kW)':'输出功率 (kW)',data:s.dO},{name:en?'Incident irradiance (kW)':'入射辐照功率 (kW)',data:s.dI}]});
+}
+
+function __sppShow(which){
+  var c=document.getElementById('sppChart'), t=document.getElementById('solar_panel_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sppTabInit(){
+  var btns=document.querySelectorAll('.spp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sppShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sppShow('chart');
+  try{__sppChart();}catch(e){}
+}
+var __sppFn=calcTool;calcTool=function(){try{__sppFn();}catch(e){}try{__sppChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sppChart();}catch(e){}});try{__sppTabInit();}catch(e){}
+</script>
 </body>
 </html>

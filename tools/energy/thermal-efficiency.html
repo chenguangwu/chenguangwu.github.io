@@ -298,6 +298,11 @@ function __thermal_efficiencyBoot(){ try{ __thermal_efficiencyPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __thermal_efficiencyBoot();
 else document.addEventListener('DOMContentLoaded', __thermal_efficiencyBoot);
 </script>
+<div class="the-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="theChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __thermal_efficiencyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __theSweep(){
+  var i=num('in');
+  if(!isFinite(i)||i<=0)return null;
+  var labels=[],dE=[],dL=[];
+  var os=[i*0.1,i*0.25,i*0.4,i*0.55,i*0.7,i*0.85,i];
+  for(var k=0;k<os.length;k++){
+    var ov=os[k];
+    labels.push(ov.toFixed(0));
+    dE.push(Math.round(ov/i*100*100)/100);
+    dL.push(Math.round((1-ov/i)*100*100)/100);
+  }
+  return {labels:labels,dE:dE,dL:dL};
+}
+function __theChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__theSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#theChart',{title:en?'Thermal Efficiency vs Output (linear cross)':'热效率随有效输出线性上升',labels:s.labels,series:[{name:en?'Thermal efficiency (%)':'热效率 (%)',data:s.dE},{name:en?'Loss rate (%)':'损失率 (%)',data:s.dL}]});
+}
+
+function __theShow(which){
+  var c=document.getElementById('theChart'), t=document.getElementById('thermal_efficiencyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __theTabInit(){
+  var btns=document.querySelectorAll('.the-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__theShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __theShow('chart');
+  try{__theChart();}catch(e){}
+}
+var __theFn=calcTool;calcTool=function(){try{__theFn();}catch(e){}try{__theChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__theChart();}catch(e){}});try{__theTabInit();}catch(e){}
+</script>
 </body>
 </html>

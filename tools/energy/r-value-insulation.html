@@ -298,6 +298,11 @@ function __r_value_insulationBoot(){ try{ __r_value_insulationPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __r_value_insulationBoot();
 else document.addEventListener('DOMContentLoaded', __r_value_insulationBoot);
 </script>
+<div class="rvi-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rviChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,44 @@ else document.addEventListener('DOMContentLoaded', __r_value_insulationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rviSweep(){
+  var d=num('d');
+  if(!isFinite(d)||d<=0)return null;
+  var labels=[],dR=[],dU=[];
+  var ks=[0.02,0.03,0.04,0.06,0.1,0.15,0.2];
+  for(var k=0;k<ks.length;k++){
+    var kv=ks[k], R=d/kv;
+    labels.push(kv.toFixed(3));
+    dR.push(Math.round(R*1000)/1000);
+    dU.push(Math.round((1/R)*1000)/1000);
+  }
+  return {labels:labels,dR:dR,dU:dU};
+}
+function __rviChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rviSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rviChart',{title:en?'Thermal Resistance vs Conductivity (inverse mirror)':'热阻随导热系数反比下降',labels:s.labels,series:[{name:en?'Thermal resistance R (m²·K/W)':'热阻 R (m²·K/W)',data:s.dR},{name:en?'Heat transfer coeff. U (W/m²·K)':'传热系数 U (W/m²·K)',data:s.dU}]});
+}
+
+function __rviShow(which){
+  var c=document.getElementById('rviChart'), t=document.getElementById('r_value_insulationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rviTabInit(){
+  var btns=document.querySelectorAll('.rvi-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rviShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rviShow('chart');
+  try{__rviChart();}catch(e){}
+}
+var __rviFn=calcTool;calcTool=function(){try{__rviFn();}catch(e){}try{__rviChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rviChart();}catch(e){}});try{__rviTabInit();}catch(e){}
+</script>
 </body>
 </html>
