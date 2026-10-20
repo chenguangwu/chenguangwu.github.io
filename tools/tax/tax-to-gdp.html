@@ -298,6 +298,11 @@ function __tax_to_gdpBoot(){ try{ __tax_to_gdpPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __tax_to_gdpBoot();
 else document.addEventListener('DOMContentLoaded', __tax_to_gdpBoot);
 </script>
+<div class="ttg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ttgChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __tax_to_gdpBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ttgSweep(){
+  var tax=num('tax'), g0=num('gdp');
+  if(!isFinite(tax)||!isFinite(g0)||tax<=0||g0<=0)return null;
+  var labels=[],dR=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var gdp=g0*mults[k], ratio=tax/gdp*100;
+    labels.push((Math.round(gdp*100)/100).toFixed(0));
+    dR.push(Math.round(ratio*10000)/10000);
+    rows.push([(Math.round(gdp*100)/100).toFixed(0),(Math.round(ratio*10000)/10000).toFixed(3)]);
+  }
+  return {labels:labels,dR:dR,rows:rows};
+}
+function __ttgChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ttgSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ttgChart',{title:en?'Tax-to-GDP vs GDP (ratio=tax/gdp, inverse)':'税负率随 GDP 反比变化（ratio=tax/gdp）',labels:s.labels,series:[{name:en?'Tax/GDP (%)':'税负率 (%)',data:s.dR}]});
+}
+
+function __ttgShow(which){
+  var c=document.getElementById('ttgChart'), t=document.getElementById('tax_to_gdpTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ttgTabInit(){
+  var btns=document.querySelectorAll('.ttg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ttgShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ttgShow('chart');
+}
+var __ttgFn=calcTool;calcTool=function(){try{__ttgFn();}catch(e){}try{__ttgChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ttgChart();}catch(e){}});
+try{__ttgTabInit();}catch(e){}
+</script>
 </body>
 </html>

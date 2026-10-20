@@ -244,6 +244,11 @@ function __stamp_dutyBoot(){ try{ __stamp_dutyPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __stamp_dutyBoot();
 else document.addEventListener('DOMContentLoaded', __stamp_dutyBoot);
 </script>
+<div class="smd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="smdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __stamp_dutyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __smdSweep(){
+  var a0=num('amount'), r=num('r')/100;
+  if(!isFinite(a0)||!isFinite(r)||a0<=0||r<0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var a=a0*mults[k], tax=a*r;
+    labels.push((Math.round(a*100)/100).toFixed(0));
+    dT.push(Math.round(tax*1000)/1000);
+    rows.push([(Math.round(a*100)/100).toFixed(0),(Math.round(tax*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __smdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__smdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#smdChart',{title:en?'Stamp Duty vs Amount (tax=amount x r)':'印花税随金额线性变化（tax=金额×r）',labels:s.labels,series:[{name:en?'Duty':'印花税',data:s.dT}]});
+}
+
+function __smdShow(which){
+  var c=document.getElementById('smdChart'), t=document.getElementById('stamp_dutyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __smdTabInit(){
+  var btns=document.querySelectorAll('.smd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__smdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __smdShow('chart');
+}
+var __smdFn=calcTool;calcTool=function(){try{__smdFn();}catch(e){}try{__smdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__smdChart();}catch(e){}});
+try{__smdTabInit();}catch(e){}
+</script>
 </body>
 </html>

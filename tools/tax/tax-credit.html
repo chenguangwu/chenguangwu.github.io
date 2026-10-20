@@ -244,6 +244,11 @@ function __tax_creditBoot(){ try{ __tax_creditPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __tax_creditBoot();
 else document.addEventListener('DOMContentLoaded', __tax_creditBoot);
 </script>
+<div class="tcr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tcrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __tax_creditBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tcrSweep(){
+  var t0=num('t'), c=num('c');
+  if(!isFinite(t0)||!isFinite(c)||t0<=0||c<0)return null;
+  var labels=[],dTp=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var t=t0*mults[k], Tp=Math.max(t-c,0);
+    labels.push((Math.round(t*100)/100).toFixed(0));
+    dTp.push(Math.round(Tp*1000)/1000);
+    rows.push([(Math.round(t*100)/100).toFixed(0),(Math.round(Tp*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dTp:dTp,rows:rows};
+}
+function __tcrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tcrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tcrChart',{title:en?'Tax Payable vs Tax (Tp=max(t-c,0))':'应缴税额随原税额封顶折线（Tp=max(t−c,0)）',labels:s.labels,series:[{name:en?'Payable Tp':'应缴 Tp',data:s.dTp}]});
+}
+
+function __tcrShow(which){
+  var c=document.getElementById('tcrChart'), t=document.getElementById('tax_creditTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tcrTabInit(){
+  var btns=document.querySelectorAll('.tcr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tcrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tcrShow('chart');
+}
+var __tcrFn=calcTool;calcTool=function(){try{__tcrFn();}catch(e){}try{__tcrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tcrChart();}catch(e){}});
+try{__tcrTabInit();}catch(e){}
+</script>
 </body>
 </html>

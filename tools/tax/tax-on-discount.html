@@ -249,6 +249,11 @@ function __tax_on_discountBoot(){ try{ __tax_on_discountPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __tax_on_discountBoot();
 else document.addEventListener('DOMContentLoaded', __tax_on_discountBoot);
 </script>
+<div class="tod-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="todChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -284,5 +289,44 @@ else document.addEventListener('DOMContentLoaded', __tax_on_discountBoot);
 </dl>
 </div>
 </section>
+<script>
+function __todSweep(){
+  var p0=num('price'), d=num('disc')/100, r=num('r')/100;
+  if(!isFinite(p0)||!isFinite(d)||!isFinite(r)||p0<=0||d<0||r<0)return null;
+  var labels=[],dNet=[],dTax=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var p=p0*mults[k], net=p*(1-d), tax=net*r;
+    labels.push((Math.round(p*100)/100).toFixed(0));
+    dNet.push(Math.round(net*1000)/1000); dTax.push(Math.round(tax*1000)/1000);
+    rows.push([(Math.round(p*100)/100).toFixed(0),(Math.round(net*1000)/1000).toFixed(2),(Math.round(tax*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dNet:dNet,dTax:dTax,rows:rows};
+}
+function __todChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__todSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#todChart',{title:en?'Discount Tax vs Price (net=p(1-d), tax=net r)':'折扣计税随原价线性变化（net=p·(1−d)，税额=net·r）',labels:s.labels,series:[{name:en?'Net price':'折后价',data:s.dNet},{name:en?'Tax':'税额',data:s.dTax}]});
+}
+
+function __todShow(which){
+  var c=document.getElementById('todChart'), t=document.getElementById('tax_on_discountTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __todTabInit(){
+  var btns=document.querySelectorAll('.tod-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__todShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __todShow('chart');
+}
+var __todFn=calcTool;calcTool=function(){try{__todFn();}catch(e){}try{__todChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__todChart();}catch(e){}});
+try{__todTabInit();}catch(e){}
+</script>
 </body>
 </html>
