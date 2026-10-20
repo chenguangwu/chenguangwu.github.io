@@ -301,6 +301,11 @@ function __ideal_gas_volumeBoot(){ try{ __ideal_gas_volumePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __ideal_gas_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __ideal_gas_volumeBoot);
 </script>
+<div class="igv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="igvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,46 @@ else document.addEventListener('DOMContentLoaded', __ideal_gas_volumeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __igvSweep(){
+  var n=num('n'), T=num('T'), P0=num('P');
+  if(!isFinite(n)||!isFinite(T)||!isFinite(P0)||n<=0||T<=0||P0<=0)return null;
+  var Rr=8.314;
+  var labels=[],dV=[],dN=[],rows=[];
+  var ps=[50,100,150,200,300,400,500,800,101.325];
+  var psSorted=[50,101.325,150,200,300,400,500,800];
+  for(var k=0;k<psSorted.length;k++){
+    var P=psSorted[k], V=n*Rr*T/P;
+    labels.push(P.toFixed(1));
+    dV.push(Math.round(V*1000)/1000);
+    dN.push(Math.round(n*1000)/1000);
+    rows.push([P.toFixed(1),(Math.round(V*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dV:dV,dN:dN,rows:rows};
+}
+function __igvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__igvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#igvChart',{title:en?'Ideal Gas Volume vs Pressure (inverse V=nRT/P, Boyle)':'理想气体体积随压强反比下降（V=nRT/P，玻意耳定律）',labels:s.labels,series:[{name:en?'Volume V (L)':'体积 V (L)',data:s.dV}]});
+}
+
+function __igvShow(which){
+  var c=document.getElementById('igvChart'), t=document.getElementById('ideal_gas_volumeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __igvTabInit(){
+  var btns=document.querySelectorAll('.igv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__igvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __igvShow('chart');
+}
+var __igvFn=calcTool;calcTool=function(){try{__igvFn();}catch(e){}try{__igvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__igvChart();}catch(e){}});
+</script>
 </body>
 </html>

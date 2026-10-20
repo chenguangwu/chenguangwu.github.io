@@ -247,6 +247,11 @@ function __gibbs_free_energyBoot(){ try{ __gibbs_free_energyPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __gibbs_free_energyBoot();
 else document.addEventListener('DOMContentLoaded', __gibbs_free_energyBoot);
 </script>
+<div class="gfg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gfgChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,45 @@ else document.addEventListener('DOMContentLoaded', __gibbs_free_energyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gfgSweep(){
+  var dH=num('dH'), dS=num('dS');
+  if(!isFinite(dH)||!isFinite(dS))return null;
+  var R=8.314;
+  var labels=[],dG=[],dZero=[],rows=[];
+  var Ts=[100,200,273,298,350,400,500,600,800,1000];
+  for(var k=0;k<Ts.length;k++){
+    var T=Ts[k], g=dH-T*dS/1000;
+    labels.push(String(T));
+    dG.push(Math.round(g*100)/100);
+    dZero.push(0);
+    rows.push([String(T),(Math.round(g*100)/100).toFixed(2),(g<0?'自发':'非自发')]);
+  }
+  return {labels:labels,dG:dG,dZero:dZero,rows:rows};
+}
+function __gfgChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gfgSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gfgChart',{title:en?'Gibbs Free Energy vs Temperature (linear ΔG=ΔH−TΔS)':'吉布斯自由能随温度线性变化（ΔG=ΔH−TΔS）',labels:s.labels,series:[{name:en?'ΔG (kJ/mol)':'ΔG (kJ/mol)',data:s.dG},{name:en?'Zero line':'零线',data:s.dZero}]});
+}
+
+function __gfgShow(which){
+  var c=document.getElementById('gfgChart'), t=document.getElementById('gibbs_free_energyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gfgTabInit(){
+  var btns=document.querySelectorAll('.gfg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gfgShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gfgShow('chart');
+}
+var __gfgFn=calcTool;calcTool=function(){try{__gfgFn();}catch(e){}try{__gfgChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gfgChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -300,6 +300,11 @@ function __molarityBoot(){ try{ __molarityPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __molarityBoot();
 else document.addEventListener('DOMContentLoaded', __molarityBoot);
 </script>
+<div class="mol-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="molChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __molarityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __molSweep(){
+  var n=num('n'), V0=num('V');
+  if(!isFinite(n)||!isFinite(V0)||n<=0||V0<=0)return null;
+  var labels=[],dC=[],dNm=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var V=V0*mults[k], C=n/V;
+    labels.push((Math.round(V*1000)/1000).toFixed(3));
+    dC.push(Math.round(C*1e4*1000)/1000);
+    dNm.push(Math.round(n*1e4*1000)/1000);
+    rows.push([(Math.round(V*1000)/1000).toFixed(3),(Math.round(C*1e4*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dC:dC,dNm:dNm,rows:rows};
+}
+function __molChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__molSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#molChart',{title:en?'Molarity vs Volume (inverse C=n/V)':'摩尔浓度随溶液体积反比下降（C=n/V）',labels:s.labels,series:[{name:en?'Molarity C (×10⁻⁴ mol/L)':'摩尔浓度 (×10⁻⁴ mol/L)',data:s.dC}]});
+}
+
+function __molShow(which){
+  var c=document.getElementById('molChart'), t=document.getElementById('molarityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __molTabInit(){
+  var btns=document.querySelectorAll('.mol-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__molShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __molShow('chart');
+}
+var __molFn=calcTool;calcTool=function(){try{__molFn();}catch(e){}try{__molChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__molChart();}catch(e){}});
+</script>
 </body>
 </html>

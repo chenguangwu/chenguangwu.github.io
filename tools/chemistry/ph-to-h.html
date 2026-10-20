@@ -243,6 +243,11 @@ function __ph_to_hBoot(){ try{ __ph_to_hPresets(); }catch(e){} try{ calcTool(); 
 if (document.readyState && document.readyState !== 'loading') __ph_to_hBoot();
 else document.addEventListener('DOMContentLoaded', __ph_to_hBoot);
 </script>
+<div class="pth-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pthChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,41 @@ else document.addEventListener('DOMContentLoaded', __ph_to_hBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pthSweep(){
+  var phs=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+  var labels=[],dLog=[],rows=[];
+  for(var k=0;k<phs.length;k++){
+    var H=Math.pow(10,-phs[k]);
+    labels.push(String(phs[k]));
+    dLog.push(Math.round(Math.log10(H)*1000)/1000);
+    rows.push([String(phs[k]),H.toExponential(2),Math.log10(H).toFixed(3)]);
+  }
+  return {labels:labels,dLog:dLog,rows:rows};
+}
+function __pthChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pthSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pthChart',{title:en?'log[H⁺] vs pH (linear on log scale, [H⁺]=10^-pH)':'氢离子浓度对数随 pH 线性下降（[H⁺]=10^-pH）',labels:s.labels,series:[{name:en?'log₁₀[H⁺]':'lg[H⁺]',data:s.dLog}]});
+}
+
+function __pthShow(which){
+  var c=document.getElementById('pthChart'), t=document.getElementById('ph_to_hTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pthTabInit(){
+  var btns=document.querySelectorAll('.pth-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pthShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pthShow('chart');
+}
+var __pthFn=calcTool;calcTool=function(){try{__pthFn();}catch(e){}try{__pthChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pthChart();}catch(e){}});
+</script>
 </body>
 </html>
