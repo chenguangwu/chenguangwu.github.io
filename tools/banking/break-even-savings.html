@@ -258,6 +258,11 @@ function resetForm(){document.getElementById('rd').value = '2';
       calcTool();}
 calcTool();
 </script>
+<div class="bes-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="besChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,6 +339,45 @@ calcTool = function(){ __tb_fn0(); try{ __break_even_savingsExtras(); }catch(e){
 function __break_even_savingsBoot(){ try{ __break_even_savingsPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __break_even_savingsBoot();
 else document.addEventListener('DOMContentLoaded', __break_even_savingsBoot);
+</script>
+<script>
+function __besSweep(){
+  var rd=num('rd'), rl=num('rl');
+  if(!isFinite(rd)||!isFinite(rl)||rd<=0||rl<=0)return null;
+  var labels=[],dX=[],dInv=[],rows=[];
+  var rds=[1,2,3,4,5,6,8,10,12];
+  for(var k=0;k<rds.length;k++){
+    var x=rl/(rds[k]+rl);
+    labels.push(rds[k].toFixed(1));
+    dX.push(Math.round(x*1e4*1000)/1000);
+    dInv.push(Math.round((1/rds[k])*1e4*1000)/1000);
+    rows.push([rds[k].toFixed(1),(Math.round(x*1e4*1000)/1000).toFixed(3),(Math.round(1/rds[k]*1e4*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dX:dX,dInv:dInv,rows:rows};
+}
+function __besChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__besSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#besChart',{title:en?'Break-even Ratio vs Deposit Rate (inverse x=rl/(rd+rl))':'盈亏平衡比例随存款利率反比下降（x=r_l/(r_d+r_l)）',labels:s.labels,series:[{name:en?'Ratio x (×10⁻⁴)':'比例 x (×10⁻⁴)',data:s.dX}]});
+}
+
+function __besShow(which){
+  var c=document.getElementById('besChart'), t=document.getElementById('break_even_savingsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __besTabInit(){
+  var btns=document.querySelectorAll('.bes-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__besShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __besShow('chart');
+}
+var __besFn=calcTool;calcTool=function(){try{__besFn();}catch(e){}try{__besChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__besChart();}catch(e){}});
 </script>
 </body>
 </html>

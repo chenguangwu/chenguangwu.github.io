@@ -258,6 +258,11 @@ function resetForm(){document.getElementById('c').value = '50';
       calcTool();}
 calcTool();
 </script>
+<div class="bcy-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bcyChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,6 +339,45 @@ calcTool = function(){ __tb_fn0(); try{ __bond_current_yieldExtras(); }catch(e){
 function __bond_current_yieldBoot(){ try{ __bond_current_yieldPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __bond_current_yieldBoot();
 else document.addEventListener('DOMContentLoaded', __bond_current_yieldBoot);
+</script>
+<script>
+function __bcySweep(){
+  var c=num('c'), p0=num('p');
+  if(!isFinite(c)||!isFinite(p0)||c<=0||p0<=0)return null;
+  var labels=[],dCy=[],dYtm=[],rows=[];
+  var mults=[0.6,0.8,0.9,1,1.1,1.2,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var p=p0*mults[k], CY=c/p;
+    labels.push((Math.round(p*100)/100).toFixed(2));
+    dCy.push(Math.round(CY*1e4*1000)/1000);
+    dYtm.push(Math.round(c/p0*1e4*1000)/1000);
+    rows.push([(Math.round(p*100)/100).toFixed(2),(Math.round(CY*1e4*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dCy:dCy,dYtm:dYtm,rows:rows};
+}
+function __bcyChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bcySweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bcyChart',{title:en?'Current Yield vs Market Price (inverse CY=c/p)':'当期收益率随市价反比下降（CY=c/p）',labels:s.labels,series:[{name:en?'Current yield (×10⁻⁴)':'当期收益率 (×10⁻⁴)',data:s.dCy},{name:en?'At par (×10⁻⁴)':'面值时 (×10⁻⁴)',data:s.dYtm}]});
+}
+
+function __bcyShow(which){
+  var c=document.getElementById('bcyChart'), t=document.getElementById('bond_current_yieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bcyTabInit(){
+  var btns=document.querySelectorAll('.bcy-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bcyShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bcyShow('chart');
+}
+var __bcyFn=calcTool;calcTool=function(){try{__bcyFn();}catch(e){}try{__bcyChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bcyChart();}catch(e){}});
 </script>
 </body>
 </html>

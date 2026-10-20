@@ -206,6 +206,11 @@ function resetForm(){document.getElementById('p').value = '500000';
       calcTool();}
 calcTool();
 </script>
+<div class="afi-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="afiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,6 +287,45 @@ calcTool = function(){ __tb_fn0(); try{ __amortization_first_interestExtras(); }
 function __amortization_first_interestBoot(){ try{ __amortization_first_interestPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __amortization_first_interestBoot();
 else document.addEventListener('DOMContentLoaded', __amortization_first_interestBoot);
+</script>
+<script>
+function __afiSweep(){
+  var P=num('p'), r0=num('r');
+  if(!isFinite(P)||!isFinite(r0)||P<=0)return null;
+  var labels=[],dI1=[],dPrin=[],rows=[];
+  var rates=[1,2,3,4,5,6,8,10,12];
+  for(var k=0;k<rates.length;k++){
+    var r=rates[k]/100/12, I1=P*r;
+    labels.push(rates[k].toFixed(1));
+    dI1.push(Math.round(I1*100)/100);
+    dPrin.push(Math.round((P-I1)*100)/100);
+    rows.push([rates[k].toFixed(1),(Math.round(I1*100)/100).toFixed(2),(Math.round((P-I1)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dI1:dI1,dPrin:dPrin,rows:rows};
+}
+function __afiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__afiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#afiChart',{title:en?'First-Month Interest vs Annual Rate (linear I₁=P·r/12)':'首月利息随年利率线性增长（I₁=P·r/12）',labels:s.labels,series:[{name:en?'First interest (元)':'首月利息 (元)',data:s.dI1},{name:en?'Principal repaid (元)':'首月还本 (元)',data:s.dPrin}]});
+}
+
+function __afiShow(which){
+  var c=document.getElementById('afiChart'), t=document.getElementById('amortization_first_interestTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __afiTabInit(){
+  var btns=document.querySelectorAll('.afi-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__afiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __afiShow('chart');
+}
+var __afiFn=calcTool;calcTool=function(){try{__afiFn();}catch(e){}try{__afiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__afiChart();}catch(e){}});
 </script>
 </body>
 </html>
