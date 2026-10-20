@@ -309,6 +309,11 @@ function __power_calcBoot(){ try{ __power_calcPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __power_calcBoot();
 else document.addEventListener('DOMContentLoaded', __power_calcBoot);
 </script>
+<div class="pwc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pwcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,5 +349,44 @@ else document.addEventListener('DOMContentLoaded', __power_calcBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pwcSweep(){
+  var x=num('x');
+  if(!isFinite(x)||x<=0)return null;
+  var labels=[], dP=[], dL=[];
+  var ys=[-2,-1,-0.5,0,0.5,1,2,4];
+  for(var k=0;k<ys.length;k++){
+    var yv=ys[k], pv=Math.pow(x,yv);
+    labels.push(yv.toFixed(1));
+    dP.push(Math.round(pv*10000)/10000);
+    dL.push(Math.round(Math.log(Math.max(pv,1e-12))*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dL:dL};
+}
+function __pwcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pwcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pwcChart',{title:en?'Power x^y vs Exponent y (exponential, x⁰=1 pivot)':'幂 xʸ 随指数指数增长（x⁰=1 为枢轴）',labels:s.labels,series:[{name:en?'Power x^y':'幂值 xʸ',data:s.dP},{name:en?'ln(x^y)':'对数值 ln(xʸ)',data:s.dL}]});
+}
+
+function __pwcShow(which){
+  var c=document.getElementById('pwcChart'), t=document.getElementById('power_calcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pwcTabInit(){
+  var btns=document.querySelectorAll('.pwc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pwcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pwcShow('chart');
+  try{__pwcChart();}catch(e){}
+}
+var __pwcFn=calcTool;calcTool=function(){try{__pwcFn();}catch(e){}try{__pwcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pwcChart();}catch(e){}});try{__pwcTabInit();}catch(e){}
+</script>
 </body>
 </html>

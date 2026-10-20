@@ -249,6 +249,11 @@ function __quadratic_discriminantBoot(){ try{ __quadratic_discriminantPresets();
 if (document.readyState && document.readyState !== 'loading') __quadratic_discriminantBoot();
 else document.addEventListener('DOMContentLoaded', __quadratic_discriminantBoot);
 </script>
+<div class="qdd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="qddChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,46 @@ else document.addEventListener('DOMContentLoaded', __quadratic_discriminantBoot)
 </dl>
 </div>
 </section>
+<script>
+function __qddSweep(){
+  var a=num('a'), b=num('b');
+  if(!isFinite(a)||!isFinite(b)||a===0)return null;
+  var labels=[], dD=[], dV=[];
+  var cs=[-4,-2,-1,0,1,2,4,6];
+  for(var k=0;k<cs.length;k++){
+    var cv=cs[k], D=b*b-4*a*cv;
+    var xv=-b/(2*a);
+    var yv=a*xv*xv+b*xv+cv;
+    labels.push(cv.toFixed(0));
+    dD.push(Math.round(D*1000)/1000);
+    dV.push(Math.round(yv*1000)/1000);
+  }
+  return {labels:labels,dD:dD,dV:dV};
+}
+function __qddChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__qddSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#qddChart',{title:en?'Discriminant Δ=b²-4ac vs c (zero-crossing = double root)':'判别式 Δ=b²−4ac 随常数项 c 线性变化（Δ=0 为重根）',labels:s.labels,series:[{name:en?'Discriminant Δ':'判别式 Δ',data:s.dD},{name:en?'Vertex y-value':'顶点纵坐标',data:s.dV}]});
+}
+
+function __qddShow(which){
+  var c=document.getElementById('qddChart'), t=document.getElementById('quadratic_discriminantTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __qddTabInit(){
+  var btns=document.querySelectorAll('.qdd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__qddShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __qddShow('chart');
+  try{__qddChart();}catch(e){}
+}
+var __qddFn=calcTool;calcTool=function(){try{__qddFn();}catch(e){}try{__qddChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__qddChart();}catch(e){}});try{__qddTabInit();}catch(e){}
+</script>
 </body>
 </html>

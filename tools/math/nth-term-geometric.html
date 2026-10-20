@@ -301,6 +301,11 @@ function __nth_term_geometricBoot(){ try{ __nth_term_geometricPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __nth_term_geometricBoot();
 else document.addEventListener('DOMContentLoaded', __nth_term_geometricBoot);
 </script>
+<div class="ntg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ntgChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,46 @@ else document.addEventListener('DOMContentLoaded', __nth_term_geometricBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ntgSweep(){
+  var a1=num('a1'), r=num('r');
+  if(!isFinite(a1)||!isFinite(r))return null;
+  var labels=[], dT=[], dS=[];
+  var ns=[1,2,3,4,5,6,8,10];
+  var run=0;
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k], an=a1*Math.pow(r,nv-1);
+    run+=an;
+    labels.push('n'+nv);
+    dT.push(Math.round(an*1000)/1000);
+    dS.push(Math.round(run*1000)/1000);
+  }
+  return {labels:labels,dT:dT,dS:dS};
+}
+function __ntgChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ntgSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ntgChart',{title:en?'Geometric nth Term a₁r^(n-1) vs n (exponential)':'等比数列第 n 项随 n 指数增长（附前缀和）',labels:s.labels,series:[{name:en?'nth term a_n':'第 n 项 a_n',data:s.dT},{name:en?'Running sum':'前缀和',data:s.dS}]});
+}
+
+function __ntgShow(which){
+  var c=document.getElementById('ntgChart'), t=document.getElementById('nth_term_geometricTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ntgTabInit(){
+  var btns=document.querySelectorAll('.ntg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ntgShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ntgShow('chart');
+  try{__ntgChart();}catch(e){}
+}
+var __ntgFn=calcTool;calcTool=function(){try{__ntgFn();}catch(e){}try{__ntgChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ntgChart();}catch(e){}});try{__ntgTabInit();}catch(e){}
+</script>
 </body>
 </html>

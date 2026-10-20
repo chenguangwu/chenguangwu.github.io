@@ -242,6 +242,11 @@ function __root_calcBoot(){ try{ __root_calcPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __root_calcBoot();
 else document.addEventListener('DOMContentLoaded', __root_calcBoot);
 </script>
+<div class="rtc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rtcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,42 @@ else document.addEventListener('DOMContentLoaded', __root_calcBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rtcSweep(){
+  var labels=[], dS=[], dC=[];
+  var xs=[0,0.25,0.5,1,2,4,9,16];
+  for(var k=0;k<xs.length;k++){
+    var xv=xs[k];
+    labels.push(xv.toFixed(2));
+    dS.push(Math.round(Math.sqrt(Math.max(xv,0))*1000)/1000);
+    dC.push(Math.round(Math.cbrt(xv)*1000)/1000);
+  }
+  return {labels:labels,dS:dS,dC:dC};
+}
+function __rtcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rtcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rtcChart',{title:en?'Square Root (√x) & Cube Root (∛x) vs x (both concave)':'平方根与立方根随 x 增长（均为凹曲线）',labels:s.labels,series:[{name:en?'Square root √x':'平方根 √x',data:s.dS},{name:en?'Cube root ∛x':'立方根 ∛x',data:s.dC}]});
+}
+
+function __rtcShow(which){
+  var c=document.getElementById('rtcChart'), t=document.getElementById('root_calcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rtcTabInit(){
+  var btns=document.querySelectorAll('.rtc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rtcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rtcShow('chart');
+  try{__rtcChart();}catch(e){}
+}
+var __rtcFn=calcTool;calcTool=function(){try{__rtcFn();}catch(e){}try{__rtcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rtcChart();}catch(e){}});try{__rtcTabInit();}catch(e){}
+</script>
 </body>
 </html>

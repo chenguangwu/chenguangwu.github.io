@@ -256,6 +256,11 @@ function __slope_lineBoot(){ try{ __slope_linePresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __slope_lineBoot();
 else document.addEventListener('DOMContentLoaded', __slope_lineBoot);
 </script>
+<div class="sll-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sllChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -291,5 +296,48 @@ else document.addEventListener('DOMContentLoaded', __slope_lineBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sllSweep(){
+  var x1=num('x1'), y1=num('y1'), y2=num('y2');
+  if(!isFinite(x1)||!isFinite(y1)||!isFinite(y2))return null;
+  var labels=[], dK=[], dA=[];
+  var xs=[-4,-2,0,1,2,4,8,16];
+  for(var k=0;k<xs.length;k++){
+    var xv=xs[k], dx=xv-x1;
+    labels.push(xv.toFixed(0));
+    if(Math.abs(dx)<1e-9){ dK.push(null); dA.push(null); }
+    else{
+      var kv=(y2-y1)/dx;
+      dK.push(Math.round(kv*1000)/1000);
+      dA.push(Math.round(Math.atan(kv)*180/Math.PI*100)/100);
+    }
+  }
+  return {labels:labels,dK:dK,dA:dA};
+}
+function __sllChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sllSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sllChart',{title:en?'Slope & Inclination Angle vs x₂ (hyperbolic, undefined at vertical)':'直线斜率与倾角随终点横坐标双曲变化（竖直处无定义断开）',labels:s.labels,series:[{name:en?'Slope k':'斜率 k',data:s.dK},{name:en?'Inclination angle (°)':'倾角 (°)',data:s.dA}]});
+}
+
+function __sllShow(which){
+  var c=document.getElementById('sllChart'), t=document.getElementById('slope_lineTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sllTabInit(){
+  var btns=document.querySelectorAll('.sll-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sllShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sllShow('chart');
+  try{__sllChart();}catch(e){}
+}
+var __sllFn=calcTool;calcTool=function(){try{__sllFn();}catch(e){}try{__sllChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sllChart();}catch(e){}});try{__sllTabInit();}catch(e){}
+</script>
 </body>
 </html>

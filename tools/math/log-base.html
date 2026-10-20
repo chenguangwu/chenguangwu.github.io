@@ -248,6 +248,11 @@ function __log_baseBoot(){ try{ __log_basePresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __log_baseBoot();
 else document.addEventListener('DOMContentLoaded', __log_baseBoot);
 </script>
+<div class="lgb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lgbChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +299,45 @@ else document.addEventListener('DOMContentLoaded', __log_baseBoot);
 <h3>结果含义</h3><p>换底公式 log_b(x)=ln(x)/ln(b)：将任意底对数转为自然对数（或常用对数）计算。</p>
 <h3>用法</h3><p>结果表示"b 的几次方等于 x"。b>1 时单调增；b∈(0,1) 时单调减。x>0、b>0 且 b≠1。</p>
 </div></section>
+<script>
+function __lgbSweep(){
+  var b=num('b');
+  if(!isFinite(b)||b<=0||Math.abs(b-1)<1e-12)return null;
+  var lb=Math.log(b);
+  var labels=[], dL=[], dN=[];
+  var xs=[0.1,0.5,1,2,10,100,1000,10000];
+  for(var k=0;k<xs.length;k++){
+    var xv=xs[k], v=Math.log(xv)/lb;
+    labels.push(xv.toFixed(1));
+    dL.push(Math.round(v*1000)/1000);
+    dN.push(Math.round(Math.log(xv)*1000)/1000);
+  }
+  return {labels:labels,dL:dL,dN:dN};
+}
+function __lgbChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lgbSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lgbChart',{title:en?'Logarithm log_b(x) vs x (logarithmic growth, zero at x=1)':'对数 log_b(x) 随真数对数增长（x=1 处取零）',labels:s.labels,series:[{name:en?'log_b(x)':'对数值 log_b(x)',data:s.dL},{name:en?'Natural log ln(x)':'自然对数 ln(x)',data:s.dN}]});
+}
+
+function __lgbShow(which){
+  var c=document.getElementById('lgbChart'), t=document.getElementById('log_baseTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lgbTabInit(){
+  var btns=document.querySelectorAll('.lgb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lgbShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lgbShow('chart');
+  try{__lgbChart();}catch(e){}
+}
+var __lgbFn=calcTool;calcTool=function(){try{__lgbFn();}catch(e){}try{__lgbChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lgbChart();}catch(e){}});try{__lgbTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -257,6 +257,11 @@ function __quadratic_solverBoot(){ try{ __quadratic_solverPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __quadratic_solverBoot();
 else document.addEventListener('DOMContentLoaded', __quadratic_solverBoot);
 </script>
+<div class="qds-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="qdsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -292,5 +297,48 @@ else document.addEventListener('DOMContentLoaded', __quadratic_solverBoot);
 </dl>
 </div>
 </section>
+<script>
+function __qdsSweep(){
+  var a=num('a'), b=num('b');
+  if(!isFinite(a)||!isFinite(b)||a===0)return null;
+  var labels=[], d1=[], d2=[];
+  var cs=[-4,-2,-1,0,1,2,4,6];
+  for(var k=0;k<cs.length;k++){
+    var cv=cs[k], D=b*b-4*a*cv;
+    labels.push(cv.toFixed(0));
+    if(D<0){ d1.push(null); d2.push(null); }
+    else{
+      var sq=Math.sqrt(D);
+      d1.push(Math.round((-b+sq)/(2*a)*1000)/1000);
+      d2.push(Math.round((-b-sq)/(2*a)*1000)/1000);
+    }
+  }
+  return {labels:labels,d1:d1,d2:d2};
+}
+function __qdsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__qdsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#qdsChart',{title:en?'Quadratic Roots x₁,x₂ vs c (merge at Δ=0, vanish when Δ<0)':'二次方程两根随常数项 c 变化（Δ=0 处重合，Δ<0 无实根断开）',labels:s.labels,series:[{name:en?'Root x₁':'根 x₁',data:s.d1},{name:en?'Root x₂':'根 x₂',data:s.d2}]});
+}
+
+function __qdsShow(which){
+  var c=document.getElementById('qdsChart'), t=document.getElementById('quadratic_solverTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __qdsTabInit(){
+  var btns=document.querySelectorAll('.qds-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__qdsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __qdsShow('chart');
+  try{__qdsChart();}catch(e){}
+}
+var __qdsFn=calcTool;calcTool=function(){try{__qdsFn();}catch(e){}try{__qdsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__qdsChart();}catch(e){}});try{__qdsTabInit();}catch(e){}
+</script>
 </body>
 </html>
