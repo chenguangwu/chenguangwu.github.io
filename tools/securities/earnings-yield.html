@@ -298,6 +298,11 @@ function __earnings_yieldBoot(){ try{ __earnings_yieldPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __earnings_yieldBoot();
 else document.addEventListener('DOMContentLoaded', __earnings_yieldBoot);
 </script>
+<div class="eyd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="eydChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __earnings_yieldBoot);
 </dl>
 </div>
 </section>
+<script>
+function __eydSweep(){
+  var EPS=num('EPS');
+  if(!isFinite(EPS)||EPS<=0)return null;
+  var labels=[], dY=[], dE=[];
+  var Ps=[20,40,60,80,100,150,200,300];
+  for(var k=0;k<Ps.length;k++){
+    var pv=Ps[k], ey=EPS/pv*100;
+    labels.push(pv.toFixed(0));
+    dY.push(Math.round(ey*1000)/1000);
+    dE.push(Math.round(pv/EPS*1000)/1000);
+  }
+  return {labels:labels,dY:dY,dE:dE};
+}
+function __eydChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__eydSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#eydChart',{title:en?'Earnings Yield vs Price (inverse E/P, P/E mirror)':'盈利收益率随股价反比下降（P/E 镜像上升）',labels:s.labels,series:[{name:en?'Earnings yield (%)':'盈利收益率 (%)',data:s.dY},{name:en?'P/E ratio':'市盈率 P/E',data:s.dE}]});
+}
+
+function __eydShow(which){
+  var c=document.getElementById('eydChart'), t=document.getElementById('earnings_yieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __eydTabInit(){
+  var btns=document.querySelectorAll('.eyd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__eydShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __eydShow('chart');
+  try{__eydChart();}catch(e){}
+}
+var __eydFn=calcTool;calcTool=function(){try{__eydFn();}catch(e){}try{__eydChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__eydChart();}catch(e){}});try{__eydTabInit();}catch(e){}
+</script>
 </body>
 </html>

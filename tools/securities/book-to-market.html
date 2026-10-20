@@ -298,6 +298,11 @@ function __book_to_marketBoot(){ try{ __book_to_marketPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __book_to_marketBoot();
 else document.addEventListener('DOMContentLoaded', __book_to_marketBoot);
 </script>
+<div class="btm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="btmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __book_to_marketBoot);
 </dl>
 </div>
 </section>
+<script>
+function __btmSweep(){
+  var BVPS=num('BVPS');
+  if(!isFinite(BVPS)||BVPS<=0)return null;
+  var labels=[], dB=[], dP=[];
+  var Ps=[20,40,60,80,100,150,200,300];
+  for(var k=0;k<Ps.length;k++){
+    var pv=Ps[k], BM=BVPS/pv;
+    labels.push(pv.toFixed(0));
+    dB.push(Math.round(BM*1000)/1000);
+    dP.push(Math.round(pv/BVPS*1000)/1000);
+  }
+  return {labels:labels,dB:dB,dP:dP};
+}
+function __btmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__btmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#btmChart',{title:en?'Book-to-Market vs Price (inverse B/M, P/B mirror)':'账面市值比随股价反比下降（P/B 镜像上升）',labels:s.labels,series:[{name:en?'Book-to-market B/M':'账面市值比 B/M',data:s.dB},{name:en?'Price-to-book P/B':'市净率 P/B',data:s.dP}]});
+}
+
+function __btmShow(which){
+  var c=document.getElementById('btmChart'), t=document.getElementById('book_to_marketTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __btmTabInit(){
+  var btns=document.querySelectorAll('.btm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__btmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __btmShow('chart');
+  try{__btmChart();}catch(e){}
+}
+var __btmFn=calcTool;calcTool=function(){try{__btmFn();}catch(e){}try{__btmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__btmChart();}catch(e){}});try{__btmTabInit();}catch(e){}
+</script>
 </body>
 </html>

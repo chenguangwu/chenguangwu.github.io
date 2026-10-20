@@ -295,6 +295,11 @@ function __current_yieldBoot(){ try{ __current_yieldPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __current_yieldBoot();
 else document.addEventListener('DOMContentLoaded', __current_yieldBoot);
 </script>
+<div class="cyd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cydChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,44 @@ else document.addEventListener('DOMContentLoaded', __current_yieldBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cydSweep(){
+  var c=num('c');
+  if(!isFinite(c)||c<=0)return null;
+  var labels=[], dY=[], dR=[];
+  var ps=[700,800,900,950,1000,1050,1100,1200];
+  for(var k=0;k<ps.length;k++){
+    var pv=ps[k], y=c/pv*100;
+    labels.push(pv.toFixed(0));
+    dY.push(Math.round(y*10000)/10000);
+    dR.push(Math.round(pv/c*1000)/1000);
+  }
+  return {labels:labels,dY:dY,dR:dR};
+}
+function __cydChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cydSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cydChart',{title:en?'Current Yield vs Bond Price (inverse y=C/P)':'当前收益率随债券现价反比下降（y=C/P）',labels:s.labels,series:[{name:en?'Current yield (%)':'当前收益率 (%)',data:s.dY},{name:en?'Payback multiple P/C':'回本倍数 P/C',data:s.dR}]});
+}
+
+function __cydShow(which){
+  var c=document.getElementById('cydChart'), t=document.getElementById('current_yieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cydTabInit(){
+  var btns=document.querySelectorAll('.cyd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cydShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cydShow('chart');
+  try{__cydChart();}catch(e){}
+}
+var __cydFn=calcTool;calcTool=function(){try{__cydFn();}catch(e){}try{__cydChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cydChart();}catch(e){}});try{__cydTabInit();}catch(e){}
+</script>
 </body>
 </html>

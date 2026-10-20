@@ -316,6 +316,11 @@ function __ddm_priceBoot(){ try{ __ddm_pricePresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __ddm_priceBoot();
 else document.addEventListener('DOMContentLoaded', __ddm_priceBoot);
 </script>
+<div class="ddm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ddmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -351,5 +356,47 @@ else document.addEventListener('DOMContentLoaded', __ddm_priceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ddmSweep(){
+  var d1=num('d1'), r=num('r');
+  if(!isFinite(d1)||!isFinite(r)||d1<=0)return null;
+  var labels=[], dP=[], dY=[];
+  var gs=[0,0.01,0.02,0.03,0.04,0.06,0.08,0.09];
+  for(var k=0;k<gs.length;k++){
+    var gv=gs[k], den=r-gv;
+    if(den<=0.0005)continue;
+    var pv=d1/den;
+    labels.push((gv*100).toFixed(1)+'%');
+    dP.push(Math.round(pv*100)/100);
+    dY.push(Math.round(d1/pv*100*1000)/1000);
+  }
+  if(!labels.length)return null;
+  return {labels:labels,dP:dP,dY:dY};
+}
+function __ddmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ddmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ddmChart',{title:en?'DDM Price vs Growth Rate (hyperbolic, pole at g=r)':'股利贴现模型定价随增长率双曲上升（g→r 处极点）',labels:s.labels,series:[{name:en?'Intrinsic price P (¥)':'内在价值 P (元)',data:s.dP},{name:en?'Dividend yield (%)':'股利收益率 (%)',data:s.dY}]});
+}
+
+function __ddmShow(which){
+  var c=document.getElementById('ddmChart'), t=document.getElementById('ddm_priceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ddmTabInit(){
+  var btns=document.querySelectorAll('.ddm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ddmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ddmShow('chart');
+  try{__ddmChart();}catch(e){}
+}
+var __ddmFn=calcTool;calcTool=function(){try{__ddmFn();}catch(e){}try{__ddmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ddmChart();}catch(e){}});try{__ddmTabInit();}catch(e){}
+</script>
 </body>
 </html>

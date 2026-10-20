@@ -300,6 +300,11 @@ function __book_value_per_shareBoot(){ try{ __book_value_per_sharePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __book_value_per_shareBoot();
 else document.addEventListener('DOMContentLoaded', __book_value_per_shareBoot);
 </script>
+<div class="bvp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bvpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,46 @@ else document.addEventListener('DOMContentLoaded', __book_value_per_shareBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bvpSweep(){
+  var eq=num('eq'), pref=num('pref');
+  if(!isFinite(eq)||!isFinite(pref))return null;
+  var net=eq-pref;
+  if(net<=0)return null;
+  var labels=[], dB=[], dT=[];
+  var shs=[1e7,2e7,5e7,1e8,2e8,4e8,8e8,1.5e9];
+  for(var k=0;k<shs.length;k++){
+    var sv=shs[k], bv=net/sv;
+    labels.push((sv/1e8).toFixed(2));
+    dB.push(Math.round(bv*10000)/10000);
+    dT.push(Math.round(net/1e8*100)/100);
+  }
+  return {labels:labels,dB:dB,dT:dT};
+}
+function __bvpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bvpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bvpChart',{title:en?'Book Value per Share vs Shares Outstanding (inverse)':'每股净资产随流通股数反比下降',labels:s.labels,series:[{name:en?'Book value per share (¥)':'每股净资产 (元)',data:s.dB},{name:en?'Net equity (×10⁸ ¥)':'净资产 (×10⁸ 元)',data:s.dT}]});
+}
+
+function __bvpShow(which){
+  var c=document.getElementById('bvpChart'), t=document.getElementById('book_value_per_shareTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bvpTabInit(){
+  var btns=document.querySelectorAll('.bvp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bvpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bvpShow('chart');
+  try{__bvpChart();}catch(e){}
+}
+var __bvpFn=calcTool;calcTool=function(){try{__bvpFn();}catch(e){}try{__bvpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bvpChart();}catch(e){}});try{__bvpTabInit();}catch(e){}
+</script>
 </body>
 </html>
