@@ -255,6 +255,11 @@ function __life_cover_needBoot(){ try{ __life_cover_needPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __life_cover_needBoot();
 else document.addEventListener('DOMContentLoaded', __life_cover_needBoot);
 </script>
+<div class="lcn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lcnChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -288,5 +293,44 @@ else document.addEventListener('DOMContentLoaded', __life_cover_needBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lcnSweep(){
+  var inc=num('income'), d=num('debt'), a=num('asset');
+  if(!isFinite(inc)||!isFinite(d)||!isFinite(a)||inc<=0)return null;
+  var labels=[],dC=[],dR=[];
+  var ys=[5,10,15,20,25,30];
+  for(var k=0;k<ys.length;k++){
+    var yv=ys[k];
+    labels.push(yv.toFixed(0));
+    dC.push(Math.round((inc*yv+d-a)*100)/100);
+    dR.push(Math.round(inc*yv*100)/100);
+  }
+  return {labels:labels,dC:dC,dR:dR};
+}
+function __lcnChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lcnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lcnChart',{title:en?'Life Cover Need vs Income Years (offset linear)':'建议保额随收入替代年数线性增长',labels:s.labels,series:[{name:en?'Recommended cover (¥)':'建议保额 (元)',data:s.dC},{name:en?'Income replacement (¥)':'收入替代部分 (元)',data:s.dR}]});
+}
+
+function __lcnShow(which){
+  var c=document.getElementById('lcnChart'), t=document.getElementById('life_cover_needTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lcnTabInit(){
+  var btns=document.querySelectorAll('.lcn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lcnShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lcnShow('chart');
+  try{__lcnChart();}catch(e){}
+}
+var __lcnFn=calcTool;calcTool=function(){try{__lcnFn();}catch(e){}try{__lcnChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lcnChart();}catch(e){}});try{__lcnTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __loss_ratioBoot(){ try{ __loss_ratioPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __loss_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __loss_ratioBoot);
 </script>
+<div class="lor-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lorChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,45 @@ else document.addEventListener('DOMContentLoaded', __loss_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lorSweep(){
+  var p=num('premium');
+  if(!isFinite(p)||p<=0)return null;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var labels=[],dL=[],dM=[];
+  var cs=[2000000,4000000,6000000,8000000,10000000,12000000];
+  for(var k=0;k<cs.length;k++){
+    var cv=cs[k], lr=cv/p*100;
+    labels.push(en?((cv/10000).toFixed(0)+'\u00d710\u2074'):((cv/10000).toFixed(0)+'\u4e07'));
+    dL.push(Math.round(lr*100)/100);
+    dM.push(Math.round((100-lr)*100)/100);
+  }
+  return {labels:labels,dL:dL,dM:dM};
+}
+function __lorChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lorSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lorChart',{title:en?'Loss Ratio vs Claims (linear dual)':'赔付率随赔款支出线性上升',labels:s.labels,series:[{name:en?'Loss ratio (%)':'赔付率 (%)',data:s.dL},{name:en?'Underwriting margin (%)':'承保边际 (%)',data:s.dM}]});
+}
+
+function __lorShow(which){
+  var c=document.getElementById('lorChart'), t=document.getElementById('loss_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lorTabInit(){
+  var btns=document.querySelectorAll('.lor-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lorShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lorShow('chart');
+  try{__lorChart();}catch(e){}
+}
+var __lorFn=calcTool;calcTool=function(){try{__lorFn();}catch(e){}try{__lorChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lorChart();}catch(e){}});try{__lorTabInit();}catch(e){}
+</script>
 </body>
 </html>

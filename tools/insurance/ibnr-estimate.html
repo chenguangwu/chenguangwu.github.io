@@ -244,6 +244,11 @@ function __ibnr_estimateBoot(){ try{ __ibnr_estimatePresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __ibnr_estimateBoot();
 else document.addEventListener('DOMContentLoaded', __ibnr_estimateBoot);
 </script>
+<div class="ibe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ibeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,44 @@ else document.addEventListener('DOMContentLoaded', __ibnr_estimateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ibeSweep(){
+  var ult=num('ult');
+  if(!isFinite(ult)||ult<=0)return null;
+  var labels=[],dI=[],dP=[];
+  var pds=[0.1,0.25,0.4,0.55,0.7,0.85,0.95];
+  for(var k=0;k<pds.length;k++){
+    var pdv=pds[k];
+    labels.push((pdv*100).toFixed(0)+'%');
+    dI.push(Math.round(ult*(1-pdv)*100)/100);
+    dP.push(Math.round(ult*pdv*100)/100);
+  }
+  return {labels:labels,dI:dI,dP:dP};
+}
+function __ibeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ibeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ibeChart',{title:en?'IBNR Reserve vs Paid Ratio (linear cross)':'IBNR 准备金随已付比例线性交叉',labels:s.labels,series:[{name:en?'IBNR reserve (¥)':'IBNR 准备金 (元)',data:s.dI},{name:en?'Paid claims (¥)':'已付赔款 (元)',data:s.dP}]});
+}
+
+function __ibeShow(which){
+  var c=document.getElementById('ibeChart'), t=document.getElementById('ibnr_estimateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ibeTabInit(){
+  var btns=document.querySelectorAll('.ibe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ibeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ibeShow('chart');
+  try{__ibeChart();}catch(e){}
+}
+var __ibeFn=calcTool;calcTool=function(){try{__ibeFn();}catch(e){}try{__ibeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ibeChart();}catch(e){}});try{__ibeTabInit();}catch(e){}
+</script>
 </body>
 </html>

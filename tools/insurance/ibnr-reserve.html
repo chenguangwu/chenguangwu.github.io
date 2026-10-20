@@ -241,6 +241,11 @@ function __ibnr_reserveBoot(){ try{ __ibnr_reservePresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __ibnr_reserveBoot();
 else document.addEventListener('DOMContentLoaded', __ibnr_reserveBoot);
 </script>
+<div class="ibr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ibrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -274,5 +279,44 @@ else document.addEventListener('DOMContentLoaded', __ibnr_reserveBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ibrSweep(){
+  var r=num('reported');
+  if(!isFinite(r)||r<=0)return null;
+  var labels=[],dI=[],dU=[];
+  var fs=[1.0,1.2,1.4,1.6,1.8,2.0];
+  for(var k=0;k<fs.length;k++){
+    var fv=fs[k];
+    labels.push(fv.toFixed(1));
+    dI.push(Math.round(r*(fv-1)*100)/100);
+    dU.push(Math.round(r*fv*100)/100);
+  }
+  return {labels:labels,dI:dI,dU:dU};
+}
+function __ibrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ibrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ibrChart',{title:en?'IBNR Reserve vs Development Factor (dual linear)':'IBNR 准备金随扩展因子线性上升',labels:s.labels,series:[{name:en?'IBNR reserve (¥)':'IBNR 准备金 (元)',data:s.dI},{name:en?'Ultimate estimate (¥)':'最终赔款估计 (元)',data:s.dU}]});
+}
+
+function __ibrShow(which){
+  var c=document.getElementById('ibrChart'), t=document.getElementById('ibnr_reserveTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ibrTabInit(){
+  var btns=document.querySelectorAll('.ibr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ibrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ibrShow('chart');
+  try{__ibrChart();}catch(e){}
+}
+var __ibrFn=calcTool;calcTool=function(){try{__ibrFn();}catch(e){}try{__ibrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ibrChart();}catch(e){}});try{__ibrTabInit();}catch(e){}
+</script>
 </body>
 </html>

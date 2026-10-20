@@ -306,6 +306,11 @@ function __level_premium_lifeBoot(){ try{ __level_premium_lifePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __level_premium_lifeBoot();
 else document.addEventListener('DOMContentLoaded', __level_premium_lifeBoot);
 </script>
+<div class="lpl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lplChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,46 @@ else document.addEventListener('DOMContentLoaded', __level_premium_lifeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lplSweep(){
+  var nsp=num('nsp'), i=num('i');
+  if(!isFinite(nsp)||!isFinite(i)||nsp<=0||i<=0)return null;
+  var labels=[],dP=[],dT=[];
+  var ns=[5,10,15,20,25,30];
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k], v=1/(1+i);
+    var a=(1-Math.pow(v,nv))/i;
+    var P=nsp/a;
+    labels.push(nv.toFixed(0));
+    dP.push(Math.round(P*100)/100);
+    dT.push(Math.round(P*nv*100)/100);
+  }
+  return {labels:labels,dP:dP,dT:dT};
+}
+function __lplChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lplSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lplChart',{title:en?'Level Premium vs Payment Years (inverse/saturating)':'均衡年保费随缴费年数反比下降',labels:s.labels,series:[{name:en?'Level annual premium (¥)':'均衡年保费 (元)',data:s.dP},{name:en?'Total premiums (¥)':'总缴费 (元)',data:s.dT}]});
+}
+
+function __lplShow(which){
+  var c=document.getElementById('lplChart'), t=document.getElementById('level_premium_lifeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lplTabInit(){
+  var btns=document.querySelectorAll('.lpl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lplShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lplShow('chart');
+  try{__lplChart();}catch(e){}
+}
+var __lplFn=calcTool;calcTool=function(){try{__lplFn();}catch(e){}try{__lplChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lplChart();}catch(e){}});try{__lplTabInit();}catch(e){}
+</script>
 </body>
 </html>
