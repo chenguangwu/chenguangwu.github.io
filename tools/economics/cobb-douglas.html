@@ -308,6 +308,11 @@ function __cobb_douglasBoot(){ try{ __cobb_douglasPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __cobb_douglasBoot();
 else document.addEventListener('DOMContentLoaded', __cobb_douglasBoot);
 </script>
+<div class="cd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -343,5 +348,44 @@ else document.addEventListener('DOMContentLoaded', __cobb_douglasBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cdSweep(){
+  var A=num('A'), K=num('K'), al=num('al'), L0=num('L');
+  if(!isFinite(A)||!isFinite(K)||!isFinite(al)||!isFinite(L0)||A<=0||K<=0||al<0||al>1||L0<=0)return null;
+  var labels=[],dY=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], Y=A*Math.pow(K,al)*Math.pow(L,1-al);
+    labels.push((Math.round(L*100)/100).toFixed(0));
+    dY.push(Math.round(Y*1000)/1000);
+    rows.push([(Math.round(L*100)/100).toFixed(0),(Math.round(Y*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dY:dY,rows:rows};
+}
+function __cdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cdChart',{title:en?'Cobb-Douglas Output vs Labor (Y=A K^a L^(1-a), power law)':'柯布-道格拉斯产出随劳动幂律变化（Y=A·K^α·L^(1-α)）',labels:s.labels,series:[{name:en?'Output Y':'产出 Y',data:s.dY}]});
+}
+
+function __cdShow(which){
+  var c=document.getElementById('cdChart'), t=document.getElementById('cobb_douglasTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cdTabInit(){
+  var btns=document.querySelectorAll('.cd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cdShow('chart');
+}
+var __cdFn=calcTool;calcTool=function(){try{__cdFn();}catch(e){}try{__cdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cdChart();}catch(e){}});
+try{__cdTabInit();}catch(e){}
+</script>
 </body>
 </html>

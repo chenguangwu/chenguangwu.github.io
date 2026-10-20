@@ -244,6 +244,11 @@ function __balance_of_tradeBoot(){ try{ __balance_of_tradePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __balance_of_tradeBoot();
 else document.addEventListener('DOMContentLoaded', __balance_of_tradeBoot);
 </script>
+<div class="bot-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="botChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __balance_of_tradeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __botSweep(){
+  var X0=num('X'), M=num('M');
+  if(!isFinite(X0)||!isFinite(M)||X0<=0||M<0)return null;
+  var labels=[],dBot=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var X=X0*mults[k], bot=X-M;
+    labels.push((Math.round(X*100)/100).toFixed(0));
+    dBot.push(Math.round(bot*1000)/1000);
+    rows.push([(Math.round(X*100)/100).toFixed(0),(Math.round(bot*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dBot:dBot,rows:rows};
+}
+function __botChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__botSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#botChart',{title:en?'Balance of Trade vs Exports (bot=X-M)':'贸易差额随出口线性变化（bot=X−M）',labels:s.labels,series:[{name:en?'Trade balance':'贸易差额',data:s.dBot}]});
+}
+
+function __botShow(which){
+  var c=document.getElementById('botChart'), t=document.getElementById('balance_of_tradeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __botTabInit(){
+  var btns=document.querySelectorAll('.bot-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__botShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __botShow('chart');
+}
+var __botFn=calcTool;calcTool=function(){try{__botFn();}catch(e){}try{__botChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__botChart();}catch(e){}});
+try{__botTabInit();}catch(e){}
+</script>
 </body>
 </html>

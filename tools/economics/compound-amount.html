@@ -252,6 +252,11 @@ function __compound_amountBoot(){ try{ __compound_amountPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __compound_amountBoot();
 else document.addEventListener('DOMContentLoaded', __compound_amountBoot);
 </script>
+<div class="ca-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="caChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -287,5 +292,44 @@ else document.addEventListener('DOMContentLoaded', __compound_amountBoot);
 </dl>
 </div>
 </section>
+<script>
+function __caSweep(){
+  var p=num('p'), r=num('r'), t0=num('t'), n=num('n');
+  if(!isFinite(p)||!isFinite(r)||!isFinite(t0)||!isFinite(n)||p<=0||n<=0)return null;
+  var labels=[],dF=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var t=t0*mults[k], f=p*Math.pow(1+r/100/n, n*t);
+    labels.push((Math.round(t*100)/100).toFixed(1));
+    dF.push(Math.round(f*1000)/1000);
+    rows.push([(Math.round(t*100)/100).toFixed(1),(Math.round(f*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dF:dF,rows:rows};
+}
+function __caChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__caSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#caChart',{title:en?'Compound Amount vs Years (f=p(1+r/100/n)^(n t), exponential)':'复利终值随年数指数增长（f=p·(1+r/100/n)^(n·t)）',labels:s.labels,series:[{name:en?'Future value':'终值',data:s.dF}]});
+}
+
+function __caShow(which){
+  var c=document.getElementById('caChart'), t=document.getElementById('compound_amountTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __caTabInit(){
+  var btns=document.querySelectorAll('.ca-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__caShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __caShow('chart');
+}
+var __caFn=calcTool;calcTool=function(){try{__caFn();}catch(e){}try{__caChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__caChart();}catch(e){}});
+try{__caTabInit();}catch(e){}
+</script>
 </body>
 </html>

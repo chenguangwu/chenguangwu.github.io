@@ -302,6 +302,11 @@ function __average_propensity_consumeBoot(){ try{ __average_propensity_consumePr
 if (document.readyState && document.readyState !== 'loading') __average_propensity_consumeBoot();
 else document.addEventListener('DOMContentLoaded', __average_propensity_consumeBoot);
 </script>
+<div class="apc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="apcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,44 @@ else document.addEventListener('DOMContentLoaded', __average_propensity_consumeB
 </dl>
 </div>
 </section>
+<script>
+function __apcSweep(){
+  var C=num('C'), Y0=num('Y');
+  if(!isFinite(C)||!isFinite(Y0)||C<=0||Y0<=0)return null;
+  var labels=[],dApc=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var Y=Y0*mults[k], apc=C/Y;
+    labels.push((Math.round(Y*100)/100).toFixed(0));
+    dApc.push(Math.round(apc*10000)/10000);
+    rows.push([(Math.round(Y*100)/100).toFixed(0),(Math.round(apc*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dApc:dApc,rows:rows};
+}
+function __apcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__apcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#apcChart',{title:en?'Average Propensity to Consume vs Income (apc=C/Y, inverse)':'平均消费倾向随收入反比变化（apc=C/Y）',labels:s.labels,series:[{name:en?'APC':'平均消费倾向 APC',data:s.dApc}]});
+}
+
+function __apcShow(which){
+  var c=document.getElementById('apcChart'), t=document.getElementById('average_propensity_consumeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __apcTabInit(){
+  var btns=document.querySelectorAll('.apc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__apcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __apcShow('chart');
+}
+var __apcFn=calcTool;calcTool=function(){try{__apcFn();}catch(e){}try{__apcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__apcChart();}catch(e){}});
+try{__apcTabInit();}catch(e){}
+</script>
 </body>
 </html>
