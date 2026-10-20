@@ -313,6 +313,11 @@ function __reaction_quotientBoot(){ try{ __reaction_quotientPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __reaction_quotientBoot();
 else document.addEventListener('DOMContentLoaded', __reaction_quotientBoot);
 </script>
+<div class="rqt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rqtChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,46 @@ else document.addEventListener('DOMContentLoaded', __reaction_quotientBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rqtSweep(){
+  var rP=num('rP'),rN=num('rN'),pN=num('pN'),K=num('K');
+  if(!isFinite(rP)||!isFinite(rN)||!isFinite(pN)||!isFinite(K))return null;
+  if(rP<=0||pN<=0||K<=0)return null;
+  var labels=[],dQ=[],dK=[];
+  var ps=[0.1,0.2,0.5,1,2,5,10];
+  for(var k=0;k<ps.length;k++){
+    var pP=ps[k];
+    var Q=Math.pow(pP,pN)/Math.pow(rP,rN);
+    labels.push(pP.toFixed(2));
+    dQ.push(Math.round(Q*1000)/1000);
+    dK.push(K);
+  }
+  return {labels:labels,dQ:dQ,dK:dK};
+}
+function __rqtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rqtSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rqtChart',{title:en?'Reaction Quotient Q vs Product Conc.':'反应商 Q 随生成物浓度扫描',labels:s.labels,series:[{name:en?'Reaction quotient Q':'反应商 Q',data:s.dQ},{name:en?'Equilibrium constant K':'平衡常数 K',data:s.dK}]});
+}
+
+function __rqtShow(which){
+  var c=document.getElementById('rqtChart'), t=document.getElementById('reaction_quotientTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rqtTabInit(){
+  var btns=document.querySelectorAll('.rqt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rqtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rqtShow('chart');
+  try{__rqtChart();}catch(e){}
+}
+var __rqtFn=calcTool;calcTool=function(){try{__rqtFn();}catch(e){}try{__rqtChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rqtChart();}catch(e){}});try{__rqtTabInit();}catch(e){}
+</script>
 </body>
 </html>

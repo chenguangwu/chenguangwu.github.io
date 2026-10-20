@@ -299,6 +299,11 @@ function __resistivity_from_rBoot(){ try{ __resistivity_from_rPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __resistivity_from_rBoot();
 else document.addEventListener('DOMContentLoaded', __resistivity_from_rBoot);
 </script>
+<div class="rfr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rfrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,44 @@ else document.addEventListener('DOMContentLoaded', __resistivity_from_rBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rfrSweep(){
+  var R=num('R'),A=num('A');
+  if(!isFinite(R)||!isFinite(A)||R<=0||A<=0)return null;
+  var labels=[],dP=[],dC=[];
+  for(var k=0;k<10;k++){
+    var L=0.1+k*4.9/9;
+    var rho=R*(A/1e6)/L, kap=1/rho;
+    labels.push((Math.round(L*100)/100).toFixed(2));
+    dP.push(Math.round(rho*1e6*1000)/1000);
+    dC.push(Math.round(kap*1e-6*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dC:dC};
+}
+function __rfrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rfrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rfrChart',{title:en?'Resistivity & Conductivity vs Length (ρ∝1/L)':'电阻率与电导率随长度反比扫描（ρ∝1/L）',labels:s.labels,series:[{name:en?'Resistivity ρ (×10⁻⁶ Ω·m)':'电阻率 ρ (×10⁻⁶ Ω·m)',data:s.dP},{name:en?'Conductivity κ (×10⁶ S/m)':'电导率 κ (×10⁶ S/m)',data:s.dC}]});
+}
+
+function __rfrShow(which){
+  var c=document.getElementById('rfrChart'), t=document.getElementById('resistivity_from_rTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rfrTabInit(){
+  var btns=document.querySelectorAll('.rfr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rfrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rfrShow('chart');
+  try{__rfrChart();}catch(e){}
+}
+var __rfrFn=calcTool;calcTool=function(){try{__rfrFn();}catch(e){}try{__rfrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rfrChart();}catch(e){}});try{__rfrTabInit();}catch(e){}
+</script>
 </body>
 </html>

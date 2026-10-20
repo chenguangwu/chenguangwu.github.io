@@ -296,6 +296,11 @@ function __solution_dilutionBoot(){ try{ __solution_dilutionPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __solution_dilutionBoot();
 else document.addEventListener('DOMContentLoaded', __solution_dilutionBoot);
 </script>
+<div class="sdl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sdlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,44 @@ else document.addEventListener('DOMContentLoaded', __solution_dilutionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sdlSweep(){
+  var C1=num('C1'),V1=num('V1');
+  if(!isFinite(C1)||!isFinite(V1)||C1<=0||V1<=0)return null;
+  var labels=[],dV2=[],dFd=[];
+  for(var k=0;k<10;k++){
+    var C2=0.2+k*4.8/9;
+    var V2=C1*V1/C2;
+    labels.push((Math.round(C2*100)/100).toFixed(2));
+    dV2.push(Math.round(V2*100)/100);
+    dFd.push(Math.round(C1/C2*100)/100);
+  }
+  return {labels:labels,dV2:dV2,dFd:dFd};
+}
+function __sdlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sdlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sdlChart',{title:en?'Dilution: Final Volume & Factor vs Target Conc.':'溶液稀释：终体积与稀释倍数随目标浓度反比扫描',labels:s.labels,series:[{name:en?'Final volume V₂ (mL)':'稀释后体积 V₂ (mL)',data:s.dV2},{name:en?'Dilution factor (×)':'稀释倍数 (×)',data:s.dFd}]});
+}
+
+function __sdlShow(which){
+  var c=document.getElementById('sdlChart'), t=document.getElementById('solution_dilutionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sdlTabInit(){
+  var btns=document.querySelectorAll('.sdl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sdlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sdlShow('chart');
+  try{__sdlChart();}catch(e){}
+}
+var __sdlFn=calcTool;calcTool=function(){try{__sdlFn();}catch(e){}try{__sdlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sdlChart();}catch(e){}});try{__sdlTabInit();}catch(e){}
+</script>
 </body>
 </html>

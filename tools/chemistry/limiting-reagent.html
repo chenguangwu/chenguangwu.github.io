@@ -342,6 +342,11 @@ function __limiting_reagentBoot(){ try{ __limiting_reagentPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __limiting_reagentBoot();
 else document.addEventListener('DOMContentLoaded', __limiting_reagentBoot);
 </script>
+<div class="lre-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lreChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -377,5 +382,46 @@ else document.addEventListener('DOMContentLoaded', __limiting_reagentBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lreSweep(){
+  var mA=num('mA'),MA=num('MA'),a=num('a'),MB=num('MB'),b=num('b'),MP=num('MP'),c=num('c');
+  if(!isFinite(mA)||!isFinite(MA)||!isFinite(a)||!isFinite(MB)||!isFinite(b)||!isFinite(MP)||!isFinite(c))return null;
+  if(MA<=0||a<=0||MB<=0||b<=0||MP<=0||c<=0)return null;
+  var nA=mA/MA;
+  var labels=[],dY=[],dL=[];
+  for(var k=0;k<10;k++){
+    var mB=1+k*19/9;
+    var nB=mB/MB, ext=Math.min(nA/a,nB/b);
+    labels.push((Math.round(mB*10)/10).toFixed(1));
+    dY.push(Math.round(ext*c*MP*1000)/1000);
+    dL.push(Math.round(Math.max(0,nA-ext*a)*10000)/10000);
+  }
+  return {labels:labels,dY:dY,dL:dL};
+}
+function __lreChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lreSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lreChart',{title:en?'Limiting Reagent: Yield vs B Feed':'限量反应物：产量随 B 投料扫描',labels:s.labels,series:[{name:en?'Theoretical yield (g)':'理论产量 (g)',data:s.dY},{name:en?'A remaining (mol)':'A 剩余量 (mol)',data:s.dL}]});
+}
+
+function __lreShow(which){
+  var c=document.getElementById('lreChart'), t=document.getElementById('limiting_reagentTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lreTabInit(){
+  var btns=document.querySelectorAll('.lre-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lreShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lreShow('chart');
+  try{__lreChart();}catch(e){}
+}
+var __lreFn=calcTool;calcTool=function(){try{__lreFn();}catch(e){}try{__lreChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lreChart();}catch(e){}});try{__lreTabInit();}catch(e){}
+</script>
 </body>
 </html>

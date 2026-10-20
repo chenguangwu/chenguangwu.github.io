@@ -300,6 +300,11 @@ function __mass_fractionBoot(){ try{ __mass_fractionPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __mass_fractionBoot();
 else document.addEventListener('DOMContentLoaded', __mass_fractionBoot);
 </script>
+<div class="mfr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mfrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,43 @@ else document.addEventListener('DOMContentLoaded', __mass_fractionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mfrSweep(){
+  var mt=num('mt');
+  if(!isFinite(mt)||mt<=0)return null;
+  var labels=[],dW=[],dS=[];
+  for(var k=0;k<10;k++){
+    var ms=mt*k/9;
+    labels.push((Math.round(ms*100)/100).toFixed(1));
+    dW.push(Math.round(ms/mt*100*100)/100);
+    dS.push(Math.round((mt-ms)*100)/100);
+  }
+  return {labels:labels,dW:dW,dS:dS};
+}
+function __mfrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mfrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mfrChart',{title:en?'Mass Fraction vs Solute Mass (linear w=ms/mt)':'质量分数随溶质质量线性增长（w=ms/mt）',labels:s.labels,series:[{name:en?'Mass fraction w (%)':'质量分数 w (%)',data:s.dW},{name:en?'Solvent mass (g)':'溶剂质量 (g)',data:s.dS}]});
+}
+
+function __mfrShow(which){
+  var c=document.getElementById('mfrChart'), t=document.getElementById('mass_fractionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mfrTabInit(){
+  var btns=document.querySelectorAll('.mfr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mfrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mfrShow('chart');
+  try{__mfrChart();}catch(e){}
+}
+var __mfrFn=calcTool;calcTool=function(){try{__mfrFn();}catch(e){}try{__mfrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mfrChart();}catch(e){}});try{__mfrTabInit();}catch(e){}
+</script>
 </body>
 </html>
