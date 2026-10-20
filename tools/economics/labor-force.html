@@ -244,6 +244,11 @@ function __labor_forceBoot(){ try{ __labor_forcePresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __labor_forceBoot();
 else document.addEventListener('DOMContentLoaded', __labor_forceBoot);
 </script>
+<div class="lf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,43 @@ else document.addEventListener('DOMContentLoaded', __labor_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lfSweep(){
+  var E0=num('E'), U=num('U');
+  if(!isFinite(E0)||!isFinite(U)||E0<=0||U<0)return null;
+  var labels=[],dLF=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var E=E0*mults[k], LF=E+U;
+    labels.push((Math.round(E*100)/100).toFixed(0));
+    dLF.push(Math.round(LF*1000)/1000);
+    rows.push([(Math.round(E*100)/100).toFixed(0),(Math.round(LF*1000)/1000).toFixed(1)]);
+  }
+  return {labels:labels,dLF:dLF,rows:rows};
+}
+function __lfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lfChart',{title:en?'Labor Force vs Employed (LF=E+U)':'劳动力随就业人数线性变化（LF=E+U）',labels:s.labels,series:[{name:en?'Labor force':'劳动力',data:s.dLF}]});
+}
+
+function __lfShow(which){
+  var c=document.getElementById('lfChart'), t=document.getElementById('labor_forceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lfTabInit(){
+  var btns=document.querySelectorAll('.lf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lfShow('chart');
+}
+var __lfFn=calcTool;calcTool=function(){try{__lfFn();}catch(e){}try{__lfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lfChart();}catch(e){}});
+</script>
 </body>
 </html>

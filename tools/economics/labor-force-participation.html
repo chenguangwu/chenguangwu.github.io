@@ -298,6 +298,11 @@ function __labor_force_participationBoot(){ try{ __labor_force_participationPres
 if (document.readyState && document.readyState !== 'loading') __labor_force_participationBoot();
 else document.addEventListener('DOMContentLoaded', __labor_force_participationBoot);
 </script>
+<div class="lfp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lfpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,43 @@ else document.addEventListener('DOMContentLoaded', __labor_force_participationBo
 </dl>
 </div>
 </section>
+<script>
+function __lfpSweep(){
+  var lf0=num('lf'), pop=num('pop');
+  if(!isFinite(lf0)||!isFinite(pop)||lf0<=0||pop<=0)return null;
+  var labels=[],dR=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var lf=lf0*mults[k], lfp=lf/pop*100;
+    labels.push((Math.round(lf*100)/100).toFixed(0));
+    dR.push(Math.round(lfp*1000)/1000);
+    rows.push([(Math.round(lf*100)/100).toFixed(0),(Math.round(lfp*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dR:dR,rows:rows};
+}
+function __lfpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lfpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lfpChart',{title:en?'Labor Participation vs Labor Force (LFP=lf/pop)':'劳动参与率随劳动力线性变化（LFP=lf/pop）',labels:s.labels,series:[{name:en?'LFP (%)':'参与率 (%)',data:s.dR}]});
+}
+
+function __lfpShow(which){
+  var c=document.getElementById('lfpChart'), t=document.getElementById('labor_force_participationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lfpTabInit(){
+  var btns=document.querySelectorAll('.lfp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lfpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lfpShow('chart');
+}
+var __lfpFn=calcTool;calcTool=function(){try{__lfpFn();}catch(e){}try{__lfpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lfpChart();}catch(e){}});
+</script>
 </body>
 </html>

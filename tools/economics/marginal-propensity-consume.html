@@ -298,6 +298,11 @@ function __marginal_propensity_consumeBoot(){ try{ __marginal_propensity_consume
 if (document.readyState && document.readyState !== 'loading') __marginal_propensity_consumeBoot();
 else document.addEventListener('DOMContentLoaded', __marginal_propensity_consumeBoot);
 </script>
+<div class="mpc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mpcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,43 @@ else document.addEventListener('DOMContentLoaded', __marginal_propensity_consume
 </dl>
 </div>
 </section>
+<script>
+function __mpcSweep(){
+  var dc=num('dc'), dy0=num('dy');
+  if(!isFinite(dc)||!isFinite(dy0)||dc<=0||dy0<=0)return null;
+  var labels=[],dMpc=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var dy=dy0*mults[k], mpc=dc/dy;
+    labels.push((Math.round(dy*100)/100).toFixed(0));
+    dMpc.push(Math.round(mpc*10000)/10000);
+    rows.push([(Math.round(dy*100)/100).toFixed(0),(Math.round(mpc*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dMpc:dMpc,rows:rows};
+}
+function __mpcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mpcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mpcChart',{title:en?'Marginal Propensity to Consume vs dIncome (mpc=dc/dy, inverse)':'边际消费倾向随收入增量反比变化（mpc=ΔC/ΔY）',labels:s.labels,series:[{name:en?'MPC':'边际消费倾向 MPC',data:s.dMpc}]});
+}
+
+function __mpcShow(which){
+  var c=document.getElementById('mpcChart'), t=document.getElementById('marginal_propensity_consumeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mpcTabInit(){
+  var btns=document.querySelectorAll('.mpc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mpcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mpcShow('chart');
+}
+var __mpcFn=calcTool;calcTool=function(){try{__mpcFn();}catch(e){}try{__mpcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mpcChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -298,6 +298,11 @@ function __marginal_product_laborBoot(){ try{ __marginal_product_laborPresets();
 if (document.readyState && document.readyState !== 'loading') __marginal_product_laborBoot();
 else document.addEventListener('DOMContentLoaded', __marginal_product_laborBoot);
 </script>
+<div class="mpl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mplChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,43 @@ else document.addEventListener('DOMContentLoaded', __marginal_product_laborBoot)
 </dl>
 </div>
 </section>
+<script>
+function __mplSweep(){
+  var dq0=num('dq'), dl=num('dl');
+  if(!isFinite(dq0)||!isFinite(dl)||dq0<=0||dl<=0)return null;
+  var labels=[],dM=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var dq=dq0*mults[k], mpl=dq/dl;
+    labels.push((Math.round(dq*100)/100).toFixed(0));
+    dM.push(Math.round(mpl*1000)/1000);
+    rows.push([(Math.round(dq*100)/100).toFixed(0),(Math.round(mpl*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dM:dM,rows:rows};
+}
+function __mplChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mplSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mplChart',{title:en?'Marginal Product of Labor vs dOutput (MPL=dq/dl)':'劳动边际产量随产出增量线性变化（MPL=ΔQ/ΔL）',labels:s.labels,series:[{name:en?'MPL':'边际产量 MPL',data:s.dM}]});
+}
+
+function __mplShow(which){
+  var c=document.getElementById('mplChart'), t=document.getElementById('marginal_product_laborTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mplTabInit(){
+  var btns=document.querySelectorAll('.mpl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mplShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mplShow('chart');
+}
+var __mplFn=calcTool;calcTool=function(){try{__mplFn();}catch(e){}try{__mplChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mplChart();}catch(e){}});
+</script>
 </body>
 </html>
