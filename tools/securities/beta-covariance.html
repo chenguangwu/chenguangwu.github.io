@@ -298,6 +298,11 @@ function __beta_covarianceBoot(){ try{ __beta_covariancePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __beta_covarianceBoot();
 else document.addEventListener('DOMContentLoaded', __beta_covarianceBoot);
 </script>
+<div class="btc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="btcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __beta_covarianceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __btcSweep(){
+  var varm=num('varm');
+  if(!isFinite(varm)||varm<=0)return null;
+  var labels=[], dB=[], dU=[];
+  var cvs=[0,0.0004,0.0008,0.0016,0.0024,0.0032,0.004,0.006];
+  for(var k=0;k<cvs.length;k++){
+    var cv=cvs[k], beta=cv/varm;
+    labels.push((cv*10000).toFixed(1));
+    dB.push(Math.round(beta*1000)/1000);
+    dU.push(1);
+  }
+  return {labels:labels,dB:dB,dU:dU};
+}
+function __btcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__btcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#btcChart',{title:en?'Beta vs Covariance (linear β=Cov/Var_m, market line at 1)':'贝塔随协方差线性上升（β=Cov/Var_m，市场基准线 1）',labels:s.labels,series:[{name:en?'Beta β':'贝塔 β',data:s.dB},{name:en?'Market baseline β=1':'市场基准 β=1',data:s.dU}]});
+}
+
+function __btcShow(which){
+  var c=document.getElementById('btcChart'), t=document.getElementById('beta_covarianceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __btcTabInit(){
+  var btns=document.querySelectorAll('.btc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__btcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __btcShow('chart');
+  try{__btcChart();}catch(e){}
+}
+var __btcFn=calcTool;calcTool=function(){try{__btcFn();}catch(e){}try{__btcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__btcChart();}catch(e){}});try{__btcTabInit();}catch(e){}
+</script>
 </body>
 </html>

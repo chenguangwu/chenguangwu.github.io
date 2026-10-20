@@ -241,6 +241,11 @@ function __annualized_volBoot(){ try{ __annualized_volPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __annualized_volBoot();
 else document.addEventListener('DOMContentLoaded', __annualized_volBoot);
 </script>
+<div class="anv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="anvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,42 @@ else document.addEventListener('DOMContentLoaded', __annualized_volBoot);
 </dl>
 </div>
 </section>
+<script>
+function __anvSweep(){
+  var labels=[], dA=[], dW=[];
+  var sds=[0.002,0.005,0.008,0.01,0.015,0.02,0.03,0.04];
+  for(var k=0;k<sds.length;k++){
+    var sv=sds[k], sa=sv*Math.sqrt(252);
+    labels.push((sv*100).toFixed(2)+'%');
+    dA.push(Math.round(sa*100*100)/100);
+    dW.push(Math.round(sv*Math.sqrt(52)*100*100)/100);
+  }
+  return {labels:labels,dA:dA,dW:dW};
+}
+function __anvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__anvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#anvChart',{title:en?'Annualized Volatility vs Daily Volatility (linear ×√252)':'年化波动率随日波动率线性放大（×√252）',labels:s.labels,series:[{name:en?'Annualized vol (%)':'年化波动率 (%)',data:s.dA},{name:en?'Weekly-equivalent vol (%)':'周度折算波动率 (%)',data:s.dW}]});
+}
+
+function __anvShow(which){
+  var c=document.getElementById('anvChart'), t=document.getElementById('annualized_volTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __anvTabInit(){
+  var btns=document.querySelectorAll('.anv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__anvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __anvShow('chart');
+  try{__anvChart();}catch(e){}
+}
+var __anvFn=calcTool;calcTool=function(){try{__anvFn();}catch(e){}try{__anvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__anvChart();}catch(e){}});try{__anvTabInit();}catch(e){}
+</script>
 </body>
 </html>

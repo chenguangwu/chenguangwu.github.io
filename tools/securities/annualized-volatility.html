@@ -311,6 +311,11 @@ function __annualized_volatilityBoot(){ try{ __annualized_volatilityPresets(); }
 if (document.readyState && document.readyState !== 'loading') __annualized_volatilityBoot();
 else document.addEventListener('DOMContentLoaded', __annualized_volatilityBoot);
 </script>
+<div class="anv2-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="anv2Chart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,44 @@ else document.addEventListener('DOMContentLoaded', __annualized_volatilityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __anv2Sweep(){
+  var dv=num('dv');
+  if(!isFinite(dv)||dv<=0)return null;
+  var labels=[], dV=[], dM=[];
+  var ds=[12,52,90,120,180,252,312,365];
+  for(var k=0;k<ds.length;k++){
+    var dv2=ds[k], av=dv*Math.sqrt(dv2);
+    labels.push(dv2.toFixed(0));
+    dV.push(Math.round(av*100*100)/100);
+    dM.push(Math.round(dv*Math.sqrt(252)*100*100)/100);
+  }
+  return {labels:labels,dV:dV,dM:dM};
+}
+function __anv2Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__anv2Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#anv2Chart',{title:en?'Annualized Volatility vs Trading Days (square-root growth)':'年化波动率随年交易日数平方根增长',labels:s.labels,series:[{name:en?'Annualized vol (%)':'年化波动率 (%)',data:s.dV},{name:en?'At 252 days (%)':'252 日基准 (%)',data:s.dM}]});
+}
+
+function __anv2Show(which){
+  var c=document.getElementById('anv2Chart'), t=document.getElementById('annualized_volatilityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __anv2TabInit(){
+  var btns=document.querySelectorAll('.anv2-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__anv2Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __anv2Show('chart');
+  try{__anv2Chart();}catch(e){}
+}
+var __anv2Fn=calcTool;calcTool=function(){try{__anv2Fn();}catch(e){}try{__anv2Chart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__anv2Chart();}catch(e){}});try{__anv2TabInit();}catch(e){}
+</script>
 </body>
 </html>

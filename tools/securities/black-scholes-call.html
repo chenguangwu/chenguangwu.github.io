@@ -338,6 +338,11 @@ function __black_scholes_callBoot(){ try{ __black_scholes_callPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __black_scholes_callBoot();
 else document.addEventListener('DOMContentLoaded', __black_scholes_callBoot);
 </script>
+<div class="bsc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bscChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -373,5 +378,53 @@ else document.addEventListener('DOMContentLoaded', __black_scholes_callBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bscN(x){
+  var s=x<0?-1:1; x=Math.abs(x);
+  var t=1/(1+0.3275911*x);
+  var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
+  return 0.5*(1+s*y);
+}
+function __bscSweep(){
+  var K=num('k'), r=num('r'), sig=num('v'), T=num('t');
+  if(!isFinite(K)||!isFinite(r)||!isFinite(sig)||!isFinite(T)||K<=0||sig<=0||T<=0)return null;
+  var labels=[], dC=[], dI=[];
+  var Ss=[60,70,80,90,100,110,120,140];
+  for(var k=0;k<Ss.length;k++){
+    var sv=Ss[k];
+    var d1=(Math.log(sv/K)+(r+sig*sig/2)*T)/(sig*Math.sqrt(T));
+    var d2=d1-sig*Math.sqrt(T);
+    var c=sv*__bscN(d1)-K*Math.exp(-r*T)*__bscN(d2);
+    labels.push(sv.toFixed(0));
+    dC.push(Math.round(c*1000)/1000);
+    dI.push(Math.round(Math.max(0,sv-K*Math.exp(-r*T))*1000)/1000);
+  }
+  return {labels:labels,dC:dC,dI:dI};
+}
+function __bscChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bscSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bscChart',{title:en?'Black-Scholes Call Price vs Underlying (S-curve above intrinsic)':'Black-Scholes 看涨价格随标的价格上升（含时间价值溢价）',labels:s.labels,series:[{name:en?'Call price C':'看涨期权价格 C',data:s.dC},{name:en?'Intrinsic value (discounted)':'内在价值（折现）',data:s.dI}]});
+}
+
+function __bscShow(which){
+  var c=document.getElementById('bscChart'), t=document.getElementById('black_scholes_callTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bscTabInit(){
+  var btns=document.querySelectorAll('.bsc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bscShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bscShow('chart');
+  try{__bscChart();}catch(e){}
+}
+var __bscFn=calcTool;calcTool=function(){try{__bscFn();}catch(e){}try{__bscChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bscChart();}catch(e){}});try{__bscTabInit();}catch(e){}
+</script>
 </body>
 </html>

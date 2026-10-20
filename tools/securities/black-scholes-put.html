@@ -338,6 +338,11 @@ function __black_scholes_putBoot(){ try{ __black_scholes_putPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __black_scholes_putBoot();
 else document.addEventListener('DOMContentLoaded', __black_scholes_putBoot);
 </script>
+<div class="bsp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bspChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -373,5 +378,53 @@ else document.addEventListener('DOMContentLoaded', __black_scholes_putBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bspN(x){
+  var s=x<0?-1:1; x=Math.abs(x);
+  var t=1/(1+0.3275911*x);
+  var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
+  return 0.5*(1+s*y);
+}
+function __bspSweep(){
+  var K=num('k'), r=num('r'), sig=num('v'), T=num('t');
+  if(!isFinite(K)||!isFinite(r)||!isFinite(sig)||!isFinite(T)||K<=0||sig<=0||T<=0)return null;
+  var labels=[], dP=[], dI=[];
+  var Ss=[60,70,80,90,100,110,120,140];
+  for(var k=0;k<Ss.length;k++){
+    var sv=Ss[k];
+    var d1=(Math.log(sv/K)+(r+sig*sig/2)*T)/(sig*Math.sqrt(T));
+    var d2=d1-sig*Math.sqrt(T);
+    var p=K*Math.exp(-r*T)*__bspN(-d2)-sv*__bspN(-d1);
+    labels.push(sv.toFixed(0));
+    dP.push(Math.round(p*1000)/1000);
+    dI.push(Math.round(Math.max(0,K*Math.exp(-r*T)-sv)*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dI:dI};
+}
+function __bspChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bspSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bspChart',{title:en?'Black-Scholes Put Price vs Underlying (decaying S-curve)':'Black-Scholes 看跌价格随标的价格衰减（含时间价值溢价）',labels:s.labels,series:[{name:en?'Put price P':'看跌期权价格 P',data:s.dP},{name:en?'Intrinsic value (discounted)':'内在价值（折现）',data:s.dI}]});
+}
+
+function __bspShow(which){
+  var c=document.getElementById('bspChart'), t=document.getElementById('black_scholes_putTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bspTabInit(){
+  var btns=document.querySelectorAll('.bsp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bspShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bspShow('chart');
+  try{__bspChart();}catch(e){}
+}
+var __bspFn=calcTool;calcTool=function(){try{__bspFn();}catch(e){}try{__bspChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bspChart();}catch(e){}});try{__bspTabInit();}catch(e){}
+</script>
 </body>
 </html>
