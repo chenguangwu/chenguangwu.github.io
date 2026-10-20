@@ -247,6 +247,11 @@ function __linear_thermal_expansionBoot(){ try{ __linear_thermal_expansionPreset
 if (document.readyState && document.readyState !== 'loading') __linear_thermal_expansionBoot();
 else document.addEventListener('DOMContentLoaded', __linear_thermal_expansionBoot);
 </script>
+<div class="lte-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lteChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,43 @@ else document.addEventListener('DOMContentLoaded', __linear_thermal_expansionBoo
 </dl>
 </div>
 </section>
+<script>
+function __lteSweep(){
+  var a=num('a'), L=num('L'), dT0=num('dT');
+  if(!isFinite(a)||!isFinite(L)||!isFinite(dT0)||a<0||L<=0)return null;
+  var labels=[],dDL=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var dT=dT0*mults[k], dL=a*L*dT;
+    labels.push((Math.round(dT*100)/100).toFixed(0));
+    dDL.push(Math.round(dL*1e6*1000)/1000);
+    rows.push([(Math.round(dT*100)/100).toFixed(0),(Math.round(dL*1e6*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dDL:dDL,rows:rows};
+}
+function __lteChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lteSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lteChart',{title:en?'Thermal Expansion vs dT (dL=a·L·dT)':'热膨胀随温升线性变化（ΔL=α·L·ΔT）',labels:s.labels,series:[{name:en?'dL (µm)':'伸长量 ΔL (µm)',data:s.dDL}]});
+}
+
+function __lteShow(which){
+  var c=document.getElementById('lteChart'), t=document.getElementById('linear_thermal_expansionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lteTabInit(){
+  var btns=document.querySelectorAll('.lte-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lteShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lteShow('chart');
+}
+var __lteFn=calcTool;calcTool=function(){try{__lteFn();}catch(e){}try{__lteChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lteChart();}catch(e){}});
+</script>
 </body>
 </html>

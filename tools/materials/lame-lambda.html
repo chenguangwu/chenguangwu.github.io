@@ -311,6 +311,11 @@ function __lame_lambdaBoot(){ try{ __lame_lambdaPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __lame_lambdaBoot();
 else document.addEventListener('DOMContentLoaded', __lame_lambdaBoot);
 </script>
+<div class="ll-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="llChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,44 @@ else document.addEventListener('DOMContentLoaded', __lame_lambdaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __llSweep(){
+  var E=num('E');
+  if(!isFinite(E)||E<=0)return null;
+  var nus=[0.1,0.15,0.2,0.25,0.3,0.35,0.45];
+  var labels=[],dLam=[],rows=[];
+  for(var k=0;k<nus.length;k++){
+    var nu=nus[k]; if(nu>=0.5)continue;
+    var lam=E*nu/((1+nu)*(1-2*nu));
+    labels.push((Math.round(nu*100)/100).toFixed(2));
+    dLam.push(Math.round(lam/1e9*1000)/1000);
+    rows.push([(Math.round(nu*100)/100).toFixed(2),(Math.round(lam/1e9*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dLam:dLam,rows:rows};
+}
+function __llChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__llSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#llChart',{title:en?'Lame Lambda vs Poisson Ratio (λ=Eν/((1+ν)(1-2ν)))':'拉梅常数 λ 随泊松比双曲变化（λ=E·ν/((1+ν)(1−2ν))）',labels:s.labels,series:[{name:en?'λ (GPa)':'拉梅常数 λ (GPa)',data:s.dLam}]});
+}
+
+function __llShow(which){
+  var c=document.getElementById('llChart'), t=document.getElementById('lame_lambdaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __llTabInit(){
+  var btns=document.querySelectorAll('.ll-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__llShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __llShow('chart');
+}
+var __llFn=calcTool;calcTool=function(){try{__llFn();}catch(e){}try{__llChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__llChart();}catch(e){}});
+</script>
 </body>
 </html>

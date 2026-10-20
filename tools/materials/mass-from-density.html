@@ -246,6 +246,11 @@ function __mass_from_densityBoot(){ try{ __mass_from_densityPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __mass_from_densityBoot();
 else document.addEventListener('DOMContentLoaded', __mass_from_densityBoot);
 </script>
+<div class="mfd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mfdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,43 @@ else document.addEventListener('DOMContentLoaded', __mass_from_densityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mfdSweep(){
+  var rho=num('rho'), V0=num('V');
+  if(!isFinite(rho)||!isFinite(V0)||rho<=0||V0<=0)return null;
+  var labels=[],dM=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var V=V0*mults[k], m=rho*V;
+    labels.push((Math.round(V*1000)/1000).toFixed(3));
+    dM.push(Math.round(m*1000)/1000);
+    rows.push([(Math.round(V*1000)/1000).toFixed(3),(Math.round(m*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dM:dM,rows:rows};
+}
+function __mfdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mfdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mfdChart',{title:en?'Mass vs Volume (m=ρ·V)':'质量随体积线性变化（m=ρ·V）',labels:s.labels,series:[{name:en?'Mass m':'质量 m',data:s.dM}]});
+}
+
+function __mfdShow(which){
+  var c=document.getElementById('mfdChart'), t=document.getElementById('mass_from_densityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mfdTabInit(){
+  var btns=document.querySelectorAll('.mfd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mfdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mfdShow('chart');
+}
+var __mfdFn=calcTool;calcTool=function(){try{__mfdFn();}catch(e){}try{__mfdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mfdChart();}catch(e){}});
+</script>
 </body>
 </html>
