@@ -261,6 +261,11 @@ function resetForm(){document.getElementById('fv').value = '200000';
       calcTool();}
 calcTool();
 </script>
+<div class="sgm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sgmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,6 +340,47 @@ calcTool = function(){ __tb_fn0(); try{ __savings_goal_monthlyExtras(); }catch(e
 function __savings_goal_monthlyBoot(){ try{ __savings_goal_monthlyPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __savings_goal_monthlyBoot();
 else document.addEventListener('DOMContentLoaded', __savings_goal_monthlyBoot);
+</script>
+<script>
+function __sgmSweep(){
+  var fv=num('fv'), r=num('r');
+  if(!isFinite(fv)||!isFinite(r)||fv<=0)return null;
+  var i=r/100/12;
+  var labels=[],dPmt=[],dDep=[],rows=[];
+  var yrs=[1,2,3,5,7,10,15,20,30];
+  for(var k=0;k<yrs.length;k++){
+    var N=yrs[k]*12;
+    var pmt = i>0 ? fv*i/(Math.pow(1+i,N)-1) : fv/N;
+    labels.push(String(yrs[k]));
+    dPmt.push(Math.round(pmt*100)/100);
+    dDep.push(Math.round(pmt*N*100)/100);
+    rows.push([String(yrs[k]),(Math.round(pmt*100)/100).toFixed(2),(Math.round(pmt*N*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dPmt:dPmt,dDep:dDep,rows:rows};
+}
+function __sgmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sgmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sgmChart',{title:en?'Monthly Saving vs Years (inverse decay PMT=FV·i/((1+i)ᴺ-1))':'达成目标所需月存随年限反比衰减（PMT=FV·i/((1+i)ᴺ-1)）',labels:s.labels,series:[{name:en?'Monthly deposit (元)':'月存金额 (元)',data:s.dPmt},{name:en?'Total deposits (元)':'总存入 (元)',data:s.dDep}]});
+}
+
+function __sgmShow(which){
+  var c=document.getElementById('sgmChart'), t=document.getElementById('savings_goal_monthlyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sgmTabInit(){
+  var btns=document.querySelectorAll('.sgm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sgmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sgmShow('chart');
+}
+var __sgmFn=calcTool;calcTool=function(){try{__sgmFn();}catch(e){}try{__sgmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sgmChart();}catch(e){}});
 </script>
 </body>
 </html>

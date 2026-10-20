@@ -262,6 +262,11 @@ function resetForm(){document.getElementById('p').value = '500000';
       calcTool();}
 calcTool();
 </script>
+<div class="lti-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ltiChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,6 +342,47 @@ calcTool = function(){ __tb_fn0(); try{ __loan_total_interestExtras(); }catch(e)
 function __loan_total_interestBoot(){ try{ __loan_total_interestPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __loan_total_interestBoot();
 else document.addEventListener('DOMContentLoaded', __loan_total_interestBoot);
+</script>
+<script>
+function __ltiSweep(){
+  var P=num('p'), r=num('r')/100/12;
+  if(!isFinite(P)||!isFinite(r)||P<=0)return null;
+  var labels=[],dInt=[],dEmi=[],rows=[];
+  var yrs=[1,2,3,5,7,10,15,20,30];
+  for(var k=0;k<yrs.length;k++){
+    var N=yrs[k]*12;
+    var emi = r>0 ? P*r*Math.pow(1+r,N)/(Math.pow(1+r,N)-1) : P/N;
+    var tot=emi*N-P;
+    labels.push(String(yrs[k]));
+    dInt.push(Math.round(tot*100)/100);
+    dEmi.push(Math.round(emi*100)/100);
+    rows.push([String(yrs[k]),(Math.round(tot*100)/100).toFixed(2),(Math.round(emi*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dInt:dInt,dEmi:dEmi,rows:rows};
+}
+function __ltiChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ltiSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ltiChart',{title:en?'Total Interest vs Tenure (exponential growth)':'总利息随年限指数增长（总偿还−本金）',labels:s.labels,series:[{name:en?'Total interest (元)':'总利息 (元)',data:s.dInt},{name:en?'Monthly EMI (元)':'月供 (元)',data:s.dEmi}]});
+}
+
+function __ltiShow(which){
+  var c=document.getElementById('ltiChart'), t=document.getElementById('loan_total_interestTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ltiTabInit(){
+  var btns=document.querySelectorAll('.lti-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ltiShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ltiShow('chart');
+}
+var __ltiFn=calcTool;calcTool=function(){try{__ltiFn();}catch(e){}try{__ltiChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ltiChart();}catch(e){}});
 </script>
 </body>
 </html>

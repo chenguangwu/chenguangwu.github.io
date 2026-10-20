@@ -261,6 +261,11 @@ function resetForm(){document.getElementById('p').value = '1000';
       calcTool();}
 calcTool();
 </script>
+<div class="rdm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rdmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,6 +340,47 @@ calcTool = function(){ __tb_fn0(); try{ __rd_maturityExtras(); }catch(e){} };
 function __rd_maturityBoot(){ try{ __rd_maturityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __rd_maturityBoot();
 else document.addEventListener('DOMContentLoaded', __rd_maturityBoot);
+</script>
+<script>
+function __rdmSweep(){
+  var P=num('p'), r=num('r');
+  if(!isFinite(P)||!isFinite(r)||P<=0||r<=0)return null;
+  var i=r/4/100;
+  var labels=[],dA=[],dDep=[],rows=[];
+  var yrs=[1,2,3,5,7,10,15,20];
+  for(var k=0;k<yrs.length;k++){
+    var n=yrs[k]*4;
+    var A = i>0 ? P*(Math.pow(1+i,n)-1)/i : P*n;
+    labels.push(String(yrs[k]));
+    dA.push(Math.round(A*100)/100);
+    dDep.push(Math.round(P*n*100)/100);
+    rows.push([String(yrs[k]),(Math.round(A*100)/100).toFixed(2),(Math.round(P*n*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dA:dA,dDep:dDep,rows:rows};
+}
+function __rdmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rdmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rdmChart',{title:en?'RD Maturity vs Years (exponential quarterly compounding)':'零存整取到期值随年限指数增长（按季复利）',labels:s.labels,series:[{name:en?'Maturity (元)':'到期值 (元)',data:s.dA},{name:en?'Deposits (元)':'存入本金 (元)',data:s.dDep}]});
+}
+
+function __rdmShow(which){
+  var c=document.getElementById('rdmChart'), t=document.getElementById('rd_maturityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rdmTabInit(){
+  var btns=document.querySelectorAll('.rdm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rdmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rdmShow('chart');
+}
+var __rdmFn=calcTool;calcTool=function(){try{__rdmFn();}catch(e){}try{__rdmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rdmChart();}catch(e){}});
 </script>
 </body>
 </html>
