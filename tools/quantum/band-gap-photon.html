@@ -295,6 +295,11 @@ function __band_gap_photonBoot(){ try{ __band_gap_photonPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __band_gap_photonBoot();
 else document.addEventListener('DOMContentLoaded', __band_gap_photonBoot);
 </script>
+<div class="bg-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bgChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,45 @@ else document.addEventListener('DOMContentLoaded', __band_gap_photonBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bgSweep(){
+  var Eg0=num('Eg');
+  if(!isFinite(Eg0)||Eg0<=0)return null;
+  var h=6.62607015e-34, c=2.99792458e8, e=1.602176634e-19;
+  var labels=[],dL=[],dF=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var Eg=Eg0*mults[k], lam=h*c/(Eg*e);
+    labels.push((Math.round(Eg*1000)/1000).toFixed(3));
+    dL.push(Math.round(lam*1e9*100)/100);
+    dF.push(Math.round(Eg*e/h/1e12*100)/100);
+    rows.push([(Math.round(Eg*1000)/1000).toFixed(3),(Math.round(lam*1e9*100)/100).toFixed(2),(Math.round(Eg*e/h/1e12*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dL:dL,dF:dF,rows:rows};
+}
+function __bgChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bgSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bgChart',{title:en?'Cutoff Wavelength vs Band Gap (λ=hc/Eg, inverse)':'截止波长随带隙反比缩短（λ=hc/E_g）',labels:s.labels,series:[{name:en?'Wavelength λ (nm)':'波长 λ (nm)',data:s.dL},{name:en?'Frequency (THz)':'频率 (THz)',data:s.dF}]});
+}
+
+function __bgShow(which){
+  var c=document.getElementById('bgChart'), t=document.getElementById('band_gap_photonTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bgTabInit(){
+  var btns=document.querySelectorAll('.bg-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bgShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bgShow('chart');
+}
+var __bgFn=calcTool;calcTool=function(){try{__bgFn();}catch(e){}try{__bgChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bgChart();}catch(e){}});
+</script>
 </body>
 </html>

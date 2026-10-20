@@ -301,6 +301,11 @@ function __infinite_well_energyBoot(){ try{ __infinite_well_energyPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __infinite_well_energyBoot();
 else document.addEventListener('DOMContentLoaded', __infinite_well_energyBoot);
 </script>
+<div class="iw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="iwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,45 @@ else document.addEventListener('DOMContentLoaded', __infinite_well_energyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __iwSweep(){
+  var m=num('m'), L=num('L');
+  if(!isFinite(m)||!isFinite(L)||m<=0||L<=0)return null;
+  var H=6.62607015e-34, EV=1.602176634e-19;
+  var labels=[],dE=[],dGap=[],rows=[];
+  for(var n=1;n<=8;n++){
+    var E=n*n*H*H/(8*m*L*L);
+    var prev=(n-1)*(n-1)*H*H/(8*m*L*L);
+    labels.push('n='+n);
+    dE.push(Math.round(E/EV*10000)/10000);
+    dGap.push(Math.round((E-prev)/EV*10000)/10000);
+    rows.push([String(n),(Math.round(E/EV*10000)/10000).toFixed(4),(Math.round((E-prev)/EV*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dE:dE,dGap:dGap,rows:rows};
+}
+function __iwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__iwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#iwChart',{title:en?'Infinite Well Energy Levels (E_n=n²h²/8mL²)':'无限深势阱能级（E_n=n²h²/(8mL²)，间距递增）',labels:s.labels,series:[{name:en?'Level E_n (eV)':'能级 E_n (eV)',data:s.dE},{name:en?'Gap ΔE (eV)':'能级间距 (eV)',data:s.dGap}]});
+}
+
+function __iwShow(which){
+  var c=document.getElementById('iwChart'), t=document.getElementById('infinite_well_energyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __iwTabInit(){
+  var btns=document.querySelectorAll('.iw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__iwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __iwShow('chart');
+}
+var __iwFn=calcTool;calcTool=function(){try{__iwFn();}catch(e){}try{__iwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__iwChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -240,6 +240,11 @@ function __pair_production_thresholdBoot(){ try{ __pair_production_thresholdPres
 if (document.readyState && document.readyState !== 'loading') __pair_production_thresholdBoot();
 else document.addEventListener('DOMContentLoaded', __pair_production_thresholdBoot);
 </script>
+<div class="pp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ppChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -275,5 +280,43 @@ else document.addEventListener('DOMContentLoaded', __pair_production_thresholdBo
 </dl>
 </div>
 </section>
+<script>
+function __ppSweep(){
+  if(!isFinite(num('dummy')))return null;
+  var names=['电子 e⁻','μ子 μ⁻','质子 p','中子 n','τ子 τ⁻','氘核 d'];
+  var rest=[0.511,105.658,938.272,939.565,1776.86,1875.613];
+  var labels=[],dThr=[],dRest=[],rows=[];
+  for(var k=0;k<names.length;k++){
+    labels.push(names[k]);
+    dThr.push(Math.round(rest[k]*2*1000)/1000);
+    dRest.push(Math.round(rest[k]*1000)/1000);
+    rows.push([names[k],(Math.round(rest[k]*2*1000)/1000).toFixed(3),(Math.round(rest[k]*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dThr:dThr,dRest:dRest,rows:rows};
+}
+function __ppChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__ppSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#ppChart',{title:en?'Pair Production Threshold by Particle (2mc²)':'电子对产生阈值随粒子质量增长（2mc²）',labels:s.labels,series:[{name:en?'Threshold (MeV)':'产生阈值 (MeV)',data:s.dThr},{name:en?'Rest energy (MeV)':'静能 mc² (MeV)',data:s.dRest}]});
+}
+
+function __ppShow(which){
+  var c=document.getElementById('ppChart'), t=document.getElementById('pair_production_thresholdTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ppTabInit(){
+  var btns=document.querySelectorAll('.pp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ppShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ppShow('chart');
+}
+var __ppFn=calcTool;calcTool=function(){try{__ppFn();}catch(e){}try{__ppChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ppChart();}catch(e){}});
+</script>
 </body>
 </html>

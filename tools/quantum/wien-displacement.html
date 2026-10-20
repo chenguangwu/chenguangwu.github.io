@@ -295,6 +295,11 @@ function __wien_displacementBoot(){ try{ __wien_displacementPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __wien_displacementBoot();
 else document.addEventListener('DOMContentLoaded', __wien_displacementBoot);
 </script>
+<div class="wd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,45 @@ else document.addEventListener('DOMContentLoaded', __wien_displacementBoot);
 </dl>
 </div>
 </section>
+<script>
+function __wdSweep(){
+  var T0=num('T');
+  if(!isFinite(T0)||T0<=0)return null;
+  var B_WIEN=2.897771955e-3, C=299792458;
+  var labels=[],dL=[],dF=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var T=T0*mults[k], lam=B_WIEN/T;
+    labels.push((Math.round(T*100)/100).toFixed(0));
+    dL.push(Math.round(lam*1e9*100)/100);
+    dF.push(Math.round(C/lam/1e12*100)/100);
+    rows.push([(Math.round(T*100)/100).toFixed(0),(Math.round(lam*1e9*100)/100).toFixed(2),(Math.round(C/lam/1e12*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dL:dL,dF:dF,rows:rows};
+}
+function __wdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__wdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wdChart',{title:en?'Wien Peak Wavelength vs Temperature (λmax=b/T, inverse)':'维恩峰值波长随温度反比移动（λ_max=b/T）',labels:s.labels,series:[{name:en?'Peak λ (nm)':'峰值波长 λ_max (nm)',data:s.dL},{name:en?'Peak frequency (THz)':'峰值频率 (THz)',data:s.dF}]});
+}
+
+function __wdShow(which){
+  var c=document.getElementById('wdChart'), t=document.getElementById('wien_displacementTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wdTabInit(){
+  var btns=document.querySelectorAll('.wd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __wdShow('chart');
+}
+var __wdFn=calcTool;calcTool=function(){try{__wdFn();}catch(e){}try{__wdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wdChart();}catch(e){}});
+</script>
 </body>
 </html>
