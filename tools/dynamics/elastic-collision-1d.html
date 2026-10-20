@@ -305,6 +305,11 @@ function __elastic_collision_1dBoot(){ try{ __elastic_collision_1dPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __elastic_collision_1dBoot();
 else document.addEventListener('DOMContentLoaded', __elastic_collision_1dBoot);
 </script>
+<div class="ec1-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ec1Chart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -340,5 +345,46 @@ else document.addEventListener('DOMContentLoaded', __elastic_collision_1dBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ec1Sweep(){
+  var m1=num('m1'), v1=num('v1'), v2=num('v2');
+  if(!isFinite(m1)||!isFinite(v1)||!isFinite(v2)||m1<=0)return null;
+  var labels=[], dA=[], dB=[];
+  var m2s=[0.2,0.5,1,2,3,5,8,15];
+  for(var k=0;k<m2s.length;k++){
+    var mv=m2s[k], s=m1+mv;
+    var v1p=(m1-mv)*v1/s+2*mv*v2/s;
+    var v2p=2*m1*v1/s+(mv-m1)*v2/s;
+    labels.push(mv.toFixed(1));
+    dA.push(Math.round(v1p*1000)/1000);
+    dB.push(Math.round(v2p*1000)/1000);
+  }
+  return {labels:labels,dA:dA,dB:dB};
+}
+function __ec1Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ec1Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ec1Chart',{title:en?'Elastic Collision: Final Velocities vs Mass Ratio (crossing at m₂=m₁)':'一维弹性碰撞：末速度随质量比变化（m₂=m₁ 处交叉）',labels:s.labels,series:[{name:en?"Velocity v₁′ (m/s)":"碰后 v₁′ (m/s)",data:s.dA},{name:en?"Velocity v₂′ (m/s)":"碰后 v₂′ (m/s)",data:s.dB}]});
+}
+
+function __ec1Show(which){
+  var c=document.getElementById('ec1Chart'), t=document.getElementById('elastic_collision_1dTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ec1TabInit(){
+  var btns=document.querySelectorAll('.ec1-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ec1Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ec1Show('chart');
+  try{__ec1Chart();}catch(e){}
+}
+var __ec1Fn=calcTool;calcTool=function(){try{__ec1Fn();}catch(e){}try{__ec1Chart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ec1Chart();}catch(e){}});try{__ec1TabInit();}catch(e){}
+</script>
 </body>
 </html>

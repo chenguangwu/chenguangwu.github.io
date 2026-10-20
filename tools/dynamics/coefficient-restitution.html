@@ -321,6 +321,11 @@ function __coefficient_restitutionBoot(){ try{ __coefficient_restitutionPresets(
 if (document.readyState && document.readyState !== 'loading') __coefficient_restitutionBoot();
 else document.addEventListener('DOMContentLoaded', __coefficient_restitutionBoot);
 </script>
+<div class="cor2-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cor2Chart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -356,5 +361,46 @@ else document.addEventListener('DOMContentLoaded', __coefficient_restitutionBoot
 </dl>
 </div>
 </section>
+<script>
+function __cor2Sweep(){
+  var v1=num('v1'), v2=num('v2'), v1p=num('v1p');
+  if(!isFinite(v1)||!isFinite(v2)||!isFinite(v1p))return null;
+  var vd=v1-v2;
+  if(Math.abs(vd)<1e-9)return null;
+  var labels=[], dE=[], dS=[];
+  var v2ps=[-2,0,2,3,4,5,6,8];
+  for(var k=0;k<v2ps.length;k++){
+    var vp=v2ps[k], e=(vp-v1p)/vd;
+    labels.push(vp.toFixed(0));
+    dE.push(Math.round(e*1000)/1000);
+    dS.push(Math.round((1-e*e)*100*100)/100);
+  }
+  return {labels:labels,dE:dE,dS:dS};
+}
+function __cor2Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cor2Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cor2Chart',{title:en?'Restitution Coefficient vs Rebound Velocity (linear + KE loss)':'恢复系数随反弹速度线性上升（附动能损失率）',labels:s.labels,series:[{name:en?'Restitution coefficient e':'恢复系数 e',data:s.dE},{name:en?'KE loss fraction (%)':'动能损失率 (%)',data:s.dS}]});
+}
+
+function __cor2Show(which){
+  var c=document.getElementById('cor2Chart'), t=document.getElementById('coefficient_restitutionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cor2TabInit(){
+  var btns=document.querySelectorAll('.cor2-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cor2Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cor2Show('chart');
+  try{__cor2Chart();}catch(e){}
+}
+var __cor2Fn=calcTool;calcTool=function(){try{__cor2Fn();}catch(e){}try{__cor2Chart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cor2Chart();}catch(e){}});try{__cor2TabInit();}catch(e){}
+</script>
 </body>
 </html>

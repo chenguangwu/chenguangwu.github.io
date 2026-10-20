@@ -244,6 +244,11 @@ function __angular_momentumBoot(){ try{ __angular_momentumPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __angular_momentumBoot();
 else document.addEventListener('DOMContentLoaded', __angular_momentumBoot);
 </script>
+<div class="agm2-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="agm2Chart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __angular_momentumBoot);
 </dl>
 </div>
 </section>
+<script>
+function __agm2Sweep(){
+  var I=num('I');
+  if(!isFinite(I)||I<=0)return null;
+  var labels=[], dL=[], dK=[];
+  var ws=[0,2,5,10,15,20,30,40];
+  for(var k=0;k<ws.length;k++){
+    var wv=ws[k], L=I*wv;
+    labels.push(wv.toFixed(0));
+    dL.push(Math.round(L*1000)/1000);
+    dK.push(Math.round(0.5*I*wv*wv*1000)/1000);
+  }
+  return {labels:labels,dL:dL,dK:dK};
+}
+function __agm2Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__agm2Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#agm2Chart',{title:en?'Angular Momentum (linear) & Rotational KE (quadratic) vs ω':'角动量线性、转动动能平方随角速度增长',labels:s.labels,series:[{name:en?'Angular momentum L (kg·m²/s)':'角动量 L (kg·m²/s)',data:s.dL},{name:en?'Rotational KE (J)':'转动动能 (J)',data:s.dK}]});
+}
+
+function __agm2Show(which){
+  var c=document.getElementById('agm2Chart'), t=document.getElementById('angular_momentumTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __agm2TabInit(){
+  var btns=document.querySelectorAll('.agm2-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__agm2Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __agm2Show('chart');
+  try{__agm2Chart();}catch(e){}
+}
+var __agm2Fn=calcTool;calcTool=function(){try{__agm2Fn();}catch(e){}try{__agm2Chart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__agm2Chart();}catch(e){}});try{__agm2TabInit();}catch(e){}
+</script>
 </body>
 </html>

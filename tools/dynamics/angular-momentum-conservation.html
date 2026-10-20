@@ -300,6 +300,11 @@ function __angular_momentum_conservationBoot(){ try{ __angular_momentum_conserva
 if (document.readyState && document.readyState !== 'loading') __angular_momentum_conservationBoot();
 else document.addEventListener('DOMContentLoaded', __angular_momentum_conservationBoot);
 </script>
+<div class="amc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="amcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,45 @@ else document.addEventListener('DOMContentLoaded', __angular_momentum_conservati
 </dl>
 </div>
 </section>
+<script>
+function __amcSweep(){
+  var I1=num('I1'), w1=num('w1');
+  if(!isFinite(I1)||!isFinite(w1)||I1<=0)return null;
+  var L=I1*w1;
+  var labels=[], dW=[], dK=[];
+  var I2s=[0.25,0.5,1,2,4,6,8,12];
+  for(var k=0;k<I2s.length;k++){
+    var iv=I2s[k], w2=L/iv;
+    labels.push(iv.toFixed(2));
+    dW.push(Math.round(w2*1000)/1000);
+    dK.push(Math.round(0.5*iv*w2*w2*1000)/1000);
+  }
+  return {labels:labels,dW:dW,dK:dK};
+}
+function __amcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__amcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#amcChart',{title:en?'Angular Momentum Conservation: ω₂ vs I₂ (inverse, KE drops)':'角动量守恒：末角速度随末惯量反比下降',labels:s.labels,series:[{name:en?'Final angular velocity ω₂ (rad/s)':'末角速度 ω₂ (rad/s)',data:s.dW},{name:en?'Rotational KE (J)':'转动动能 (J)',data:s.dK}]});
+}
+
+function __amcShow(which){
+  var c=document.getElementById('amcChart'), t=document.getElementById('angular_momentum_conservationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __amcTabInit(){
+  var btns=document.querySelectorAll('.amc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__amcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __amcShow('chart');
+  try{__amcChart();}catch(e){}
+}
+var __amcFn=calcTool;calcTool=function(){try{__amcFn();}catch(e){}try{__amcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__amcChart();}catch(e){}});try{__amcTabInit();}catch(e){}
+</script>
 </body>
 </html>
