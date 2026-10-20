@@ -302,6 +302,11 @@ function __diffraction_gratingBoot(){ try{ __diffraction_gratingPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __diffraction_gratingBoot();
 else document.addEventListener('DOMContentLoaded', __diffraction_gratingBoot);
 </script>
+<div class="dfgr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dfgrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,43 @@ else document.addEventListener('DOMContentLoaded', __diffraction_gratingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dfgrSweep(){
+  var d=num('d'), lam=num('lam');
+  if(!isFinite(d)||!isFinite(lam)||Math.abs(d)<1e-12)return null;
+  var labels=[], dT=[], dS=[];
+  for(var m=0;m<=6;m++){
+    var s=m*lam/d;
+    labels.push(String(m));
+    dT.push(s>1?null:Math.round(Math.asin(s)*180/Math.PI*100)/100);
+    dS.push(Math.round(s*100000)/100000);
+  }
+  return {labels:labels,dT:dT,dS:dS};
+}
+function __dfgrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dfgrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dfgrChart',{title:en?'Diffraction angle saturates as arcsin and vanishes once sin(theta) exceeds 1':'衍射角按反正弦饱和上升，sinθ 超过 1 后该级次不存在（断开）',labels:s.labels,series:[{name:en?'Diffraction angle (deg)':'衍射角 θ (°)',data:s.dT},{name:en?'sin(theta) value':'sinθ 值',data:s.dS}]});
+}
+
+function __dfgrShow(which){
+  var c=document.getElementById('dfgrChart'), t=document.getElementById('diffraction_gratingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dfgrTabInit(){
+  var btns=document.querySelectorAll('.dfgr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dfgrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dfgrShow('chart');
+  try{__dfgrChart();}catch(e){}
+}
+var __dfgrFn=calcTool;calcTool=function(){try{__dfgrFn();}catch(e){}try{__dfgrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dfgrChart();}catch(e){}});try{__dfgrTabInit();}catch(e){}
+</script>
 </body>
 </html>

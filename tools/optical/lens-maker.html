@@ -314,6 +314,11 @@ function __lens_makerBoot(){ try{ __lens_makerPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __lens_makerBoot();
 else document.addEventListener('DOMContentLoaded', __lens_makerBoot);
 </script>
+<div class="lnmk-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lnmkChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -349,5 +354,46 @@ else document.addEventListener('DOMContentLoaded', __lens_makerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lnmkSweep(){
+  var R1=num('R1'), R2=num('R2');
+  if(!isFinite(R1)||!isFinite(R2)||Math.abs(R1)<1e-12||Math.abs(R2)<1e-12)return null;
+  var cur=1/R1-1/R2;
+  if(Math.abs(cur)<1e-12)return null;
+  var labels=[], dF=[], dP=[];
+  for(var k=0;k<=10;k++){
+    var n=1+0.1*k;
+    var inv=(n-1)*cur;
+    labels.push((Math.round(n*100)/100)+'');
+    dF.push(Math.abs(inv)<1e-12?null:Math.round(1/inv*100)/100);
+    dP.push(Math.round(inv*1000*1000)/1000);
+  }
+  return {labels:labels,dF:dF,dP:dP};
+}
+function __lnmkChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lnmkSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lnmkChart',{title:en?'Focal length diverges at n=1 while optical power climbs linearly with refractive index':'焦距在折射率为 1 处发散断开，光焦度随折射率线性上升',labels:s.labels,series:[{name:en?'Focal length (mm)':'焦距 f (mm)',data:s.dF},{name:en?'Optical power (1/m)':'光焦度 1/f',data:s.dP}]});
+}
+
+function __lnmkShow(which){
+  var c=document.getElementById('lnmkChart'), t=document.getElementById('lens_makerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lnmkTabInit(){
+  var btns=document.querySelectorAll('.lnmk-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lnmkShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lnmkShow('chart');
+  try{__lnmkChart();}catch(e){}
+}
+var __lnmkFn=calcTool;calcTool=function(){try{__lnmkFn();}catch(e){}try{__lnmkChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lnmkChart();}catch(e){}});try{__lnmkTabInit();}catch(e){}
+</script>
 </body>
 </html>

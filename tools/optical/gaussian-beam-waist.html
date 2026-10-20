@@ -299,6 +299,11 @@ function __gaussian_beam_waistBoot(){ try{ __gaussian_beam_waistPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __gaussian_beam_waistBoot();
 else document.addEventListener('DOMContentLoaded', __gaussian_beam_waistBoot);
 </script>
+<div class="gbw0-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="gbw0Chart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,44 @@ else document.addEventListener('DOMContentLoaded', __gaussian_beam_waistBoot);
 </dl>
 </div>
 </section>
+<script>
+function __gbw0Sweep(){
+  var lam=num('lam')*1e-9, f0=num('f')/1000, D=num('D')/1000;
+  if(!isFinite(lam)||!isFinite(f0)||!isFinite(D)||Math.abs(D)<1e-15)return null;
+  var labels=[], dW=[], dZ=[];
+  for(var k=0;k<=10;k++){
+    var fk=f0*(0.5+0.15*k);
+    var w0=4*lam*fk/(Math.PI*D);
+    labels.push((Math.round(fk*1000*100)/100)+'');
+    dW.push(Math.round(w0*1e6*1000)/1000);
+    dZ.push(Math.round(Math.PI*w0*w0/lam*100000)/100000);
+  }
+  return {labels:labels,dW:dW,dZ:dZ};
+}
+function __gbw0Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__gbw0Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#gbw0Chart',{title:en?'Beam waist widens linearly with focal length while Rayleigh range grows quadratically':'束腰半径随焦距线性增大，瑞利长度按二次曲线增长',labels:s.labels,series:[{name:en?'Waist radius (um)':'束腰半径 w₀ (µm)',data:s.dW},{name:en?'Rayleigh range (m)':'瑞利长度 z_R (m)',data:s.dZ}]});
+}
+
+function __gbw0Show(which){
+  var c=document.getElementById('gbw0Chart'), t=document.getElementById('gaussian_beam_waistTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __gbw0TabInit(){
+  var btns=document.querySelectorAll('.gbw0-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__gbw0Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __gbw0Show('chart');
+  try{__gbw0Chart();}catch(e){}
+}
+var __gbw0Fn=calcTool;calcTool=function(){try{__gbw0Fn();}catch(e){}try{__gbw0Chart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__gbw0Chart();}catch(e){}});try{__gbw0TabInit();}catch(e){}
+</script>
 </body>
 </html>
