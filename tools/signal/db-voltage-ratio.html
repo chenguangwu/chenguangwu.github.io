@@ -298,6 +298,11 @@ function __db_voltage_ratioBoot(){ try{ __db_voltage_ratioPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __db_voltage_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __db_voltage_ratioBoot);
 </script>
+<div class="dvr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dvrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __db_voltage_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dvrSweep(){
+  var v1=num('v1'), v20=num('v2');
+  if(!isFinite(v1)||!isFinite(v20)||v1<=0||v20<=0)return null;
+  var labels=[],dDb=[],dLin=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var v2=v20*mults[k], L=20*Math.log10(v1/v2);
+    labels.push((Math.round(v2*1000)/1000).toFixed(3));
+    dDb.push(Math.round(L*1000)/1000);
+    dLin.push(Math.round(v1/v2*1000)/1000);
+    rows.push([(Math.round(v2*1000)/1000).toFixed(3),(Math.round(L*1000)/1000).toFixed(3),(Math.round(v1/v2*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dDb:dDb,dLin:dLin,rows:rows};
+}
+function __dvrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dvrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dvrChart',{title:en?'Voltage Ratio in dB vs V2 (20lg(V1/V2), logarithmic)':'电压比分贝值随 V₂ 对数变化（20·lg(V₁/V₂)）',labels:s.labels,series:[{name:en?'Level L (dB)':'分贝值 L (dB)',data:s.dDb},{name:en?'Linear ratio V1/V2':'线性电压比 V₁/V₂',data:s.dLin}]});
+}
+
+function __dvrShow(which){
+  var c=document.getElementById('dvrChart'), t=document.getElementById('db_voltage_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dvrTabInit(){
+  var btns=document.querySelectorAll('.dvr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dvrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dvrShow('chart');
+}
+var __dvrFn=calcTool;calcTool=function(){try{__dvrFn();}catch(e){}try{__dvrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dvrChart();}catch(e){}});
+</script>
 </body>
 </html>

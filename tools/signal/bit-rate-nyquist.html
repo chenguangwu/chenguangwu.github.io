@@ -311,6 +311,11 @@ function __bit_rate_nyquistBoot(){ try{ __bit_rate_nyquistPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __bit_rate_nyquistBoot();
 else document.addEventListener('DOMContentLoaded', __bit_rate_nyquistBoot);
 </script>
+<div class="brn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="brnChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,44 @@ else document.addEventListener('DOMContentLoaded', __bit_rate_nyquistBoot);
 </dl>
 </div>
 </section>
+<script>
+function __brnSweep(){
+  var B=num('B');
+  if(!isFinite(B)||B<=0)return null;
+  var levels=[2,4,8,16,32,64,256];
+  var labels=[],dR=[],dPerHz=[],rows=[];
+  for(var k=0;k<levels.length;k++){
+    var M=levels[k], R=2*B*Math.log2(M);
+    labels.push(String(M));
+    dR.push(Math.round(R/1e6*1000)/1000);
+    dPerHz.push(Math.round(2*Math.log2(M)*100)/100);
+    rows.push([String(M),(Math.round(R/1e6*1000)/1000).toFixed(3),(Math.round(2*Math.log2(M)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dR:dR,dPerHz:dPerHz,rows:rows};
+}
+function __brnChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__brnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#brnChart',{title:en?'Bit Rate vs Levels (R=2B·log2M, logarithmic)':'最大码率随电平数对数增长（R=2B·log₂M）',labels:s.labels,series:[{name:en?'Rate R (Mbps)':'最大码率 R (Mbps)',data:s.dR},{name:en?'Spectral eff (bps/Hz)':'频谱效率 (bps/Hz)',data:s.dPerHz}]});
+}
+
+function __brnShow(which){
+  var c=document.getElementById('brnChart'), t=document.getElementById('bit_rate_nyquistTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __brnTabInit(){
+  var btns=document.querySelectorAll('.brn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__brnShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __brnShow('chart');
+}
+var __brnFn=calcTool;calcTool=function(){try{__brnFn();}catch(e){}try{__brnChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__brnChart();}catch(e){}});
+</script>
 </body>
 </html>

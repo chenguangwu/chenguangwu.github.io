@@ -295,6 +295,11 @@ function __nyquist_rateBoot(){ try{ __nyquist_ratePresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __nyquist_rateBoot();
 else document.addEventListener('DOMContentLoaded', __nyquist_rateBoot);
 </script>
+<div class="nr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="nrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,44 @@ else document.addEventListener('DOMContentLoaded', __nyquist_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __nrSweep(){
+  var f0=num('fmax');
+  if(!isFinite(f0)||f0<=0)return null;
+  var labels=[],dFs=[],dTs=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var f=f0*mults[k], fs=2*f;
+    labels.push((Math.round(f*1000)/1000).toFixed(2));
+    dFs.push(Math.round(fs/1e3*1000)/1000);
+    dTs.push(Math.round(1/fs*1e6*1000)/1000);
+    rows.push([(Math.round(f*1000)/1000).toFixed(2),(Math.round(fs/1e3*1000)/1000).toFixed(3),(Math.round(1/fs*1e6*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dFs:dFs,dTs:dTs,rows:rows};
+}
+function __nrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__nrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#nrChart',{title:en?'Nyquist Rate vs Max Frequency (fs=2fmax, linear)':'奈奎斯特采样率随最高频率线性翻倍（f_s=2·f_max）',labels:s.labels,series:[{name:en?'Rate fs (kHz)':'采样率 f_s (kHz)',data:s.dFs},{name:en?'Interval Ts (μs)':'采样间隔 T_s (μs)',data:s.dTs}]});
+}
+
+function __nrShow(which){
+  var c=document.getElementById('nrChart'), t=document.getElementById('nyquist_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __nrTabInit(){
+  var btns=document.querySelectorAll('.nr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__nrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __nrShow('chart');
+}
+var __nrFn=calcTool;calcTool=function(){try{__nrFn();}catch(e){}try{__nrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__nrChart();}catch(e){}});
+</script>
 </body>
 </html>

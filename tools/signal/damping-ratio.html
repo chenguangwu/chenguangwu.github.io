@@ -299,6 +299,11 @@ function __damping_ratioBoot(){ try{ __damping_ratioPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __damping_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __damping_ratioBoot);
 </script>
+<div class="dr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="drChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,44 @@ else document.addEventListener('DOMContentLoaded', __damping_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __drSweep(){
+  var c=num('c'), k=num('k'), m0=num('m');
+  if(!isFinite(c)||!isFinite(k)||!isFinite(m0)||c<=0||k<=0||m0<=0)return null;
+  var labels=[],dZeta=[],dCc=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var m=m0*mults[i], zeta=c/(2*Math.sqrt(k*m)), cc=2*Math.sqrt(k*m);
+    labels.push((Math.round(m*1000)/1000).toFixed(3));
+    dZeta.push(Math.round(zeta*10000)/10000);
+    dCc.push(Math.round(cc*1000)/1000);
+    rows.push([(Math.round(m*1000)/1000).toFixed(3),(Math.round(zeta*10000)/10000).toFixed(4),(Math.round(cc*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dZeta:dZeta,dCc:dCc,rows:rows};
+}
+function __drChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__drSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#drChart',{title:en?'Damping Ratio vs Mass (ζ=c/2√(km), square-root)':'阻尼比随质量根式衰减（ζ=c/(2√(km))）',labels:s.labels,series:[{name:en?'Damping ratio ζ':'阻尼比 ζ',data:s.dZeta},{name:en?'Critical damping cc':'临界阻尼系数 c_c',data:s.dCc}]});
+}
+
+function __drShow(which){
+  var c=document.getElementById('drChart'), t=document.getElementById('damping_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __drTabInit(){
+  var btns=document.querySelectorAll('.dr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__drShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __drShow('chart');
+}
+var __drFn=calcTool;calcTool=function(){try{__drFn();}catch(e){}try{__drChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__drChart();}catch(e){}});
+</script>
 </body>
 </html>
