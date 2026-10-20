@@ -238,6 +238,11 @@ function __carbonation_depthBoot(){ try{ __carbonation_depthPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __carbonation_depthBoot();
 else document.addEventListener('DOMContentLoaded', __carbonation_depthBoot);
 </script>
+<div class="cad-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cadChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -273,5 +278,44 @@ else document.addEventListener('DOMContentLoaded', __carbonation_depthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cadSweep(){
+  var K=num('K');
+  if(!isFinite(K)||K<=0)return null;
+  var labels=[], dX=[], dC=[];
+  var ts=[1,5,10,20,30,50,75,100];
+  for(var k=0;k<ts.length;k++){
+    var tv=ts[k], x=2.56*K*Math.sqrt(tv);
+    labels.push(tv.toFixed(0));
+    dX.push(Math.round(x*100)/100);
+    dC.push(Math.round(x/10*100)/100);
+  }
+  return {labels:labels,dX:dX,dC:dC};
+}
+function __cadChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cadSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cadChart',{title:en?'Carbonation Depth vs Time (square-root x=2.56K√t)':'混凝土碳化深度随时间平方根增长（x=2.56K√t）',labels:s.labels,series:[{name:en?'Carbonation depth x (mm)':'碳化深度 x (mm)',data:s.dX},{name:en?'Carbonation depth (cm)':'碳化深度 (cm)',data:s.dC}]});
+}
+
+function __cadShow(which){
+  var c=document.getElementById('cadChart'), t=document.getElementById('carbonation_depthTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cadTabInit(){
+  var btns=document.querySelectorAll('.cad-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cadShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cadShow('chart');
+  try{__cadChart();}catch(e){}
+}
+var __cadFn=calcTool;calcTool=function(){try{__cadFn();}catch(e){}try{__cadChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cadChart();}catch(e){}});try{__cadTabInit();}catch(e){}
+</script>
 </body>
 </html>

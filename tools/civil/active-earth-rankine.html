@@ -268,6 +268,11 @@ function __active_earth_rankineBoot(){ try{ __active_earth_rankinePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __active_earth_rankineBoot();
 else document.addEventListener('DOMContentLoaded', __active_earth_rankineBoot);
 </script>
+<div class="aer-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="aerChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -303,5 +308,47 @@ else document.addEventListener('DOMContentLoaded', __active_earth_rankineBoot);
 </dl>
 </div>
 </section>
+<script>
+function __aerSweep(){
+  var g=num('gamma'), phi=num('phi'), c=num('c');
+  if(!isFinite(g)||!isFinite(phi)||!isFinite(c)||g<=0||phi<=0)return null;
+  var pr=phi*Math.PI/180, Ka=Math.pow(Math.tan(Math.PI/4-pr/2),2);
+  var labels=[], dE=[], dK=[];
+  var Hs=[1,2,3,4,5,6,8,10];
+  for(var k=0;k<Hs.length;k++){
+    var hv=Hs[k];
+    var z0=c>0?2*c/Math.sqrt(Ka)/g:0;
+    var Ea=(c>0&&z0>=hv)?0:(0.5*g*hv*hv*Ka-2*c*hv*Math.sqrt(Ka));
+    labels.push(hv.toFixed(0));
+    dE.push(Math.round(Math.max(0,Ea)*100)/100);
+    dK.push(Math.round(Ka*10000)/10000);
+  }
+  return {labels:labels,dE:dE,dK:dK};
+}
+function __aerChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__aerSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#aerChart',{title:en?'Rankine Active Thrust vs Wall Height (quadratic)':'朗肯主动土压力随墙高平方增长',labels:s.labels,series:[{name:en?'Active thrust Ea (kN/m)':'主动土压力 Ea (kN/m)',data:s.dE},{name:en?'Active coefficient Ka':'主动土压系数 Ka',data:s.dK}]});
+}
+
+function __aerShow(which){
+  var c=document.getElementById('aerChart'), t=document.getElementById('active_earth_rankineTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __aerTabInit(){
+  var btns=document.querySelectorAll('.aer-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__aerShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __aerShow('chart');
+  try{__aerChart();}catch(e){}
+}
+var __aerFn=calcTool;calcTool=function(){try{__aerFn();}catch(e){}try{__aerChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__aerChart();}catch(e){}});try{__aerTabInit();}catch(e){}
+</script>
 </body>
 </html>

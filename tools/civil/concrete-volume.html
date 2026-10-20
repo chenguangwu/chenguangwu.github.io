@@ -253,6 +253,11 @@ function __concrete_volumeBoot(){ try{ __concrete_volumePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __concrete_volumeBoot();
 else document.addEventListener('DOMContentLoaded', __concrete_volumeBoot);
 </script>
+<div class="cov-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="covChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -288,5 +293,44 @@ else document.addEventListener('DOMContentLoaded', __concrete_volumeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __covSweep(){
+  var a=num('a'), b=num('b'), rho=num('rho');
+  if(!isFinite(a)||!isFinite(b)||!isFinite(rho)||a<=0||b<=0||rho<=0)return null;
+  var labels=[], dV=[], dW=[];
+  var cs=[0.1,0.2,0.3,0.5,0.8,1.0,1.5,2.0];
+  for(var k=0;k<cs.length;k++){
+    var cv=cs[k], V=a*b*cv;
+    labels.push(cv.toFixed(2));
+    dV.push(Math.round(V*1000)/1000);
+    dW.push(Math.round(V*rho/1000*100)/100);
+  }
+  return {labels:labels,dV:dV,dW:dW};
+}
+function __covChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__covSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#covChart',{title:en?'Concrete Volume & Weight vs Thickness (linear dual)':'混凝土体积与重量随厚度线性增长',labels:s.labels,series:[{name:en?'Volume V (m³)':'体积 V (m³)',data:s.dV},{name:en?'Weight (t)':'重量 (t)',data:s.dW}]});
+}
+
+function __covShow(which){
+  var c=document.getElementById('covChart'), t=document.getElementById('concrete_volumeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __covTabInit(){
+  var btns=document.querySelectorAll('.cov-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__covShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __covShow('chart');
+  try{__covChart();}catch(e){}
+}
+var __covFn=calcTool;calcTool=function(){try{__covFn();}catch(e){}try{__covChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__covChart();}catch(e){}});try{__covTabInit();}catch(e){}
+</script>
 </body>
 </html>

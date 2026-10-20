@@ -274,6 +274,11 @@ function __beam_udlBoot(){ try{ __beam_udlPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __beam_udlBoot();
 else document.addEventListener('DOMContentLoaded', __beam_udlBoot);
 </script>
+<div class="bud-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="budChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -309,5 +314,46 @@ else document.addEventListener('DOMContentLoaded', __beam_udlBoot);
 </dl>
 </div>
 </section>
+<script>
+function __budSweep(){
+  var q=num('q'), E=num('E'), I=num('I');
+  if(!isFinite(q)||!isFinite(E)||!isFinite(I)||q<0||E<=0||I<=0)return null;
+  var labels=[], dM=[], dD=[];
+  var Ls=[2,3,4,5,6,8,10,12];
+  for(var k=0;k<Ls.length;k++){
+    var lv=Ls[k];
+    var M=q*lv*lv/8;
+    var delta=5*q*1000*Math.pow(lv,4)/(384*E*1e9*I*1e-8)*1000;
+    labels.push(lv.toFixed(0));
+    dM.push(Math.round(M*100)/100);
+    dD.push(Math.round(delta*1000)/1000);
+  }
+  return {labels:labels,dM:dM,dD:dD};
+}
+function __budChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__budSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#budChart',{title:en?'UDL Beam: Moment (L²) & Deflection (L⁴) vs Span':'均布梁：弯矩按 L²、挠度按 L⁴ 随跨度增长',labels:s.labels,series:[{name:en?'Max moment Mmax (kN·m)':'最大弯矩 Mmax (kN·m)',data:s.dM},{name:en?'Max deflection (mm)':'最大挠度 (mm)',data:s.dD}]});
+}
+
+function __budShow(which){
+  var c=document.getElementById('budChart'), t=document.getElementById('beam_udlTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __budTabInit(){
+  var btns=document.querySelectorAll('.bud-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__budShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __budShow('chart');
+  try{__budChart();}catch(e){}
+}
+var __budFn=calcTool;calcTool=function(){try{__budFn();}catch(e){}try{__budChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__budChart();}catch(e){}});try{__budTabInit();}catch(e){}
+</script>
 </body>
 </html>

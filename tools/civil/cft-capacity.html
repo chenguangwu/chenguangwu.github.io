@@ -259,6 +259,11 @@ function __cft_capacityBoot(){ try{ __cft_capacityPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __cft_capacityBoot();
 else document.addEventListener('DOMContentLoaded', __cft_capacityBoot);
 </script>
+<div class="cft-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cftChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -295,5 +300,50 @@ else document.addEventListener('DOMContentLoaded', __cft_capacityBoot);
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用钢管混凝土轴压承载力估算（土木）</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>钢管外径 D (mm)</li><li>钢管壁厚 t (mm)</li><li>核心混凝土 f_c (MPa)</li><li>钢材 f_y (MPa)</li></ul><h2>适用场景</h2><p>适用于高层与桥梁重载柱的轴压承载力快速估算：输入钢管直径、壁厚、钢材与混凝土等级，得组合轴压承载力并对比 RC 柱，辅助截面比选；正式设计仍须按规范公式与构造要求复核。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>钢管混凝土轴压承载力估算（土木）是做什么的？</dt><dd>钢管混凝土轴压承载力估算器，按简化叠加模型估算圆钢管混凝土短柱轴心受压承载力，辅助构件设计。</dd><dt>如何使用钢管混凝土轴压承载力估算（土木）？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>钢管混凝土轴压承载力估算（土木）适合哪些场景？</dt><dd>适用于高层与桥梁重载柱的轴压承载力快速估算：输入钢管直径、壁厚、钢材与混凝土等级，得组合轴压承载力并对比 RC 柱，辅助截面比选；正式设计仍须按规范公式与构造要求复核。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __cftSweep(){
+  var D=num('D'), fc=num('fc'), fy=num('fy');
+  if(!isFinite(D)||!isFinite(fc)||!isFinite(fy)||D<=0||fc<=0||fy<=0)return null;
+  var labels=[], dN=[], dS=[];
+  var ts=[4,6,8,10,12,16,20];
+  for(var k=0;k<ts.length;k++){
+    var tv=ts[k];
+    if(tv>=D/2)continue;
+    var di=D-2*tv;
+    var Ac=Math.PI*di*di/4;
+    var As=Math.PI*(D*D-di*di)/4;
+    var Nn=As*fy+1.2*Ac*fc;
+    labels.push(tv.toFixed(0));
+    dN.push(Math.round(Nn/1000*100)/100);
+    dS.push(Math.round(As/(Ac+As)*10000)/10000);
+  }
+  if(!labels.length)return null;
+  return {labels:labels,dN:dN,dS:dS};
+}
+function __cftChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cftSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cftChart',{title:en?'CFT Axial Capacity vs Steel Tube Thickness':'钢管混凝土轴压承载力随壁厚变化',labels:s.labels,series:[{name:en?'Axial capacity N (×10³ kN)':'轴压承载力 N (×10³ kN)',data:s.dN},{name:en?'Steel ratio αs':'含钢率 αs',data:s.dS}]});
+}
+
+function __cftShow(which){
+  var c=document.getElementById('cftChart'), t=document.getElementById('cft_capacityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cftTabInit(){
+  var btns=document.querySelectorAll('.cft-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cftShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cftShow('chart');
+  try{__cftChart();}catch(e){}
+}
+var __cftFn=calcTool;calcTool=function(){try{__cftFn();}catch(e){}try{__cftChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cftChart();}catch(e){}});try{__cftTabInit();}catch(e){}
+</script>
 </body>
 </html>
