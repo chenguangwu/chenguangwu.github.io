@@ -298,6 +298,11 @@ function __boltzmann_populationBoot(){ try{ __boltzmann_populationPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __boltzmann_populationBoot();
 else document.addEventListener('DOMContentLoaded', __boltzmann_populationBoot);
 </script>
+<div class="bp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,46 @@ else document.addEventListener('DOMContentLoaded', __boltzmann_populationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bpSweep(){
+  var dE0=num('dE'), T=num('T');
+  if(!isFinite(dE0)||!isFinite(T)||dE0<=0||T<=0)return null;
+  var e=1.602176634e-19, kB=1.380649e-23;
+  var labels=[],dR=[],dU=[],rows=[];
+  var mults=[0.1,0.25,0.5,0.75,1,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var dE=dE0*mults[k], ratio=Math.exp(-dE*e/(kB*T));
+    if(!isFinite(ratio))ratio=0;
+    labels.push((Math.round(dE*1000)/1000).toFixed(3));
+    dR.push(ratio>1e-12?Math.round(ratio*1e12*1000)/1000:0);
+    dU.push(Math.round(ratio/(1+ratio)*100*1e6)/1e6);
+    rows.push([(Math.round(dE*1000)/1000).toFixed(3),(ratio>1e-12?Math.round(ratio*1e12*1000)/1000:0).toFixed(4),(Math.round(ratio/(1+ratio)*100*1e6)/1e6).toFixed(6)]);
+  }
+  return {labels:labels,dR:dR,dU:dU,rows:rows};
+}
+function __bpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bpChart',{title:en?'Boltzmann Ratio vs Level Gap (exp decay, fixed T)':'布居比随能级差指数衰减（固定温度 T）',labels:s.labels,series:[{name:en?'N2/N1 (1e-12 scale)':'布居比 N₂/N₁（×10⁻¹²）',data:s.dR},{name:en?'Upper level share (%)':'上能级占比 (%)',data:s.dU}]});
+}
+
+function __bpShow(which){
+  var c=document.getElementById('bpChart'), t=document.getElementById('boltzmann_populationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bpTabInit(){
+  var btns=document.querySelectorAll('.bp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bpShow('chart');
+}
+var __bpFn=calcTool;calcTool=function(){try{__bpFn();}catch(e){}try{__bpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bpChart();}catch(e){}});
+</script>
 </body>
 </html>

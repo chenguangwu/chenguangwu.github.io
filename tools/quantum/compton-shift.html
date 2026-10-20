@@ -237,6 +237,11 @@ function __compton_shiftBoot(){ try{ __compton_shiftPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __compton_shiftBoot();
 else document.addEventListener('DOMContentLoaded', __compton_shiftBoot);
 </script>
+<div class="cs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="csChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -272,5 +277,45 @@ else document.addEventListener('DOMContentLoaded', __compton_shiftBoot);
 </dl>
 </div>
 </section>
+<script>
+function __csSweep(){
+  var th0=num('th');
+  if(!isFinite(th0))return null;
+  var H=6.62607015e-34,ME=9.10938356e-31,C=299792458;
+  var lc=H/(ME*C);
+  var labels=[],dPm=[],dPct=[],rows=[];
+  for(var deg=0;deg<=180;deg+=15){
+    var th=deg*Math.PI/180, dl=lc*(1-Math.cos(th));
+    labels.push(String(deg));
+    dPm.push(Math.round(dl*1e12*10000)/10000);
+    dPct.push(Math.round((1-Math.cos(th))*100*100)/100);
+    rows.push([String(deg),(Math.round(dl*1e12*10000)/10000).toFixed(4),(Math.round((1-Math.cos(th))*100*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dPm:dPm,dPct:dPct,rows:rows};
+}
+function __csChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__csSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#csChart',{title:en?'Compton Shift vs Scattering Angle (dl=λc(1-cosθ))':'康普顿位移随散射角变化（Δλ=λc(1-cosθ)）',labels:s.labels,series:[{name:en?'Shift Δλ (pm)':'位移 Δλ (pm)',data:s.dPm},{name:en?'Δλ/λc (%)':'Δλ/λc (%)',data:s.dPct}]});
+}
+
+function __csShow(which){
+  var c=document.getElementById('csChart'), t=document.getElementById('compton_shiftTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __csTabInit(){
+  var btns=document.querySelectorAll('.cs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__csShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __csShow('chart');
+}
+var __csFn=calcTool;calcTool=function(){try{__csFn();}catch(e){}try{__csChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__csChart();}catch(e){}});
+</script>
 </body>
 </html>

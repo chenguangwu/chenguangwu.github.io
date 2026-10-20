@@ -291,6 +291,11 @@ function __photon_energyBoot(){ try{ __photon_energyPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __photon_energyBoot();
 else document.addEventListener('DOMContentLoaded', __photon_energyBoot);
 </script>
+<div class="pe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="peChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -326,5 +331,46 @@ else document.addEventListener('DOMContentLoaded', __photon_energyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __peSweep(){
+  var lam0=num('lam');
+  if(!isFinite(lam0)||lam0<=0)return null;
+  var H=6.62607015e-34,C=299792458,EV=1.602176634e-19;
+  var labels=[],dEV=[],dX=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var lam=lam0*mults[k], E=H*C/lam;
+    var nm=Math.round(lam*1e9*100)/100;
+    labels.push(nm.toFixed(0));
+    dEV.push(Math.round(E/EV*10000)/10000);
+    dX.push(Math.round(E*1e18*10000)/10000);
+    rows.push([nm.toFixed(0),(Math.round(E/EV*10000)/10000).toFixed(4),(Math.round(E*1e18*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dEV:dEV,dX:dX,rows:rows};
+}
+function __peChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__peSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#peChart',{title:en?'Photon Energy vs Wavelength (E=hc/λ, inverse)':'光子能量随波长反比变化（E=hc/λ）',labels:s.labels,series:[{name:en?'E (eV)':'能量 E (eV)',data:s.dEV},{name:en?'E (1e-18 J)':'能量 E (10⁻¹⁸ J)',data:s.dX}]});
+}
+
+function __peShow(which){
+  var c=document.getElementById('peChart'), t=document.getElementById('photon_energyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __peTabInit(){
+  var btns=document.querySelectorAll('.pe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__peShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __peShow('chart');
+}
+var __peFn=calcTool;calcTool=function(){try{__peFn();}catch(e){}try{__peChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__peChart();}catch(e){}});
+</script>
 </body>
 </html>

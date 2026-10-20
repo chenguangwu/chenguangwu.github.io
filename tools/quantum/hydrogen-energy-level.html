@@ -293,6 +293,11 @@ function __hydrogen_energy_levelBoot(){ try{ __hydrogen_energy_levelPresets(); }
 if (document.readyState && document.readyState !== 'loading') __hydrogen_energy_levelBoot();
 else document.addEventListener('DOMContentLoaded', __hydrogen_energy_levelBoot);
 </script>
+<div class="hel-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="helChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -328,5 +333,43 @@ else document.addEventListener('DOMContentLoaded', __hydrogen_energy_levelBoot);
 </dl>
 </div>
 </section>
+<script>
+function __helSweep(){
+  var n0=num('n');
+  if(!isFinite(n0)||n0<1)return null;
+  var labels=[],dE=[],dI=[],rows=[];
+  for(var n=1;n<=10;n++){
+    var E=-13.6/(n*n);
+    labels.push(String(n));
+    dE.push(Math.round(E*10000)/10000);
+    dI.push(Math.round(-E*10000)/10000);
+    rows.push([String(n),(Math.round(E*10000)/10000).toFixed(4),(Math.round(-E*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dE:dE,dI:dI,rows:rows};
+}
+function __helChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__helSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#helChart',{title:en?'Hydrogen Energy Levels (E_n=-13.6/n² eV)':'氢原子能级阶梯（E_n=-13.6/n² eV）',labels:s.labels,series:[{name:en?'Level E_n (eV)':'能级 E_n (eV)',data:s.dE},{name:en?'Ionization |E_n| (eV)':'电离能 |E_n| (eV)',data:s.dI}]});
+}
+
+function __helShow(which){
+  var c=document.getElementById('helChart'), t=document.getElementById('hydrogen_energy_levelTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __helTabInit(){
+  var btns=document.querySelectorAll('.hel-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__helShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __helShow('chart');
+}
+var __helFn=calcTool;calcTool=function(){try{__helFn();}catch(e){}try{__helChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__helChart();}catch(e){}});
+</script>
 </body>
 </html>
