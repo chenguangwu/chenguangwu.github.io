@@ -313,6 +313,11 @@ function __mirror_equationBoot(){ try{ __mirror_equationPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __mirror_equationBoot();
 else document.addEventListener('DOMContentLoaded', __mirror_equationBoot);
 </script>
+<div class="meq-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="meqChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,45 @@ else document.addEventListener('DOMContentLoaded', __mirror_equationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __meqSweep(){
+  var f=num('f');
+  if(!isFinite(f)||f<=0)return null;
+  var labels=[], dI=[], dM=[];
+  var dos=[0.25,0.3,0.4,0.5,0.75,1.0,1.5,3.0];
+  for(var k=0;k<dos.length;k++){
+    var ov=dos[k], den=1/f-1/ov;
+    var di=Math.abs(den)<1e-9?0:1/den;
+    labels.push(ov.toFixed(2));
+    dI.push(Math.round(di*10000)/10000);
+    dM.push(Math.round(Math.abs(di/ov)*1000)/1000);
+  }
+  return {labels:labels,dI:dI,dM:dM};
+}
+function __meqChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__meqSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#meqChart',{title:en?'Mirror Image Distance vs Object Distance (hyperbolic, pole at dₒ=f)':'球面镜像距随物距双曲变化（dₒ=f 处极点）',labels:s.labels,series:[{name:en?'Image distance dᵢ (m)':'像距 dᵢ (m)',data:s.dI},{name:en?'|Magnification|':'放大率绝对值 |M|',data:s.dM}]});
+}
+
+function __meqShow(which){
+  var c=document.getElementById('meqChart'), t=document.getElementById('mirror_equationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __meqTabInit(){
+  var btns=document.querySelectorAll('.meq-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__meqShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __meqShow('chart');
+  try{__meqChart();}catch(e){}
+}
+var __meqFn=calcTool;calcTool=function(){try{__meqFn();}catch(e){}try{__meqChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__meqChart();}catch(e){}});try{__meqTabInit();}catch(e){}
+</script>
 </body>
 </html>

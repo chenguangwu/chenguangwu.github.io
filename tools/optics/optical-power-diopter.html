@@ -295,6 +295,11 @@ function __optical_power_diopterBoot(){ try{ __optical_power_diopterPresets(); }
 if (document.readyState && document.readyState !== 'loading') __optical_power_diopterBoot();
 else document.addEventListener('DOMContentLoaded', __optical_power_diopterBoot);
 </script>
+<div class="opd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="opdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,42 @@ else document.addEventListener('DOMContentLoaded', __optical_power_diopterBoot);
 </dl>
 </div>
 </section>
+<script>
+function __opdSweep(){
+  var labels=[], dP=[], dC=[];
+  var fs=[0.05,0.1,0.2,0.333,0.5,1,2,5];
+  for(var k=0;k<fs.length;k++){
+    var fv=fs[k], P=1/fv;
+    labels.push(fv.toFixed(3));
+    dP.push(Math.round(P*100)/100);
+    dC.push(Math.round(fv*100*100)/100);
+  }
+  return {labels:labels,dP:dP,dC:dC};
+}
+function __opdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__opdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#opdChart',{title:en?'Optical Power vs Focal Length (inverse P=1/f)':'光焦度随焦距反比衰减（P=1/f）',labels:s.labels,series:[{name:en?'Optical power P (D)':'光焦度 P (D)',data:s.dP},{name:en?'Focal length (cm)':'焦距 (cm)',data:s.dC}]});
+}
+
+function __opdShow(which){
+  var c=document.getElementById('opdChart'), t=document.getElementById('optical_power_diopterTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __opdTabInit(){
+  var btns=document.querySelectorAll('.opd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__opdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __opdShow('chart');
+  try{__opdChart();}catch(e){}
+}
+var __opdFn=calcTool;calcTool=function(){try{__opdFn();}catch(e){}try{__opdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__opdChart();}catch(e){}});try{__opdTabInit();}catch(e){}
+</script>
 </body>
 </html>

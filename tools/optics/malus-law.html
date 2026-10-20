@@ -244,6 +244,11 @@ function __malus_lawBoot(){ try{ __malus_lawPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __malus_lawBoot();
 else document.addEventListener('DOMContentLoaded', __malus_lawBoot);
 </script>
+<div class="mlw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mlwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __malus_lawBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mlwSweep(){
+  var I0=num('I0');
+  if(!isFinite(I0)||I0<=0)return null;
+  var labels=[], dI=[], dA=[];
+  var ths=[0,15,30,45,60,75,90];
+  for(var k=0;k<ths.length;k++){
+    var tv=ths[k]*Math.PI/180, I=I0*Math.pow(Math.cos(tv),2);
+    labels.push(ths[k].toFixed(0));
+    dI.push(Math.round(I*100)/100);
+    dA.push(Math.round((I0-I)*100)/100);
+  }
+  return {labels:labels,dI:dI,dA:dA};
+}
+function __mlwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mlwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mlwChart',{title:en?'Malus Law: Transmitted Intensity vs Angle (cos² curve)':'马吕斯定律：透射光强随角度余弦平方衰减',labels:s.labels,series:[{name:en?'Transmitted intensity I':'透射光强 I',data:s.dI},{name:en?'Absorbed intensity I₀-I':'被吸收光强 I₀-I',data:s.dA}]});
+}
+
+function __mlwShow(which){
+  var c=document.getElementById('mlwChart'), t=document.getElementById('malus_lawTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mlwTabInit(){
+  var btns=document.querySelectorAll('.mlw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mlwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mlwShow('chart');
+  try{__mlwChart();}catch(e){}
+}
+var __mlwFn=calcTool;calcTool=function(){try{__mlwFn();}catch(e){}try{__mlwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mlwChart();}catch(e){}});try{__mlwTabInit();}catch(e){}
+</script>
 </body>
 </html>

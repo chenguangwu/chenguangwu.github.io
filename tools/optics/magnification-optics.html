@@ -298,6 +298,11 @@ function __magnification_opticsBoot(){ try{ __magnification_opticsPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __magnification_opticsBoot();
 else document.addEventListener('DOMContentLoaded', __magnification_opticsBoot);
 </script>
+<div class="mgo-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mgoChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __magnification_opticsBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mgoSweep(){
+  var do_=num('do');
+  if(!isFinite(do_)||do_<=0)return null;
+  var labels=[], dM=[], dT=[];
+  var dis=[0.05,0.1,0.15,0.3,0.5,0.75,1.0,1.5];
+  for(var k=0;k<dis.length;k++){
+    var dv=dis[k], M=-dv/do_;
+    labels.push(dv.toFixed(2));
+    dM.push(Math.round(M*1000)/1000);
+    dT.push(Math.round(Math.abs(M)*1000)/1000);
+  }
+  return {labels:labels,dM:dM,dT:dT};
+}
+function __mgoChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mgoSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mgoChart',{title:en?'Magnification vs Image Distance (linear M=-dᵢ/dₒ)':'放大率随像距线性变化（M=-dᵢ/dₒ）',labels:s.labels,series:[{name:en?'Magnification M':'放大率 M',data:s.dM},{name:en?'|M| (absolute)':'放大率绝对值 |M|',data:s.dT}]});
+}
+
+function __mgoShow(which){
+  var c=document.getElementById('mgoChart'), t=document.getElementById('magnification_opticsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mgoTabInit(){
+  var btns=document.querySelectorAll('.mgo-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mgoShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mgoShow('chart');
+  try{__mgoChart();}catch(e){}
+}
+var __mgoFn=calcTool;calcTool=function(){try{__mgoFn();}catch(e){}try{__mgoChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mgoChart();}catch(e){}});try{__mgoTabInit();}catch(e){}
+</script>
 </body>
 </html>

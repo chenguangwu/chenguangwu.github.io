@@ -300,6 +300,11 @@ function __fresnel_reflectanceBoot(){ try{ __fresnel_reflectancePresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __fresnel_reflectanceBoot();
 else document.addEventListener('DOMContentLoaded', __fresnel_reflectanceBoot);
 </script>
+<div class="frl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="frlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __fresnel_reflectanceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __frlSweep(){
+  var n1=num('n1');
+  if(!isFinite(n1)||n1<=0)return null;
+  var labels=[], dR=[], dT=[];
+  var n2s=[1.0,1.2,1.33,1.5,1.7,2.0,2.5,3.5];
+  for(var k=0;k<n2s.length;k++){
+    var nv=n2s[k], R=Math.pow((n1-nv)/(n1+nv),2);
+    labels.push(nv.toFixed(2));
+    dR.push(Math.round(R*100*100)/100);
+    dT.push(Math.round((1-R)*100*100)/100);
+  }
+  return {labels:labels,dR:dR,dT:dT};
+}
+function __frlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__frlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#frlChart',{title:en?'Fresnel Reflectance vs Refractive Index (squared ratio)':'菲涅尔反射率随折射率比平方上升',labels:s.labels,series:[{name:en?'Reflectance R (%)':'反射率 R (%)',data:s.dR},{name:en?'Transmittance T (%)':'透射率 T (%)',data:s.dT}]});
+}
+
+function __frlShow(which){
+  var c=document.getElementById('frlChart'), t=document.getElementById('fresnel_reflectanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __frlTabInit(){
+  var btns=document.querySelectorAll('.frl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__frlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __frlShow('chart');
+  try{__frlChart();}catch(e){}
+}
+var __frlFn=calcTool;calcTool=function(){try{__frlFn();}catch(e){}try{__frlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__frlChart();}catch(e){}});try{__frlTabInit();}catch(e){}
+</script>
 </body>
 </html>
