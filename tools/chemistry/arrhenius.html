@@ -303,6 +303,11 @@ function __arrheniusBoot(){ try{ __arrheniusPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __arrheniusBoot();
 else document.addEventListener('DOMContentLoaded', __arrheniusBoot);
 </script>
+<div class="arr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="arrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +343,45 @@ else document.addEventListener('DOMContentLoaded', __arrheniusBoot);
 </dl>
 </div>
 </section>
+<script>
+function __arrSweep(){
+  var A=num('A'), Ea=num('Ea');
+  if(!isFinite(A)||!isFinite(Ea)||A<=0||Ea<=0)return null;
+  var R=8.314;
+  var labels=[],dK=[],dLn=[],rows=[];
+  var Ts=[273,298,323,350,400,450,500,600,700];
+  for(var k=0;k<Ts.length;k++){
+    var T=Ts[k], kk=A*Math.exp(-Ea/(R*T));
+    labels.push(String(T));
+    dK.push(Math.round(kk*1e6*1000)/1000);
+    dLn.push(Math.round(Math.log(kk)*1000)/1000);
+    rows.push([String(T),(Math.round(kk*1e6*1000)/1000).toFixed(4),(Math.round(Math.log(kk)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dK:dK,dLn:dLn,rows:rows};
+}
+function __arrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__arrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#arrChart',{title:en?'Rate Constant vs Temperature (exponential k=A·e^(-Ea/RT))':'速率常数随温度指数上升（Arrhenius 方程 k=A·e^(-Ea/RT)）',labels:s.labels,series:[{name:en?'Rate k (×10⁻⁶ s⁻¹)':'速率常数 (×10⁻⁶ s⁻¹)',data:s.dK}]});
+}
+
+function __arrShow(which){
+  var c=document.getElementById('arrChart'), t=document.getElementById('arrheniusTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __arrTabInit(){
+  var btns=document.querySelectorAll('.arr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__arrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __arrShow('chart');
+}
+var __arrFn=calcTool;calcTool=function(){try{__arrFn();}catch(e){}try{__arrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__arrChart();}catch(e){}});
+</script>
 </body>
 </html>

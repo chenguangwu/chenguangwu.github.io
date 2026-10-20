@@ -306,6 +306,11 @@ function __buffer_phBoot(){ try{ __buffer_phPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __buffer_phBoot();
 else document.addEventListener('DOMContentLoaded', __buffer_phBoot);
 </script>
+<div class="bph-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bphChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,44 @@ else document.addEventListener('DOMContentLoaded', __buffer_phBoot);
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用Henderson–Hasselbalch 方程</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>pKₐ</li><li>共轭碱浓度 [A⁻] (mol/L)</li><li>弱酸浓度 [HA] (mol/L)</li></ul><h2>适用场景</h2><p>适用于缓冲溶液（如乙酸/乙酸钠、氨/铵盐）的 pH 估算与配制：生化实验维持酶反应最适 pH、分析化学滴定体系设计、教学演示缓冲容量与共轭酸碱比对 pH 的对数关系。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>Henderson–Hasselbalch 方程是做什么的？</dt><dd>缓冲溶液 pH 计算器，输入 pKa 与共轭碱/酸浓度比按 Henderson-Hasselbalch 方程求 pH，用于缓冲体系设计。</dd><dt>如何使用Henderson–Hasselbalch 方程？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>Henderson–Hasselbalch 方程适合哪些场景？</dt><dd>适用于缓冲溶液（如乙酸/乙酸钠、氨/铵盐）的 pH 估算与配制：生化实验维持酶反应最适 pH、分析化学滴定体系设计、教学演示缓冲容量与共轭酸碱比对 pH 的对数关系。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __bphSweep(){
+  var pKa=num('pKa'), HA=num('HA');
+  if(!isFinite(pKa)||!isFinite(HA)||HA<=0)return null;
+  var labels=[],dPh=[],dRatio=[],rows=[];
+  var ratios=[0.01,0.05,0.1,0.25,0.5,1,2,4,10,20,100];
+  for(var k=0;k<ratios.length;k++){
+    var Ab=HA*ratios[k], pH=pKa+Math.log10(Ab/HA);
+    labels.push(ratios[k].toFixed(2));
+    dPh.push(Math.round(pH*1000)/1000);
+    dRatio.push(Math.round(pH-pKa*1000)/1000);
+    rows.push([ratios[k].toFixed(2),(Math.round(pH*1000)/1000).toFixed(3),(Math.round((pH-pKa)*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dPh:dPh,dRatio:dRatio,rows:rows};
+}
+function __bphChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bphSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bphChart',{title:en?'Buffer pH vs Base/Acid Ratio (logarithmic Henderson-Hasselbalch)':'缓冲溶液 pH 随共轭碱酸比对数变化（pH=pKa+lg([A⁻]/[HA])）',labels:s.labels,series:[{name:en?'pH':'pH 值',data:s.dPh},{name:en?'pH−pKa':'pH−pKa',data:s.dRatio}]});
+}
+
+function __bphShow(which){
+  var c=document.getElementById('bphChart'), t=document.getElementById('buffer_phTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bphTabInit(){
+  var btns=document.querySelectorAll('.bph-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bphShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bphShow('chart');
+}
+var __bphFn=calcTool;calcTool=function(){try{__bphFn();}catch(e){}try{__bphChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bphChart();}catch(e){}});
+</script>
 </body>
 </html>

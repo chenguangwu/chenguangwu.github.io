@@ -249,6 +249,11 @@ function __boiling_point_elevationBoot(){ try{ __boiling_point_elevationPresets(
 if (document.readyState && document.readyState !== 'loading') __boiling_point_elevationBoot();
 else document.addEventListener('DOMContentLoaded', __boiling_point_elevationBoot);
 </script>
+<div class="bpe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bpeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -284,5 +289,44 @@ else document.addEventListener('DOMContentLoaded', __boiling_point_elevationBoot
 </dl>
 </div>
 </section>
+<script>
+function __bpeSweep(){
+  var Kb=num('Kb'), i=num('i');
+  if(!isFinite(Kb)||!isFinite(i)||Kb<=0||i<=0)return null;
+  var labels=[],dT=[],dIdeal=[],rows=[];
+  var ms=[0.1,0.2,0.5,1,1.5,2,3,4];
+  for(var k=0;k<ms.length;k++){
+    var m=ms[k], dTv=Kb*m*i;
+    labels.push(m.toFixed(2));
+    dT.push(Math.round(dTv*1e4*1000)/1000);
+    dIdeal.push(Math.round(Kb*m*1e4*1000)/1000);
+    rows.push([m.toFixed(2),(Math.round(dTv*1e4*1000)/1000).toFixed(4),(Math.round(Kb*m*1e4*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dT:dT,dIdeal:dIdeal,rows:rows};
+}
+function __bpeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bpeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bpeChart',{title:en?'Boiling-Point Elevation vs Molality (linear ΔT=Kb·m·i)':'沸点升高随质量摩尔浓度线性增长（ΔT_b=K_b·m·i）',labels:s.labels,series:[{name:en?'Elevation ΔT (×10⁻⁴ °C)':'沸点升高 (×10⁻⁴ °C)',data:s.dT},{name:en?'Ideal i=1 (×10⁻⁴ °C)':'理想值 i=1 (×10⁻⁴ °C)',data:s.dIdeal}]});
+}
+
+function __bpeShow(which){
+  var c=document.getElementById('bpeChart'), t=document.getElementById('boiling_point_elevationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bpeTabInit(){
+  var btns=document.querySelectorAll('.bpe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bpeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bpeShow('chart');
+}
+var __bpeFn=calcTool;calcTool=function(){try{__bpeFn();}catch(e){}try{__bpeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bpeChart();}catch(e){}});
+</script>
 </body>
 </html>
