@@ -303,6 +303,11 @@ function __drift_velocityBoot(){ try{ __drift_velocityPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __drift_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __drift_velocityBoot);
 </script>
+<div class="dv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,45 @@ else document.addEventListener('DOMContentLoaded', __drift_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dvSweep(){
+  var I=num('I'), n=num('n'), A0=num('A');
+  if(!isFinite(I)||!isFinite(n)||!isFinite(A0)||I<=0||n<=0||A0<=0)return null;
+  var e=1.602176634e-19;
+  var labels=[],dVd=[],dJ=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var A=A0*mults[k], vd=I/(n*A*e), J=I/A;
+    labels.push((Math.round(A*1e6*1000)/1000).toFixed(3));
+    dVd.push(Math.round(vd*1e6*1000)/1000);
+    dJ.push(Math.round(J*1e-4*1000)/1000);
+    rows.push([(Math.round(A*1e6*1000)/1000).toFixed(3),(Math.round(vd*1e6*1000)/1000).toFixed(4),(Math.round(J*1e-4*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dVd:dVd,dJ:dJ,rows:rows};
+}
+function __dvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dvChart',{title:en?'Drift Velocity vs Area (inverse vd=I/nAe)':'漂移速度随截面积反比下降（v_d=I/nAe）',labels:s.labels,series:[{name:en?'Drift vd (µm/s)':'漂移速度 (µm/s)',data:s.dVd},{name:en?'Current density (A/cm²)':'电流密度 (A/cm²)',data:s.dJ}]});
+}
+
+function __dvShow(which){
+  var c=document.getElementById('dvChart'), t=document.getElementById('drift_velocityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dvTabInit(){
+  var btns=document.querySelectorAll('.dv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dvShow('chart');
+}
+var __dvFn=calcTool;calcTool=function(){try{__dvFn();}catch(e){}try{__dvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dvChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -302,6 +302,11 @@ function __b_field_wireBoot(){ try{ __b_field_wirePresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __b_field_wireBoot();
 else document.addEventListener('DOMContentLoaded', __b_field_wireBoot);
 </script>
+<div class="bfw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bfwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +343,45 @@ else document.addEventListener('DOMContentLoaded', __b_field_wireBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bfwSweep(){
+  var I=num('I'), r0=num('r');
+  if(!isFinite(I)||!isFinite(r0)||I<=0||r0<=0)return null;
+  var mu0=4*Math.PI*1e-7;
+  var labels=[],dB=[],dMu=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var r=r0*mults[k], B=mu0*I/(2*Math.PI*r);
+    labels.push((Math.round(r*1000)/1000).toFixed(3));
+    dB.push(Math.round(B*1e6*1000)/1000);
+    dMu.push(Math.round(mu0*I/(2*Math.PI)*1e6*1000)/1000);
+    rows.push([(Math.round(r*1000)/1000).toFixed(3),(Math.round(B*1e6*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dB:dB,rows:rows};
+}
+function __bfwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bfwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bfwChart',{title:en?'Magnetic Field vs Distance (inverse B=μ₀I/2πr)':'磁感应强度随距离反比衰减（B=μ₀I/2πr）',labels:s.labels,series:[{name:en?'Field B (µT)':'磁感应强度 B (µT)',data:s.dB}]});
+}
+
+function __bfwShow(which){
+  var c=document.getElementById('bfwChart'), t=document.getElementById('b_field_wireTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bfwTabInit(){
+  var btns=document.querySelectorAll('.bfw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bfwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bfwShow('chart');
+}
+var __bfwFn=calcTool;calcTool=function(){try{__bfwFn();}catch(e){}try{__bfwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bfwChart();}catch(e){}});
+</script>
 </body>
 </html>

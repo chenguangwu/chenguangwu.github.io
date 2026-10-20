@@ -300,6 +300,11 @@ function __lc_resonanceBoot(){ try{ __lc_resonancePresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __lc_resonanceBoot();
 else document.addEventListener('DOMContentLoaded', __lc_resonanceBoot);
 </script>
+<div class="lcr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lcrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,44 @@ else document.addEventListener('DOMContentLoaded', __lc_resonanceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lcrSweep(){
+  var L=num('L')/1000, C0=num('C');
+  if(!isFinite(L)||!isFinite(C0)||L<=0||C0<=0)return null;
+  var labels=[],dF=[],dW=[],rows=[];
+  var mults=[0.5,0.75,1,1.5,2,3,4];
+  for(var k=0;k<mults.length;k++){
+    var C=C0*mults[k]/1e6, f=1/(2*Math.PI*Math.sqrt(L*C)), w=2*Math.PI*f;
+    labels.push((Math.round(C0*mults[k]*100)/100).toFixed(2));
+    dF.push(Math.round(f*1000)/1000);
+    dW.push(Math.round(w*1000)/1000);
+    rows.push([(Math.round(C0*mults[k]*100)/100).toFixed(2),(Math.round(f*1000)/1000).toFixed(3),(Math.round(w*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dF:dF,dW:dW,rows:rows};
+}
+function __lcrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lcrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lcrChart',{title:en?'LC Resonance vs Capacitance (inverse-square-root f=1/2π√LC)':'谐振频率随电容反平方根下降（f=1/2π√LC）',labels:s.labels,series:[{name:en?'Frequency f (kHz)':'谐振频率 f (kHz)',data:s.dF},{name:en?'Angular ω (krad/s)':'角频率 ω (krad/s)',data:s.dW}]});
+}
+
+function __lcrShow(which){
+  var c=document.getElementById('lcrChart'), t=document.getElementById('lc_resonanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lcrTabInit(){
+  var btns=document.querySelectorAll('.lcr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lcrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lcrShow('chart');
+}
+var __lcrFn=calcTool;calcTool=function(){try{__lcrFn();}catch(e){}try{__lcrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lcrChart();}catch(e){}});
+</script>
 </body>
 </html>
