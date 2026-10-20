@@ -240,6 +240,12 @@ function __pair_annihilationBoot(){ try{ __pair_annihilationPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __pair_annihilationBoot();
 else document.addEventListener('DOMContentLoaded', __pair_annihilationBoot);
 </script>
+<div class="pa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="paChart" style="margin-top:8px;"></div>
+<div id="paTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -275,5 +281,49 @@ else document.addEventListener('DOMContentLoaded', __pair_annihilationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __paSweep(){
+  var ME=9.10938356e-31, C=299792458, EV=1.602176634e-19;
+  var E1=2*ME*C*C/EV/1e3; // keV per e+e- pair (~1022 keV)
+  var labels=[],dE=[],rows=[];
+  var ns=[1,2,3,4,5,10,20];
+  for(var i=0;i<ns.length;i++){
+    var n=ns[i], E=n*E1;
+    labels.push(String(n));
+    dE.push(Math.round(E*10)/10);
+    rows.push([String(n),(Math.round(E*10)/10).toFixed(1)]);
+  }
+  return {labels:labels,dE:dE,rows:rows};
+}
+function __paChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__paSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#paChart',{title:en?'Total Annihilation Energy vs Number of e+e- Pairs (E = 2 x 511 x n keV)':'湮灭总能量随 e+e− 对数变化（E = 2×511×n keV）',labels:s.labels,series:[{name:en?'Energy E (keV)':'总能量 E (keV)',data:s.dE}]});
+}
+function __paTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__paSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#paTable',{head:en?['Number of e+e- pairs n','Total energy E (keV)']:['e+e− 对数 n','总能量 E (keV)'],rows:s.rows});
+}
+
+function __paShow(which){
+  var c=document.getElementById('paChart'), t=document.getElementById('paTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __paTabInit(){
+  var btns=document.querySelectorAll('.pa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__paShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __paFn=calcTool;calcTool=function(){try{__paFn();}catch(e){}try{__paChart();}catch(e){}try{__paTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__paChart();}catch(e){}try{__paTable();}catch(e){}});
+try{__paTabInit();}catch(e){}
+</script>
 </body>
 </html>

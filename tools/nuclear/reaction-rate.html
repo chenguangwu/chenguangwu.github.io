@@ -247,6 +247,12 @@ function __reaction_rateBoot(){ try{ __reaction_ratePresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __reaction_rateBoot();
 else document.addEventListener('DOMContentLoaded', __reaction_rateBoot);
 </script>
+<div class="rr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rrChart" style="margin-top:8px;"></div>
+<div id="rrTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +288,49 @@ else document.addEventListener('DOMContentLoaded', __reaction_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rrSweep(){
+  var F0=num('F'), s=num('s'), N=num('N');
+  if(!isFinite(F0)||!isFinite(s)||!isFinite(N)||F0<=0||s<=0||N<=0)return null;
+  var labels=[],dR=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var F=F0*mults[i], R=F*s*N;
+    labels.push(F.toExponential(2));
+    dR.push(Math.round(R));
+    rows.push([F.toExponential(2), R.toExponential(3)]);
+  }
+  return {labels:labels,dR:dR,rows:rows};
+}
+function __rrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rrChart',{title:en?'Reaction Rate vs Flux (R = F sigma N)':'反应速率随通量变化（R = F·σ·N，线性）',labels:s.labels,series:[{name:en?'Rate R (s^-1)':'反应速率 R (s⁻¹)',data:s.dR}]});
+}
+function __rrTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__rrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#rrTable',{head:en?['Flux F (cm^-2 s^-1)','Rate R (s^-1)']:['通量 F (cm⁻²s⁻¹)','反应速率 R (s⁻¹)'],rows:s.rows});
+}
+
+function __rrShow(which){
+  var c=document.getElementById('rrChart'), t=document.getElementById('rrTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rrTabInit(){
+  var btns=document.querySelectorAll('.rr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __rrFn=calcTool;calcTool=function(){try{__rrFn();}catch(e){}try{__rrChart();}catch(e){}try{__rrTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rrChart();}catch(e){}try{__rrTable();}catch(e){}});
+try{__rrTabInit();}catch(e){}
+</script>
 </body>
 </html>

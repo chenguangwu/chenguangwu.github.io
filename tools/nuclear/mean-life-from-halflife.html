@@ -239,6 +239,12 @@ function __mean_life_from_halflifeBoot(){ try{ __mean_life_from_halflifePresets(
 if (document.readyState && document.readyState !== 'loading') __mean_life_from_halflifeBoot();
 else document.addEventListener('DOMContentLoaded', __mean_life_from_halflifeBoot);
 </script>
+<div class="mlfh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mlfhChart" style="margin-top:8px;"></div>
+<div id="mlfhTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -274,5 +280,49 @@ else document.addEventListener('DOMContentLoaded', __mean_life_from_halflifeBoot
 </dl>
 </div>
 </section>
+<script>
+function __mlfhSweep(){
+  var th0=num('th');
+  if(!isFinite(th0)||th0<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var i=0;i<mults.length;i++){
+    var th=th0*mults[i], tau=th/Math.LN2;
+    labels.push((Math.round(th*100)/100).toFixed(0));
+    dT.push(Math.round(tau*1000)/1000);
+    rows.push([(Math.round(th*100)/100).toFixed(0),(Math.round(tau*1000)/1000).toFixed(2),(Math.round(tau/th0*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __mlfhChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mlfhSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mlfhChart',{title:en?'Mean-life vs Half-life (tau = t1/2 / ln2)':'平均寿命随半衰期变化（τ = t½ / ln2，线性关系）',labels:s.labels,series:[{name:en?'Mean-life tau':'平均寿命 τ',data:s.dT}]});
+}
+function __mlfhTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__mlfhSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#mlfhTable',{head:en?['Half-life t1/2','Mean-life tau','tau / t1/2']:['半衰期 t½','平均寿命 τ','比值 τ/t½'],rows:s.rows});
+}
+
+function __mlfhShow(which){
+  var c=document.getElementById('mlfhChart'), t=document.getElementById('mlfhTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mlfhTabInit(){
+  var btns=document.querySelectorAll('.mlfh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mlfhShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __mlfhFn=calcTool;calcTool=function(){try{__mlfhFn();}catch(e){}try{__mlfhChart();}catch(e){}try{__mlfhTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mlfhChart();}catch(e){}try{__mlfhTable();}catch(e){}});
+try{__mlfhTabInit();}catch(e){}
+</script>
 </body>
 </html>
