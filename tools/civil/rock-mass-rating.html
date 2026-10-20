@@ -256,6 +256,11 @@ function __rock_mass_ratingBoot(){ try{ __rock_mass_ratingPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __rock_mass_ratingBoot();
 else document.addEventListener('DOMContentLoaded', __rock_mass_ratingBoot);
 </script>
+<div class="rmr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rmrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -291,5 +296,45 @@ else document.addEventListener('DOMContentLoaded', __rock_mass_ratingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rmrSweep(){
+  var s2=num('s2'), s3=num('s3'), s4=num('s4'), s5=num('s5');
+  if(!isFinite(s2)||!isFinite(s3)||!isFinite(s4)||!isFinite(s5))return null;
+  var base=s2+s3+s4+s5;
+  var labels=[], dR=[], dG=[];
+  var s1s=[0,3,5,8,12,15,18,20];
+  for(var k=0;k<s1s.length;k++){
+    var v1=s1s[k], RMR=base+v1;
+    labels.push(v1.toFixed(0));
+    dR.push(RMR);
+    dG.push(RMR>=81?5:(RMR>=61?4:(RMR>=41?3:(RMR>=21?2:1))));
+  }
+  return {labels:labels,dR:dR,dG:dG};
+}
+function __rmrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rmrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rmrChart',{title:en?'RMR Total vs Rock Strength Score (linear + grade step)':'RMR 总分随岩石强度评分线性上升（含分级台阶）',labels:s.labels,series:[{name:en?'RMR total score':'RMR 总分',data:s.dR},{name:en?'Grade index (5=I … 1=V)':'围岩级别序号 (5=I…1=V)',data:s.dG}]});
+}
+
+function __rmrShow(which){
+  var c=document.getElementById('rmrChart'), t=document.getElementById('rock_mass_ratingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rmrTabInit(){
+  var btns=document.querySelectorAll('.rmr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rmrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rmrShow('chart');
+  try{__rmrChart();}catch(e){}
+}
+var __rmrFn=calcTool;calcTool=function(){try{__rmrFn();}catch(e){}try{__rmrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rmrChart();}catch(e){}});try{__rmrTabInit();}catch(e){}
+</script>
 </body>
 </html>

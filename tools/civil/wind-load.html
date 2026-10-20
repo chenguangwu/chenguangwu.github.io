@@ -248,6 +248,11 @@ function __wind_loadBoot(){ try{ __wind_loadPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __wind_loadBoot();
 else document.addEventListener('DOMContentLoaded', __wind_loadBoot);
 </script>
+<div class="wnl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wnlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,44 @@ else document.addEventListener('DOMContentLoaded', __wind_loadBoot);
 </dl>
 </div>
 </section>
+<script>
+function __wnlSweep(){
+  var mz=num('mz'), ms=num('ms'), bz=num('bz');
+  if(!isFinite(mz)||!isFinite(ms)||!isFinite(bz)||mz<=0||ms<=0||bz<=0)return null;
+  var labels=[], dK=[], dD=[];
+  var w0s=[0.3,0.4,0.5,0.6,0.75,0.9,1.1,1.4];
+  for(var k=0;k<w0s.length;k++){
+    var wv=w0s[k], wk=bz*mz*ms*wv;
+    labels.push(wv.toFixed(2));
+    dK.push(Math.round(wk*1000)/1000);
+    dD.push(Math.round(1.4*wk*1000)/1000);
+  }
+  return {labels:labels,dK:dK,dD:dD};
+}
+function __wnlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__wnlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wnlChart',{title:en?'Wind Load vs Basic Wind Pressure (linear, design = 1.4×)':'风荷载随基本风压线性增长（设计值 = 1.4 倍标准值）',labels:s.labels,series:[{name:en?'Standard value w_k (kN/m²)':'标准值 w_k (kN/m²)',data:s.dK},{name:en?'Design value 1.4w_k (kN/m²)':'设计值 1.4w_k (kN/m²)',data:s.dD}]});
+}
+
+function __wnlShow(which){
+  var c=document.getElementById('wnlChart'), t=document.getElementById('wind_loadTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wnlTabInit(){
+  var btns=document.querySelectorAll('.wnl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wnlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __wnlShow('chart');
+  try{__wnlChart();}catch(e){}
+}
+var __wnlFn=calcTool;calcTool=function(){try{__wnlFn();}catch(e){}try{__wnlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wnlChart();}catch(e){}});try{__wnlTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -249,6 +249,11 @@ function __two_way_slabBoot(){ try{ __two_way_slabPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __two_way_slabBoot();
 else document.addEventListener('DOMContentLoaded', __two_way_slabBoot);
 </script>
+<div class="tws-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="twsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -284,5 +289,46 @@ else document.addEventListener('DOMContentLoaded', __two_way_slabBoot);
 </dl>
 </div>
 </section>
+<script>
+function __twsSweep(){
+  var q=num('q'), ly=num('ly');
+  if(!isFinite(q)||!isFinite(ly)||q<=0||ly<=0)return null;
+  var labels=[], dX=[], dY=[];
+  var lxs=[2,3,4,5,6,7,8];
+  for(var k=0;k<lxs.length;k++){
+    var lxv=lxs[k];
+    var ax=lxv<=ly?0.10:0.08;
+    var Mx=ax*q*lxv*lxv, My=0.06*q*ly*ly;
+    labels.push(lxv.toFixed(0));
+    dX.push(Math.round(Mx*100)/100);
+    dY.push(Math.round(My*100)/100);
+  }
+  return {labels:labels,dX:dX,dY:dY};
+}
+function __twsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__twsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#twsChart',{title:en?'Two-Way Slab Moments vs Short Span (piecewise coefficient)':'双向板弯矩随短跨变化（系数分段 0.10/0.08）',labels:s.labels,series:[{name:en?'Moment Mx (kN·m/m)':'短跨弯矩 Mx (kN·m/m)',data:s.dX},{name:en?'Moment My (kN·m/m)':'长跨弯矩 My (kN·m/m)',data:s.dY}]});
+}
+
+function __twsShow(which){
+  var c=document.getElementById('twsChart'), t=document.getElementById('two_way_slabTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __twsTabInit(){
+  var btns=document.querySelectorAll('.tws-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__twsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __twsShow('chart');
+  try{__twsChart();}catch(e){}
+}
+var __twsFn=calcTool;calcTool=function(){try{__twsFn();}catch(e){}try{__twsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__twsChart();}catch(e){}});try{__twsTabInit();}catch(e){}
+</script>
 </body>
 </html>

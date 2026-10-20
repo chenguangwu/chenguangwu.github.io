@@ -267,6 +267,11 @@ function __slope_stability_fosBoot(){ try{ __slope_stability_fosPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __slope_stability_fosBoot();
 else document.addEventListener('DOMContentLoaded', __slope_stability_fosBoot);
 </script>
+<div class="ssf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ssfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -302,5 +307,47 @@ else document.addEventListener('DOMContentLoaded', __slope_stability_fosBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ssfSweep(){
+  var g=num('gamma'), z=num('z'), c=num('c'), phi=num('phi');
+  if(!isFinite(g)||!isFinite(z)||!isFinite(c)||!isFinite(phi)||g<=0||z<=0)return null;
+  var tp=Math.tan(phi*Math.PI/180);
+  var labels=[], dF=[], dC=[];
+  var als=[10,15,20,25,30,35,40,45];
+  for(var k=0;k<als.length;k++){
+    var av=als[k]*Math.PI/180, ca=Math.cos(av), sa=Math.sin(av);
+    var numF=c+g*z*ca*ca*tp, denF=g*z*sa*ca;
+    var Fs=denF>0?numF/denF:999;
+    labels.push(als[k].toFixed(0));
+    dF.push(Math.round(Fs*1000)/1000);
+    dC.push(1.3);
+  }
+  return {labels:labels,dF:dF,dC:dC};
+}
+function __ssfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ssfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ssfChart',{title:en?'Slope Factor of Safety vs Slope Angle (hyperbolic decay, Fs=1.3 threshold)':'边坡稳定系数随坡角双曲下降（1.3 安全阈值线）',labels:s.labels,series:[{name:en?'Factor of safety Fs':'稳定系数 Fs',data:s.dF},{name:en?'Required Fs = 1.3':'安全阈值 Fs = 1.3',data:s.dC}]});
+}
+
+function __ssfShow(which){
+  var c=document.getElementById('ssfChart'), t=document.getElementById('slope_stability_fosTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ssfTabInit(){
+  var btns=document.querySelectorAll('.ssf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ssfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ssfShow('chart');
+  try{__ssfChart();}catch(e){}
+}
+var __ssfFn=calcTool;calcTool=function(){try{__ssfFn();}catch(e){}try{__ssfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ssfChart();}catch(e){}});try{__ssfTabInit();}catch(e){}
+</script>
 </body>
 </html>
