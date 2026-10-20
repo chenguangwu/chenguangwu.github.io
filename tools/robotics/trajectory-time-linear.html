@@ -296,6 +296,12 @@ function __trajectory_time_linearBoot(){ try{ __trajectory_time_linearPresets();
 if (document.readyState && document.readyState !== 'loading') __trajectory_time_linearBoot();
 else document.addEventListener('DOMContentLoaded', __trajectory_time_linearBoot);
 </script>
+<div class="ttl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ttlChart" style="margin-top:8px;"></div>
+<div id="ttlTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +337,49 @@ else document.addEventListener('DOMContentLoaded', __trajectory_time_linearBoot)
 </dl>
 </div>
 </section>
+<script>
+function __ttlSweep(){
+  var d=num('d'), v0=num('v');
+  if(!isFinite(d)||!isFinite(v0)||d<=0||v0<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var v=v0*mults[k], t=d/v;
+    labels.push((Math.round(v*1000)/1000).toFixed(3));
+    dT.push(Math.round(t*1000)/1000);
+    rows.push([(Math.round(v*1000)/1000).toFixed(3),(Math.round(t*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __ttlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ttlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ttlChart',{title:en?'Trajectory Time vs Speed (t = d / v)':'运动时间随速度反比变化（t = d/v）',labels:s.labels,series:[{name:en?'Time t (s)':'时间 t (s)',data:s.dT}]});
+}
+function __ttlTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__ttlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#ttlTable',{head:en?['Speed v (m/s)','Time t (s)']:['速度 v (m/s)','时间 t (s)'],rows:s.rows});
+}
+
+function __ttlShow(which){
+  var c=document.getElementById('ttlChart'), t=document.getElementById('ttlTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ttlTabInit(){
+  var btns=document.querySelectorAll('.ttl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ttlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __ttlFn=calcTool;calcTool=function(){try{__ttlFn();}catch(e){}try{__ttlChart();}catch(e){}try{__ttlTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ttlChart();}catch(e){}try{__ttlTable();}catch(e){}});
+try{__ttlTabInit();}catch(e){}
+</script>
 </body>
 </html>

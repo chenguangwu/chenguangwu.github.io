@@ -291,6 +291,12 @@ function __encoder_angle_resolutionBoot(){ try{ __encoder_angle_resolutionPreset
 if (document.readyState && document.readyState !== 'loading') __encoder_angle_resolutionBoot();
 else document.addEventListener('DOMContentLoaded', __encoder_angle_resolutionBoot);
 </script>
+<div class="ear-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="earChart" style="margin-top:8px;"></div>
+<div id="earTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -326,5 +332,49 @@ else document.addEventListener('DOMContentLoaded', __encoder_angle_resolutionBoo
 </dl>
 </div>
 </section>
+<script>
+function __earSweep(){
+  var cpr0=num('cpr');
+  if(!isFinite(cpr0)||cpr0<=0)return null;
+  var labels=[],dR=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var cpr=cpr0*mults[k], res=360/cpr;
+    labels.push((Math.round(cpr*100)/100).toFixed(0));
+    dR.push(Math.round(res*10000)/10000);
+    rows.push([(Math.round(cpr*100)/100).toFixed(0),(Math.round(res*10000)/10000).toFixed(4),(Math.round(res*3600*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dR:dR,rows:rows};
+}
+function __earChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__earSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#earChart',{title:en?'Angle Resolution vs Counts per Rev (res = 360/cpr)':'角度分辨率随每转脉冲数反比变化（res = 360/cpr）',labels:s.labels,series:[{name:en?'Resolution (deg/count)':'分辨率 (°/脉冲)',data:s.dR}]});
+}
+function __earTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__earSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#earTable',{head:en?['Counts per rev cpr','Res (deg/count)','Res (arcsec/count)']:['每转脉冲数 cpr','分辨率 (°/脉冲)','分辨率 (″/脉冲)'],rows:s.rows});
+}
+
+function __earShow(which){
+  var c=document.getElementById('earChart'), t=document.getElementById('earTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __earTabInit(){
+  var btns=document.querySelectorAll('.ear-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__earShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __earFn=calcTool;calcTool=function(){try{__earFn();}catch(e){}try{__earChart();}catch(e){}try{__earTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__earChart();}catch(e){}try{__earTable();}catch(e){}});
+try{__earTabInit();}catch(e){}
+</script>
 </body>
 </html>

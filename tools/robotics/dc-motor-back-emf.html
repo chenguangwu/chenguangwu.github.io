@@ -240,6 +240,12 @@ function __dc_motor_back_emfBoot(){ try{ __dc_motor_back_emfPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __dc_motor_back_emfBoot();
 else document.addEventListener('DOMContentLoaded', __dc_motor_back_emfBoot);
 </script>
+<div class="dme-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dmeChart" style="margin-top:8px;"></div>
+<div id="dmeTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -275,5 +281,49 @@ else document.addEventListener('DOMContentLoaded', __dc_motor_back_emfBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dmeSweep(){
+  var ke=num('ke'), w0=num('w');
+  if(!isFinite(ke)||!isFinite(w0)||ke<=0||w0<=0)return null;
+  var labels=[],dE=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var w=w0*mults[k], E=ke*w;
+    labels.push((Math.round(w*100)/100).toFixed(1));
+    dE.push(Math.round(E*1000)/1000);
+    rows.push([(Math.round(w*100)/100).toFixed(1),(Math.round(E*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dE:dE,rows:rows};
+}
+function __dmeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dmeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dmeChart',{title:en?'Back-EMF vs Angular Speed (E = Ke w)':'反电动势随角速度线性变化（E = k_e·ω）',labels:s.labels,series:[{name:en?'Back-EMF E (V)':'反电动势 E (V)',data:s.dE}]});
+}
+function __dmeTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__dmeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#dmeTable',{head:en?['Angular speed w (rad/s)','Back-EMF E (V)']:['角速度 ω (rad/s)','反电动势 E (V)'],rows:s.rows});
+}
+
+function __dmeShow(which){
+  var c=document.getElementById('dmeChart'), t=document.getElementById('dmeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dmeTabInit(){
+  var btns=document.querySelectorAll('.dme-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dmeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __dmeFn=calcTool;calcTool=function(){try{__dmeFn();}catch(e){}try{__dmeChart();}catch(e){}try{__dmeTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dmeChart();}catch(e){}try{__dmeTable();}catch(e){}});
+try{__dmeTabInit();}catch(e){}
+</script>
 </body>
 </html>

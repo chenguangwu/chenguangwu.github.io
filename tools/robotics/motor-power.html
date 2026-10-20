@@ -242,6 +242,12 @@ function __motor_powerBoot(){ try{ __motor_powerPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __motor_powerBoot();
 else document.addEventListener('DOMContentLoaded', __motor_powerBoot);
 </script>
+<div class="mp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mpChart" style="margin-top:8px;"></div>
+<div id="mpTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +283,49 @@ else document.addEventListener('DOMContentLoaded', __motor_powerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mpSweep(){
+  var tau0=num('tau'), w0=num('w');
+  if(!isFinite(tau0)||!isFinite(w0)||tau0<=0||w0<=0)return null;
+  var labels=[],dP=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var w=w0*mults[k], P=tau0*w;
+    labels.push((Math.round(w*100)/100).toFixed(1));
+    dP.push(Math.round(P*1000)/1000);
+    rows.push([(Math.round(w*100)/100).toFixed(1),(Math.round(P*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dP:dP,rows:rows};
+}
+function __mpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mpChart',{title:en?'Motor Power vs Angular Speed (P = tau w)':'电机功率随角速度线性变化（P = τ·ω）',labels:s.labels,series:[{name:en?'Power P (W)':'功率 P (W)',data:s.dP}]});
+}
+function __mpTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__mpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#mpTable',{head:en?['Angular speed w (rad/s)','Power P (W)']:['角速度 ω (rad/s)','功率 P (W)'],rows:s.rows});
+}
+
+function __mpShow(which){
+  var c=document.getElementById('mpChart'), t=document.getElementById('mpTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mpTabInit(){
+  var btns=document.querySelectorAll('.mp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __mpFn=calcTool;calcTool=function(){try{__mpFn();}catch(e){}try{__mpChart();}catch(e){}try{__mpTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mpChart();}catch(e){}try{__mpTable();}catch(e){}});
+try{__mpTabInit();}catch(e){}
+</script>
 </body>
 </html>
