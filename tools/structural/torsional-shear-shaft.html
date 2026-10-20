@@ -298,6 +298,11 @@ function __torsional_shear_shaftBoot(){ try{ __torsional_shear_shaftPresets(); }
 if (document.readyState && document.readyState !== 'loading') __torsional_shear_shaftBoot();
 else document.addEventListener('DOMContentLoaded', __torsional_shear_shaftBoot);
 </script>
+<div class="tss-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tssChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __torsional_shear_shaftBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tssSweep(){
+  var T=num('T'), d0=num('d');
+  if(!isFinite(T)||!isFinite(d0)||T<=0||d0<=0)return null;
+  var labels=[],dTau=[],dJ=[],rows=[];
+  var mults=[0.5,0.75,1,1.5,2,3,4];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k], J=Math.PI*Math.pow(d,4)/32, tau=T*(d/2)/J;
+    labels.push((Math.round(d*1000)/1000).toFixed(3));
+    dTau.push(Math.round(tau/1e6*1000)/1000);
+    dJ.push(Math.round(J*1e12*1000)/1000);
+    rows.push([(Math.round(d*1000)/1000).toFixed(3),(Math.round(tau/1e6*1000)/1000).toFixed(3),(Math.round(J*1e12*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dTau:dTau,dJ:dJ,rows:rows};
+}
+function __tssChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tssSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tssChart',{title:en?'Torsional Shear vs Diameter (τ=16T/πd³ inverse-cubic, J quartic)':'轴扭转剪应力随直径反三次方骤降、极惯性矩四次方（τ=16T/(πd³)）',labels:s.labels,series:[{name:en?'Shear τ (MPa)':'剪应力 τ (MPa)',data:s.dTau},{name:en?'Polar J (mm⁴)':'极惯性矩 J (mm⁴)',data:s.dJ}]});
+}
+
+function __tssShow(which){
+  var c=document.getElementById('tssChart'), t=document.getElementById('torsional_shear_shaftTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tssTabInit(){
+  var btns=document.querySelectorAll('.tss-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tssShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tssShow('chart');
+}
+var __tssFn=calcTool;calcTool=function(){try{__tssFn();}catch(e){}try{__tssChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tssChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -242,6 +242,11 @@ function __section_modulus_circleBoot(){ try{ __section_modulus_circlePresets();
 if (document.readyState && document.readyState !== 'loading') __section_modulus_circleBoot();
 else document.addEventListener('DOMContentLoaded', __section_modulus_circleBoot);
 </script>
+<div class="smc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="smcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -289,5 +294,44 @@ else document.addEventListener('DOMContentLoaded', __section_modulus_circleBoot)
 <h3>结果含义</h3><p>圆截面抗弯截面模量 Z=π·d³/32（d 直径）：纯弯曲下截面抵抗弯矩的能力，Z 越大越不易弯断。</p>
 <h3>用法</h3><p>弯曲正应力 σ=M/Z（M 弯矩）。用于轴、柱等圆截面构件强度校核；实心圆 Z 大于同面积空心圆吗？同外径下实心更大，但空心更轻。</p>
 </div></section>
+<script>
+function __smcSweep(){
+  var d0=num('d');
+  if(!isFinite(d0)||d0<=0)return null;
+  var labels=[],dS=[],dA=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k], S=Math.PI*Math.pow(d,3)/32, A=Math.PI*Math.pow(d,2)/4;
+    labels.push((Math.round(d*1000)/1000).toFixed(3));
+    dS.push(Math.round(S*1e9*1000)/1000);
+    dA.push(Math.round(A*1e6*1000)/1000);
+    rows.push([(Math.round(d*1000)/1000).toFixed(3),(Math.round(S*1e9*1000)/1000).toFixed(3),(Math.round(A*1e6*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dS:dS,dA:dA,rows:rows};
+}
+function __smcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__smcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#smcChart',{title:en?'Section Modulus vs Diameter (S=πd³/32 cubic, A=πd²/4 quadratic)':'圆截面抗弯模量随直径三次方增长、截面积二次方（S=πd³/32，A=πd²/4）',labels:s.labels,series:[{name:en?'Modulus S (mm³)':'抗弯模量 S (mm³)',data:s.dS},{name:en?'Area A (mm²)':'截面积 A (mm²)',data:s.dA}]});
+}
+
+function __smcShow(which){
+  var c=document.getElementById('smcChart'), t=document.getElementById('section_modulus_circleTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __smcTabInit(){
+  var btns=document.querySelectorAll('.smc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__smcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __smcShow('chart');
+}
+var __smcFn=calcTool;calcTool=function(){try{__smcFn();}catch(e){}try{__smcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__smcChart();}catch(e){}});
+</script>
 </body>
 </html>

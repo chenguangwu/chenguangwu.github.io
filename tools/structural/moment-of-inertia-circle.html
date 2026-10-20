@@ -241,6 +241,11 @@ function __moment_of_inertia_circleBoot(){ try{ __moment_of_inertia_circlePreset
 if (document.readyState && document.readyState !== 'loading') __moment_of_inertia_circleBoot();
 else document.addEventListener('DOMContentLoaded', __moment_of_inertia_circleBoot);
 </script>
+<div class="mic-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="micChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,44 @@ else document.addEventListener('DOMContentLoaded', __moment_of_inertia_circleBoo
 </dl>
 </div>
 </section>
+<script>
+function __micSweep(){
+  var d0=num('d');
+  if(!isFinite(d0)||d0<=0)return null;
+  var labels=[],dI=[],dW=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k], I=Math.PI*Math.pow(d,4)/64, W=Math.PI*Math.pow(d,3)/32;
+    labels.push((Math.round(d*1000)/1000).toFixed(3));
+    dI.push(Math.round(I*1e12*1000)/1000);
+    dW.push(Math.round(W*1e9*1000)/1000);
+    rows.push([(Math.round(d*1000)/1000).toFixed(3),(Math.round(I*1e12*1000)/1000).toFixed(3),(Math.round(W*1e9*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dI:dI,dW:dW,rows:rows};
+}
+function __micChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__micSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#micChart',{title:en?'Circle Inertia vs Diameter (I=πd⁴/64 quartic, W=πd³/32 cubic)':'圆截面惯性矩随直径四次方增长、截面模量三次方（I=πd⁴/64，W=πd³/32）',labels:s.labels,series:[{name:en?'Inertia I (mm⁴)':'惯性矩 I (mm⁴)',data:s.dI},{name:en?'Modulus W (mm³)':'截面模量 W (mm³)',data:s.dW}]});
+}
+
+function __micShow(which){
+  var c=document.getElementById('micChart'), t=document.getElementById('moment_of_inertia_circleTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __micTabInit(){
+  var btns=document.querySelectorAll('.mic-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__micShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __micShow('chart');
+}
+var __micFn=calcTool;calcTool=function(){try{__micFn();}catch(e){}try{__micChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__micChart();}catch(e){}});
+</script>
 </body>
 </html>
