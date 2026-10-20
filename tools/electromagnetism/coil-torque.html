@@ -255,6 +255,11 @@ function __coil_torqueBoot(){ try{ __coil_torquePresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __coil_torqueBoot();
 else document.addEventListener('DOMContentLoaded', __coil_torqueBoot);
 </script>
+<div class="ct-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ctChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -291,5 +296,44 @@ else document.addEventListener('DOMContentLoaded', __coil_torqueBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ctSweep(){
+  var N=num('N'), I=num('I'), A=num('A'), B=num('B');
+  if(!isFinite(N)||!isFinite(I)||!isFinite(A)||!isFinite(B))return null;
+  var labels=[],dTau=[],dMax=[],rows=[];
+  var ths=[0,15,30,45,60,75,90,105,120,135,150,165,180];
+  for(var k=0;k<ths.length;k++){
+    var th=ths[k], tau=N*I*A*B*Math.sin(th*Math.PI/180);
+    labels.push(String(th));
+    dTau.push(Math.round(tau*1e3*1000)/1000);
+    dMax.push(Math.round(N*I*A*B*1e3*1000)/1000);
+    rows.push([String(th),(Math.round(tau*1e3*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dTau:dTau,dMax:dMax,rows:rows};
+}
+function __ctChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ctSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ctChart',{title:en?'Coil Torque vs Angle (sine τ=NIAB·sinθ)':'线圈磁力矩随夹角正弦变化（τ=NIAB·sinθ）',labels:s.labels,series:[{name:en?'Torque τ (×10⁻³ N·m)':'磁力矩 (×10⁻³ N·m)',data:s.dTau}]});
+}
+
+function __ctShow(which){
+  var c=document.getElementById('ctChart'), t=document.getElementById('coil_torqueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ctTabInit(){
+  var btns=document.querySelectorAll('.ct-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ctShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ctShow('chart');
+}
+var __ctFn=calcTool;calcTool=function(){try{__ctFn();}catch(e){}try{__ctChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ctChart();}catch(e){}});
+</script>
 </body>
 </html>

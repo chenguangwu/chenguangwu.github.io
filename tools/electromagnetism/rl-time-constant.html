@@ -298,6 +298,11 @@ function __rl_time_constantBoot(){ try{ __rl_time_constantPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __rl_time_constantBoot();
 else document.addEventListener('DOMContentLoaded', __rl_time_constantBoot);
 </script>
+<div class="rtc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rtcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,44 @@ else document.addEventListener('DOMContentLoaded', __rl_time_constantBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rtcSweep(){
+  var L=num('L'), R0=num('R');
+  if(!isFinite(L)||!isFinite(R0)||L<=0||R0<=0)return null;
+  var labels=[],dTau=[],dL=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var R=R0*mults[k], tau=L/R;
+    labels.push((Math.round(R*100)/100).toFixed(2));
+    dTau.push(Math.round(tau*1e3*1000)/1000);
+    dL.push(Math.round(L*1e3*1000)/1000);
+    rows.push([(Math.round(R*100)/100).toFixed(2),(Math.round(tau*1e3*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dTau:dTau,dL:dL,rows:rows};
+}
+function __rtcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rtcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rtcChart',{title:en?'RL Time Constant vs Resistance (inverse τ=L/R)':'RL 时间常数随电阻反比减小（τ=L/R）',labels:s.labels,series:[{name:en?'Time constant τ (ms)':'时间常数 (ms)',data:s.dTau}]});
+}
+
+function __rtcShow(which){
+  var c=document.getElementById('rtcChart'), t=document.getElementById('rl_time_constantTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rtcTabInit(){
+  var btns=document.querySelectorAll('.rtc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rtcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rtcShow('chart');
+}
+var __rtcFn=calcTool;calcTool=function(){try{__rtcFn();}catch(e){}try{__rtcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rtcChart();}catch(e){}});
+</script>
 </body>
 </html>

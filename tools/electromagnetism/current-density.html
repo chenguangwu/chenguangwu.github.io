@@ -298,6 +298,11 @@ function __current_densityBoot(){ try{ __current_densityPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __current_densityBoot();
 else document.addEventListener('DOMContentLoaded', __current_densityBoot);
 </script>
+<div class="cd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,44 @@ else document.addEventListener('DOMContentLoaded', __current_densityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cdSweep(){
+  var I=num('I'), A0=num('A');
+  if(!isFinite(I)||!isFinite(A0)||A0<=0)return null;
+  var labels=[],dJ=[],dK=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var A=A0*mults[k], J=I/A;
+    labels.push((Math.round(A*1e6*1000)/1000).toFixed(3));
+    dJ.push(Math.round(J*1e-4*1000)/1000);
+    dK.push(Math.round(I*1000)/1000);
+    rows.push([(Math.round(A*1e6*1000)/1000).toFixed(3),(Math.round(J*1e-4*1000)/1000).toFixed(4)]);
+  }
+  return {labels:labels,dJ:dJ,dK:dK,rows:rows};
+}
+function __cdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cdChart',{title:en?'Current Density vs Area (inverse J=I/A)':'电流密度随截面积反比下降（J=I/A）',labels:s.labels,series:[{name:en?'Density J (A/cm²)':'电流密度 (A/cm²)',data:s.dJ}]});
+}
+
+function __cdShow(which){
+  var c=document.getElementById('cdChart'), t=document.getElementById('current_densityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cdTabInit(){
+  var btns=document.querySelectorAll('.cd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cdShow('chart');
+}
+var __cdFn=calcTool;calcTool=function(){try{__cdFn();}catch(e){}try{__cdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cdChart();}catch(e){}});
+</script>
 </body>
 </html>

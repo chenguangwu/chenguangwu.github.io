@@ -303,6 +303,11 @@ function __resistors_seriesBoot(){ try{ __resistors_seriesPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __resistors_seriesBoot();
 else document.addEventListener('DOMContentLoaded', __resistors_seriesBoot);
 </script>
+<div class="rs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,44 @@ else document.addEventListener('DOMContentLoaded', __resistors_seriesBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rsSweep(){
+  var R1=num('R1'), R2=num('R2');
+  if(!isFinite(R1)||!isFinite(R2))return null;
+  var labels=[],dR=[],dSum=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var R3=R2*mults[k], R=R1+R2+R3;
+    labels.push((Math.round(R3*100)/100).toFixed(2));
+    dR.push(Math.round(R*100)/100);
+    dSum.push(Math.round((R1+R2)*100)/100);
+    rows.push([(Math.round(R3*100)/100).toFixed(2),(Math.round(R*100)/100).toFixed(2),(Math.round((R1+R2)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dR:dR,dSum:dSum,rows:rows};
+}
+function __rsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rsChart',{title:en?'Series Resistance vs R3 (linear R=R1+R2+R3)':'串联总电阻随单体电阻线性累加（R=R₁+R₂+R₃）',labels:s.labels,series:[{name:en?'Total R (Ω)':'总电阻 (Ω)',data:s.dR},{name:en?'Fixed part R1+R2 (Ω)':'固定部分 R₁+R₂ (Ω)',data:s.dSum}]});
+}
+
+function __rsShow(which){
+  var c=document.getElementById('rsChart'), t=document.getElementById('resistors_seriesTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rsTabInit(){
+  var btns=document.querySelectorAll('.rs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rsShow('chart');
+}
+var __rsFn=calcTool;calcTool=function(){try{__rsFn();}catch(e){}try{__rsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rsChart();}catch(e){}});
+</script>
 </body>
 </html>
