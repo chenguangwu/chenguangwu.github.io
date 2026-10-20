@@ -247,6 +247,11 @@ function __payroll_taxBoot(){ try{ __payroll_taxPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __payroll_taxBoot();
 else document.addEventListener('DOMContentLoaded', __payroll_taxBoot);
 </script>
+<div class="pt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ptChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __payroll_taxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ptSweep(){
+  var w0=num('w'), er=num('er'), ee=num('ee');
+  if(!isFinite(w0)||!isFinite(er)||!isFinite(ee)||w0<=0||er<0||ee<0)return null;
+  var labels=[],dT=[],dE=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var w=w0*mults[k], T=w*(er+ee), Ee=w*ee;
+    labels.push((Math.round(w*100)/100).toFixed(0));
+    dT.push(Math.round(T*1000)/1000); dE.push(Math.round(Ee*1000)/1000);
+    rows.push([(Math.round(w*100)/100).toFixed(0),(Math.round(T*1000)/1000).toFixed(2),(Math.round(Ee*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,dE:dE,rows:rows};
+}
+function __ptChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ptSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ptChart',{title:en?'Payroll Tax vs Wage (T=w x (er+ee))':'工薪税随工资线性变化（T=w×(er+ee)）',labels:s.labels,series:[{name:en?'Total T':'总税额 T',data:s.dT},{name:en?'Employee ee':'雇员承担',data:s.dE}]});
+}
+
+function __ptShow(which){
+  var c=document.getElementById('ptChart'), t=document.getElementById('payroll_taxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ptTabInit(){
+  var btns=document.querySelectorAll('.pt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ptShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ptShow('chart');
+}
+var __ptFn=calcTool;calcTool=function(){try{__ptFn();}catch(e){}try{__ptChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ptChart();}catch(e){}});
+try{__ptTabInit();}catch(e){}
+</script>
 </body>
 </html>

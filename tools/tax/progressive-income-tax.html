@@ -325,6 +325,11 @@ function __progressive_income_taxBoot(){ try{ __progressive_income_taxPresets();
 if (document.readyState && document.readyState !== 'loading') __progressive_income_taxBoot();
 else document.addEventListener('DOMContentLoaded', __progressive_income_taxBoot);
 </script>
+<div class="pit-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pitChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -361,5 +366,50 @@ else document.addEventListener('DOMContentLoaded', __progressive_income_taxBoot)
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用分档累加：各档 (应税−下限) × 档率</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>应税所得</li><li>第1档上限</li><li>第1档税率 (%)</li><li>第2档上限</li><li>第2档税率 (%)</li><li>第3档税率 (%)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>分档累加：各档 (应税−下限) × 档率是做什么的？</dt><dd>输入应纳税所得额并自定义各档级距下限与税率，按分档累加（各档 (应税−下限)×档率）计算三档及以上累进所得税，用于工资薪金、经营所得的分级计税。</dd><dt>如何使用分档累加：各档 (应税−下限) × 档率？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>分档累加：各档 (应税−下限) × 档率适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __pitSweep(){
+  var inc0=num('income'), l1=num('l1'), r1=num('r1'), l2=num('l2'), r2=num('r2'), r3=num('r3');
+  if(!isFinite(inc0)||!isFinite(l1)||!isFinite(r1)||!isFinite(l2)||!isFinite(r2)||!isFinite(r3)||l1<=0||l2<=l1)return null;
+  function taxPit(inc){
+    var t=Math.min(inc,l1)*r1/100;
+    t+=Math.max(0,Math.min(inc,l2)-l1)*r2/100;
+    t+=Math.max(0,inc-l2)*r3/100;
+    return t;
+  }
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var inc=inc0*mults[k], tax=taxPit(inc);
+    labels.push((Math.round(inc*100)/100).toFixed(0));
+    dT.push(Math.round(tax*1000)/1000);
+    rows.push([(Math.round(inc*100)/100).toFixed(0),(Math.round(tax*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __pitChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pitSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pitChart',{title:en?'Progressive Income Tax vs Income (3-bracket)':'累进所得税随所得分段凸曲线（三档）',labels:s.labels,series:[{name:en?'Tax':'税额',data:s.dT}]});
+}
+
+function __pitShow(which){
+  var c=document.getElementById('pitChart'), t=document.getElementById('progressive_income_taxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pitTabInit(){
+  var btns=document.querySelectorAll('.pit-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pitShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pitShow('chart');
+}
+var __pitFn=calcTool;calcTool=function(){try{__pitFn();}catch(e){}try{__pitChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pitChart();}catch(e){}});
+try{__pitTabInit();}catch(e){}
+</script>
 </body>
 </html>

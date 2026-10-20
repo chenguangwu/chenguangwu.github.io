@@ -317,6 +317,11 @@ function __marginal_tax_rateBoot(){ try{ __marginal_tax_ratePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __marginal_tax_rateBoot();
 else document.addEventListener('DOMContentLoaded', __marginal_tax_rateBoot);
 </script>
+<div class="mtr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mtrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -352,5 +357,44 @@ else document.addEventListener('DOMContentLoaded', __marginal_tax_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mtrSweep(){
+  var Y1=num('Y1'),T1=num('T1'),Y2=num('Y2'),T20=num('T2');
+  if(!isFinite(Y1)||!isFinite(T1)||!isFinite(Y2)||!isFinite(T20)||Y2<=Y1)return null;
+  var labels=[],dM=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var T2=T20*mults[k], mtr=(T2-T1)/(Y2-Y1);
+    labels.push((Math.round(T2*100)/100).toFixed(0));
+    dM.push(Math.round(mtr*100000)/100000);
+    rows.push([(Math.round(T2*100)/100).toFixed(0),(Math.round(mtr*100000)/100000).toFixed(5)]);
+  }
+  return {labels:labels,dM:dM,rows:rows};
+}
+function __mtrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__mtrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mtrChart',{title:en?'Marginal Tax Rate vs Upper Tax (MTR=(T2-T1)/(Y2-Y1))':'边际税率随高档税额线性变化（MTR=(T2−T1)/(Y2−Y1)）',labels:s.labels,series:[{name:en?'MTR':'边际税率 MTR',data:s.dM}]});
+}
+
+function __mtrShow(which){
+  var c=document.getElementById('mtrChart'), t=document.getElementById('marginal_tax_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mtrTabInit(){
+  var btns=document.querySelectorAll('.mtr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mtrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mtrShow('chart');
+}
+var __mtrFn=calcTool;calcTool=function(){try{__mtrFn();}catch(e){}try{__mtrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mtrChart();}catch(e){}});
+try{__mtrTabInit();}catch(e){}
+</script>
 </body>
 </html>
