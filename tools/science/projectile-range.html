@@ -297,6 +297,11 @@ function __projectile_rangeBoot(){ try{ __projectile_rangePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __projectile_rangeBoot();
 else document.addEventListener('DOMContentLoaded', __projectile_rangeBoot);
 </script>
+<div class="prrj-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="prrjChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,43 @@ else document.addEventListener('DOMContentLoaded', __projectile_rangeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __prrjSweep(){
+  var v=num('v'), g=num('g');
+  if(!isFinite(v)||!isFinite(g)||Math.abs(g)<1e-12)return null;
+  var labels=[], dR=[], dH=[];
+  for(var k=0;k<=12;k++){
+    var th=k*7.5*Math.PI/180;
+    labels.push(String(Math.round(k*7.5*10)/10));
+    dR.push(Math.round(v*v*Math.sin(2*th)/g*100)/100);
+    dH.push(Math.round(v*v*Math.sin(th)*Math.sin(th)/(2*g)*100)/100);
+  }
+  return {labels:labels,dR:dR,dH:dH};
+}
+function __prrjChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__prrjSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#prrjChart',{title:en?'Range peaks at 45 degrees as a sine arch while max height climbs monotonically':'水平射程在 45 度处呈正弦拱形达峰，最大高度单调上升',labels:s.labels,series:[{name:en?'Range R (m)':'水平射程 R (m)',data:s.dR},{name:en?'Max height H (m)':'最大高度 H (m)',data:s.dH}]});
+}
+
+function __prrjShow(which){
+  var c=document.getElementById('prrjChart'), t=document.getElementById('projectile_rangeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __prrjTabInit(){
+  var btns=document.querySelectorAll('.prrj-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__prrjShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __prrjShow('chart');
+  try{__prrjChart();}catch(e){}
+}
+var __prrjFn=calcTool;calcTool=function(){try{__prrjFn();}catch(e){}try{__prrjChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__prrjChart();}catch(e){}});try{__prrjTabInit();}catch(e){}
+</script>
 </body>
 </html>

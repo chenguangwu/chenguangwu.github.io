@@ -241,6 +241,11 @@ function __work_doneBoot(){ try{ __work_donePresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __work_doneBoot();
 else document.addEventListener('DOMContentLoaded', __work_doneBoot);
 </script>
+<div class="wkdn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wkdnChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -274,5 +279,43 @@ else document.addEventListener('DOMContentLoaded', __work_doneBoot);
 </dl>
 </div>
 </section>
+<script>
+function __wkdnSweep(){
+  var F=num('F'), d=num('d');
+  if(!isFinite(F)||!isFinite(d))return null;
+  var labels=[], dW=[], dP=[];
+  for(var k=0;k<=12;k++){
+    var deg=k*15, th=deg*Math.PI/180;
+    labels.push(String(deg));
+    dW.push(Math.round(F*d*Math.cos(th)*100)/100);
+    dP.push(Math.round(F*Math.sin(th)*100)/100);
+  }
+  return {labels:labels,dW:dW,dP:dP};
+}
+function __wkdnChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__wkdnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wkdnChart',{title:en?'Work follows cosine and turns negative past 90 degrees while the perpendicular component arches as sine':'功随夹角余弦衰减并在 90 度后转负，垂直分力呈正弦拱形',labels:s.labels,series:[{name:en?'Work W (J)':'功 W (J)',data:s.dW},{name:en?'Perpendicular component (N)':'垂直分力 (N)',data:s.dP}]});
+}
+
+function __wkdnShow(which){
+  var c=document.getElementById('wkdnChart'), t=document.getElementById('work_doneTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wkdnTabInit(){
+  var btns=document.querySelectorAll('.wkdn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wkdnShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __wkdnShow('chart');
+  try{__wkdnChart();}catch(e){}
+}
+var __wkdnFn=calcTool;calcTool=function(){try{__wkdnFn();}catch(e){}try{__wkdnChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wkdnChart();}catch(e){}});try{__wkdnTabInit();}catch(e){}
+</script>
 </body>
 </html>

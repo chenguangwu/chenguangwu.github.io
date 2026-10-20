@@ -305,6 +305,11 @@ function __spring_oscillation_periodBoot(){ try{ __spring_oscillation_periodPres
 if (document.readyState && document.readyState !== 'loading') __spring_oscillation_periodBoot();
 else document.addEventListener('DOMContentLoaded', __spring_oscillation_periodBoot);
 </script>
+<div class="sosp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sospChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +343,43 @@ else document.addEventListener('DOMContentLoaded', __spring_oscillation_periodBo
 </dl>
 </div>
 </section>
+<script>
+function __sospSweep(){
+  var m=num('m'), k0=num('k');
+  if(!isFinite(m)||!isFinite(k0)||m<=0||k0<=0)return null;
+  var labels=[], dT=[], dW=[];
+  for(var k=0;k<=10;k++){
+    var kk=k0*(0.2+0.16*k);
+    labels.push((Math.round(kk*100)/100)+'');
+    dT.push(Math.round(2*Math.PI*Math.sqrt(m/kk)*10000)/10000);
+    dW.push(Math.round(Math.sqrt(kk/m)*10000)/10000);
+  }
+  return {labels:labels,dT:dT,dW:dW};
+}
+function __sospChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sospSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sospChart',{title:en?'Spring period decays as inverse square root of stiffness while angular frequency rises as square root':'弹簧振子周期随刚度按反比平方根衰减，角频率按平方根上升（镜像对照）',labels:s.labels,series:[{name:en?'Period T (s)':'周期 T (s)',data:s.dT},{name:en?'Angular frequency (rad/s)':'角频率 ω (rad/s)',data:s.dW}]});
+}
+
+function __sospShow(which){
+  var c=document.getElementById('sospChart'), t=document.getElementById('spring_oscillation_periodTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sospTabInit(){
+  var btns=document.querySelectorAll('.sosp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sospShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sospShow('chart');
+  try{__sospChart();}catch(e){}
+}
+var __sospFn=calcTool;calcTool=function(){try{__sospFn();}catch(e){}try{__sospChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sospChart();}catch(e){}});try{__sospTabInit();}catch(e){}
+</script>
 </body>
 </html>
