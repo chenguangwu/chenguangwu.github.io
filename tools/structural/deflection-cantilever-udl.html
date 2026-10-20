@@ -306,6 +306,11 @@ function __deflection_cantilever_udlBoot(){ try{ __deflection_cantilever_udlPres
 if (document.readyState && document.readyState !== 'loading') __deflection_cantilever_udlBoot();
 else document.addEventListener('DOMContentLoaded', __deflection_cantilever_udlBoot);
 </script>
+<div class="dcu-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dcuChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -341,5 +346,46 @@ else document.addEventListener('DOMContentLoaded', __deflection_cantilever_udlBo
 </dl>
 </div>
 </section>
+<script>
+function __dcuSweep(){
+  var w=num('w'), E=num('E'), d=num('d'), L0=num('L');
+  if(!isFinite(w)||!isFinite(E)||!isFinite(d)||!isFinite(L0)||w<=0||E<=0||d<=0||L0<=0)return null;
+  var I=Math.PI*Math.pow(d,4)/64;
+  var labels=[],dD=[],dM=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], delta=w*Math.pow(L,4)/(8*E*I);
+    var M=w*L*L/2;
+    labels.push((Math.round(L*1000)/1000).toFixed(2));
+    dD.push(Math.round(delta*1e6*1000)/1000);
+    dM.push(Math.round(M/1e3*1000)/1000);
+    rows.push([(Math.round(L*1000)/1000).toFixed(2),(Math.round(delta*1e6*1000)/1000).toFixed(3),(Math.round(M/1e3*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dD:dD,dM:dM,rows:rows};
+}
+function __dcuChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dcuSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dcuChart',{title:en?'Cantilever UDL Deflection vs Length (δ=wL⁴/8EI, quartic)':'悬臂梁均布载荷挠度随长度四次方暴增（δ=wL⁴/(8EI)）',labels:s.labels,series:[{name:en?'Deflection δ (μm)':'挠度 δ (μm)',data:s.dD},{name:en?'Base moment (kN·m)':'固端弯矩 (kN·m)',data:s.dM}]});
+}
+
+function __dcuShow(which){
+  var c=document.getElementById('dcuChart'), t=document.getElementById('deflection_cantilever_udlTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dcuTabInit(){
+  var btns=document.querySelectorAll('.dcu-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dcuShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dcuShow('chart');
+}
+var __dcuFn=calcTool;calcTool=function(){try{__dcuFn();}catch(e){}try{__dcuChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dcuChart();}catch(e){}});
+</script>
 </body>
 </html>

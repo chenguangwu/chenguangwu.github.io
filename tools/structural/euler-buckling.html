@@ -299,6 +299,11 @@ function __euler_bucklingBoot(){ try{ __euler_bucklingPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __euler_bucklingBoot();
 else document.addEventListener('DOMContentLoaded', __euler_bucklingBoot);
 </script>
+<div class="eb-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ebChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,45 @@ else document.addEventListener('DOMContentLoaded', __euler_bucklingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ebSweep(){
+  var E=num('E'), I=num('I'), L0=num('L');
+  if(!isFinite(E)||!isFinite(I)||!isFinite(L0)||E<=0||I<=0||L0<=0)return null;
+  var P0=Math.PI*Math.PI*E*I/(L0*L0);
+  var labels=[],dPcr=[],dRel=[],rows=[];
+  var mults=[0.5,0.75,1,1.5,2,3,4];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], P=Math.PI*Math.PI*E*I/(L*L);
+    labels.push((Math.round(L*1000)/1000).toFixed(2));
+    dPcr.push(Math.round(P/1e3*1000)/1000);
+    dRel.push(Math.round(P/P0*1000)/1000);
+    rows.push([(Math.round(L*1000)/1000).toFixed(2),(Math.round(P/1e3*1000)/1000).toFixed(3),(Math.round(P/P0*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dPcr:dPcr,dRel:dRel,rows:rows};
+}
+function __ebChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ebSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ebChart',{title:en?'Euler Buckling Load vs Length (Pcr=π²EI/L², inverse-square)':'欧拉临界载荷随长度反平方骤降（P_cr=π²EI/L²）',labels:s.labels,series:[{name:en?'Critical load (kN)':'临界载荷 P_cr (kN)',data:s.dPcr},{name:en?'Relative (%)':'相对临界载荷 (%)',data:s.dRel}]});
+}
+
+function __ebShow(which){
+  var c=document.getElementById('ebChart'), t=document.getElementById('euler_bucklingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ebTabInit(){
+  var btns=document.querySelectorAll('.eb-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ebShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ebShow('chart');
+}
+var __ebFn=calcTool;calcTool=function(){try{__ebFn();}catch(e){}try{__ebChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ebChart();}catch(e){}});
+</script>
 </body>
 </html>

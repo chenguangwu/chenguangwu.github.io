@@ -247,6 +247,11 @@ function __von_mises_2dBoot(){ try{ __von_mises_2dPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __von_mises_2dBoot();
 else document.addEventListener('DOMContentLoaded', __von_mises_2dBoot);
 </script>
+<div class="vm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,46 @@ else document.addEventListener('DOMContentLoaded', __von_mises_2dBoot);
 </dl>
 </div>
 </section>
+<script>
+function __vmSweep(){
+  var sx0=num('sx'), sy=num('sy'), t=num('t');
+  if(!isFinite(sx0)||!isFinite(sy)||!isFinite(t))return null;
+  var labels=[],dVm=[],dTm=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var sx=sx0*mults[k];
+    var vm=Math.sqrt(sx*sx-sx*sy+sy*sy+3*t*t);
+    var tm=Math.sqrt(Math.pow((sx-sy)/2,2)+t*t);
+    labels.push((Math.round(sx/1e6*100)/100).toFixed(2));
+    dVm.push(Math.round(vm/1e6*1000)/1000);
+    dTm.push(Math.round(tm/1e6*1000)/1000);
+    rows.push([(Math.round(sx/1e6*100)/100).toFixed(2),(Math.round(vm/1e6*1000)/1000).toFixed(3),(Math.round(tm/1e6*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dVm:dVm,dTm:dTm,rows:rows};
+}
+function __vmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__vmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vmChart',{title:en?'von Mises vs σx (σvm=√(σx²-σxσy+σy²+3τ²))':'von Mises 等效应力随 σx 根式增长（σ_vm=√(σ_x²-σ_xσ_y+σ_y²+3τ²)）',labels:s.labels,series:[{name:en?'von Mises (MPa)':'等效应力 σ_vm (MPa)',data:s.dVm},{name:en?'Max shear τmax (MPa)':'最大剪应力 τ_max (MPa)',data:s.dTm}]});
+}
+
+function __vmShow(which){
+  var c=document.getElementById('vmChart'), t=document.getElementById('von_mises_2dTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vmTabInit(){
+  var btns=document.querySelectorAll('.vm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __vmShow('chart');
+}
+var __vmFn=calcTool;calcTool=function(){try{__vmFn();}catch(e){}try{__vmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__vmChart();}catch(e){}});
+</script>
 </body>
 </html>
