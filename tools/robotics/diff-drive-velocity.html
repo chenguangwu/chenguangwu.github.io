@@ -299,6 +299,11 @@ function __diff_drive_velocityBoot(){ try{ __diff_drive_velocityPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __diff_drive_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __diff_drive_velocityBoot);
 </script>
+<div class="ddv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ddvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,44 @@ else document.addEventListener('DOMContentLoaded', __diff_drive_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ddvSweep(){
+  var vl=num('vl'), vr=num('vr'), L0=num('L');
+  if(!isFinite(vl)||!isFinite(vr)||!isFinite(L0)||L0<=0)return null;
+  var labels=[],dV=[],dW=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], v=(vr+vl)/2, w=(vr-vl)/L;
+    labels.push((Math.round(L*1000)/1000).toFixed(3));
+    dV.push(Math.round(v*10000)/10000); dW.push(Math.round(w*10000)/10000);
+    rows.push([(Math.round(L*1000)/1000).toFixed(3),(Math.round(v*10000)/10000).toFixed(4),(Math.round(w*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dV:dV,dW:dW,rows:rows};
+}
+function __ddvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ddvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ddvChart',{title:en?'Differential Drive: linear v const, angular w=Δv/L (inverse)':'差速驱动：线速度 v 恒定，角速度 w=Δv/L（随轮距反比）',labels:s.labels,series:[{name:en?'Linear v (m/s)':'线速度 v (m/s)',data:s.dV},{name:en?'Angular w (rad/s)':'角速度 w (rad/s)',data:s.dW}]});
+}
+
+function __ddvShow(which){
+  var c=document.getElementById('ddvChart'), t=document.getElementById('diff_drive_velocityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ddvTabInit(){
+  var btns=document.querySelectorAll('.ddv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ddvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ddvShow('chart');
+}
+var __ddvFn=calcTool;calcTool=function(){try{__ddvFn();}catch(e){}try{__ddvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ddvChart();}catch(e){}});
+try{__ddvTabInit();}catch(e){}
+</script>
 </body>
 </html>

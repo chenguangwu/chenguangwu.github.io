@@ -237,6 +237,11 @@ function __cable_tension_pulleyBoot(){ try{ __cable_tension_pulleyPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __cable_tension_pulleyBoot();
 else document.addEventListener('DOMContentLoaded', __cable_tension_pulleyBoot);
 </script>
+<div class="ctp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ctpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -272,5 +277,44 @@ else document.addEventListener('DOMContentLoaded', __cable_tension_pulleyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ctpSweep(){
+  var F0=num('F');
+  if(!isFinite(F0)||F0<=0)return null;
+  var labels=[],dT=[],dT3=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var F=F0*mults[k], T=F/2, T3=F/3;
+    labels.push((Math.round(F*100)/100).toFixed(0));
+    dT.push(Math.round(T*1000)/1000); dT3.push(Math.round(T3*1000)/1000);
+    rows.push([(Math.round(F*100)/100).toFixed(0),(Math.round(T*1000)/1000).toFixed(2),(Math.round(T3*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,dT3:dT3,rows:rows};
+}
+function __ctpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ctpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ctpChart',{title:en?'Cable Tension vs Load (T=F/2, T3=F/3)':'绳张力随载荷线性变化（T=F/2，T3=F/3）',labels:s.labels,series:[{name:en?'Tension T (N)':'绳张力 T (N)',data:s.dT},{name:en?'3-rope T3 (N)':'三绳组 T3 (N)',data:s.dT3}]});
+}
+
+function __ctpShow(which){
+  var c=document.getElementById('ctpChart'), t=document.getElementById('cable_tension_pulleyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ctpTabInit(){
+  var btns=document.querySelectorAll('.ctp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ctpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ctpShow('chart');
+}
+var __ctpFn=calcTool;calcTool=function(){try{__ctpFn();}catch(e){}try{__ctpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ctpChart();}catch(e){}});
+try{__ctpTabInit();}catch(e){}
+</script>
 </body>
 </html>

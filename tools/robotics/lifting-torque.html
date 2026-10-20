@@ -243,6 +243,11 @@ function __lifting_torqueBoot(){ try{ __lifting_torquePresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __lifting_torqueBoot();
 else document.addEventListener('DOMContentLoaded', __lifting_torqueBoot);
 </script>
+<div class="lt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ltChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,44 @@ else document.addEventListener('DOMContentLoaded', __lifting_torqueBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ltSweep(){
+  var m=num('m'), r0=num('r'), g=num('g');
+  if(!isFinite(m)||!isFinite(r0)||!isFinite(g)||m<=0||r0<=0||g<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var r=r0*mults[k], tau=m*g*r;
+    labels.push((Math.round(r*1000)/1000).toFixed(3));
+    dT.push(Math.round(tau*1000)/1000);
+    rows.push([(Math.round(r*1000)/1000).toFixed(3),(Math.round(tau*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __ltChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ltSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ltChart',{title:en?'Lifting Torque vs Lever Arm (tau=m g r)':'提升转矩随力臂线性变化（τ=m·g·r）',labels:s.labels,series:[{name:en?'Torque tau (N m)':'转矩 τ (N·m)',data:s.dT}]});
+}
+
+function __ltShow(which){
+  var c=document.getElementById('ltChart'), t=document.getElementById('lifting_torqueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ltTabInit(){
+  var btns=document.querySelectorAll('.lt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ltShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ltShow('chart');
+}
+var __ltFn=calcTool;calcTool=function(){try{__ltFn();}catch(e){}try{__ltChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ltChart();}catch(e){}});
+try{__ltTabInit();}catch(e){}
+</script>
 </body>
 </html>

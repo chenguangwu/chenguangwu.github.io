@@ -291,6 +291,11 @@ function __stepper_step_angleBoot(){ try{ __stepper_step_anglePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __stepper_step_angleBoot();
 else document.addEventListener('DOMContentLoaded', __stepper_step_angleBoot);
 </script>
+<div class="ssa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ssaChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -326,5 +331,44 @@ else document.addEventListener('DOMContentLoaded', __stepper_step_angleBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ssaSweep(){
+  var N0=num('N');
+  if(!isFinite(N0)||N0<=0)return null;
+  var labels=[],dTh=[],dTh16=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var N=N0*mults[k], th=360/N, th16=th/16;
+    labels.push((Math.round(N*100)/100).toFixed(0));
+    dTh.push(Math.round(th*1000)/1000); dTh16.push(Math.round(th16*10000)/10000);
+    rows.push([(Math.round(N*100)/100).toFixed(0),(Math.round(th*1000)/1000).toFixed(3),(Math.round(th16*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dTh:dTh,dTh16:dTh16,rows:rows};
+}
+function __ssaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ssaSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ssaChart',{title:en?'Step Angle vs Steps/Rev (theta=360/N, inverse)':'步距角随每转步数反比变化（θ=360/N）',labels:s.labels,series:[{name:en?'Step angle theta (deg)':'步距角 θ (°)',data:s.dTh},{name:en?'1/16 micro theta16 (deg)':'1/16 微步 θ16 (°)',data:s.dTh16}]});
+}
+
+function __ssaShow(which){
+  var c=document.getElementById('ssaChart'), t=document.getElementById('stepper_step_angleTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ssaTabInit(){
+  var btns=document.querySelectorAll('.ssa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ssaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ssaShow('chart');
+}
+var __ssaFn=calcTool;calcTool=function(){try{__ssaFn();}catch(e){}try{__ssaChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ssaChart();}catch(e){}});
+try{__ssaTabInit();}catch(e){}
+</script>
 </body>
 </html>
