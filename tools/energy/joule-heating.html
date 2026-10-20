@@ -249,6 +249,11 @@ function __joule_heatingBoot(){ try{ __joule_heatingPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __joule_heatingBoot();
 else document.addEventListener('DOMContentLoaded', __joule_heatingBoot);
 </script>
+<div class="jhl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="jhlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -296,5 +301,44 @@ else document.addEventListener('DOMContentLoaded', __joule_heatingBoot);
 <h3>用途</h3><p>估算导线/元件发热与损耗；电流翻倍发热增至 4 倍，是过载风险核心。</p>
 <h3>边界</h3><p>适用于稳恒电阻发热； results 为热功率，实际温升还取决于散热；电气安全以载流量规范为准。</p>
 </div></section>
+<script>
+function __jhlSweep(){
+  var R=num('R');
+  if(!isFinite(R)||R<=0)return null;
+  var labels=[],dP=[],dU=[];
+  var is=[0.5,1,1.5,2,2.5,3.5,5];
+  for(var k=0;k<is.length;k++){
+    var iv=is[k];
+    labels.push(iv.toFixed(1));
+    dP.push(Math.round(iv*iv*R*1000)/1000);
+    dU.push(Math.round(iv*R*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dU:dU};
+}
+function __jhlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__jhlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#jhlChart',{title:en?'Joule Heating vs Current (quadratic vs linear)':'焦耳热功率随电流平方增长',labels:s.labels,series:[{name:en?'Heat power P (W)':'热功率 P (W)',data:s.dP},{name:en?'Voltage drop U (V)':'电压降 U (V)',data:s.dU}]});
+}
+
+function __jhlShow(which){
+  var c=document.getElementById('jhlChart'), t=document.getElementById('joule_heatingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __jhlTabInit(){
+  var btns=document.querySelectorAll('.jhl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__jhlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __jhlShow('chart');
+  try{__jhlChart();}catch(e){}
+}
+var __jhlFn=calcTool;calcTool=function(){try{__jhlFn();}catch(e){}try{__jhlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__jhlChart();}catch(e){}});try{__jhlTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -244,6 +244,11 @@ function __fuel_heat_valueBoot(){ try{ __fuel_heat_valuePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __fuel_heat_valueBoot();
 else document.addEventListener('DOMContentLoaded', __fuel_heat_valueBoot);
 </script>
+<div class="fhv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fhvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +283,44 @@ else document.addEventListener('DOMContentLoaded', __fuel_heat_valueBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fhvSweep(){
+  var h=num('h');
+  if(!isFinite(h)||h<=0)return null;
+  var labels=[],dE=[],dH=[];
+  var ms=[500,800,1000,1300,1600,2000];
+  for(var k=0;k<ms.length;k++){
+    var mv=ms[k], Q=mv*h;
+    labels.push(mv.toFixed(0));
+    dE.push(Math.round(Q/1e6*1000)/1000);
+    dH.push(Math.round(h/1000*100)/100);
+  }
+  return {labels:labels,dE:dE,dH:dH};
+}
+function __fhvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fhvSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fhvChart',{title:en?'Heat Energy vs Fuel Mass (linear + heat value ref)':'热量随燃料质量线性增长',labels:s.labels,series:[{name:en?'Heat energy (MJ)':'能量 (MJ)',data:s.dE},{name:en?'Fuel heat value (kJ/kg)':'燃料热值 (kJ/kg)',data:s.dH}]});
+}
+
+function __fhvShow(which){
+  var c=document.getElementById('fhvChart'), t=document.getElementById('fuel_heat_valueTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fhvTabInit(){
+  var btns=document.querySelectorAll('.fhv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fhvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fhvShow('chart');
+  try{__fhvChart();}catch(e){}
+}
+var __fhvFn=calcTool;calcTool=function(){try{__fhvFn();}catch(e){}try{__fhvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fhvChart();}catch(e){}});try{__fhvTabInit();}catch(e){}
+</script>
 </body>
 </html>

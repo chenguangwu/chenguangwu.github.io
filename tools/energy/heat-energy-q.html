@@ -247,6 +247,11 @@ function __heat_energy_qBoot(){ try{ __heat_energy_qPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __heat_energy_qBoot();
 else document.addEventListener('DOMContentLoaded', __heat_energy_qBoot);
 </script>
+<div class="heq-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="heqChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __heat_energy_qBoot);
 </dl>
 </div>
 </section>
+<script>
+function __heqSweep(){
+  var m=num('m'), c=num('c');
+  if(!isFinite(m)||!isFinite(c)||m<=0||c<=0)return null;
+  var labels=[],dQ=[],dC=[];
+  var dts=[5,15,25,40,55,70,80];
+  for(var k=0;k<dts.length;k++){
+    var dv=dts[k], Q=m*c*dv;
+    labels.push(dv.toFixed(0));
+    dQ.push(Math.round(Q/1e6*10000)/10000);
+    dC.push(Math.round(m*c/1000*100)/100);
+  }
+  return {labels:labels,dQ:dQ,dC:dC};
+}
+function __heqChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__heqSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#heqChart',{title:en?'Sensible Heat vs Temperature Rise (linear + heat capacity ref)':'热量随温升线性增长',labels:s.labels,series:[{name:en?'Heat Q (MJ)':'热量 Q (MJ)',data:s.dQ},{name:en?'Heat capacity (kJ/K)':'热容 C (kJ/K)',data:s.dC}]});
+}
+
+function __heqShow(which){
+  var c=document.getElementById('heqChart'), t=document.getElementById('heat_energy_qTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __heqTabInit(){
+  var btns=document.querySelectorAll('.heq-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__heqShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __heqShow('chart');
+  try{__heqChart();}catch(e){}
+}
+var __heqFn=calcTool;calcTool=function(){try{__heqFn();}catch(e){}try{__heqChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__heqChart();}catch(e){}});try{__heqTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -329,6 +329,11 @@ function __lcoeBoot(){ try{ __lcoePresets(); }catch(e){} try{ calcTool(); }catch
 if (document.readyState && document.readyState !== 'loading') __lcoeBoot();
 else document.addEventListener('DOMContentLoaded', __lcoeBoot);
 </script>
+<div class="lco-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lcoChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -364,5 +369,46 @@ else document.addEventListener('DOMContentLoaded', __lcoeBoot);
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用生命周期成本 / 发电量</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>初投资 (元)</li><li>年限 (年)</li><li>折现率 r</li><li>年运维 (元)</li><li>年发电量 (kWh)</li></ul><h2>适用场景</h2><p>家庭光伏与风电项目初投、运维与年发电量核算，对比不同容量机组的度电成本与回收期。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>生命周期成本 / 发电量是做什么的？</dt><dd>按 CAPEX、折现率、运维与年发电量计算平准化度电成本 LCOE，比较发电项目经济性，纯前端估算辅助投资判断。</dd><dt>如何使用生命周期成本 / 发电量？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>生命周期成本 / 发电量适合哪些场景？</dt><dd>家庭光伏与风电项目初投、运维与年发电量核算，对比不同容量机组的度电成本与回收期。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __lcoSweep(){
+  var C=num('capex'), r=num('r'), om=num('om'), E=num('e');
+  if(!isFinite(C)||!isFinite(r)||!isFinite(om)||!isFinite(E)||C<=0||r<=0||E<=0)return null;
+  var labels=[],dL=[],dF=[];
+  var ns=[5,10,15,20,25,30];
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k];
+    var pw=Math.pow(1+r,nv);
+    var crf=r*pw/(pw-1);
+    labels.push(nv.toFixed(0));
+    dL.push(Math.round((C*crf+om)/E*1000)/1000);
+    dF.push(Math.round(crf*10000)/10000);
+  }
+  return {labels:labels,dL:dL,dF:dF};
+}
+function __lcoChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__lcoSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lcoChart',{title:en?'LCOE & CRF vs Project Life (hyperbolic decay)':'LCOE 与资本回收因子随年限双曲下降',labels:s.labels,series:[{name:en?'LCOE (¥/kWh)':'LCOE (元/kWh)',data:s.dL},{name:en?'CRF capital recovery factor':'资本回收因子 CRF',data:s.dF}]});
+}
+
+function __lcoShow(which){
+  var c=document.getElementById('lcoChart'), t=document.getElementById('lcoeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lcoTabInit(){
+  var btns=document.querySelectorAll('.lco-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lcoShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lcoShow('chart');
+  try{__lcoChart();}catch(e){}
+}
+var __lcoFn=calcTool;calcTool=function(){try{__lcoFn();}catch(e){}try{__lcoChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lcoChart();}catch(e){}});try{__lcoTabInit();}catch(e){}
+</script>
 </body>
 </html>

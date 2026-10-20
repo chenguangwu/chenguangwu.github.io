@@ -303,6 +303,11 @@ function __fuel_costBoot(){ try{ __fuel_costPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __fuel_costBoot();
 else document.addEventListener('DOMContentLoaded', __fuel_costBoot);
 </script>
+<div class="fuc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fucChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,45 @@ else document.addEventListener('DOMContentLoaded', __fuel_costBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fucSweep(){
+  var q=num('q'), p=num('price');
+  if(!isFinite(q)||!isFinite(p)||q<=0||p<=0)return null;
+  var cost=q*p;
+  var labels=[],dU=[],dT=[];
+  var ds=[100,200,350,500,700,900,1000];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k];
+    labels.push(dv.toFixed(0));
+    dU.push(Math.round(cost/dv*1000)/1000);
+    dT.push(Math.round(cost*100)/100);
+  }
+  return {labels:labels,dU:dU,dT:dT};
+}
+function __fucChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fucSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fucChart',{title:en?'Unit Mileage Cost vs Distance (inverse + total ref)':'单位里程成本随里程反比下降',labels:s.labels,series:[{name:en?'Unit cost (¥/km)':'单位里程 (元/km)',data:s.dU},{name:en?'Total fuel cost (¥)':'燃料费 (元)',data:s.dT}]});
+}
+
+function __fucShow(which){
+  var c=document.getElementById('fucChart'), t=document.getElementById('fuel_costTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fucTabInit(){
+  var btns=document.querySelectorAll('.fuc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fucShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fucShow('chart');
+  try{__fucChart();}catch(e){}
+}
+var __fucFn=calcTool;calcTool=function(){try{__fucFn();}catch(e){}try{__fucChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fucChart();}catch(e){}});try{__fucTabInit();}catch(e){}
+</script>
 </body>
 </html>
