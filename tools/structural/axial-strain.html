@@ -298,6 +298,11 @@ function __axial_strainBoot(){ try{ __axial_strainPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __axial_strainBoot();
 else document.addEventListener('DOMContentLoaded', __axial_strainBoot);
 </script>
+<div class="as-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="asChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,44 @@ else document.addEventListener('DOMContentLoaded', __axial_strainBoot);
 </dl>
 </div>
 </section>
+<script>
+function __asSweep(){
+  var dL=num('dL'), L0=num('L');
+  if(!isFinite(dL)||!isFinite(L0)||L0<=0)return null;
+  var labels=[],dEps=[],dUe=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], eps=dL/L;
+    labels.push((Math.round(L*100)/100).toFixed(2));
+    dEps.push(Math.round(eps*1e6*1000)/1000);
+    dUe.push(Math.round(eps*1e4*1000)/1000);
+    rows.push([(Math.round(L*100)/100).toFixed(2),(Math.round(eps*1e6*1000)/1000).toFixed(2),(Math.round(eps*1e4*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dEps:dEps,dUe:dUe,rows:rows};
+}
+function __asChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__asSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#asChart',{title:en?'Axial Strain vs Length (inverse ε=ΔL/L)':'轴向应变随原长反比减小（ε=ΔL/L）',labels:s.labels,series:[{name:en?'Strain ε (µε)':'应变 ε (µε)',data:s.dEps},{name:en?'Strain ε (×10⁻⁴)':'应变 ε (×10⁻⁴)',data:s.dUe}]});
+}
+
+function __asShow(which){
+  var c=document.getElementById('asChart'), t=document.getElementById('axial_strainTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __asTabInit(){
+  var btns=document.querySelectorAll('.as-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__asShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __asShow('chart');
+}
+var __asFn=calcTool;calcTool=function(){try{__asFn();}catch(e){}try{__asChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__asChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -300,6 +300,11 @@ function __cantilever_end_momentBoot(){ try{ __cantilever_end_momentPresets(); }
 if (document.readyState && document.readyState !== 'loading') __cantilever_end_momentBoot();
 else document.addEventListener('DOMContentLoaded', __cantilever_end_momentBoot);
 </script>
+<div class="cem-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cemChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __cantilever_end_momentBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cemSweep(){
+  var F=num('F'), L0=num('L');
+  if(!isFinite(F)||!isFinite(L0)||F<=0||L0<=0)return null;
+  var labels=[],dM=[],dR=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], M=F*L;
+    labels.push((Math.round(L*100)/100).toFixed(2));
+    dM.push(Math.round(M*100)/100);
+    dR.push(Math.round(F*1000)/1000);
+    rows.push([(Math.round(L*100)/100).toFixed(2),(Math.round(M*100)/100).toFixed(2),(Math.round(F*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dM:dM,dR:dR,rows:rows};
+}
+function __cemChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__cemSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cemChart',{title:en?'Fixed-End Moment vs Cantilever Length (linear M=F·L)':'固端弯矩随悬臂长度线性增长（M=F·L）',labels:s.labels,series:[{name:en?'Moment M (kN·m)':'弯矩 M (kN·m)',data:s.dM}]});
+}
+
+function __cemShow(which){
+  var c=document.getElementById('cemChart'), t=document.getElementById('cantilever_end_momentTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cemTabInit(){
+  var btns=document.querySelectorAll('.cem-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cemShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cemShow('chart');
+}
+var __cemFn=calcTool;calcTool=function(){try{__cemFn();}catch(e){}try{__cemChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cemChart();}catch(e){}});
+</script>
 </body>
 </html>

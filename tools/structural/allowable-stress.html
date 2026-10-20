@@ -300,6 +300,11 @@ function __allowable_stressBoot(){ try{ __allowable_stressPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __allowable_stressBoot();
 else document.addEventListener('DOMContentLoaded', __allowable_stressBoot);
 </script>
+<div class="als-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="alsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,43 @@ else document.addEventListener('DOMContentLoaded', __allowable_stressBoot);
 </dl>
 </div>
 </section>
+<script>
+function __alsSweep(){
+  var sy=num('sy'), n0=num('n');
+  if(!isFinite(sy)||!isFinite(n0)||sy<=0||n0<=0)return null;
+  var labels=[],dSa=[],rows=[];
+  var ns=[1.25,1.5,2,2.5,3,4,5];
+  for(var k=0;k<ns.length;k++){
+    var sa=sy/ns[k];
+    labels.push(ns[k].toFixed(2));
+    dSa.push(Math.round(sa*100)/100);
+    rows.push([ns[k].toFixed(2),(Math.round(sa*100)/100).toFixed(2),(Math.round(sa/sy*1e4)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dSa:dSa,rows:rows};
+}
+function __alsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__alsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#alsChart',{title:en?'Allowable Stress vs Safety Factor (inverse σallow=σy/n)':'许用应力随安全系数反比下降（σ_allow=σ_y/n）',labels:s.labels,series:[{name:en?'Allowable stress (MPa)':'许用应力 (MPa)',data:s.dSa}]});
+}
+
+function __alsShow(which){
+  var c=document.getElementById('alsChart'), t=document.getElementById('allowable_stressTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __alsTabInit(){
+  var btns=document.querySelectorAll('.als-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__alsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __alsShow('chart');
+}
+var __alsFn=calcTool;calcTool=function(){try{__alsFn();}catch(e){}try{__alsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__alsChart();}catch(e){}});
+</script>
 </body>
 </html>
