@@ -306,6 +306,11 @@ function __ss_point_deflectionBoot(){ try{ __ss_point_deflectionPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __ss_point_deflectionBoot();
 else document.addEventListener('DOMContentLoaded', __ss_point_deflectionBoot);
 </script>
+<div class="spd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="spdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -341,5 +346,44 @@ else document.addEventListener('DOMContentLoaded', __ss_point_deflectionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __spdSweep(){
+  var P=num('P')*1000, E=num('E'), I=num('I'), L0=num('L');
+  if(!isFinite(P)||!isFinite(E)||!isFinite(I)||!isFinite(L0)||P<=0||E<=0||I<=0||L0<=0)return null;
+  var labels=[],dD=[],dR=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], d=P*L*L*L/(48*E*I), R=P/2;
+    labels.push((Math.round(L*100)/100).toFixed(2));
+    dD.push(Math.round(d*1e6*1000)/1000);
+    dR.push(Math.round(R*1000)/1000);
+    rows.push([(Math.round(L*100)/100).toFixed(2),(Math.round(d*1e6*1000)/1000).toFixed(4),(Math.round(R*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dD:dD,dR:dR,rows:rows};
+}
+function __spdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__spdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#spdChart',{title:en?'Midspan Deflection vs Span (cubic δ=PL³/48EI)':'跨中挠度随跨度三次方急剧增长（δ=PL³/48EI）',labels:s.labels,series:[{name:en?'Deflection δ (µm)':'挠度 δ (µm)',data:s.dD}]});
+}
+
+function __spdShow(which){
+  var c=document.getElementById('spdChart'), t=document.getElementById('ss_point_deflectionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __spdTabInit(){
+  var btns=document.querySelectorAll('.spd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__spdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __spdShow('chart');
+}
+var __spdFn=calcTool;calcTool=function(){try{__spdFn();}catch(e){}try{__spdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__spdChart();}catch(e){}});
+</script>
 </body>
 </html>

@@ -300,6 +300,11 @@ function __section_modulus_rectBoot(){ try{ __section_modulus_rectPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __section_modulus_rectBoot();
 else document.addEventListener('DOMContentLoaded', __section_modulus_rectBoot);
 </script>
+<div class="smr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="smrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __section_modulus_rectBoot);
 </dl>
 </div>
 </section>
+<script>
+function __smrSweep(){
+  var b=num('b'), h0=num('h');
+  if(!isFinite(b)||!isFinite(h0)||b<=0||h0<=0)return null;
+  var labels=[],dW=[],dI=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var h=h0*mults[k], W=b*h*h/6, I=b*Math.pow(h,3)/12;
+    labels.push((Math.round(h*1000)/1000).toFixed(3));
+    dW.push(Math.round(W*1e9*1000)/1000);
+    dI.push(Math.round(I*1e12*1000)/1000);
+    rows.push([(Math.round(h*1000)/1000).toFixed(3),(Math.round(W*1e9*1000)/1000).toFixed(3),(Math.round(I*1e12*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dW:dW,dI:dI,rows:rows};
+}
+function __smrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__smrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#smrChart',{title:en?'Rectangle Modulus vs Height (quadratic W=bh²/6, cubic I=bh³/12)':'矩形截面模量随高度二次、惯性矩三次（W=bh²/6，I=bh³/12）',labels:s.labels,series:[{name:en?'Modulus W (mm³)':'截面模量 W (mm³)',data:s.dW},{name:en?'Inertia I (mm⁴)':'惯性矩 I (mm⁴)',data:s.dI}]});
+}
+
+function __smrShow(which){
+  var c=document.getElementById('smrChart'), t=document.getElementById('section_modulus_rectTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __smrTabInit(){
+  var btns=document.querySelectorAll('.smr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__smrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __smrShow('chart');
+}
+var __smrFn=calcTool;calcTool=function(){try{__smrFn();}catch(e){}try{__smrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__smrChart();}catch(e){}});
+</script>
 </body>
 </html>

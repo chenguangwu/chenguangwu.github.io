@@ -241,6 +241,11 @@ function __polar_moment_circleBoot(){ try{ __polar_moment_circlePresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __polar_moment_circleBoot();
 else document.addEventListener('DOMContentLoaded', __polar_moment_circleBoot);
 </script>
+<div class="pmc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pmcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,44 @@ else document.addEventListener('DOMContentLoaded', __polar_moment_circleBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pmcSweep(){
+  var d0=num('d');
+  if(!isFinite(d0)||d0<=0)return null;
+  var labels=[],dJ=[],dWt=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k], J=Math.PI*Math.pow(d,4)/32, Wt=Math.PI*Math.pow(d,3)/16;
+    labels.push((Math.round(d*1000)/1000).toFixed(3));
+    dJ.push(Math.round(J*1e12*1000)/1000);
+    dWt.push(Math.round(Wt*1e9*1000)/1000);
+    rows.push([(Math.round(d*1000)/1000).toFixed(3),(Math.round(J*1e12*1000)/1000).toFixed(3),(Math.round(Wt*1e9*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dJ:dJ,dWt:dWt,rows:rows};
+}
+function __pmcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__pmcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pmcChart',{title:en?'Polar Moment vs Diameter (quartic J=πd⁴/32, cubic Wt=πd³/16)':'极惯性矩随直径四次、抗扭系数三次（J=πd⁴/32，Wt=πd³/16）',labels:s.labels,series:[{name:en?'Polar J (mm⁴)':'极惯性矩 J (mm⁴)',data:s.dJ},{name:en?'Torsion Wt (mm³)':'抗扭截面系数 Wt (mm³)',data:s.dWt}]});
+}
+
+function __pmcShow(which){
+  var c=document.getElementById('pmcChart'), t=document.getElementById('polar_moment_circleTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pmcTabInit(){
+  var btns=document.querySelectorAll('.pmc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pmcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pmcShow('chart');
+}
+var __pmcFn=calcTool;calcTool=function(){try{__pmcFn();}catch(e){}try{__pmcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pmcChart();}catch(e){}});
+</script>
 </body>
 </html>
