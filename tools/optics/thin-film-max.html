@@ -301,6 +301,11 @@ function __thin_film_maxBoot(){ try{ __thin_film_maxPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __thin_film_maxBoot();
 else document.addEventListener('DOMContentLoaded', __thin_film_maxBoot);
 </script>
+<div class="tfm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tfmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,44 @@ else document.addEventListener('DOMContentLoaded', __thin_film_maxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tfmSweep(){
+  var n=num('n'), t=num('t');
+  if(!isFinite(n)||!isFinite(t)||n<=0||t<=0)return null;
+  var labels=[], dL=[], dO=[];
+  var ms=[1,2,3,4,5,6,8];
+  for(var k=0;k<ms.length;k++){
+    var mv=ms[k], lam=2*n*t/mv;
+    labels.push('m'+mv);
+    dL.push(Math.round(lam*100)/100);
+    dO.push(Math.round(2*n*t*100)/100);
+  }
+  return {labels:labels,dL:dL,dO:dO};
+}
+function __tfmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tfmSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tfmChart',{title:en?'Thin-Film Constructive Wavelength vs Order (inverse λ=2nt/m)':'薄膜相长波长随级次反比下降（λ=2nt/m）',labels:s.labels,series:[{name:en?'Constructive wavelength λ (nm)':'相长波长 λ (nm)',data:s.dL},{name:en?'Optical path 2nt (nm)':'光程差 2nt (nm)',data:s.dO}]});
+}
+
+function __tfmShow(which){
+  var c=document.getElementById('tfmChart'), t=document.getElementById('thin_film_maxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tfmTabInit(){
+  var btns=document.querySelectorAll('.tfm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tfmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tfmShow('chart');
+  try{__tfmChart();}catch(e){}
+}
+var __tfmFn=calcTool;calcTool=function(){try{__tfmFn();}catch(e){}try{__tfmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tfmChart();}catch(e){}});try{__tfmTabInit();}catch(e){}
+</script>
 </body>
 </html>

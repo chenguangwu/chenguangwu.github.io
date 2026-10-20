@@ -313,6 +313,11 @@ function __thin_lens_equationBoot(){ try{ __thin_lens_equationPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __thin_lens_equationBoot();
 else document.addEventListener('DOMContentLoaded', __thin_lens_equationBoot);
 </script>
+<div class="tle-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tleChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,45 @@ else document.addEventListener('DOMContentLoaded', __thin_lens_equationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tleSweep(){
+  var f=num('f');
+  if(!isFinite(f)||f<=0)return null;
+  var labels=[], dI=[], dM=[];
+  var dos=[0.12,0.15,0.2,0.3,0.5,1.0,2.0,5.0];
+  for(var k=0;k<dos.length;k++){
+    var ov=dos[k], den=1/f-1/ov;
+    var di=Math.abs(den)<1e-9?0:1/den;
+    labels.push(ov.toFixed(2));
+    dI.push(Math.round(di*10000)/10000);
+    dM.push(Math.round(Math.abs(di/ov)*1000)/1000);
+  }
+  return {labels:labels,dI:dI,dM:dM};
+}
+function __tleChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tleSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tleChart',{title:en?'Thin Lens Image Distance vs Object Distance (hyperbolic, pole at dₒ=f)':'薄透镜像距随物距双曲变化（dₒ=f 处极点）',labels:s.labels,series:[{name:en?'Image distance dᵢ (m)':'像距 dᵢ (m)',data:s.dI},{name:en?'|Magnification|':'放大率绝对值 |M|',data:s.dM}]});
+}
+
+function __tleShow(which){
+  var c=document.getElementById('tleChart'), t=document.getElementById('thin_lens_equationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tleTabInit(){
+  var btns=document.querySelectorAll('.tle-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tleShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tleShow('chart');
+  try{__tleChart();}catch(e){}
+}
+var __tleFn=calcTool;calcTool=function(){try{__tleFn();}catch(e){}try{__tleChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tleChart();}catch(e){}});try{__tleTabInit();}catch(e){}
+</script>
 </body>
 </html>

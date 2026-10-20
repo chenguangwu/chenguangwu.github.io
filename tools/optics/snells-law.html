@@ -302,6 +302,11 @@ function __snells_lawBoot(){ try{ __snells_lawPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __snells_lawBoot();
 else document.addEventListener('DOMContentLoaded', __snells_lawBoot);
 </script>
+<div class="snl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="snlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -337,5 +342,47 @@ else document.addEventListener('DOMContentLoaded', __snells_lawBoot);
 </dl>
 </div>
 </section>
+<script>
+function __snlSweep(){
+  var n1=num('n1'), n2=num('n2');
+  if(!isFinite(n1)||!isFinite(n2)||n1<=0||n2<=0)return null;
+  var labels=[], dT=[], dD=[];
+  var t1s=[0,10,20,30,45,60,75,89];
+  for(var k=0;k<t1s.length;k++){
+    var tv=t1s[k]*Math.PI/180, s=n1*Math.sin(tv)/n2;
+    labels.push(t1s[k].toFixed(0));
+    if(s>1){dT.push(null);dD.push(null);}
+    else{
+      dT.push(Math.round(Math.asin(s)*180/Math.PI*1000)/1000);
+      dD.push(Math.round((t1s[k]-Math.asin(s)*180/Math.PI)*1000)/1000);
+    }
+  }
+  return {labels:labels,dT:dT,dD:dD};
+}
+function __snlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__snlSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#snlChart',{title:en?'Snell Law: Refraction Angle vs Incidence (arcsin / TIR cutoff)':'斯涅尔定律：折射角随入射角变化（含全反射截断）',labels:s.labels,series:[{name:en?'Refraction angle θ₂ (°)':'折射角 θ₂ (°)',data:s.dT},{name:en?'Deviation θ₁-θ₂ (°)':'偏折量 θ₁-θ₂ (°)',data:s.dD}]});
+}
+
+function __snlShow(which){
+  var c=document.getElementById('snlChart'), t=document.getElementById('snells_lawTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __snlTabInit(){
+  var btns=document.querySelectorAll('.snl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__snlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __snlShow('chart');
+  try{__snlChart();}catch(e){}
+}
+var __snlFn=calcTool;calcTool=function(){try{__snlFn();}catch(e){}try{__snlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__snlChart();}catch(e){}});try{__snlTabInit();}catch(e){}
+</script>
 </body>
 </html>

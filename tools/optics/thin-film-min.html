@@ -247,6 +247,11 @@ function __thin_film_minBoot(){ try{ __thin_film_minPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __thin_film_minBoot();
 else document.addEventListener('DOMContentLoaded', __thin_film_minBoot);
 </script>
+<div class="tfn-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tfnChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,44 @@ else document.addEventListener('DOMContentLoaded', __thin_film_minBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tfnSweep(){
+  var n=num('n'), t=num('t');
+  if(!isFinite(n)||!isFinite(t)||n<=0||t<=0)return null;
+  var labels=[], dL=[], dN=[];
+  var ms=[0,1,2,3,4,6,8];
+  for(var k=0;k<ms.length;k++){
+    var mv=ms[k], lam=2*n*t/(mv+0.5);
+    labels.push('m'+mv);
+    dL.push(Math.round(lam*100)/100);
+    dN.push(Math.round(2*n*t/(mv+1.5)*100)/100);
+  }
+  return {labels:labels,dL:dL,dN:dN};
+}
+function __tfnChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tfnSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tfnChart',{title:en?'Thin-Film Destructive Wavelength vs Order (inverse λ=2nt/(m+0.5))':'薄膜相消波长随级次反比下降（λ=2nt/(m+0.5)）',labels:s.labels,series:[{name:en?'Destructive wavelength λ (nm)':'相消波长 λ (nm)',data:s.dL},{name:en?'Next order λ (nm)':'下一级相消波长 (nm)',data:s.dN}]});
+}
+
+function __tfnShow(which){
+  var c=document.getElementById('tfnChart'), t=document.getElementById('thin_film_minTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tfnTabInit(){
+  var btns=document.querySelectorAll('.tfn-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tfnShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tfnShow('chart');
+  try{__tfnChart();}catch(e){}
+}
+var __tfnFn=calcTool;calcTool=function(){try{__tfnFn();}catch(e){}try{__tfnChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tfnChart();}catch(e){}});try{__tfnTabInit();}catch(e){}
+</script>
 </body>
 </html>

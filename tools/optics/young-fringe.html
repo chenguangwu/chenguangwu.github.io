@@ -301,6 +301,11 @@ function __young_fringeBoot(){ try{ __young_fringePresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __young_fringeBoot();
 else document.addEventListener('DOMContentLoaded', __young_fringeBoot);
 </script>
+<div class="ygf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ygfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,44 @@ else document.addEventListener('DOMContentLoaded', __young_fringeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ygfSweep(){
+  var lam=num('lam'), L=num('L');
+  if(!isFinite(lam)||!isFinite(L)||lam<=0||L<=0)return null;
+  var labels=[], dY=[], dN=[];
+  var ds=[0.1,0.2,0.3,0.5,0.75,1.0,1.5,2.0];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k], dy=lam*1e-9*L/(dv*1e-3)*1000;
+    labels.push(dv.toFixed(2));
+    dY.push(Math.round(dy*1000)/1000);
+    dN.push(Math.round(1/dy*1000)/1000);
+  }
+  return {labels:labels,dY:dY,dN:dN};
+}
+function __ygfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ygfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ygfChart',{title:en?'Young Fringe Spacing vs Slit Separation (inverse Δy=λL/d)':'杨氏条纹间距随缝距反比下降（Δy=λL/d）',labels:s.labels,series:[{name:en?'Fringe spacing Δy (mm)':'条纹间距 Δy (mm)',data:s.dY},{name:en?'Fringes per mm (1/mm)':'每毫米条纹数 (1/mm)',data:s.dN}]});
+}
+
+function __ygfShow(which){
+  var c=document.getElementById('ygfChart'), t=document.getElementById('young_fringeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ygfTabInit(){
+  var btns=document.querySelectorAll('.ygf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ygfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ygfShow('chart');
+  try{__ygfChart();}catch(e){}
+}
+var __ygfFn=calcTool;calcTool=function(){try{__ygfFn();}catch(e){}try{__ygfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ygfChart();}catch(e){}});try{__ygfTabInit();}catch(e){}
+</script>
 </body>
 </html>

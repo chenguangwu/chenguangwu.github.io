@@ -303,6 +303,11 @@ function __single_slit_diffractionBoot(){ try{ __single_slit_diffractionPresets(
 if (document.readyState && document.readyState !== 'loading') __single_slit_diffractionBoot();
 else document.addEventListener('DOMContentLoaded', __single_slit_diffractionBoot);
 </script>
+<div class="ssd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ssdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -338,5 +343,46 @@ else document.addEventListener('DOMContentLoaded', __single_slit_diffractionBoot
 </dl>
 </div>
 </section>
+<script>
+function __ssdSweep(){
+  var a=num('a'), lam=num('lam');
+  if(!isFinite(a)||!isFinite(lam)||a<=0||lam<=0)return null;
+  var labels=[], dT=[], dS=[];
+  var ms=[1,2,3,4,5];
+  for(var k=0;k<ms.length;k++){
+    var mv=ms[k], s=mv*lam/a;
+    if(s>1)break;
+    labels.push('m'+mv);
+    dT.push(Math.round(Math.asin(s)*180/Math.PI*1000)/1000);
+    dS.push(Math.round(s*10000)/10000);
+  }
+  if(!labels.length)return null;
+  return {labels:labels,dT:dT,dS:dS};
+}
+function __ssdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ssdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ssdChart',{title:en?'Single-Slit Dark Fringe Angle vs Order (arcsin)':'单缝暗纹角随级次反正弦上升（sinθ=mλ/a）',labels:s.labels,series:[{name:en?'Dark fringe angle θ (°)':'暗纹角 θ (°)',data:s.dT},{name:en?'sin θ value':'sin θ 值',data:s.dS}]});
+}
+
+function __ssdShow(which){
+  var c=document.getElementById('ssdChart'), t=document.getElementById('single_slit_diffractionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ssdTabInit(){
+  var btns=document.querySelectorAll('.ssd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ssdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ssdShow('chart');
+  try{__ssdChart();}catch(e){}
+}
+var __ssdFn=calcTool;calcTool=function(){try{__ssdFn();}catch(e){}try{__ssdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ssdChart();}catch(e){}});try{__ssdTabInit();}catch(e){}
+</script>
 </body>
 </html>
