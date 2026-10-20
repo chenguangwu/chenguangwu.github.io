@@ -300,6 +300,11 @@ function __stress_concentrationBoot(){ try{ __stress_concentrationPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __stress_concentrationBoot();
 else document.addEventListener('DOMContentLoaded', __stress_concentrationBoot);
 </script>
+<div class="sc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="scChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __stress_concentrationBoot);
 </dl>
 </div>
 </section>
+<script>
+function __scSweep(){
+  var sn=num('snom');
+  if(!isFinite(sn)||sn<=0)return null;
+  var kts=[1,1.2,1.5,2,2.5,3,4];
+  var labels=[],dMax=[],dAmp=[],rows=[];
+  for(var k=0;k<kts.length;k++){
+    var smax=kts[k]*sn;
+    labels.push(kts[k].toFixed(2));
+    dMax.push(Math.round(smax*100)/100);
+    dAmp.push(Math.round((smax/sn)*100)/100);
+    rows.push([kts[k].toFixed(2),(Math.round(smax*100)/100).toFixed(2),(Math.round((smax/sn)*100)/100).toFixed(2)]);
+  }
+  return {labels:labels,dMax:dMax,dAmp:dAmp,rows:rows};
+}
+function __scChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__scSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#scChart',{title:en?'Peak Stress vs Kt (linear σmax=Kt·σnom)':'峰值应力随集中系数线性放大（σ_max=Kt·σ_nom）',labels:s.labels,series:[{name:en?'Peak stress σmax (MPa)':'峰值应力 σ_max (MPa)',data:s.dMax},{name:en?'Amplification ×':'放大倍数',data:s.dAmp}]});
+}
+
+function __scShow(which){
+  var c=document.getElementById('scChart'), t=document.getElementById('stress_concentrationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __scTabInit(){
+  var btns=document.querySelectorAll('.sc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__scShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __scShow('chart');
+}
+var __scFn=calcTool;calcTool=function(){try{__scFn();}catch(e){}try{__scChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__scChart();}catch(e){}});
+</script>
 </body>
 </html>

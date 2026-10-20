@@ -300,6 +300,11 @@ function __bearing_pressureBoot(){ try{ __bearing_pressurePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __bearing_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __bearing_pressureBoot);
 </script>
+<div class="bp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,43 @@ else document.addEventListener('DOMContentLoaded', __bearing_pressureBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bpSweep(){
+  var N=num('N'), A0=num('A');
+  if(!isFinite(N)||!isFinite(A0)||N<=0||A0<=0)return null;
+  var labels=[],dP=[],rows=[];
+  var mults=[0.5,0.75,1,1.25,1.5,2,3];
+  for(var k=0;k<mults.length;k++){
+    var A=A0*mults[k], p=N/A;
+    labels.push((Math.round(A*100)/100).toFixed(2));
+    dP.push(Math.round(p*1000)/1000);
+    rows.push([(Math.round(A*100)/100).toFixed(2),(Math.round(p*1000)/1000).toFixed(3),(Math.round(p)*1000/1000).toFixed(0)]);
+  }
+  return {labels:labels,dP:dP,rows:rows};
+}
+function __bpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__bpSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bpChart',{title:en?'Bearing Pressure vs Area (inverse p=N/A)':'基底压力随面积反比下降（p=N/A）',labels:s.labels,series:[{name:en?'Pressure p (kPa)':'基底压力 p (kPa)',data:s.dP}]});
+}
+
+function __bpShow(which){
+  var c=document.getElementById('bpChart'), t=document.getElementById('bearing_pressureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bpTabInit(){
+  var btns=document.querySelectorAll('.bp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bpShow('chart');
+}
+var __bpFn=calcTool;calcTool=function(){try{__bpFn();}catch(e){}try{__bpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bpChart();}catch(e){}});
+</script>
 </body>
 </html>
