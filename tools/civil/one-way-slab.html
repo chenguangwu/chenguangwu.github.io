@@ -264,6 +264,11 @@ function __one_way_slabBoot(){ try{ __one_way_slabPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __one_way_slabBoot();
 else document.addEventListener('DOMContentLoaded', __one_way_slabBoot);
 </script>
+<div class="ows-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="owsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -299,5 +304,51 @@ else document.addEventListener('DOMContentLoaded', __one_way_slabBoot);
 </dl>
 </div>
 </section>
+<script>
+function __owsSweep(){
+  var M=num('M'), fc=num('fc'), fy=num('fy'), as_=num('as');
+  if(!isFinite(M)||!isFinite(fc)||!isFinite(fy)||!isFinite(as_)||M<=0||fc<=0||fy<=0)return null;
+  var b=1000, Mn=M*1e6;
+  var labels=[], dA=[], dS=[];
+  var hs=[80,100,120,150,180,220,260,300];
+  for(var k=0;k<hs.length;k++){
+    var hv=hs[k], h0=hv-as_;
+    if(h0<=0)continue;
+    var aS=Mn/(1.0*fc*b*h0*h0);
+    if(aS>0.44)continue;
+    var xi=1-Math.sqrt(1-2*aS);
+    var As=xi*b*h0*fc/fy;
+    labels.push(hv.toFixed(0));
+    dA.push(Math.round(As*10)/10);
+    dS.push(Math.round(aS*10000)/10000);
+  }
+  if(!labels.length)return null;
+  return {labels:labels,dA:dA,dS:dS};
+}
+function __owsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__owsSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#owsChart',{title:en?'One-Way Slab Rebar Area vs Slab Thickness (inverse-ish)':'单向板配筋面积随板厚下降（α_s 超限自动截断）',labels:s.labels,series:[{name:en?'Rebar area As (mm²/m)':'钢筋面积 As (mm²/m)',data:s.dA},{name:en?'α_s coefficient':'系数 α_s',data:s.dS}]});
+}
+
+function __owsShow(which){
+  var c=document.getElementById('owsChart'), t=document.getElementById('one_way_slabTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __owsTabInit(){
+  var btns=document.querySelectorAll('.ows-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__owsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __owsShow('chart');
+  try{__owsChart();}catch(e){}
+}
+var __owsFn=calcTool;calcTool=function(){try{__owsFn();}catch(e){}try{__owsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__owsChart();}catch(e){}});try{__owsTabInit();}catch(e){}
+</script>
 </body>
 </html>

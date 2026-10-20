@@ -250,6 +250,11 @@ function __rebar_anchorageBoot(){ try{ __rebar_anchoragePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __rebar_anchorageBoot();
 else document.addEventListener('DOMContentLoaded', __rebar_anchorageBoot);
 </script>
+<div class="ran-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ranChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -285,5 +290,44 @@ else document.addEventListener('DOMContentLoaded', __rebar_anchorageBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ranSweep(){
+  var fy=num('fy'), ft=num('ft'), za=num('za');
+  if(!isFinite(fy)||!isFinite(ft)||!isFinite(za)||fy<=0||ft<=0||za<=0)return null;
+  var labels=[], dL=[], dM=[];
+  var ds=[8,12,16,20,25,32,40];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k], lab=0.14*za*(fy/ft)*dv;
+    labels.push(dv.toFixed(0));
+    dL.push(Math.round(lab*10)/10);
+    dM.push(Math.round(lab/1000*1000)/1000);
+  }
+  return {labels:labels,dL:dL,dM:dM};
+}
+function __ranChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ranSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ranChart',{title:en?'Anchorage Length vs Bar Diameter (linear l_ab=0.14α(f_y/f_t)d)':'锚固长度随钢筋直径线性增长',labels:s.labels,series:[{name:en?'Anchorage length l_ab (mm)':'基本锚固长度 l_ab (mm)',data:s.dL},{name:en?'Anchorage length (m)':'锚固长度 (m)',data:s.dM}]});
+}
+
+function __ranShow(which){
+  var c=document.getElementById('ranChart'), t=document.getElementById('rebar_anchorageTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ranTabInit(){
+  var btns=document.querySelectorAll('.ran-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ranShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ranShow('chart');
+  try{__ranChart();}catch(e){}
+}
+var __ranFn=calcTool;calcTool=function(){try{__ranFn();}catch(e){}try{__ranChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ranChart();}catch(e){}});try{__ranTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -265,6 +265,11 @@ function __pile_capacityBoot(){ try{ __pile_capacityPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __pile_capacityBoot();
 else document.addEventListener('DOMContentLoaded', __pile_capacityBoot);
 </script>
+<div class="plc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="plcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -300,5 +305,46 @@ else document.addEventListener('DOMContentLoaded', __pile_capacityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __plcSweep(){
+  var d=num('d'), qs=num('qs'), qp=num('qp'), K=num('K');
+  if(!isFinite(d)||!isFinite(qs)||!isFinite(qp)||!isFinite(K)||d<=0||K<=0)return null;
+  var Ap=Math.PI*d*d/4, u=Math.PI*d;
+  var labels=[], dR=[], dF=[];
+  var Ls=[5,10,15,20,25,30,40,50];
+  for(var k=0;k<Ls.length;k++){
+    var lv=Ls[k];
+    var Ra=(qp*Ap+u*qs*lv)/K;
+    labels.push(lv.toFixed(0));
+    dR.push(Math.round(Ra*10)/10);
+    dF.push(Math.round(u*qs*lv*10)/10);
+  }
+  return {labels:labels,dR:dR,dF:dF};
+}
+function __plcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__plcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#plcChart',{title:en?'Pile Capacity vs Pile Length (linear, tip term intercept)':'单桩承载力随桩长线性增长（端阻为截距）',labels:s.labels,series:[{name:en?'Axial capacity Ra (kN)':'竖向承载力 Ra (kN)',data:s.dR},{name:en?'Shaft friction (kN)':'侧摩阻力 (kN)',data:s.dF}]});
+}
+
+function __plcShow(which){
+  var c=document.getElementById('plcChart'), t=document.getElementById('pile_capacityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __plcTabInit(){
+  var btns=document.querySelectorAll('.plc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__plcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __plcShow('chart');
+  try{__plcChart();}catch(e){}
+}
+var __plcFn=calcTool;calcTool=function(){try{__plcFn();}catch(e){}try{__plcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__plcChart();}catch(e){}});try{__plcTabInit();}catch(e){}
+</script>
 </body>
 </html>

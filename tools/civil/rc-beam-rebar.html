@@ -273,6 +273,11 @@ function __rc_beam_rebarBoot(){ try{ __rc_beam_rebarPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __rc_beam_rebarBoot();
 else document.addEventListener('DOMContentLoaded', __rc_beam_rebarBoot);
 </script>
+<div class="rbr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rbrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -308,5 +313,51 @@ else document.addEventListener('DOMContentLoaded', __rc_beam_rebarBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rbrSweep(){
+  var M=num('M'), b=num('b'), fc=num('fc'), fy=num('fy'), as_=num('as');
+  if(!isFinite(M)||!isFinite(b)||!isFinite(fc)||!isFinite(fy)||!isFinite(as_)||M<=0||b<=0||fc<=0||fy<=0)return null;
+  var Mn=M*1e6;
+  var labels=[], dA=[], dS=[];
+  var hs=[300,400,500,600,700,800,1000,1200];
+  for(var k=0;k<hs.length;k++){
+    var hv=hs[k], h0=hv-as_;
+    if(h0<=0)continue;
+    var aS=Mn/(1.0*fc*b*h0*h0);
+    if(aS>0.44)continue;
+    var xi=1-Math.sqrt(1-2*aS);
+    var As=xi*b*h0*fc/fy;
+    labels.push(hv.toFixed(0));
+    dA.push(Math.round(As*10)/10);
+    dS.push(Math.round(aS*10000)/10000);
+  }
+  if(!labels.length)return null;
+  return {labels:labels,dA:dA,dS:dS};
+}
+function __rbrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rbrSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rbrChart',{title:en?'RC Beam Rebar Area vs Section Height (α_s limited)':'钢筋混凝土梁配筋面积随梁高下降（α_s 超限截断）',labels:s.labels,series:[{name:en?'Rebar area As (mm²)':'钢筋面积 As (mm²)',data:s.dA},{name:en?'α_s coefficient':'系数 α_s',data:s.dS}]});
+}
+
+function __rbrShow(which){
+  var c=document.getElementById('rbrChart'), t=document.getElementById('rc_beam_rebarTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rbrTabInit(){
+  var btns=document.querySelectorAll('.rbr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rbrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rbrShow('chart');
+  try{__rbrChart();}catch(e){}
+}
+var __rbrFn=calcTool;calcTool=function(){try{__rbrFn();}catch(e){}try{__rbrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rbrChart();}catch(e){}});try{__rbrTabInit();}catch(e){}
+</script>
 </body>
 </html>

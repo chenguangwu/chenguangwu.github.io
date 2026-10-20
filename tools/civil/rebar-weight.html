@@ -248,6 +248,11 @@ function __rebar_weightBoot(){ try{ __rebar_weightPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __rebar_weightBoot();
 else document.addEventListener('DOMContentLoaded', __rebar_weightBoot);
 </script>
+<div class="rbw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rbwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,44 @@ else document.addEventListener('DOMContentLoaded', __rebar_weightBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rbwSweep(){
+  var L=num('L'), n=num('n');
+  if(!isFinite(L)||!isFinite(n)||L<=0||n<=0)return null;
+  var labels=[], dT=[], dP=[];
+  var ds=[6,8,10,12,16,20,25,32];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k], perM=0.00617*dv*dv;
+    labels.push(dv.toFixed(0));
+    dT.push(Math.round(perM*L*n*100)/100);
+    dP.push(Math.round(perM*1000)/1000);
+  }
+  return {labels:labels,dT:dT,dP:dP};
+}
+function __rbwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__rbwSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rbwChart',{title:en?'Rebar Total Weight vs Diameter (quadratic w=0.00617d²)':'钢筋总重随直径平方增长（w=0.00617d²）',labels:s.labels,series:[{name:en?'Total weight (kg)':'总重量 (kg)',data:s.dT},{name:en?'Unit weight (kg/m)':'每米理论重 (kg/m)',data:s.dP}]});
+}
+
+function __rbwShow(which){
+  var c=document.getElementById('rbwChart'), t=document.getElementById('rebar_weightTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rbwTabInit(){
+  var btns=document.querySelectorAll('.rbw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rbwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rbwShow('chart');
+  try{__rbwChart();}catch(e){}
+}
+var __rbwFn=calcTool;calcTool=function(){try{__rbwFn();}catch(e){}try{__rbwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rbwChart();}catch(e){}});try{__rbwTabInit();}catch(e){}
+</script>
 </body>
 </html>
