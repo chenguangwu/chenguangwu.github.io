@@ -244,6 +244,11 @@ function __withholding_taxBoot(){ try{ __withholding_taxPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __withholding_taxBoot();
 else document.addEventListener('DOMContentLoaded', __withholding_taxBoot);
 </script>
+<div class="wh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="whChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,44 @@ else document.addEventListener('DOMContentLoaded', __withholding_taxBoot);
 </dl>
 </div>
 </section>
+<script>
+function __whSweep(){
+  var p0=num('payment'), r=num('r')/100;
+  if(!isFinite(p0)||!isFinite(r)||p0<=0||r<0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var p=p0*mults[k], tax=p*r;
+    labels.push((Math.round(p*100)/100).toFixed(0));
+    dT.push(Math.round(tax*1000)/1000);
+    rows.push([(Math.round(p*100)/100).toFixed(0),(Math.round(tax*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __whChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__whSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#whChart',{title:en?'Withholding Tax vs Payment (tax=payment x r)':'预扣税随支付额线性变化（tax=支付额×r）',labels:s.labels,series:[{name:en?'Withheld T':'预扣税额',data:s.dT}]});
+}
+
+function __whShow(which){
+  var c=document.getElementById('whChart'), t=document.getElementById('withholding_taxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __whTabInit(){
+  var btns=document.querySelectorAll('.wh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__whShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __whShow('chart');
+}
+var __whFn=calcTool;calcTool=function(){try{__whFn();}catch(e){}try{__whChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__whChart();}catch(e){}});
+try{__whTabInit();}catch(e){}
+</script>
 </body>
 </html>

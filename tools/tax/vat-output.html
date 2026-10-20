@@ -314,6 +314,11 @@ function __vat_outputBoot(){ try{ __vat_outputPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __vat_outputBoot();
 else document.addEventListener('DOMContentLoaded', __vat_outputBoot);
 </script>
+<div class="vo-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="voChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -362,5 +367,44 @@ else document.addEventListener('DOMContentLoaded', __vat_outputBoot);
 <h3>税率档</h3><p>中国大陆常见档：13%（一般货物）、9%（农产品/交通等）、6%（服务）；小规模纳税人征收率多为 3%。具体以最新税法为准。</p>
 <h3>注意</h3><p>销项税可抵扣进项税，实际应纳税额=销项−进项。本工具按输入税率估算，税务申报请以票面与政策为准。</p>
 </div></section>
+<script>
+function __voSweep(){
+  var s0=num('s'), r=num('r');
+  if(!isFinite(s0)||!isFinite(r)||s0<=0||r<0)return null;
+  var labels=[],dO=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var s=s0*mults[k], out=s*r;
+    labels.push((Math.round(s*100)/100).toFixed(0));
+    dO.push(Math.round(out*1000)/1000);
+    rows.push([(Math.round(s*100)/100).toFixed(0),(Math.round(out*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dO:dO,rows:rows};
+}
+function __voChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__voSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#voChart',{title:en?'VAT Output vs Sales (out=s x r)':'销项税额随销售额线性变化（out=销售额×r）',labels:s.labels,series:[{name:en?'Output VAT':'销项税额',data:s.dO}]});
+}
+
+function __voShow(which){
+  var c=document.getElementById('voChart'), t=document.getElementById('vat_outputTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __voTabInit(){
+  var btns=document.querySelectorAll('.vo-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__voShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __voShow('chart');
+}
+var __voFn=calcTool;calcTool=function(){try{__voFn();}catch(e){}try{__voChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__voChart();}catch(e){}});
+try{__voTabInit();}catch(e){}
+</script>
 </body>
 </html>

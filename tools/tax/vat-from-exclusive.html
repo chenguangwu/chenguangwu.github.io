@@ -246,6 +246,11 @@ function __vat_from_exclusiveBoot(){ try{ __vat_from_exclusivePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __vat_from_exclusiveBoot();
 else document.addEventListener('DOMContentLoaded', __vat_from_exclusiveBoot);
 </script>
+<div class="vfe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vfeChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __vat_from_exclusiveBoot);
 </dl>
 </div>
 </section>
+<script>
+function __vfeSweep(){
+  var ex0=num('ex'), r=num('r')/100;
+  if(!isFinite(ex0)||!isFinite(r)||ex0<=0||r<0)return null;
+  var labels=[],dTax=[],dInc=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var ex=ex0*mults[k], tax=ex*r, inc=ex*(1+r);
+    labels.push((Math.round(ex*100)/100).toFixed(0));
+    dTax.push(Math.round(tax*1000)/1000); dInc.push(Math.round(inc*1000)/1000);
+    rows.push([(Math.round(ex*100)/100).toFixed(0),(Math.round(tax*1000)/1000).toFixed(2),(Math.round(inc*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dTax:dTax,dInc:dInc,rows:rows};
+}
+function __vfeChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__vfeSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vfeChart',{title:en?'VAT from Exclusive vs Net (tax=ex x r)':'价外税随不含税价线性变化（tax=ex×r）',labels:s.labels,series:[{name:en?'Tax':'税额',data:s.dTax},{name:en?'Inclusive':'含税价',data:s.dInc}]});
+}
+
+function __vfeShow(which){
+  var c=document.getElementById('vfeChart'), t=document.getElementById('vat_from_exclusiveTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vfeTabInit(){
+  var btns=document.querySelectorAll('.vfe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vfeShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __vfeShow('chart');
+}
+var __vfeFn=calcTool;calcTool=function(){try{__vfeFn();}catch(e){}try{__vfeChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__vfeChart();}catch(e){}});
+try{__vfeTabInit();}catch(e){}
+</script>
 </body>
 </html>

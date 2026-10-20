@@ -300,6 +300,11 @@ function __vat_inclusive_to_exclusiveBoot(){ try{ __vat_inclusive_to_exclusivePr
 if (document.readyState && document.readyState !== 'loading') __vat_inclusive_to_exclusiveBoot();
 else document.addEventListener('DOMContentLoaded', __vat_inclusive_to_exclusiveBoot);
 </script>
+<div class="vite-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="viteChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -335,5 +340,44 @@ else document.addEventListener('DOMContentLoaded', __vat_inclusive_to_exclusiveB
 </dl>
 </div>
 </section>
+<script>
+function __viteSweep(){
+  var inc=num('inc'), r0=num('r');
+  if(!isFinite(inc)||!isFinite(r0)||inc<=0||r0<0)return null;
+  var labels=[],dEx=[],dTax=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var rp=r0*mults[k], ex=inc/(1+rp/100), vat=inc-ex;
+    labels.push((Math.round(rp*100)/100).toFixed(1));
+    dEx.push(Math.round(ex*1000)/1000); dTax.push(Math.round(vat*1000)/1000);
+    rows.push([(Math.round(rp*100)/100).toFixed(1),(Math.round(ex*1000)/1000).toFixed(2),(Math.round(vat*1000)/1000).toFixed(2)]);
+  }
+  return {labels:labels,dEx:dEx,dTax:dTax,rows:rows};
+}
+function __viteChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__viteSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#viteChart',{title:en?'Inclusive to Exclusive vs Rate (ex=inc/(1+r))':'含税转不含税随税率非线性衰减（ex=inc/(1+r)）',labels:s.labels,series:[{name:en?'Exclusive ex':'不含税额 ex',data:s.dEx},{name:en?'VAT':'增值税额',data:s.dTax}]});
+}
+
+function __viteShow(which){
+  var c=document.getElementById('viteChart'), t=document.getElementById('vat_inclusive_to_exclusiveTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __viteTabInit(){
+  var btns=document.querySelectorAll('.vite-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__viteShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __viteShow('chart');
+}
+var __viteFn=calcTool;calcTool=function(){try{__viteFn();}catch(e){}try{__viteChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__viteChart();}catch(e){}});
+try{__viteTabInit();}catch(e){}
+</script>
 </body>
 </html>
