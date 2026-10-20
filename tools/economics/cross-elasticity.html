@@ -325,6 +325,11 @@ function __cross_elasticityBoot(){ try{ __cross_elasticityPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __cross_elasticityBoot();
 else document.addEventListener('DOMContentLoaded', __cross_elasticityBoot);
 </script>
+<div class="ce-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ceChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -360,5 +365,44 @@ else document.addEventListener('DOMContentLoaded', __cross_elasticityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ceSweep(){
+  var qx1=num('qx1'), qx20=num('qx2'), py1=num('py1'), py2=num('py2');
+  if(!isFinite(qx1)||!isFinite(qx20)||!isFinite(py1)||!isFinite(py2)||qx1<=0||py1<=0||py2===py1)return null;
+  var labels=[],dE=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var qx2=qx20*mults[k], e=((qx2-qx1)/qx1)/((py2-py1)/py1);
+    labels.push((Math.round(qx2*100)/100).toFixed(0));
+    dE.push(Math.round(e*10000)/10000);
+    rows.push([(Math.round(qx2*100)/100).toFixed(0),(Math.round(e*10000)/10000).toFixed(4)]);
+  }
+  return {labels:labels,dE:dE,rows:rows};
+}
+function __ceChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ceSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ceChart',{title:en?'Cross Elasticity vs Qty of X (E=(dQx/Qx)/(dPy/Py))':'交叉弹性随商品 x 数量线性变化（E=(ΔQx/Qx)/(ΔPy/Py)）',labels:s.labels,series:[{name:en?'Cross elasticity':'交叉弹性',data:s.dE}]});
+}
+
+function __ceShow(which){
+  var c=document.getElementById('ceChart'), t=document.getElementById('cross_elasticityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ceTabInit(){
+  var btns=document.querySelectorAll('.ce-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ceShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ceShow('chart');
+}
+var __ceFn=calcTool;calcTool=function(){try{__ceFn();}catch(e){}try{__ceChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ceChart();}catch(e){}});
+try{__ceTabInit();}catch(e){}
+</script>
 </body>
 </html>
