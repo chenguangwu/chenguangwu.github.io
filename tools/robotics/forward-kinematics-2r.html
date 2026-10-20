@@ -255,6 +255,12 @@ function __forward_kinematics_2rBoot(){ try{ __forward_kinematics_2rPresets(); }
 if (document.readyState && document.readyState !== 'loading') __forward_kinematics_2rBoot();
 else document.addEventListener('DOMContentLoaded', __forward_kinematics_2rBoot);
 </script>
+<div class="fk-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fkChart" style="margin-top:8px;"></div>
+<div id="fkTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -290,5 +296,50 @@ else document.addEventListener('DOMContentLoaded', __forward_kinematics_2rBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fkSweep(){
+  var t1=num('t1'), L1=num('L1'), L2=num('L2');
+  if(!isFinite(t1)||!isFinite(L1)||!isFinite(L2)||L1<=0||L2<=0)return null;
+  var r1=t1*Math.PI/180;
+  var labels=[],dX=[],dY=[],rows=[];
+  var angs=[-180,-135,-90,-45,0,45,90,135,180];
+  for(var k=0;k<angs.length;k++){
+    var t2=angs[k]*Math.PI/180, x=L1*Math.cos(r1)+L2*Math.cos(r1+t2), y=L1*Math.sin(r1)+L2*Math.sin(r1+t2);
+    labels.push(String(angs[k]));
+    dX.push(Math.round(x*1000)/1000); dY.push(Math.round(y*1000)/1000);
+    rows.push([String(angs[k]),(Math.round(x*1000)/1000).toFixed(3),(Math.round(y*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dX:dX,dY:dY,rows:rows};
+}
+function __fkChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__fkSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fkChart',{title:en?'End-effector Position vs Joint 2 Angle (x,y = L1 cos + L2 cos(t1+t2))':'末端位置随第二关节角变化（x,y = L1·cosθ1 + L2·cos(θ1+θ2)）',labels:s.labels,series:[{name:en?'X (m)':'X (m)',data:s.dX},{name:en?'Y (m)':'Y (m)',data:s.dY}]});
+}
+function __fkTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__fkSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#fkTable',{head:en?['Joint2 angle (deg)','X (m)','Y (m)']:['第二关节角 (°)','X (m)','Y (m)'],rows:s.rows});
+}
+
+function __fkShow(which){
+  var c=document.getElementById('fkChart'), t=document.getElementById('fkTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fkTabInit(){
+  var btns=document.querySelectorAll('.fk-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fkShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __fkFn=calcTool;calcTool=function(){try{__fkFn();}catch(e){}try{__fkChart();}catch(e){}try{__fkTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fkChart();}catch(e){}try{__fkTable();}catch(e){}});
+try{__fkTabInit();}catch(e){}
+</script>
 </body>
 </html>

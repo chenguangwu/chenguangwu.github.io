@@ -297,6 +297,12 @@ function __stereo_depthBoot(){ try{ __stereo_depthPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __stereo_depthBoot();
 else document.addEventListener('DOMContentLoaded', __stereo_depthBoot);
 </script>
+<div class="sd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sdChart" style="margin-top:8px;"></div>
+<div id="sdTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +338,49 @@ else document.addEventListener('DOMContentLoaded', __stereo_depthBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sdSweep(){
+  var f=num('f'), B=num('B'), d0=num('d');
+  if(!isFinite(f)||!isFinite(B)||!isFinite(d0)||f<=0||B<=0||d0<=0)return null;
+  var labels=[],dZ=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var d=d0*mults[k], Z=f*B/d;
+    labels.push((Math.round(d*100)/100).toFixed(2));
+    dZ.push(Math.round(Z*1000)/1000);
+    rows.push([(Math.round(d*100)/100).toFixed(2),(Math.round(Z*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dZ:dZ,rows:rows};
+}
+function __sdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__sdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sdChart',{title:en?'Depth vs Disparity (Z = f B / d)':'深度随视差变化（Z = f·B/d，反比）',labels:s.labels,series:[{name:en?'Depth Z (m)':'深度 Z (m)',data:s.dZ}]});
+}
+function __sdTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__sdSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#sdTable',{head:en?['Disparity d (px)','Depth Z (m)']:['视差 d (像素)','深度 Z (m)'],rows:s.rows});
+}
+
+function __sdShow(which){
+  var c=document.getElementById('sdChart'), t=document.getElementById('sdTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sdTabInit(){
+  var btns=document.querySelectorAll('.sd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __sdFn=calcTool;calcTool=function(){try{__sdFn();}catch(e){}try{__sdChart();}catch(e){}try{__sdTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sdChart();}catch(e){}try{__sdTable();}catch(e){}});
+try{__sdTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -243,6 +243,12 @@ function __gear_ratio_torqueBoot(){ try{ __gear_ratio_torquePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __gear_ratio_torqueBoot();
 else document.addEventListener('DOMContentLoaded', __gear_ratio_torqueBoot);
 </script>
+<div class="grt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="grtChart" style="margin-top:8px;"></div>
+<div id="grtTable" style="margin-top:8px;display:none;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -278,5 +284,49 @@ else document.addEventListener('DOMContentLoaded', __gear_ratio_torqueBoot);
 </dl>
 </div>
 </section>
+<script>
+function __grtSweep(){
+  var ti=num('ti'), gr0=num('gr'), eta=num('eta');
+  if(!isFinite(ti)||!isFinite(gr0)||!isFinite(eta)||ti<=0||gr0<=0||eta<=0)return null;
+  var labels=[],dT=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var gr=gr0*mults[k], T=ti*gr*eta;
+    labels.push((Math.round(gr*100)/100).toFixed(2));
+    dT.push(Math.round(T*1000)/1000);
+    rows.push([(Math.round(gr*100)/100).toFixed(2),(Math.round(T*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dT:dT,rows:rows};
+}
+function __grtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__grtSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#grtChart',{title:en?'Output Torque vs Gear Ratio (T = T_in gr eta)':'输出扭矩随传动比线性变化（T = T_in·gr·η）',labels:s.labels,series:[{name:en?'Torque T (N·m)':'扭矩 T (N·m)',data:s.dT}]});
+}
+function __grtTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__grtSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#grtTable',{head:en?['Gear ratio gr','Torque T (N m)']:['传动比 gr','扭矩 T (N·m)'],rows:s.rows});
+}
+
+function __grtShow(which){
+  var c=document.getElementById('grtChart'), t=document.getElementById('grtTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __grtTabInit(){
+  var btns=document.querySelectorAll('.grt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__grtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __grtFn=calcTool;calcTool=function(){try{__grtFn();}catch(e){}try{__grtChart();}catch(e){}try{__grtTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__grtChart();}catch(e){}try{__grtTable();}catch(e){}});
+try{__grtTabInit();}catch(e){}
+</script>
 </body>
 </html>
