@@ -238,6 +238,11 @@ function __arithmetic_mean_mathBoot(){ try{ __arithmetic_mean_mathPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __arithmetic_mean_mathBoot();
 else document.addEventListener('DOMContentLoaded', __arithmetic_mean_mathBoot);
 </script>
+<div class="amm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ammChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -273,5 +278,49 @@ else document.addEventListener('DOMContentLoaded', __arithmetic_mean_mathBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ammSweep(){
+  var el=document.getElementById('xs');
+  if(!el)return null;
+  var raw=(el.value||'').split(/[ ,\n\t]+/).filter(Boolean).map(parseFloat).filter(function(v){return !isNaN(v);});
+  if(!raw.length)return null;
+  var sum=0;
+  for(var i=0;i<raw.length;i++)sum+=raw[i];
+  var mean=sum/raw.length;
+  var labels=[], dV=[], dC=[];
+  var run=0;
+  for(var k=0;k<raw.length;k++){
+    run+=raw[k];
+    labels.push('#'+(k+1));
+    dV.push(Math.round(raw[k]*1000)/1000);
+    dC.push(Math.round(run/(k+1)*1000)/1000);
+  }
+  return {labels:labels,dV:dV,dC:dC};
+}
+function __ammChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__ammSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ammChart',{title:en?'Arithmetic Mean: Each Value & Running Mean':'算术平均数：逐项取值与累计均值收敛',labels:s.labels,series:[{name:en?'Value':'各项取值',data:s.dV},{name:en?'Running mean':'累计均值',data:s.dC}]});
+}
+
+function __ammShow(which){
+  var c=document.getElementById('ammChart'), t=document.getElementById('arithmetic_mean_mathTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ammTabInit(){
+  var btns=document.querySelectorAll('.amm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ammShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ammShow('chart');
+  try{__ammChart();}catch(e){}
+}
+var __ammFn=calcTool;calcTool=function(){try{__ammFn();}catch(e){}try{__ammChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ammChart();}catch(e){}});try{__ammTabInit();}catch(e){}
+</script>
 </body>
 </html>

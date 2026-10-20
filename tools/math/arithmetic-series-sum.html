@@ -247,6 +247,11 @@ function __arithmetic_series_sumBoot(){ try{ __arithmetic_series_sumPresets(); }
 if (document.readyState && document.readyState !== 'loading') __arithmetic_series_sumBoot();
 else document.addEventListener('DOMContentLoaded', __arithmetic_series_sumBoot);
 </script>
+<div class="ass-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="assChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,44 @@ else document.addEventListener('DOMContentLoaded', __arithmetic_series_sumBoot);
 </dl>
 </div>
 </section>
+<script>
+function __assSweep(){
+  var a1=num('a1'), an=num('an');
+  if(!isFinite(a1)||!isFinite(an))return null;
+  var labels=[], dS=[], dA=[];
+  var ns=[1,2,3,5,8,12,16,20];
+  for(var k=0;k<ns.length;k++){
+    var nv=ns[k], Sn=nv*(a1+an)/2;
+    labels.push(nv.toFixed(0));
+    dS.push(Math.round(Sn*100)/100);
+    dA.push(Math.round(Sn/nv*100)/100);
+  }
+  return {labels:labels,dS:dS,dA:dA};
+}
+function __assChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__assSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#assChart',{title:en?'Arithmetic Series Sum vs Term Count (linear Sn=n(a₁+an)/2)':'等差数列前 n 项和随项数线性增长',labels:s.labels,series:[{name:en?'Sum S_n':'前 n 项和 S_n',data:s.dS},{name:en?'Average per term':'各项平均值',data:s.dA}]});
+}
+
+function __assShow(which){
+  var c=document.getElementById('assChart'), t=document.getElementById('arithmetic_series_sumTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __assTabInit(){
+  var btns=document.querySelectorAll('.ass-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__assShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __assShow('chart');
+  try{__assChart();}catch(e){}
+}
+var __assFn=calcTool;calcTool=function(){try{__assFn();}catch(e){}try{__assChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__assChart();}catch(e){}});try{__assTabInit();}catch(e){}
+</script>
 </body>
 </html>

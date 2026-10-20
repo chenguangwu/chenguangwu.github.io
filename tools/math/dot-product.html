@@ -260,6 +260,11 @@ function __dot_productBoot(){ try{ __dot_productPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __dot_productBoot();
 else document.addEventListener('DOMContentLoaded', __dot_productBoot);
 </script>
+<div class="dpr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dprChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -295,5 +300,47 @@ else document.addEventListener('DOMContentLoaded', __dot_productBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dprSweep(){
+  var ax=num('ax'), ay=num('ay'), az=num('az');
+  if(!isFinite(ax)||!isFinite(ay)||!isFinite(az))return null;
+  var na=Math.sqrt(ax*ax+ay*ay+az*az);
+  if(na===0)return null;
+  var labels=[], dP=[], dC=[];
+  var ths=[0,30,45,60,90,120,150,180];
+  for(var k=0;k<ths.length;k++){
+    var tv=ths[k]*Math.PI/180;
+    var dpv=na*Math.cos(tv);
+    labels.push(ths[k].toFixed(0));
+    dP.push(Math.round(dpv*1000)/1000);
+    dC.push(Math.round(Math.cos(tv)*1000)/1000);
+  }
+  return {labels:labels,dP:dP,dC:dC};
+}
+function __dprChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__dprSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dprChart',{title:en?'3D Dot Product vs Angle (cosine, negative beyond 90°)':'三维点积随夹角余弦变化（>90° 转负）',labels:s.labels,series:[{name:en?'Dot product A·B':'点积 A·B',data:s.dP},{name:en?'cos θ':'夹角余弦 cos θ',data:s.dC}]});
+}
+
+function __dprShow(which){
+  var c=document.getElementById('dprChart'), t=document.getElementById('dot_productTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dprTabInit(){
+  var btns=document.querySelectorAll('.dpr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dprShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dprShow('chart');
+  try{__dprChart();}catch(e){}
+}
+var __dprFn=calcTool;calcTool=function(){try{__dprFn();}catch(e){}try{__dprChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dprChart();}catch(e){}});try{__dprTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -254,6 +254,11 @@ function __determinant_2x2Boot(){ try{ __determinant_2x2Presets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __determinant_2x2Boot();
 else document.addEventListener('DOMContentLoaded', __determinant_2x2Boot);
 </script>
+<div class="d22-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="d22Chart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -289,5 +294,44 @@ else document.addEventListener('DOMContentLoaded', __determinant_2x2Boot);
 </dl>
 </div>
 </section>
+<script>
+function __d22Sweep(){
+  var a=num('a'), b=num('b'), c=num('c');
+  if(!isFinite(a)||!isFinite(b)||!isFinite(c))return null;
+  var labels=[], dD=[], dT=[];
+  var ds=[-4,-2,-1,0,1,2,4,8];
+  for(var k=0;k<ds.length;k++){
+    var dv=ds[k], det=a*dv-b*c;
+    labels.push(dv.toFixed(0));
+    dD.push(Math.round(det*1000)/1000);
+    dT.push(Math.round((a+dv)*1000)/1000);
+  }
+  return {labels:labels,dD:dD,dT:dT};
+}
+function __d22Chart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__d22Sweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#d22Chart',{title:en?'2×2 Determinant & Trace vs Element d (zero-crossing = singular)':'二阶行列式与迹随元素 d 变化（det=0 处奇异）',labels:s.labels,series:[{name:en?'Determinant |A|':'行列式 |A|',data:s.dD},{name:en?'Trace tr(A)':'迹 tr(A)',data:s.dT}]});
+}
+
+function __d22Show(which){
+  var c=document.getElementById('d22Chart'), t=document.getElementById('determinant_2x2Table');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __d22TabInit(){
+  var btns=document.querySelectorAll('.d22-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__d22Show(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __d22Show('chart');
+  try{__d22Chart();}catch(e){}
+}
+var __d22Fn=calcTool;calcTool=function(){try{__d22Fn();}catch(e){}try{__d22Chart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__d22Chart();}catch(e){}});try{__d22TabInit();}catch(e){}
+</script>
 </body>
 </html>

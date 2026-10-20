@@ -250,6 +250,11 @@ function __distance_2dBoot(){ try{ __distance_2dPresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __distance_2dBoot();
 else document.addEventListener('DOMContentLoaded', __distance_2dBoot);
 </script>
+<div class="d2d-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="d2dChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -285,5 +290,45 @@ else document.addEventListener('DOMContentLoaded', __distance_2dBoot);
 </dl>
 </div>
 </section>
+<script>
+function __d2dSweep(){
+  var x1=num('x1'), y1=num('y1'), y2=num('y2');
+  if(!isFinite(x1)||!isFinite(y1)||!isFinite(y2))return null;
+  var dy=y2-y1;
+  var labels=[], dD=[], dX=[];
+  var xs=[-5,-2,0,2,5,8,12,20];
+  for(var k=0;k<xs.length;k++){
+    var xv=xs[k], dx=xv-x1;
+    labels.push(xv.toFixed(0));
+    dD.push(Math.round(Math.sqrt(dx*dx+dy*dy)*1000)/1000);
+    dX.push(Math.round(Math.abs(dx)*1000)/1000);
+  }
+  return {labels:labels,dD:dD,dX:dX};
+}
+function __d2dChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__d2dSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#d2dChart',{title:en?'2D Distance vs X Coordinate (V-shape, minimum at x₁)':'二维距离随 x 坐标 V 形变化（x₁ 处取最小 |Δy|）',labels:s.labels,series:[{name:en?'Distance d':'距离 d',data:s.dD},{name:en?'|Δx|':'横向差 |Δx|',data:s.dX}]});
+}
+
+function __d2dShow(which){
+  var c=document.getElementById('d2dChart'), t=document.getElementById('distance_2dTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __d2dTabInit(){
+  var btns=document.querySelectorAll('.d2d-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__d2dShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __d2dShow('chart');
+  try{__d2dChart();}catch(e){}
+}
+var __d2dFn=calcTool;calcTool=function(){try{__d2dFn();}catch(e){}try{__d2dChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__d2dChart();}catch(e){}});try{__d2dTabInit();}catch(e){}
+</script>
 </body>
 </html>
