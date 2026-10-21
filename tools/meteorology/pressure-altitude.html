@@ -309,6 +309,11 @@ function __pressure_altitudeBoot(){ try{ __pressure_altitudePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __pressure_altitudeBoot();
 else document.addEventListener('DOMContentLoaded', __pressure_altitudeBoot);
 </script>
+<div class="pral-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pralChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,5 +349,39 @@ else document.addEventListener('DOMContentLoaded', __pressure_altitudeBoot);
 </dl>
 </div>
 </section>
+<script>
+function __pralChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var P0=num('P0');
+  if(!isFinite(P0)||!(P0>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var P=P0*(1-i*0.09);
+    if(P<=0)break;
+    labels.push(P.toFixed(0));
+    data.push(Math.round(44330*(1-Math.pow(P/P0,0.1903))));
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pralChart',{title:en?'Altitude vs pressure (concave)':'气压高度随气压变化（凹形）',labels:labels,series:[{name:en?'Altitude (m)':'海拔 (m)',data:data}]});
+}
+
+function __pralShow(which){
+  var c=document.getElementById('pralChart'), t=document.getElementById('pressure_altitudeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pralTabInit(){
+  var btns=document.querySelectorAll('.pral-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pralShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pralShow('chart');
+  try{__pralChart();}catch(e){}
+}
+var __pralFn=calcTool;calcTool=function(){try{__pralFn();}catch(e){}try{__pralChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pralChart();}catch(e){}});try{__pralTabInit();}catch(e){}
+</script>
 </body>
 </html>

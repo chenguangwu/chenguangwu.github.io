@@ -232,6 +232,11 @@ function __precipitation_rateBoot(){ try{ __precipitation_ratePresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __precipitation_rateBoot();
 else document.addEventListener('DOMContentLoaded', __precipitation_rateBoot);
 </script>
+<div class="prcr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="prcrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -267,5 +272,38 @@ else document.addEventListener('DOMContentLoaded', __precipitation_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __prcrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var mm0=num('mm');
+  if(!isFinite(mm0)||!(mm0>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var mm=mm0*i/2;
+    labels.push(mm.toFixed(1));
+    data.push(Math.round(mm*24*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#prcrChart',{title:en?'24h accumulation vs hourly rate (linear)':'24 小时累计降水随小时雨强变化（线性）',labels:labels,series:[{name:en?'24h mm':'24h 累计(mm)',data:data}]});
+}
+
+function __prcrShow(which){
+  var c=document.getElementById('prcrChart'), t=document.getElementById('precipitation_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __prcrTabInit(){
+  var btns=document.querySelectorAll('.prcr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__prcrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __prcrShow('chart');
+  try{__prcrChart();}catch(e){}
+}
+var __prcrFn=calcTool;calcTool=function(){try{__prcrFn();}catch(e){}try{__prcrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__prcrChart();}catch(e){}});try{__prcrTabInit();}catch(e){}
+</script>
 </body>
 </html>

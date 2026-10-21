@@ -236,6 +236,11 @@ function __wind_directionBoot(){ try{ __wind_directionPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __wind_directionBoot();
 else document.addEventListener('DOMContentLoaded', __wind_directionBoot);
 </script>
+<div class="wndr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wndrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -271,5 +276,37 @@ else document.addEventListener('DOMContentLoaded', __wind_directionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __wndrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var names=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  var labels=[],data=[];
+  for(var d=0;d<=360;d+=22.5){
+    var idx=Math.round(d/22.5)%16;
+    labels.push(d.toFixed(0));
+    data.push(idx);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wndrChart',{title:en?'16-point index vs bearing (staircase)':'16 方位序号随方位角变化（阶梯）',labels:labels,series:[{name:en?'Index':'方位序号',data:data}]});
+}
+
+function __wndrShow(which){
+  var c=document.getElementById('wndrChart'), t=document.getElementById('wind_directionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wndrTabInit(){
+  var btns=document.querySelectorAll('.wndr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wndrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __wndrShow('chart');
+  try{__wndrChart();}catch(e){}
+}
+var __wndrFn=calcTool;calcTool=function(){try{__wndrFn();}catch(e){}try{__wndrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wndrChart();}catch(e){}});try{__wndrTabInit();}catch(e){}
+</script>
 </body>
 </html>

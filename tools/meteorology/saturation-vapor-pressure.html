@@ -237,6 +237,11 @@ function __saturation_vapor_pressureBoot(){ try{ __saturation_vapor_pressurePres
 if (document.readyState && document.readyState !== 'loading') __saturation_vapor_pressureBoot();
 else document.addEventListener('DOMContentLoaded', __saturation_vapor_pressureBoot);
 </script>
+<div class="svpr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="svprChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -272,5 +277,37 @@ else document.addEventListener('DOMContentLoaded', __saturation_vapor_pressureBo
 </dl>
 </div>
 </section>
+<script>
+function __svprChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var T=i*10-20;
+    var es=6.1094*Math.exp(17.625*T/(T+243.04));
+    labels.push(T.toFixed(0));
+    data.push(Math.round(es*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#svprChart',{title:en?'Saturation vapor pressure vs T (exponential)':'饱和水汽压随温度 T 变化（指数）',labels:labels,series:[{name:en?'e_s (hPa)':'饱和水汽压 (hPa)',data:data}]});
+}
+
+function __svprShow(which){
+  var c=document.getElementById('svprChart'), t=document.getElementById('saturation_vapor_pressureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __svprTabInit(){
+  var btns=document.querySelectorAll('.svpr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__svprShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __svprShow('chart');
+  try{__svprChart();}catch(e){}
+}
+var __svprFn=calcTool;calcTool=function(){try{__svprFn();}catch(e){}try{__svprChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__svprChart();}catch(e){}});try{__svprTabInit();}catch(e){}
+</script>
 </body>
 </html>

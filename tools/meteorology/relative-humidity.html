@@ -242,6 +242,11 @@ function __relative_humidityBoot(){ try{ __relative_humidityPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __relative_humidityBoot();
 else document.addEventListener('DOMContentLoaded', __relative_humidityBoot);
 </script>
+<div class="rehu-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rehuChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,40 @@ else document.addEventListener('DOMContentLoaded', __relative_humidityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rehuChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var T=num('T');
+  if(!isFinite(T))return;
+  var a=17.625,b=243.04;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var Td=T-(T+10)*i/10;
+    var RH=100*Math.exp((a*Td/(b+Td))-(a*T/(b+T)));
+    labels.push(Td.toFixed(1));
+    data.push(Math.round(RH*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rehuChart',{title:en?'Relative humidity vs dew point (increasing)':'相对湿度随露点变化（上升）',labels:labels,series:[{name:en?'RH (%)':'相对湿度 RH (%)',data:data}]});
+}
+
+function __rehuShow(which){
+  var c=document.getElementById('rehuChart'), t=document.getElementById('relative_humidityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rehuTabInit(){
+  var btns=document.querySelectorAll('.rehu-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rehuShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rehuShow('chart');
+  try{__rehuChart();}catch(e){}
+}
+var __rehuFn=calcTool;calcTool=function(){try{__rehuFn();}catch(e){}try{__rehuChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rehuChart();}catch(e){}});try{__rehuTabInit();}catch(e){}
+</script>
 </body>
 </html>

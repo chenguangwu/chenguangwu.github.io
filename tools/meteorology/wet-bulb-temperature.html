@@ -307,6 +307,11 @@ function __wet_bulb_temperatureBoot(){ try{ __wet_bulb_temperaturePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __wet_bulb_temperatureBoot();
 else document.addEventListener('DOMContentLoaded', __wet_bulb_temperatureBoot);
 </script>
+<div class="wbtm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wbtmChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -355,5 +360,39 @@ else document.addEventListener('DOMContentLoaded', __wet_bulb_temperatureBoot);
 <h3>用途</h3><p>评估热应激与人体散热极限（湿球≈35℃ 为生理耐受上限）、灌溉与 HVAC 设计。</p>
 <h3>边界</h3><p>由干球、湿度、气压估算；不同公式（Stull 等）误差约 ±0.3℃，精密气象以实测湿球为准。</p>
 </div></section>
+<script>
+function __wbtmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var T=num('T');
+  if(!isFinite(T))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var RH=i*10;
+    var Tw=T*Math.atan(0.151977*Math.sqrt(RH+8.313659))+Math.atan(T+RH)-Math.atan(RH-1.676331)+0.00391838*Math.pow(RH,1.5)*Math.atan(0.023101*RH)-4.686035;
+    labels.push(RH.toFixed(0));
+    data.push(Math.round(Tw*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wbtmChart',{title:en?'Wet-bulb temp. vs RH (increasing)':'湿球温度随相对湿度变化（上升）',labels:labels,series:[{name:en?'T_w (°C)':'湿球温度 (°C)',data:data}]});
+}
+
+function __wbtmShow(which){
+  var c=document.getElementById('wbtmChart'), t=document.getElementById('wet_bulb_temperatureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wbtmTabInit(){
+  var btns=document.querySelectorAll('.wbtm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wbtmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __wbtmShow('chart');
+  try{__wbtmChart();}catch(e){}
+}
+var __wbtmFn=calcTool;calcTool=function(){try{__wbtmFn();}catch(e){}try{__wbtmChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wbtmChart();}catch(e){}});try{__wbtmTabInit();}catch(e){}
+</script>
 </body>
 </html>

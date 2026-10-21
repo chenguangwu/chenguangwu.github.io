@@ -307,6 +307,11 @@ function __wind_chillBoot(){ try{ __wind_chillPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __wind_chillBoot();
 else document.addEventListener('DOMContentLoaded', __wind_chillBoot);
 </script>
+<div class="wnch-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="wnchChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,39 @@ else document.addEventListener('DOMContentLoaded', __wind_chillBoot);
 </dl>
 </div>
 </section>
+<script>
+function __wnchChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var T=num('T');
+  if(!isFinite(T))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var v=5*i;
+    var WCT=13.12+0.6215*T-11.37*Math.pow(v,0.16)+0.3965*T*Math.pow(v,0.16);
+    labels.push(v.toFixed(0));
+    data.push(Math.round(WCT*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#wnchChart',{title:en?'Wind chill vs wind speed (cooling)':'风寒指数随风速变化（风冷下降）',labels:labels,series:[{name:en?'WCT (°C)':'风寒指数 (°C)',data:data}]});
+}
+
+function __wnchShow(which){
+  var c=document.getElementById('wnchChart'), t=document.getElementById('wind_chillTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __wnchTabInit(){
+  var btns=document.querySelectorAll('.wnch-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__wnchShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __wnchShow('chart');
+  try{__wnchChart();}catch(e){}
+}
+var __wnchFn=calcTool;calcTool=function(){try{__wnchFn();}catch(e){}try{__wnchChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__wnchChart();}catch(e){}});try{__wnchTabInit();}catch(e){}
+</script>
 </body>
 </html>
