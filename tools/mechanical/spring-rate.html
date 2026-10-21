@@ -249,6 +249,11 @@ function __spring_rateBoot(){ try{ __spring_ratePresets(); }catch(e){} try{ calc
 if (document.readyState && document.readyState !== 'loading') __spring_rateBoot();
 else document.addEventListener('DOMContentLoaded', __spring_rateBoot);
 </script>
+<div class="sprt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sprtChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -284,5 +289,39 @@ else document.addEventListener('DOMContentLoaded', __spring_rateBoot);
 </dl>
 </div>
 </section>
+<script>
+function __sprtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var d=num('d'),D=num('D'),G=num('G')*1000;
+  if(!isFinite(d)||!isFinite(D)||!isFinite(G)||d<=0||D<=0||G<=0)return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var n=i*2;
+    var k=G*Math.pow(d,4)/(8*Math.pow(D,3)*n);
+    labels.push(n.toFixed(0));
+    data.push(Math.round(k*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sprtChart',{title:en?'Spring rate vs coils (inverse)':'弹簧刚度随有效圈数变化（反比）',labels:labels,series:[{name:en?'k (N/mm)':'k (N/mm)',data:data}]});
+}
+
+function __sprtShow(which){
+  var c=document.getElementById('sprtChart'), t=document.getElementById('spring_rateTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sprtTabInit(){
+  var btns=document.querySelectorAll('.sprt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sprtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sprtShow('chart');
+  try{__sprtChart();}catch(e){}
+}
+var __sprtFn=calcTool;calcTool=function(){try{__sprtFn();}catch(e){}try{__sprtChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__sprtChart();}catch(e){}});try{__sprtTabInit();}catch(e){}
+</script>
 </body>
 </html>

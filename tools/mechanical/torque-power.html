@@ -241,6 +241,11 @@ function __torque_powerBoot(){ try{ __torque_powerPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __torque_powerBoot();
 else document.addEventListener('DOMContentLoaded', __torque_powerBoot);
 </script>
+<div class="trqp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="trqpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -276,5 +281,39 @@ else document.addEventListener('DOMContentLoaded', __torque_powerBoot);
 </dl>
 </div>
 </section>
+<script>
+function __trqpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var P=num('P');
+  if(!isFinite(P)||!(P>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var n=i*200;
+    var T=9550*P/n;
+    labels.push(n.toFixed(0));
+    data.push(Math.round(T*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#trqpChart',{title:en?'Torque vs speed (inverse)':'转矩随转速变化（反比）',labels:labels,series:[{name:en?'T (N·m)':'T (N·m)',data:data}]});
+}
+
+function __trqpShow(which){
+  var c=document.getElementById('trqpChart'), t=document.getElementById('torque_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __trqpTabInit(){
+  var btns=document.querySelectorAll('.trqp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__trqpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __trqpShow('chart');
+  try{__trqpChart();}catch(e){}
+}
+var __trqpFn=calcTool;calcTool=function(){try{__trqpFn();}catch(e){}try{__trqpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__trqpChart();}catch(e){}});try{__trqpTabInit();}catch(e){}
+</script>
 </body>
 </html>

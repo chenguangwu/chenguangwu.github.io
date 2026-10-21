@@ -237,6 +237,11 @@ function __lever_advantageBoot(){ try{ __lever_advantagePresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __lever_advantageBoot();
 else document.addEventListener('DOMContentLoaded', __lever_advantageBoot);
 </script>
+<div class="lvad-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lvadChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -272,5 +277,39 @@ else document.addEventListener('DOMContentLoaded', __lever_advantageBoot);
 </dl>
 </div>
 </section>
+<script>
+function __lvadChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var Lin=num('Lin');
+  if(!isFinite(Lin)||!(Lin>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var Lout=Lin*i;
+    var MA=Lin/Lout;
+    labels.push(Lout.toFixed(1));
+    data.push(Math.round(MA*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lvadChart',{title:en?'Mechanical advantage vs output arm (inverse)':'机械增益随输出臂长变化（反比）',labels:labels,series:[{name:en?'MA':'机械增益 MA',data:data}]});
+}
+
+function __lvadShow(which){
+  var c=document.getElementById('lvadChart'), t=document.getElementById('lever_advantageTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lvadTabInit(){
+  var btns=document.querySelectorAll('.lvad-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lvadShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lvadShow('chart');
+  try{__lvadChart();}catch(e){}
+}
+var __lvadFn=calcTool;calcTool=function(){try{__lvadFn();}catch(e){}try{__lvadChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lvadChart();}catch(e){}});try{__lvadTabInit();}catch(e){}
+</script>
 </body>
 </html>
