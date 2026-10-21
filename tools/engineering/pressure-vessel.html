@@ -253,6 +253,11 @@ function __pressure_vesselBoot(){ try{ __pressure_vesselPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __pressure_vesselBoot();
 else document.addEventListener('DOMContentLoaded', __pressure_vesselBoot);
 </script>
+<div class="prsv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="prsvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -287,5 +292,39 @@ else document.addEventListener('DOMContentLoaded', __pressure_vesselBoot);
 </dl>
 </div>
 </section>
+<script>
+function __prsvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var D=num('D'),sig=num('sigma'),phi=num('phi');
+  if(!isFinite(D)||!isFinite(sig)||!isFinite(phi)||!(D>0)||!(sig>0)||!(phi>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var P=i*0.4;
+    var t=P*D/(2*sig*phi);
+    labels.push(P.toFixed(1));
+    data.push(Math.round(t*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#prsvChart',{title:en?'Wall thickness vs pressure (linear)':'所需壁厚随压力变化（线性）',labels:labels,series:[{name:en?'t (mm)':'t (mm)',data:data}]});
+}
+
+function __prsvShow(which){
+  var c=document.getElementById('prsvChart'), t=document.getElementById('pressure_vesselTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __prsvTabInit(){
+  var btns=document.querySelectorAll('.prsv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__prsvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __prsvShow('chart');
+  try{__prsvChart();}catch(e){}
+}
+var __prsvFn=calcTool;calcTool=function(){try{__prsvFn();}catch(e){}try{__prsvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__prsvChart();}catch(e){}});try{__prsvTabInit();}catch(e){}
+</script>
 </body>
 </html>

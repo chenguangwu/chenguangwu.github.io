@@ -247,6 +247,11 @@ function __thermal_expansionBoot(){ try{ __thermal_expansionPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __thermal_expansionBoot();
 else document.addEventListener('DOMContentLoaded', __thermal_expansionBoot);
 </script>
+<div class="thex-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="thexChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,39 @@ else document.addEventListener('DOMContentLoaded', __thermal_expansionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __thexChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var a=num('alpha')*1e-6,L0=num('L0');
+  if(!isFinite(a)||!isFinite(L0)||!(L0>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var dT=i*20;
+    var dL=a*L0*dT*1000;
+    labels.push(dT.toFixed(0));
+    data.push(Math.round(dL*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#thexChart',{title:en?'Thermal expansion vs ΔT (linear)':'热膨胀量随温差变化（线性）',labels:labels,series:[{name:en?'ΔL (mm)':'ΔL (mm)',data:data}]});
+}
+
+function __thexShow(which){
+  var c=document.getElementById('thexChart'), t=document.getElementById('thermal_expansionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __thexTabInit(){
+  var btns=document.querySelectorAll('.thex-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__thexShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __thexShow('chart');
+  try{__thexChart();}catch(e){}
+}
+var __thexFn=calcTool;calcTool=function(){try{__thexFn();}catch(e){}try{__thexChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__thexChart();}catch(e){}});try{__thexTabInit();}catch(e){}
+</script>
 </body>
 </html>

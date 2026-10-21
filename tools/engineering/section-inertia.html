@@ -250,6 +250,11 @@ function __section_inertiaBoot(){ try{ __section_inertiaPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __section_inertiaBoot();
 else document.addEventListener('DOMContentLoaded', __section_inertiaBoot);
 </script>
+<div class="scin-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="scinChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -284,5 +289,39 @@ else document.addEventListener('DOMContentLoaded', __section_inertiaBoot);
 </dl>
 </div>
 </section>
+<script>
+function __scinChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var shape=num('shape'),b=num('b');
+  if(!isFinite(shape)||!isFinite(b)||!(b>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var h=i*10;
+    var I = shape===1 ? b*Math.pow(h,3)/12 : Math.PI*Math.pow(h,4)/64;
+    labels.push(h.toFixed(0));
+    data.push(Math.round(I));
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#scinChart',{title:en?'Moment of inertia vs size (cubic)':'惯性矩随尺寸变化（立方）',labels:labels,series:[{name:en?'I (mm⁴)':'I (mm⁴)',data:data}]});
+}
+
+function __scinShow(which){
+  var c=document.getElementById('scinChart'), t=document.getElementById('section_inertiaTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __scinTabInit(){
+  var btns=document.querySelectorAll('.scin-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__scinShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __scinShow('chart');
+  try{__scinChart();}catch(e){}
+}
+var __scinFn=calcTool;calcTool=function(){try{__scinFn();}catch(e){}try{__scinChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__scinChart();}catch(e){}});try{__scinTabInit();}catch(e){}
+</script>
 </body>
 </html>
