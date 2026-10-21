@@ -312,6 +312,12 @@ if (document.readyState && document.readyState !== "loading") __tsBoot();
 else document.addEventListener("DOMContentLoaded", __tsBoot);
 </script>
 
+<div class="aitsm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="aitsmChart" style="margin-top:8px;"></div>
+<div id="aitsmDataTable" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -371,5 +377,56 @@ else document.addEventListener("DOMContentLoaded", __tsBoot);
   ]
 }
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __aitsmVal(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __aitsmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var text=__aitsmVal('text')||'';
+  var orig=text.replace(/\s/g,'').length;
+  var labels=[],data=[];
+  for(var L=20;L<=300;L+=20){
+    var comp= orig>0?Math.min(L,orig)/orig*100:0;
+    labels.push(String(L));
+    data.push(Math.round(comp*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#aitsmChart',{title:en?'Compression ratio vs target length':'压缩比随目标长度变化',labels:labels,series:[{name:en?'compression %':'压缩比 %',data:data}]});
+}
+function __aitsmTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var text=__aitsmVal('text')||'';
+  var len=parseInt(__aitsmVal('len')||'60',10)||60;
+  var orig=text.replace(/\s/g,'').length;
+  var sents=(text.split(/[。！？.!?\n]+/).filter(function(s){return s.trim();})).length;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[
+    [en?'original chars':'原文字数', String(orig)],
+    [en?'target length':'目标长度', String(len)],
+    [en?'target ratio %':'目标压缩率%', orig>0?String(Math.round(Math.min(len,orig)/orig*100)):'0'],
+    [en?'sentences':'句子数', String(sents)]
+  ];
+  TBKit.matrix.table('#aitsmDataTable',{head:en?['Metric','Value']:['指标','数值'],rows:rows});
+}
+
+function __aitsmShow(which){
+  var c=document.getElementById('aitsmChart'), t=document.getElementById('aitsmDataTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __aitsmTabInit(){
+  var btns=document.querySelectorAll('.aitsm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__aitsmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __aitsmShow('chart');
+  try{__aitsmChart();}catch(e){}
+  try{__aitsmTable();}catch(e){}
+}
+document.addEventListener('toolbox:langchange',function(){try{__aitsmChart();}catch(e){}try{__aitsmTable();}catch(e){}});
+try{var __obt=document.getElementById('result');if(__obt&&typeof MutationObserver!=='undefined'){var __ob=new MutationObserver(function(){try{__aitsmChart();}catch(e){}try{__aitsmTable();}catch(e){}});__ob.observe(__obt,{childList:true,subtree:true,characterData:true});}}catch(e){}
+try{__aitsmTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

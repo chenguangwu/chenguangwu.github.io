@@ -189,6 +189,11 @@ s.parentNode.insertBefore(el, s);
 </div>
   </div>
 
+<div class="aits-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="aitsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -537,5 +542,46 @@ document.addEventListener('DOMContentLoaded',function(){
   ]
 }
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __aitsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var text=__tzT('input')||'';
+  var sents=(typeof splitSentences==='function')?splitSentences(text):text.split(/\n+/).filter(function(s){return s.trim().length>5;});
+  var total=sents.length;
+  var labels=[],data=[];
+  for(var r=1;r<=10;r++){
+    var out= total>0?Math.min(r,total):0;
+    labels.push(String(r));
+    data.push(total>0?Math.round(out/total*100):0);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#aitsChart',{title:en?'Compression ratio vs summary sentences':'压缩比随摘要句数变化',labels:labels,series:[{name:en?'compression %':'压缩比 %',data:data}]});
+}
+
+function __aitsShow(which){
+  var c=document.getElementById('aitsChart'), t=document.getElementById('tzTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __aitsTabInit(){
+  var btns=document.querySelectorAll('.aits-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__aitsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __aitsShow('chart');
+  try{__aitsChart();}catch(e){}
+}
+var __aitsFn=summarize;summarize=function(){
+  var __p=null;try{__p=__aitsFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__aitsChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__aitsChart();}catch(e){}});
+try{__aitsTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

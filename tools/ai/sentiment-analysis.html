@@ -323,6 +323,12 @@ if (document.readyState && document.readyState !== "loading") __sxBoot();
 else document.addEventListener("DOMContentLoaded", __sxBoot);
 </script>
 
+<div class="aisa-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="aisaChart" style="margin-top:8px;"></div>
+<div id="aisaDataTable" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -382,5 +388,51 @@ else document.addEventListener("DOMContentLoaded", __sxBoot);
   ]
 }
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __aisaVal(id){var e=document.getElementById(id);return e?(e.value||''):'';}
+function __aisaChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var text=__aisaVal('text')||'';
+  var d=(typeof window!=='undefined'&&window.zhSentimentDetail)?window.zhSentimentDetail(text):null;
+  var p=d?d.posHit.length:0, n=d?d.negHit.length:0, sc=d?Math.round(d.score*100):0;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#aisaChart',{title:en?'Sentiment word hits & score':'情感命中词与得分',labels:en?['positive','negative','score×100']:['正面词','负面词','得分×100'],series:[{name:en?'count':'数量',data:[p,n,sc]}]});
+}
+function __aisaTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var text=__aisaVal('text')||'';
+  var d=(typeof window!=='undefined'&&window.zhSentimentDetail)?window.zhSentimentDetail(text):null;
+  var sents=(text.split(/[。！？.!?\n]+/).filter(function(s){return s.trim();})).length;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=[
+    [en?'text length':'文本长度', String(text.length)],
+    [en?'sentences':'句子数', String(sents)],
+    [en?'positive hits':'正面命中', d?String(d.posHit.length):'0'],
+    [en?'negative hits':'负面命中', d?String(d.negHit.length):'0'],
+    [en?'score':'得分', d?String(Math.round(d.score*100)):'0']
+  ];
+  TBKit.matrix.table('#aisaDataTable',{head:en?['Metric','Value']:['指标','数值'],rows:rows});
+}
+
+function __aisaShow(which){
+  var c=document.getElementById('aisaChart'), t=document.getElementById('aisaDataTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __aisaTabInit(){
+  var btns=document.querySelectorAll('.aisa-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__aisaShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __aisaShow('chart');
+  try{__aisaChart();}catch(e){}
+  try{__aisaTable();}catch(e){}
+}
+document.addEventListener('toolbox:langchange',function(){try{__aisaChart();}catch(e){}try{__aisaTable();}catch(e){}});
+try{var __obt=document.getElementById('result');if(__obt&&typeof MutationObserver!=='undefined'){var __ob=new MutationObserver(function(){try{__aisaChart();}catch(e){}try{__aisaTable();}catch(e){}});__ob.observe(__obt,{childList:true,subtree:true,characterData:true});}}catch(e){}
+try{__aisaTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

@@ -194,6 +194,11 @@ s.parentNode.insertBefore(el, s);
 </div>
   </div>
 
+<div class="aicr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="aicrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -509,5 +514,48 @@ document.addEventListener('DOMContentLoaded',function(){
   ]
 }
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __aicrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var code=__crT('code')||'';
+  var e=0,w=0,inf=0;
+  if(typeof RULES!=='undefined'&&RULES){
+    var lines=code.split('\n');
+    for(var r=0;r<RULES.length;r++){
+      var pat=RULES[r].pattern, sev=RULES[r].severity, cnt=0;
+      if(!pat)continue;
+      for(var i=0;i<lines.length;i++){ if(lines[i]&&pat.test(lines[i])) cnt++; }
+      if(sev==='error')e+=cnt; else if(sev==='warn')w+=cnt; else inf+=cnt;
+    }
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#aicrChart',{title:en?'Code issue severity breakdown':'代码问题严重度分布',labels:en?['error','warn','info']:['严重','警告','提示'],series:[{name:en?'count':'数量',data:[e,w,inf]}]});
+}
+
+function __aicrShow(which){
+  var c=document.getElementById('aicrChart'), t=document.getElementById('crTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __aicrTabInit(){
+  var btns=document.querySelectorAll('.aicr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__aicrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __aicrShow('chart');
+  try{__aicrChart();}catch(e){}
+}
+var __aicrFn=review;review=function(){
+  var __p=null;try{__p=__aicrFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__aicrChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__aicrChart();}catch(e){}});
+try{__aicrTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
