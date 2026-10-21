@@ -148,6 +148,11 @@ s.parentNode.insertBefore(el, s);
     <div id="phone_screen_sizesHist"></div>
   </div>
 
+<div class="pss-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pssChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -313,5 +318,45 @@ function __phone_screen_sizesBoot(){ try{ __phone_screen_sizesPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __phone_screen_sizesBoot();
 else document.addEventListener('DOMContentLoaded', __phone_screen_sizesBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __pssChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var rw=(typeof num==='function')?num('resw'):0, rh=(typeof num==='function')?num('resh'):0;
+  if(rw<=0)rw=1179; if(rh<=0)rh=2556;
+  var labels=[],data=[];
+  for(var d=4; d<=7; d+=0.5){
+    var ppi=Math.sqrt(rw*rw+rh*rh)/d;
+    labels.push(String(d));
+    data.push(Math.round(ppi));
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pssChart',{title:en?'PPI vs screen diagonal (fixed resolution)':'PPI 随屏幕尺寸变化（固定分辨率）',labels:labels,series:[{name:en?'PPI':'PPI',data:data}]});
+}
+
+function __pssShow(which){
+  var c=document.getElementById('pssChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pssTabInit(){
+  var btns=document.querySelectorAll('.pss-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pssShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pssShow('chart');
+  try{__pssChart();}catch(e){}
+}
+var __pssFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__pssFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__pssChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__pssChart();}catch(e){}});
+try{__pssTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

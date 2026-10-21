@@ -150,6 +150,11 @@ s.parentNode.insertBefore(el, s);
     <div id="regex_commonHist"></div>
   </div>
 
+<div class="rgc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rgcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -315,5 +320,55 @@ if (document.readyState && document.readyState !== 'loading') __regex_commonBoot
 else document.addEventListener('DOMContentLoaded', __regex_commonBoot);
 </script>
 
+<script>/*TBKIT-INJECT-START*/
+function __rgcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var txt=document.getElementById('txt')?(document.getElementById('txt').value||''):'';
+  var regs={
+    email:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    phone:/1[3-9]\d{9}/g,
+    idcard:/\d{17}[\dXx]/g,
+    url:/https?:\/\/[^\s<>"']+/g,
+    ipv4:/(?:\d{1,3}\.){3}\d{1,3}/g,
+    date:/\d{4}-\d{2}-\d{2}/g,
+    chinese:/[\u4e00-\u9fff]+/g,
+    username:/[A-Za-z0-9_]{3,16}/g
+  };
+  var labels=['email','phone','idcard','url','ipv4','date','chinese','username'];
+  var data=[];
+  for(var k=0;k<labels.length;k++){
+    var re=regs[labels[k]]; re.lastIndex=0;
+    var m=txt.match(re)||[];
+    data.push(m.length);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#rgcChart',{title:en?'Matches per regex category (current text)':'各正则类别在当前文本命中数',labels:labels,series:[{name:en?'count':'数量',data:data}]});
+}
+
+function __rgcShow(which){
+  var c=document.getElementById('rgcChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rgcTabInit(){
+  var btns=document.querySelectorAll('.rgc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rgcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rgcShow('chart');
+  try{__rgcChart();}catch(e){}
+}
+var __rgcFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__rgcFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__rgcChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__rgcChart();}catch(e){}});
+try{__rgcTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

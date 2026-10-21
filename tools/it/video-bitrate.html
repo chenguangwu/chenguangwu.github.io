@@ -166,6 +166,11 @@ s.parentNode.insertBefore(el, s);
     <div id="video_bitrateHist"></div>
   </div>
 
+<div class="vbr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vbrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -344,5 +349,44 @@ function __video_bitrateBoot(){ try{ __video_bitratePresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __video_bitrateBoot();
 else document.addEventListener('DOMContentLoaded', __video_bitrateBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __vbrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var br=(typeof num==='function')?num('br'):0; if(br<=0)br=8;
+  var labels=[],data=[];
+  for(var m=1; m<=120; m+=5){
+    var mb=br*1000000/8/1024/1024*m*60;
+    labels.push(String(m));
+    data.push(Math.round(mb*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vbrChart',{title:en?'File size vs duration (fixed bitrate)':'文件大小随时长变化（固定码率）',labels:labels,series:[{name:en?'MB':'MB',data:data}]});
+}
+
+function __vbrShow(which){
+  var c=document.getElementById('vbrChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vbrTabInit(){
+  var btns=document.querySelectorAll('.vbr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vbrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __vbrShow('chart');
+  try{__vbrChart();}catch(e){}
+}
+var __vbrFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__vbrFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__vbrChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__vbrChart();}catch(e){}});
+try{__vbrTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
