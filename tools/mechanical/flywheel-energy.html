@@ -248,6 +248,11 @@ function __flywheel_energyBoot(){ try{ __flywheel_energyPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __flywheel_energyBoot();
 else document.addEventListener('DOMContentLoaded', __flywheel_energyBoot);
 </script>
+<div class="flwe-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="flweChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,40 @@ else document.addEventListener('DOMContentLoaded', __flywheel_energyBoot);
 </dl>
 </div>
 </section>
+<script>
+function __flweChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var m=num('m'),r=num('r');
+  if(!isFinite(m)||!isFinite(r)||r<=0)return;
+  var I=0.5*m*r*r,labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var rpm=i*200;
+    var w=2*Math.PI*rpm/60;
+    var E=0.5*I*w*w;
+    labels.push(rpm.toFixed(0));
+    data.push(Math.round(E*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#flweChart',{title:en?'Flywheel energy vs rpm (quadratic)':'飞轮动能随转速变化（平方）',labels:labels,series:[{name:en?'E (J)':'E (J)',data:data}]});
+}
+
+function __flweShow(which){
+  var c=document.getElementById('flweChart'), t=document.getElementById('flywheel_energyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __flweTabInit(){
+  var btns=document.querySelectorAll('.flwe-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__flweShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __flweShow('chart');
+  try{__flweChart();}catch(e){}
+}
+var __flweFn=calcTool;calcTool=function(){try{__flweFn();}catch(e){}try{__flweChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__flweChart();}catch(e){}});try{__flweTabInit();}catch(e){}
+</script>
 </body>
 </html>

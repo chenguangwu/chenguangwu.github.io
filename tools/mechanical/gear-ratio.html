@@ -262,6 +262,11 @@ function __gear_ratioBoot(){ try{ __gear_ratioPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __gear_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __gear_ratioBoot);
 </script>
+<div class="grt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="grtChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -297,5 +302,40 @@ else document.addEventListener('DOMContentLoaded', __gear_ratioBoot);
 </dl>
 </div>
 </section>
+<script>
+function __grtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var z1=num('z1'),n1=num('n1'),T1=num('T1'),eta=num('eta');
+  if(!isFinite(z1)||!isFinite(n1)||!isFinite(T1)||!isFinite(eta)||z1<=0||n1<=0)return;
+  var labels=[],dN=[],dT=[];
+  for(var i=1;i<=10;i++){
+    var z2=i*5;
+    var ratio=z2/z1;
+    labels.push(z2.toFixed(0));
+    dN.push(Math.round(n1/ratio*10)/10);
+    dT.push(Math.round(T1*ratio*eta*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#grtChart',{title:en?'Output speed & torque vs z2 (inverse / linear)':'输出转速与转矩随齿数z2变化（反比/正比）',labels:labels,series:[{name:en?'n2 (rpm)':'n2 (rpm)',data:dN},{name:en?'T2 (N·m)':'T2 (N·m)',data:dT}]});
+}
+
+function __grtShow(which){
+  var c=document.getElementById('grtChart'), t=document.getElementById('gear_ratioTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __grtTabInit(){
+  var btns=document.querySelectorAll('.grt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__grtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __grtShow('chart');
+  try{__grtChart();}catch(e){}
+}
+var __grtFn=calcTool;calcTool=function(){try{__grtFn();}catch(e){}try{__grtChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__grtChart();}catch(e){}});try{__grtTabInit();}catch(e){}
+</script>
 </body>
 </html>

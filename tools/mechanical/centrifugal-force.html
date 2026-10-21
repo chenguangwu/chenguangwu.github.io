@@ -246,6 +246,11 @@ function __centrifugal_forceBoot(){ try{ __centrifugal_forcePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __centrifugal_forceBoot();
 else document.addEventListener('DOMContentLoaded', __centrifugal_forceBoot);
 </script>
+<div class="cfrc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cfrcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,40 @@ else document.addEventListener('DOMContentLoaded', __centrifugal_forceBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cfrcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var m=num('m'),r=num('r');
+  if(!isFinite(m)||!isFinite(r)||r<=0)return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var rpm=i*200;
+    var w=2*Math.PI*rpm/60;
+    var F=m*w*w*r;
+    labels.push(rpm.toFixed(0));
+    data.push(Math.round(F*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cfrcChart',{title:en?'Centrifugal force vs rpm (quadratic)':'离心力随转速变化（平方）',labels:labels,series:[{name:en?'F (N)':'F (N)',data:data}]});
+}
+
+function __cfrcShow(which){
+  var c=document.getElementById('cfrcChart'), t=document.getElementById('centrifugal_forceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cfrcTabInit(){
+  var btns=document.querySelectorAll('.cfrc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cfrcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cfrcShow('chart');
+  try{__cfrcChart();}catch(e){}
+}
+var __cfrcFn=calcTool;calcTool=function(){try{__cfrcFn();}catch(e){}try{__cfrcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cfrcChart();}catch(e){}});try{__cfrcTabInit();}catch(e){}
+</script>
 </body>
 </html>

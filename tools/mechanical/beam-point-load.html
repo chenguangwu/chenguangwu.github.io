@@ -267,6 +267,11 @@ function __beam_point_loadBoot(){ try{ __beam_point_loadPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __beam_point_loadBoot();
 else document.addEventListener('DOMContentLoaded', __beam_point_loadBoot);
 </script>
+<div class="bpl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bplChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -302,5 +307,39 @@ else document.addEventListener('DOMContentLoaded', __beam_point_loadBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bplChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var L=num('L'),E=num('E')*1000,I=num('I')*1e4,b=num('b'),h=num('h');
+  if(!isFinite(L)||!isFinite(E)||!isFinite(I)||!isFinite(b)||!isFinite(h)||L<=0||E<=0||I<=0||b<=0||h<=0)return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var F=i;
+    var delta=F*1000*Math.pow(L*1000,3)/(48*E*I);
+    labels.push(F.toFixed(0));
+    data.push(Math.round(delta*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bplChart',{title:en?'Mid-span deflection vs load (linear)':'跨中挠度随载荷变化（线性）',labels:labels,series:[{name:en?'δ (mm)':'δ (mm)',data:data}]});
+}
+
+function __bplShow(which){
+  var c=document.getElementById('bplChart'), t=document.getElementById('beam_point_loadTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bplTabInit(){
+  var btns=document.querySelectorAll('.bpl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bplShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bplShow('chart');
+  try{__bplChart();}catch(e){}
+}
+var __bplFn=calcTool;calcTool=function(){try{__bplFn();}catch(e){}try{__bplChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bplChart();}catch(e){}});try{__bplTabInit();}catch(e){}
+</script>
 </body>
 </html>
