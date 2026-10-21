@@ -155,6 +155,11 @@ s.parentNode.insertBefore(el, s);
     <div id="ceiling_panel_quantityHist"></div>
   </div>
 
+<div class="cpq-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cpqChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,43 @@ function __ceiling_panel_quantityBoot(){ try{ __ceiling_panel_quantityPresets();
 if (document.readyState && document.readyState !== 'loading') __ceiling_panel_quantityBoot();
 else document.addEventListener('DOMContentLoaded', __ceiling_panel_quantityBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __cpqChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var W=(typeof num==='function')?num('W'):3.6; if(W<=0)W=3.6;
+  var pl=(typeof num==='function')?num('pl')/1000:0.6, pw=(typeof num==='function')?num('pw')/1000:0.6; if(pl<=0)pl=0.6; if(pw<=0)pw=0.6;
+  var loss=(typeof num==='function')?num('loss')/100:0.05;
+  var one=pl*pw;
+  var labels=[],data=[];
+  for(var L=2;L<=8;L+=1){ var area=L*W; var base=Math.ceil(area/one); var total=Math.ceil(base*(1+loss)); labels.push(String(L)); data.push(total); }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cpqChart',{title:en?'Panels needed vs room length':'含损耗购买量随吊顶长度变化',labels:labels,series:[{name:en?'pcs':'块',data:data}]});
+}
+
+function __cpqShow(which){
+  var c=document.getElementById('cpqChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cpqTabInit(){
+  var btns=document.querySelectorAll('.cpq-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cpqShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cpqShow('chart');
+  try{__cpqChart();}catch(e){}
+}
+var __cpqFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__cpqFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__cpqChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__cpqChart();}catch(e){}});
+try{__cpqTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

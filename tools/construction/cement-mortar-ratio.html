@@ -147,6 +147,11 @@ s.parentNode.insertBefore(el, s);
     <div id="cement_mortar_ratioHist"></div>
   </div>
 
+<div class="cmr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cmrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -341,5 +346,42 @@ function __cement_mortar_ratioBoot(){ try{ __cement_mortar_ratioPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __cement_mortar_ratioBoot();
 else document.addEventListener('DOMContentLoaded', __cement_mortar_ratioBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __cmrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var grade=document.getElementById('grade').value;
+  var ratio={'m5':[1,5.0],'m7.5':[1,4.8],'m10':[1,4.5],'m15':[1,4.0]}[grade]||[1,4.8];
+  var cement=340*(ratio[1]>=4.8?1:ratio[1]>=4.5?0.95:1.1);
+  var labels=[],data=[];
+  for(var v=0.5;v<=5;v+=0.5){ labels.push(String(v)); data.push(Math.round(cement*v)); }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cmrChart',{title:en?'Cement demand vs volume':'总水泥用量随方量变化',labels:labels,series:[{name:en?'kg':'kg',data:data}]});
+}
+
+function __cmrShow(which){
+  var c=document.getElementById('cmrChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cmrTabInit(){
+  var btns=document.querySelectorAll('.cmr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cmrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cmrShow('chart');
+  try{__cmrChart();}catch(e){}
+}
+var __cmrFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__cmrFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__cmrChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__cmrChart();}catch(e){}});
+try{__cmrTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
