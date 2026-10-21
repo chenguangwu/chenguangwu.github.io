@@ -147,6 +147,11 @@ s.parentNode.insertBefore(el, s);
     <div id="safe_period_calculatorHist"></div>
   </div>
 
+<div class="spc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="spcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,40 @@ function __safe_period_calculatorBoot(){ try{ __safe_period_calculatorPresets();
 if (document.readyState && document.readyState !== 'loading') __safe_period_calculatorBoot();
 else document.addEventListener('DOMContentLoaded', __safe_period_calculatorBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __spcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var period=(typeof num==='function')?Math.floor(num('period')):5; if(period<1||period>10)period=5;
+  var labels=[],fertile=[],safe=[];
+  for(var c=21;c<=40;c++){labels.push(String(c));fertile.push(10);safe.push(Math.max(0,c-period-10));}
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#spcChart',{title:en?'Fertile vs safe days by cycle length':'易孕期与安全期天数随周期长度变化',labels:labels,series:[{name:en?'fertile':'易孕',data:fertile},{name:en?'safe':'安全',data:safe}]});
+}
+
+function __spcShow(which){
+  var c=document.getElementById('spcChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __spcTabInit(){
+  var btns=document.querySelectorAll('.spc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__spcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __spcShow('chart');
+  try{__spcChart();}catch(e){}
+}
+var __spcFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__spcFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__spcChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__spcChart();}catch(e){}});
+try{__spcTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

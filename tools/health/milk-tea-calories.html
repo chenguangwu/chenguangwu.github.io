@@ -157,6 +157,11 @@ s.parentNode.insertBefore(el, s);
     <div id="milk_tea_caloriesHist"></div>
   </div>
 
+<div class="mtc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mtcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -330,5 +335,46 @@ function __milk_tea_caloriesBoot(){ try{ __milk_tea_caloriesPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __milk_tea_caloriesBoot();
 else document.addEventListener('DOMContentLoaded', __milk_tea_caloriesBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __mtcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var cup=(typeof num==='function')?(parseInt(document.getElementById('cup').value)||500):500;
+  var tea=(typeof num==='function')?num('tea'):0;
+  var milk=(typeof num==='function')?num('milk'):0;
+  var base=tea+milk;
+  var topKcal=0;
+  ['boba','coconut','pudding','cheese','redbean'].forEach(function(id){var el=document.getElementById('top_'+id);if(el&&el.checked){topKcal+=(parseInt(el.value)||0);}});
+  var levels=[['无糖',0],['三分糖',50],['五分糖',80],['全糖',100]];
+  var labels=[],data=[];
+  for(var i=0;i<levels.length;i++){var pct=levels[i][1];var sk=Math.round(cup/100*(pct/100)*10);labels.push(levels[i][0]);data.push(base+sk+topKcal);}
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#mtcChart',{title:en?'Total calories by sugar level':'一杯总热量随糖度变化',labels:labels,series:[{name:en?'kcal':'kcal',data:data}]});
+}
+
+function __mtcShow(which){
+  var c=document.getElementById('mtcChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mtcTabInit(){
+  var btns=document.querySelectorAll('.mtc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mtcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mtcShow('chart');
+  try{__mtcChart();}catch(e){}
+}
+var __mtcFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__mtcFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__mtcChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__mtcChart();}catch(e){}});
+try{__mtcTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
