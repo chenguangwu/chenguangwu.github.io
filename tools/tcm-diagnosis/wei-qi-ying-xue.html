@@ -141,6 +141,8 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);text-align:center;">点击上方层次查看该阶段证候，或点击「模拟传变」查看传变路径</p>
     </div>
+<div id="__tbmExtras" style="margin-top:12px"></div>
+
     <table id="wqyxHidden" style="display:none;"><thead><tr><th>Level</th><th>Depth</th><th>Treatment</th><th>Representative Formula</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
@@ -326,6 +328,36 @@ function __wqyxExport(){
   TBKit.util.exportTable('#wqyxHidden', en?'wei-qi-ying-xue-levels.csv':'卫气营血四层辨证.csv');
 }
 renderLevels();
+var __tbm=function(){
+  if(typeof TBKit==='undefined')return;
+  var lab='';
+  try{var r=document.getElementById('result');if(r){lab=(r.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);}}catch(e){}
+  if(!lab)return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var T=EN?{hist:'Diagnosis Records',no:'#',time:'Time',item:'Item',freq:'Frequency',exp:'Export CSV',file:'tcm-history.csv',hint:'Browse 2+ items to see the frequency chart.'}
+          :{hist:'辨证记录历史',no:'序号',time:'时间',item:'条目',freq:'查看次数',exp:'导出 CSV',file:'tcm-history.csv',hint:'查看 2 个以上条目后显示条目频次图。'};
+  var KEY='__tbm_tcm_weiqiyingxue';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.l!==lab){hist.push({t:Date.now(),l:lab});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbmExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+T.hint+'</p>';return;}
+  var cnt={};hist.forEach(function(h){cnt[h.l]=(cnt[h.l]||0)+1;});
+  var entries=Object.keys(cnt).map(function(k){return [k,cnt[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'</h3><div id="__tbmChart"></div><div id="__tbmTable"></div>';
+  if(TBKit.chart&&TBKit.chart.bar){try{TBKit.chart.bar('#__tbmChart',{labels:entries.map(function(e){return e[0];}),series:[{name:T.freq,data:entries.map(function(e){return e[1];})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.l];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbmTable',{head:[T.no,T.time,T.item],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbmTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=showDetail;showDetail=function(){var __r=__f0.apply(null,arguments);__tbm();return __r;};
 </script>
 
 <!-- SEO 介绍区块 -->
