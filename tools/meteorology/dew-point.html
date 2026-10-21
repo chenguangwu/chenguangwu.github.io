@@ -245,6 +245,11 @@ function __dew_pointBoot(){ try{ __dew_pointPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __dew_pointBoot();
 else document.addEventListener('DOMContentLoaded', __dew_pointBoot);
 </script>
+<div class="dewp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dewpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,41 @@ else document.addEventListener('DOMContentLoaded', __dew_pointBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dewpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var T=num('T');
+  if(!isFinite(T))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var RH=i*10;
+    var a=17.625,b=243.04;
+    var g=Math.log(Math.max(RH,1)/100)+a*T/(b+T);
+    var Td=b*g/(a-g);
+    labels.push(RH.toFixed(0));
+    data.push(Math.round(Td*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dewpChart',{title:en?'Dew point vs RH (increasing)':'露点随相对湿度变化（上升）',labels:labels,series:[{name:en?'Td (°C)':'露点 (°C)',data:data}]});
+}
+
+function __dewpShow(which){
+  var c=document.getElementById('dewpChart'), t=document.getElementById('dew_pointTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dewpTabInit(){
+  var btns=document.querySelectorAll('.dewp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dewpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dewpShow('chart');
+  try{__dewpChart();}catch(e){}
+}
+var __dewpFn=calcTool;calcTool=function(){try{__dewpFn();}catch(e){}try{__dewpChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dewpChart();}catch(e){}});try{__dewpTabInit();}catch(e){}
+</script>
 </body>
 </html>

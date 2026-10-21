@@ -242,6 +242,11 @@ function __cloud_base_heightBoot(){ try{ __cloud_base_heightPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __cloud_base_heightBoot();
 else document.addEventListener('DOMContentLoaded', __cloud_base_heightBoot);
 </script>
+<div class="clbh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="clbhChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,39 @@ else document.addEventListener('DOMContentLoaded', __cloud_base_heightBoot);
 </dl>
 </div>
 </section>
+<script>
+function __clbhChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var T=num('T');
+  if(!isFinite(T))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var Td=T-(T+10)*i/10;
+    var H=(T-Td)*125;
+    labels.push(Td.toFixed(1));
+    data.push(Math.round(H));
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#clbhChart',{title:en?'Cloud base height vs dew point (linear)':'云底高度随露点下降（线性）',labels:labels,series:[{name:en?'H (m)':'云底高度 (m)',data:data}]});
+}
+
+function __clbhShow(which){
+  var c=document.getElementById('clbhChart'), t=document.getElementById('cloud_base_heightTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __clbhTabInit(){
+  var btns=document.querySelectorAll('.clbh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__clbhShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __clbhShow('chart');
+  try{__clbhChart();}catch(e){}
+}
+var __clbhFn=calcTool;calcTool=function(){try{__clbhFn();}catch(e){}try{__clbhChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__clbhChart();}catch(e){}});try{__clbhTabInit();}catch(e){}
+</script>
 </body>
 </html>

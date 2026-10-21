@@ -248,6 +248,11 @@ function __apparent_temperatureBoot(){ try{ __apparent_temperaturePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __apparent_temperatureBoot();
 else document.addEventListener('DOMContentLoaded', __apparent_temperatureBoot);
 </script>
+<div class="apte-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="apteChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -283,5 +288,40 @@ else document.addEventListener('DOMContentLoaded', __apparent_temperatureBoot);
 </dl>
 </div>
 </section>
+<script>
+function __apteChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var T=num('T'),RH=num('RH');
+  if(!isFinite(T)||!isFinite(RH))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var ws=i*1.5;
+    var e=(RH/100)*6.105*Math.exp(17.27*T/(237.7+T));
+    var AT=T+0.33*e-0.70*ws-4.0;
+    labels.push(ws.toFixed(1));
+    data.push(Math.round(AT*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#apteChart',{title:en?'Apparent temp. vs wind speed (cooling)':'体感温度随风速变化（风冷下降）',labels:labels,series:[{name:en?'AT (°C)':'体感温度 (°C)',data:data}]});
+}
+
+function __apteShow(which){
+  var c=document.getElementById('apteChart'), t=document.getElementById('apparent_temperatureTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __apteTabInit(){
+  var btns=document.querySelectorAll('.apte-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__apteShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __apteShow('chart');
+  try{__apteChart();}catch(e){}
+}
+var __apteFn=calcTool;calcTool=function(){try{__apteFn();}catch(e){}try{__apteChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__apteChart();}catch(e){}});try{__apteTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -242,6 +242,11 @@ function __absolute_humidityBoot(){ try{ __absolute_humidityPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __absolute_humidityBoot();
 else document.addEventListener('DOMContentLoaded', __absolute_humidityBoot);
 </script>
+<div class="abhu-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="abhuChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,39 @@ else document.addEventListener('DOMContentLoaded', __absolute_humidityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __abhuChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var RH=num('RH');
+  if(!isFinite(RH)||!(RH>0))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var T=-10+i*5;
+    var AH=1320.65*(RH/100)*Math.exp(17.67*T/(T+243.5))/(T+273.15);
+    labels.push(T.toFixed(0));
+    data.push(Math.round(AH*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#abhuChart',{title:en?'Absolute humidity vs T (exponential growth)':'绝对湿度随温度 T 变化（指数增长）',labels:labels,series:[{name:en?'AH (g/m³)':'绝对湿度 (g/m³)',data:data}]});
+}
+
+function __abhuShow(which){
+  var c=document.getElementById('abhuChart'), t=document.getElementById('absolute_humidityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __abhuTabInit(){
+  var btns=document.querySelectorAll('.abhu-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__abhuShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __abhuShow('chart');
+  try{__abhuChart();}catch(e){}
+}
+var __abhuFn=calcTool;calcTool=function(){try{__abhuFn();}catch(e){}try{__abhuChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__abhuChart();}catch(e){}});try{__abhuTabInit();}catch(e){}
+</script>
 </body>
 </html>

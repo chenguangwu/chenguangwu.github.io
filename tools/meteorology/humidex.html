@@ -242,6 +242,11 @@ function __humidexBoot(){ try{ __humidexPresets(); }catch(e){} try{ calcTool(); 
 if (document.readyState && document.readyState !== 'loading') __humidexBoot();
 else document.addEventListener('DOMContentLoaded', __humidexBoot);
 </script>
+<div class="humd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="humdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -277,5 +282,40 @@ else document.addEventListener('DOMContentLoaded', __humidexBoot);
 </dl>
 </div>
 </section>
+<script>
+function __humdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var T=num('T');
+  if(!isFinite(T))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var RH=i*10;
+    var e=(RH/100)*6.1094*Math.exp(17.625*T/(T+243.04));
+    var H=T+0.5555*(e-10);
+    labels.push(RH.toFixed(0));
+    data.push(Math.round(H*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#humdChart',{title:en?'Humidex vs RH (increasing)':'湿热指数随相对湿度变化（上升）',labels:labels,series:[{name:en?'Humidex':'湿热指数 Humidex',data:data}]});
+}
+
+function __humdShow(which){
+  var c=document.getElementById('humdChart'), t=document.getElementById('humidexTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __humdTabInit(){
+  var btns=document.querySelectorAll('.humd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__humdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __humdShow('chart');
+  try{__humdChart();}catch(e){}
+}
+var __humdFn=calcTool;calcTool=function(){try{__humdFn();}catch(e){}try{__humdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__humdChart();}catch(e){}});try{__humdTabInit();}catch(e){}
+</script>
 </body>
 </html>
