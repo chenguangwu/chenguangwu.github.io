@@ -171,6 +171,8 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+<div id="__tbsExtras" style="margin-top:12px"></div>
+
     <table id="tbHidden" style="display:none"><thead><tr><th>Grade</th><th>Name</th><th>Severity</th><th>Description</th><th>Advice</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -320,6 +322,33 @@ function __tbExport(){
 }
 
 calc();
+var __tbs=function(){
+  if(typeof TBKit==='undefined')return;
+  var acc=grade;
+  if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'BNI 分级':'BNI 分级';
+  var T=EN?{hist:'Assessment History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'scale-history.csv',trend:'Trend'}
+          :{hist:'历史评分记录',sc:'评分值',no:'序号',time:'时间',exp:'导出 CSV',file:'scale-history.csv',trend:'评分趋势'};
+  var KEY='__tbs_trigeminal_bni';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  hist.push({t:Date.now(),v:acc});
+  if(hist.length>20)hist=hist.slice(-20);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbsExtras');
+  if(!host)return;
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbsChart"></div><div id="__tbsTable"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbsChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbsTable',{head:[T.no,T.time,T.sc],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbsTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=calc;calc=function(){__f0();__tbs();};
 </script>
 
 <!-- SEO 介绍区块 -->
