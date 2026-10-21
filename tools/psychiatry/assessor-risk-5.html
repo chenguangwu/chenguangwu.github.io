@@ -172,6 +172,8 @@ s.parentNode.insertBefore(el, s);
       建议尽快联系心理专业人员，热线：<a href="tel:4001619995">400-161-9995</a>
     </div>
     <div class="result-box" id="res"></div>
+<div id="__tbnExtras" style="margin-top:12px"></div>
+
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出 C-SSRS 评估结果 CSV" onclick="__cssrsExport()">⬇️ Export C-SSRS Assessment CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="8 题回答、意念严重程度、行为筛查与风险等级可导出为 CSV">All 8 answers, ideation severity, behavior screening and risk level can be exported as CSV</span>
@@ -526,5 +528,39 @@ function applyCssrsPreset(kind){
 }
 </script>
 
+<script>
+var __ear=function(){
+  if(typeof TBKit==='undefined')return;
+  var acc=(function(){var lv=-1;for(var i=0;i<5;i++){var e=document.getElementById('ide'+i);if(e&&e.value==='1')lv=i;}return lv<0?0:lv;})();
+  if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+  var lab=(function(){var lv=-1;for(var i=0;i<5;i++){var e=document.getElementById('ide'+i);if(e&&e.value==='1')lv=i;}var v=lv<0?0:lv;return ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Level ':'等级 ')+v;})();
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'C-SSRS Ideation Level':'记录 C-SSRS 意念等级(级)';
+  var T=EN?{hist:'Assessment History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'assessment-history.csv',col:'Detail',hint:'Records appear after 2+ assessments.'}
+          :{hist:'评估成绩历史',sc:'成绩值',no:'序号',time:'时间',exp:'导出 CSV',file:'assessment-history.csv',col:'明细',hint:'评估 2 次以上后显示成绩趋势图。'};
+  var KEY='__tbn_assessor_idea';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.v!==acc||(lab&&last.l!==lab)){hist.push({t:Date.now(),v:acc,l:lab||''});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+    var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  var host=document.getElementById('__tbnExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+T.hint+'</p>';return;}
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbnChart"></div><div id="__tbnTable"></div><div id="__tbnDiff"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbnChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v,h.l||''];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.sc,T.col],rows:rows,search:false});}catch(e){}}
+    if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.export&&TBKit.export.csv)TBKit.export.csv(T.file,rows);};
+  host.appendChild(btn);
+};
+var __f0=calc;calc=function(){var __r=__f0.apply(null,arguments);__ear();return __r;};
+</script>
 </body>
 </html>
