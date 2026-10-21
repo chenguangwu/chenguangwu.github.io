@@ -966,16 +966,37 @@
     return a.length ? a[0].d : null;
   };
 
-  /** 与上一条记录做差，返回 {field: {from, to, delta}} */
+  /**
+   * 与上一条记录做差，返回 {field: {from, to, delta}}。
+   * 多写入者共存时（页面自身 record + 组件 record），相邻两条可能分属不同写入者：
+   * 旧实现固定取 a[0]/a[1]，会拿 undefined（num→0）与真实值做差，渲染出「0 → 真实值」的假对比。
+   * 现按「最近两条都含该字段的记录」取值，字段在任一候选里缺失就不出该条对比。
+   */
+  function idxWith(a, from, fields) {
+    for (var i = from; i < a.length; i++) {
+      var d = a[i].d || {};
+      if (!fields) return i;
+      for (var j = 0; j < fields.length; j++) {
+        if (typeof d[fields[j]] === 'undefined') { d = null; break; }
+      }
+      if (d) return i;
+    }
+    return -1;
+  }
+
   history.diffLast = function (fields) {
     var a = history.list();
-    if (a.length < 2) return null;
-    var cur = a[0].d, prev = a[1].d, out = {};
+    var i0 = idxWith(a, 0, fields);
+    if (i0 < 0) return null;
+    var i1 = idxWith(a, i0 + 1, fields);
+    if (i1 < 0) return null;
+    var cur = a[i0].d, prev = a[i1].d, out = {};
     (fields || Object.keys(cur)).forEach(function (f) {
+      if (typeof cur[f] === 'undefined' || typeof prev[f] === 'undefined') return;
       if (num(prev[f]) === num(cur[f])) return;
       out[f] = { from: num(prev[f]), to: num(cur[f]), delta: num(cur[f]) - num(prev[f]) };
     });
-    return out;
+    return Object.keys(out).length ? out : null;
   };
 
   function fmtTime(ts) {
