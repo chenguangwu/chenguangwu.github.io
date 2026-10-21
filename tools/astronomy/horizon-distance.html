@@ -307,6 +307,11 @@ function __horizon_distanceBoot(){ try{ __horizon_distancePresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __horizon_distanceBoot();
 else document.addEventListener('DOMContentLoaded', __horizon_distanceBoot);
 </script>
+<div class="hrd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hrdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -365,6 +370,38 @@ else document.addEventListener('DOMContentLoaded', __horizon_distanceBoot);
     }
   ]
 }
+</script>
+<script>
+function __hrdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var h=i*100;
+    var d=Math.sqrt(2*6371000*h);
+    labels.push(h.toFixed(0));
+    data.push(Math.round(d/1000*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hrdChart',{title:en?'Horizon distance vs eye height (sqrt)':'地平线距离随眼高变化（平方根）',labels:labels,series:[{name:en?'d (km)':'d (km)',data:data}]});
+}
+
+function __hrdShow(which){
+  var c=document.getElementById('hrdChart'), t=document.getElementById('horizon_distanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hrdTabInit(){
+  var btns=document.querySelectorAll('.hrd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hrdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hrdShow('chart');
+  try{__hrdChart();}catch(e){}
+}
+var __hrdFn=calcTool;calcTool=function(){try{__hrdFn();}catch(e){}try{__hrdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hrdChart();}catch(e){}});try{__hrdTabInit();}catch(e){}
 </script>
 </body>
 </html>

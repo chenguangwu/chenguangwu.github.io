@@ -302,6 +302,11 @@ function __kepler_third_periodBoot(){ try{ __kepler_third_periodPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __kepler_third_periodBoot();
 else document.addEventListener('DOMContentLoaded', __kepler_third_periodBoot);
 </script>
+<div class="kpl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="kplChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -360,6 +365,40 @@ else document.addEventListener('DOMContentLoaded', __kepler_third_periodBoot);
     }
   ]
 }
+</script>
+<script>
+function __kplChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var M=num('M');
+  if(!isFinite(M)||!(M>0))return;
+  var Gc=6.674e-11,labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var a=1.496e11*i;
+    var T=2*Math.PI*Math.sqrt(a*a*a/(Gc*M));
+    labels.push((a/1.496e11).toFixed(0));
+    data.push(Math.round(T/86400*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#kplChart',{title:en?'Orbital period vs semi-major axis (∝ a^1.5)':'轨道周期随半长轴变化（幂律 a^1.5）',labels:labels,series:[{name:en?'T (days)':'T (天)',data:data}]});
+}
+
+function __kplShow(which){
+  var c=document.getElementById('kplChart'), t=document.getElementById('kepler_third_periodTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __kplTabInit(){
+  var btns=document.querySelectorAll('.kpl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__kplShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __kplShow('chart');
+  try{__kplChart();}catch(e){}
+}
+var __kplFn=calcTool;calcTool=function(){try{__kplFn();}catch(e){}try{__kplChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__kplChart();}catch(e){}});try{__kplTabInit();}catch(e){}
 </script>
 </body>
 </html>

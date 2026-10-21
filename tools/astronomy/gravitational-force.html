@@ -300,6 +300,11 @@ function __gravitational_forceBoot(){ try{ __gravitational_forcePresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __gravitational_forceBoot();
 else document.addEventListener('DOMContentLoaded', __gravitational_forceBoot);
 </script>
+<div class="grf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="grfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -358,6 +363,40 @@ else document.addEventListener('DOMContentLoaded', __gravitational_forceBoot);
     }
   ]
 }
+</script>
+<script>
+function __grfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var m1=num('m1'),m2=num('m2');
+  if(!isFinite(m1)||!isFinite(m2)||!(m1>0)||!(m2>0))return;
+  var Gc=6.674e-11,labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var r=1e6*i;
+    var F=Gc*m1*m2/(r*r);
+    labels.push((r/1e6).toFixed(0));
+    data.push(Math.round(F*1e20*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#grfChart',{title:en?'Gravity F vs distance (inverse square)':'引力 F 随距离变化（平方反比）',labels:labels,series:[{name:en?'F (×10²⁰ N)':'F (×10²⁰ N)',data:data}]});
+}
+
+function __grfShow(which){
+  var c=document.getElementById('grfChart'), t=document.getElementById('gravitational_forceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __grfTabInit(){
+  var btns=document.querySelectorAll('.grf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__grfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __grfShow('chart');
+  try{__grfChart();}catch(e){}
+}
+var __grfFn=calcTool;calcTool=function(){try{__grfFn();}catch(e){}try{__grfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__grfChart();}catch(e){}});try{__grfTabInit();}catch(e){}
 </script>
 </body>
 </html>

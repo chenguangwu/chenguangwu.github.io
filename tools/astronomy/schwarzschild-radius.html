@@ -242,6 +242,11 @@ function __schwarzschild_radiusBoot(){ try{ __schwarzschild_radiusPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __schwarzschild_radiusBoot();
 else document.addEventListener('DOMContentLoaded', __schwarzschild_radiusBoot);
 </script>
+<div class="schw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="schwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -300,6 +305,38 @@ else document.addEventListener('DOMContentLoaded', __schwarzschild_radiusBoot);
     }
   ]
 }
+</script>
+<script>
+function __schwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var M=1.989e30*i;
+    var rs=2*6.674e-11*M/(299792458*299792458);
+    labels.push('×'+i);
+    data.push(Math.round(rs/1000*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#schwChart',{title:en?'Schwarzschild radius vs mass (linear)':'史瓦西半径随质量变化（线性）',labels:labels,series:[{name:en?'r_s (km)':'r_s (km)',data:data}]});
+}
+
+function __schwShow(which){
+  var c=document.getElementById('schwChart'), t=document.getElementById('schwarzschild_radiusTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __schwTabInit(){
+  var btns=document.querySelectorAll('.schw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__schwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __schwShow('chart');
+  try{__schwChart();}catch(e){}
+}
+var __schwFn=calcTool;calcTool=function(){try{__schwFn();}catch(e){}try{__schwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__schwChart();}catch(e){}});try{__schwTabInit();}catch(e){}
 </script>
 </body>
 </html>

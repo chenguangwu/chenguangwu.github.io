@@ -246,6 +246,11 @@ function __apparent_magnitude_distanceBoot(){ try{ __apparent_magnitude_distance
 if (document.readyState && document.readyState !== 'loading') __apparent_magnitude_distanceBoot();
 else document.addEventListener('DOMContentLoaded', __apparent_magnitude_distanceBoot);
 </script>
+<div class="amds-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="amdsChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -304,6 +309,40 @@ else document.addEventListener('DOMContentLoaded', __apparent_magnitude_distance
     }
   ]
 }
+</script>
+<script>
+function __amdsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var M=num('M');
+  if(!isFinite(M))return;
+  var labels=[],data=[];
+  for(var i=-5;i<=10;i+=3){
+    var m=M+i;
+    var d=Math.pow(10,1+(m-M)/5);
+    labels.push(m.toFixed(0));
+    data.push(Math.round(d*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#amdsChart',{title:en?'Distance vs apparent magnitude (exponential)':'距离随视星等变化（指数）',labels:labels,series:[{name:en?'d (pc)':'距离 (pc)',data:data}]});
+}
+
+function __amdsShow(which){
+  var c=document.getElementById('amdsChart'), t=document.getElementById('apparent_magnitude_distanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __amdsTabInit(){
+  var btns=document.querySelectorAll('.amds-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__amdsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __amdsShow('chart');
+  try{__amdsChart();}catch(e){}
+}
+var __amdsFn=calcTool;calcTool=function(){try{__amdsFn();}catch(e){}try{__amdsChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__amdsChart();}catch(e){}});try{__amdsTabInit();}catch(e){}
 </script>
 </body>
 </html>

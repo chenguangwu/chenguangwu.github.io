@@ -296,6 +296,11 @@ function __stellar_parallaxBoot(){ try{ __stellar_parallaxPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __stellar_parallaxBoot();
 else document.addEventListener('DOMContentLoaded', __stellar_parallaxBoot);
 </script>
+<div class="stpr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="stprChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -354,6 +359,38 @@ else document.addEventListener('DOMContentLoaded', __stellar_parallaxBoot);
     }
   ]
 }
+</script>
+<script>
+function __stprChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var p=i*0.05;
+    var d=1/p;
+    labels.push(p.toFixed(2));
+    data.push(Math.round(d*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#stprChart',{title:en?'Distance vs parallax (inverse)':'距离随视差变化（反比）',labels:labels,series:[{name:en?'d (pc)':'d (pc)',data:data}]});
+}
+
+function __stprShow(which){
+  var c=document.getElementById('stprChart'), t=document.getElementById('stellar_parallaxTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __stprTabInit(){
+  var btns=document.querySelectorAll('.stpr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__stprShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __stprShow('chart');
+  try{__stprChart();}catch(e){}
+}
+var __stprFn=calcTool;calcTool=function(){try{__stprFn();}catch(e){}try{__stprChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__stprChart();}catch(e){}});try{__stprTabInit();}catch(e){}
 </script>
 </body>
 </html>
