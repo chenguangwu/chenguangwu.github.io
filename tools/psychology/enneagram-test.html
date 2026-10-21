@@ -229,6 +229,8 @@ s.parentNode.insertBefore(el, s);
       </div>
       <table id="enHidden" style="display:none"><thead><tr><th>Type</th><th>Name</th><th>EN</th><th>Center</th><th>Fear</th><th>Desire</th><th>Strength</th><th>Blind</th><th>Growth</th><th>Stress</th><th>Security</th></tr></thead><tbody></tbody></table>
     </div>
+<div id="__tbnExtras" style="margin-top:12px"></div>
+
 
     <div class="en-note">
       ⚠️ 九型人格是流行心理学中的性格分类模型，<b>结果为自测参考，不替代专业心理/医学诊断</b>。它描述 motivation 与关注点而非能力高低，每种类型都有其成长空间。若你正经历持续情绪困扰，请寻求专业心理或医疗帮助。
@@ -491,7 +493,38 @@ s.parentNode.insertBefore(el, s);
   /* ============================================================
    * 5. 结算渲染
    * ========================================================== */
-  function finish() {
+    var __ene=function(){
+    if(typeof TBKit==='undefined')return;
+    var lab='';
+    try{var r=document.querySelector('#enTName');if(r){lab=(r.textContent||'').replace(/\s+/g,' ').trim();}}catch(e){}
+    if(!lab)return;
+    var item=lab.slice(0,40);
+    var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+    var T=EN?{hist:'Test Records',no:'#',time:'Time',item:'Result',freq:'Frequency',exp:'Export CSV',file:'test-history.csv',hint:'Complete 2+ tests to see the frequency chart.'}
+            :{hist:'测试记录历史',no:'序号',time:'时间',item:'结果',freq:'出现次数',exp:'导出 CSV',file:'test-history.csv',hint:'完成 2 次以上测试后显示结果频次图。'};
+    var KEY='__tbn_enneagram';
+    var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+    if(!Array.isArray(hist))hist=[];
+    var last=hist[hist.length-1];
+    if(!last||last.l!==item){hist.push({t:Date.now(),l:item});}
+    if(hist.length>30)hist=hist.slice(-30);
+    try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+    var host=document.getElementById('__tbnExtras');
+    if(!host)return;
+    if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+T.hint+'</p>';return;}
+    var cnt={};hist.forEach(function(h){cnt[h.l]=(cnt[h.l]||0)+1;});
+    var entries=Object.keys(cnt).map(function(k){return [k,cnt[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+    host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'</h3><div id="__tbnChart"></div><div id="__tbnTable"></div>';
+    if(TBKit.chart&&TBKit.chart.bar){try{TBKit.chart.bar('#__tbnChart',{labels:entries.map(function(e){return e[0];}),series:[{name:T.freq,data:entries.map(function(e){return e[1];})}]});}catch(e){}}
+    var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.l];});
+    if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.item],rows:rows,search:false});}catch(e){}}
+    var btn=document.createElement('button');
+    btn.type='button';btn.className='btn';btn.textContent=T.exp;
+    btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbnTable',T.file);};
+    host.appendChild(btn);
+  };
+
+function finish() {
     $('enQuiz').classList.add('en-hidden');
     $('enResult').classList.remove('en-hidden');
     $('enProgBar').style.width = '100%';
@@ -552,6 +585,7 @@ s.parentNode.insertBefore(el, s);
       '<div class="en-drow"><b>盲点</b>' + esc(t.blind) + '</div>' +
       '<div class="en-drow"><b>成长路径</b>' + esc(t.growth) + '</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){$('enDesc').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('enDesc').innerHTML=__h4;
 
+      __ene();
     drawStar(dom, t.stress, t.security);
     drawCard(t, wing, sc);
   }
