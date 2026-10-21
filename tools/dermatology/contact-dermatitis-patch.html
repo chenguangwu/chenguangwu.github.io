@@ -137,6 +137,8 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+<div id="__tbsExtras" style="margin-top:12px"></div>
+
 
     <div class="tip-box tip-info" style="margin-top:12px;">
       <strong>判读标准：</strong>?+ 可疑(轻度红斑)｜+ 阳性(红斑+浸润+丘疹)｜++ 强阳性(红斑+丘疹+小水疱)｜+++ 极阳性(融合大疱)。需注意激惹反应与假阳性。判读需结合临床暴露史。
@@ -265,6 +267,33 @@ function clearAll(){
   const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h3;
 }
 renderGrid();
+var __tbs=function(){
+  if(typeof TBKit==='undefined')return;
+  var acc=(function(){var n=0;for(var k in selections){if(selections[k]&&selections[k]!=='-')n++;}return n;})();
+  if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'阳性过敏原数':'阳性过敏原数';
+  var T=EN?{hist:'Assessment History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'scale-history.csv',trend:'Trend'}
+          :{hist:'历史评分记录',sc:'评分值',no:'序号',time:'时间',exp:'导出 CSV',file:'scale-history.csv',trend:'评分趋势'};
+  var KEY='__tbs_patch_test';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  hist.push({t:Date.now(),v:acc});
+  if(hist.length>20)hist=hist.slice(-20);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbsExtras');
+  if(!host)return;
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbsChart"></div><div id="__tbsTable"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbsChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbsTable',{head:[T.no,T.time,T.sc],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbsTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=genAdvice;genAdvice=function(){__f0();__tbs();};
 </script>
 
 <!-- SEO 介绍区块 -->
