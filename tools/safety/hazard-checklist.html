@@ -155,6 +155,12 @@ s.parentNode.insertBefore(el, s);
     <div id="listArea"></div>
   </div>
 
+<div class="hcl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hclChart" style="margin-top:8px;"></div>
+<div id="hclTable" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -450,5 +456,38 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>/*TBKIT-INJECT-START*/
+function __hclChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  if(typeof TEMPLATES==='undefined'||!TEMPLATES)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var cnt={'高':0,'中':0,'低':0};
+  for(var k in TEMPLATES){
+    if(k==='自定义')continue;
+    var arr=TEMPLATES[k];
+    for(var i=0;i<arr.length;i++){ var r=arr[i][1]; if(cnt[r]!==undefined)cnt[r]++; }
+  }
+  var labels=['高','中','低']; var data=[cnt['高'],cnt['中'],cnt['低']];
+  TBKit.chart.bar('#hclChart',{title:en?'Risk-level composition of templates':'隐患排查风险等级构成',labels:labels,series:[{name:en?'items':'项',data:data}]});
+  TBKit.matrix.table('#hclTable',{head:en?['Risk','Count']:['风险等级','项数'],rows:[['高',String(cnt['高'])],['中',String(cnt['中'])],['低',String(cnt['低'])]]});
+}
+function __hclShow(which){
+  var c=document.getElementById('hclChart'), t=document.getElementById('hclTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hclTabInit(){
+  var btns=document.querySelectorAll('.hcl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hclShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hclShow('chart');
+  try{__hclChart();}catch(e){}
+}
+document.addEventListener('toolbox:langchange',function(){try{__hclChart();}catch(e){}});
+try{__hclTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

@@ -151,6 +151,13 @@ s.parentNode.insertBefore(el, s);
     <div id="meditation_timerTable"></div>
     <div id="meditation_timerDiff"></div>
     <div id="meditation_timerHist"></div>
+<div class="mtm-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mtmChart" style="margin-top:8px;"></div>
+<div id="mtmTable" style="margin-top:8px;"></div>
+
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -328,5 +335,42 @@ function __meditation_timerBoot(){ try{ __meditation_timerPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __meditation_timerBoot();
 else document.addEventListener('DOMContentLoaded', __meditation_timerBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __mtmChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var seg=Math.max(1,Math.floor(num('seg'))||2);
+  var labels=[],data=[];
+  for(var dur=5;dur<=60;dur+=5){
+    var nSeg=Math.max(1,Math.round(dur/seg));
+    labels.push(String(dur)); data.push(nSeg);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#mtmChart',{title:en?'Segments vs total duration':'分段数随冥想总时长变化',labels:labels,series:[{name:en?'segments':'段数',data:data}]});
+}
+function __mtmShow(which){
+  var c=document.getElementById('mtmChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mtmTabInit(){
+  var btns=document.querySelectorAll('.mtm-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mtmShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mtmShow('chart');
+  try{__mtmChart();}catch(e){}
+}
+var __mtmFn2=calcTool;calcTool=function(){
+  var __p=null;try{__p=__mtmFn2.apply(this,arguments);}catch(e){}
+  function __draw(){try{__mtmChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__mtmChart();}catch(e){}});
+try{__mtmTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

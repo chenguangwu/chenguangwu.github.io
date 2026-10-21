@@ -386,6 +386,12 @@ s.parentNode.insertBefore(el, s);
     </div>
   </div>
 
+<div class="fld-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fldChart" style="margin-top:8px;"></div>
+<div id="fldTable" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -593,5 +599,45 @@ function applyFloodPreset(kind){
 }
 </script>
 
+<script>/*TBKIT-INJECT-START*/
+function __fldChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var levels=[
+    {name:en?'Blue':'蓝色预警',depth:'≥50cm',idx:1},
+    {name:en?'Yellow':'黄色预警',depth:'≥100cm',idx:2},
+    {name:en?'Orange':'橙色预警',depth:'≥150cm',idx:3},
+    {name:en?'Red':'红色预警',depth:'≥200cm',idx:4},
+    {name:en?'Purple':'紫色预警',depth:'≥250cm',idx:5}
+  ];
+  var labels=[],data=[],rows=[];
+  for(var depth=0;depth<=300;depth+=25){
+    var idx=0;
+    if(depth>=250)idx=5; else if(depth>=200)idx=4; else if(depth>=150)idx=3; else if(depth>=100)idx=2; else if(depth>=50)idx=1; else idx=0;
+    labels.push(String(depth)); data.push(idx);
+    if(depth%50===0){ var lv=levels[Math.max(0,idx-1)]; rows.push([depth+'cm', idx>0?lv.name:'—']); }
+  }
+  TBKit.chart.bar('#fldChart',{title:en?'Warning level vs water depth':'预警等级随水深变化',labels:labels,series:[{name:en?'level':'等级',data:data}]});
+  var rows2=levels.map(function(l){return [l.name, l.depth];});
+  TBKit.matrix.table('#fldTable',{head:en?['Level','Depth']:['预警等级','水深'],rows:rows2});
+}
+function __fldShow(which){
+  var c=document.getElementById('fldChart'), t=document.getElementById('fldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fldTabInit(){
+  var btns=document.querySelectorAll('.fld-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fldShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fldShow('chart');
+  try{__fldChart();}catch(e){}
+}
+document.addEventListener('toolbox:langchange',function(){try{__fldChart();}catch(e){}});
+try{__fldTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

@@ -137,6 +137,13 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+<div class="nih-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="nihChart" style="margin-top:8px;"></div>
+<div id="nihTable" style="margin-top:8px;"></div>
+
     <table id="nihssHidden" style="display:none"><thead><tr><th>No.</th><th>Item ID</th><th>Item</th><th>Score</th></tr></thead><tbody></tbody></table>
   </div>
 </div>
@@ -355,5 +362,46 @@ function applyNihssPreset(kind){
 <h3>临床意义</h3><p>分数越高提示缺损越重、预后越差，也用于溶栓/取栓适应症与疗效评估；单项（如意识水平、语言）重度缺失即提示高危。</p>
 <h3>适用边界</h3><p>NIHSS 需由受过培训医师评定；本工具仅供分项合计参考，不能替代床旁神经查体与影像学评估。</p>
 </div></section>
+<script>/*TBKIT-INJECT-START*/
+function __nihChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  if(typeof items==='undefined'||!items)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var labels=[],data=[],rows=[];
+  for(var i=0;i<items.length;i++){
+    var it=items[i];
+    var v=parseInt(document.getElementById(it.id).value,10)||0;
+    labels.push(it.label); data.push(v);
+    rows.push([it.label, String(v)]);
+  }
+  TBKit.chart.bar('#nihChart',{title:en?'NIHSS item scores':'NIHSS 各分项得分',labels:labels,series:[{name:en?'score':'分',data:data}]});
+  TBKit.matrix.table('#nihTable',{head:en?['Item','Score']:['评估项','得分'],rows:rows});
+}
+function __nihShow(which){
+  var c=document.getElementById('nihChart'), t=document.getElementById('nihTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __nihTabInit(){
+  var btns=document.querySelectorAll('.nih-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__nihShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __nihShow('chart');
+  try{__nihChart();}catch(e){}
+}
+var __nihFn=calc;
+calc=function(){
+  var __p=null;try{__p=__nihFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__nihChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__nihChart();}catch(e){}});
+try{__nihTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
