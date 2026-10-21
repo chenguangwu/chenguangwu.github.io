@@ -145,6 +145,11 @@ s.parentNode.insertBefore(el, s);
     <div id="pumping_planHist"></div>
   </div>
 
+<div class="pmp-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pmpChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -305,5 +310,42 @@ function __pumping_planBoot(){ try{ __pumping_planPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __pumping_planBoot();
 else document.addEventListener('DOMContentLoaded', __pumping_planBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __pmpChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var month=(typeof num==='function')?Math.floor(num('month')):4; if(month<0||month>12)month=4;
+  var dailyNeed = month<=2?600:month<=4?700:month<=6?750:month<=8?700:650;
+  var single=(typeof num==='function')?num('single'):0; var perSession=single>0?single:Math.round(dailyNeed/4);
+  var labels=[],sessions=[],storage=[];
+  for(var h=1;h<=12;h++){ var s=Math.max(1,Math.round(h/3.5)); var st=perSession*s; labels.push(String(h)); sessions.push(s); storage.push(st); }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pmpChart',{title:en?'Pumping sessions & daily storage vs work hours':'吸奶次数与单日储备量随工作时长变化',labels:labels,series:[{name:en?'sessions':'次数',data:sessions},{name:en?'storage ml':'储备ml',data:storage}]});
+}
+
+function __pmpShow(which){
+  var c=document.getElementById('pmpChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pmpTabInit(){
+  var btns=document.querySelectorAll('.pmp-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pmpShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pmpShow('chart');
+  try{__pmpChart();}catch(e){}
+}
+var __pmpFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__pmpFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__pmpChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__pmpChart();}catch(e){}});
+try{__pmpTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
