@@ -248,6 +248,11 @@ function __bending_stressBoot(){ try{ __bending_stressPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __bending_stressBoot();
 else document.addEventListener('DOMContentLoaded', __bending_stressBoot);
 </script>
+<div class="bnss-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bnssChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -282,5 +287,40 @@ else document.addEventListener('DOMContentLoaded', __bending_stressBoot);
 </dl>
 </div>
 </section>
+<script>
+function __bnssChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var M=num('M')*1e6,b=num('b');
+  if(!isFinite(M)||!isFinite(b)||!(M>0)||!(b>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var h=i*5;
+    var W=b*h*h/6;
+    var sigma=M/W;
+    labels.push(h.toFixed(0));
+    data.push(Math.round(sigma*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bnssChart',{title:en?'Bending stress vs height (inverse square)':'弯曲应力随高度变化（平方反比）',labels:labels,series:[{name:en?'σ (MPa)':'σ (MPa)',data:data}]});
+}
+
+function __bnssShow(which){
+  var c=document.getElementById('bnssChart'), t=document.getElementById('bending_stressTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bnssTabInit(){
+  var btns=document.querySelectorAll('.bnss-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bnssShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bnssShow('chart');
+  try{__bnssChart();}catch(e){}
+}
+var __bnssFn=calcTool;calcTool=function(){try{__bnssFn();}catch(e){}try{__bnssChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__bnssChart();}catch(e){}});try{__bnssTabInit();}catch(e){}
+</script>
 </body>
 </html>

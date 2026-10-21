@@ -260,6 +260,11 @@ function __axial_stressBoot(){ try{ __axial_stressPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __axial_stressBoot();
 else document.addEventListener('DOMContentLoaded', __axial_stressBoot);
 </script>
+<div class="axst-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="axstChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +299,39 @@ else document.addEventListener('DOMContentLoaded', __axial_stressBoot);
 </dl>
 </div>
 </section>
+<script>
+function __axstChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var A=num('A'),E=num('E')*1e9,L=num('L');
+  if(!isFinite(A)||!isFinite(E)||!isFinite(L)||!(A>0)||!(E>0)||!(L>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var F=i*10;
+    var sigma=F*1000/A;
+    labels.push(F.toFixed(0));
+    data.push(Math.round(sigma*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#axstChart',{title:en?'Axial stress vs force (linear)':'轴向应力随轴力变化（线性）',labels:labels,series:[{name:en?'σ (MPa)':'σ (MPa)',data:data}]});
+}
+
+function __axstShow(which){
+  var c=document.getElementById('axstChart'), t=document.getElementById('axial_stressTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __axstTabInit(){
+  var btns=document.querySelectorAll('.axst-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__axstShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __axstShow('chart');
+  try{__axstChart();}catch(e){}
+}
+var __axstFn=calcTool;calcTool=function(){try{__axstFn();}catch(e){}try{__axstChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__axstChart();}catch(e){}});try{__axstTabInit();}catch(e){}
+</script>
 </body>
 </html>

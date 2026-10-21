@@ -246,6 +246,11 @@ function __poisson_strainBoot(){ try{ __poisson_strainPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __poisson_strainBoot();
 else document.addEventListener('DOMContentLoaded', __poisson_strainBoot);
 </script>
+<div class="psst-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="psstChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -280,5 +285,39 @@ else document.addEventListener('DOMContentLoaded', __poisson_strainBoot);
 </dl>
 </div>
 </section>
+<script>
+function __psstChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var ex=num('ex');
+  if(!isFinite(ex)||!(ex>0))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var nu=i*0.05;
+    var ey=-nu*ex;
+    labels.push(nu.toFixed(2));
+    data.push(Math.round(ey*1e6)/1e6);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#psstChart',{title:en?'Lateral strain vs Poisson ratio (linear)':'横向应变随泊松比变化（线性）',labels:labels,series:[{name:en?'ε_y':'ε_y',data:data}]});
+}
+
+function __psstShow(which){
+  var c=document.getElementById('psstChart'), t=document.getElementById('poisson_strainTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __psstTabInit(){
+  var btns=document.querySelectorAll('.psst-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__psstShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __psstShow('chart');
+  try{__psstChart();}catch(e){}
+}
+var __psstFn=calcTool;calcTool=function(){try{__psstFn();}catch(e){}try{__psstChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__psstChart();}catch(e){}});try{__psstTabInit();}catch(e){}
+</script>
 </body>
 </html>

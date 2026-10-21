@@ -256,6 +256,11 @@ function __cantilever_deflectionBoot(){ try{ __cantilever_deflectionPresets(); }
 if (document.readyState && document.readyState !== 'loading') __cantilever_deflectionBoot();
 else document.addEventListener('DOMContentLoaded', __cantilever_deflectionBoot);
 </script>
+<div class="ctdf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ctdfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -290,5 +295,39 @@ else document.addEventListener('DOMContentLoaded', __cantilever_deflectionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ctdfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var P=num('P')*1000,E=num('E')*1e9,I=num('I')*1e-8;
+  if(!isFinite(P)||!isFinite(E)||!isFinite(I)||!(E>0)||!(I>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var L=i*0.5;
+    var delta=P*Math.pow(L,3)/(3*E*I)*1000;
+    labels.push(L.toFixed(1));
+    data.push(Math.round(delta*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ctdfChart',{title:en?'Deflection vs length (cubic)':'端部挠度随长度变化（立方）',labels:labels,series:[{name:en?'δ (mm)':'δ (mm)',data:data}]});
+}
+
+function __ctdfShow(which){
+  var c=document.getElementById('ctdfChart'), t=document.getElementById('cantilever_deflectionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ctdfTabInit(){
+  var btns=document.querySelectorAll('.ctdf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ctdfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ctdfShow('chart');
+  try{__ctdfChart();}catch(e){}
+}
+var __ctdfFn=calcTool;calcTool=function(){try{__ctdfFn();}catch(e){}try{__ctdfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ctdfChart();}catch(e){}});try{__ctdfTabInit();}catch(e){}
+</script>
 </body>
 </html>
