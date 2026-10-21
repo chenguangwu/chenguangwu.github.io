@@ -296,6 +296,11 @@ function __velocity_from_flowBoot(){ try{ __velocity_from_flowPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __velocity_from_flowBoot();
 else document.addEventListener('DOMContentLoaded', __velocity_from_flowBoot);
 </script>
+<div class="vffl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="vfflChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -331,5 +336,38 @@ else document.addEventListener('DOMContentLoaded', __velocity_from_flowBoot);
 </dl>
 </div>
 </section>
+<script>
+function __vfflChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var Q=num('Q');
+  if(!isFinite(Q)||!(Q>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var A=i*0.05;
+    labels.push(A.toFixed(2));
+    data.push(Math.round(Q/A*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#vfflChart',{title:en?'Velocity vs area (inverse)':'平均流速随断面面积变化（反比）',labels:labels,series:[{name:en?'v (m/s)':'v (m/s)',data:data}]});
+}
+
+function __vfflShow(which){
+  var c=document.getElementById('vfflChart'), t=document.getElementById('velocity_from_flowTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __vfflTabInit(){
+  var btns=document.querySelectorAll('.vffl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__vfflShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __vfflShow('chart');
+  try{__vfflChart();}catch(e){}
+}
+var __vfflFn=calcTool;calcTool=function(){try{__vfflFn();}catch(e){}try{__vfflChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__vfflChart();}catch(e){}});try{__vfflTabInit();}catch(e){}
+</script>
 </body>
 </html>

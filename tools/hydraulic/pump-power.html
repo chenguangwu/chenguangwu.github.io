@@ -313,6 +313,11 @@ function __pump_powerBoot(){ try{ __pump_powerPresets(); }catch(e){} try{ calcTo
 if (document.readyState && document.readyState !== 'loading') __pump_powerBoot();
 else document.addEventListener('DOMContentLoaded', __pump_powerBoot);
 </script>
+<div class="pmpw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pmpwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -349,5 +354,39 @@ else document.addEventListener('DOMContentLoaded', __pump_powerBoot);
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用泵功率</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>流体密度 ρ (kg/m³)</li><li>重力加速度 g (m/s²)</li><li>流量 Q (m³/s)</li><li>扬程 H (m)</li><li>效率 η</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>泵功率是做什么的？</dt><dd>由流量、扬程与效率，按 P = ρgQH/η 计算水泵轴功率（输入功率）。</dd><dt>如何使用泵功率？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>泵功率适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+function __pmpwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var rho=num('rho'),g=num('g'),H=num('H'),eta=num('eta');
+  if(!isFinite(rho)||!isFinite(g)||!isFinite(H)||!isFinite(eta)||!(rho>0)||!(g>0)||!(H>0)||!(eta>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var Q=i*0.01;
+    var P=rho*g*Q*H/eta;
+    labels.push(Q.toFixed(2));
+    data.push(Math.round(P/1000*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#pmpwChart',{title:en?'Pump shaft power vs flow (linear)':'泵轴功率随流量变化（线性）',labels:labels,series:[{name:en?'P (kW)':'P (kW)',data:data}]});
+}
+
+function __pmpwShow(which){
+  var c=document.getElementById('pmpwChart'), t=document.getElementById('pump_powerTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pmpwTabInit(){
+  var btns=document.querySelectorAll('.pmpw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pmpwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pmpwShow('chart');
+  try{__pmpwChart();}catch(e){}
+}
+var __pmpwFn=calcTool;calcTool=function(){try{__pmpwFn();}catch(e){}try{__pmpwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__pmpwChart();}catch(e){}});try{__pmpwTabInit();}catch(e){}
+</script>
 </body>
 </html>

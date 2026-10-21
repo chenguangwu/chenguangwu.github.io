@@ -299,6 +299,11 @@ function __minor_head_lossBoot(){ try{ __minor_head_lossPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __minor_head_lossBoot();
 else document.addEventListener('DOMContentLoaded', __minor_head_lossBoot);
 </script>
+<div class="mnhl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mnhlChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,39 @@ else document.addEventListener('DOMContentLoaded', __minor_head_lossBoot);
 </dl>
 </div>
 </section>
+<script>
+function __mnhlChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var K=num('K'),g=num('g');
+  if(!isFinite(K)||!isFinite(g)||!(g>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var v=i;
+    var hL=K*v*v/(2*g);
+    labels.push(v.toFixed(0));
+    data.push(Math.round(hL*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mnhlChart',{title:en?'Minor head loss vs velocity (quadratic)':'局部水头损失随流速变化（平方）',labels:labels,series:[{name:en?'h_L (m)':'h_L (m)',data:data}]});
+}
+
+function __mnhlShow(which){
+  var c=document.getElementById('mnhlChart'), t=document.getElementById('minor_head_lossTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mnhlTabInit(){
+  var btns=document.querySelectorAll('.mnhl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mnhlShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mnhlShow('chart');
+  try{__mnhlChart();}catch(e){}
+}
+var __mnhlFn=calcTool;calcTool=function(){try{__mnhlFn();}catch(e){}try{__mnhlChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mnhlChart();}catch(e){}});try{__mnhlTabInit();}catch(e){}
+</script>
 </body>
 </html>

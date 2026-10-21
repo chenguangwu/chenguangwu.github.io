@@ -314,6 +314,11 @@ function __rectangular_weirBoot(){ try{ __rectangular_weirPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __rectangular_weirBoot();
 else document.addEventListener('DOMContentLoaded', __rectangular_weirBoot);
 </script>
+<div class="rcwr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rcwrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -349,5 +354,39 @@ else document.addEventListener('DOMContentLoaded', __rectangular_weirBoot);
 </dl>
 </div>
 </section>
+<script>
+function __rcwrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var Cd=num('Cd'),b=num('b'),g=num('g');
+  if(!isFinite(Cd)||!isFinite(b)||!isFinite(g)||!(b>0)||!(g>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var H=i*0.05;
+    var Q=(2/3)*Cd*b*Math.sqrt(2*g)*Math.pow(H,1.5);
+    labels.push(H.toFixed(2));
+    data.push(Math.round(Q*10000)/10000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rcwrChart',{title:en?'Weir discharge vs head (power ~1.5)':'堰流量随堰上水头变化（幂律≈1.5）',labels:labels,series:[{name:en?'Q (m³/s)':'Q (m³/s)',data:data}]});
+}
+
+function __rcwrShow(which){
+  var c=document.getElementById('rcwrChart'), t=document.getElementById('rectangular_weirTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rcwrTabInit(){
+  var btns=document.querySelectorAll('.rcwr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rcwrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rcwrShow('chart');
+  try{__rcwrChart();}catch(e){}
+}
+var __rcwrFn=calcTool;calcTool=function(){try{__rcwrFn();}catch(e){}try{__rcwrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rcwrChart();}catch(e){}});try{__rcwrTabInit();}catch(e){}
+</script>
 </body>
 </html>
