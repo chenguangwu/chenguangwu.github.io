@@ -533,6 +533,8 @@ s.parentNode.insertBefore(el, s);
         <div class="stats-label">未学</div>
       </div>
     </div>
+<div id="__tbpExtras" style="margin-top:12px"></div>
+
 
     <!-- 卡片区域 -->
     <div style="margin-top:24px;">
@@ -1415,6 +1417,35 @@ document.addEventListener('DOMContentLoaded', function() {
   renderStats();
   renderProgressDots();
 });
+var __tbp=function(){
+  if(typeof TBKit==='undefined')return;
+  var s=(function(){var b=getBaseCards(state.mode),k=0,u=0;for(var i=0;i<b.length;i++){var key=state.mode+'_'+i;if(state.progress[key]==='know')k++;else if(state.progress[key]==='unknown')u++;}return {k:k,l:u,t:b.length};})();
+  if(!s||typeof s.k!=='number'||typeof s.l!=='number')return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'记忆卡进度':'记忆卡进度';
+  var T=EN?{hist:'Progress History',k:'Mastered',l:'Learning',no:'#',time:'Time',exp:'Export CSV',file:'progress-history.csv'}
+          :{hist:'学习进度历史',k:'已掌握',l:'学习中',no:'序号',time:'时间',exp:'导出 CSV',file:'progress-history.csv'};
+  var KEY='__tbp_flashcards';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.k!==s.k||last.l!==s.l){hist.push({t:Date.now(),k:s.k,l:s.l});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbpExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Keep going — the progress trend chart appears after 2+ records.':'继续学习，记录 2 次以上后显示进度趋势图。')+'</p>';return;}
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbpChart"></div><div id="__tbpTable"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbpChart',{labels:labels,series:[{name:T.k,data:hist.map(function(h){return h.k;})},{name:T.l,data:hist.map(function(h){return h.l;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.k,h.l];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbpTable',{head:[T.no,T.time,T.k,T.l],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbpTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=renderStats;renderStats=function(){__f0();__tbp();};
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

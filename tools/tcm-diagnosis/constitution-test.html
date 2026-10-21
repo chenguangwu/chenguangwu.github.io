@@ -141,6 +141,8 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result">
       <p style="color:var(--text-muted);text-align:center;">完成所有题目后点击「计算体质」</p>
     </div>
+<div id="__tbsExtras" style="margin-top:12px"></div>
+
     <table id="constHidden" style="display:none;"><thead><tr><th>Constitution</th><th>Transformed Score</th><th>Verdict</th><th>Adjustment</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
@@ -394,6 +396,33 @@ function __constExport(){
   TBKit.util.exportTable('#constHidden', en?'tcm-constitution-scores.csv':'中医体质评分.csv');
 }
 renderQuestions();
+var __tbs=function(){
+  if(typeof TBKit==='undefined')return;
+  var acc=(function(){var best=0;constitutions.forEach(function(con){var total=0,n=con.q.length;con.q.forEach(function(qi,qiIndex){var key=con.id+'_'+qiIndex;var raw=answers[key]||3;var score=con.reverse[qiIndex]?(6-raw):raw;total+=score;});var rawAvg=total/n;var trans=Math.round((rawAvg-1)/(4)*100);if(trans>best)best=trans;});return best;})();
+  if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'主要体质转化分':'主要体质转化分';
+  var T=EN?{hist:'Assessment History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'scale-history.csv',trend:'Trend'}
+          :{hist:'历史评分记录',sc:'评分值',no:'序号',time:'时间',exp:'导出 CSV',file:'scale-history.csv',trend:'评分趋势'};
+  var KEY='__tbs_constitution';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  hist.push({t:Date.now(),v:acc});
+  if(hist.length>20)hist=hist.slice(-20);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbsExtras');
+  if(!host)return;
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbsChart"></div><div id="__tbsTable"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbsChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbsTable',{head:[T.no,T.time,T.sc],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbsTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=calcScore;calcScore=function(){__f0();__tbs();};
 </script>
 
 <!-- SEO 介绍区块 -->
