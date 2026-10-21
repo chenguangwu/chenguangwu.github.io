@@ -313,6 +313,11 @@ function __rolled_throughput_yieldBoot(){ try{ __rolled_throughput_yieldPresets(
 if (document.readyState && document.readyState !== 'loading') __rolled_throughput_yieldBoot();
 else document.addEventListener('DOMContentLoaded', __rolled_throughput_yieldBoot);
 </script>
+<div class="rtyd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="rtydChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -348,5 +353,38 @@ else document.addEventListener('DOMContentLoaded', __rolled_throughput_yieldBoot
 </dl>
 </div>
 </section>
+<script>
+function __rtydChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var y2=num('y2'),y3=num('y3');
+  if(!isFinite(y2)||!isFinite(y3)||!(y2>0)||!(y3>0))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var y1=50+i*5;
+    labels.push(y1.toFixed(0));
+    data.push(Math.round((y1/100)*(y2/100)*(y3/100)*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#rtydChart',{title:en?'RTY vs step1 yield (increasing)':'滚动良率随工序1良率变化（上升）',labels:labels,series:[{name:en?'RTY':'滚动良率 RTY',data:data}]});
+}
+
+function __rtydShow(which){
+  var c=document.getElementById('rtydChart'), t=document.getElementById('rolled_throughput_yieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __rtydTabInit(){
+  var btns=document.querySelectorAll('.rtyd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__rtydShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __rtydShow('chart');
+  try{__rtydChart();}catch(e){}
+}
+var __rtydFn=calcTool;calcTool=function(){try{__rtydFn();}catch(e){}try{__rtydChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__rtydChart();}catch(e){}});try{__rtydTabInit();}catch(e){}
+</script>
 </body>
 </html>

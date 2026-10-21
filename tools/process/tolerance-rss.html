@@ -244,6 +244,11 @@ function __tolerance_rssBoot(){ try{ __tolerance_rssPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __tolerance_rssBoot();
 else document.addEventListener('DOMContentLoaded', __tolerance_rssBoot);
 </script>
+<div class="torss-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="torssChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,38 @@ else document.addEventListener('DOMContentLoaded', __tolerance_rssBoot);
 </dl>
 </div>
 </section>
+<script>
+function __torssChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var t2=num('t2'),t3=num('t3');
+  if(!isFinite(t2)||!isFinite(t3))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var t1=i*0.1;
+    labels.push(t1.toFixed(2));
+    data.push(Math.round(Math.sqrt(t1*t1+t2*t2+t3*t3)*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#torssChart',{title:en?'RSS tolerance vs t1 (concave)':'RSS 总公差随 t1 变化（凹形）',labels:labels,series:[{name:en?'RSS total':'RSS 总公差',data:data}]});
+}
+
+function __torssShow(which){
+  var c=document.getElementById('torssChart'), t=document.getElementById('tolerance_rssTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __torssTabInit(){
+  var btns=document.querySelectorAll('.torss-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__torssShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __torssShow('chart');
+  try{__torssChart();}catch(e){}
+}
+var __torssFn=calcTool;calcTool=function(){try{__torssFn();}catch(e){}try{__torssChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__torssChart();}catch(e){}});try{__torssTabInit();}catch(e){}
+</script>
 </body>
 </html>

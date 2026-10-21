@@ -314,6 +314,11 @@ function __xbar_control_limitsBoot(){ try{ __xbar_control_limitsPresets(); }catc
 if (document.readyState && document.readyState !== 'loading') __xbar_control_limitsBoot();
 else document.addEventListener('DOMContentLoaded', __xbar_control_limitsBoot);
 </script>
+<div class="xbcl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="xbclChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -349,5 +354,39 @@ else document.addEventListener('DOMContentLoaded', __xbar_control_limitsBoot);
 </dl>
 </div>
 </section>
+<script>
+function __xbclChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var m=num('mean'),s=num('sigma');
+  if(!isFinite(m)||!isFinite(s)||!(s>0))return;
+  var labels=[],dU=[],dL=[];
+  for(var n=1;n<=20;n++){
+    var se=s/Math.sqrt(n);
+    labels.push(String(n));
+    dU.push(Math.round((m+3*se)*1000)/1000);
+    dL.push(Math.round((m-3*se)*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#xbclChart',{title:en?'Control limits vs subgroup n (band narrows)':'控制限随子组大小 n 变化（带宽收窄）',labels:labels,series:[{name:en?'UCL':'上控制限 UCL',data:dU},{name:en?'LCL':'下控制限 LCL',data:dL}]});
+}
+
+function __xbclShow(which){
+  var c=document.getElementById('xbclChart'), t=document.getElementById('xbar_control_limitsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __xbclTabInit(){
+  var btns=document.querySelectorAll('.xbcl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__xbclShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __xbclShow('chart');
+  try{__xbclChart();}catch(e){}
+}
+var __xbclFn=calcTool;calcTool=function(){try{__xbclFn();}catch(e){}try{__xbclChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__xbclChart();}catch(e){}});try{__xbclTabInit();}catch(e){}
+</script>
 </body>
 </html>

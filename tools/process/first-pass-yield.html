@@ -298,6 +298,11 @@ function __first_pass_yieldBoot(){ try{ __first_pass_yieldPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __first_pass_yieldBoot();
 else document.addEventListener('DOMContentLoaded', __first_pass_yieldBoot);
 </script>
+<div class="fpyd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="fpydChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,38 @@ else document.addEventListener('DOMContentLoaded', __first_pass_yieldBoot);
 </dl>
 </div>
 </section>
+<script>
+function __fpydChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var g=num('good');
+  if(!isFinite(g)||!(g>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var t=g*i;
+    labels.push(t.toFixed(0));
+    data.push(Math.round(g/t*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#fpydChart',{title:en?'FPY vs total output (linear decay)':'一次通过率随投入数变化（线性下降）',labels:labels,series:[{name:en?'FPY':'一次通过率 FPY',data:data}]});
+}
+
+function __fpydShow(which){
+  var c=document.getElementById('fpydChart'), t=document.getElementById('first_pass_yieldTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __fpydTabInit(){
+  var btns=document.querySelectorAll('.fpyd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__fpydShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __fpydShow('chart');
+  try{__fpydChart();}catch(e){}
+}
+var __fpydFn=calcTool;calcTool=function(){try{__fpydFn();}catch(e){}try{__fpydChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__fpydChart();}catch(e){}});try{__fpydTabInit();}catch(e){}
+</script>
 </body>
 </html>

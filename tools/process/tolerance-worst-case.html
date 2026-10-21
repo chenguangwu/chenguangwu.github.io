@@ -244,6 +244,11 @@ function __tolerance_worst_caseBoot(){ try{ __tolerance_worst_casePresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __tolerance_worst_caseBoot();
 else document.addEventListener('DOMContentLoaded', __tolerance_worst_caseBoot);
 </script>
+<div class="twc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="twcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,39 @@ else document.addEventListener('DOMContentLoaded', __tolerance_worst_caseBoot);
 </dl>
 </div>
 </section>
+<script>
+function __twcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var t2=num('t2'),t3=num('t3');
+  if(!isFinite(t2)||!isFinite(t3))return;
+  var labels=[],dW=[],dR=[];
+  for(var i=0;i<=10;i++){
+    var t1=i*0.1;
+    labels.push(t1.toFixed(2));
+    dW.push(Math.round((t1+t2+t3)*1000)/1000);
+    dR.push(Math.round(Math.sqrt(t1*t1+t2*t2+t3*t3)*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#twcChart',{title:en?'Worst-case vs RSS tolerance vs t1':'最差公差与 RSS 公差随 t1 变化',labels:labels,series:[{name:en?'Worst-case':'最差公差',data:dW},{name:en?'RSS':'RSS 公差',data:dR}]});
+}
+
+function __twcShow(which){
+  var c=document.getElementById('twcChart'), t=document.getElementById('tolerance_worst_caseTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __twcTabInit(){
+  var btns=document.querySelectorAll('.twc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__twcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __twcShow('chart');
+  try{__twcChart();}catch(e){}
+}
+var __twcFn=calcTool;calcTool=function(){try{__twcFn();}catch(e){}try{__twcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__twcChart();}catch(e){}});try{__twcTabInit();}catch(e){}
+</script>
 </body>
 </html>

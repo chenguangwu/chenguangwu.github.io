@@ -244,6 +244,11 @@ function __measurement_uncertaintyBoot(){ try{ __measurement_uncertaintyPresets(
 if (document.readyState && document.readyState !== 'loading') __measurement_uncertaintyBoot();
 else document.addEventListener('DOMContentLoaded', __measurement_uncertaintyBoot);
 </script>
+<div class="mucu-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="mucuChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -279,5 +284,38 @@ else document.addEventListener('DOMContentLoaded', __measurement_uncertaintyBoot
 </dl>
 </div>
 </section>
+<script>
+function __mucuChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var u2=num('u2'),u3=num('u3');
+  if(!isFinite(u2)||!isFinite(u3))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var u1=i*0.1;
+    labels.push(u1.toFixed(2));
+    data.push(Math.round(Math.sqrt(u1*u1+u2*u2+u3*u3)*10000)/10000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#mucuChart',{title:en?'Combined uncertainty vs u1 (concave)':'合成不确定度随 u1 变化（凹形）',labels:labels,series:[{name:en?'u_c':'合成不确定度 u_c',data:data}]});
+}
+
+function __mucuShow(which){
+  var c=document.getElementById('mucuChart'), t=document.getElementById('measurement_uncertaintyTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __mucuTabInit(){
+  var btns=document.querySelectorAll('.mucu-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__mucuShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __mucuShow('chart');
+  try{__mucuChart();}catch(e){}
+}
+var __mucuFn=calcTool;calcTool=function(){try{__mucuFn();}catch(e){}try{__mucuChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__mucuChart();}catch(e){}});try{__mucuTabInit();}catch(e){}
+</script>
 </body>
 </html>

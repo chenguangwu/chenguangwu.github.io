@@ -305,6 +305,11 @@ function __ppk_indexBoot(){ try{ __ppk_indexPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __ppk_indexBoot();
 else document.addEventListener('DOMContentLoaded', __ppk_indexBoot);
 </script>
+<div class="ppkd-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ppkdChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -340,5 +345,39 @@ else document.addEventListener('DOMContentLoaded', __ppk_indexBoot);
 </dl>
 </div>
 </section>
+<script>
+function __ppkdChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var usl=num('usl'),lsl=num('lsl'),s=num('slt');
+  if(!isFinite(usl)||!isFinite(lsl)||!isFinite(s)||!(usl>lsl)||!(s>0))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var m=lsl+(usl-lsl)*i/10;
+    var ppk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s));
+    labels.push(m.toFixed(4));
+    data.push(Math.round(ppk*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ppkdChart',{title:en?'Ppk vs μ (max at center)':'Ppk 随 μ 变化（居中时最大）',labels:labels,series:[{name:en?'Ppk':'Ppk',data:data}]});
+}
+
+function __ppkdShow(which){
+  var c=document.getElementById('ppkdChart'), t=document.getElementById('ppk_indexTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ppkdTabInit(){
+  var btns=document.querySelectorAll('.ppkd-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ppkdShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ppkdShow('chart');
+  try{__ppkdChart();}catch(e){}
+}
+var __ppkdFn=calcTool;calcTool=function(){try{__ppkdFn();}catch(e){}try{__ppkdChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ppkdChart();}catch(e){}});try{__ppkdTabInit();}catch(e){}
+</script>
 </body>
 </html>
