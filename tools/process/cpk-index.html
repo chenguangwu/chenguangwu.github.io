@@ -304,6 +304,11 @@ function __cpk_indexBoot(){ try{ __cpk_indexPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __cpk_indexBoot();
 else document.addEventListener('DOMContentLoaded', __cpk_indexBoot);
 </script>
+<div class="cpkid-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cpkidChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,39 @@ else document.addEventListener('DOMContentLoaded', __cpk_indexBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cpkidChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var usl=num('usl'),lsl=num('lsl'),s=num('sigma');
+  if(!isFinite(usl)||!isFinite(lsl)||!isFinite(s)||!(usl>lsl)||!(s>0))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var m=lsl+(usl-lsl)*i/10;
+    var cpk=Math.min((usl-m)/(3*s),(m-lsl)/(3*s));
+    labels.push(m.toFixed(4));
+    data.push(Math.round(cpk*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cpkidChart',{title:en?'Cpk vs μ (max at center)':'Cpk 随 μ 变化（居中时最大）',labels:labels,series:[{name:en?'Cpk':'Cpk',data:data}]});
+}
+
+function __cpkidShow(which){
+  var c=document.getElementById('cpkidChart'), t=document.getElementById('cpk_indexTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cpkidTabInit(){
+  var btns=document.querySelectorAll('.cpkid-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cpkidShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cpkidShow('chart');
+  try{__cpkidChart();}catch(e){}
+}
+var __cpkidFn=calcTool;calcTool=function(){try{__cpkidFn();}catch(e){}try{__cpkidChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cpkidChart();}catch(e){}});try{__cpkidTabInit();}catch(e){}
+</script>
 </body>
 </html>

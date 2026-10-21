@@ -298,6 +298,11 @@ function __cp_indexBoot(){ try{ __cp_indexPresets(); }catch(e){} try{ calcTool()
 if (document.readyState && document.readyState !== 'loading') __cp_indexBoot();
 else document.addEventListener('DOMContentLoaded', __cp_indexBoot);
 </script>
+<div class="cpidx-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cpidxChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -333,5 +338,38 @@ else document.addEventListener('DOMContentLoaded', __cp_indexBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cpidxChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var usl=num('usl'),lsl=num('lsl');
+  if(!isFinite(usl)||!isFinite(lsl)||!(usl>lsl))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var s=0.002*i;
+    labels.push(s.toFixed(4));
+    data.push(Math.round((usl-lsl)/(6*s)*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cpidxChart',{title:en?'Cp vs σ (inverse linear)':'Cp 随 σ 变化（反比线性下降）',labels:labels,series:[{name:en?'Cp':'Cp',data:data}]});
+}
+
+function __cpidxShow(which){
+  var c=document.getElementById('cpidxChart'), t=document.getElementById('cp_indexTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cpidxTabInit(){
+  var btns=document.querySelectorAll('.cpidx-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cpidxShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cpidxShow('chart');
+  try{__cpidxChart();}catch(e){}
+}
+var __cpidxFn=calcTool;calcTool=function(){try{__cpidxFn();}catch(e){}try{__cpidxChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cpidxChart();}catch(e){}});try{__cpidxTabInit();}catch(e){}
+</script>
 </body>
 </html>

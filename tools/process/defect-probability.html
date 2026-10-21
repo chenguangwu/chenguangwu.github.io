@@ -307,6 +307,11 @@ function __defect_probabilityBoot(){ try{ __defect_probabilityPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __defect_probabilityBoot();
 else document.addEventListener('DOMContentLoaded', __defect_probabilityBoot);
 </script>
+<div class="defpr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="defprChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -342,5 +347,41 @@ else document.addEventListener('DOMContentLoaded', __defect_probabilityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __defprN(x){var s=x<0?-1:1;x=Math.abs(x);var t=1/(1+0.3275911*x);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);return s*y;}
+function __defprChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var m=num('mu'),s=num('sigma');
+  if(!isFinite(m)||!isFinite(s)||!(s>0))return;
+  var labels=[],data=[];
+  for(var i=0;i<=10;i++){
+    var u=m+i*s;
+    var z=(u-m)/s;
+    var p=1-0.5*(1+__defprN(z/Math.SQRT2));
+    labels.push(u.toFixed(3));
+    data.push(Math.round(p*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#defprChart',{title:en?'Defect prob. vs USL (sigmoid decay)':'超上规格概率随 USL 变化（S 形衰减）',labels:labels,series:[{name:en?'P(X>USL)':'P(X>USL)',data:data}]});
+}
+
+function __defprShow(which){
+  var c=document.getElementById('defprChart'), t=document.getElementById('defect_probabilityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __defprTabInit(){
+  var btns=document.querySelectorAll('.defpr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__defprShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __defprShow('chart');
+  try{__defprChart();}catch(e){}
+}
+var __defprFn=calcTool;calcTool=function(){try{__defprFn();}catch(e){}try{__defprChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__defprChart();}catch(e){}});try{__defprTabInit();}catch(e){}
+</script>
 </body>
 </html>

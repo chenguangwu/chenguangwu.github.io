@@ -299,6 +299,11 @@ function __dpmo_calcBoot(){ try{ __dpmo_calcPresets(); }catch(e){} try{ calcTool
 if (document.readyState && document.readyState !== 'loading') __dpmo_calcBoot();
 else document.addEventListener('DOMContentLoaded', __dpmo_calcBoot);
 </script>
+<div class="dpmoc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="dpmocChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -334,5 +339,38 @@ else document.addEventListener('DOMContentLoaded', __dpmo_calcBoot);
 </dl>
 </div>
 </section>
+<script>
+function __dpmocChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var d=num('def'),u=num('units');
+  if(!isFinite(d)||!isFinite(u)||!(u>0)||!(d>0))return;
+  var labels=[],data=[];
+  for(var o=1;o<=10;o++){
+    var dpmo=d/(u*o)*1e6;
+    labels.push(String(o));
+    data.push(Math.round(dpmo*10)/10);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#dpmocChart',{title:en?'DPMO vs opportunities (inverse linear)':'DPMO 随每单位机会数变化（反比线性）',labels:labels,series:[{name:en?'DPMO':'DPMO',data:data}]});
+}
+
+function __dpmocShow(which){
+  var c=document.getElementById('dpmocChart'), t=document.getElementById('dpmo_calcTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __dpmocTabInit(){
+  var btns=document.querySelectorAll('.dpmoc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__dpmocShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __dpmocShow('chart');
+  try{__dpmocChart();}catch(e){}
+}
+var __dpmocFn=calcTool;calcTool=function(){try{__dpmocFn();}catch(e){}try{__dpmocChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__dpmocChart();}catch(e){}});try{__dpmocTabInit();}catch(e){}
+</script>
 </body>
 </html>

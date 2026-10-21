@@ -311,6 +311,11 @@ function __cpk_with_shiftBoot(){ try{ __cpk_with_shiftPresets(); }catch(e){} try
 if (document.readyState && document.readyState !== 'loading') __cpk_with_shiftBoot();
 else document.addEventListener('DOMContentLoaded', __cpk_with_shiftBoot);
 </script>
+<div class="cpksh-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cpkshChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -346,5 +351,40 @@ else document.addEventListener('DOMContentLoaded', __cpk_with_shiftBoot);
 </dl>
 </div>
 </section>
+<script>
+function __cpkshChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var usl=num('usl'),lsl=num('lsl'),nom=num('nominal'),s=num('sigma');
+  if(!isFinite(usl)||!isFinite(lsl)||!isFinite(nom)||!isFinite(s)||!(s>0))return;
+  var labels=[],data=[];
+  for(var i=-5;i<=5;i++){
+    var sh=0.005*i;
+    var mu=nom+sh;
+    var cpk=Math.min((usl-mu)/(3*s),(mu-lsl)/(3*s));
+    labels.push(sh.toFixed(4));
+    data.push(Math.round(cpk*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cpkshChart',{title:en?'Cpk vs shift δ (V-shape)':'Cpk 随偏移 δ 变化（V 形，居中最大）',labels:labels,series:[{name:en?'Cpk (shifted)':'Cpk（偏移后）',data:data}]});
+}
+
+function __cpkshShow(which){
+  var c=document.getElementById('cpkshChart'), t=document.getElementById('cpk_with_shiftTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cpkshTabInit(){
+  var btns=document.querySelectorAll('.cpksh-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cpkshShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cpkshShow('chart');
+  try{__cpkshChart();}catch(e){}
+}
+var __cpkshFn=calcTool;calcTool=function(){try{__cpkshFn();}catch(e){}try{__cpkshChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__cpkshChart();}catch(e){}});try{__cpkshTabInit();}catch(e){}
+</script>
 </body>
 </html>
