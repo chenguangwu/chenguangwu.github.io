@@ -155,6 +155,14 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="detailTable"></div>
+<style>#detailTable{display:none!important;}</style>
+<div class="sds-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sdsChart" style="margin-top:8px;"></div>
+<div id="sdsTable" style="margin-top:8px;"></div>
+
 
     <div class="tip-box tip-info">
       叠加顺序：按从上到下依次应用。折扣券=当前价×折扣；满减券=满足门槛后扣减固定金额。叠加折扣不等于折扣率简单相加。
@@ -428,5 +436,58 @@ document.addEventListener('DOMContentLoaded',function(){
   else restore();
 }catch(e){}})();
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __sdsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var price=+document.getElementById('price').value||0;
+  if(price<=0)return;
+  var ds=(typeof discounts!=='undefined'&&discounts)?discounts:[];
+  var cur=price; var labels=['原价']; var data=[Math.round(price*100)/100];
+  for(var i=0;i<ds.length;i++){
+    var d=ds[i];
+    if(d.type==='rate'){ cur=cur*(d.value/100); }
+    else { if(cur>=(d.threshold||0)){ cur=Math.max(cur-d.value,0); } }
+    labels.push('第'+(i+1)+'层'); data.push(Math.round(cur*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#sdsChart',{title:en?'Price after each discount layer':'叠加折扣后价格逐层变化',labels:labels,series:[{name:en?'¥':'¥',data:data}]});
+  var c2=price; var rows=[['原价','¥'+price.toFixed(2),'—']];
+  for(var j=0;j<ds.length;j++){
+    var d2=ds[j]; var before=c2;
+    if(d2.type==='rate'){ c2=c2*(d2.value/100); }
+    else { if(c2>=(d2.threshold||0)){ c2=Math.max(c2-d2.value,0); } }
+    var saved=before-c2;
+    var lbl=(d2.type==='rate'?(d2.value+'折'):'满'+(d2.threshold||0)+'减'+d2.value);
+    var skip=(d2.type==='amount'&&before<(d2.threshold||0));
+    rows.push(['第'+(j+1)+'层'+lbl,'¥'+c2.toFixed(2), skip?'未达门槛':'−¥'+saved.toFixed(2)]);
+  }
+  TBKit.matrix.table('#sdsTable',{head:en?['Layer','Price','Saved']:['层级','当前价','本层优惠'],rows:rows});
+}
+function __sdsShow(which){
+  var c=document.getElementById('sdsChart'), t=document.getElementById('sdsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sdsTabInit(){
+  var btns=document.querySelectorAll('.sds-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sdsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sdsShow('chart');
+  try{__sdsChart();}catch(e){}
+}
+var ____sdsFn=calc;
+calc=function(){
+  var __p=null;try{__p=____sdsFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__sdsChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__sdsChart();}catch(e){}});
+try{__sdsTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
