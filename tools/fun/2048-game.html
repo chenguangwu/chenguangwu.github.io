@@ -224,6 +224,8 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="btn danger" onclick="clearBest()">清除记录</button>
       </div>
     </div>
+<div id="__tbnExtras" style="margin-top:12px"></div>
+
 
     <div id="tab-help" style="display:none;">
       <h3>🎮 游戏规则</h3>
@@ -673,5 +675,37 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
+<script>
+var __tbn=function(){
+  if(typeof TBKit==='undefined')return;
+  var acc=(function(){return typeof score!=='undefined'?score:NaN;})();
+  if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+  var lab=(function(){return '最大块 '+(typeof maxTile!=='undefined'?maxTile:0);})();
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'Game Score':'记录本局得分(分)';
+  var T=EN?{hist:'Practice History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'practice-history.csv',col:'Type'}
+          :{hist:'练习成绩历史',sc:'成绩值',no:'序号',time:'时间',exp:'导出 CSV',file:'practice-history.csv',col:'类型'};
+  var KEY='__tbn_game2048';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.v!==acc||(lab&&last.l!==lab)){hist.push({t:Date.now(),v:acc,l:lab||''});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbnExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'评估 2 次以上后显示成绩趋势图。')+'</p>';return;}
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbnChart"></div><div id="__tbnTable"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbnChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v,h.l||''];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.sc,T.col],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbnTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=showGameOver;showGameOver=function(){var __r=__f0.apply(null,arguments);__tbn();return __r;};
+</script>
 </body>
 </html>
