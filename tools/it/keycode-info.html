@@ -121,7 +121,8 @@ s.parentNode.insertBefore(el, s);
       <div style="font-size:12px;color:var(--muted,#6B7280);margin-bottom:6px;">event.key</div>
       <div id="keyOut" style="font-size:42px;font-weight:700;color:var(--primary);min-height:52px;line-height:1.2;">—</div>
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:14px;">
+    <button type="button" class="tbk-export-btn" data-tgt="">导出 CSV</button>
+<table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:14px;">
       <tr style="background:rgba(0,0,0,.04);">
         <td style="padding:8px 10px;font-weight:600;">属性</td><td style="padding:8px 10px;font-weight:600;">值</td><td style="padding:8px 10px;font-weight:600;">说明</td>
       </tr>
@@ -241,5 +242,34 @@ document.addEventListener('DOMContentLoaded',function(){
 <h3>用途</h3><p>前端监听 keydown/keyup 时核对按键标识；注意 keyCode 已废弃，新代码优先用 code/key。</p>
 <h3>注意</h3><p>不同键盘布局/输入法下 key 值可能变化；code 反映物理位置更稳定。</p>
 </div></section>
-</body>
+<script>/* tbk_exp_ */
+(function(){try{
+  function tbkExport(btn){
+    var tid=btn.getAttribute('data-tgt');
+    var tbl=tid?document.getElementById(tid):null;
+    if(!tbl){tbl=document.querySelector('table');}
+    if(!tbl)return;
+    var rows=[].slice.call(tbl.querySelectorAll('tr'));
+    var csv=[];
+    rows.forEach(function(tr){
+      var cells=[].slice.call(tr.querySelectorAll('th,td'));
+      var line=cells.map(function(c){
+        var t=(c.textContent||'').replace(/\s+/g,' ').trim();
+        if(/[",\n]/.test(t)) t='"'+t.replace(/"/g,'""')+'"';
+        return t;
+      }).join(',');
+      csv.push(line);
+    });
+    var blob=new Blob([csv.join('\n')],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download=(tid||'table')+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }
+  document.querySelectorAll('.tbk-export-btn').forEach(function(b){
+    b.addEventListener('click',function(){try{tbkExport(b);}catch(e){}});
+  });
+}catch(e){}})();
+</script></body>
 </html>

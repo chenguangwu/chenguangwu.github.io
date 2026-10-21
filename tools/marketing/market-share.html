@@ -164,7 +164,8 @@ s.parentNode.insertBefore(el, s);
 <div id="msChart"></div>
 <div class="card" id="msTableCard" style="display:none">
   <h3 id="msTableTitle"></h3>
-  <table class="data-table">
+  <button type="button" class="tbk-export-btn" data-tgt="">导出 CSV</button>
+<table class="data-table">
     <thead><tr><th id="msTh0"></th><th id="msTh1"></th><th id="msTh2"></th><th id="msTh3"></th><th id="msTh4"></th></tr></thead>
     <tbody id="msTbody"></tbody>
   </table>
@@ -494,5 +495,34 @@ function applySharePreset(kind){
   document.addEventListener('toolbox:langchange',function(){ms_all();});
 })();
 </script>
-</body>
+<script>/* tbk_exp_ */
+(function(){try{
+  function tbkExport(btn){
+    var tid=btn.getAttribute('data-tgt');
+    var tbl=tid?document.getElementById(tid):null;
+    if(!tbl){tbl=document.querySelector('table');}
+    if(!tbl)return;
+    var rows=[].slice.call(tbl.querySelectorAll('tr'));
+    var csv=[];
+    rows.forEach(function(tr){
+      var cells=[].slice.call(tr.querySelectorAll('th,td'));
+      var line=cells.map(function(c){
+        var t=(c.textContent||'').replace(/\s+/g,' ').trim();
+        if(/[",\n]/.test(t)) t='"'+t.replace(/"/g,'""')+'"';
+        return t;
+      }).join(',');
+      csv.push(line);
+    });
+    var blob=new Blob([csv.join('\n')],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download=(tid||'table')+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }
+  document.querySelectorAll('.tbk-export-btn').forEach(function(b){
+    b.addEventListener('click',function(){try{tbkExport(b);}catch(e){}});
+  });
+}catch(e){}})();
+</script></body>
 </html>
