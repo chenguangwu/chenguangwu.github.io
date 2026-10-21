@@ -148,6 +148,8 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="res" style="display:none;"></div>
+<div id="__tbnExtras" style="margin-top:12px"></div>
+
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" onclick="window.__tapExport()">⬇️ 导出打拍记录 CSV</button>
     </div>
@@ -390,5 +392,36 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 
 <section class="opt-guide"><h2>如何使用BPM检测（点击打拍子）</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>BPM检测（点击打拍子）是做什么的？</dt><dd>跟随音乐节拍用按钮或空格键打点，自动记录各次点击间隔并求平均，计算每分钟节拍数 BPM 及速度术语（如行板、快板）。用于测歌曲速度、跟节拍练习。</dd><dt>如何使用BPM检测（点击打拍子）？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>BPM检测（点击打拍子）适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<script>
+var __tbn=function(){
+  if(typeof TBKit==='undefined')return;
+  var acc=(function(){if(tapTimes.length<2)return -1;var iv=[];for(var i=1;i<tapTimes.length;i++)iv.push(tapTimes[i]-tapTimes[i-1]);var avg=iv.reduce(function(a,b){return a+b;},0)/iv.length;return Math.round(60000/avg);})();
+  if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'测得频率(次/分)':'测得频率(次/分)';
+  var T=EN?{hist:'Practice History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'practice-history.csv'}
+          :{hist:'练习成绩历史',sc:'成绩值',no:'序号',time:'时间',exp:'导出 CSV',file:'practice-history.csv'};
+  var KEY='__tbn_detector_bpm';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.v!==acc){hist.push({t:Date.now(),v:acc});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbnExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'练习 2 次以上后显示成绩趋势图。')+'</p>';return;}
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbnChart"></div><div id="__tbnTable"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbnChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.sc],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbnTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=updateDisplay;updateDisplay=function(){var __r=__f0.apply(null,arguments);__tbn();return __r;};
+</script>
 </body>
 </html>
