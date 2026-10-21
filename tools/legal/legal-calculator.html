@@ -389,7 +389,8 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3 class="card-title">📋 计算结果速查</h3>
     <div id="lcTable"></div>
-  </div>
+<div id="__tbnDiff" style="margin-top:8px"></div>
+</div>
   <div class="card">
     <h3 class="card-title">🕑 历史记录</h3>
     <div id="lcHist"></div>
@@ -1007,6 +1008,8 @@ function lcRender(){
     if(S.values&&S.tab){
       var rec={}; rec[lcL('类型','Type')]=S.title; rec[lcL('参数','Params')]=tab+'|'+JSON.stringify(S.values);
       rec[lcL('结果','Result')]=(S.items||[]).map(function(it){return it[0]+':'+(typeof it[1]==='number'?TBKit.util.fmt(it[1]):it[1]);}).join('; ');
+      var __prim=null; if(S.items) for(var __qi=S.items.length-1;__qi>=0;__qi--){var __vv=S.items[__qi][1]; if(typeof __vv==='number'&&isFinite(__vv)){__prim=__vv;break;}}
+      if(typeof __prim==='number'&&isFinite(__prim)) rec[lcL('合计','Total')]=__prim;
       TBKit.history.record(rec);
     }
   }catch(e){}
@@ -1128,6 +1131,36 @@ function __litFeeExport(){
   });
   TBKit.util.exportTable('#litFeeHidden', en?'litigation-fee-tiers.csv':'诉讼费标准速查.csv');
 }
+</script>
+<script>
+var __lcWrap=function(){
+  if(typeof TBKit==='undefined')return;
+  try{
+    var onEv=function(){ try{ if(typeof lcRender==='function') lcRender(); }catch(e){} };
+    document.addEventListener('input', onEv, false);
+    var f0=lcRender; lcRender=function(){
+      var __r=f0.apply(this,arguments);
+      try{
+        var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+        var READK=EN?'Total':'合计';
+        var LBL=EN?'Compare Total':'对比合计';
+        var TYP=EN?'Type':'类型';
+        var arr=[];try{arr=TBKit.history.list();}catch(e){}
+        var rec=null,prev=null;
+        for(var i=0;i<arr.length;i++){var ks=Object.keys(arr[i].d||{});if(ks.length&&ks.indexOf(LBL)<0){if(!rec){rec=arr[i];}else{prev=arr[i];break;}}}
+        if(!rec||typeof rec.t!=='number'||Date.now()-rec.t>8000)return __r;
+        if(prev&&prev.d&&rec.d&&prev.d[TYP]!==rec.d[TYP])return __r;
+        var acc=parseFloat(String(rec.d[READK]!=null?rec.d[READK]:'').replace(/[^0-9.\-]/g,''));
+        if(!isFinite(acc))return __r;
+        var rr={};rr[LBL]=acc;
+        if(TBKit.history&&TBKit.history.record)TBKit.history.record(rr);
+        if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
+      }catch(e){}
+      return __r;
+    };
+  }catch(e){}
+};
+__lcWrap();
 </script>
 </body>
 </html>
