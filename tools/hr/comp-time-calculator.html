@@ -145,6 +145,11 @@ s.parentNode.insertBefore(el, s);
     <div id="comp_time_calculatorHist"></div>
   </div>
 
+<div class="cmt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cmtChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -306,5 +311,42 @@ function __comp_time_calculatorBoot(){ try{ __comp_time_calculatorPresets(); }ca
 if (document.readyState && document.readyState !== 'loading') __comp_time_calculatorBoot();
 else document.addEventListener('DOMContentLoaded', __comp_time_calculatorBoot);
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __cmtChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var workday=(typeof num==='function')?num('workday'):8; if(workday<=0)workday=8;
+  var dayType=document.getElementById('dayType').value;
+  var mult={weekday:1.5,weekend:2,holiday:3}[dayType]||2;
+  var labels=[],data=[];
+  for(var h=4;h<=24;h+=4){ var comp=h*mult/workday; labels.push(String(h)); data.push(Math.round(comp*10)/10); }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cmtChart',{title:en?'Comp leave vs overtime hours':'折算补休随加班时长变化',labels:labels,series:[{name:en?'days':'天',data:data}]});
+}
+
+function __cmtShow(which){
+  var c=document.getElementById('cmtChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cmtTabInit(){
+  var btns=document.querySelectorAll('.cmt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cmtShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cmtShow('chart');
+  try{__cmtChart();}catch(e){}
+}
+var __cmtFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__cmtFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__cmtChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__cmtChart();}catch(e){}});
+try{__cmtTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

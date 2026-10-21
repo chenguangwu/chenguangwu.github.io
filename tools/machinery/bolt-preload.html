@@ -247,6 +247,11 @@ function __bolt_preloadBoot(){ try{ __bolt_preloadPresets(); }catch(e){} try{ ca
 if (document.readyState && document.readyState !== 'loading') __bolt_preloadBoot();
 else document.addEventListener('DOMContentLoaded', __bolt_preloadBoot);
 </script>
+<div class="bpl-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="bplChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -281,5 +286,41 @@ else document.addEventListener('DOMContentLoaded', __bolt_preloadBoot);
 </dl>
 </div>
 </section>
+<script>/*TBKIT-INJECT-START*/
+function __bplChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var d=(typeof num==='function')?num('d')/1000:0.012; if(d<=0)d=0.012;
+  var K=(typeof num==='function')?num('K'):0.2; if(K<=0)K=0.2;
+  var labels=[],data=[];
+  for(var F=10000;F<=100000;F+=10000){ var T=K*d*F; labels.push(String(F/1000)); data.push(Math.round(T*100)/100); }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#bplChart',{title:en?'Torque vs preload force':'拧紧扭矩随预紧力变化',labels:labels,series:[{name:en?'N·m':'N·m',data:data}]});
+}
+
+function __bplShow(which){
+  var c=document.getElementById('bplChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __bplTabInit(){
+  var btns=document.querySelectorAll('.bpl-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__bplShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __bplShow('chart');
+  try{__bplChart();}catch(e){}
+}
+var __bplFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__bplFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__bplChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__bplChart();}catch(e){}});
+try{__bplTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

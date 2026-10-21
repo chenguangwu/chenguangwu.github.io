@@ -260,6 +260,11 @@ function __shaft_torsionBoot(){ try{ __shaft_torsionPresets(); }catch(e){} try{ 
 if (document.readyState && document.readyState !== 'loading') __shaft_torsionBoot();
 else document.addEventListener('DOMContentLoaded', __shaft_torsionBoot);
 </script>
+<div class="sft-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="sftChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -294,5 +299,42 @@ else document.addEventListener('DOMContentLoaded', __shaft_torsionBoot);
 </dl>
 </div>
 </section>
+<script>/*TBKIT-INJECT-START*/
+function __sftChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var T=(typeof num==='function')?num('T')*1000:2000; if(T<=0)T=2000;
+  var G=(typeof num==='function')?num('G')*1e9:80e9; if(G<=0)G=80e9;
+  var L=(typeof num==='function')?num('L'):1; if(L<=0)L=1;
+  var labels=[],data=[];
+  for(var d=20;d<=100;d+=10){ var dd=d/1000; var J=Math.PI*Math.pow(dd,4)/32; var tau=T*dd/2/J/1e6; labels.push(String(d)); data.push(Math.round(tau*100)/100); }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#sftChart',{title:en?'Max shear stress vs shaft diameter':'最大剪应力随轴径变化',labels:labels,series:[{name:en?'tau MPa':'tau MPa',data:data}]});
+}
+
+function __sftShow(which){
+  var c=document.getElementById('sftChart'), t=document.getElementById('result');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __sftTabInit(){
+  var btns=document.querySelectorAll('.sft-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__sftShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __sftShow('chart');
+  try{__sftChart();}catch(e){}
+}
+var __sftFn=calcTool;calcTool=function(){
+  var __p=null;try{__p=__sftFn.apply(this,arguments);}catch(e){}
+  function __draw(){try{__sftChart();}catch(e){}}
+  if(__p&&typeof __p.then==='function'){__p.then(function(){setTimeout(__draw,80);});}
+  else{__draw();}
+  return __p;
+};
+document.addEventListener('toolbox:langchange',function(){try{__sftChart();}catch(e){}});
+try{__sftTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
