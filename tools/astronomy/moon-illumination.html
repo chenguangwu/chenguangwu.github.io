@@ -242,6 +242,11 @@ function __moon_illuminationBoot(){ try{ __moon_illuminationPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __moon_illuminationBoot();
 else document.addEventListener('DOMContentLoaded', __moon_illuminationBoot);
 </script>
+<div class="moon-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="moonChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -313,6 +318,38 @@ else document.addEventListener('DOMContentLoaded', __moon_illuminationBoot);
     }
   ]
 }
+</script>
+<script>
+function __moonChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var labels=[],data=[];
+  for(var i=0;i<=29;i++){
+    var D=i;
+    var k=(1-Math.cos(2*Math.PI*D/29.53))/2;
+    labels.push(D.toFixed(0));
+    data.push(Math.round(k*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#moonChart',{title:en?'Illumination vs day (sinusoid)':'照明比例随月相日变化（正弦）',labels:labels,series:[{name:en?'k (frac)':'照明比例 k',data:data}]});
+}
+
+function __moonShow(which){
+  var c=document.getElementById('moonChart'), t=document.getElementById('moon_illuminationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __moonTabInit(){
+  var btns=document.querySelectorAll('.moon-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__moonShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __moonShow('chart');
+  try{__moonChart();}catch(e){}
+}
+var __moonFn=calcTool;calcTool=function(){try{__moonFn();}catch(e){}try{__moonChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__moonChart();}catch(e){}});try{__moonTabInit();}catch(e){}
 </script>
 </body>
 </html>

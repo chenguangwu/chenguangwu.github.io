@@ -241,6 +241,11 @@ function __solar_declinationBoot(){ try{ __solar_declinationPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __solar_declinationBoot();
 else document.addEventListener('DOMContentLoaded', __solar_declinationBoot);
 </script>
+<div class="sold-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="soldChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -299,6 +304,37 @@ else document.addEventListener('DOMContentLoaded', __solar_declinationBoot);
     }
   ]
 }
+</script>
+<script>
+function __soldChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var labels=[],data=[];
+  for(var N=1;N<=365;N+=10){
+    var d=23.44*Math.sin(360*(284+N)/365*Math.PI/180);
+    labels.push(N.toFixed(0));
+    data.push(Math.round(d*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#soldChart',{title:en?'Solar declination vs day (sinusoid)':'太阳赤纬随年内日序变化（正弦）',labels:labels,series:[{name:en?'δ (°)':'赤纬 δ (°)',data:data}]});
+}
+
+function __soldShow(which){
+  var c=document.getElementById('soldChart'), t=document.getElementById('solar_declinationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __soldTabInit(){
+  var btns=document.querySelectorAll('.sold-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__soldShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __soldShow('chart');
+  try{__soldChart();}catch(e){}
+}
+var __soldFn=calcTool;calcTool=function(){try{__soldFn();}catch(e){}try{__soldChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__soldChart();}catch(e){}});try{__soldTabInit();}catch(e){}
 </script>
 </body>
 </html>

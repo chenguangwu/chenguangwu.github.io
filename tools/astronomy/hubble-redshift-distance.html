@@ -245,6 +245,11 @@ function __hubble_redshift_distanceBoot(){ try{ __hubble_redshift_distancePreset
 if (document.readyState && document.readyState !== 'loading') __hubble_redshift_distanceBoot();
 else document.addEventListener('DOMContentLoaded', __hubble_redshift_distanceBoot);
 </script>
+<div class="hubr-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hubrChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -303,6 +308,38 @@ else document.addEventListener('DOMContentLoaded', __hubble_redshift_distanceBoo
     }
   ]
 }
+</script>
+<script>
+function __hubrChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var c=299792.458,H0=70,labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var z=i*0.02;
+    var d=c*z/H0;
+    labels.push(z.toFixed(2));
+    data.push(Math.round(d*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hubrChart',{title:en?'Distance vs redshift z (linear)':'距离随红移 z 变化（线性）',labels:labels,series:[{name:en?'d (Mpc)':'d (Mpc)',data:data}]});
+}
+
+function __hubrShow(which){
+  var c=document.getElementById('hubrChart'), t=document.getElementById('hubble_redshift_distanceTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hubrTabInit(){
+  var btns=document.querySelectorAll('.hubr-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hubrShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hubrShow('chart');
+  try{__hubrChart();}catch(e){}
+}
+var __hubrFn=calcTool;calcTool=function(){try{__hubrFn();}catch(e){}try{__hubrChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hubrChart();}catch(e){}});try{__hubrTabInit();}catch(e){}
 </script>
 </body>
 </html>

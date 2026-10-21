@@ -244,6 +244,11 @@ function __light_travel_timeBoot(){ try{ __light_travel_timePresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __light_travel_timeBoot();
 else document.addEventListener('DOMContentLoaded', __light_travel_timeBoot);
 </script>
+<div class="ltt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="lttChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -302,6 +307,38 @@ else document.addEventListener('DOMContentLoaded', __light_travel_timeBoot);
     }
   ]
 }
+</script>
+<script>
+function __lttChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var c=299792458,labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var d=1.496e11*i;
+    var t=d/c;
+    labels.push((d/1.496e11).toFixed(0)+' AU');
+    data.push(Math.round(t*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#lttChart',{title:en?'Light travel time vs distance (linear)':'光行时随距离变化（线性）',labels:labels,series:[{name:en?'t (s)':'t (s)',data:data}]});
+}
+
+function __lttShow(which){
+  var c=document.getElementById('lttChart'), t=document.getElementById('light_travel_timeTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __lttTabInit(){
+  var btns=document.querySelectorAll('.ltt-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__lttShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __lttShow('chart');
+  try{__lttChart();}catch(e){}
+}
+var __lttFn=calcTool;calcTool=function(){try{__lttFn();}catch(e){}try{__lttChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__lttChart();}catch(e){}});try{__lttTabInit();}catch(e){}
 </script>
 </body>
 </html>
