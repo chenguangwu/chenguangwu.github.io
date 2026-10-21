@@ -315,6 +315,11 @@ function __hazen_williams_headlossBoot(){ try{ __hazen_williams_headlossPresets(
 if (document.readyState && document.readyState !== 'loading') __hazen_williams_headlossBoot();
 else document.addEventListener('DOMContentLoaded', __hazen_williams_headlossBoot);
 </script>
+<div class="hazw-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="hazwChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -350,5 +355,39 @@ else document.addEventListener('DOMContentLoaded', __hazen_williams_headlossBoot
 </dl>
 </div>
 </section>
+<script>
+function __hazwChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var L=num('L'),C=num('C'),D=num('D');
+  if(!isFinite(L)||!isFinite(C)||!isFinite(D)||!(D>0)||!(C>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var Q=i*0.005;
+    var hf=10.67*L*Math.pow(Q,1.852)/(Math.pow(C,1.852)*Math.pow(D,4.87));
+    labels.push(Q.toFixed(3));
+    data.push(Math.round(hf*1000)/1000);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#hazwChart',{title:en?'Head loss vs flow (power ~1.85)':'水头损失随流量变化（幂律≈1.85）',labels:labels,series:[{name:en?'h_f (m)':'h_f (m)',data:data}]});
+}
+
+function __hazwShow(which){
+  var c=document.getElementById('hazwChart'), t=document.getElementById('hazen_williams_headlossTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __hazwTabInit(){
+  var btns=document.querySelectorAll('.hazw-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__hazwShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __hazwShow('chart');
+  try{__hazwChart();}catch(e){}
+}
+var __hazwFn=calcTool;calcTool=function(){try{__hazwFn();}catch(e){}try{__hazwChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__hazwChart();}catch(e){}});try{__hazwTabInit();}catch(e){}
+</script>
 </body>
 </html>

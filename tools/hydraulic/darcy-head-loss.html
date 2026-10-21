@@ -312,6 +312,11 @@ function __darcy_head_lossBoot(){ try{ __darcy_head_lossPresets(); }catch(e){} t
 if (document.readyState && document.readyState !== 'loading') __darcy_head_lossBoot();
 else document.addEventListener('DOMContentLoaded', __darcy_head_lossBoot);
 </script>
+<div class="drcy-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="drcyChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -347,5 +352,39 @@ else document.addEventListener('DOMContentLoaded', __darcy_head_lossBoot);
 </dl>
 </div>
 </section>
+<script>
+function __drcyChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var f=num('f'),L=num('L'),D=num('D'),rho=num('rho');
+  if(!isFinite(f)||!isFinite(L)||!isFinite(D)||!isFinite(rho)||!(D>0)||!(rho>0))return;
+  var labels=[],data=[];
+  for(var i=1;i<=10;i++){
+    var v=i;
+    var dP=f*(L/D)*(rho*v*v/2);
+    labels.push(v.toFixed(0));
+    data.push(Math.round(dP));
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#drcyChart',{title:en?'Pressure drop vs velocity (quadratic)':'压降随流速变化（平方）',labels:labels,series:[{name:en?'ΔP (Pa)':'ΔP (Pa)',data:data}]});
+}
+
+function __drcyShow(which){
+  var c=document.getElementById('drcyChart'), t=document.getElementById('darcy_head_lossTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __drcyTabInit(){
+  var btns=document.querySelectorAll('.drcy-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__drcyShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __drcyShow('chart');
+  try{__drcyChart();}catch(e){}
+}
+var __drcyFn=calcTool;calcTool=function(){try{__drcyFn();}catch(e){}try{__drcyChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__drcyChart();}catch(e){}});try{__drcyTabInit();}catch(e){}
+</script>
 </body>
 </html>

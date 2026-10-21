@@ -322,6 +322,11 @@ function __bernoulli_velocityBoot(){ try{ __bernoulli_velocityPresets(); }catch(
 if (document.readyState && document.readyState !== 'loading') __bernoulli_velocityBoot();
 else document.addEventListener('DOMContentLoaded', __bernoulli_velocityBoot);
 </script>
+<div class="brnv-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="brnvChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -357,5 +362,40 @@ else document.addEventListener('DOMContentLoaded', __bernoulli_velocityBoot);
 </dl>
 </div>
 </section>
+<script>
+function __brnvChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var P1=num('P1'),v1=num('v1'),rho=num('rho');
+  if(!isFinite(P1)||!isFinite(v1)||!isFinite(rho)||!(rho>0))return;
+  var labels=[],data=[];
+  for(var i=0;i<=8;i++){
+    var dP=300000*i/8;
+    var v2sq=v1*v1+2*dP/rho;
+    if(v2sq<0)v2sq=0;
+    labels.push((dP/1000).toFixed(0));
+    data.push(Math.round(Math.sqrt(v2sq)*100)/100);
+  }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#brnvChart',{title:en?'v2 vs pressure drop (sqrt growth)':'下游流速随压差变化（平方根增长）',labels:labels,series:[{name:en?'v2 (m/s)':'v2 (m/s)',data:data}]});
+}
+
+function __brnvShow(which){
+  var c=document.getElementById('brnvChart'), t=document.getElementById('bernoulli_velocityTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __brnvTabInit(){
+  var btns=document.querySelectorAll('.brnv-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__brnvShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __brnvShow('chart');
+  try{__brnvChart();}catch(e){}
+}
+var __brnvFn=calcTool;calcTool=function(){try{__brnvFn();}catch(e){}try{__brnvChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__brnvChart();}catch(e){}});try{__brnvTabInit();}catch(e){}
+</script>
 </body>
 </html>
