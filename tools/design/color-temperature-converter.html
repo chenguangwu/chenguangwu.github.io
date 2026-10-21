@@ -267,6 +267,12 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 </script>
+<div class="coc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="cocChart" style="margin-top:8px;"></div>
+<div id="cocTable"></div>
 <!-- SEO 介绍区块 -->
 
 </div>
@@ -371,4 +377,46 @@ function ctExportCsv(){
   TBKit.util.exportTable('#ctHidden', en?'color-temperature.csv':'色温转换.csv');
 }
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __cocChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  if(typeof kelvinToRGB!=='function')return;
+  var labels=[],r=[],g=[],b=[];
+  for(var k=1000;k<=12000;k+=500){ var c=kelvinToRGB(k); labels.push(String(k)); r.push(c[0]); g.push(c[1]); b.push(c[2]); }
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#cocChart',{title:en?'RGB channels vs color temperature':'RGB 通道随色温变化',labels:labels,series:[{name:'R',data:r},{name:'G',data:g},{name:'B',data:b}]});
+}
+function __cocTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  if(typeof kelvinToRGB!=='function')return;
+  var samples=[2000,3000,4000,5500,6500,8000,10000];
+  var rows=samples.map(function(k){var c=kelvinToRGB(k);var hex='#'+[c[0],c[1],c[2]].map(function(x){return ('0'+x.toString(16)).slice(-2);}).join('');return [k, c[0], c[1], c[2], hex.toUpperCase()];});
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#cocTable',{head:en?['K','R','G','B','HEX']:['色温K','R','G','B','HEX'],rows:rows});
+}
+
+function __cocShow(which){
+  var c=document.getElementById('cocChart'), t=document.getElementById('cocTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __cocTabInit(){
+  var btns=document.querySelectorAll('.coc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__cocShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __cocShow('chart');
+  try{__cocChart();}catch(e){}
+  try{__cocTable();}catch(e){}
+}
+var __cocFn=fromTemp;fromTemp=function(){
+  try{__cocFn.apply(this,arguments);}catch(e){}
+  try{__cocChart();}catch(e){}
+  try{__cocTable();}catch(e){}
+};
+document.addEventListener('toolbox:langchange',function(){try{__cocChart();}catch(e){} try{__cocTable();}catch(e){}});
+try{__cocTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body></html>

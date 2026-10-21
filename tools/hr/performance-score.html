@@ -391,6 +391,12 @@ renderEmps();
 calc();
 </script>
 
+<div class="pfs-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="pfsChart" style="margin-top:8px;"></div>
+<div id="pfsTable"></div>
 <!-- SEO 介绍区块 -->
 
 </div>
@@ -496,5 +502,64 @@ document.addEventListener('DOMContentLoaded',function(){
   else restore();
 }catch(e){}})();
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __pfsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  if(typeof dims==='undefined'||typeof emps==='undefined')return;
+  var normMethod=document.getElementById('normMethod').value;
+  var wSum=dims.reduce(function(s,d){return s+(+d.weight||0);},0); if(wSum<=0)wSum=1;
+  var results=emps.map(function(e){var raw=0;dims.forEach(function(d,j){raw+=(e.scores[j]||0)*((+d.weight||0)/wSum);});return {name:e.name||'未命名',raw:raw,scores:e.scores};});
+  var raws=results.map(function(r){return r.raw;});
+  var mn=Math.min.apply(null,raws),mx=Math.max.apply(null,raws);
+  var mean=raws.reduce(function(a,b){return a+b;},0)/raws.length;
+  var std=Math.sqrt(raws.reduce(function(s,v){return s+Math.pow(v-mean,2);},0)/raws.length)||1;
+  results.forEach(function(r){ if(normMethod==='minmax'){r.score=mx>mn?((r.raw-mn)/(mx-mn)*100):50;} else if(normMethod==='zscore'){var z=(r.raw-mean)/std;r.score=Math.max(0,Math.min(100,50+z*16.67));} else {r.score=r.raw;} });
+  results.sort(function(a,b){return b.score-a.score;});
+  var labels=results.map(function(r){return r.name;});
+  var data=results.map(function(r){return Math.round(r.score*10)/10;});
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#pfsChart',{title:en?'Normalized score by employee':'员工归一化得分对比',labels:labels,series:[{name:en?'score':'得分',data:data}]});
+}
+function __pfsTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  if(typeof dims==='undefined'||typeof emps==='undefined')return;
+  var normMethod=document.getElementById('normMethod').value;
+  var wSum=dims.reduce(function(s,d){return s+(+d.weight||0);},0); if(wSum<=0)wSum=1;
+  var results=emps.map(function(e){var raw=0;dims.forEach(function(d,j){raw+=(e.scores[j]||0)*((+d.weight||0)/wSum);});return {name:e.name||'未命名',raw:raw,scores:e.scores};});
+  var raws=results.map(function(r){return r.raw;});
+  var mn=Math.min.apply(null,raws),mx=Math.max.apply(null,raws);
+  var mean=raws.reduce(function(a,b){return a+b;},0)/raws.length;
+  var std=Math.sqrt(raws.reduce(function(s,v){return s+Math.pow(v-mean,2);},0)/raws.length)||1;
+  results.forEach(function(r){ if(normMethod==='minmax'){r.score=mx>mn?((r.raw-mn)/(mx-mn)*100):50;} else if(normMethod==='zscore'){var z=(r.raw-mean)/std;r.score=Math.max(0,Math.min(100,50+z*16.67));} else {r.score=r.raw;} });
+  results.sort(function(a,b){return b.score-a.score;});
+  var rows=results.map(function(r){return [r.name, r.raw.toFixed(1), r.score.toFixed(1)];});
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#pfsTable',{head:en?['Employee','Raw','Score']:['员工','原始分','归一化分'],rows:rows});
+}
+
+function __pfsShow(which){
+  var c=document.getElementById('pfsChart'), t=document.getElementById('pfsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __pfsTabInit(){
+  var btns=document.querySelectorAll('.pfs-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__pfsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __pfsShow('chart');
+  try{__pfsChart();}catch(e){}
+  try{__pfsTable();}catch(e){}
+}
+var __pfsFn=calc;calc=function(){
+  try{__pfsFn.apply(this,arguments);}catch(e){}
+  try{__pfsChart();}catch(e){}
+  try{__pfsTable();}catch(e){}
+};
+document.addEventListener('toolbox:langchange',function(){try{__pfsChart();}catch(e){} try{__pfsTable();}catch(e){}});
+try{__pfsTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>

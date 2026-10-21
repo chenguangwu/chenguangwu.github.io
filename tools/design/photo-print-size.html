@@ -297,6 +297,12 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 </script>
+<div class="pps-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="ppsChart" style="margin-top:8px;"></div>
+<div id="ppsTable"></div>
 <!-- SEO 介绍区块 -->
 
 </div>
@@ -386,5 +392,51 @@ document.addEventListener('DOMContentLoaded',function(){
   else restore();
 }catch(e){}})();
 </script>
+<script>/*TBKIT-INJECT-START*/
+function __ppsChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var pw=parseFloat(document.getElementById('pw').value)||4032;
+  var labels=[],data=[];
+  [72,150,200,300,600].forEach(function(dpi){ var cm=pw/dpi*2.54; labels.push(String(dpi)); data.push(Math.round(cm*10)/10); });
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#ppsChart',{title:en?'Max printable side length vs DPI':'最大可打印边长随 DPI 变化',labels:labels,series:[{name:en?'cm':'cm',data:data}]});
+}
+function __ppsTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var pw=parseFloat(document.getElementById('pw').value)||1, ph=parseFloat(document.getElementById('ph').value)||1, dpi=parseFloat(document.getElementById('dpi').value)||300;
+  if(pw<=0)pw=1; if(ph<=0)ph=1; if(dpi<=0)dpi=300;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var rows=printSizes.map(function(s){
+    var reqW=Math.ceil(s.w/2.54*dpi), reqH=Math.ceil(s.h/2.54*dpi);
+    var ok=(pw>=reqW&&ph>=reqH)?(en?'Yes':'是'):(en?'No':'否');
+    return [s.name, reqW+'×'+reqH, ok];
+  });
+  TBKit.matrix.table('#ppsTable',{head:en?['Size','Req px','Enough']:['打印尺寸','所需像素','像素充足'],rows:rows});
+}
+
+function __ppsShow(which){
+  var c=document.getElementById('ppsChart'), t=document.getElementById('ppsTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __ppsTabInit(){
+  var btns=document.querySelectorAll('.pps-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__ppsShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __ppsShow('chart');
+  try{__ppsChart();}catch(e){}
+  try{__ppsTable();}catch(e){}
+}
+var __ppsFn=calc;calc=function(){
+  try{__ppsFn.apply(this,arguments);}catch(e){}
+  try{__ppsChart();}catch(e){}
+  try{__ppsTable();}catch(e){}
+};
+document.addEventListener('toolbox:langchange',function(){try{__ppsChart();}catch(e){} try{__ppsTable();}catch(e){}});
+try{__ppsTabInit();}catch(e){}
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
