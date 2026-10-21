@@ -134,7 +134,13 @@ s.parentNode.insertBefore(el, s);
   <div style="flex:1;"><label>允许相对误差 (%)</label><input type="number" id="tol" value="10" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="允许相对误差"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button><button class="btn" type="button" onclick="copyRes()">📋 复制结果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__weight_sampleExport()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="weight_sampleTable"></div> <div id="weight_sampleDiff"></div> <div id="weight_sampleChart"></div> <div id="weight_sampleHist"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__weight_sampleExport()">导出明细 CSV</button></div><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="result-box" id="res"></div> <div id="weight_sampleTable"></div> <div id="weight_sampleDiff"></div> <div id="weight_sampleChart"></div> <div id="weight_sampleHist"></div>
 <div class="info-box">💡 Gy 公式：采样相对方差 σ²=C·d³·(1/w−1)/m；相对误差 σ_rel=√σ²；最小样重 m_min=C·d³·(1/w−1)/σ²_tol。d 单位 cm，m 单位 g。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事项</div><ul><li>Gy 公式适用于颗粒物料采样代表性评估</li><li>采样常数 C 与矿物密度、品位分布有关，本工具提供典型参考值</li><li>颗粒尺寸 d 取物料中 95% 通过的筛孔尺寸</li><li>品位 w 为目标组分质量分数（%输入，内部换算为小数）</li><li>结果仅供参考，实际采样方案需结合规范与现场条件</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div></div>
@@ -426,5 +432,25 @@ else document.addEventListener('DOMContentLoaded', __weight_sampleBoot);
   </div>
 </div>
 <div class="tool-intro open" id="toolIntro"><div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「采样代表性计算」</span><span class="arrow">▼</span></div><div class="tool-intro-body"><h4><span class="h4-icon">📝</span>工具简介</h4><p>基于 Pierre Gy 采样理论的代表性评估工具，输入物料最大颗粒尺寸、样品重量、目标组分品位与采样常数，计算相对采样误差、绝对误差及满足代表性要求的最小样重，判断当前采样方案是否满足代表性要求。</p><h4><span class="h4-icon">✨</span>功能特点</h4><ul class="intro-features"><li>内置贵金属、有色金属、一般矿石等典型材料采样常数</li><li>同时输出相对误差、绝对误差与最小样重</li><li>自动评价采样代表性是否达标，给出调整建议</li><li>支持自定义采样常数 C，适应特殊物料</li><li>纯前端计算，采样数据不上传</li></ul><h4><span class="h4-icon">🎯</span>使用场景</h4><ul class="intro-scenes"><li>矿山采样方案设计与样量确定</li><li>化探样品代表性评价</li><li>选矿厂取样代表性校核</li><li>矿石品位波动与采样误差分析</li></ul></div></div>
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["res", "weight_sampleChart"], "tbl": ["weight_sampleTable"], "his": ["weight_sampleHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
+    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
 </body>
 </html>
