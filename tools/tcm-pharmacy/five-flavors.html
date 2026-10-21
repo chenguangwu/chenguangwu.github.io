@@ -129,6 +129,8 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="flavorDetail"></div>
+<div id="__tbnExtras" style="margin-top:12px"></div>
+
     <table id="ffHidden" style="display:none"><thead><tr><th>Flavor</th><th>Herb</th><th>Dose</th><th>Effect</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -502,5 +504,38 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+var __tbn=function(){
+  if(typeof TBKit==='undefined')return;
+  var lab='';
+  try{var r=document.querySelector('#flavorTabs .tab-btn.active');if(r){lab=(r.textContent||'').replace(/\s+/g,' ').trim();}}catch(e){}
+  if(!lab)return;
+  var item=lab.slice(0,40);
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var T=EN?{hist:'Review Records',no:'#',time:'Time',item:'Item',freq:'Views',exp:'Export CSV',file:'review-history.csv',hint:'View 2+ items to see the frequency chart.'}
+          :{hist:'查阅记录历史',no:'序号',time:'时间',item:'条目',freq:'查看次数',exp:'导出 CSV',file:'review-history.csv',hint:'查看 2 个以上条目后显示条目频次图。'};
+  var KEY='__tbn_five_flavors';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.l!==item){hist.push({t:Date.now(),l:item});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbnExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+T.hint+'</p>';return;}
+  var cnt={};hist.forEach(function(h){cnt[h.l]=(cnt[h.l]||0)+1;});
+  var entries=Object.keys(cnt).map(function(k){return [k,cnt[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（五味查阅记录）</h3><div id="__tbnChart"></div><div id="__tbnTable"></div>';
+  if(TBKit.chart&&TBKit.chart.bar){try{TBKit.chart.bar('#__tbnChart',{labels:entries.map(function(e){return e[0];}),series:[{name:T.freq,data:entries.map(function(e){return e[1];})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.l];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.item],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbnTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=selectFlavor;selectFlavor=function(){var __r=__f0.apply(null,arguments);__tbn();return __r;};
+</script>
 </body>
 </html>
