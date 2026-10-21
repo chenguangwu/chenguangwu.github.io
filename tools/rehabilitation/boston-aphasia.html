@@ -146,6 +146,8 @@ s.parentNode.insertBefore(el, s);
     <h2>📋 评定记录</h2>
     <div class="toolbar"><button type="button" class="btn" onclick="window.__baExport('records')">⬇️ 导出评定记录 CSV</button><button type="button" class="btn danger" onclick="clearHistory()">清空记录</button></div>
     <div id="historyList"></div>
+<div id="__tbaExtras" style="margin-top:12px"></div>
+
   </div>
 
   <table id="baClsHidden" style="display:none"><thead><tr><th>Aphasia Type</th><th>Fluency</th><th>Comprehension</th><th>Repetition</th><th>Naming</th><th>Lesion Site</th></tr></thead><tbody></tbody></table>
@@ -427,5 +429,28 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+var __tba=function(){
+  if(typeof TBKit==='undefined')return;
+  var recs=[];try{recs=JSON.parse(localStorage.getItem('boston_aphasia_records')||'[]');}catch(e){}
+  if(!Array.isArray(recs))recs=[];
+  var host=document.getElementById('__tbaExtras');
+  if(!host)return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var T=EN?{hist:'Grade Trend',sc:'Grade',no:'#',date:'Date',lvl:'Level',exp:'Export CSV',file:'boston-grade-trend.csv',hint:'Save 2+ assessments to see the grade trend.'}
+          :{hist:'分级变化趋势',sc:'分级值',no:'序号',date:'日期',lvl:'分级',exp:'导出 CSV',file:'boston-grade-trend.csv',hint:'保存 2 次以上评定后显示分级变化趋势。'};
+  if(recs.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+T.hint+'</p>';return;}
+  var asc=recs.slice().reverse();
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'</h3><div id="__tbaChart"></div><div id="__tbaTable"></div>';
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbaChart',{labels:asc.map(function(r,i){return '#'+(i+1);}),series:[{name:T.sc,data:asc.map(function(r){return r.grade;})}]});}catch(e){}}
+  var rows=asc.map(function(r,i){return ['#'+(i+1),r.date,r.grade,(r.name||'')+' '+(r.level||'')];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbaTable',{head:[T.no,T.date,T.sc,T.lvl],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbaTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=saveRecord;saveRecord=function(){var __r=__f0.apply(null,arguments);__tba();return __r;};
+</script>
 </body>
 </html>
