@@ -301,6 +301,11 @@ function __thin_lens_imagingBoot(){ try{ __thin_lens_imagingPresets(); }catch(e)
 if (document.readyState && document.readyState !== 'loading') __thin_lens_imagingBoot();
 else document.addEventListener('DOMContentLoaded', __thin_lens_imagingBoot);
 </script>
+<div class="tlim-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tlimChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -336,5 +341,44 @@ else document.addEventListener('DOMContentLoaded', __thin_lens_imagingBoot);
 </dl>
 </div>
 </section>
+<script>
+function __tlimSweep(){
+  var u0=num('u'), f=num('f');
+  if(!isFinite(u0)||!isFinite(f)||Math.abs(u0)<1e-12||Math.abs(f)<1e-12)return null;
+  var labels=[], dV=[];
+  var mult=[0.5,0.8,1.0,1.5,3.0];
+  for(var k=0;k<mult.length;k++){
+    var uk=f*mult[k];
+    var den=1/f-1/uk;
+    labels.push((Math.round(uk*100)/100)+'');
+    dV.push(Math.abs(den)<1e-12?null:Math.round(1/den*100)/100);
+  }
+  return {labels:labels,dV:dV};
+}
+function __tlimChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
+  var s=__tlimSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.bar('#tlimChart',{title:en?'Image distance flips from virtual to real across the focal plane (undefined at focus)':'像距在焦平面两侧由虚像翻转为实像（焦点处无定义）',labels:s.labels,series:[{name:en?'Image distance v (mm)':'像距 v (mm)',data:s.dV}]});
+}
+
+function __tlimShow(which){
+  var c=document.getElementById('tlimChart'), t=document.getElementById('thin_lens_imagingTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tlimTabInit(){
+  var btns=document.querySelectorAll('.tlim-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tlimShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tlimShow('chart');
+  try{__tlimChart();}catch(e){}
+}
+var __tlimFn=calcTool;calcTool=function(){try{__tlimFn();}catch(e){}try{__tlimChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tlimChart();}catch(e){}});try{__tlimTabInit();}catch(e){}
+</script>
 </body>
 </html>

@@ -304,6 +304,11 @@ function __snell_refractionBoot(){ try{ __snell_refractionPresets(); }catch(e){}
 if (document.readyState && document.readyState !== 'loading') __snell_refractionBoot();
 else document.addEventListener('DOMContentLoaded', __snell_refractionBoot);
 </script>
+<div class="snrf-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="snrfChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -339,5 +344,44 @@ else document.addEventListener('DOMContentLoaded', __snell_refractionBoot);
 </dl>
 </div>
 </section>
+<script>
+function __snrfSweep(){
+  var n1=num('n1'), n2=num('n2');
+  if(!isFinite(n1)||!isFinite(n2)||Math.abs(n2)<1e-12)return null;
+  var labels=[], dT=[], dS=[];
+  for(var k=0;k<=12;k++){
+    var deg=k*7.5, t=deg*Math.PI/180;
+    var s=n1*Math.sin(t)/n2;
+    labels.push(String(Math.round(deg*10)/10));
+    dT.push(s>1?null:Math.round(Math.asin(s)*180/Math.PI*100)/100);
+    dS.push(Math.round(n1*Math.sin(t)*10000)/10000);
+  }
+  return {labels:labels,dT:dT,dS:dS};
+}
+function __snrfChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__snrfSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#snrfChart',{title:en?'Refracted angle rises as arcsin then vanishes once total internal reflection occurs':'折射角按反正弦上升，超过临界角后全反射无折射光（断开）',labels:s.labels,series:[{name:en?'Refracted angle (deg)':'折射角 θ₂ (°)',data:s.dT},{name:en?'n1 x sin(theta1)':'n₁·sinθ₁',data:s.dS}]});
+}
+
+function __snrfShow(which){
+  var c=document.getElementById('snrfChart'), t=document.getElementById('snell_refractionTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __snrfTabInit(){
+  var btns=document.querySelectorAll('.snrf-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__snrfShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __snrfShow('chart');
+  try{__snrfChart();}catch(e){}
+}
+var __snrfFn=calcTool;calcTool=function(){try{__snrfFn();}catch(e){}try{__snrfChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__snrfChart();}catch(e){}});try{__snrfTabInit();}catch(e){}
+</script>
 </body>
 </html>

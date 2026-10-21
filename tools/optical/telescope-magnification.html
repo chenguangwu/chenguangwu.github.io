@@ -297,6 +297,11 @@ function __telescope_magnificationBoot(){ try{ __telescope_magnificationPresets(
 if (document.readyState && document.readyState !== 'loading') __telescope_magnificationBoot();
 else document.addEventListener('DOMContentLoaded', __telescope_magnificationBoot);
 </script>
+<div class="tlmc-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 图表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
+</div>
+<div id="tlmcChart" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -332,5 +337,43 @@ else document.addEventListener('DOMContentLoaded', __telescope_magnificationBoot
 </dl>
 </div>
 </section>
+<script>
+function __tlmcSweep(){
+  var fo=num('fo'), fe0=num('fe');
+  if(!isFinite(fo)||!isFinite(fe0)||Math.abs(fe0)<1e-12)return null;
+  var labels=[], dM=[], dS=[];
+  for(var k=0;k<=10;k++){
+    var fek=fe0*(0.5+0.15*k);
+    labels.push((Math.round(fek*100)/100)+'');
+    dM.push(Math.round(fo/fek*100)/100);
+    dS.push(Math.round((fo+fek)*100)/100);
+  }
+  return {labels:labels,dM:dM,dS:dS};
+}
+function __tlmcChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__tlmcSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#tlmcChart',{title:en?'Angular magnification falls inversely with eyepiece focal length while the focal sum climbs linearly':'角放大率随目镜焦距反比下降，两镜焦距之和线性抬升（V 形对照）',labels:s.labels,series:[{name:en?'Magnification M':'角放大率 M (×)',data:s.dM},{name:en?'Focal length sum (mm)':'两镜焦距之和 (mm)',data:s.dS}]});
+}
+
+function __tlmcShow(which){
+  var c=document.getElementById('tlmcChart'), t=document.getElementById('telescope_magnificationTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __tlmcTabInit(){
+  var btns=document.querySelectorAll('.tlmc-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__tlmcShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+  __tlmcShow('chart');
+  try{__tlmcChart();}catch(e){}
+}
+var __tlmcFn=calcTool;calcTool=function(){try{__tlmcFn();}catch(e){}try{__tlmcChart();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__tlmcChart();}catch(e){}});try{__tlmcTabInit();}catch(e){}
+</script>
 </body>
 </html>
