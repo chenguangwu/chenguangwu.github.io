@@ -105,7 +105,14 @@ s.parentNode.insertBefore(el, s);
   <a href="../../guides/detector-178-guide.html">📖 查看「维保（检测/维修/升级）服务 使用指南」</a>
 </div>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔍 维保（检测/维修/升级）服务">Detector 178</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="检测/维修/升级">Review maintenance quality across extinguishers, hydrants, alarms, sprinklers and emergency lighting. All processing stays in your browser; no data is uploaded.</p>
 <div class="formula-box">
@@ -119,13 +126,6 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>3. 报警系统维保</label><select id="m3" onchange="calc()" style="font-size:16px;"><option value="0">运行正常 (0分)</option><option value="2">部分故障 (2分)</option><option value="3">系统瘫痪 (3分)</option></select></div><div><label>4. 喷淋系统维保</label><select id="m4" onchange="calc()" style="font-size:16px;"><option value="0">管网正常 (0分)</option><option value="2">局部渗漏 (2分)</option><option value="3">严重损坏 (3分)</option></select></div></div>
 <div class="input-row"><div><label>5. 应急照明/疏散指示</label><select id="m5" onchange="calc()" style="font-size:16px;"><option value="0">全部正常 (0分)</option><option value="2">部分不亮 (2分)</option><option value="3">大面积失效 (3分)</option></select></div><div><label>维保周期（月）</label><input type="number" id="cycle" value="1" style="font-size:16px;"></div></div>
 <div class="toolbar"><div id="detector_178Presets"></div><button type="button" class="btn primary" onclick="calc()">评估维保</button><button class="btn" type="button" onclick="__detector_178Export()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
-<style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
 <div class="result-box" id="res"></div> <div id="detector_178Table"></div> <div id="detector_178Diff"></div> <div id="detector_178Chart"></div> <div id="detector_178Hist"></div>
   </div>
 
@@ -380,18 +380,23 @@ if (document.readyState && document.readyState !== 'loading') __detector_178Boot
 else document.addEventListener('DOMContentLoaded', __detector_178Boot);
 </script>
 
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["res", "detector_178Chart"], "tbl": ["detector_178Table"], "pre": ["detector_178Presets"], "his": ["detector_178Hist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

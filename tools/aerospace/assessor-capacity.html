@@ -111,7 +111,14 @@ s.parentNode.insertBefore(el, s);
   <a href="../../guides/assessor-capacity-guide.html">📖 查看「航站楼（容量/安检）评估 使用指南」</a>
 </div>
 
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🧊 航站楼（容量/安检）评估">🧊 Terminal Capacity Assessment</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入航站楼面积、安检通道数等参数，评估旅客处理容量和安检通过能力">Assess airport terminal capacity and security throughput against passenger demand.</p>
 <div class="formula-box">
@@ -125,14 +132,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row"><div><label>登机口数</label><input type="number" id="gates" value="20" step="1" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="input-row"><div><label>高峰小时旅客数</label><input type="number" id="peakPax" value="2500" step="100" style="font-size:16px;" oninput="calc()"></div></div>
     <div class="toolbar"><div id="assessor_capacityPresets"></div><button type="button" class="btn primary" onclick="calc()">评估容量</button><button class="btn" type="button" onclick="__assessor_capacityExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
-    <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="result-box" id="res"></div> <div id="assessor_capacityTable"></div> <div id="assessor_capacityDiff"></div> <div id="assessor_capacityChart"></div> <div id="assessor_capacityHist"></div>
+    <div class="result-box" id="res"></div> <div id="assessor_capacityTable"></div> <div id="assessor_capacityDiff"></div> <div id="assessor_capacityChart"></div> <div id="assessor_capacityHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -468,18 +468,23 @@ else document.addEventListener('DOMContentLoaded', __assessor_capacityBoot);
   ]
 }
 </script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["res", "assessor_capacityChart"], "tbl": ["assessor_capacityTable"], "pre": ["assessor_capacityPresets"], "his": ["assessor_capacityHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

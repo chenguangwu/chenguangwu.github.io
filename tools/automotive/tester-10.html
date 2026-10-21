@@ -127,7 +127,13 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">喷油嘴（清洗/均衡）测试</span>
 </nav>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#4b5563;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#4b5563;">
     <h2 data-zh="📝 喷油嘴（清洗/均衡）测试">Tester 10</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="喷油嘴在线测试工具，输入各缸喷油量数据评估清洗均衡效果，计算平均喷油量与偏差，辅助发动机维修诊断，纯前端。">Online fuel-injector tester: input per-cylinder injection data to assess cleaning balance, computing average flow and deviation for engine service diagnosis. Pure front-end.</p>
     <div class="input-row">
@@ -146,13 +152,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>测试次数（同缸重复）</label><input type="number" id="rep" value="1" oninput="calc()" min="1" max="10" step="1"></div>
       <div><label>测量时长 (s)</label><input type="number" id="dur" value="60" oninput="calc()" min="5" max="300" step="5"></div>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__tester_10Export()">导出明细 CSV</button></div><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="safe-main" id="result"></div> <div id="tester_10Table"></div> <div id="tester_10Diff"></div> <div id="tester_10Chart"></div> <div id="tester_10Hist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__tester_10Export()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="tester_10Table"></div> <div id="tester_10Diff"></div> <div id="tester_10Chart"></div> <div id="tester_10Hist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"></div>
     <div id="adviceBox"></div>
@@ -448,18 +448,23 @@ function __tester_10Boot(){ try{ __tester_10Presets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __tester_10Boot();
 else document.addEventListener('DOMContentLoaded', __tester_10Boot);
 </script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["result", "tester_10Chart"], "tbl": ["tester_10Table"], "his": ["tester_10Hist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

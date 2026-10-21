@@ -107,7 +107,14 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">烤箱温度（摄氏度/华氏度）转换与风温补偿</span>
 </nav>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🌡️ 烤箱温度（摄氏度/华氏度）转换与风温补偿">Convert Temp</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="摄氏度/华氏度">Convert Temp - convert values in-browser instantly with local processing.</p>
 <div class="formula-box">
@@ -120,13 +127,6 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row"><div><label>源单位</label><select id="from" onchange="calc()"><option value="1">摄氏度 ℃</option><option value="2">华氏度 ℉</option></select></div>
 <div><label>目标单位</label><select id="to" onchange="calc()"><option value="1">摄氏度 ℃</option><option value="2">华氏度 ℉</option></select></div></div>
 <div class="toolbar"><div id="convert_tempPresets"></div><button type="button" class="btn primary" onclick="calc()">换算</button><button class="btn" type="button" onclick="__convert_tempExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyRes()">复制</button></div>
-<style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
 <div class="result-box" id="res"></div> <div id="convert_tempTable"></div> <div id="convert_tempDiff"></div> <div id="convert_tempChart"></div> <div id="convert_tempHist"></div>
   </div>
 
@@ -365,18 +365,23 @@ else document.addEventListener('DOMContentLoaded', __convert_tempBoot);
 
 
 <script type="application/ld+json" class="faq-page-ld">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "风炉为什么比平炉温度要低？", "acceptedAnswer": {"@type": "Answer", "text": "风炉靠风扇强制对流，热交换效率更高，相同设定下升温快、上色猛。下调 10–20°C 或减时 10–15% 可得到与平炉相当的烘焙效果。"}}, {"@type": "Question", "name": "高海拔需要怎么调温度？", "acceptedAnswer": {"@type": "Answer", "text": "海拔升高水的沸点降低、水分蒸发更快，蛋糕易塌陷或干硬。一般略降温、略延长并减少膨胀剂，但具体需结合配方与当地实测。"}}]}</script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["res", "convert_tempChart"], "tbl": ["convert_tempTable"], "pre": ["convert_tempPresets"], "his": ["convert_tempHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

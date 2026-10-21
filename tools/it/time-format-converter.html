@@ -105,7 +105,14 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">时间格式转换</span>
 </nav>
 <div class="container">
-  <div class="card">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card">
     <h2 data-zh="🏋️ 时间格式转换">🏋️ Time Format Convert</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支持 ISO8601 / Unix / 自定义（YYYY-MM-DD HH:mm:ss）。">Time Format Convert</p>
 <div class="formula-box">
@@ -127,14 +134,7 @@ s.parentNode.insertBefore(el, s);
       <div id="time_format_converterPresets"></div><button class="btn primary" onclick="convertTime()">转换</button><button class="btn" type="button" onclick="__time_format_converterExport()">导出明细 CSV</button>
       <button class="btn" onclick="copyResult()">复制</button>
     </div>
-    <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="result-box" id="out"></div> <div id="time_format_converterTable"></div> <div id="time_format_converterDiff"></div> <div id="time_format_converterChart"></div> <div id="time_format_converterHist"></div>
+    <div class="result-box" id="out"></div> <div id="time_format_converterTable"></div> <div id="time_format_converterDiff"></div> <div id="time_format_converterChart"></div> <div id="time_format_converterHist"></div>
   </div>
 </div>
 
@@ -358,18 +358,23 @@ else document.addEventListener('DOMContentLoaded', __time_format_converterBoot);
 </div>
 </section>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "时间戳是秒还是毫秒？", "acceptedAnswer": {"@type": "Answer", "text": "常见有 10 位（秒）和 13 位（毫秒）两种。工具一般可切换单位；如果看到 1970 年附近的奇怪日期，多半是把毫秒当秒解析了，切到毫秒即可。"}}, {"@type": "Question", "name": "时区怎么影响结果？", "acceptedAnswer": {"@type": "Answer", "text": "同一时刻在不同时区显示的\"墙钟时间\"不同。请确认所选时区与你的日志来源一致，否则转换出的日期会差几小时。"}}]}</script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["out", "time_format_converterChart"], "tbl": ["time_format_converterTable"], "pre": ["time_format_converterPresets"], "his": ["time_format_converterHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

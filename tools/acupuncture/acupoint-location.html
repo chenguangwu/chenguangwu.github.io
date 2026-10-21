@@ -119,7 +119,14 @@ s.parentNode.insertBefore(el, s);
   <a href="../../guides/acupoint-location-guide.html">📖 查看「穴位定位(骨度分寸法)计算器 使用指南」</a>
 </div>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📍 穴位定位(骨度分寸法)计算器">Acupoint Location</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依据《灵枢·骨度》及全国统编教材骨度分寸折量标准，按患者实测体表长度换算取穴">Acupoint Location</p>
     <div class="formula-box">
@@ -156,14 +163,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
     </div>
 
-    <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="result-box" id="result">
+    <div class="result-box" id="result">
       <p style="color:var(--text-muted);">请选择部位并输入实测长度</p>
     </div> <div id="acupoint_locationTable"></div> <div id="acupoint_locationDiff"></div> <div id="acupoint_locationChart"></div> <div id="acupoint_locationHist"></div>
 
@@ -573,18 +573,23 @@ else document.addEventListener('DOMContentLoaded', __acupoint_locationBoot);
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "骨度分寸和手指同身寸区别？", "acceptedAnswer": {"@type": "Answer", "text": "骨度以骨骼标志间等分为寸，更客观；手指同身寸（如中指同身寸）受手指大小影响，宜作辅助。"}}, {"@type": "Question", "name": "骨度定位能完全替代解剖标志吗？", "acceptedAnswer": {"@type": "Answer", "text": "不能，需结合体表标志、解剖层次综合取穴；本工具结果仅供参考，不能替代医师诊断与处方，操作请遵医嘱。"}}]}
 </script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "acupoint_locationChart"], "tbl": ["acupoint_locationTable"], "pre": ["acupoint_locationPresets"], "his": ["acupoint_locationHist"]};
+  var P={"res": ["result", "tableBox", "acupoint_locationChart"], "tbl": ["acupoint_locationTable"], "pre": ["acupoint_locationPresets"], "his": ["acupoint_locationHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

@@ -127,7 +127,13 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">发动机排量压缩比计算</span>
 </nav>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#1e40af;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#1e40af;">
     <h2 data-zh="🔧 发动机排量压缩比计算">Engine Displacement &amp; Compression Ratio Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="由缸径、行程、缸数与燃烧室容积计算单缸排量、总排量与压缩比，并提示燃油标号匹配。">Compute displacement and compression ratio from bore, stroke, cylinders.</p>
     <div class="input-row">
@@ -138,13 +144,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>气缸数</label><input type="number" id="cyl" value="4" oninput="calc()" min="1" step="1"></div>
       <div><label>燃烧室容积 Vc (cm³)</label><input type="number" id="vc" value="56" oninput="calc()" min="0.1" step="0.1"></div>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calc_72Export()">导出明细 CSV</button></div><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="safe-main" id="result"></div> <div id="calc_72Table"></div> <div id="calc_72Diff"></div> <div id="calc_72Chart"></div> <div id="calc_72Hist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calc_72Export()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="calc_72Table"></div> <div id="calc_72Diff"></div> <div id="calc_72Chart"></div> <div id="calc_72Hist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"><div class="formula-eq">单缸容积 V = π÷4 × 缸径² × 行程（mm³）；总排量 = 单缸容积 × 缸数 ÷ 1000（L）；压缩比 = (燃烧室容积 + 单缸容积) ÷ 燃烧室容积；缸径行程比 = 缸径 ÷ 行程。</div></div>
     <div id="adviceBox"></div>
@@ -396,18 +396,23 @@ function __calc_72Boot(){ try{ __calc_72Presets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __calc_72Boot();
 else document.addEventListener('DOMContentLoaded', __calc_72Boot);
 </script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["result", "calc_72Chart"], "tbl": ["calc_72Table"], "his": ["calc_72Hist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

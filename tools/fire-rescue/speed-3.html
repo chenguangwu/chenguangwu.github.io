@@ -108,7 +108,13 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">缓降器速度控制计算</span>
 </nav>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#DC2626;--tool-accent-dark:#B91C1C;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#DC2626;--tool-accent-dark:#B91C1C;">
     <h2 data-zh="🏎️ 缓降器速度控制计算">Speed 3</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基于绞盘（Capstan）公式估算缓降器在不同包绕圈数与摩擦系数下的控制力与理论下降速度。">Speed 3 - online utility on ToolBox.</p>
     <div class="formula-box">
@@ -127,13 +133,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__speed_3Export()">导出明细 CSV</button></div><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="result-box" id="res"></div> <div id="speed_3Table"></div> <div id="speed_3Diff"></div> <div id="speed_3Chart"></div> <div id="speed_3Hist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__speed_3Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="speed_3Table"></div> <div id="speed_3Diff"></div> <div id="speed_3Chart"></div> <div id="speed_3Hist"></div>
     <div class="info-box">💡 绞盘公式：T<sub>载荷</sub>/T<sub>控制</sub> = e<sup>μθ</sup>，θ=2πn；下降加速度 a = g·e<sup>−μθ</sup>，速度 v = √(2ah)。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;">
       <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -414,18 +414,23 @@ else document.addEventListener('DOMContentLoaded', __speed_3Boot);
     </ul>
     </div>
 </div>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["res", "speed_3Chart"], "tbl": ["speed_3Table"], "his": ["speed_3Hist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

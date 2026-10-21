@@ -97,7 +97,14 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">TOML 转 XML 转换器</span>
 </nav>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="📄 TOML 转 XML 转换器">📄 TOML to XML Converter</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
@@ -129,14 +136,7 @@ s.parentNode.insertBefore(el, s);
       <div id="toml_to_xmlPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__toml_to_xmlExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
     </div>
-    <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="result-box" id="result"></div> <div id="toml_to_xmlTable"></div> <div id="toml_to_xmlDiff"></div> <div id="toml_to_xmlChart"></div> <div id="toml_to_xmlHist"></div>
+    <div class="result-box" id="result"></div> <div id="toml_to_xmlTable"></div> <div id="toml_to_xmlDiff"></div> <div id="toml_to_xmlChart"></div> <div id="toml_to_xmlHist"></div>
   </div>
 <div class="tool-notes" style="--tool-accent:#3B82F6;">
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
@@ -478,18 +478,23 @@ else document.addEventListener('DOMContentLoaded', __toml_to_xmlBoot);
 </div>
 </section>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "嵌套结构怎么表达？", "acceptedAnswer": {"@type": "Answer", "text": "TOML 的 `[a.b]` 表会变成 `<a><b>…</b></a>` 的嵌套 XML 节点；数组会展开为重复的同名子元素。"}}, {"@type": "Question", "name": "和 TOML 转 JSON 结果一致吗？", "acceptedAnswer": {"@type": "Answer", "text": "语义一致、表示不同：JSON 用花括号与方括号，XML 用标签嵌套；字段名与值保持相同。"}}]}</script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["result", "toml_to_xmlChart"], "tbl": ["toml_to_xmlTable"], "pre": ["toml_to_xmlPresets"], "his": ["toml_to_xmlHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

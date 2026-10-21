@@ -111,7 +111,13 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">低油雾寿命计算</span>
 </nav>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
      <h2 data-zh="⛅ 低油雾寿命计算">⛅ Low-Oil-Mist Life (Arrhenius)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入油品类型、工作温度与转速，估算低油雾设计下的润滑寿命">From oil type, operating temperature and speed, estimates lubrication life under a low-oil-mist design.</p>
         <div class="formula-box">
@@ -136,13 +142,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lifespan_23Export()">导出明细 CSV</button></div><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="result-box" id="res"></div> <div id="lifespan_23Table"></div> <div id="lifespan_23Diff"></div> <div id="lifespan_23Chart"></div> <div id="lifespan_23Hist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lifespan_23Export()">导出明细 CSV</button></div><div class="result-box" id="res"></div> <div id="lifespan_23Table"></div> <div id="lifespan_23Diff"></div> <div id="lifespan_23Chart"></div> <div id="lifespan_23Hist"></div>
     <div class="info-box">💡 L = L0 × f_temp × f_rpm × f_mist；温度因子按 Arrhenius 每 10℃ 衰减，转速过高加速油雾蒸发</div>
     <div class="tool-notes" style="--tool-accent:#FF6B35;">
       <div class="tool-notes-title">⚠️ 注意事项</div>
@@ -421,18 +421,23 @@ else document.addEventListener('DOMContentLoaded', __lifespan_23Boot);
     <ul class="intro-scenes"><li>高速主轴低油雾润滑系统设计</li><li>食品级/洁净车间润滑油选型</li><li>换油周期制定与维护计划</li><li>油雾浓度控制与环保评估</li></ul>
     </div>
 </div>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["res", "lifespan_23Chart"], "tbl": ["lifespan_23Table"], "his": ["lifespan_23Hist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

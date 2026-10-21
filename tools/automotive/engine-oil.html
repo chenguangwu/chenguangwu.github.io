@@ -127,7 +127,13 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">机油黏度规格选择</span>
 </nav>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#b45309;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#b45309;">
     <h2 data-zh="🛢️ 机油黏度规格选择">Engine Oil</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入环境温度范围与发动机类型，推荐合适的 SAE 黏度等级与 API 规格标准。">Input ambient temperature range and engine type to recommend a suitable SAE viscosity grade and API specification.</p>
     <div class="input-row">
@@ -152,13 +158,7 @@ s.parentNode.insertBefore(el, s);
         <option value="heavy">长途 / 拖挂 / 高负荷</option>
       </select></div>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__engine_oilExport()">导出明细 CSV</button></div><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="safe-main" id="result"></div> <div id="engine_oilTable"></div> <div id="engine_oilDiff"></div> <div id="engine_oilChart"></div> <div id="engine_oilHist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__engine_oilExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="engine_oilTable"></div> <div id="engine_oilDiff"></div> <div id="engine_oilChart"></div> <div id="engine_oilHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"><div class="formula-eq">机油黏度按环境温度与车况选取：最低气温决定 W 前数字（−30℃ 选 0W、−25℃ 选 5W）；高温黏度按最高气温、车龄、是否烧机油与工况（20/30/40）综合判定。</div></div>
     <div id="adviceBox"></div>
@@ -414,18 +414,23 @@ function __engine_oilBoot(){ try{ __engine_oilPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __engine_oilBoot();
 else document.addEventListener('DOMContentLoaded', __engine_oilBoot);
 </script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["result", "engine_oilChart"], "tbl": ["engine_oilTable"], "his": ["engine_oilHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}

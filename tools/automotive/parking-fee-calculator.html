@@ -156,7 +156,13 @@ s.parentNode.insertBefore(el, s);
   <span class="bc-current">停车费用计算器（汽车）</span>
 </nav>
 <div class="container">
-  <div class="card tool-card-accent" style="--tool-accent:#7c3aed;">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">结果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
+  <button type="button" class="tbk-tab" data-pane="his">历史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#7c3aed;">
     <h2 data-zh="💰 停车费用计算器（汽车）">Parking Fee Calculator ( Car ) - Parking Fee Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按首时段、后续计费单位与单日封顶规则计算停车费，支持免费时长与跨天停放，辅助出行成本预算。">Calculate parking fees by first-period rate, subsequent billing units, and daily cap, with free duration and overnight parking support, for travel cost budgeting.</p>
     <div class="input-row">
@@ -175,13 +181,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>免费时长 (分钟，仅首段抵扣)</label><input type="number" id="freeMin" value="0" oninput="calc()" min="0" step="1"></div>
       <div><label>跨天数 (天)</label><input type="number" id="days" value="1" oninput="calc()" min="1" step="1"></div>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__parking_fee_calculatorExport()">导出明细 CSV</button></div><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="safe-main" id="result"></div> <div id="parking_fee_calculatorTable"></div> <div id="parking_fee_calculatorDiff"></div> <div id="parking_fee_calculatorChart"></div> <div id="parking_fee_calculatorHist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__parking_fee_calculatorExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="parking_fee_calculatorTable"></div> <div id="parking_fee_calculatorDiff"></div> <div id="parking_fee_calculatorChart"></div> <div id="parking_fee_calculatorHist"></div>
     <div class="dist-grid" id="distGrid"></div>
     <div class="formula-box" id="formulaBox"><div class="formula-eq">停车费 = 首段费 + 超时费；超时分钟 = max(0, 停车时长 − 首段时长 − 免费时长)；超时费 = ⌈超时分钟 ÷ 计费单位⌉ × 单位费率；单日封顶 cap；多天按天数累加。</div></div>
     <div id="adviceBox"></div>
@@ -438,18 +438,23 @@ function __parking_fee_calculatorBoot(){ try{ __parking_fee_calculatorPresets();
 if (document.readyState && document.readyState !== 'loading') __parking_fee_calculatorBoot();
 else document.addEventListener('DOMContentLoaded', __parking_fee_calculatorBoot);
 </script>
+
+
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["result", "parking_fee_calculatorChart"], "tbl": ["parking_fee_calculatorTable"], "his": ["parking_fee_calculatorHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
-    if(typeof TBKit==='undefined'){ setTimeout(tabify,60); return; }
-    var bar=document.querySelector('.tbk-tabbar'); if(!bar)return;
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
     var btns=bar.querySelectorAll('.tbk-tab');
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||(document.documentElement.lang||'').indexOf('en')>=0;
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
     for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
     function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el)el.style.display=(k===pane?'':'none');}}
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
