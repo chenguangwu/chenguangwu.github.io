@@ -791,10 +791,15 @@
     EN_ORIG = [];
   }
 
-  // 查表：per-tool 字典优先（更具体），全局通用层兜底
+  // 查表：per-tool 字典优先（更具体），全局通用层兜底；BODY_PHRASE_MAP 全局正文短语表作最终兜底。
+  // 【修复 2026-10-22】旧 pickEn 仅查 EN_DICT/EN_COMMON，导致动态增量翻译（MutationObserver 的
+  // dynTranslateNode 与 applyEnDict(b) 文本节点分支）命中不了 BODY_PHRASE_MAP 的全局译文 ——
+  // 运行时注入的相关工具标题「🔗 相关工具」、结果区「导出 CSV」、deep-dive「📚 深度解析…」等
+  // 独立文本节点永远残留中文。现补 BODY_PHRASE_MAP 兜底：exact 命中即译，动态/静态路径一致收敛、零回环。
   function pickEn(key) {
     if (EN_DICT && EN_DICT[key]) return EN_DICT[key];
     if (EN_COMMON && EN_COMMON[key]) return EN_COMMON[key];
+    if (BODY_PHRASE_MAP && BODY_PHRASE_MAP.hasOwnProperty(key)) return BODY_PHRASE_MAP[key];
     return null;
   }
 
