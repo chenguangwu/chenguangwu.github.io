@@ -148,6 +148,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+<div id="__tbnDiff" style="margin-top:8px"></div>
     <div id="sound_power_levelTable"></div>
     <h3 style="margin:14px 0 8px;">📐 点声源距离衰减（自由场）</h3>
     <div id="sound_power_levelDist"></div>
@@ -371,7 +372,7 @@ function __sound_power_levelExtras(){
         head: en?['Source','L_W (dB)','vs current']:['声源','功率级 L_W (dB)','与当前声源对比'],
         rows: __splSrcRows
     });
-    TBKit.history.record({W:__sound_power_levelRaw('W')});
+    TBKit.history.record({W:__sound_power_levelRaw('W'), result: 10*Math.log10(W/1e-12)});
     function __sound_power_levelRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#sound_power_levelHist',function(rec){ __sound_power_levelRestore(rec); calcTool(); });
 }
@@ -424,5 +425,26 @@ else document.addEventListener('DOMContentLoaded', __sound_power_levelBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<script>
+var __spl=function(){
+  if(typeof TBKit==='undefined')return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'Compare':'对比结果';
+  var arr=[];try{arr=TBKit.history.list();}catch(e){}
+  var rec=null;
+  for(var i=0;i<arr.length;i++){var ks=Object.keys(arr[i].d||{});if(ks.length&&ks.indexOf(LBL)<0){rec=arr[i];break;}}
+  if(!rec||typeof rec.t!=='number'||Date.now()-rec.t>8000)return;
+  var kk=Object.keys(rec.d||{});
+  if(!kk.length)return;
+  var k=-1<0?kk[kk.length-1]:kk[-1];
+  if(!k)return;
+  var acc=parseFloat(String(rec.d[k]).replace(/[^0-9.\-]/g,''));
+  if(!isFinite(acc))return;
+  var r={};r[LBL]=acc;
+  if(TBKit.history&&TBKit.history.record)TBKit.history.record(r);
+  if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
+};
+var __f0=calcTool;calcTool=function(){var __r=__f0.apply(null,arguments);__spl();return __r;};
+</script>
 </body>
 </html>
