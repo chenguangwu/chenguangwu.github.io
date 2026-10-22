@@ -145,6 +145,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+<div id="__tbnDiff" style="margin-top:8px"></div>
     <div id="eps_calcTable"></div>
     <div id="eps_calcDiff"></div>
     <div id="eps_calcHist"></div>
@@ -276,7 +277,7 @@ function __eps_calcExtras(){
             ['优先股股息占比 (%)', (pref/(ni||1)*100).toFixed(3)],
         ]
     });
-    TBKit.history.record({ni:__eps_calcRaw('ni'), pref:__eps_calcRaw('pref'), shares:__eps_calcRaw('shares')});
+    TBKit.history.record({ni:__eps_calcRaw('ni'), pref:__eps_calcRaw('pref'), shares:__eps_calcRaw('shares'), result: Number(((ni-pref)/s).toFixed(2))});
     function __eps_calcRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#eps_calcHist',function(rec){ __eps_calcRestore(rec); calcTool(); });
 }
@@ -376,6 +377,27 @@ function __epscTabInit(){
 }
 var __epscFn=calcTool;calcTool=function(){try{__epscFn();}catch(e){}try{__epscChart();}catch(e){}};
 document.addEventListener('toolbox:langchange',function(){try{__epscChart();}catch(e){}});try{__epscTabInit();}catch(e){}
+</script>
+<script>
+var __eps=function(){
+  if(typeof TBKit==='undefined')return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'Compare':'对比结果';
+  var arr=[];try{arr=TBKit.history.list();}catch(e){}
+  var rec=null;
+  for(var i=0;i<arr.length;i++){var ks=Object.keys(arr[i].d||{});if(ks.length&&ks.indexOf(LBL)<0){rec=arr[i];break;}}
+  if(!rec||typeof rec.t!=='number'||Date.now()-rec.t>8000)return;
+  var kk=Object.keys(rec.d||{});
+  if(!kk.length)return;
+  var k=-1<0?kk[kk.length-1]:kk[-1];
+  if(!k)return;
+  var acc=parseFloat(String(rec.d[k]).replace(/[^0-9.\-]/g,''));
+  if(!isFinite(acc))return;
+  var r={};r[LBL]=acc;
+  if(TBKit.history&&TBKit.history.record)TBKit.history.record(r);
+  if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
+};
+var __f0=calcTool;calcTool=function(){var __r=__f0.apply(null,arguments);__eps();return __r;};
 </script>
 </body>
 </html>
