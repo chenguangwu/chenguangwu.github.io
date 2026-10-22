@@ -481,5 +481,66 @@ else document.addEventListener('DOMContentLoaded', __frequency_converterBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<!-- __charRef_start -->
+<section class="char-module" id="__charRef" style="margin-top:16px;">
+<div id="__charRefBox"></div>
+</section>
+<script>
+(function(){
+  var F = {"Hz": 1, "kHz": 1000, "MHz": 1000000, "GHz": 1000000000, "rpm": 0.0166666667};
+  var REFS = [{"v": 1.2, "zh": "静息心跳", "en": "resting heartbeat", "d": "1.2"}, {"v": 20, "zh": "人耳可闻下限", "en": "lowest audible tone", "d": "20"}, {"v": 27.5, "zh": "钢琴最低音（A0）", "en": "lowest piano note (A0)", "d": "27.5"}, {"v": 50, "zh": "市电频率", "en": "mains electricity", "d": "50"}, {"v": 261.6, "zh": "中央 C", "en": "middle C", "d": "261.6"}, {"v": 20000.0, "zh": "人耳可闻上限", "en": "highest audible tone", "d": "2×10^4"}, {"v": 100000000.0, "zh": "FM 广播", "en": "FM radio band", "d": "1×10^8"}, {"v": 2400000000.0, "zh": "Wi-Fi 2.4G", "en": "Wi-Fi 2.4G", "d": "2.4×10^9"}, {"v": 3000000000.0, "zh": "CPU 主频", "en": "CPU clock", "d": "3×10^9"}, {"v": 500000000000000.0, "zh": "可见光", "en": "visible light", "d": "5×10^14"}];
+  var BASE = ["赫兹", "Hz"];
+  var FACTS = ["1 赫兹 = 每秒 1 次；1 转/分(rpm) = 1/60 赫兹；人耳可听范围约 20 Hz–20 kHz。", "1 Hz = one cycle per second; 1 rpm = 1/60 Hz; human hearing spans ~20 Hz–20 kHz."];
+  function isEn(){
+    try { return new URLSearchParams(location.search).get('lang')==='en-US'; } catch(e){ return false; }
+  }
+  function fmt(n){
+    var a=Math.abs(n);
+    if(a>=1e9 || (a>0 && a<1e-3)){ return n.toExponential(3).replace(/e\+?(-?\d+)/, '×10^$1'); }
+    return (Math.round(n*1e6)/1e6).toString();
+  }
+  function render(){
+    var box=document.getElementById('__charRefBox');
+    if(!box) return;
+    var inp=document.getElementById('inputVal');
+    var sel=document.getElementById('fromUnit');
+    if(!inp||!sel) return;
+    var v=parseFloat(inp.value);
+    var from=sel.value;
+    if(!isFinite(v)||!F[from]){ box.innerHTML=''; return; }
+    var base=v*F[from];
+    var best=null, bd=1e18;
+    for(var i=0;i<REFS.length;i++){
+      var rv=REFS[i].v;
+      if(!(rv>0)) continue;
+      var d=Math.abs(Math.log10(Math.abs(base)+1e-30)-Math.log10(rv));
+      if(d<bd){ bd=d; best=REFS[i]; }
+    }
+    var en=isEn();
+    var bname=en?BASE[1]:BASE[0];
+    var html='';
+    html+='<div class="card" style="margin-top:0;">';
+    html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
+    html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
+    if(best){
+      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+    }
+    html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
+    for(var j=0;j<REFS.length;j++){
+      var r=REFS[j];
+      html+='<li>'+r[en?'en':'zh']+(en?': ':'：')+r.d+' '+bname+'</li>';
+    }
+    html+='</ul></details>';
+    html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(en?FACTS[1]:FACTS[0])+'</p>';
+    html+='</div>';
+    box.innerHTML=html;
+  }
+  var f0=(typeof convert==='function')?convert:null;
+  if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);
+  else render();
+})();
+</script>
+<!-- __charRef_end -->
 </body>
 </html>
