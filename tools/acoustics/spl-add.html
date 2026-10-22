@@ -335,5 +335,146 @@ var __adFn=calcTool;calcTool=function(){try{__adFn();}catch(e){}try{__adChart();
 document.addEventListener('toolbox:langchange',function(){try{__adChart();}catch(e){}try{__adTable();}catch(e){}});
 try{__adTabInit();}catch(e){}
 </script>
+<section class="char-module" id="__charNoise" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charNoiseTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charNoiseDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charNoiseBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charNoiseVal" style="font-size:15px;font-weight:600;margin:8px 0 10px;"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charNoiseRows"></tbody>
+  </table>
+  <p id="__charNoiseNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+  var SOURCES = [
+    [0, '听觉阈值', 'Threshold of hearing'],
+    [20, '耳语、安静卧室', 'Whisper, quiet bedroom'],
+    [40, '图书馆、冰箱嗡鸣', 'Library, refrigerator hum'],
+    [60, '正常交谈、空调', 'Normal conversation, air conditioner'],
+    [70, '吸尘器、繁忙街道', 'Vacuum cleaner, busy street'],
+    [85, '繁忙车流、地铁进站', 'Heavy traffic, subway arriving'],
+    [90, '摩托车、草坪机', 'Motorcycle, lawn mower'],
+    [100, '电锯、地铁车厢内', 'Chainsaw, inside a subway car'],
+    [110, '夜总会、摇滚演出', 'Night club, rock concert'],
+    [120, '痛阈、喷气发动机近场', 'Threshold of pain, jet engine nearby'],
+    [130, '军用喷气起飞', 'Military jet take-off'],
+    [140, '枪声、爆竹近距', 'Gunshot, firecracker up close']
+  ];
+  var IDS = ['L1', 'L2'];
+  function __cnIsEn(){
+    try { return new URLSearchParams(location.search).get('lang')==='en-US'; } catch(e){ return false; }
+  }
+  function num(id){
+    var el = document.getElementById(id);
+    if(!el) return NaN;
+    return parseFloat(el.value);
+  }
+  function __cnDb(){
+    var v = (10*Math.log10(Math.pow(10,num('L1')/10)+Math.pow(10,num('L2')/10)));
+    if(!isFinite(v)) return null;
+    return v;
+  }
+  // NIOSH 推荐限值 85 dB / 8 h，3 dB 交换率：T = 8 * 2^((85-L)/3) 小时
+  function __cnLimit(L){
+    if(L < 80) return null;             // 基本无限制
+    var h = 8 * Math.pow(2, (85 - L) / 3);
+    if(!isFinite(h)) return null;
+    return h;
+  }
+  function __cnFmtHours(h){
+    if(h >= 24) return null;            // 超过 24h 视为无实际限制
+    if(h >= 1) return { v: h, u: 'h' };
+    var m = h * 60;
+    if(m >= 1) return { v: m, u: 'min' };
+    return { v: m * 60, u: 's' };
+  }
+  function __cnNearest(L){
+    var best = SOURCES[0], bd = Math.abs(SOURCES[0][0] - L);
+    for(var i=1;i<SOURCES.length;i++){
+      var d = Math.abs(SOURCES[i][0] - L);
+      if(d < bd){ bd = d; best = SOURCES[i]; }
+    }
+    return best;
+  }
+  function __cnUpdate(){
+    var en = __cnIsEn();
+    var badge = document.getElementById('__charNoiseBadge');
+    var val = document.getElementById('__charNoiseVal');
+    var tb = document.getElementById('__charNoiseRows');
+    var L = __cnDb();
+    if(L === null){
+      if(badge){ badge.style.display='none'; }
+      if(val) val.textContent = en ? 'Enter valid input above to get a sound level first.' : '请先在上方填写有效输入，算出声级后再看暴露时限。';
+      if(tb) tb.innerHTML = '';
+      return;
+    }
+    var color, label, risk, protect;
+    if(L < 60){ color = '#16a34a'; label = en ? 'Safe' : '安全';
+      risk = en ? 'Well below any occupational limit; no hearing damage expected from ordinary exposure.' : '远低于任何职业限值，日常暴露不会造成听力损伤。';
+      protect = en ? 'No hearing protection needed.' : '无需听力防护。'; }
+    else if(L < 85){ color = '#0d9488'; label = en ? 'Generally safe' : '基本安全';
+      risk = en ? 'Below the 85 dB occupational action level; prolonged close-range exposure may still cause fatigue.' : '低于 85 dB 职业行动水平；长时间近距离暴露仍可能引起疲劳与不适。';
+      protect = en ? 'No protection normally needed; consider earplugs for long sessions.' : '通常无需防护；长时间处于该环境可考虑耳塞。'; }
+    else if(L < 100){ color = '#ea580c'; label = en ? 'Protection advised' : '建议防护';
+      risk = en ? 'At or above the 85 dB action level: cumulative exposure can cause permanent hearing loss.' : '达到或超过 85 dB 行动水平：累积暴露可导致永久性听力损伤。';
+      protect = en ? 'Wear hearing protection and limit continuous exposure to the time below.' : '应佩戴听力防护，并把连续暴露控制在下方时限内。'; }
+    else if(L < 115){ color = '#dc2626'; label = en ? 'Hazardous' : '危险';
+      risk = en ? 'Only minutes of exposure are permitted; unprotected exposure risks immediate and permanent damage.' : '只允许数分钟暴露；无防护暴露可造成即时且永久的损伤。';
+      protect = en ? 'Hearing protection is mandatory; double protection (plugs + muffs) is recommended.' : '必须佩戴听力防护；建议双重防护（耳塞 + 耳罩）。'; }
+    else { color = '#7f1d1d'; label = en ? 'Extreme danger' : '极度危险';
+      risk = en ? 'At or above the threshold of pain: any unprotected exposure can cause immediate injury.' : '达到或超过痛阈：任何无防护暴露都可能造成即时伤害。';
+      protect = en ? 'Do not approach unprotected; only trained personnel with full protection should be present.' : '不得无防护接近；仅限佩戴全套防护的受训人员在场。'; }
+
+    if(badge){ badge.style.display='inline-block'; badge.style.background = color; badge.textContent = label; }
+    if(val) val.textContent = (en ? 'Sound level: ' : '声级：') + L.toFixed(1) + ' dB';
+
+    var h = __cnLimit(L);
+    var lim;
+    if(h === null){ lim = en ? 'No practical limit below 80 dB.' : '低于 80 dB，实际无限制。'; }
+    else {
+      var f = __cnFmtHours(h);
+      if(f === null) lim = en ? 'More than 24 h (no practical limit).' : '超过 24 小时（实际无限制）。';
+      else {
+        var uv = f.u === 'h' ? (en ? ' h' : ' 小时') : (f.u === 'min' ? (en ? ' min' : ' 分钟') : (en ? ' s' : ' 秒'));
+        lim = (en ? 'Permitted continuous exposure: about ' : '允许连续暴露约 ') + (f.v < 10 ? f.v.toFixed(1) : Math.round(f.v)) + uv + (en ? ' (NIOSH 85 dB / 8 h, 3 dB exchange rate).' : '（NIOSH 85 dB / 8 小时，3 dB 交换率）。');
+      }
+    }
+    var near = __cnNearest(L);
+    var rows = '';
+    rows += '<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border);width:32%;">' + (en ? 'Risk' : '风险说明') + '</td>'
+          + '<td style="padding:4px 6px;border-bottom:1px solid var(--border);">' + risk + '</td></tr>';
+    rows += '<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border);">' + (en ? 'Exposure limit' : '暴露时限') + '</td>'
+          + '<td style="padding:4px 6px;border-bottom:1px solid var(--border);">' + lim + '</td></tr>';
+    rows += '<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border);">' + (en ? 'Protection' : '防护建议') + '</td>'
+          + '<td style="padding:4px 6px;border-bottom:1px solid var(--border);">' + protect + '</td></tr>';
+    rows += '<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border);">' + (en ? 'Sounds like' : '相当于') + '</td>'
+          + '<td style="padding:4px 6px;border-bottom:1px solid var(--border);">' + (en ? near[2] : near[1]) + (en ? ' (' : ' （') + near[0] + ' dB' + (en ? ')' : '）') + '</td></tr>';
+    if(tb) tb.innerHTML = rows;
+  }
+  function __cnInit(){
+    var en = __cnIsEn();
+    document.getElementById('__charNoiseTitle').textContent = en
+      ? '🔊 Noise Exposure Limit & Hearing Protection'
+      : '🔊 噪声暴露时限与听力防护';
+    document.getElementById('__charNoiseDesc').textContent = en
+      ? 'Turns the calculated sound level into an occupational exposure limit, with the risk, the protection required and a familiar sound for comparison.'
+      : '把算出的声级换算成职业噪声暴露时限，并给出风险、所需防护以及一个日常熟悉的声音作对照。';
+    document.getElementById('__charNoiseNote').textContent = en
+      ? 'Limits follow the NIOSH recommended exposure limit (85 dB for 8 h) with a 3 dB exchange rate: each 3 dB increase halves the permitted time. Values assume continuous exposure and no hearing protection; actual regulations vary by country and by whether A-weighted or peak measurements are used. Indicative only, not a substitute for a workplace noise assessment.'
+      : '时限依据 NIOSH 推荐暴露限值（85 dB / 8 小时）与 3 dB 交换率：声级每提高 3 dB，允许时间减半。数值按连续暴露且无防护估算；各国法规、以及是否采用 A 计权或峰值测量，都会改变实际限值。以上仅供提示，不能替代工作场所噪声检测评估。';
+    __cnUpdate();
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('input', __cnUpdate);
+      el.addEventListener('change', __cnUpdate);
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',__cnInit);
+  else __cnInit();
+})();
+</script>
+
 </body>
 </html>
