@@ -418,5 +418,207 @@ var __cc=function(){
 };
 var __f0=calcTool;calcTool=function(){var __r=__f0.apply(null,arguments);__cc();return __r;};
 </script>
+<section class="char-module" id="__charCorr" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charCorrTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charCorrDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charCorrBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charCorrVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charCorrBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charCorrRows"></tbody>
+  </table>
+  <p id="__charCorrNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  // 与页面 calcTool 完全一致的皮尔逊 r 重算（自读输入，不依赖页面内部变量）
+  function __stCorr(){
+    function arr(id){
+      var e = document.getElementById(id);
+      if (!e) return [];
+      return String(e.value || '').split(',').map(function(s){ return parseFloat(s.trim()); })
+               .filter(function(v){ return isFinite(v); });
+    }
+    var xa = arr('x'), ya = arr('y');
+    var n = Math.min(xa.length, ya.length);
+    if (n < 2 || xa.length !== ya.length) return null;
+    var mx = 0, my = 0, i;
+    for (i = 0; i < n; i++){ mx += xa[i]; my += ya[i]; }
+    mx /= n; my /= n;
+    var num_ = 0, dx = 0, dy = 0;
+    for (i = 0; i < n; i++){ num_ += (xa[i]-mx)*(ya[i]-my); dx += Math.pow(xa[i]-mx,2); dy += Math.pow(ya[i]-my,2); }
+    if (!(dx > 0) || !(dy > 0)) return null;
+    var r = num_ / Math.sqrt(dx*dy);
+    if (!isFinite(r)) return null;
+    return { r: Math.max(-1, Math.min(1, r)), n: n };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charCorrBadge');
+    var val = document.getElementById('__charCorrVal');
+    var bar = document.getElementById('__charCorrBar');
+    var tb = document.getElementById('__charCorrRows');
+    var m = __stCorr();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter at least 2 valid pairs of X and Y (equal counts) to see what r means here.'
+                                    : '请先填入至少 2 组有效且等量的 X / Y，再看相关系数的现实含义。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var ar = Math.abs(m.r), r2 = m.r * m.r, df = m.n - 2;
+    var lvl, color;
+    if (ar >= 0.50){ lvl = en ? 'Large (Cohen)' : '大效应（Cohen）'; color = '#dc2626'; }
+    else if (ar >= 0.30){ lvl = en ? 'Medium (Cohen)' : '中等效应（Cohen）'; color = '#ea580c'; }
+    else if (ar >= 0.10){ lvl = en ? 'Small (Cohen)' : '小效应（Cohen）'; color = '#0d9488'; }
+    else { lvl = en ? 'Negligible (Cohen)' : '可忽略（Cohen）'; color = '#16a34a'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'r = ' + m.r.toFixed(3) + ' · ' + lvl; }
+
+    var dir = m.r > 0 ? (en ? 'positive' : '正相关') : (m.r < 0 ? (en ? 'negative' : '负相关') : (en ? 'none' : '无'));
+    if (val) val.textContent = (en ? 'r = ' : 'r = ') + m.r.toFixed(4) + (en ? '  (' : '（') + dir + (en ? ')' : '）');
+
+    // r^2：变异解释率，这是 r 最容易被误读的地方
+    if (bar) bar.innerHTML = __stBar(r2, color)
+      + '<div style="font-size:12px;color:var(--text-muted);">' +
+      (en ? 'Share of variance explained (r²) = ' : '变异解释率（r²）= ') + __stPct(r2) + '</div>';
+
+    var rows = '';
+    // 头号误解：r=0.5 不等于"一半相关"
+    var mis = (ar >= 0.4 && ar <= 0.6)
+      ? (en ? 'r is about 0.5, but that does NOT mean "half related": r² = ' + __stPct(r2)
+              + ', so only about ' + __stPct(r2) + ' of the variation in Y goes with X.'
+        : 'r 约等于 0.5，但这不等于"有一半相关"：r² = ' + __stPct(r2)
+          + '，也就是 Y 的变异中只有约 ' + __stPct(r2) + ' 与 X 的线性变化同步。')
+      : (en ? 'r² = ' + __stPct(r2) + ' of the variation in Y goes with the linear change in X; the rest comes from other factors.'
+        : 'r² = ' + __stPct(r2) + '，即 Y 的变异中有 ' + __stPct(r2) + ' 与 X 的线性变化同步，其余来自其他因素。');
+    rows += __stRow(en ? 'What r² means' : 'r² 的实际含义', mis);
+
+    // 显著性：当前 n 下这个 r 是否显著（t <-> r 换算）
+    var tc = __stTcrit(df), sig = '';
+    if (isFinite(tc) && ar < 1){
+      var rcrit = tc / Math.sqrt(tc * tc + df);
+      var t = m.r * Math.sqrt(df) / Math.sqrt(1 - m.r * m.r);
+      sig = (ar > rcrit)
+        ? (en ? 'Significant at alpha = 0.05 (two-tailed): |r| = ' + ar.toFixed(3) + ' exceeds the critical ' + rcrit.toFixed(3)
+                + ' for n = ' + m.n + ' (t = ' + (isFinite(t) ? t.toFixed(3) : '-') + ').'
+          : '在 alpha = 0.05 双尾下显著：n = ' + m.n + ' 时临界 |r| = ' + rcrit.toFixed(3)
+            + '，实际 |r| = ' + ar.toFixed(3) + '（t = ' + (isFinite(t) ? t.toFixed(3) : '-') + '）。')
+        : (en ? 'Not significant at alpha = 0.05: n = ' + m.n + ' needs |r| above ' + rcrit.toFixed(3)
+                + '; yours is ' + ar.toFixed(3) + '. Collect more data before drawing conclusions.'
+          : '在 alpha = 0.05 下不显著：n = ' + m.n + ' 时至少需 |r| > ' + rcrit.toFixed(3)
+            + '，当前为 ' + ar.toFixed(3) + '，先补样本再下结论。');
+    } else {
+      sig = en ? 'Not enough data for a significance check (need at least 3 pairs with |r| < 1).'
+               : '样本不足以做显著性判断（至少 3 组且 |r| < 1）。';
+    }
+    rows += __stRow(en ? 'Significance' : '是否显著', sig);
+
+    // 显著 vs 有意义：三种典型情形分别说清
+    var warn;
+    if (isFinite(rcrit) && ar >= 0.30 && ar <= rcrit){
+      // 效应看着不小、但样本不够 => 最常见的误判来源
+      warn = (en ? 'The effect looks substantial, yet with n = ' + m.n + ' it is not significant: enlarge the sample before claiming anything, '
+                   + 'and remember a large r on tiny data is often just noise.'
+             : '效应看起来不小，但 n = ' + m.n + ' 时尚未显著：先扩大样本再下结论 —— 小样本上的大 r 常常只是噪声。');
+    } else if (ar > 0 && ar < 0.30){
+      warn = (en ? 'Even if significant, an effect this small is usually of little practical use - report r² and the confidence interval, not just "p < 0.05".'
+             : '即便统计显著，这么小的效应通常没有实际价值 —— 报告时应给出 r² 与置信区间，而不是只写"p < 0.05"。');
+    } else {
+      warn = (en ? 'Statistical significance and practical importance are different things: always pair r with its confidence interval.'
+             : '统计显著与实际重要性是两件事：报告 r 时应同时给出置信区间。');
+    }
+    rows += __stRow(en ? 'Practical vs statistical' : '显著 ≠ 有意义', warn);
+
+    // 相关不等于因果：四条替代解释
+    rows += __stRow(en ? 'Correlation is not causation' : '相关不等于因果',
+      en ? 'Four other explanations fit the same r: (1) Y causes X (reverse direction); '
+          + '(2) a third variable drives both; (3) coincidence, especially with small n; '
+          + '(4) selection or range restriction. Only a controlled design can separate them.'
+      : '同样的 r 至少有四种替代解释：（1）反向因果，是 Y 导致 X；（2）存在同时影响两者的第三变量；'
+        + '（3）巧合，样本小时尤其常见；（4）样本选择偏差或取值范围受限。只有受控设计才能区分。');
+
+    // 三个会毁掉 r 的陷阱
+    rows += __stRow(en ? 'What can break it' : '会毁掉 r 的陷阱',
+      en ? 'A single outlier can swing r a lot; r only measures LINEAR association, so a clear curve can still give r near 0; '
+          + 'and pooling subgroups can reverse the sign (Simpson paradox). Always look at the scatter plot above.'
+      : '一个离群点就能大幅改变 r；r 只度量线性关系，明显的曲线关系也可能 r 接近 0；'
+        + '合并子组还可能让符号反转（辛普森悖论）。务必结合上方散点图一起看。');
+    if (tb) tb.innerHTML = rows;
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charCorrTitle').textContent = en ? '\uD83D\uDCC8 What this correlation actually means' : '\uD83D\uDCC8 这个相关系数到底说明什么';
+    document.getElementById('__charCorrDesc').textContent = en ? 'Turns r into plain language: how much variation it really explains, whether it is significant at this sample size, and what else could produce the same number.' : '把 r 翻译成人话：它到底解释了多少变异、在当前样本量下是否显著、以及还有哪些情况能产生同样的数值。';
+    document.getElementById('__charCorrNote').textContent = en
+      ? 'Bands follow Cohen (1988): |r| = 0.10 small, 0.30 medium, 0.50 large. The critical value uses the exact t-to-r relation r_crit = t/sqrt(t^2 + df) with df = n - 2 at alpha = 0.05 two-tailed. r assumes a linear relationship and is not robust to outliers; for monotonic but curved patterns use Spearman rho instead. Indicative reading aid, not a substitute for study design review.'
+      : '分级依据 Cohen (1988)：|r| = 0.10 为小效应、0.30 中、0.50 大。临界值用 t 与 r 的精确换算 r_crit = t/√(t²+df)，df = n−2，alpha = 0.05 双尾。r 只刻画线性关系且对离群点不稳健；单调但明显弯曲的关系应改用斯皮尔曼 rho。以上为判读提示，不能替代研究设计审查。';
+    __stUpdate();
+    var IDS = ['x', 'y'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的 calcTool（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

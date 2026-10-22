@@ -423,5 +423,174 @@ else document.addEventListener("DOMContentLoaded", __cdBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charCohen" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charCohenTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charCohenDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charCohenBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charCohenVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charCohenBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charCohenRows"></tbody>
+  </table>
+  <p id="__charCohenNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stD(){
+    var m1 = __stNum('m1'), m2 = __stNum('m2'), s1 = __stNum('s1'),
+        s2 = __stNum('s2'), n1 = __stNum('n1'), n2 = __stNum('n2');
+    if (!isFinite(m1) || !isFinite(m2) || !isFinite(s1) || !isFinite(s2) || !isFinite(n1) || !isFinite(n2)) return null;
+    if (n1 < 2 || n2 < 2) return null;
+    var sp = Math.sqrt(((n1-1)*s1*s1 + (n2-1)*s2*s2) / (n1 + n2 - 2));
+    if (!(sp > 0)) return null;
+    var d = (m1 - m2) / sp;
+    if (!isFinite(d)) return null;
+    return { d: d, n1: n1, n2: n2 };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charCohenBadge');
+    var val = document.getElementById('__charCohenVal');
+    var bar = document.getElementById('__charCohenBar');
+    var tb = document.getElementById('__charCohenRows');
+    var m = __stD();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Fill in both group means, SDs and sizes (each n >= 2) to see what d means here.'
+                                    : '请完整填写两组均值、标准差与样本量（每组 n ≥ 2），再看效应量的现实含义。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var ad = Math.abs(m.d), sg = m.d >= 0 ? 1 : -1;
+    var lvl, color;
+    if (ad >= 0.80){ lvl = en ? 'Large (Cohen)' : '大效应（Cohen）'; color = '#dc2626'; }
+    else if (ad >= 0.50){ lvl = en ? 'Medium (Cohen)' : '中等效应（Cohen）'; color = '#ea580c'; }
+    else if (ad >= 0.20){ lvl = en ? 'Small (Cohen)' : '小效应（Cohen）'; color = '#0d9488'; }
+    else { lvl = en ? 'Negligible (Cohen)' : '可忽略（Cohen）'; color = '#16a34a'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'd = ' + m.d.toFixed(3) + ' · ' + lvl; }
+
+    var who = en ? (sg > 0 ? 'Group 1 is higher.' : 'Group 2 is higher.')
+                 : (sg > 0 ? '组 1 更高。' : '组 2 更高。');
+    if (val) val.textContent = (en ? 'd = ' : 'd = ') + m.d.toFixed(4)
+      + (en ? '  (group means differ by ' : '（两组均值相差 ') + ad.toFixed(2)
+      + (en ? ' pooled SD)' : ' 个合并标准差）') + ' ' + who;
+
+    // 概率优势 CLES / AUC：随机各抽一人，实验组更高的概率
+    var cles = __stNcdf(m.d / Math.SQRT2);
+    if (bar) bar.innerHTML = __stBar(cles, color)
+      + '<div style="font-size:12px;color:var(--text-muted);">' +
+      (en ? 'Chance a random group-1 case beats a random group-2 case = ' : '随机抽组 1 一个体高于组 2 一个体的概率 = ')
+      + __stPct(cles) + '</div>';
+
+    var overlap = 2 * __stNcdf(-ad / 2);          // 两分布重叠面积
+    var u3 = __stNcdf(m.d);                        // Cohen's U3
+    var nnt = cles > 0.5 ? 1 / (cles - 0.5) : null;
+    var need = ad > 0 ? Math.ceil(2 * Math.pow(1.96 + 0.8416, 2) / (ad * ad)) : null;
+
+    var rows = '';
+    rows += __stRow(en ? 'Overlap of the two distributions' : '两分布重叠比例',
+      (en ? 'About ' : '约 ') + __stPct(overlap) + (en ? ' of the two groups overlap, so ' : ' 的个体落在共同区间，也就是说 ')
+      + __stPct(1 - overlap) + (en ? ' of the cases are separated. Even d = 0.5 still leaves most of the two distributions on top of each other.'
+                                  : ' 的个体能被区分开。即便 d = 0.5，两组分布仍有大部分相互重叠。'));
+    rows += __stRow(en ? "Cohen's U3" : 'Cohen U3 指标',
+      (en ? 'About ' : '约 ') + __stPct(u3) + (en ? ' of group 1 sit above the mean of group 2'
+                                              : ' 的组 1 个体高于组 2 的均值')
+      + (en ? ' (50% would mean no effect at all).' : '（无效应时该值为 50%）。'));
+    rows += __stRow(en ? 'AUC / common-language effect size' : 'AUC 概率优势',
+      (en ? 'A randomly picked case from group 1 beats one from group 2 with probability ' : '随机抽取组 1 与组 2 各一个体，前者更高的概率为 ')
+      + __stPct(cles) + (en ? '; 50% means a coin flip.' : '；50% 相当于抛硬币。'));
+    if (nnt !== null && nnt < 10000){
+      rows += __stRow(en ? 'Number needed to treat' : '需治人数 NNT',
+        (en ? 'About ' : '约 ') + Math.ceil(nnt) + (en ? ' cases would need the treatment instead of the control for one extra favourable outcome (1/(AUC - 0.5)).'
+                                                   : ' 例需要接受处理而非对照，才能多换来一个有利结局（1/(AUC−0.5)）。'));
+    }
+    if (need !== null){
+      rows += __stRow(en ? 'Sample size for 80% power' : '达到 80% 检验效能所需样本',
+        (en ? 'Detecting this effect at alpha = 0.05 two-tailed with 80% power needs about ' : '在 alpha = 0.05 双尾、效能 80% 下检出该效应，每组约需 ')
+        + need + (en ? ' per group (' : ' 例（') + (2 * need) + (en ? ' in total). Your current n1 = ' : ' 例合计）。当前 n1 = ')
+        + m.n1 + (en ? ', n2 = ' : '，n2 = ') + m.n2
+        + (en ? (Math.min(m.n1, m.n2) >= need ? ', which is enough.' : ', which is likely under-powered - a non-significant result here would not prove "no effect".')
+              : (Math.min(m.n1, m.n2) >= need ? '，样本已足够。' : '，很可能效能不足 —— 此时不显著并不能证明"没有效应"。')));
+    }
+    rows += __stRow(en ? 'Significant vs meaningful' : '显著 ≠ 有意义',
+      en ? 'd is a standardised difference, so a large sample can make a tiny d "significant". Judge it against a cost or a clinical threshold, and always report the confidence interval for d.'
+        : 'd 是标准化差值，样本足够大时极小的 d 也会"显著"。判读时应对照成本或临床阈值，并始终报告 d 的置信区间。');
+    if (tb) tb.innerHTML = rows;
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charCohenTitle').textContent = en ? '\uD83D\uDCCF What this effect size actually means' : '\uD83D\uDCCF 这个效应量到底说明什么';
+    document.getElementById('__charCohenDesc').textContent = en ? 'Turns Cohen\'s d into things you can picture: how much the two groups overlap, the chance one case beats another, the number needed to treat, and the sample size needed to detect it.' : '把 Cohen\'s d 换成能想象的量：两组分布重叠多少、随机抽一个体胜出的概率、需治人数，以及要检出该效应所需的样本量。';
+    document.getElementById('__charCohenNote').textContent = en
+      ? 'Bands follow Cohen (1988): d = 0.2 small, 0.5 medium, 0.8 large. Overlap = 2*Phi(-|d|/2), U3 = Phi(d), AUC = Phi(d/sqrt(2)), NNT = 1/(AUC - 0.5); the power figure uses n = 2*(z(0.975)+z(0.80))^2/d^2 per group. All assume two independent groups, roughly normal distributions and similar variances - with strong skew or very unequal SDs, read d with care. Indicative reading aid, not a substitute for a power analysis by a statistician.'
+      : '分级依据 Cohen (1988)：d = 0.2 小、0.5 中、0.8 大。重叠比例 = 2Φ(−|d|/2)，U3 = Φ(d)，AUC = Φ(d/√2)，NNT = 1/(AUC−0.5)；效能样本量取每组 n = 2(z0.975+z0.80)²/d²。以上均假设两组独立、分布近似正态且方差相近 —— 严重偏态或两组标准差相差很大时，d 需谨慎解读。以上为判读提示，不能替代统计师做的效能分析。';
+    __stUpdate();
+    var IDS = ['m1', 'm2', 's1', 's2', 'n1', 'n2'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的 calcTool（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

@@ -431,5 +431,193 @@ document.addEventListener('toolbox:langchange',function(){try{__orChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charOr" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charOrTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charOrDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charOrBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charOrVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charOrBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charOrRows"></tbody>
+  </table>
+  <p id="__charOrNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stOR(){
+    var a = __stNum('a'), b = __stNum('b'), c = __stNum('c'), d = __stNum('d');
+    if (!isFinite(a) || !isFinite(b) || !isFinite(c) || !isFinite(d)) return null;
+    if (a <= 0 || b <= 0 || c <= 0 || d <= 0) return null;
+    var OR = (a * d) / (b * c);
+    if (!isFinite(OR) || OR <= 0) return null;
+    var p1 = a / (a + b), p0 = c / (c + d);
+    var se = Math.sqrt(1/a + 1/b + 1/c + 1/d);
+    var lo = Math.exp(Math.log(OR) - 1.96 * se), hi = Math.exp(Math.log(OR) + 1.96 * se);
+    return { OR: OR, p1: p1, p0: p0, lo: lo, hi: hi };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charOrBadge');
+    var val = document.getElementById('__charOrVal');
+    var bar = document.getElementById('__charOrBar');
+    var tb = document.getElementById('__charOrRows');
+    var m = __stOR();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'All four cells (a, b, c, d) must be positive to read the odds ratio.'
+                                    : '四格 a、b、c、d 都需为正数，才能判读比值比。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var sig = !(m.lo <= 1 && m.hi >= 1);
+    var lvl, color;
+    if (!sig){ lvl = en ? 'Not significant (CI includes 1)' : '不显著（CI 含 1）'; color = '#16a34a'; }
+    else if (m.OR >= 2 || m.OR <= 0.5){ lvl = en ? 'Significant, sizeable' : '显著且幅度不小'; color = '#dc2626'; }
+    else { lvl = en ? 'Significant, modest' : '显著但幅度不大'; color = '#ea580c'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'OR = ' + m.OR.toFixed(3) + ' · ' + lvl; }
+    if (val) val.textContent = (en ? 'OR = ' : 'OR = ') + m.OR.toFixed(4)
+      + (en ? '  95% CI ' : '  95% 置信区间 ') + m.lo.toFixed(3) + ' - ' + m.hi.toFixed(3);
+
+    var rows = '';
+    // 头号误解：OR 不是相对风险
+    var rr = m.p0 > 0 ? (m.p1 / m.p0) : null;
+    var rrFromOR = m.OR / ((1 - m.p0) + m.p0 * m.OR);
+    var gap = (rr !== null && rr > 0) ? Math.abs(m.OR - rr) / rr : null;
+    var rare = m.p1 < 0.10 && m.p0 < 0.10;
+    var mis = en
+      ? ('OR is NOT the relative risk. OR = ' + m.OR.toFixed(3) + ' does not mean "the risk is '
+         + m.OR.toFixed(2) + ' times as high": the actual risk ratio here is RR = ' + (rr === null ? '-' : rr.toFixed(3))
+         + '. ' + (rare ? 'Both outcome rates are below 10%, so OR and RR happen to be close and treating OR as RR is acceptable.'
+                       : 'Outcome rates here are not rare, so OR and RR differ - quoting OR as if it were RR overstates the effect.'))
+      : ('比值比不是相对风险。OR = ' + m.OR.toFixed(3) + ' 并不表示"风险是 ' + m.OR.toFixed(2) + ' 倍"：'
+         + '本表的真实风险比 RR = ' + (rr === null ? '-' : rr.toFixed(3)) + '。'
+         + (rare ? '两组结局率都低于 10%，此时 OR 与 RR 接近，按 RR 近似使用可以接受。'
+                 : '本表结局率并不罕见，OR 与 RR 差异明显 —— 把 OR 当 RR 报会夸大效应。'));
+    rows += __stRow(en ? 'OR is not "risk doubled"' : 'OR 不等于风险翻倍', mis);
+
+    // 用基线风险反推：给出可落地的绝对数字
+    rows += __stRow(en ? 'Turning OR into a risk' : '把 OR 换算成风险',
+      en ? ('With the control-group risk in this table (P0 = ' + __stPct(m.p0) + '), OR = ' + m.OR.toFixed(3)
+            + ' implies an exposed risk of P1 = OR*P0/((1-P0)+OR*P0) = ' + __stPct(m.p0 * rrFromOR > 0 ? m.p0 * rrFromOR : m.p1)
+            + ' and a risk ratio of ' + rrFromOR.toFixed(3) + '. The same OR produces very different absolute risks at a different baseline.')
+        : ('按本表对照组基线风险（P0 = ' + __stPct(m.p0) + '），OR = ' + m.OR.toFixed(3)
+           + ' 对应暴露组风险 P1 = OR·P0/((1−P0)+OR·P0) = ' + __stPct(m.p0 * rrFromOR > 0 ? m.p0 * rrFromOR : m.p1)
+           + '，风险比 ' + rrFromOR.toFixed(3) + '。同一个 OR 在别的基线风险下会换算出完全不同的绝对风险。'));
+
+    // 绝对风险差与 NNT
+    var ard = m.p1 - m.p0;
+    rows += __stRow(en ? 'Absolute risk difference' : '绝对风险差',
+      (en ? 'Risk goes from ' : '风险由 ') + __stPct(m.p0) + (en ? ' in the unexposed to ' : '（非暴露）变为 ')
+      + __stPct(m.p1) + (en ? ' in the exposed, an absolute difference of ' : '（暴露），绝对差值 ')
+      + __stPct(Math.abs(ard)) + (en ? (ard >= 0 ? ' (increase).' : ' (decrease).') : (ard >= 0 ? '（上升）。' : '（下降）。'))
+      + (Math.abs(ard) > 1e-9
+          ? (ard >= 0
+              ? (en ? ' That is 1 extra outcome for every ' : ' 相当于每 ') + Math.ceil(1 / Math.abs(ard))
+                + (en ? ' people exposed (NNT).' : ' 人暴露就多出现 1 例结局（NNT）。')
+              : (en ? ' That is 1 outcome avoided for every ' : ' 相当于每 ') + Math.ceil(1 / Math.abs(ard))
+                + (en ? ' people exposed (NNT).' : ' 人暴露就少出现 1 例结局（NNT）。'))
+          : (en ? ' No absolute difference.' : ' 绝对风险无差异。')));
+
+    // 研究设计决定能算什么
+    rows += __stRow(en ? 'Which design gives what' : '不同设计能算什么',
+      en ? 'A case-control study cannot compute incidence, so it can only give an OR - and the OR is still valid there. '
+          + 'Cohort and trial data can give risk ratios and absolute risks directly, which are easier to act on.'
+        : '病例对照研究无法计算发病率，因此只能给出 OR —— 但 OR 在这种设计下依然成立。'
+          + '队列研究与试验数据可以直接给出风险比与绝对风险，更便于决策。');
+    rows += __stRow(en ? 'Reading the interval' : '怎么看置信区间',
+      (en ? 'The 95% CI ' : '95% 置信区间 ') + m.lo.toFixed(3) + ' - ' + m.hi.toFixed(3)
+      + (sig ? (en ? ' excludes 1, so the association is significant at the 5% level.'
+                   : ' 不含 1，关联在 5% 水平显著。')
+             : (en ? ' includes 1, so this table does not rule out no association. Check the width: a very wide interval means the estimate is fragile.'
+                   : ' 含 1，本表不能排除无关联。注意区间宽度：非常宽说明估计很不稳定。'))
+      + (en ? ' The CI is computed on the log scale (Woolf formula) and is asymmetric on purpose.'
+            : ' 置信区间在对数尺度上计算（Woolf 公式），因此左右不对称，这是正常的。'));
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      var p = Math.max(m.p0, m.p1);
+      bar.innerHTML = __stBar(m.p1, '#dc2626')
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Exposed event rate ' : '暴露组事件率 ') + __stPct(m.p1)
+        + (en ? '  vs  unexposed ' : '  对照 ') + __stPct(m.p0)
+        + (en ? '  (only the absolute gap matters for decisions)' : '（决策只关心绝对差值）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charOrTitle').textContent = en ? '⚕️ What this odds ratio actually means' : '⚕️ 这个比值比到底说明什么';
+    document.getElementById('__charOrDesc').textContent = en ? 'Odds ratios are routinely misread as risk ratios. This converts your OR into the real risk ratio, the absolute risk difference and the number needed to treat.' : '比值比最常被误当成风险比。这里把 OR 换算成真实的风险比、绝对风险差与需治人数。';
+    document.getElementById('__charOrNote').textContent = en
+      ? 'Conversion uses P1 = OR*P0/((1-P0)+OR*P0), so RR = OR/((1-P0)+OR*P0); OR approximates RR only when the outcome is rare (roughly below 10%). NNT = 1/|P1 - P0|. The CI uses the Woolf log-scale formula SE = sqrt(1/a+1/b+1/c+1/d). The OR is symmetric under transposing the table, which is why case-control studies can estimate it; it is not a risk ratio and should not be reported as one. Indicative reading aid, not clinical advice.'
+      : '换算采用 P1 = OR·P0/((1−P0)+OR·P0)，故 RR = OR/((1−P0)+OR·P0)；只有当结局罕见（约低于 10%）时 OR 才可近似 RR。NNT = 1/|P1−P0|。置信区间用 Woolf 对数尺度公式 SE = √(1/a+1/b+1/c+1/d)。比值比在转置表格时保持不变，这正是病例对照研究能估计它的原因；它不是风险比，不应按风险比来报告。以上为判读提示，不构成临床建议。';
+    __stUpdate();
+    var IDS = ['a', 'b', 'c', 'd'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的 calcTool（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

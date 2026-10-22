@@ -392,5 +392,155 @@ else document.addEventListener("DOMContentLoaded", __crBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charCram" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charCramTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charCramDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charCramBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charCramVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charCramBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charCramRows"></tbody>
+  </table>
+  <p id="__charCramNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stV(){
+    var a = __stNum('a'), b = __stNum('b'), c = __stNum('c'), d = __stNum('d');
+    if (!isFinite(a) || !isFinite(b) || !isFinite(c) || !isFinite(d)) return null;
+    var n = a + b + c + d;
+    if (!(n > 0)) return null;
+    var e11 = (a+b)*(a+c)/n, e12 = (a+b)*(b+d)/n, e21 = (c+d)*(a+c)/n, e22 = (c+d)*(b+d)/n;
+    if (!(e11 > 0) || !(e12 > 0) || !(e21 > 0) || !(e22 > 0)) return null;
+    var chi = (a-e11)*(a-e11)/e11 + (b-e12)*(b-e12)/e12 + (c-e21)*(c-e21)/e21 + (d-e22)*(d-e22)/e22;
+    var V = Math.sqrt(chi / n);
+    if (!isFinite(V)) return null;
+    return { V: Math.min(1, V), chi: chi, n: n };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charCramBadge');
+    var val = document.getElementById('__charCramVal');
+    var bar = document.getElementById('__charCramBar');
+    var tb = document.getElementById('__charCramRows');
+    var m = __stV();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Fill in all four cells (a, b, c, d) to see how strong this association is.'
+                                    : '请完整填写四格 a、b、c、d，再看关联强度判读。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    // 2x2 表：df* = min(r-1, c-1) = 1，此时 Cramer's V 就等于 phi 系数
+    var lo = 0.10, mid = 0.30, hi = 0.50;   // Cohen 对 df* = 1 的基准
+    var lvl, color;
+    if (m.V >= hi){ lvl = en ? 'Large (Cohen)' : '大关联（Cohen）'; color = '#dc2626'; }
+    else if (m.V >= mid){ lvl = en ? 'Medium (Cohen)' : '中等关联（Cohen）'; color = '#ea580c'; }
+    else if (m.V >= lo){ lvl = en ? 'Small (Cohen)' : '小关联（Cohen）'; color = '#0d9488'; }
+    else { lvl = en ? 'Negligible (Cohen)' : '可忽略（Cohen）'; color = '#16a34a'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'V = ' + m.V.toFixed(3) + ' · ' + lvl; }
+    if (val) val.textContent = (en ? 'Cramer\'s V = ' : 'Cramer\'s V = ') + m.V.toFixed(4)
+      + (en ? '  from chi-square = ' : '（由卡方 χ² = ') + m.chi.toFixed(3)
+      + (en ? ' with n = ' : '，n = ') + m.n + (en ? '' : '）');
+    if (bar) bar.innerHTML = __stBar(m.V, color)
+      + '<div style="font-size:12px;color:var(--text-muted);">' +
+      (en ? 'V runs from 0 (no association) to 1 (perfect association)' : 'V 取值 0（无关联）到 1（完全关联）') + '</div>';
+
+    var rows = '';
+    rows += __stRow(en ? 'For this table' : '本表的换算',
+      en ? 'For a 2x2 table df* = min(rows-1, cols-1) = 1, so Cramer\'s V equals the phi coefficient: V = sqrt(chi-square / n). '
+          + 'Larger tables need df* in the denominator and use lower thresholds (0.07 / 0.21 / 0.35 at df* = 2).'
+      : '2×2 表的 df* = min(行数−1, 列数−1) = 1，因此 Cramer\'s V 就等于 phi 系数：V = √(χ²/n)。'
+        + '更大的表分母要除以 df*，阈值也更低（df* = 2 时为 0.07 / 0.21 / 0.35）。');
+    rows += __stRow(en ? 'Significant vs strong' : '显著 ≠ 强',
+      en ? 'Chi-square grows with sample size: with n in the thousands, even V = 0.05 can be "significant". '
+          + 'A significant test says the association is unlikely to be zero; V says how strong it is. Report both.'
+      : '卡方随样本量增大：n 到几千时，即便 V = 0.05 也会"显著"。显著性只说明关联不太可能为 0，V 才说明关联有多强，两者都要报告。');
+    rows += __stRow(en ? 'No direction, no causation' : '无方向、非因果',
+      en ? 'V is always between 0 and 1 and carries no sign, so it cannot tell you which way the association runs. '
+          + 'Use the odds ratio for direction. A high V still says nothing about cause and effect.'
+      : 'V 恒在 0 到 1 之间且不带符号，因此无法说明关联的方向；要看方向请改用比值比。V 高同样不说明因果关系。');
+    rows += __stRow(en ? 'What to check' : '使用前先检查',
+      en ? 'The chi-square behind V needs expected counts that are not too small (a common rule is at least 5); '
+          + 'with thin cells use Fisher exact test instead. Very unbalanced margins also pull V down even when the pattern is clear.'
+      : '卡方要求期望频数不能太小（常用规则是不低于 5）；格子太稀疏时应改用 Fisher 精确检验。'
+        + '行列合计极不均衡时，即便模式很明显，V 也会被压低。');
+    if (tb) tb.innerHTML = rows;
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charCramTitle').textContent = en ? '\uD83D\uDCCA How strong is this association' : '\uD83D\uDCCA 这个关联到底有多强';
+    document.getElementById('__charCramDesc').textContent = en ? 'Puts Cramer\'s V on the Cohen scale, explains the link to phi on a 2x2 table, and separates significant from strong.' : '把 Cramer\'s V 放到 Cohen 分级上看，说明它在 2×2 表上与 phi 的关系，并区分显著与强。';
+    document.getElementById('__charCramNote').textContent = en
+      ? 'Bands follow Cohen (1988) for df* = 1: V = 0.10 small, 0.30 medium, 0.50 large. V = sqrt(chi-square / (n * df*)) with df* = min(rows-1, cols-1); this page uses a 2x2 table, so df* = 1 and V = phi. V has no sign and no causal meaning. Indicative reading aid, not a substitute for a modelling approach matched to the study design.'
+      : '分级依据 Cohen (1988) 对 df* = 1 的基准：V = 0.10 小、0.30 中、0.50 大。V = √(χ²/(n·df*))，df* = min(行数−1, 列数−1)；本页为 2×2 表，故 df* = 1、V 等于 phi。V 不带符号，也不表示因果。以上为判读提示，不能替代与研究设计匹配的建模分析。';
+    __stUpdate();
+    var IDS = ['a', 'b', 'c', 'd'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的 calcTool（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>
