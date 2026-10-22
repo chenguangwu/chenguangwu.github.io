@@ -3810,19 +3810,12 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"variant\":\"ripple\"}，输出区含「1 2 3\naXuwMCY\nripple」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-    "slug": "it/base64-converter",
-    "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
-      "fileOutput": "1\n2\n3",
-      "batchInput": "1\n2\n3"
-    },
-    "expect": [
-      "暂无历史记录\n�m\n1 2 3\n2\n5\n4 B\n+25.0%\n1 2 3\n1 2 3\n1 → 解码失败 复制 2 → 解码失败 复制 3 → 解码失败 复制"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"fileOutput\":\"1\\n2\\n3\",\"batchInput\":\"1\\n2\\n3\"}，输出区含「暂无历史记录\n�m\n1 2 3\n2\n5\n4 B\n+25.0%\n1 2 3\n1 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
+  // 已移除：it/base64-converter 的「自动补强（B类零用例）」用例（原 3813-3825 行）。
+  // 原因：其输入目标为 textarea#input，harness 对 textarea 的注入会被页面 init 默认样例
+  // 「Hello, World! 你好，世界！」覆盖（harness 已知缺口）⇒ 注入恒失效、期望值实为默认态
+  // 输出（got = SGVsbG8sIFdvcmxkIQ== / Hello, World!），零判别力且恒失败。
+  // base64-converter 已有 7 个手写用例完整覆盖（Base64/Base32/Base85/URL-safe/解码方向/
+  // 多字节 UTF-8/非法输入），故移除该无效补强，不留无判别力用例。
   {
     "slug": "it/base64-file",
     "inputs": {
