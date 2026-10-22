@@ -455,5 +455,170 @@ document.addEventListener('toolbox:langchange',function(){try{__ftChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charFt" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charFtTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charFtDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charFtBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charFtVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charFtBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charFtRows"></tbody>
+  </table>
+  <p id="__charFtNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  // 注意：本页 s1 / s2 填的是**方差**（页面表格标注为 s1^2 / s2^2），F = v1 / v2
+  function __stFt(){
+    var v1 = __stNum('s1'), v2 = __stNum('s2'), n1 = __stNum('n1'), n2 = __stNum('n2');
+    if (!isFinite(v1) || !isFinite(v2) || !isFinite(n1) || !isFinite(n2)) return null;
+    if (!(v1 > 0) || !(v2 > 0) || n1 < 2 || n2 < 2) return null;
+    var F = v1 / v2;
+    var ratioSd = Math.sqrt(Math.max(v1, v2) / Math.min(v1, v2));
+    return { F: F, v1: v1, v2: v2, n1: n1, n2: n2, df1: n1 - 1, df2: n2 - 1, ratioSd: ratioSd };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charFtBadge');
+    var val = document.getElementById('__charFtVal');
+    var bar = document.getElementById('__charFtBar');
+    var tb = document.getElementById('__charFtRows');
+    var m = __stFt();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter both variances (positive) and both sample sizes (at least 2).'
+                                    : '请填写两个方差（均为正数）与两个样本量（均至少 2）。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    // SD 比值：方差齐性的常用经验阈值
+    var hetero = m.ratioSd > 2;
+    var lvl = hetero ? (en ? 'SD ratio above 2' : '标准差比值超过 2') : (en ? 'SD ratio within 2' : '标准差比值在 2 以内');
+    var color = hetero ? '#ea580c' : '#16a34a';
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color; badge.textContent = lvl; }
+    if (val) val.textContent = (en ? 'F = ' : 'F = ') + m.F.toFixed(4)
+      + (en ? '  (df = ' : '（df = ') + m.df1 + ', ' + m.df2 + (en ? ')' : '）')
+      + (en ? '   SD ratio = ' : '   标准差比值 = ') + m.ratioSd.toFixed(3);
+
+    var rows = '';
+    // 头号陷阱：别把它当作 t 检验的前置筛选
+    rows += __stRow(en ? 'Do not use it as a gatekeeper' : '别把它当前置筛选',
+      en ? 'The tempting routine is: run this test, and if it is not significant use the pooled t test, otherwise use Welch. '
+          + 'That two-step habit is now discouraged: this F test is extremely sensitive to non-normality, so with skewed data it often '
+          + 'reports unequal variances when the variances are in fact equal, and stays quiet when they are not. '
+          + 'The safer default is to use the Welch test directly - it costs almost nothing when variances really are equal.'
+        : '常见做法是：先跑这个检验，不显著就用合并方差 t 检验，显著就用 Welch。'
+          + '这种两步流程如今已不推荐：该 F 检验对非正态极其敏感，数据偏态时常常在方差实际相等的情况下报错"不齐"，'
+          + '而在方差真的不齐时反而静默。更稳妥的默认做法是直接用 Welch 检验 —— 当方差确实相等时，它几乎不损失效能。');
+
+    rows += __stRow(en ? 'Read the ratio, not just p' : '看比值，不只看 p',
+      (en ? 'The two SDs are ' : '两个标准差为 ') + Math.sqrt(m.v1).toFixed(4) + (en ? ' and ' : ' 与 ')
+      + Math.sqrt(m.v2).toFixed(4) + (en ? ', a ratio of ' : '，比值 ') + m.ratioSd.toFixed(3)
+      + (en ? 'x. With a large sample even a ratio near 1.1 can be significant, but such a small difference barely affects the t test. '
+             + 'What matters is the size of the ratio, not whether it clears 0.05.'
+        : ' 倍。样本很大时即便比值只有 1.1 也会显著，但这么小的差异对 t 检验几乎没有影响。'
+          + '重要的是比值的大小，而不是它是否跨过 0.05。'));
+
+    rows += __stRow(en ? 'Better alternatives' : '更好的替代',
+      en ? 'If you do need a formal check of equal variances, Levene\'s test (based on absolute deviations from the group centre) '
+          + 'or the Brown-Forsythe version using medians are far more robust to non-normality than this F test, which assumes normality quite strictly.'
+        : '若确实需要正式的方差齐性检验，Levene 检验（基于相对组中心的绝对离差）或改用中位数的 Brown-Forsythe 版本，'
+          + '对非正态的稳健性远高于这个 F 检验 —— 后者对正态性的假设相当严格。');
+
+    rows += __stRow(en ? 'What to do with unequal variances' : '方差不齐该怎么办',
+      en ? 'Use the Welch t test, or Welch ANOVA for more than two groups. If the spread grows with the level, a log or similar transform '
+          + 'often stabilises it, and if the outcome is ordinal or strongly skewed consider a rank-based test instead.'
+        : '使用 Welch t 检验，多组时用 Welch 方差分析。若离散程度随水平增大，取对数等变换常能稳定方差；'
+          + '若结局是有序变量或严重偏态，可考虑秩和检验。');
+
+    rows += __stRow(en ? 'Why variances matter at all' : '方差为什么重要',
+      en ? 'The pooled two-sample test averages the two variances into one figure. When the groups really differ in spread, '
+          + 'that pooled figure belongs to neither group, and the stated error rate drifts away from 5% - in either direction depending on group sizes.'
+        : '合并方差的两样本检验把两个方差平均成一个数值。当两组离散程度真的不同时，'
+          + '这个合并值不属于任何一组，名义 5% 的错误率也会偏离 —— 偏离方向取决于两组样本量的对比。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(Math.min(1, (m.ratioSd - 1) / 2), color)
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'SD ratio = ' : '标准差比值 = ') + m.ratioSd.toFixed(3)
+        + (en ? '  (about 2 is the usual rule of thumb)' : '（经验阈值约 2）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charFtTitle').textContent = en ? '⚠️ Should you screen with this test' : '⚠️ 该不该用它做前置筛选';
+    document.getElementById('__charFtDesc').textContent = en ? 'The F test for equal variances is widely used as a gatekeeper before a t test - and widely misused. This explains why, and what to do instead.' : '方差齐性的 F 检验常被当作 t 检验前的筛子 —— 而这正是它被误用的地方。这里说明原因与替代做法。';
+    document.getElementById('__charFtNote').textContent = en
+      ? 'This page takes variances, so F = v1/v2 with df1 = n1 - 1 and df2 = n2 - 1. The F test for equal variances assumes normality and is highly sensitive to departures from it, which is why using it as a screening step before a t test is now discouraged (see Zimmerman 2004 and Delacre et al. 2017); prefer Welch directly, or Levene / Brown-Forsythe for a formal check. The SD ratio is compared against the common rule of thumb of about 2. Indicative reading aid, not a substitute for inspecting the data.'
+      : '本页填入的是方差，故 F = v1/v2，df1 = n1 − 1，df2 = n2 − 1。方差齐性的 F 检验假设正态且对偏离正态极敏感，因此如今不推荐把它当作 t 检验前的筛选步骤（参见 Zimmerman 2004 与 Delacre et al. 2017）；更建议直接用 Welch，或用 Levene / Brown-Forsythe 做正式检验。标准差比值与常用的约 2 倍经验阈值比较。以上为判读提示，不能替代对数据本身的查看。';
+    __stUpdate();
+    var IDS = ['s1', 's2', 'n1', 'n2'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

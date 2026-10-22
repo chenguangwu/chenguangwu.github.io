@@ -318,5 +318,186 @@ else document.addEventListener("DOMContentLoaded", __skBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charSk" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charSkTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charSkDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charSkBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charSkVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charSkBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charSkRows"></tbody>
+  </table>
+  <p id="__charSkNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stSk(){
+    var e = document.getElementById('xs');
+    if (!e) return null;
+    var xs = String(e.value || '').split(/[\s,]+/).map(function(s){ return parseFloat(s); })
+               .filter(function(v){ return isFinite(v); });
+    var n = xs.length;
+    if (n < 3) return null;
+    var mean = 0, i;
+    for (i = 0; i < n; i++) mean += xs[i];
+    mean /= n;
+    var ss = 0;
+    for (i = 0; i < n; i++) ss += Math.pow(xs[i] - mean, 2);
+    var s = Math.sqrt(ss / (n - 1));
+    if (!(s > 0)) return null;
+    var cu = 0;
+    for (i = 0; i < n; i++) cu += Math.pow((xs[i] - mean) / s, 3);
+    var g1 = (n / ((n - 1) * (n - 2))) * cu;
+    // 大样本正态下样本偏度的标准误约 sqrt(6/n)
+    var se = Math.sqrt(6 / n);
+    return { g1: g1, n: n, se: se, mean: mean, sd: s };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charSkBadge');
+    var val = document.getElementById('__charSkVal');
+    var bar = document.getElementById('__charSkBar');
+    var tb = document.getElementById('__charSkRows');
+    var m = __stSk();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter at least 3 numbers with some spread to read the skewness.'
+                                    : '请填入至少 3 个有差异的数值，以判读偏度。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var a = Math.abs(m.g1);
+    var lvl, color;
+    if (a < 0.5){ lvl = en ? 'Fairly symmetric (Bulmer)' : '大致对称（Bulmer）'; color = '#16a34a'; }
+    else if (a < 1){ lvl = en ? 'Moderately skewed (Bulmer)' : '中等偏斜（Bulmer）'; color = '#ea580c'; }
+    else { lvl = en ? 'Highly skewed (Bulmer)' : '高度偏斜（Bulmer）'; color = '#dc2626'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'g1 = ' + m.g1.toFixed(3) + ' · ' + lvl; }
+    if (val) val.textContent = (en ? 'Sample skewness g1 = ' : '样本偏度 g₁ = ') + m.g1.toFixed(4)
+      + (en ? '  (n = ' : '（n = ') + m.n + (en ? ')' : '）');
+
+    var dir = m.g1 > 0
+      ? (en ? 'Positive: the right tail is longer, so the mean usually sits above the median.'
+        : '为正：右侧尾部更长，均值通常高于中位数。')
+      : (m.g1 < 0 ? (en ? 'Negative: the left tail is longer, so the mean usually sits below the median.'
+                      : '为负：左侧尾部更长，均值通常低于中位数。')
+                  : (en ? 'Zero: the tails balance out on this measure.' : '为零：按该指标两侧尾部平衡。'));
+
+    var rows = '';
+    rows += __stRow(en ? 'Direction' : '方向', dir);
+
+    rows += __stRow(en ? 'How skewed is skewed' : '多偏算偏',
+      en ? 'A common rule of thumb (Bulmer, 1979): below about 0.5 in absolute value is fairly symmetric, '
+          + '0.5 to 1 is moderate, above 1 is high. These are conventions, not a test.'
+        : '常用经验规则（Bulmer, 1979）：绝对值低于约 0.5 大致对称，0.5 到 1 为中等偏斜，'
+          + '高于 1 为高度偏斜。这些是惯例，不是检验。');
+
+    // 是否显著偏离 0：用 SE = sqrt(6/n)
+    var z = m.g1 / m.se;
+    rows += __stRow(en ? 'Is it more than noise' : '是否超出噪声',
+      (en ? 'For a normal sample this large, the standard error of skewness is about sqrt(6/n) = '
+        : '正态样本在 n = ' + m.n + ' 时，偏度的标准误约为 √(6/n) = ')
+      + m.se.toFixed(4) + (en ? ', giving z = ' : '，对应 z = ') + z.toFixed(3)
+      + (Math.abs(z) > 2
+          ? (en ? '. Beyond about 2 in absolute value, so the asymmetry is unlikely to be pure sampling noise.'
+            : '。绝对值超过约 2，说明这种不对称不太可能只是抽样噪声。')
+          : (en ? '. Within about 2, so with this sample size you cannot clearly separate real skew from sampling noise.'
+            : '。未超过约 2，以当前样本量还无法把真实偏斜与抽样噪声区分开。')));
+
+    rows += __stRow(en ? 'Why it matters' : '为什么重要',
+      en ? 'Skew decides which summary is honest. With a long right tail the mean is pulled up and the median describes a typical case better; '
+          + 'many common tests also assume roughly symmetric residuals, so strong skew points at a transform or a nonparametric test.'
+        : '偏度决定该用哪个汇总量。右尾很长时均值被抬高，中位数更能代表"典型情况"；'
+          + '许多常用检验还假设残差大致对称，因此强偏斜提示应做变量变换或改用非参数检验。');
+
+    rows += __stRow(en ? 'Small samples are unreliable' : '小样本不可靠',
+      (en ? 'Skewness is computed from cubed deviations, so a single far-out value can dominate it, and with n = '
+        : '偏度由离差的三次方算得，单个很远的点就能主导结果；n = ')
+      + m.n + (en ? ' the estimate is noisy. Treat the value as a rough signal here, and always look at the histogram as well.'
+                  : ' 时估计噪声很大。此处应把它当作粗略信号，务必同时看直方图。'));
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(Math.min(1, a / 2), color)
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? '|g1| = ' : '|g₁| = ') + a.toFixed(3)
+        + (en ? '  (0.5 moderate / 1 high)' : '（0.5 中等 / 1 高度）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charSkTitle').textContent = en ? '📈 What this skewness means' : '📈 这个偏度说明什么';
+    document.getElementById('__charSkDesc').textContent = en ? 'Skewness decides which average is honest. This gives the direction, the usual bands, and whether the asymmetry is bigger than sampling noise.' : '偏度决定用哪个均值才诚实。这里给出方向、常用分级，以及这种不对称是否超出抽样噪声。';
+    document.getElementById('__charSkNote').textContent = en
+      ? 'Sample skewness uses the adjusted Fisher-Pearson form g1 = n/((n-1)(n-2)) * sum(((x - mean)/s)^3), matching the page. Bands follow the common rule of thumb (Bulmer, 1979): 0.5 moderate, 1 high. For a normal sample the standard error of skewness is approximately sqrt(6/n), so |g1|/SE beyond about 2 is unlikely to be noise. Skewness is very sensitive to outliers and unstable in small samples - read it together with a histogram. Indicative reading aid.'
+      : '样本偏度采用调整的 Fisher-Pearson 形式 g₁ = n/((n−1)(n−2))·Σ((x − x̄)/s)³，与页面一致。分级采用常用经验规则（Bulmer, 1979）：0.5 为中等、1 为高度。正态样本下偏度标准误约为 √(6/n)，故 |g₁|/SE 超过约 2 时不太可能只是噪声。偏度对离群点极敏感且在小样本下不稳定 —— 请结合直方图一起判读。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['xs'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

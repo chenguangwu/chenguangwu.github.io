@@ -354,5 +354,204 @@ else document.addEventListener("DOMContentLoaded", __iqBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charIq" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charIqTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charIqDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charIqBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charIqVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charIqBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charIqRows"></tbody>
+  </table>
+  <p id="__charIqNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stIqr(){
+    var q1 = __stNum('q1'), q3 = __stNum('q3'), med = __stNum('median_'),
+        lo = __stNum('min_'), hi = __stNum('max_'), n = __stNum('data_count');
+    if (!isFinite(q1) || !isFinite(q3)) return null;
+    var iqr = q3 - q1;
+    if (!(iqr >= 0)) return null;
+    return { q1: q1, q3: q3, iqr: iqr, med: med, lo: lo, hi: hi, n: n,
+             innerLo: q1 - 1.5 * iqr, innerHi: q3 + 1.5 * iqr,
+             outerLo: q1 - 3 * iqr, outerHi: q3 + 3 * iqr };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charIqBadge');
+    var val = document.getElementById('__charIqVal');
+    var bar = document.getElementById('__charIqBar');
+    var tb = document.getElementById('__charIqRows');
+    var m = __stIqr();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter Q1 and Q3 to get the outlier fences. Add the minimum and maximum to detect actual outliers.'
+                                    : '请填写 Q1 与 Q3 得到离群点围栏；再填入最小值与最大值即可判定是否存在离群点。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    // 用五数概括判定是否越界
+    var outMild = [], outExtreme = [];
+    if (isFinite(m.lo)){
+      if (m.lo < m.outerLo) outExtreme.push(en ? 'minimum' : '最小值');
+      else if (m.lo < m.innerLo) outMild.push(en ? 'minimum' : '最小值');
+    }
+    if (isFinite(m.hi)){
+      if (m.hi > m.outerHi) outExtreme.push(en ? 'maximum' : '最大值');
+      else if (m.hi > m.innerHi) outMild.push(en ? 'maximum' : '最大值');
+    }
+    var lvl, color;
+    if (outExtreme.length){ lvl = en ? 'Extreme outliers present' : '存在极端离群点'; color = '#dc2626'; }
+    else if (outMild.length){ lvl = en ? 'Mild outliers present' : '存在温和离群点'; color = '#ea580c'; }
+    else if (isFinite(m.lo) || isFinite(m.hi)){ lvl = en ? 'No outliers by the fences' : '按围栏无离群点'; color = '#16a34a'; }
+    else { lvl = en ? 'Fences ready' : '围栏已算出'; color = '#0d9488'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color; badge.textContent = lvl; }
+    if (val) val.textContent = (en ? 'IQR = Q3 - Q1 = ' : 'IQR = Q3 − Q1 = ') + m.iqr.toFixed(4);
+
+    var rows = '';
+    // Tukey 围栏：箱线图判定离群点的官方规则
+    rows += __stRow(en ? 'Tukey fences' : 'Tukey 围栏',
+      (en ? 'The usual fences sit at Q1 - 1.5*IQR and Q3 + 1.5*IQR, here ' : '常用围栏位于 Q1 − 1.5×IQR 与 Q3 + 1.5×IQR，此处为 ')
+      + m.innerLo.toFixed(3) + (en ? ' and ' : ' 与 ') + m.innerHi.toFixed(3)
+      + (en ? '. Points beyond 3*IQR (' : '。超出 3×IQR（') + m.outerLo.toFixed(3) + (en ? ' / ' : ' / ') + m.outerHi.toFixed(3)
+      + (en ? ') are extreme outliers rather than mild ones.' : '）的属于极端离群点，而非温和离群点。'));
+
+    // 实际判定
+    var verdict;
+    if (outExtreme.length){
+      verdict = (en ? 'The ' : '') + outExtreme.join(en ? ' and ' : ' 与 ')
+        + (en ? ' lies beyond the 3*IQR fence: an extreme outlier. ' : ' 超出 3×IQR 围栏，属极端离群点。')
+        + (en ? 'Check whether it is a data-entry error before deciding to keep or drop it.'
+          : ' 先核查是否为录入错误，再决定保留还是剔除。');
+    } else if (outMild.length){
+      verdict = (en ? 'The ' : '') + outMild.join(en ? ' and ' : ' 与 ')
+        + (en ? ' falls outside the 1.5*IQR fence, so it is a mild outlier: worth a look, but not automatically wrong.'
+          : ' 落在 1.5×IQR 围栏之外，属温和离群点：值得检查，但不等于一定有误。');
+    } else if (isFinite(m.lo) && isFinite(m.hi)){
+      verdict = en ? 'Minimum and maximum both sit inside the fences, so no value is flagged on this rule.'
+                   : '最小值与最大值都在围栏之内，按该规则没有被标记的点。';
+    } else {
+      verdict = en ? 'Add the minimum and maximum above to apply the fences to your data.'
+                   : '请在上方填入最小值与最大值，即可用围栏判定实际数据。';
+    }
+    rows += __stRow(en ? 'On your numbers' : '按你的数据', verdict);
+
+    // 稳健的 σ 估计：正态下 IQR = 1.349 sigma
+    rows += __stRow(en ? 'A robust scale estimate' : '一个稳健的离散估计',
+      (en ? 'For a normal distribution IQR is about 1.349 sigma, so sigma is roughly IQR / 1.349 = '
+        : '正态分布下 IQR ≈ 1.349σ，因此 σ 约为 IQR / 1.349 = ')
+      + (m.iqr / 1.349).toFixed(4)
+      + (en ? '. Unlike the plain standard deviation, this estimate is not dragged around by outliers.'
+        : '。与普通标准差不同，这个估计不会被离群点带跑。'));
+
+    // 箱子内部的位置 => 偏态方向
+    var skewTxt;
+    if (isFinite(m.med) && m.iqr > 0){
+      var pos = (m.med - m.q1) / m.iqr;
+      var dir = pos < 0.45 ? (en ? 'the upper half is longer, suggesting a right-skewed shape'
+                                 : '上半部分更长，提示右偏（长尾在右）')
+              : (pos > 0.55 ? (en ? 'the lower half is longer, suggesting a left-skewed shape'
+                                 : '下半部分更长，提示左偏（长尾在左）')
+                            : (en ? 'the median sits near the middle of the box, suggesting a roughly symmetric shape'
+                                  : '中位数接近箱体中部，提示大致对称'));
+      skewTxt = (en ? 'The median sits at ' : '中位数位于箱体的 ')
+        + (pos * 100).toFixed(1) + '%' + (en ? ' of the box: ' : '：') + dir + (en ? '.' : '。');
+    } else {
+      skewTxt = en ? 'Add the median to read the shape of the box.' : '填入中位数即可判读箱体形状。';
+    }
+    rows += __stRow(en ? 'What the box says' : '箱体说明了什么', skewTxt);
+
+    rows += __stRow(en ? 'Why IQR and not the range' : '为什么用 IQR 而不是极差',
+      en ? 'The range depends entirely on the two most extreme values, so one bad measurement moves it. '
+          + 'The IQR only uses the middle half of the data, which is why box plots and robust summaries are built on it.'
+        : '极差完全取决于两个最极端的值，一个错误测量就能改变它。'
+          + 'IQR 只用中间一半的数据，这正是箱线图与稳健统计以它为基础的原因。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      var span = (m.innerHi - m.innerLo) || 1;
+      var posv = isFinite(m.med) ? (m.med - m.innerLo) / span : 0.5;
+      bar.innerHTML = __stBar(Math.max(0, Math.min(1, posv)), color)
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Fences ' : '围栏 ') + m.innerLo.toFixed(3) + (en ? ' to ' : ' 到 ') + m.innerHi.toFixed(3)
+        + (en ? '  (1.5 x IQR rule)' : '（1.5×IQR 规则）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charIqTitle').textContent = en ? '📦 Outliers and spread, the box-plot way' : '📦 离群点与离散：箱线图的判法';
+    document.getElementById('__charIqDesc').textContent = en ? 'Turns the quartiles into Tukey fences, flags mild and extreme outliers, and reads the shape of the box.' : '把四分位数换算成 Tukey 围栏，标出温和与极端离群点，并判读箱体的形状。';
+    document.getElementById('__charIqNote').textContent = en
+      ? 'Fences follow Tukey: mild outliers lie beyond Q1 - 1.5*IQR or Q3 + 1.5*IQR, extreme ones beyond Q1 - 3*IQR or Q3 + 3*IQR. The robust scale estimate uses IQR = 1.349*sigma for a normal distribution. Only the five-number summary is used here, so the fence verdict reflects whichever minimum and maximum you enter; it does not see the individual observations. Indicative reading aid, not a rule for automatically deleting data.'
+      : '围栏依据 Tukey：温和离群点在 Q1 − 1.5×IQR 或 Q3 + 1.5×IQR 之外，极端离群点在 Q1 − 3×IQR 或 Q3 + 3×IQR 之外。稳健离散估计用正态分布下的 IQR = 1.349σ。本模块只使用五数概括，因此判定结果取决于你填入的最小值与最大值，看不到每一个观测值。以上为判读提示，不构成自动删除数据的依据。';
+    __stUpdate();
+    var IDS = ['data_count', 'min_', 'q1', 'median_', 'q3', 'max_'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calc === 'function' && !calc.__stHooked) {
+        var __orig = calc;
+        calc = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calc.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

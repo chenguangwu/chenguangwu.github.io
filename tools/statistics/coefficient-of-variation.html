@@ -400,5 +400,187 @@ else document.addEventListener("DOMContentLoaded", __cvBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charCv" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charCvTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charCvDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charCvBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charCvVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charCvBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charCvRows"></tbody>
+  </table>
+  <p id="__charCvNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stCv(){
+    var mu = __stNum('mu'), sigma = __stNum('sigma');
+    if (!isFinite(mu) || !isFinite(sigma)) return null;
+    if (!(sigma >= 0)) return null;
+    var cv = mu !== 0 ? (sigma / Math.abs(mu)) * 100 : NaN;
+    return { mu: mu, sigma: sigma, cv: cv, snr: sigma > 0 ? Math.abs(mu) / sigma : NaN };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charCvBadge');
+    var val = document.getElementById('__charCvVal');
+    var bar = document.getElementById('__charCvBar');
+    var tb = document.getElementById('__charCvRows');
+    var m = __stCv();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter the mean and the standard deviation (SD at least 0) to read the CV.'
+                                    : '请填写均值与标准差（标准差不小于 0）以判读变异系数。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    if (m.mu === 0){
+      if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#dc2626';
+        badge.textContent = en ? 'Undefined at mean = 0' : '均值为 0 时无定义'; }
+      if (val) val.textContent = en ? 'CV is not defined when the mean is 0 (division by zero).'
+                                    : '均值为 0 时变异系数无定义（除以 0）。';
+      if (bar) bar.innerHTML = '';
+      var r0 = __stRow(en ? 'Why it breaks' : '为什么会失效',
+        en ? 'The CV divides the spread by the mean, so it explodes as the mean approaches zero and is undefined at zero. '
+            + 'Use the standard deviation instead when the mean is near zero.'
+          : '变异系数用离散程度除以均值，因此均值趋近 0 时它会急剧放大，等于 0 时无定义。'
+            + '均值接近 0 时应改用标准差。');
+      var t0 = document.getElementById('__charCvRows');
+      if (t0) t0.innerHTML = r0;
+      return;
+    }
+    var cv = m.cv;
+    var lvl, color;
+    if (cv < 5){ lvl = en ? 'Very low spread' : '离散很小'; color = '#16a34a'; }
+    else if (cv < 10){ lvl = en ? 'Low spread' : '离散较小'; color = '#0d9488'; }
+    else if (cv < 20){ lvl = en ? 'Moderate spread' : '离散中等'; color = '#ea580c'; }
+    else if (cv < 30){ lvl = en ? 'High spread' : '离散偏大'; color = '#dc2626'; }
+    else { lvl = en ? 'Very high spread' : '离散很大'; color = '#7f1d1d'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'CV = ' + cv.toFixed(2) + '% · ' + lvl; }
+    if (val) val.textContent = (en ? 'CV = ' : 'CV = ') + cv.toFixed(2) + '%'
+      + (en ? '   (SD is ' : '（标准差为均值的 ') + (cv / 100).toFixed(4) + (en ? ' of the mean)' : ' 倍）');
+
+    var rows = '';
+    // 分级说明：明确这是行业惯例，不是统一标准
+    rows += __stRow(en ? 'How to read the bands' : '怎么看这些分级',
+      en ? 'There is no single universal cut-off. In laboratory and analytical work a CV under about 10% is often taken as acceptable '
+          + 'and under 5% as good; in the social and biological sciences CVs well above 30% are common. '
+          + 'Always judge it against the convention in your own field.'
+        : '并不存在统一的阈值。实验室与分析化学工作中通常把 CV 低于约 10% 视为可接受、低于 5% 视为良好；'
+          + '而在社会科学与生命科学里，CV 超过 30% 也很常见。判读时务必对照本领域的惯例。');
+
+    // 头号陷阱：CV 只在比率尺度有意义
+    rows += __stRow(en ? 'Only for ratio scales' : '只适用于比率尺度',
+      en ? 'The CV is only meaningful when zero is a real, absolute zero - weight, length, counts, concentrations. '
+          + 'For interval scales whose zero is arbitrary, such as temperature in degrees Celsius, a CV is meaningless: '
+          + 'switch the same data to kelvin and the CV changes completely.'
+        : '只有当"零"是真正的绝对零点时，变异系数才有意义 —— 例如重量、长度、计数、浓度。'
+          + '对于零点人为设定的等距尺度（如摄氏度温度），CV 没有意义：把同一批数据换算成开尔文，CV 会完全不同。');
+
+    rows += __stRow(en ? 'Mean near zero' : '均值接近 0',
+      (en ? 'This mean is ' : '此处均值为 ') + m.mu.toFixed(4)
+      + (Math.abs(m.mu) < Math.abs(m.sigma)
+          ? (en ? ', which is smaller in magnitude than the SD: the CV is unstable here and should not be quoted.'
+            : '，其绝对值小于标准差：此处的 CV 不稳定，不应引用。')
+          : (en ? ', comfortably larger than the SD, so the CV is stable here.'
+            : '，明显大于标准差，因此此处 CV 稳定。')));
+
+    rows += __stRow(en ? 'CV or standard deviation' : '用 CV 还是标准差',
+      en ? 'Use the SD when your reader knows the units and you are comparing groups measured on the same scale. '
+          + 'Use the CV when the means differ by orders of magnitude or the units differ, because it is dimensionless.'
+        : '当读者熟悉单位、且比较的是同一量纲上的各组时，用标准差。'
+          + '当均值相差几个数量级或单位不同时，用 CV，因为它是无量纲的。');
+
+    rows += __stRow(en ? 'Signal-to-noise view' : '换个角度看：信噪比',
+      isFinite(m.snr)
+        ? (en ? 'Mean / SD = ' : '均值 / 标准差 = ') + m.snr.toFixed(4)
+          + (en ? ', the reciprocal of the CV: a CV of 10% means the mean is 10 times the spread.'
+            : '，即 CV 的倒数：CV 为 10% 意味着均值是离散程度的 10 倍。')
+        : (en ? 'Not available when the SD is 0.' : '标准差为 0 时不适用。'));
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(Math.min(1, cv / 50), color)
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'CV = ' : 'CV = ') + cv.toFixed(2) + '%'
+        + (en ? '  (5% / 10% / 20% are common reference points)' : '（常用参考点 5% / 10% / 20%）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charCvTitle').textContent = en ? '📏 What this CV really tells you' : '📏 这个变异系数到底说明什么';
+    document.getElementById('__charCvDesc').textContent = en ? 'The CV is dimensionless, which makes it easy to over-use. This explains when it is meaningful, when it breaks, and how to read the size of it.' : '变异系数无量纲，因而最容易被滥用。这里说明它何时有意义、何时失效，以及如何判读大小。';
+    document.getElementById('__charCvNote').textContent = en
+      ? 'CV = SD/|mean| x 100%, and it is only meaningful on a ratio scale where zero is absolute. It is undefined at a mean of zero and unstable when the mean is small relative to the SD. The bands used here (5% / 10% / 20% / 30%) are common working conventions, especially in laboratory and analytical work, not a universal standard - compare against the convention in your own field. Indicative reading aid.'
+      : 'CV = 标准差/|均值|×100%，只在零点为绝对零的比率尺度上有意义。均值为 0 时无定义，均值相对标准差很小时不稳定。此处分级（5% / 10% / 20% / 30%）是常见的工作惯例，尤见于实验室与分析工作，并非统一标准 —— 请对照本领域惯例判读。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['mu', 'sigma'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>
