@@ -36,12 +36,12 @@
 
 ---
 
-## 二、UX 中分段 uplift 专项（UX-Q4 续，进行中）
+## 二、UX 中分段 uplift 专项（UX-Q4 续）【已到顶收口 · 2026-10-22】
 
-- **目标**：把评分 3–5 分（非 index 的真正工具页，共 **388 页**；其中 259 页有输入）逐批补强，把全站 UX 均值从 7.40 继续推高。普遍短板：compare(85%)/chart(81%)/preset(73%)/persist(72%)/tabs(71%)/table(68%)/export(35%)。
-- **原则**：只加对该工具真实有用的功能（图表/预设/导出/历史/对比/明细表/分步），**不硬塞无关装饰**；index 导航页不碰。
-- **模式**：复用 `js/tool-kit.js`（TBKit.chart/table/preset/history/export/compare）；逐页按既有 `calcTool`/结果容器接线，守卫 `typeof TBKit==='undefined'`；每批 build+门禁+commit+push。
-- **批次进度**：见 `.workbuddy/memory/2026-10-15.md`。
+- **严格区间（score≤5 非 index 有输入）已到顶**：全站仅 `tools/office/pdf-rotate.html` 1 页，经核验其 `__tbnExtras` + `__epr` 已动态接入 `TBKit.chart/matrix/export/history`（运行时完善），pagemap 静态扫描漏判；其余 271 个低分页全部是 `index.html` 导航页（纪律「不碰」）。**0 真实待办**。
+- **score 6/7 区间核验结论**：Grep 抽查最大量表页（bvas/sledai/rls-severity/phq9-stroke）及 nine-grid-cutter 均已被历史批动态 uplift 完善（pagemap 标「缺 chart」为**漏判 runtime TBKit 调用**）。全站均分 8.55、9 分占 85%，继续抠 6/7 边角边际收益极低；且多为复杂交互/纯转换/单面板工具（preset/chart/tabs/compare 天然不需要或需定制）。**专项收口，不再为推高而装饰**。
+- **遗留（开放项，需老板定是否继续）**：score 6/7 区间约 46 页 pagemap 仍标 chart/preset 缺口，经核验多数为「已完善/天然不需要」；若仍要推，须逐页真机核验 + 定制注入，边际价值低。建议转其他主线。
+- **关键纪律固化**：判断池子是否扫完必须以"真机运行时"为准，**pagemap 静态 feats 会漏判 runtime `TBKit.*`**（pdf-rotate、bvas 等实例）。verify 逃生项 0、判别力 7733/7733 不变。
 
 ## 三、其他待处理
 
