@@ -441,6 +441,25 @@ async function keysrc(target) {
   }
 }
 
+// ---------- 运行时 __tbL(en, zh) 本地化白名单 ----------
+// 页面内联脚本常用 `function __tbL(en, zh){ return TBKit.util.isEn() ? en : zh }` 在运行时
+// 把动态文本（历史/快照记录标题、结果文案、按钮）切成英文。探针以 runScripts:'outside-only'
+// 加载，不执行页面脚本 ⇒ 只能看到静态中文兜底，误报这些为「残留中文」。
+// 这些串在真实浏览器（EN 态）由 __tbL 正确给出英文，并非缺陷。
+// 故在 --check 验收时，将页面内联 __tbL 的 zh 实参视为「运行时已本地化」，从残留中剔除，
+// 使验收口径与线上真实 EN 态一致（不冤枉、也不放过真正的静态残留）。
+function tbLZhSet(html) {
+  const set = new Set();
+  const re = /__tbL\s*\(\s*(['"])((?:\\.|[^'"])*?)\1\s*,\s*(['"])((?:\\.|[^'"])*?)\3/g;
+  let m;
+  while ((m = re.exec(html))) {
+    // 第 2 个捕获组（index 4）为 zh 实参；去转义还原成与 DOM textContent 同形
+    let zh = m[4].replace(/\\(.)/g, '$1');
+    if (zh) set.add(zh);
+  }
+  return set;
+}
+
 // ---------- 模式：check ----------
 async function check(targets) {
   let bad = 0;
@@ -454,7 +473,13 @@ async function check(targets) {
       total++;
       const { w, getPending } = probePage(t.file, 'en-US');
       await settleStable(w, getPending);
-      const res = collectCJKFull(w);
+      let res = collectCJKFull(w);
+      // 剔除运行时 __tbL 已本地化的串（见 tbLZhSet 注释）
+      try {
+        const raw = fs.readFileSync(t.file, 'utf8');
+        const tbSet = tbLZhSet(raw);
+        if (tbSet.size) res = res.filter((r) => !tbSet.has(r.trim()));
+      } catch (e) { /* 忽略读取异常，保留原残留 */ }
       w.close();
       if (res.length) {
         bad++;

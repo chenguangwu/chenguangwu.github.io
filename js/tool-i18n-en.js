@@ -62,7 +62,7 @@ window.__TI18N_EN = {
     '年龄':'Age','体重 (kg)':'Weight (kg)','体重（kg）':'Weight (kg)','输出结果':'Output','预览':'Preview',
     '数量':'Quantity','背景色':'Background Color','数值 A':'Value A','分隔符':'Delimiter','数值 B':'Value B',
     '身高 (cm)':'Height (cm)','身高（cm）':'Height (cm)','源单位':'Source Unit','目标单位':'Target Unit',
-    '输入':'Input','结果':'Result','备注':'Note','名称':'Name','标题':'Title','内容':'Content',
+    '输入':'Input','结果':'Result','数据表':'Data','预设':'Presets','图表':'Chart','备注':'Note','名称':'Name','标题':'Title','内容':'Content',
     '描述':'Description','类型':'Type','模式':'Mode','状态':'Status','日期':'Date','时间':'Time',
     '时长':'Duration','颜色':'Color','大小':'Size','宽度':'Width','高度':'Height','长度':'Length',
     '半径':'Radius','角度':'Angle','温度':'Temperature','压力':'Pressure','速度':'Speed','频率':'Frequency',
