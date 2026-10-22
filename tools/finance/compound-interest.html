@@ -767,5 +767,127 @@ else document.addEventListener('DOMContentLoaded', __compound_interestBoot);
 </div>
 <!-- /SEO 介绍区块 -->
 <section class="opt-guide"><h2>如何使用复利计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>初始本金（元）</li><li>年利率（%）</li><li>投资年限</li><li>每年定投（元）</li><li>计息频率</li><li>定投时间</li></ul><h2>适用场景</h2><p>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>复利计算器是做什么的？</dt><dd>输入本金、年化利率、计息频率与定投金额，工具按复利公式 FV=P·(1+r/n)^(n×t) 计算终值，并可用 72 法则估算翻倍年限。</dd><dt>如何使用复利计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>复利计算器适合哪些场景？</dt><dd>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<section class="char-module" id="__charCi" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charCiTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charCiDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charCiBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charCiVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charCiBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charCiRows"></tbody>
+  </table>
+  <p id="__charCiNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __finIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  function __finNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  // x 已是百分数数值（如 18.25），输出 "18.25%"
+  function __finPct(x){ return (isFinite(x) ? x.toFixed(2) : '--') + '%'; }
+  function __finRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:34%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __finBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+
+
+  function __ciRead(){
+    return {
+      P: __finNum('principal'),
+      r: __finNum('rate'),      // 年化 %
+      t: __finNum('years'),
+      annual: __finNum('annual') || 0
+    };
+  }
+
+  function __finUpdate(){ 
+    var d = __ciRead();
+    var en = __finIsEn();
+    var box = document.getElementById('__charCiVal');
+    var rows = document.getElementById('__charCiRows');
+    var bar = document.getElementById('__charCiBar');
+    var badge = document.getElementById('__charCiBadge');
+    if (!(d.P > 0) || !(d.r > 0) || !(d.t > 0)) {
+      box.textContent = en ? 'Enter principal, annual rate and years.' : '请输入本金、年化利率与年限。';
+      rows.innerHTML = ''; bar.innerHTML = ''; badge.textContent = '';
+      return;
+    }
+    var rr = d.r / 100;
+    // 72 法则：翻倍年数
+    var rule72 = 72 / d.r;
+    // 复利终值（仅本金，不计追加）：A = P(1+r)^t
+    var A = d.P * Math.pow(1 + rr, d.t);
+    // 单利终值
+    var Asimple = d.P * (1 + rr * d.t);
+    var extra = A - Asimple;                       // 复利比单利多出的部分
+    var extraRatio = extra / Asimple;               // 多出的相对比例
+    // 频率极限：连续复利因子 e^(rt) 与逐年比较的"额外增益"
+    var cont = d.P * Math.exp(rr * d.t);
+    var freqGain = cont - A;                        // 从年复利到连续复利的额外量（频率极限效应）
+    var badgeTxt = en ? 'Compound interest' : '复利';
+    var valTxt = en
+      ? 'After ' + d.t + ' years: ¥' + A.toFixed(0) + ' (compound), vs ¥' + Asimple.toFixed(0) + ' (simple)'
+      : d.t + ' 年后：¥' + A.toFixed(0) + '（复利），若单利仅 ¥' + Asimple.toFixed(0);
+    var html = '';
+    html += __finRow(
+      en ? 'Doubling time (Rule of 72)' : '翻倍年数（72 法则）',
+      en ? '≈ ' + rule72.toFixed(1) + ' years (72 ÷ ' + d.r + '%)'
+         : '≈ ' + rule72.toFixed(1) + ' 年（72 ÷ ' + d.r + '%）'
+    );
+    html += __finRow(
+      en ? 'Compound vs simple gain' : '复利比单利多赚',
+      en ? '¥' + extra.toFixed(0) + ' (+' + (extraRatio * 100).toFixed(1) + '%)'
+         : '¥' + extra.toFixed(0) + '（多 ' + (extraRatio * 100).toFixed(1) + '%）'
+    );
+    html += __finRow(
+      en ? 'Going from annual to continuous compounding' : '从年复利到连续复利的极限',
+      en ? 'only +¥' + freqGain.toFixed(0) + ' more — diminishing returns of compounding frequency'
+         : '仅再多 ¥' + freqGain.toFixed(0) + ' — 计息频率的边际收益递减'
+    );
+    rows.innerHTML = html;
+    // 进度条：复利终值相对单利的超额占比（封顶 100%）
+    bar.innerHTML = __finBar(Math.min(1, extraRatio), '#10b981');
+    badge.textContent = badgeTxt;
+    badge.style.background = '#10b981';
+   }
+  function __finInit(){
+    var en = __finIsEn();
+    document.getElementById('__charCiTitle').textContent = en ? '📈 What your compound interest really means' : '📈 这笔复利到底意味着什么';
+    document.getElementById('__charCiDesc').textContent = en ? 'The headline number hides three things: how fast it doubles, how much extra compounding adds over simple interest, and why chasing more frequent compounding has vanishing returns.' : '表面数字藏着三件事：多久翻倍、复利比单利多赚多少、以及为什么计息频率越密边际收益越小。';
+    document.getElementById('__charCiNote').textContent = en ? 'Rule of 72 is most accurate for rates between 6% and 10%. Compounding frequency (annual→monthly→daily→continuous) barely changes the result once you are already compounding — the big jump is from simple to compound.' : '72 法则在 6%~10% 区间最准。计息频率从年→月→日→连续，差别已经很小——真正的大头是从单利到复利那一跳。';
+    __finUpdate();
+    var IDS = ['principal', 'rate', 'years', 'annual'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __finUpdate);
+      el.addEventListener('change', __finUpdate);
+    });
+    try {
+      if (typeof calc === 'function' && !calc.__finHooked) {
+        var __orig = calc;
+        calc = function(){ __orig.apply(this, arguments); try { __finUpdate(); } catch(e){} };
+        calc.__finHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __finInit();
+  else document.addEventListener('DOMContentLoaded', __finInit);
+})();
+</script>
+
 </body>
 </html>

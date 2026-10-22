@@ -735,5 +735,116 @@ else document.addEventListener('DOMContentLoaded', __inflation_calculatorBoot);
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
+<section class="char-module" id="__charInfl" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charInflTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charInflDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charInflBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charInflVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charInflBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charInflRows"></tbody>
+  </table>
+  <p id="__charInflNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __finIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  function __finNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  // x 已是百分数数值（如 18.25），输出 "18.25%"
+  function __finPct(x){ return (isFinite(x) ? x.toFixed(2) : '--') + '%'; }
+  function __finRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:34%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __finBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+
+
+  function __inflRead(){
+    return {
+      amt: __finNum('amt'),
+      r: __finNum('rate'),
+      t: __finNum('years')
+    };
+  }
+
+  function __finUpdate(){ 
+    var d = __inflRead();
+    var en = __finIsEn();
+    var box = document.getElementById('__charInflVal');
+    var rows = document.getElementById('__charInflRows');
+    var bar = document.getElementById('__charInflBar');
+    var badge = document.getElementById('__charInflBadge');
+    if (!(d.amt > 0) || !(d.r > 0) || !(d.t > 0)) {
+      box.textContent = en ? 'Enter amount, inflation rate and years.' : '请输入金额、通胀率与年限。';
+      rows.innerHTML = ''; bar.innerHTML = ''; badge.textContent = '';
+      return;
+    }
+    var rr = d.r / 100;
+    var halfLife = 70 / d.r;                        // 70 法则：购买力减半
+    var need = d.amt * Math.pow(1 + rr, d.t);       // 未来维持同样购买力所需
+    var lost = (1 - 1 / Math.pow(1 + rr, d.t)) * 100;  // 购买力流失比例
+    var badgeTxt = en ? 'Inflation' : '通货膨胀';
+    var valTxt = en
+      ? 'In ' + d.t + ' years ¥' + d.amt.toFixed(0) + ' buys what ¥' + (d.amt / Math.pow(1 + rr, d.t)).toFixed(0) + ' buys today'
+      : d.t + ' 年后 ¥' + d.amt.toFixed(0) + ' 只相当于今天的 ¥' + (d.amt / Math.pow(1 + rr, d.t)).toFixed(0);
+    var html = '';
+    html += __finRow(
+      en ? 'Purchasing-power half-life (Rule of 70)' : '购买力减半年数（70 法则）',
+      en ? '≈ ' + halfLife.toFixed(1) + ' years at ' + d.r + '%'
+         : '≈ ' + halfLife.toFixed(1) + ' 年（通胀 ' + d.r + '% 时）'
+    );
+    html += __finRow(
+      en ? 'Amount needed to keep parity' : '为保持同等购买力所需金额',
+      en ? '¥' + need.toFixed(0) + ' (was ¥' + d.amt.toFixed(0) + ')'
+         : '¥' + need.toFixed(0) + '（原 ¥' + d.amt.toFixed(0) + '）'
+    );
+    html += __finRow(
+      en ? 'Purchasing power lost' : '购买力流失',
+      __finPct(lost) + (en ? ' over ' + d.t + ' years' : '（' + d.t + ' 年间）')
+    );
+    rows.innerHTML = html;
+    bar.innerHTML = __finBar(lost / 100, '#f59e0b');
+    badge.textContent = badgeTxt;
+    badge.style.background = '#f59e0b';
+   }
+  function __finInit(){
+    var en = __finIsEn();
+    document.getElementById('__charInflTitle').textContent = en ? '🔥 What inflation does to your money' : '🔥 通胀对你的钱做了什么';
+    document.getElementById('__charInflDesc').textContent = en ? 'Inflation does not just raise prices — it quietly halves your money\'s buying power on a predictable schedule, and beats any deposit that pays less than the rate.' : '通胀不只是涨价——它会按可预测的节奏悄悄把购买力减半，而且凡是收益低于通胀的存款都在实际缩水。';
+    document.getElementById('__charInflNote').textContent = en ? 'Rule of 70: at 3% inflation, purchasing power halves in about 23 years. Your nominal savings grow, but if the return is below the inflation rate, you are losing real value.' : '70 法则：3% 通胀下购买力约 23 年减半。名义上存款在变多，但若收益低于通胀率，真实购买力在缩水。';
+    __finUpdate();
+    var IDS = ['amt', 'rate', 'years'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __finUpdate);
+      el.addEventListener('change', __finUpdate);
+    });
+    try {
+      if (typeof calc === 'function' && !calc.__finHooked) {
+        var __orig = calc;
+        calc = function(){ __orig.apply(this, arguments); try { __finUpdate(); } catch(e){} };
+        calc.__finHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __finInit();
+  else document.addEventListener('DOMContentLoaded', __finInit);
+})();
+</script>
+
 </body>
 </html>

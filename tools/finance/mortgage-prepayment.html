@@ -419,5 +419,130 @@ else document.addEventListener('DOMContentLoaded', __mortgage_prepaymentBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charMp" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charMpTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charMpDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charMpBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charMpVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charMpBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charMpRows"></tbody>
+  </table>
+  <p id="__charMpNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __finIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  function __finNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  // x 已是百分数数值（如 18.25），输出 "18.25%"
+  function __finPct(x){ return (isFinite(x) ? x.toFixed(2) : '--') + '%'; }
+  function __finRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:34%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __finBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+
+
+  function __mpRead(){
+    return {
+      p: __finNum('principal'),
+      annual: __finNum('rate'),
+      months: __finNum('months'),
+      mp: __finNum('monthly'),
+      prepay: __finNum('prepay') || 0
+    };
+  }
+
+  function __finUpdate(){ 
+    var d = __mpRead();
+    var en = __finIsEn();
+    var box = document.getElementById('__charMpVal');
+    var rows = document.getElementById('__charMpRows');
+    var bar = document.getElementById('__charMpBar');
+    var badge = document.getElementById('__charMpBadge');
+    if (!(d.p > 0) || !(d.annual > 0) || !(d.months > 0) || !(d.mp > 0)) {
+      box.textContent = en ? 'Enter loan principal, rate, term and monthly payment.' : '请输入贷款本金、利率、期限与月供。';
+      rows.innerHTML = ''; bar.innerHTML = ''; badge.textContent = '';
+      return;
+    }
+    var m = d.annual / 100 / 12;
+    // 首月利息（等额本息前期利息占比高）
+    var firstInterest = d.p * m;
+    var firstPrincipal = d.mp - firstInterest;
+    var firstIntRatio = firstInterest / d.mp;
+    // 临界点：已还期数超过 1/3 总期后，提前还款省息效果大幅下降
+    var oneThird = d.months / 3;
+    // 提前还款占本金比例
+    var prepayRatio = d.prepay / d.p;
+    var badgeTxt = en ? 'Early repayment' : '提前还款';
+    var valTxt = en
+      ? 'First-month interest is ' + (firstIntRatio * 100).toFixed(1) + '% of your payment — most of early payments go to interest.'
+      : '首月利息占月供的 ' + (firstIntRatio * 100).toFixed(1) + '%，前期还款大多在还利息。';
+    var html = '';
+    html += __finRow(
+      en ? 'First-month interest share' : '首月利息占月供比',
+      __finPct(firstIntRatio * 100) + (en ? ' (top-heavy)' : '（前重后轻）')
+    );
+    html += __finRow(
+      en ? 'When prepaying pays off most' : '提前还款最划算的时点',
+      en ? 'Best within the first 1/3 of the term (' + oneThird.toFixed(0) + ' of ' + d.months + ' months)'
+         : '最好在前 1/3 期限内（共 ' + d.months + ' 期中的前 ' + oneThird.toFixed(0) + ' 期）'
+    );
+    html += __finRow(
+      en ? 'Strategy: shorten term vs lower payment' : '策略：缩短期限 vs 减少月供',
+      en ? 'Shortening the term saves more total interest than lowering the monthly payment.'
+         : '同样一笔提前还款，「缩短期限」比「减少月供」省下的总利息更多。'
+    );
+    if (d.prepay > 0) {
+      html += __finRow(
+        en ? 'This prepayment amount' : '本次提前还款额',
+        en ? (prepayRatio * 100).toFixed(1) + '% of principal — the earlier you do it, the more interest you skip.'
+           : '占本金 ' + (prepayRatio * 100).toFixed(1) + '%，越早还省的利息越多。'
+      );
+    }
+    rows.innerHTML = html;
+    bar.innerHTML = __finBar(firstIntRatio, '#6366f1');
+    badge.textContent = badgeTxt;
+    badge.style.background = '#6366f1';
+   }
+  function __finInit(){
+    var en = __finIsEn();
+    document.getElementById('__charMpTitle').textContent = en ? '🏠 What early repayment actually saves' : '🏠 提前还款到底能省什么';
+    document.getElementById('__charMpDesc').textContent = en ? 'With equal principal-and-interest loans, early payments are mostly interest. Prepaying early skips the most expensive interest; how you prepay matters too.' : '等额本息贷款前期还款大多是利息。越早提前还，跳过的是最贵的利息；而且怎么还也有讲究。';
+    document.getElementById('__charMpNote').textContent = en ? 'After about the first third of the term, most interest is already paid, so prepaying saves far less. Choosing to shorten the term (rather than lower the monthly payment) cuts more total interest for the same lump sum.' : '大约过了前 1/3 期限，大部分利息已经还完，再提前还省得很少。同样一笔钱，「缩短期限」比「减少月供」能多省总利息。';
+    __finUpdate();
+    var IDS = ['principal', 'rate', 'months', 'monthly', 'prepay'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __finUpdate);
+      el.addEventListener('change', __finUpdate);
+    });
+    try {
+      if (typeof calc === 'function' && !calc.__finHooked) {
+        var __orig = calc;
+        calc = function(){ __orig.apply(this, arguments); try { __finUpdate(); } catch(e){} };
+        calc.__finHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __finInit();
+  else document.addEventListener('DOMContentLoaded', __finInit);
+})();
+</script>
+
 </body>
 </html>

@@ -679,5 +679,124 @@ else document.addEventListener('DOMContentLoaded', __credit_card_interestBoot);
 </div>
 <!-- /SEO 介绍区块 -->
 <section class="opt-guide"><h2>如何使用信用卡利息计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>账单金额（元）</li><li>日利率（%）</li><li>账单日（每月）</li><li>还款日（每月）</li><li>最低还款比例（%）</li><li>滞纳金比例（%）</li><li>还款方式</li><li>分期期数</li></ul><h2>适用场景</h2><p>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>信用卡利息计算器是做什么的？</dt><dd>输入信用卡账单金额并选择全额、最低或分期还款，工具对比各方式产生的利息与手续费，帮你选择更省钱的还款策略。</dd><dt>如何使用信用卡利息计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>信用卡利息计算器适合哪些场景？</dt><dd>个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+<section class="char-module" id="__charCc" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charCcTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charCcDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charCcBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charCcVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charCcBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charCcRows"></tbody>
+  </table>
+  <p id="__charCcNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __finIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  function __finNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  // x 已是百分数数值（如 18.25），输出 "18.25%"
+  function __finPct(x){ return (isFinite(x) ? x.toFixed(2) : '--') + '%'; }
+  function __finRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:34%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __finBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+
+
+  function __ccRead(){
+    return {
+      bill: __finNum('billAmount'),
+      daily: __finNum('dailyRate'),   // 日利率 %（0.05 = 万分之五）
+      minR: __finNum('minRatio')      // 最低还款比例 %（如 10）
+    };
+  }
+
+  function __finUpdate(){ 
+    var d = __ccRead();
+    var en = __finIsEn();
+    var box = document.getElementById('__charCcVal');
+    var rows = document.getElementById('__charCcRows');
+    var bar = document.getElementById('__charCcBar');
+    var badge = document.getElementById('__charCcBadge');
+    if (!(d.daily > 0)) {
+      box.textContent = en ? 'Enter the daily rate to see the real annual cost.' : '请输入日利率，查看真实年化成本。';
+      rows.innerHTML = ''; bar.innerHTML = ''; badge.textContent = '';
+      return;
+    }
+    var dailyRate = d.daily / 100;                  // 转为小数
+    var nominalAnnual = d.daily * 365;              // 名义年化（按天乘）
+    var monthlyRate = dailyRate * 30;               // 每月按 30 天近似
+    var ear = (Math.pow(1 + monthlyRate, 12) - 1) * 100;  // 实际有效年利率
+    var gap = ear - nominalAnnual;
+    // 最低还款：以 10% 为例，仅还利息部分滚雪球（粗略演示）
+    var minR = (d.minR > 0 ? d.minR : 10) / 100;
+    var badgeTxt = en ? 'Credit-card interest' : '信用卡利息';
+    var valTxt = en
+      ? 'Stated daily ' + d.daily + '% → real APR ' + ear.toFixed(2) + '% (not ' + nominalAnnual.toFixed(2) + '%)'
+      : '标称日息 ' + d.daily + '% → 真实年化 ' + ear.toFixed(2) + '%（不是 ' + nominalAnnual.toFixed(2) + '%）';
+    var html = '';
+    html += __finRow(
+      en ? 'Nominal APR (daily × 365)' : '名义年化（日息 × 365）',
+      __finPct(nominalAnnual)
+    );
+    html += __finRow(
+      en ? 'Effective APR (compounded monthly)' : '实际有效年利率 EAR（按月复利）',
+      __finPct(ear) + (en ? ' (higher!)' : '（更高！）')
+    );
+    html += __finRow(
+      en ? 'Hidden premium of compounding' : '复利带来的隐性溢价',
+      en ? '+ ' + __finPct(gap) + ' above the "nominal" number'
+         : '比"名义"数字高出 ' + __finPct(gap)
+    );
+    html += __finRow(
+      en ? 'Minimum payment trap' : '最低还款陷阱',
+      en ? 'Paying only ~' + (minR * 100).toFixed(0) + '% keeps the balance accruing daily interest — it can take years to clear.'
+         : '只还约 ' + (minR * 100).toFixed(0) + '% 时余额按日计息滚雪球，可能要数年才还清。'
+    );
+    rows.innerHTML = html;
+    // 进度条：EAR 相对名义的溢价占比
+    bar.innerHTML = __finBar(Math.min(1, gap / Math.max(nominalAnnual, 0.01)), '#ef4444');
+    badge.textContent = badgeTxt;
+    badge.style.background = '#ef4444';
+   }
+  function __finInit(){
+    var en = __finIsEn();
+    document.getElementById('__charCcTitle').textContent = en ? '💳 What the credit-card rate really costs' : '💳 这个信用卡利率真实代价有多大';
+    document.getElementById('__charCcDesc').textContent = en ? 'A small daily rate balloons into a double-digit annual rate once compounding is counted, and paying only the minimum keeps the balance growing every day.' : '看似很小的日息，一旦算上复利就会膨胀成两位数的年化；只还最低还款额则余额每天仍在涨。';
+    document.getElementById('__charCcNote').textContent = en ? 'Paying the full statement balance by the due date triggers the grace period (typically 20-56 days) and charges zero interest. The displayed "daily rate" is only the nominal cost — the effective APR is higher.' : '在到期日前全额还款可触发免息期（通常 20~56 天）且不计息。页面写的“日息”只是名义成本，真实年化更高。';
+    __finUpdate();
+    var IDS = ['billAmount', 'dailyRate', 'minRatio'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __finUpdate);
+      el.addEventListener('change', __finUpdate);
+    });
+    try {
+      if (typeof calc === 'function' && !calc.__finHooked) {
+        var __orig = calc;
+        calc = function(){ __orig.apply(this, arguments); try { __finUpdate(); } catch(e){} };
+        calc.__finHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __finInit();
+  else document.addEventListener('DOMContentLoaded', __finInit);
+})();
+</script>
+
 </body>
 </html>
