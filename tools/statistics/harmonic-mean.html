@@ -416,5 +416,195 @@ document.addEventListener('toolbox:langchange',function(){try{__hmChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charHm" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charHmTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charHmDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charHmBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charHmVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charHmBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charHmRows"></tbody>
+  </table>
+  <p id="__charHmNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stHm(){
+    var e = document.getElementById('data');
+    if (!e) return null;
+    var xs = String(e.value || '').split(/[\s,]+/).map(function(s){ return parseFloat(s); })
+               .filter(function(v){ return isFinite(v); });
+    var n = xs.length;
+    if (n < 1) return null;
+    var i, sumInv = 0, sum = 0, prod = 1, hasNonPos = false;
+    for (i = 0; i < n; i++){
+      if (xs[i] <= 0){ hasNonPos = true; break; }
+      sumInv += 1 / xs[i];
+      sum += xs[i];
+      prod *= xs[i];
+    }
+    if (hasNonPos) return { xs: xs, n: n, bad: true };
+    var hm = n / sumInv;
+    var am = sum / n;
+    var gm = Math.pow(prod, 1 / n);
+    var mn = Math.min.apply(null, xs);
+    return { xs: xs, n: n, hm: hm, am: am, gm: gm, min: mn, bad: false };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charHmBadge');
+    var val = document.getElementById('__charHmVal');
+    var bar = document.getElementById('__charHmBar');
+    var tb = document.getElementById('__charHmRows');
+    var m = __stHm();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter one or more numbers to read the harmonic mean.'
+                                    : '请填入至少一个数值，以判读调和平均。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    if (m.bad){
+      if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#dc2626';
+        badge.textContent = en ? 'Undefined here' : '此处无定义'; }
+      if (val) val.textContent = en ? 'The harmonic mean needs every value to be strictly positive.'
+                                    : '调和平均要求每个数值都严格大于 0。';
+      if (bar) bar.innerHTML = '';
+      var tb2 = document.getElementById('__charHmRows');
+      if (tb2) tb2.innerHTML = __stRow(en ? 'Why it fails' : '为什么失效',
+        en ? 'The harmonic mean averages reciprocals, so a zero gives division by zero and a negative value breaks the interpretation. '
+            + 'Rates and speeds must be positive for this average to make sense.'
+          : '调和平均是对倒数取平均，因此出现 0 会导致除以零，出现负数则破坏其含义。'
+            + '速率与速度必须为正，这个平均数才有意义。');
+      return;
+    }
+    var gap = m.am - m.hm;
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#0d9488';
+      badge.textContent = (en ? 'HM = ' : 'HM = ') + m.hm.toFixed(4); }
+    if (val) val.textContent = (en ? 'Harmonic mean = ' : '调和平均 = ') + m.hm.toFixed(4)
+      + (en ? '   vs arithmetic ' : '   算术平均 ') + m.am.toFixed(4)
+      + (en ? ' and geometric ' : '，几何平均 ') + m.gm.toFixed(4);
+
+    var rows = '';
+    // 经典陷阱：往返平均速度
+    rows += __stRow(en ? 'The round-trip trap' : '往返速度的陷阱',
+      en ? 'Drive out at 60 and back at 40 over the same distance and the average speed is not 50. The trip is 2 units of distance, '
+          + 'and the time is 1/60 + 1/40 hours per unit, so the average speed is the harmonic mean, 48. '
+          + 'Whenever the quantity you hold fixed is the distance rather than the time, use the harmonic mean.'
+        : '去程 60、回程 40，同样的距离，平均速度不是 50。总路程为 2 个单位，总时间为 1/60 + 1/40 小时每单位，'
+          + '因此平均速度是调和平均 48。只要固定的量是"距离"而不是"时间"，就该用调和平均。');
+
+    rows += __stRow(en ? 'When to reach for it' : '什么时候该用它',
+      en ? 'Use the harmonic mean for rates and ratios - speeds over equal distances, unit prices when you spend a fixed amount each time, '
+          + 'parallel resistances, or anything where the quantity in the denominator is what stays constant. '
+          + 'Using the plain average in those cases systematically overstates the result.'
+        : '速率与比率用调和平均 —— 等距离上的速度、每次花固定金额时的平均单价、并联电阻，'
+          + '以及任何"分母固定"的情形。这些场合用普通平均会系统性地高估结果。');
+
+    // AM >= GM >= HM
+    rows += __stRow(en ? 'The three averages' : '三个平均数的关系',
+      (en ? 'For positive numbers the ordering is always arithmetic >= geometric >= harmonic: here '
+        : '对正数而言恒有 算术 ≥ 几何 ≥ 调和：此处 ')
+      + m.am.toFixed(4) + ' >= ' + m.gm.toFixed(4) + ' >= ' + m.hm.toFixed(4)
+      + (en ? '. They coincide only when every value is identical; the wider the spread, the further apart they sit.'
+        : '。只有当所有数值相同时三者才相等；离散越大，它们相差越远。'));
+
+    rows += __stRow(en ? 'It is dominated by small values' : '它受小值主导',
+      (en ? 'The smallest value here is ' : '此处最小值为 ') + m.min.toFixed(4)
+      + (en ? '. Because the harmonic mean works on reciprocals, one very small value pulls it down hard - '
+             + 'much harder than it pulls down the arithmetic mean. Check for a genuine zero or a data-entry slip before trusting it.'
+        : '。由于调和平均作用于倒数，一个很小的值会把它拉得很低 —— 远比它对算术平均的影响大。'
+          + '采信之前请确认是否真有 0 或录入错误。'));
+
+    rows += __stRow(en ? 'What the gap tells you' : '两者之差说明什么',
+      (en ? 'Arithmetic minus harmonic here is ' : '此处算术平均减调和平均 = ') + gap.toFixed(4)
+      + (gap > 0
+          ? (en ? ', a sign the values are spread out: the closer the two averages, the more uniform the data.'
+            : '，说明数值比较分散：两个平均数越接近，数据越均匀。')
+          : (en ? ': zero, meaning all the values are the same.' : '，为 0，说明所有数值相同。')));
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(m.am > 0 ? m.hm / m.am : 0, '#0d9488')
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'HM / AM = ' : 'HM / AM = ') + (m.am > 0 ? (m.hm / m.am).toFixed(4) : '-')
+        + (en ? '  (1 means all values are equal)' : '（为 1 表示所有数值相同）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charHmTitle').textContent = en ? '🚗 When the average speed is not the average' : '🚗 平均速度不等于速度的平均';
+    document.getElementById('__charHmDesc').textContent = en ? 'The harmonic mean is the right average for rates. This shows the round-trip trap, when to use it, and why small values dominate it.' : '调和平均才是速率的正确平均。这里给出往返速度的陷阱、适用场合，以及它为何受小值主导。';
+    document.getElementById('__charHmNote').textContent = en
+      ? 'The harmonic mean is n / sum(1/x) and requires every value to be strictly positive. It is the right average for rates when the denominator is held fixed - equal distances at different speeds, fixed spending at different prices, parallel resistances. For positive numbers, arithmetic >= geometric >= harmonic, with equality only when all values match. It is dominated by the smallest values, so check for zeros and entry errors. Indicative reading aid.'
+      : '调和平均为 n / Σ(1/x)，要求每个数值严格大于 0。当分母固定时它是正确的平均 —— 等距离不同速度、固定花费不同单价、并联电阻。对正数恒有 算术 ≥ 几何 ≥ 调和，仅当所有数值相同时取等。它受最小值主导，请留意 0 与录入错误。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['data'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

@@ -407,5 +407,189 @@ document.addEventListener('toolbox:langchange',function(){try{__gmChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charGm" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charGmTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charGmDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charGmBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charGmVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charGmBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charGmRows"></tbody>
+  </table>
+  <p id="__charGmNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stGm(){
+    var e = document.getElementById('data');
+    if (!e) return null;
+    var xs = String(e.value || '').split(/[\s,]+/).map(function(s){ return parseFloat(s); })
+               .filter(function(v){ return isFinite(v); });
+    var n = xs.length;
+    if (n < 1) return null;
+    var i, sum = 0, hasNonPos = false, logSum = 0;
+    for (i = 0; i < n; i++){
+      sum += xs[i];
+      if (xs[i] <= 0){ hasNonPos = true; break; }
+      logSum += Math.log(xs[i]);
+    }
+    if (hasNonPos) return { xs: xs, n: n, bad: true, am: sum / n };
+    var gm = Math.exp(logSum / n);
+    return { xs: xs, n: n, gm: gm, am: sum / n, bad: false,
+             min: Math.min.apply(null, xs), max: Math.max.apply(null, xs) };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charGmBadge');
+    var val = document.getElementById('__charGmVal');
+    var bar = document.getElementById('__charGmBar');
+    var tb = document.getElementById('__charGmRows');
+    var m = __stGm();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter one or more numbers to read the geometric mean.'
+                                    : '请填入至少一个数值，以判读几何平均。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    if (m.bad){
+      if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#dc2626';
+        badge.textContent = en ? 'Undefined here' : '此处无定义'; }
+      if (val) val.textContent = en ? 'The geometric mean needs every value to be strictly positive (a zero or a negative breaks it).'
+                                    : '几何平均要求每个数值都严格大于 0（出现 0 或负数即失效）。';
+      if (bar) bar.innerHTML = '';
+      var tg = document.getElementById('__charGmRows');
+      if (tg) tg.innerHTML = __stRow(en ? 'Why it fails' : '为什么失效',
+        en ? 'The geometric mean multiplies the values and takes the nth root, so a single zero makes it zero and a negative value '
+            + 'makes the root undefined for an even count. Add a constant only if the shift is meaningful, and say that you did.'
+          : '几何平均先把数值相乘再开 n 次方，因此只要有一个 0 结果就是 0，出现负数时偶次根无定义。'
+            + '只有在平移确实有意义时才加常数，且必须说明做过平移。');
+      return;
+    }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#0d9488';
+      badge.textContent = (en ? 'GM = ' : 'GM = ') + m.gm.toFixed(4); }
+    if (val) val.textContent = (en ? 'Geometric mean = ' : '几何平均 = ') + m.gm.toFixed(4)
+      + (en ? '   vs arithmetic ' : '   算术平均 ') + m.am.toFixed(4);
+
+    var rows = '';
+    // 经典陷阱：平均增长率
+    rows += __stRow(en ? 'The growth-rate trap' : '平均增长率的陷阱',
+      en ? 'Gain 50% one year and lose 50% the next and the arithmetic average says 0%, but you end up with 0.75 of what you started - a 25% loss. '
+          + 'The geometric mean of 1.5 and 0.5 is about ' + Math.sqrt(1.5 * 0.5).toFixed(4) + ', i.e. roughly a 13.4% loss per year. '
+          + 'For anything that compounds - growth rates, returns, ratios - use the geometric mean.'
+        : '一年涨 50%、次年跌 50%，算术平均说是 0%，但你的本金只剩 0.75 —— 实际亏了 25%。'
+          + '1.5 与 0.5 的几何平均约为 ' + Math.sqrt(1.5 * 0.5).toFixed(4) + '，即每年约亏 13.4%。'
+          + '凡是复利型的量 —— 增长率、收益率、比率 —— 都要用几何平均。');
+
+    rows += __stRow(en ? 'When to use it' : '什么时候用',
+      en ? 'Use it for data that combine by multiplication rather than addition: growth factors, index numbers, aspect ratios, '
+          + 'or measurements spread over several orders of magnitude. Use the arithmetic mean when values add up.'
+        : '适用于以"相乘"方式组合的数据：增长因子、指数、比率，或跨越几个数量级的测量值。'
+          + '数值是相加关系时用算术平均。');
+
+    rows += __stRow(en ? 'The gap between the two' : '两个平均的差距',
+      (en ? 'Arithmetic is ' : '算术平均 ') + m.am.toFixed(4) + (en ? ', geometric is ' : '，几何平均 ') + m.gm.toFixed(4)
+      + (en ? '. The arithmetic mean is always at least as large, and the gap grows with the spread: here the values run from '
+        : '。算术平均恒不小于几何平均，且差距随离散程度增大：此处数值范围为 ')
+      + m.min.toFixed(4) + (en ? ' to ' : ' 到 ') + m.max.toFixed(4)
+      + (en ? '. A large gap is a signal that the data are skewed or spread across magnitudes.' : '。差距大即提示数据偏斜或跨量级。'));
+
+    rows += __stRow(en ? 'Why it is gentler' : '为什么它更"温和"',
+      en ? 'Because it works in logarithms, the geometric mean is pulled much less by one huge value than the arithmetic mean is. '
+          + 'That is what makes it the honest centre for skewed, multiplicative data - but it also means it hides how large the biggest values are.'
+        : '由于它在对数尺度上运算，几何平均受个别极大值的影响远小于算术平均。'
+          + '这正是它适合偏斜、相乘型数据的原因 —— 但同时它也会掩盖最大值到底有多大。');
+
+    rows += __stRow(en ? 'Zero and negative values' : '零与负值的处理',
+      (en ? 'All ' : '此处 ') + m.n + (en ? ' values here are positive, so the geometric mean is well defined. '
+                                       + 'If a series can contain zero or negative entries, the geometric mean cannot be used directly - '
+                                       + 'consider working with log-transformed values or a different summary.'
+                                     : ' 个数值都为正，因此几何平均有定义。'
+                                       + '若序列中可能出现 0 或负数，则不能直接使用几何平均 —— '
+                                       + '可考虑对数值取对数后处理，或改用其他汇总量。'));
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(m.am > 0 ? m.gm / m.am : 0, '#0d9488')
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'GM / AM = ' : 'GM / AM = ') + (m.am > 0 ? (m.gm / m.am).toFixed(4) : '-')
+        + (en ? '  (1 means all values are equal)' : '（为 1 表示所有数值相同）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charGmTitle').textContent = en ? '📈 Why growth rates need this average' : '📈 为什么增长率要用这个平均';
+    document.getElementById('__charGmDesc').textContent = en ? 'The arithmetic average quietly overstates anything that compounds. This shows the growth-rate trap, when the geometric mean is the honest centre, and where it fails.' : '算术平均会悄悄高估一切复利型的量。这里给出增长率陷阱、几何平均的正确场合，以及它的失效边界。';
+    document.getElementById('__charGmNote').textContent = en
+      ? 'The geometric mean is exp(mean(log x)), i.e. the nth root of the product, and needs every value to be strictly positive. It is the correct centre for multiplicative or compounding quantities such as growth factors, returns and ratios; a 50% gain followed by a 50% loss is a 25% loss overall, not a wash. It is always at most the arithmetic mean, with equality only when all values match. Indicative reading aid.'
+      : '几何平均为 exp(均值(log x))，即乘积开 n 次方，要求每个数值严格大于 0。对于相乘或复利型的量（增长因子、收益率、比率），它才是正确的中心；先涨 50% 再跌 50%，总体是亏 25% 而非持平。它恒不大于算术平均，仅当所有数值相同时取等。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['data'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

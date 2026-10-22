@@ -347,5 +347,178 @@ document.addEventListener('toolbox:langchange',function(){try{__prChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charPr" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charPrTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charPrDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charPrBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charPrVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charPrBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charPrRows"></tbody>
+  </table>
+  <p id="__charPrNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stPr(){
+    var de = document.getElementById('data'), ve = document.getElementById('val');
+    if (!de || !ve) return null;
+    var xs = String(de.value || '').split(/[\s,]+/).map(function(s){ return parseFloat(s); })
+               .filter(function(v){ return isFinite(v); });
+    var v = parseFloat(ve.value);
+    if (!xs.length || !isFinite(v)) return null;
+    var n = xs.length, below = 0, equal = 0, i;
+    for (i = 0; i < n; i++){
+      if (xs[i] < v) below++;
+      else if (xs[i] === v) equal++;
+    }
+    // 常用定义：(低于该值的个数 + 0.5 * 等于的个数) / n
+    var pr = (below + 0.5 * equal) / n * 100;
+    var strict = below / n * 100;
+    return { pr: pr, strict: strict, n: n, below: below, equal: equal, v: v,
+             min: Math.min.apply(null, xs), max: Math.max.apply(null, xs) };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charPrBadge');
+    var val = document.getElementById('__charPrVal');
+    var bar = document.getElementById('__charPrBar');
+    var tb = document.getElementById('__charPrRows');
+    var m = __stPr();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter the data set and the value to locate its percentile rank.'
+                                    : '请填入数据集与待定位的数值，以得到百分位排名。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#0d9488';
+      badge.textContent = (en ? 'PR = ' : 'PR = ') + m.pr.toFixed(1) + (en ? 'th percentile' : ' 百分位'); }
+    if (val) val.textContent = (en ? 'Percentile rank = ' : '百分位排名 = ') + m.pr.toFixed(2)
+      + (en ? '  (' : '（') + m.below + (en ? ' below, ' : ' 个低于，') + m.equal
+      + (en ? ' equal, out of ' : ' 个等于，共 ') + m.n + (en ? ')' : '）');
+
+    var rows = '';
+    // 头号误读：PR 不是"答对率"
+    rows += __stRow(en ? 'It is not a score' : '它不是得分率',
+      en ? 'A percentile rank of 90 does NOT mean "90% correct". It means this value sits at or above about 90% of the values in this particular set. '
+          + 'It is a position within a comparison group, never an amount of knowledge or accuracy.'
+        : '百分位排名 90 并不表示"答对 90%"，而是表示这个值不低于该数据集中约 90% 的值。'
+          + '它是在某个比较组内的相对位置，绝不是正确率或掌握程度。');
+
+    rows += __stRow(en ? 'Rank versus percentile' : '百分位排名 vs 百分位数',
+      en ? 'The two directions are easy to swap: a percentile is a VALUE below which a given share of the data falls, '
+          + 'while a percentile rank is the SHARE of data at or below a given value. This page computes the second one.'
+        : '这两个方向很容易弄反：百分位数是"某个比例的数据落在其下的**数值**"，'
+          + '而百分位排名是"某个数值所对应的**比例**"。本页算的是后者。');
+
+    // 分辨率：小样本只能取离散档位
+    var step = 100 / m.n;
+    rows += __stRow(en ? 'Resolution depends on n' : '分辨率取决于样本量',
+      (en ? 'With n = ' : 'n = ') + m.n + (en ? ' the rank can only move in steps of about ' : ' 时，排名只能以约 ')
+      + step.toFixed(1) + (en ? ' percentage points, so small differences in rank carry little information. '
+                                + 'Two people one place apart may differ by almost nothing.'
+                          : ' 个百分点为步长变化，因此排名的细小差别信息量很低。'
+                            + '名次相差一位，实际水平可能几乎没差别。')
+      + (m.equal > 1
+          ? (en ? ' Here ' + m.equal + ' values tie with yours; the 0.5 weighting used here splits the difference.'
+            : ' 此处有 ' + m.equal + ' 个值与你的数值相同；本页采用的 0.5 加权把它分摊处理。')
+          : ''));
+
+    rows += __stRow(en ? 'It depends on the group' : '它取决于比较组',
+      (en ? 'This rank is measured only against the ' : '这个排名只是相对你填入的 ') + m.n
+      + (en ? ' numbers entered above, which span ' : ' 个数而言，其范围为 ') + m.min.toFixed(3)
+      + (en ? ' to ' : ' 到 ') + m.max.toFixed(3)
+      + (en ? '. Change the comparison group and the same value gets a different rank - so always state which group you used.'
+        : '。换一个比较组，同一个值会得到不同的排名 —— 因此必须说明用的是哪一组。'));
+
+    rows += __stRow(en ? 'Ties and the definition' : '并列与定义差异',
+      (en ? 'Counting only strictly lower values gives ' : '只统计严格更小的数值时得到 ') + m.strict.toFixed(2)
+      + (en ? '%, while the common "below plus half the ties" definition gives ' : '%，而常用的"低于者加一半并列者"定义给出 ')
+      + m.pr.toFixed(2) + (en ? '%. Different textbooks and software pick different conventions, so quote the definition with the number.'
+                               : '%。不同教材与软件采用不同约定，因此报数时应一并说明所用定义。'));
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(m.pr / 100, '#0d9488')
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Position within this group: ' : '在本组中的相对位置：') + m.pr.toFixed(1) + '%'
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charPrTitle').textContent = en ? '📊 What this percentile rank means' : '📊 这个百分位排名说明什么';
+    document.getElementById('__charPrDesc').textContent = en ? 'A percentile rank is a position, not a score. This clears up the most common misreading, and shows how much the comparison group and the sample size matter.' : '百分位排名是位置，不是得分。这里澄清最常见的误读，并说明比较组与样本量有多大影响。';
+    document.getElementById('__charPrNote').textContent = en
+      ? 'Percentile rank here uses the common definition (number below + 0.5 x number equal) / n x 100%; counting only strictly lower values would give the alternative shown in the table. A percentile rank is a position within a specific comparison group, not a percentage score or an accuracy figure. With small n the rank can only change in steps of 100/n, and different fields and software use different tie conventions, so state the definition and the group. Indicative reading aid.'
+      : '本页百分位排名采用常用定义（低于的个数 + 0.5×并列的个数）/ n × 100%；只统计严格更小值则为表中所列的另一算法。百分位排名是特定比较组内的位置，不是得分率或正确率。样本量小时排名只能以 100/n 为步长变化，且不同领域与软件对并列的处理约定不同，因此报数时应说明定义与比较组。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['data', 'val'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

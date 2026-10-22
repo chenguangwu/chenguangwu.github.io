@@ -419,5 +419,164 @@ document.addEventListener('toolbox:langchange',function(){try{__seChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charSe" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charSeTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charSeDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charSeBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charSeVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charSeBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charSeRows"></tbody>
+  </table>
+  <p id="__charSeNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stSe(){
+    var sigma = __stNum('sigma'), n = __stNum('n');
+    if (!isFinite(sigma) || !isFinite(n)) return null;
+    if (!(sigma > 0) || !(n > 0)) return null;
+    var se = sigma / Math.sqrt(n);
+    // 样本量翻到多少才能把 SE 减半：SE 正比于 1/sqrt(n)，故需 4 倍
+    return { sigma: sigma, n: n, se: se, half: 1.96 * se };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charSeBadge');
+    var val = document.getElementById('__charSeVal');
+    var bar = document.getElementById('__charSeBar');
+    var tb = document.getElementById('__charSeRows');
+    var m = __stSe();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter a positive SD and a positive sample size to read the standard error.'
+                                    : '请填写正的标准差与正的样本量，以判读标准误。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var shrink = 1 - (m.se / m.sigma);
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#0d9488';
+      badge.textContent = (en ? 'SE is ' : 'SE 为 SD 的 ') + __stPct(m.se / m.sigma)
+        + (en ? ' of the SD' : ''); }
+    if (val) val.textContent = (en ? 'SE = SD / sqrt(n) = ' : 'SE = SD / √n = ') + m.se.toFixed(4)
+      + (en ? '   (SD = ' : '（SD = ') + m.sigma.toFixed(4) + (en ? ', n = ' : '，n = ') + m.n + (en ? ')' : '）');
+
+    var rows = '';
+    // 头号混淆：SE 说的是均值，SD 说的是个体
+    rows += __stRow(en ? 'SE is not the SD' : 'SE 不是 SD',
+      en ? 'The SD describes how spread out the individual observations are. The standard error describes how much the SAMPLE MEAN would '
+          + 'move if you repeated the study. Here the SD is ' + m.sigma.toFixed(4) + ' but the SE is only ' + m.se.toFixed(4)
+          + ': the same data, two different questions.'
+        : '标准差描述单个观测值有多分散；标准误描述的是**样本均值**在重复研究时会波动多少。'
+          + '此处 SD = ' + m.sigma.toFixed(4) + '，而 SE 只有 ' + m.se.toFixed(4) + '：同一批数据，两个不同的问题。');
+
+    rows += __stRow(en ? 'Why it shrinks with n' : '为什么随 n 缩小',
+      (en ? 'SE = SD / sqrt(' : 'SE = SD / √(') + m.n + (en ? '), so it falls as 1/sqrt(n): ' : ')，因此按 1/√n 下降：')
+      + (en ? 'going from n = ' + m.n + ' to n = ' + (m.n * 4) + ' would halve it, not divide it by four. '
+             + 'Quadrupling the sample only buys a factor of two in precision.'
+        : '样本量由 n = ' + m.n + ' 增加到 n = ' + (m.n * 4) + ' 只能让它减半，而不是变成四分之一。'
+          + '样本翻两番，精度只提高一倍。'));
+
+    rows += __stRow(en ? 'The interval it gives' : '它给出的区间',
+      (en ? 'A large-sample 95% interval for the mean is roughly the mean plus or minus 1.96 * SE = '
+        : '大样本下均值的 95% 区间约为均值 ± 1.96×SE = ') + m.half.toFixed(4)
+      + (en ? '. Note this is an interval for the mean, not a range containing 95% of the data - that would need the SD.'
+        : '。注意这是均值的区间，不是"包含 95% 数据"的范围 —— 后者要用标准差。'));
+
+    rows += __stRow(en ? 'How error bars mislead' : '误差棒怎么骗人',
+      en ? 'Because the SE is always smaller than the SD, plotting SE bars instead of SD bars makes a result look more precise than it is, '
+          + 'and readers routinely mistake them for the spread of the data. Say which one you are plotting.'
+        : '由于 SE 总是小于 SD，用 SE 画误差棒会让结果看起来比实际更精确，'
+          + '而读者常误以为它表示数据的离散范围。务必标明画的是哪一个。');
+
+    rows += __stRow(en ? 'Which one to report' : '该报哪一个',
+      en ? 'Report the SD when you are describing your sample - how much individuals vary. Report the SE when you are stating how precisely '
+          + 'you have located a mean. Label it explicitly; "mean plus or minus X" is ambiguous on its own.'
+        : '描述样本时用 SD（个体之间的差异有多大）；说明均值定位得有多准时用 SE。'
+          + '并明确标注 —— 单独写"均值 ± X"是有歧义的。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(m.se / m.sigma, '#0d9488')
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'SE shrinks the SD by ' : 'SE 相对 SD 缩小了 ') + __stPct(shrink)
+        + (en ? '  at this sample size' : '（当前样本量下）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charSeTitle').textContent = en ? '📐 SE is not the SD' : '📐 标准误不是标准差';
+    document.getElementById('__charSeDesc').textContent = en ? 'The standard error and the standard deviation answer different questions and are constantly confused. This spells out which is which, and why error bars mislead.' : '标准误与标准差回答的是两个不同问题，却常被混为一谈。这里说清哪个是哪个，以及误差棒为什么会骗人。';
+    document.getElementById('__charSeNote').textContent = en
+      ? 'SE = SD/sqrt(n), so it shrinks as 1/sqrt(n): quadrupling n halves the SE. The SE describes the sampling variability of the mean, while the SD describes the spread of individual observations - they answer different questions and are frequently confused, especially in error bars. The 95% figure uses the large-sample approximation mean +/- 1.96*SE and assumes independent observations. Indicative reading aid.'
+      : 'SE = SD/√n，按 1/√n 收缩：样本量翻两番，SE 减半。SE 描述均值的抽样变异，SD 描述单个观测值的离散 —— 两者回答不同问题，且常被混淆，误差棒尤甚。95% 区间用大样本近似 均值 ± 1.96×SE，并假设观测独立。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['sigma', 'n'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>
