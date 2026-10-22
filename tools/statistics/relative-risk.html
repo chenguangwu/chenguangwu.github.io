@@ -431,5 +431,196 @@ document.addEventListener('toolbox:langchange',function(){try{__rrChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charRr" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charRrTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charRrDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charRrBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charRrVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charRrBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charRrRows"></tbody>
+  </table>
+  <p id="__charRrNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stRR(){
+    var a = __stNum('a'), b = __stNum('b'), c = __stNum('c'), d = __stNum('d');
+    if (!isFinite(a) || !isFinite(b) || !isFinite(c) || !isFinite(d)) return null;
+    if (a <= 0 || b <= 0 || c <= 0 || d <= 0) return null;
+    var e1 = a / (a + b), e0 = c / (c + d);
+    if (!(e0 > 0)) return null;
+    var RR = e1 / e0;
+    if (!isFinite(RR) || RR <= 0) return null;
+    // ln(RR) 的标准误（Katz 对数法）
+    var se = Math.sqrt(1/a - 1/(a+b) + 1/c - 1/(c+d));
+    var lo = Math.exp(Math.log(RR) - 1.96 * se), hi = Math.exp(Math.log(RR) + 1.96 * se);
+    var OR = (a * d) / (b * c);
+    return { RR: RR, e1: e1, e0: e0, lo: lo, hi: hi, OR: OR };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charRrBadge');
+    var val = document.getElementById('__charRrVal');
+    var bar = document.getElementById('__charRrBar');
+    var tb = document.getElementById('__charRrRows');
+    var m = __stRR();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'All four cells (a, b, c, d) must be positive to read the relative risk.'
+                                    : '四格 a、b、c、d 都需为正数，才能判读相对风险。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var sig = !(m.lo <= 1 && m.hi >= 1);
+    var lvl, color;
+    if (!sig){ lvl = en ? 'Not significant (CI includes 1)' : '不显著（CI 含 1）'; color = '#16a34a'; }
+    else if (m.RR >= 2 || m.RR <= 0.5){ lvl = en ? 'Significant, sizeable' : '显著且幅度不小'; color = '#dc2626'; }
+    else { lvl = en ? 'Significant, modest' : '显著但幅度不大'; color = '#ea580c'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'RR = ' + m.RR.toFixed(3) + ' · ' + lvl; }
+    if (val) val.textContent = (en ? 'RR = ' : 'RR = ') + m.RR.toFixed(4)
+      + (en ? '  95% CI ' : '  95% 置信区间 ') + m.lo.toFixed(3) + ' - ' + m.hi.toFixed(3);
+
+    var ard = m.e1 - m.e0;
+    var nnt = Math.abs(ard) > 1e-9 ? Math.ceil(1 / Math.abs(ard)) : null;
+    var rows = '';
+
+    // 绝对风险差与 NNT：决策真正需要的数字
+    rows += __stRow(en ? 'Absolute risk difference' : '绝对风险差',
+      (en ? 'Risk moves from ' : '风险由 ') + __stPct(m.e0) + (en ? ' to ' : ' 变为 ') + __stPct(m.e1)
+      + (en ? ', an absolute change of ' : '，绝对变化 ') + __stPct(Math.abs(ard))
+      + (en ? (ard >= 0 ? ' (increase).' : ' (decrease).') : (ard >= 0 ? '（上升）。' : '（下降）。'))
+      + (nnt !== null
+          ? (ard >= 0
+              ? (en ? ' One extra outcome for every ' : ' 相当于每 ') + nnt + (en ? ' people exposed (NNT).' : ' 人暴露多出现 1 例结局（NNT）。')
+              : (en ? ' One outcome avoided for every ' : ' 相当于每 ') + nnt + (en ? ' people exposed (NNT).' : ' 人暴露少出现 1 例结局（NNT）。'))
+          : (en ? ' No absolute difference.' : ' 绝对风险无差异。')));
+
+    // 头号误读：同样的 RR 在不同基线风险下完全不是一回事
+    var nntHi = m.RR !== 1 ? Math.ceil(1 / Math.abs(0.10 * (m.RR - 1))) : null;   // 基线 10%
+    var nntLo = m.RR !== 1 ? Math.ceil(1 / Math.abs(0.01 * (m.RR - 1))) : null;   // 基线 1%
+    var baseWarn;
+    if (nntHi !== null && nntLo !== null){
+      baseWarn = en
+        ? ('The same RR = ' + m.RR.toFixed(2) + ' means very different things at different baselines: '
+           + 'with a 10% baseline risk, about 1 in ' + nntHi + ' exposed people is affected; '
+           + 'with a 1% baseline risk, only about 1 in ' + nntLo + '. Never quote RR without the baseline risk.')
+        : ('同样的 RR = ' + m.RR.toFixed(2) + ' 在不同基线风险下含义完全不同：'
+           + '若基线风险为 10%，约每 ' + nntHi + ' 个暴露者才影响 1 人；'
+           + '若基线风险只有 1%，则约每 ' + nntLo + ' 人才影响 1 人。'
+           + '报告 RR 时必须同时给出基线风险。');
+    } else {
+      baseWarn = en ? 'RR = 1 means the two risks are equal, so no baseline adjustment is needed.'
+                    : 'RR = 1 表示两组风险相同，无需再看基线。';
+    }
+    rows += __stRow(en ? 'The same RR, different baselines' : '同 RR 不同基线', baseWarn);
+
+    // RR 与 OR 的关系
+    rows += __stRow(en ? 'RR vs odds ratio' : 'RR 与比值比',
+      en ? ('On this table the odds ratio is OR = ' + m.OR.toFixed(3) + ' while the risk ratio is RR = ' + m.RR.toFixed(3)
+            + '. The OR is always further from 1 than the RR when an effect exists, so quoting an OR as if it were a risk ratio exaggerates it. '
+            + 'RR needs incidence, so it comes from cohorts and trials; a case-control study can only give an OR.')
+        : ('本表的比值比 OR = ' + m.OR.toFixed(3) + '，风险比 RR = ' + m.RR.toFixed(3)
+           + '。存在效应时，OR 总是比 RR 更远离 1，因此把 OR 当 RR 报会夸大效应。'
+           + 'RR 需要发病率数据，只能来自队列研究或试验；病例对照研究只能给出 OR。'));
+
+    rows += __stRow(en ? 'Reading the interval' : '怎么看置信区间',
+      (en ? 'The 95% CI ' : '95% 置信区间 ') + m.lo.toFixed(3) + ' - ' + m.hi.toFixed(3)
+      + (sig ? (en ? ' excludes 1, so the difference is significant at the 5% level.'
+                   : ' 不含 1，差异在 5% 水平显著。')
+             : (en ? ' includes 1, so this table does not establish a difference. Remember "not significant" is not the same as "no difference".'
+                   : ' 含 1，本表不足以说明有差异。注意"不显著"不等于"没有差异"。'))
+      + (en ? ' Computed on the log scale (Katz method), which is why the interval is not symmetric around RR.'
+            : ' 该区间在对数尺度上计算（Katz 法），因此相对 RR 左右不对称。'));
+
+    rows += __stRow(en ? 'What to report' : '报告时该写什么',
+      en ? 'Report the risk in each group, the absolute difference and the NNT alongside the RR. A relative risk alone cannot tell a reader whether the change is worth acting on.'
+        : '报告 RR 的同时应给出两组各自的风险、绝对风险差与 NNT。只有相对风险，读者无法判断这个变化值不值得行动。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(m.e1, '#dc2626')
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Exposed ' : '暴露组 ') + __stPct(m.e1)
+        + (en ? '  vs  unexposed ' : '  对照 ') + __stPct(m.e0)
+        + (en ? '  (the gap, not the ratio, drives decisions)' : '（决策看的是差值，不是比值）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charRrTitle').textContent = en ? '📉 What this relative risk actually means' : '📉 这个相对风险到底说明什么';
+    document.getElementById('__charRrDesc').textContent = en ? 'A relative risk without the baseline is easy to over-read. This adds the absolute difference, the number needed to treat, and what the same RR would mean at a different baseline.' : '脱离基线风险的相对风险最容易被夸大。这里补上绝对风险差、需治人数，以及同一个 RR 在另一基线风险下会是什么含义。';
+    document.getElementById('__charRrNote').textContent = en
+      ? 'The CI uses the Katz log method, SE(ln RR) = sqrt(1/a - 1/(a+b) + 1/c - 1/(c+d)); NNT = 1/|P1 - P0|. RR requires incidence, so it applies to cohort and trial data; case-control studies yield only an odds ratio, which is always further from 1 than the RR when an effect exists. The same RR implies very different absolute effects at different baseline risks, so always report the absolute risks too. Indicative reading aid, not clinical advice.'
+      : '置信区间用 Katz 对数法，SE(ln RR) = √(1/a − 1/(a+b) + 1/c − 1/(c+d))；NNT = 1/|P1 − P0|。RR 需要发病率，适用于队列研究与试验；病例对照研究只能给出比值比，且存在效应时 OR 总比 RR 更远离 1。同一个 RR 在不同基线风险下对应的绝对效应差别很大，因此必须同时报告绝对风险。以上为判读提示，不构成临床建议。';
+    __stUpdate();
+    var IDS = ['a', 'b', 'c', 'd'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的 calcTool（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

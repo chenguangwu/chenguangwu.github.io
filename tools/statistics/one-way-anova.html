@@ -477,5 +477,185 @@ else document.addEventListener("DOMContentLoaded", __anBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charAv" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charAvTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charAvDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charAvBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charAvVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charAvBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charAvRows"></tbody>
+  </table>
+  <p id="__charAvNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stAnova(){
+    var ms = [], ss = [], ns = [], i;
+    for (i = 1; i <= 3; i++){
+      var m = __stNum('m' + i), s = __stNum('s' + i), n = __stNum('n' + i);
+      if (!isFinite(m) || !isFinite(s) || !isFinite(n)) return null;
+      if (n < 2 || s <= 0) return null;
+      ms.push(m); ss.push(s); ns.push(n);
+    }
+    var N = 0, sum = 0;
+    for (i = 0; i < 3; i++){ N += ns[i]; sum += ns[i] * ms[i]; }
+    var grand = sum / N;
+    var ssb = 0, ssw = 0;
+    for (i = 0; i < 3; i++){ ssb += ns[i] * Math.pow(ms[i] - grand, 2); ssw += (ns[i] - 1) * ss[i] * ss[i]; }
+    var sst = ssb + ssw;
+    if (!(sst > 0)) return null;
+    var dfb = 2, dfw = N - 3;
+    if (!(dfw > 0)) return null;
+    var msb = ssb / dfb, msw = ssw / dfw;
+    var F = msw > 0 ? msb / msw : NaN;
+    var eta2 = ssb / sst;
+    var omega2 = (ssb - dfb * msw) / (sst + msw);
+    return { F: F, eta2: Math.max(0, eta2), omega2: omega2, dfb: dfb, dfw: dfw, N: N, ssb: ssb, ssw: ssw };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charAvBadge');
+    var val = document.getElementById('__charAvVal');
+    var bar = document.getElementById('__charAvBar');
+    var tb = document.getElementById('__charAvRows');
+    var m = __stAnova();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter all three group means, SDs and sizes (each n >= 2) to see how much the groups really differ.'
+                                    : '请填写三组均值、标准差与样本量（每组 n ≥ 2），再看组间差异到底有多大。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var lvl, color;
+    if (m.eta2 >= 0.14){ lvl = en ? 'Large (Cohen)' : '大效应（Cohen）'; color = '#dc2626'; }
+    else if (m.eta2 >= 0.06){ lvl = en ? 'Medium (Cohen)' : '中等效应（Cohen）'; color = '#ea580c'; }
+    else if (m.eta2 >= 0.01){ lvl = en ? 'Small (Cohen)' : '小效应（Cohen）'; color = '#0d9488'; }
+    else { lvl = en ? 'Negligible (Cohen)' : '可忽略（Cohen）'; color = '#16a34a'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'eta-squared = ' + m.eta2.toFixed(3) + ' · ' + lvl; }
+    if (val) val.textContent = (en ? 'F(' : 'F(') + m.dfb + ', ' + m.dfw + (en ? ') = ' : ') = ')
+      + (isFinite(m.F) ? m.F.toFixed(4) : '-')
+      + (en ? '   eta-squared = ' : '   η² = ') + m.eta2.toFixed(4);
+
+    var rows = '';
+    // eta-squared：方差解释比例，ANOVA 里最该报却被漏掉的数
+    rows += __stRow(en ? 'How much the groups explain' : '组间解释了什么',
+      (en ? 'Eta-squared = SS_between / SS_total = ' : 'η² = 组间平方和 / 总平方和 = ') + m.eta2.toFixed(4)
+      + (en ? ', so group membership accounts for about ' : '，也就是说分组因素约解释了 ') + __stPct(m.eta2)
+      + (en ? ' of the total variation; the remaining ' : ' 的总变异，剩下 ') + __stPct(1 - m.eta2)
+      + (en ? ' is noise and individual differences. Cohen bands: 0.01 small, 0.06 medium, 0.14 large.'
+        : ' 来自噪声与个体差异。Cohen 分级：0.01 小、0.06 中、0.14 大。'));
+
+    // omega-squared：更少偏的估计
+    rows += __stRow(en ? 'Less biased: omega-squared' : '更少偏的 ω²',
+      (en ? 'Omega-squared = ' : 'ω² = ') + (isFinite(m.omega2) ? m.omega2.toFixed(4) : '-')
+      + (en ? '. Eta-squared is biased upward, especially with small samples, so omega-squared is the better number to report.'
+        : '。η² 存在高估偏倚，样本小时尤其明显，因此报告时更推荐 ω²。'));
+
+    // ANOVA 显著只说明"不完全相等"
+    rows += __stRow(en ? 'It does not tell you which' : '它没告诉你是哪两组',
+      en ? 'A significant F only says the three means are not all equal - it does not say which pair differs. '
+          + 'You need a post-hoc comparison with a corrected threshold (Tukey HSD is the usual choice). '
+          + 'Running three separate t tests instead leaves the family-wise error rate near 14% rather than 5%.'
+        : 'F 显著只说明三组均值不全相等，并不说明哪两组不同。'
+          + '需要做事后多重比较并校正阈值（通常用 Tukey HSD）。'
+          + '若直接做三次两两 t 检验，整体假阳性率会接近 14% 而不是 5%。');
+
+    rows += __stRow(en ? 'Assumptions to check' : '要检查的前提',
+      en ? 'Independent observations, roughly normal residuals, and similar variances across groups. '
+          + 'With unequal variances use Welch ANOVA; with clear skew or ordinal data use the Kruskal-Wallis test. '
+          + 'Unbalanced group sizes make the violation of equal variances much more damaging.'
+        : '观测独立、残差近似正态、各组方差相近。方差不齐时用 Welch 方差分析；'
+          + '明显偏态或有序数据用 Kruskal-Wallis 检验。各组样本量不均衡时，方差不齐的危害会明显放大。');
+
+    rows += __stRow(en ? 'Significant vs meaningful' : '显著 ≠ 有意义',
+      en ? 'F grows with sample size, so with a large N even a trivial spread of means becomes significant. '
+          + 'Decide using eta-squared against a threshold that matters in your field, and report the group means and SDs.'
+        : 'F 随样本量增大，N 很大时即便均值差异微不足道也会显著。'
+          + '判读应把 η² 与本领域有意义的阈值对照，并报告各组均值与标准差。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(m.eta2, color)
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Share of total variation explained by group: ' : '分组解释的总变异比例：') + __stPct(m.eta2)
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charAvTitle').textContent = en ? '📊 How much do these groups really differ' : '📊 这些组到底差多少';
+    document.getElementById('__charAvDesc').textContent = en ? 'A significant F does not say which group differs, nor how much. This adds eta-squared and omega-squared, explains the post-hoc step, and lists the assumptions behind the test.' : 'F 显著既不说明哪两组不同，也不说明差多少。这里补上 η² 与 ω² 效应量，说明事后比较这一步，并列出检验的前提。';
+    document.getElementById('__charAvNote').textContent = en
+      ? 'Eta-squared = SS_between/SS_total; omega-squared = (SS_between - df_between*MS_within)/(SS_total + MS_within) and is less biased. Cohen bands for eta-squared are 0.01 small, 0.06 medium, 0.14 large. Between-group and within-group sums of squares are reconstructed from the group means, SDs and sizes, so results match the standard one-way ANOVA only when those summaries are the whole story. A significant F does not localise the difference; use Tukey HSD or another corrected post-hoc procedure. Indicative reading aid.'
+      : 'η² = 组间平方和/总平方和；ω² = (组间平方和 − 组间自由度×组内均方)/(总平方和 + 组内均方)，偏倚更小。η² 的 Cohen 分级为 0.01 小、0.06 中、0.14 大。组间与组内平方和由各组均值、标准差与样本量还原，因此只有在这些汇总量反映全部信息时才与标准单因素方差分析一致。F 显著并不定位差异所在，需用 Tukey HSD 或其他校正后的事后比较。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['m1', 'm2', 'm3', 's1', 's2', 's3', 'n1', 'n2', 'n3'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的 calcTool（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

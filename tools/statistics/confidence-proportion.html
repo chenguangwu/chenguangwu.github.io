@@ -403,5 +403,179 @@ document.addEventListener('toolbox:langchange',function(){try{__cpChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charCi" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charCiTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charCiDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charCiBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charCiVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charCiBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charCiRows"></tbody>
+  </table>
+  <p id="__charCiNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  // Wald 区间（与页面一致）+ Wilson 区间对照
+  function __stCI(){
+    var x = __stNum('x'), n = __stNum('n'), z = __stNum('z');
+    if (!isFinite(x) || !isFinite(n) || !isFinite(z)) return null;
+    if (!(n > 0) || x < 0 || x > n) return null;
+    var p = x / n;
+    var se = Math.sqrt(p * (1 - p) / n);
+    var lo = p - z * se, hi = p + z * se;
+    var denom = 1 + z * z / n;
+    var centre = (p + z * z / (2 * n)) / denom;
+    var half = (z / denom) * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
+    return { p: p, n: n, z: z, se: se, lo: lo, hi: hi,
+             wlo: Math.max(0, centre - half), whi: Math.min(1, centre + half) };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charCiBadge');
+    var val = document.getElementById('__charCiVal');
+    var bar = document.getElementById('__charCiBar');
+    var tb = document.getElementById('__charCiRows');
+    var m = __stCI();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter successes x, sample size n and the z value (1.96 for 95%).'
+                                    : '请填写成功数 x、样本量 n 与 z 值（95% 用 1.96）。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var half = m.z * m.se;
+    var width = 2 * half;
+    // 判定 Wald 区间是否可靠：成功/失败数是否够大
+    var succ = m.p * m.n, fail = (1 - m.p) * m.n;
+    var thin = Math.min(succ, fail) < 5;
+    var lvl = en ? (thin ? 'Wald interval unreliable here' : 'Wald interval reasonable')
+                 : (thin ? 'Wald 区间在此不可靠' : 'Wald 区间可用');
+    var color = thin ? '#dc2626' : '#0d9488';
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color; badge.textContent = lvl; }
+    if (val) val.textContent = (en ? 'p = ' : 'p = ') + m.p.toFixed(4)
+      + (en ? '  95%-style interval ' : '  区间 ') + m.lo.toFixed(4) + ' - ' + m.hi.toFixed(4)
+      + (en ? '  (half width ' : '（半宽 ') + half.toFixed(4) + (en ? ')' : '）');
+
+    var rows = '';
+    // 头号误解：CI 不是"真值有 95% 概率落在里面"
+    rows += __stRow(en ? 'What "95%" really means' : '95% 到底指什么',
+      en ? 'It does NOT mean there is a 95% probability that the true value lies inside THIS interval. '
+          + 'For the interval you just computed, the true value is either in it or not. '
+          + 'The 95% describes the procedure: if the same study were repeated many times and the interval rebuilt each time, '
+          + 'about 95% of those intervals would cover the true value.'
+        : '它并不表示"真值有 95% 的概率落在当前这个区间里"。对已经算出来的这一个区间，真值要么在里面，要么不在。'
+          + '95% 描述的是方法：如果重复抽样很多次、每次都用同样方法重算区间，约 95% 的区间会覆盖真值。');
+
+    // Wilson 对照
+    var gap = Math.abs(m.wlo - m.lo) + Math.abs(m.whi - m.hi);
+    rows += __stRow(en ? 'Check against the Wilson interval' : '与 Wilson 区间对照',
+      (en ? 'The Wilson interval for the same data is ' : '同一数据的 Wilson 区间为 ') + m.wlo.toFixed(4) + ' - ' + m.whi.toFixed(4)
+      + (thin
+          ? (en ? '. Successes or failures here are fewer than 5, so the simple Wald interval above can miss badly '
+                  + '(it may even run below 0 or above 1). Use the Wilson interval, or the exact Clopper-Pearson interval.'
+            : '。本表成功数或失败数少于 5，上方简单的 Wald 区间可能严重失准'
+              + '（甚至会算出小于 0 或大于 1 的边界）。请改用 Wilson 区间或精确的 Clopper-Pearson 区间。')
+          : (en ? '. The two agree closely, so the simple interval above is fine here.'
+                : '。两者接近，上方简单区间在此可用。')));
+
+    // 样本量与精度的 sqrt(n) 关系
+    var needHalf = half > 0 ? Math.ceil(m.z * m.z * m.p * (1 - m.p) / Math.pow(half / 2, 2)) : null;
+    rows += __stRow(en ? 'Precision scales with sqrt(n)' : '精度与 √n 成正比',
+      (en ? 'The half width is ' : '当前半宽 ') + half.toFixed(4) + (en ? '. Cutting it in half requires about 4x the sample: '
+                                                                    : '。要把半宽压缩一半，样本量需约 4 倍：')
+      + (needHalf !== null ? (en ? 'roughly n = ' : '约 n = ') + needHalf + (en ? ' instead of ' : '（当前 ') + m.n + (en ? '.' : '）。')
+                           : (en ? 'not applicable at p = 0 or 1.' : 'p 为 0 或 1 时不适用。'))
+      + (en ? ' Precision costs sample size, not clever maths.' : ' 提高精度只能靠加大样本，没有捷径。'));
+
+    rows += __stRow(en ? 'What this interval is not' : '这个区间不是什么',
+      en ? 'This is an interval for the population proportion, not a range that contains 95% of individual observations. '
+          + 'It also says nothing about causality, and it assumes the sample is random and independent.'
+        : '这是总体比例的区间，不是"包含 95% 个体观测值"的范围。它也不说明因果，并假设样本随机且相互独立。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      var scale = 1;
+      bar.innerHTML = __stBar(m.hi, '#0d9488')
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Interval width ' : '区间宽度 ') + __stPct(width)
+        + (en ? '  (upper end ' : '（上限 ') + __stPct(Math.min(1, m.hi)) + (en ? ')' : '）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charCiTitle').textContent = en ? '📐 What this confidence interval actually means' : '📐 这个置信区间到底说明什么';
+    document.getElementById('__charCiDesc').textContent = en ? 'Confidence intervals are the most misquoted number in statistics. This explains what the 95% does and does not say, checks the interval against Wilson, and shows what sample size buys you.' : '置信区间是统计学里被误读最多的数字。这里说明 95% 到底指什么、不指什么，与 Wilson 区间对照，并给出精度与样本量的关系。';
+    document.getElementById('__charCiNote').textContent = en
+      ? 'The page interval is the Wald form p +/- z*sqrt(p(1-p)/n); the Wilson check uses centre = (p + z^2/(2n))/(1 + z^2/n) with half width (z/(1+z^2/n))*sqrt(p(1-p)/n + z^2/(4n^2)). A common rule of thumb is that the Wald interval is unreliable when either np or n(1-p) is below about 5. Half width scales as 1/sqrt(n), so halving it needs about four times the sample. The 95% is a property of the procedure over repeated samples, not a probability statement about this one interval. Indicative reading aid.'
+      : '页面区间为 Wald 形式 p ± z·√(p(1−p)/n)；Wilson 对照取 centre = (p + z²/(2n))/(1 + z²/n)，半宽 (z/(1+z²/n))·√(p(1−p)/n + z²/(4n²))。常用经验规则：当 np 或 n(1−p) 低于约 5 时，Wald 区间不可靠。半宽按 1/√n 收缩，故减半需要约 4 倍样本。95% 描述的是重复抽样下方法的覆盖比例，不是对当前这一个区间的概率陈述。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['x', 'n', 'z'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的 calcTool（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

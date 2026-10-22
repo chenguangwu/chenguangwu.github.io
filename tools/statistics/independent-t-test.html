@@ -458,5 +458,192 @@ document.addEventListener('toolbox:langchange',function(){try{__itChart();}catch
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charTt" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charTtTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charTtDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charTtBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charTtVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charTtBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charTtRows"></tbody>
+  </table>
+  <p id="__charTtNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stT(){
+    var m1 = __stNum('m1'), m2 = __stNum('m2'), s1 = __stNum('s1'),
+        s2 = __stNum('s2'), n1 = __stNum('n1'), n2 = __stNum('n2');
+    if (!isFinite(m1) || !isFinite(m2) || !isFinite(s1) || !isFinite(s2) || !isFinite(n1) || !isFinite(n2)) return null;
+    if (n1 < 2 || n2 < 2 || s1 <= 0 || s2 <= 0) return null;
+    var sp = Math.sqrt(((n1-1)*s1*s1 + (n2-1)*s2*s2) / (n1 + n2 - 2));
+    var d = (m1 - m2) / sp;
+    var se = sp * Math.sqrt(1/n1 + 1/n2);
+    var t = (m1 - m2) / se;
+    // Welch 自由度与 Welch t
+    var v1 = s1*s1/n1, v2 = s2*s2/n2;
+    var dfw = Math.pow(v1 + v2, 2) / (Math.pow(v1,2)/(n1-1) + Math.pow(v2,2)/(n2-1));
+    var tw = (m1 - m2) / Math.sqrt(v1 + v2);
+    return { d: d, t: t, df: n1 + n2 - 2, dfw: dfw, tw: tw,
+             s1: s1, s2: s2, n1: n1, n2: n2, ratio: Math.max(s1, s2) / Math.min(s1, s2) };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charTtBadge');
+    var val = document.getElementById('__charTtVal');
+    var bar = document.getElementById('__charTtBar');
+    var tb = document.getElementById('__charTtRows');
+    var m = __stT();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter both means, SDs (positive) and sample sizes (at least 2 each) to check the assumptions behind this test.'
+                                    : '请填写两组均值、标准差（大于 0）与样本量（每组至少 2），再检查该检验的前提。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    // 三项前提：方差齐性 / 正态性可依赖程度 / 样本量
+    var hetero = m.ratio > 2;
+    var small = Math.min(m.n1, m.n2) < 15;
+    var lvl, color;
+    if (hetero){ lvl = en ? 'Unequal variances - use Welch' : '方差不齐，建议 Welch'; color = '#dc2626'; }
+    else if (small){ lvl = en ? 'Small sample - normality matters' : '样本偏小，正态性重要'; color = '#ea580c'; }
+    else { lvl = en ? 'Assumptions look reasonable' : '前提看起来满足'; color = '#16a34a'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color; badge.textContent = lvl; }
+    if (val) val.textContent = (en ? 't = ' : 't = ') + m.t.toFixed(4)
+      + (en ? '  (df = ' : '（df = ') + m.df + (en ? ')' : '）')
+      + (en ? '   Cohen\'s d = ' : '   Cohen\'s d = ') + m.d.toFixed(3);
+
+    var rows = '';
+    // 方差齐性：最常见的翻车点
+    rows += __stRow(en ? 'Equal variances' : '方差齐性',
+      (en ? 'The two SDs are ' : '两组标准差为 ') + m.s1.toFixed(3) + (en ? ' and ' : ' 与 ') + m.s2.toFixed(3)
+      + (en ? ', a ratio of ' : '，比值 ') + m.ratio.toFixed(2) + (en ? 'x. ' : ' 倍。')
+      + (hetero
+          ? (en ? 'A ratio above about 2 breaks the pooled-variance t test. The Welch version is the safer default here: '
+                  + 'Welch t = ' + m.tw.toFixed(4) + ' with about ' + Math.round(m.dfw) + ' degrees of freedom, instead of '
+                  + m.t.toFixed(4) + ' with ' + m.df + '.'
+            : '比值超过约 2 会破坏合并方差 t 检验的前提。此处 Welch 检验更稳妥：'
+              + 'Welch t = ' + m.tw.toFixed(4) + '，自由度约 ' + Math.round(m.dfw)
+              + '；而合并方差结果为 t = ' + m.t.toFixed(4) + '，自由度 ' + m.df + '。')
+          : (en ? 'Within the usual tolerance, so the pooled t test above is appropriate.'
+                : '在通常可接受的范围内，上方合并方差 t 检验适用。')));
+
+    // 正态性：小样本才是硬前提
+    rows += __stRow(en ? 'Normality' : '正态性',
+      (small
+        ? (en ? 'With only ' + Math.min(m.n1, m.n2) + ' in the smaller group, the t test leans on the data being roughly normal. '
+                + 'Check a histogram or a Q-Q plot; with skew or heavy tails switch to the Mann-Whitney U test or a bootstrap.'
+          : '较小一组只有 ' + Math.min(m.n1, m.n2) + ' 例，t 检验依赖数据近似正态。'
+            + '请查看直方图或 Q-Q 图；若明显偏态或重尾，改用 Mann-Whitney U 检验或自助法。')
+        : (en ? 'Both groups have at least 15 observations, so the central limit theorem carries most of the load and mild non-normality is usually tolerable. '
+                + 'Extreme outliers still matter.'
+          : '两组都至少 15 例，中心极限定律足以支撑，轻度偏离正态通常可以容忍；但极端离群点仍需处理。')));
+
+    // 独立性：唯一不能靠统计补救的前提
+    rows += __stRow(en ? 'Independence' : '独立性',
+      en ? 'The one assumption no correction can fix: observations must be independent within and between groups. '
+          + 'Repeated measures on the same subject, clustered sampling or paired designs need a paired test or a mixed model instead.'
+        : '这是无法用统计方法补救的前提：组内与组间观测必须相互独立。'
+          + '同一受试者的重复测量、整群抽样或配对设计，应改用配对检验或混合模型。');
+
+    // 单尾/双尾 与 多重比较
+    rows += __stRow(en ? 'One-tailed, and multiple looks' : '单尾检验与多次比较',
+      en ? 'A two-sided test is the default and the safer choice; a one-sided test needs a reason recorded before seeing the data. '
+          + 'Testing several outcomes and reporting only the significant one inflates the false-positive rate: '
+          + '20 independent tests at the 5% level give about a 64% chance of at least one false positive.'
+        : '默认且更稳妥的是双尾检验；单尾检验需要在看数据之前就记录理由。'
+          + '检验多个结局却只报告显著的那个，会抬高假阳性率：'
+          + '在 5% 水平做 20 次独立检验，出现至少一次假阳性的概率约 64%。');
+
+    rows += __stRow(en ? 'Report more than p' : '别只报 p',
+      (en ? 'Pair the test with an effect size: Cohen\'s d here is ' : '检验应配上效应量：本例 Cohen\'s d = ') + m.d.toFixed(3)
+      + (en ? ' (' + (Math.abs(m.d) >= 0.8 ? 'large' : (Math.abs(m.d) >= 0.5 ? 'medium' : (Math.abs(m.d) >= 0.2 ? 'small' : 'negligible')))
+              + ' by Cohen), plus the confidence interval for the difference. A p value alone says nothing about how big the difference is.'
+        : '（按 Cohen 标准属' + (Math.abs(m.d) >= 0.8 ? '大' : (Math.abs(m.d) >= 0.5 ? '中' : (Math.abs(m.d) >= 0.2 ? '小' : '可忽略')))
+          + '效应），并给出差值的置信区间。只报 p 值无法说明差异有多大。'));
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(Math.min(1, Math.abs(m.d) / 2), color)
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Effect size |d| = ' : '效应量 |d| = ') + Math.abs(m.d).toFixed(3)
+        + (en ? '  (0.2 small / 0.5 medium / 0.8 large)' : '（0.2 小 / 0.5 中 / 0.8 大）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charTtTitle').textContent = en ? '🔍 Are this test\'s assumptions met' : '🔍 这个检验的前提成立吗';
+    document.getElementById('__charTtDesc').textContent = en ? 'A t test is only as good as its assumptions. This checks equal variances, how much normality matters at your sample size, and gives the Welch alternative when variances differ.' : 't 检验的可信度取决于前提是否成立。这里检查方差齐性、当前样本量下正态性有多重要，并在方差不齐时给出 Welch 检验的替代结果。';
+    document.getElementById('__charTtNote').textContent = en
+      ? 'The pooled t test assumes independent samples, roughly normal group data and equal variances; the variance ratio here is compared against the common rule of thumb of 2. Welch degrees of freedom use the Welch-Satterthwaite formula. With at least about 15 per group the central limit theorem makes mild non-normality tolerable, but outliers and dependence are not fixed by sample size. Effect size bands follow Cohen (1988). Indicative reading aid, not a substitute for checking the assumptions on the real data.'
+      : '合并方差 t 检验假设样本独立、组内数据近似正态且方差相等；此处方差比值与常用的 2 倍经验阈值比较。Welch 自由度采用 Welch-Satterthwaite 公式。每组约 15 例以上时，中心极限定律使轻度非正态可以容忍，但离群点与不独立无法靠增大样本解决。效应量分级依据 Cohen (1988)。以上为判读提示，不能替代对真实数据前提的检验。';
+    __stUpdate();
+    var IDS = ['m1', 'm2', 's1', 's2', 'n1', 'n2'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的 calcTool（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>
