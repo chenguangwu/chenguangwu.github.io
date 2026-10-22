@@ -378,5 +378,198 @@ else document.addEventListener("DOMContentLoaded", __csBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charChi" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charChiTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charChiDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charChiBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charChiVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charChiBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charChiRows"></tbody>
+  </table>
+  <p id="__charChiNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stChi(){
+    var eo = document.getElementById('o'), ee = document.getElementById('e');
+    if (!eo || !ee) return null;
+    function arr(v){
+      return String(v || '').split(',').map(function(s){ return parseFloat(s.trim()); })
+               .filter(function(x){ return isFinite(x); });
+    }
+    var oa = arr(eo.value), ea = arr(ee.value);
+    var n = Math.min(oa.length, ea.length);
+    if (n < 1) return null;
+    var chi = 0, N = 0, i, res = [], thin = 0, maxI = -1, maxV = -1;
+    for (i = 0; i < n; i++){
+      if (!(ea[i] > 0)) return null;
+      chi += Math.pow(oa[i] - ea[i], 2) / ea[i];
+      N += oa[i];
+      var r = (oa[i] - ea[i]) / Math.sqrt(ea[i]);
+      res.push(r);
+      if (ea[i] < 5) thin++;
+      if (Math.abs(r) > maxV){ maxV = Math.abs(r); maxI = i; }
+    }
+    if (!(N > 0)) return null;
+    // Cohen's w：卡方族效应量，w = sqrt(chi-square / N)
+    var w = Math.sqrt(chi / N);
+    return { chi: chi, df: n - 1, N: N, w: w, res: res, thin: thin,
+             maxI: maxI, maxV: maxV, o: oa, e: ea };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charChiBadge');
+    var val = document.getElementById('__charChiVal');
+    var bar = document.getElementById('__charChiBar');
+    var tb = document.getElementById('__charChiRows');
+    var m = __stChi();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter observed and expected values (comma separated) with every expected value positive.'
+                                    : '请填写观测值与期望值（逗号分隔），且每个期望值都为正数。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var lvl, color;
+    if (m.w >= 0.50){ lvl = en ? 'Large (Cohen w)' : '大效应（Cohen w）'; color = '#dc2626'; }
+    else if (m.w >= 0.30){ lvl = en ? 'Medium (Cohen w)' : '中等效应（Cohen w）'; color = '#ea580c'; }
+    else if (m.w >= 0.10){ lvl = en ? 'Small (Cohen w)' : '小效应（Cohen w）'; color = '#0d9488'; }
+    else { lvl = en ? 'Negligible (Cohen w)' : '可忽略（Cohen w）'; color = '#16a34a'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color;
+      badge.textContent = 'w = ' + m.w.toFixed(3) + ' · ' + lvl; }
+    if (val) val.textContent = (en ? 'chi-square = ' : 'χ² = ') + m.chi.toFixed(4)
+      + (en ? '  (df = ' : '（df = ') + m.df + (en ? ')' : '）')
+      + (en ? '   Cohen\'s w = ' : '   Cohen\'s w = ') + m.w.toFixed(4);
+
+    var rows = '';
+    // Cohen's w：卡方该配的效应量，绝大多数页面都漏了
+    rows += __stRow(en ? 'Effect size w' : '效应量 w',
+      (en ? 'Cohen\'s w = sqrt(chi-square / N) = ' : 'Cohen\'s w = √(χ²/N) = ') + m.w.toFixed(4)
+      + (en ? ', the standard effect size for chi-square tests. Bands: 0.10 small, 0.30 medium, 0.50 large. '
+            + 'A chi-square value alone cannot be compared across studies because it grows with N; w can.'
+        : '，这是卡方检验的标准效应量。分级：0.10 小、0.30 中、0.50 大。'
+          + '单独的 χ² 无法跨研究比较，因为它随 N 增大；w 可以。'));
+
+    // 期望频数检查：卡方最常用的适用条件
+    rows += __stRow(en ? 'Expected counts check' : '期望频数检查',
+      (m.thin > 0
+        ? (en ? m.thin + ' of the ' + m.res.length + ' cells have an expected value below 5. Chi-square becomes unreliable there: '
+                + 'merge sparse categories, or use an exact test.'
+          : '共 ' + m.res.length + ' 个格子中有 ' + m.thin + ' 个期望值低于 5。此时卡方不再可靠：'
+            + '应合并稀疏类别，或改用精确检验。')
+        : (en ? 'Every expected value is at least 5, which meets the usual requirement for the chi-square approximation.'
+          : '所有期望值都不低于 5，满足卡方近似的通常要求。')));
+
+    // 标准化残差：定位到底哪个格子在驱动结果
+    var loc = '';
+    if (m.maxI >= 0){
+      var r = m.res[m.maxI];
+      loc = (en ? 'The largest contribution comes from cell ' : '贡献最大的是第 ') + (m.maxI + 1)
+        + (en ? ': observed ' : ' 格：观测 ') + m.o[m.maxI].toFixed(0)
+        + (en ? ' vs expected ' : '，期望 ') + m.e[m.maxI].toFixed(2)
+        + (en ? ', a standardised residual of ' : '，标准化残差 ') + r.toFixed(2)
+        + (Math.abs(r) > 2
+            ? (en ? ' (beyond about 2 in absolute value, so this cell is driving the result).'
+              : '（绝对值超过约 2，说明正是这一格在驱动结果）。')
+            : (en ? ' (within about 2, so no single cell stands out).' : '（未超过约 2，没有哪一格特别突出）。'));
+    }
+    rows += __stRow(en ? 'Where the difference comes from' : '差异来自哪一格', loc);
+
+    rows += __stRow(en ? 'Which chi-square is this' : '这是哪一种卡方',
+      en ? 'The same statistic serves two different questions. A goodness-of-fit test compares one variable against a known or theoretical distribution; '
+          + 'a test of independence asks whether two variables in a contingency table are related. The degrees of freedom differ, and so does the interpretation.'
+        : '同一个统计量回答两类不同问题：拟合优度检验把单个变量与已知或理论分布比较；'
+          + '独立性检验则问列联表中两个变量是否相关。两者自由度不同，解读也不同。');
+
+    rows += __stRow(en ? 'Significant vs important' : '显著 ≠ 重要',
+      en ? 'Chi-square grows with N, so with a large sample even a trivial deviation becomes significant. Report w alongside the statistic, '
+          + 'and check the standardised residuals so you can say where the deviation actually is.'
+        : 'χ² 随 N 增大，样本很大时即便微小偏差也会显著。报告统计量时应一并给出 w，'
+          + '并查看标准化残差，说明偏差究竟出在哪里。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(Math.min(1, m.w), color)
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Cohen\'s w = ' : 'Cohen\'s w = ') + m.w.toFixed(3)
+        + (en ? '  (0.1 small / 0.3 medium / 0.5 large)' : '（0.1 小 / 0.3 中 / 0.5 大）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charChiTitle').textContent = en ? '🔢 How big is this chi-square effect' : '🔢 这个卡方效应有多大';
+    document.getElementById('__charChiDesc').textContent = en ? 'A chi-square value cannot be compared across sample sizes. This adds Cohen\'s w, checks the expected counts, and points at the cell actually driving the result.' : '卡方值无法跨样本量比较。这里补上 Cohen\'s w 效应量、检查期望频数，并指出真正驱动结果的那一格。';
+    document.getElementById('__charChiNote').textContent = en
+      ? 'Effect size follows Cohen: w = sqrt(chi-square/N), with bands 0.10 small, 0.30 medium, 0.50 large. Standardised residuals are (observed - expected)/sqrt(expected); values beyond about 2 in absolute value flag the cells driving the statistic. The usual requirement is that expected counts are at least about 5. This module reconstructs the statistic from the observed and expected lists, so it reflects exactly the numbers entered above. Indicative reading aid.'
+      : '效应量依据 Cohen：w = √(χ²/N)，分级 0.10 小、0.30 中、0.50 大。标准化残差 =（观测 − 期望）/√期望，绝对值超过约 2 即提示该格在驱动统计量。通常要求期望频数不低于约 5。本模块依据上方填入的观测与期望序列还原统计量，因此与所填数字完全一致。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['o', 'e'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

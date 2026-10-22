@@ -439,5 +439,181 @@ else document.addEventListener("DOMContentLoaded", __ttBoot);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
 })();
 /*TBKIT-INJECT-END*/</script>
+<section class="char-module" id="__charOs" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charOsTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charOsDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charOsBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charOsVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charOsBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charOsRows"></tbody>
+  </table>
+  <p id="__charOsNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  function __stOne(){
+    var xbar = __stNum('xbar'), mu0 = __stNum('mu0'), sd = __stNum('sd'), n = __stNum('n');
+    if (!isFinite(xbar) || !isFinite(mu0) || !isFinite(sd) || !isFinite(n)) return null;
+    if (!(sd > 0) || n < 2) return null;
+    var se = sd / Math.sqrt(n);
+    var t = (xbar - mu0) / se;
+    var d = (xbar - mu0) / sd;                 // 单样本标准化效应量
+    var tc = __stTcrit(n - 1);                 // 双尾 alpha = 0.05
+    var crit = isFinite(tc) ? tc * se : NaN;
+    return { t: t, d: d, se: se, n: n, df: n - 1, tc: tc, crit: crit, diff: xbar - mu0 };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charOsBadge');
+    var val = document.getElementById('__charOsVal');
+    var bar = document.getElementById('__charOsBar');
+    var tb = document.getElementById('__charOsRows');
+    var m = __stOne();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter the sample mean, the reference value, the SD (positive) and n (at least 2).'
+                                    : '请填写样本均值、参照值、标准差（大于 0）与样本量 n（至少 2）。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var ad = Math.abs(m.d);
+    var sig = isFinite(m.tc) && Math.abs(m.t) > m.tc;
+    var lvl, color;
+    if (ad >= 0.80){ lvl = en ? 'Large (Cohen)' : '大效应（Cohen）'; color = '#dc2626'; }
+    else if (ad >= 0.50){ lvl = en ? 'Medium (Cohen)' : '中等效应（Cohen）'; color = '#ea580c'; }
+    else if (ad >= 0.20){ lvl = en ? 'Small (Cohen)' : '小效应（Cohen）'; color = '#0d9488'; }
+    else { lvl = en ? 'Negligible (Cohen)' : '可忽略（Cohen）'; color = '#16a34a'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = sig ? color : '#16a34a';
+      badge.textContent = (en ? 'd = ' : 'd = ') + m.d.toFixed(3) + ' · ' + lvl; }
+    if (val) val.textContent = (en ? 't = ' : 't = ') + m.t.toFixed(4)
+      + (en ? '  (df = ' : '（df = ') + m.df + (en ? ')' : '）')
+      + (en ? '   Cohen\'s d = ' : '   Cohen\'s d = ') + m.d.toFixed(3);
+
+    var rows = '';
+    rows += __stRow(en ? 'Is it significant' : '是否显著',
+      (en ? 'At alpha = 0.05 two-tailed with ' : '在 α = 0.05 双尾、df = ') + m.df
+      + (en ? ' degrees of freedom the critical value is about ' : ' 时临界值约 ') + (isFinite(m.tc) ? m.tc.toFixed(3) : '-')
+      + (sig ? (en ? '; |t| = ' : '；|t| = ') + Math.abs(m.t).toFixed(3) + (en ? ' exceeds it, so the difference is significant.'
+                                                                            : ' 超过临界值，差异显著。')
+             : (en ? '; |t| = ' : '；|t| = ') + Math.abs(m.t).toFixed(3) + (en ? ' does not reach it, so the difference is not significant.'
+                                                                            : ' 未达临界值，差异不显著。')));
+
+    // 效应量：差值除以个体标准差，这才是"差多少"
+    rows += __stRow(en ? 'How big is the gap' : '差距有多大',
+      (en ? 'Cohen\'s d = (mean - reference) / SD = ' : 'Cohen\'s d =（均值 − 参照值）/ 标准差 = ') + m.d.toFixed(4)
+      + (en ? ': the sample sits ' : '：样本均值比参照值高 ') + Math.abs(m.d).toFixed(2)
+      + (en ? ' standard deviations away from the reference value (' : ' 个标准差（')
+      + (ad >= 0.8 ? (en ? 'large' : '大') : (ad >= 0.5 ? (en ? 'medium' : '中') : (ad >= 0.2 ? (en ? 'small' : '小') : (en ? 'negligible' : '可忽略'))))
+      + (en ? ' by Cohen).' : '效应）。')
+      + (en ? ' Report this alongside t: a significant result on a huge sample can still be a trivial shift.'
+        : ' 报告 t 时应一并给出它：大样本上的显著结果，实际位移仍可能微不足道。'));
+
+    rows += __stRow(en ? 'The interval you should quote' : '该报告的区间',
+      (en ? 'The standard error is ' : '标准误为 ') + m.se.toFixed(4)
+      + (en ? ', so a 95% interval for the mean is roughly the mean plus or minus ' : '，因此均值的 95% 区间约为均值 ± ')
+      + (isFinite(m.crit) ? m.crit.toFixed(4) : '-')
+      + (en ? '. If that interval covers the reference value, the data are consistent with it - which is a stronger statement than a bare p value.'
+        : '。若该区间覆盖参照值，说明数据与参照值相容 —— 这比单给一个 p 值信息量大得多。'));
+
+    rows += __stRow(en ? 'Assumptions' : '前提',
+      (m.n < 15
+        ? (en ? 'With n = ' + m.n + ', the test depends on the data being roughly normal. Check a histogram or Q-Q plot; '
+                + 'with clear skew use the Wilcoxon signed-rank test or a bootstrap.'
+          : 'n = ' + m.n + ' 时，检验依赖数据近似正态。请查看直方图或 Q-Q 图；明显偏态时改用 Wilcoxon 符号秩检验或自助法。')
+        : (en ? 'With n = ' + m.n + ' the central limit theorem carries most of the load, so mild non-normality is usually tolerable, '
+                + 'but outliers and dependence between observations are not fixed by sample size.'
+          : 'n = ' + m.n + ' 时中心极限定律足以支撑，轻度非正态通常可以容忍；'
+            + '但离群点与观测不独立，无法靠增大样本解决。')));
+
+    rows += __stRow(en ? 'One sample, one question' : '单样本只回答一个问题',
+      en ? 'This test compares one group against a fixed reference value. If you are comparing two measurements on the same subjects use a paired test, '
+          + 'and if you are comparing two separate groups use an independent-samples test - picking the wrong one changes the standard error and can flip the conclusion.'
+        : '单样本检验把一组数据与固定参照值比较。若比较的是同一批受试者的两次测量，应使用配对检验；'
+          + '若比较两组独立对象，则用独立样本检验 —— 选错会改变标准误，甚至翻转结论。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(Math.min(1, ad / 2), color)
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? '|d| = ' : '|d| = ') + ad.toFixed(3)
+        + (en ? '  (0.2 small / 0.5 medium / 0.8 large)' : '（0.2 小 / 0.5 中 / 0.8 大）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charOsTitle').textContent = en ? '🎯 What this one-sample test really says' : '🎯 这个单样本检验到底说明什么';
+    document.getElementById('__charOsDesc').textContent = en ? 'Significance only answers whether the gap is real. This adds the effect size, the interval for the mean, and the assumptions the test is leaning on.' : '显著性只回答差距是否真实。这里补上效应量、均值的置信区间，以及检验所依赖的前提。';
+    document.getElementById('__charOsNote').textContent = en
+      ? 'Cohen\'s d for one sample is (mean - reference)/SD, with the usual bands 0.2 small, 0.5 medium, 0.8 large. The interval uses the sample mean plus or minus t_crit(df = n-1) times the standard error SD/sqrt(n) at alpha = 0.05 two-tailed. The test assumes independent observations and, at small n, roughly normal data; with clear skew use the Wilcoxon signed-rank test. Indicative reading aid, not a substitute for checking the assumptions on the real data.'
+      : '单样本的 Cohen\'s d =（均值 − 参照值）/ 标准差，常用分级 0.2 小、0.5 中、0.8 大。区间取样本均值 ± t_crit(df = n−1)×标准误 SD/√n（α = 0.05 双尾）。检验假设观测独立，样本小时还要求数据近似正态；明显偏态时应改用 Wilcoxon 符号秩检验。以上为判读提示，不能替代对真实数据前提的检验。';
+    __stUpdate();
+    var IDS = ['xbar', 'mu0', 'sd', 'n'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calcTool === 'function' && !calcTool.__stHooked) {
+        var __orig = calcTool;
+        calcTool = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calcTool.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>

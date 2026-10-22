@@ -485,5 +485,202 @@ else document.addEventListener('DOMContentLoaded', __hypothesis_testBoot);
 </div>
 <!-- /SEO 介绍区块 -->
 
+<section class="char-module" id="__charHt" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+  <h2 id="__charHtTitle" style="font-size:16px;margin:0 0 8px;"></h2>
+  <p id="__charHtDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 10px;"></p>
+  <div id="__charHtBadge" style="display:inline-block;padding:4px 12px;border-radius:999px;color:#fff;font-size:13px;font-weight:600;margin-bottom:4px;"></div>
+  <div id="__charHtVal" style="font-size:15px;font-weight:600;margin:8px 0 6px;"></div>
+  <div id="__charHtBar"></div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tbody id="__charHtRows"></tbody>
+  </table>
+  <p id="__charHtNote" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.7;"></p>
+</section>
+<script>
+(function(){
+
+  function __stIsEn(){
+    try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn()) return true; } catch(e){}
+    try { return new URLSearchParams(location.search).get('lang') === 'en-US'; } catch(e){}
+    return false;
+  }
+  // Abramowitz & Stegun 7.1.26 正态 CDF 近似（|err| < 7.5e-8），零依赖
+  function __stNcdf(z){
+    var s = z < 0 ? -1 : 1, u = Math.abs(z) / Math.SQRT2;
+    var t = 1 / (1 + 0.3275911 * u);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
+          - 0.284496736) * t + 0.254829592) * t) * Math.exp(-u * u);
+    return 0.5 * (1 + s * y);
+  }
+  function __stNum(id){
+    var e = document.getElementById(id);
+    if (!e) return NaN;
+    return parseFloat(e.value);
+  }
+  function __stPct(x){ return (x * 100).toFixed(1) + '%'; }
+  function __stRow(k, v){
+    return '<tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);width:30%;vertical-align:top;">'
+         + k + '</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);">' + v + '</td></tr>';
+  }
+  function __stBar(ratio, color){
+    var w = Math.max(0, Math.min(1, ratio)) * 100;
+    return '<div style="background:var(--border);border-radius:6px;height:14px;overflow:hidden;margin:6px 0 2px;">'
+         + '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + color + ';"></div></div>';
+  }
+  // 双尾 alpha=0.05 的 t 临界值（df 1..30 精确，之后按常用分档）
+  function __stTcrit(df){
+    var T = [12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,
+             2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,
+             2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042];
+    if (!(df >= 1)) return NaN;
+    if (df <= 30) return T[df - 1];
+    if (df <= 40) return 2.021;
+    if (df <= 60) return 2.000;
+    if (df <= 120) return 1.980;
+    return 1.960;
+  }
+
+
+  // 二分法求正态分位数（z 使 Phi(z) = p），避免依赖页面内部函数
+  function __stZ(p){
+    if (!(p > 0 && p < 1)) return NaN;
+    var lo = -12, hi = 12, i, mid;
+    for (i = 0; i < 120; i++){ mid = (lo + hi) / 2; if (__stNcdf(mid) < p) lo = mid; else hi = mid; }
+    return (lo + hi) / 2;
+  }
+  function __stTail(){
+    var e = document.getElementById('tail');
+    if (!e) return 'two';
+    var v = String(e.value || '').toLowerCase();
+    return (v.indexOf('one') >= 0 || v === '1' || v.indexOf('单') >= 0) ? 'one' : 'two';
+  }
+  function __stHT(){
+    var mean = __stNum('mean'), mu0 = __stNum('mu0'), sigma = __stNum('sigma'),
+        n = __stNum('n'), alpha = __stNum('alpha');
+    if (!isFinite(mean) || !isFinite(mu0) || !isFinite(sigma) || !isFinite(n) || !isFinite(alpha)) return null;
+    if (!(sigma > 0) || !(n > 0) || !(alpha > 0) || !(alpha < 1)) return null;
+    var se = sigma / Math.sqrt(n);
+    var z = (mean - mu0) / se;
+    var tail = __stTail();
+    var zc = tail === 'one' ? __stZ(1 - alpha) : __stZ(1 - alpha / 2);
+    if (!isFinite(zc)) return null;
+    var delta = Math.abs(mean - mu0) / se;                 // 以观测差作为效应量
+    // 双尾：power = Phi(delta - zc) + Phi(-delta - zc)；单尾只取同向那一侧
+    var power = tail === 'one' ? __stNcdf(delta - zc) : (__stNcdf(delta - zc) + __stNcdf(-delta - zc));
+    // 可检出的最小效应（power = 80%）：(z_crit + z_0.80) * sigma / sqrt(n)
+    var mde = (zc + 0.8416) * se;
+    return { z: z, zc: zc, alpha: alpha, delta: delta, power: power, mde: mde,
+             tail: tail, se: se, diff: mean - mu0, n: n, sigma: sigma };
+  }
+
+  function __stUpdate(){ {
+    var en = __stIsEn();
+    var badge = document.getElementById('__charHtBadge');
+    var val = document.getElementById('__charHtVal');
+    var bar = document.getElementById('__charHtBar');
+    var tb = document.getElementById('__charHtRows');
+    var m = __stHT();
+    if (!m){
+      if (badge) badge.style.display = 'none';
+      if (val) val.textContent = en ? 'Enter the sample mean, the hypothesised mean, sigma, n and alpha to see the error rates behind this test.'
+                                    : '请填写样本均值、假设均值、总体标准差 sigma、样本量 n 与 alpha，再看该检验背后的两类错误。';
+      if (bar) bar.innerHTML = '';
+      if (tb) tb.innerHTML = '';
+      return;
+    }
+    var rej = Math.abs(m.z) > m.zc;      // 是否落在拒绝域
+    var beta = 1 - m.power;
+    var lvl, color;
+    if (rej && m.power >= 0.80){ lvl = en ? 'Rejected, well powered' : '拒绝且效能充足'; color = '#dc2626'; }
+    else if (rej){ lvl = en ? 'Rejected, but power is low' : '拒绝但效能偏低'; color = '#ea580c'; }
+    else if (m.power >= 0.80){ lvl = en ? 'Not rejected, well powered' : '未拒绝且效能充足'; color = '#0d9488'; }
+    else { lvl = en ? 'Not rejected, power is low' : '未拒绝且效能不足'; color = '#16a34a'; }
+    if (badge){ badge.style.display = 'inline-block'; badge.style.background = color; badge.textContent = lvl; }
+    if (val) val.textContent = (en ? 'z = ' : 'z = ') + m.z.toFixed(4)
+      + (en ? '  critical ' : '  临界值 ') + (m.tail === 'one' ? '' : '±') + m.zc.toFixed(3)
+      + (en ? '  (' : '（')
+      + (m.tail === 'one' ? (en ? 'one-tailed' : '单尾') : (en ? 'two-tailed' : '双尾'))
+      + (en ? ')' : '）');
+
+    var rows = '';
+    // 决策矩阵：四类结果的概率
+    rows += __stRow(en ? 'The two error types' : '两类错误',
+      en ? ('Alpha = ' + m.alpha.toFixed(3) + ' is the false-positive rate: if the null hypothesis were true, this test would still reject it that often. '
+            + 'Beta is the false-negative rate: if the true effect equals the one observed here, this design misses it about ' + __stPct(beta)
+            + ' of the time. Cutting alpha without adding data pushes beta up.')
+        : ('α = ' + m.alpha.toFixed(3) + ' 是假阳性率：若原假设为真，该检验仍会有这么高的比例错误拒绝它。'
+           + 'β 是假阴性率：若真实效应等于此处观测到的效应，该设计约有 ' + __stPct(beta) + ' 的概率漏掉它。'
+           + '在样本不变时压低 α，会把 β 推高。'));
+
+    rows += __stRow(en ? 'Power of this design' : '该设计的检验效能',
+      (en ? 'Power = 1 - beta = ' : '效能 = 1 − β = ') + __stPct(m.power)
+      + (en ? ' for an effect of the size observed here (|mean - mu0| = ' : '（对应此处观测到的效应 |x̄ − μ0| = ')
+      + Math.abs(m.diff).toFixed(3) + (en ? '). ' : '）。')
+      + (m.power >= 0.80
+          ? (en ? 'At or above the usual 80% target, so a real effect of this size would usually be detected.'
+            : '达到通常的 80% 目标，这么大的真实效应一般能被检出。')
+          : (en ? 'Below the usual 80% target: a real effect of this size would often be missed, so a non-significant result here proves very little.'
+            : '低于通常的 80% 目标：这么大的真实效应常常会被漏掉，因此此处"不显著"几乎说明不了什么。')));
+
+    // 可检出的最小效应：不做事后效能也能说清样本够不够
+    rows += __stRow(en ? 'Smallest effect you can detect' : '你能检出的最小效应',
+      (en ? 'With n = ' : '在 n = ') + m.n + (en ? ' and alpha = ' : '、α = ') + m.alpha.toFixed(3)
+      + (en ? ', the smallest difference detectable with 80% power is about ' : ' 下，效能 80% 时可检出的最小差值约 ')
+      + m.mde.toFixed(3) + (en ? ' (MDE = (z_crit + 0.8416) * sigma / sqrt(n)). ' : '（MDE = (z_crit + 0.8416)·σ/√n）。')
+      + (Math.abs(m.diff) >= m.mde
+          ? (en ? 'The observed difference is above that, so the design can resolve it.' : '观测差值高于该值，设计足以分辨。')
+          : (en ? 'The observed difference is below that threshold, which is why it may not reach significance.'
+            : '观测差值低于该阈值，这也是它可能达不到显著的原因。')));
+
+    rows += __stRow(en ? 'What "not significant" does not mean' : '"不显著"不等于什么',
+      en ? 'Failing to reject is not the same as proving the null. It can mean the effect is small, or that the sample was too small to see it. '
+          + 'To argue for "no effect" you need an equivalence test or a confidence interval narrow enough to rule out effects that matter.'
+        : '未能拒绝并不等于证明了原假设。可能是效应很小，也可能是样本太小看不出来。'
+          + '要主张"没有效应"，需要等价性检验，或给出窄到足以排除有意义效应的置信区间。');
+
+    rows += __stRow(en ? 'Before you run the test' : '做检验之前先定好',
+      en ? 'Fix alpha, the direction (one or two tailed) and the sample size in advance. Choosing a one-tailed test after seeing which way the result went '
+          + 'roughly doubles the false-positive rate, and stopping as soon as p dips below 0.05 does the same.'
+        : '提前定好 α、单尾还是双尾、以及样本量。看到结果方向后才改用单尾，会把假阳性率提高约一倍；'
+          + '一看到 p 跌破 0.05 就停止收集数据，效果同样如此。');
+    if (tb) tb.innerHTML = rows;
+
+    if (bar){
+      bar.innerHTML = __stBar(m.power, m.power >= 0.80 ? '#16a34a' : '#ea580c')
+        + '<div style="font-size:12px;color:var(--text-muted);">'
+        + (en ? 'Power = ' : '检验效能 = ') + __stPct(m.power)
+        + (en ? '  (80% is the usual target)' : '（通常以 80% 为目标）')
+        + '</div>';
+    }
+  } }
+  function __stInit(){
+    var en = __stIsEn();
+    document.getElementById('__charHtTitle').textContent = en ? '⚖️ The errors behind this test' : '⚖️ 这个检验背后的两类错误';
+    document.getElementById('__charHtDesc').textContent = en ? 'A hypothesis test can fail in two directions. This lays out the false-positive and false-negative rates, the power of your design, and the smallest effect it can actually detect.' : '假设检验会在两个方向上出错。这里给出假阳性与假阴性率、当前设计的检验效能，以及它实际能检出的最小效应。';
+    document.getElementById('__charHtNote').textContent = en
+      ? 'Power uses the normal approximation: for a two-tailed test power = Phi(delta - z_crit) + Phi(-delta - z_crit), for one-tailed power = Phi(delta - z_crit), with delta = |mean - mu0| / (sigma/sqrt(n)). The minimum detectable effect is (z_crit + z_0.80) * sigma / sqrt(n) at 80% power. Power computed from the observed effect is post hoc and only illustrative - plan a study from the effect you care about, not from the result you happened to get. Indicative reading aid.'
+      : '效能采用正态近似：双尾 power = Φ(δ − z_crit) + Φ(−δ − z_crit)，单尾 power = Φ(δ − z_crit)，其中 δ = |x̄ − μ0|/(σ/√n)。可检出最小效应 MDE = (z_crit + z_0.80)·σ/√n（效能 80%）。依据观测效应反算的效能属事后效能，仅作示意 —— 研究设计应基于你关切的效应量，而不是碰巧得到的结果。以上为判读提示。';
+    __stUpdate();
+    var IDS = ['mean', 'mu0', 'sigma', 'n', 'alpha', 'tail'];
+    IDS.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el || !el.addEventListener) return;
+      el.addEventListener('input', __stUpdate);
+      el.addEventListener('change', __stUpdate);
+    });
+    // 点「计算」按钮时也要刷新：包装页面已有的计算函数（幂等，防重复包装）
+    try {
+      if (typeof calculate === 'function' && !calculate.__stHooked) {
+        var __orig = calculate;
+        calculate = function(){ __orig.apply(this, arguments); try { __stUpdate(); } catch(e){} };
+        calculate.__stHooked = true;
+      }
+    } catch(e){}
+  }
+  if (document.readyState && document.readyState !== 'loading') __stInit();
+  else document.addEventListener('DOMContentLoaded', __stInit);
+})();
+</script>
+
 </body>
 </html>
