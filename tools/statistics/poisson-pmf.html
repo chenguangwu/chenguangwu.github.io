@@ -267,12 +267,21 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['lam', 'k'],["均值 λ", "事件数 k"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const lam = num('lam'), k = Math.round(Math.min(num('k'), 1000));
-            function fact(m){let f=1;for(let i=2;i<=m;i++)f*=i;return f;}
-            const P = Math.pow(lam, k) * Math.exp(-lam) / fact(k);
+            const lam = num('lam'), k = Math.round(Math.min(num('k'), 1000));
+            // 对数空间递推：ln P(X=i) = ln P(X=i−1) + ln(λ/i)，初值 ln P(X=0) = −λ。
+            // 双稳：避免大 λ/k 下 λ^k/k! 直接阶乘溢出 (NaN/Inf)，也避免大 λ 下 e^−λ 下溢为 0。
+            let __logTerm = -lam;            // ln P(X=0)
+            let __cdf = Math.exp(__logTerm);
+            let P = __cdf;
+            for (let i = 1; i <= k; i++){
+              __logTerm += Math.log(lam / i);
+              const __pt = Math.exp(__logTerm);
+              __cdf += __pt;
+              P = __pt;                       // 终态 P = P(X=k)
+            }
             const __g2=dataGrid([
                 [P.toFixed(5), 'P(X=' + k + ')'],
-                [(function(){let c=0;for(let i=0;i<=k;i++)c+=Math.pow(lam,i)*Math.exp(-lam)/fact(i);return c.toFixed(5);})(), 'P(X ≤ ' + k + ') 累积概率'],
+                [__cdf.toFixed(5), 'P(X ≤ ' + k + ') 累积概率'],
                 [Math.sqrt(lam).toFixed(4), '标准差 √λ']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
