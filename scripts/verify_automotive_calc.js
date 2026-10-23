@@ -48,6 +48,23 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "automotive/brake-pad-life",
+  "inputs": {
+    "newThickness": "12",
+    "currentThickness": "12",
+    "mileage": "0",
+    "yearlyKm": "15000",
+    "padType": "1.2",
+    "env": "1",
+    "habit": "1",
+    "position": "front"
+  },
+  "expect": [
+    "57,692"
+  ],
+  "ref": "新车场景（当前厚度=新片厚度、里程 0 ⇒ 无实测磨损率，走基础预测路径）。显式注入 select 默认态（padType=1.2 陶瓷 / env=1 城市 / habit=1 正常 / front）——harness 的 getEl 对 select 恒取第一个 option 而非 selected 项（既存缺口，见 memory），不注入会拿到 1.6/0.8/0.85。独立复算：wearPer10k=1.2×1×1×1.3=1.56 mm/万km；剩余可用=12−3=9mm ⇒ remainKm=9÷1.56×10000=57692 km；remainMonths=⌊(57692÷(15000/365))÷30⌋=47。修前 padType 基准 0.06（小 20 倍）会得 115 万 km 的荒谬值。"
+},
+{
   "slug": "automotive/bus-arrival-estimator",
   "inputs": {
     "interval": "15",

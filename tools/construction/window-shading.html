@@ -186,8 +186,8 @@ s.parentNode.insertBefore(el, s);
 <h3>计算说明</h3>
 <div class="info-box">
   <p><strong>简化模型公式:</strong></p>
-  <p>SC = 1 - (P / H) × tan(α) × K</p>
-  <p>其中: P=遮阳板挑出长度, H=窗户高度, α=太阳高度角, K=朝向修正系数</p>
+  <p>投影深度 = P / tan(α)；SC = 1 - min(H, P / tan(α)) / H</p>
+  <p>其中: P=遮阳板挑出长度, H=窗户高度, α=太阳高度角, K=朝向修正系数（作用于辐射得热估算）</p>
   <p style="margin-top:8px;"><strong>朝向修正系数:</strong> 南向 K=1.0, 北向 K=0.3, 东西向 K=0.7</p>
   <p style="margin-top:8px;"><strong>太阳高度角:</strong> α = 90 - |纬度 - 太阳赤纬|</p>
   <p>本工具为简化模型，实际工程请使用专业软件计算。</p>
@@ -294,20 +294,19 @@ function calcShading() {
   var azimuth = Math.acos(cosAz) * 180 / Math.PI;
   if (hr > 12) azimuth = 360 - azimuth;
 
-  /* 遮阳系数: SC = 1 - (P/H) * tan(altitude) * K */
+  /* 遮阳投影长度：水平挑出 P 在垂直墙面的投影深度 = P/tan(alt)（太阳越高投影越短） */
   var tanAlt = Math.tan(altRad);
   var K = DIR_FACTOR[selectedDir];
-  var ratio = (P / winH) * tanAlt * K;
-  var SC = Math.max(0, Math.min(1, 1 - ratio));
-
-  /* 遮阳投影长度 */
   var shadowLen = tanAlt > 0 ? P / Math.max(tanAlt, 0.01) : 9999;
   var coveredH = Math.min(winH, shadowLen);
+
+  /* 遮阳系数 SC = 1 - 遮挡比，遮挡比 = 投影覆盖高度/窗高 */
+  var SC = Math.max(0, Math.min(1, 1 - coveredH / winH));
 
   /* 窗户面积 */
   var winArea = winH * winW;
   var shadedArea = coveredH * winW;
-  var solarHeat = winArea * (1 - SC) * 600; /* 简化: 600 W/m² 太阳辐射 */
+  var solarHeat = winArea * SC * 600 * K; /* 简化: 600 W/m² 太阳辐射，SC 为透过比例，K 为朝向修正 */
 
   lastResultText = '窗户遮阳系数计算\n'
     + '纬度: ' + lat + '°, 月份: ' + (mon + 1) + '月, 时间: ' + hr + '时\n'

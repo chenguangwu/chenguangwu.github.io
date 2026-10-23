@@ -166,10 +166,6 @@ s.parentNode.insertBefore(el, s);
         </select>
       </div>
       <div>
-        <label for="cover">保护层厚度 c（mm）</label>
-        <input type="number" id="cover" value="25" step="1" min="0">
-      </div>
-      <div>
         <label for="num">根数</label>
         <input type="number" id="num" value="1" step="1" min="1">
       </div>
@@ -185,8 +181,8 @@ s.parentNode.insertBefore(el, s);
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
-        <li>量度差值 Δ = (D/2 + d) × θ_rad − (D/2 + d) × sin(θ_rad)，D 为弯弧内径</li>
-        <li>180° 半圆弯钩增加长度 ≈ 6.25d；135° 斜弯钩 ≈ 4.9d；90° 直弯钩 ≈ 3.5d</li>
+        <li>量度差值 Δ = 2×(D/2 + d)×tan(α/2) − α_rad×(D + d)/2，即外包尺寸 − 中心线展开长；α > 90° 时按 90°+(α−90°) 两段分解</li>
+        <li>D=2.5d 时弯钩增加长度：180° 半圆弯钩 ≈ 6.25d；135° 斜弯钩 ≈ 4.9d；90° 直弯钩 ≈ 3.5d（按 弧长+3d−(D/2+d) 随 D 换算）</li>
         <li>下料长度 = 外包尺寸之和 − 量度差值 + 弯钩增加长度</li>
         <li>弯弧内径 D = 系数 × d，本工具默认 2.5d</li>
       </ul>
@@ -226,21 +222,35 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function hookAddLen(type, d) {
+// 弯钩增加长度 = 弯钩中心线弧长 + 平直段(3d) − 外皮缩短量(D/2+d)
+// D=2.5d 时精确复现经典值：180°→6.25d、135°→4.9d、90°→3.5d；D 变化时按几何换算
+function hookAddLen(type, d, D) {
+  var arc;
   switch (String(type)) {
-    case '180': return 6.25 * d;
-    case '135': return 4.9 * d;
-    case '90': return 3.5 * d;
+    case '180': arc = (D + d) / 2 * Math.PI; break;
+    case '135': arc = (D + d) / 2 * (3 * Math.PI / 4); break;
+    case '90':  arc = (D + d) / 2 * (Math.PI / 2); break;
     default: return 0;
   }
+  return arc + 3 * d - (D / 2 + d);
 }
 
 function bendDeduction(D, d, angleDeg) {
   if (angleDeg <= 0) return 0;
-  const R = D / 2 + d;
-  const rad = angleDeg * Math.PI / 180;
-  // 中心线弧长 - 弦长（量度差值）
-  return R * rad - 2 * R * Math.sin(rad / 2);
+  // 量度差值 Δ = 外包尺寸 − 中心线展开长（经典钢筋下料口径）
+  // α ≤ 90°：Δ = 2×(D/2 + d)×tan(α/2) − (D+d)/2×α_rad
+  //   （交点法外包，与常用弯曲调整值表一致：30°→0.3d、45°→0.5d、60°→0.9d、90°→2.29d@D=5d）
+  // α > 90°：钝角单弯按 90°+(α−90°) 两段分解计，复现教材表 135°→2.83d@D=5d（经验常取 3d）；
+  //   若对钝角直接外推交点法会得 9.8d，与教材/16G101 口径差 3 倍以上，属错误外推
+  var t = angleDeg * Math.PI / 180;
+  if (angleDeg <= 90) {
+    return 2 * (D / 2 + d) * Math.tan(t / 2) - t * (D + d) / 2;
+  }
+  var t90 = Math.PI / 2;
+  var d90 = 2 * (D / 2 + d) * Math.tan(t90 / 2) - t90 * (D + d) / 2;
+  var t2 = (angleDeg - 90) * Math.PI / 180;
+  var d2 = 2 * (D / 2 + d) * Math.tan(t2 / 2) - t2 * (D + d) / 2;
+  return d90 + d2;
 }
 
 function calcRebar() {
@@ -259,7 +269,7 @@ function calcRebar() {
   }
 
   const D = factor * d;
-  const hookAdd = hookAddLen(hookType, d);
+  const hookAdd = hookAddLen(hookType, d, D);
   const delta1 = bendDeduction(D, d, a1);
   const delta2 = bendDeduction(D, d, a2);
   const single = L1 + L2 - delta1 - delta2 + hookAdd;
@@ -287,7 +297,6 @@ function resetForm() {
   document.getElementById('angle2').value = 0;
   document.getElementById('bendFactor').value = 2.5;
   document.getElementById('hookType').value = '0';
-  document.getElementById('cover').value = 25;
   document.getElementById('num').value = 1;
   calcRebar();
 }
@@ -392,7 +401,7 @@ function __calc_2Export(){
 }
 function __calc_2Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_2Presets',[{label:'默认参数',labelEn:'Default',values:{'straight1':'3000', 'straight2':'0', 'diameter':'20', 'angle1':'90', 'angle2':'0', 'bendFactor':'2.5', 'hookType':'0', 'cover':'25', 'num':'1'}}],function(){ calcRebar(); });
+    TBKit.preset.bar('#calc_2Presets',[{label:'默认参数',labelEn:'Default',values:{'straight1':'3000', 'straight2':'0', 'diameter':'20', 'angle1':'90', 'angle2':'0', 'bendFactor':'2.5', 'hookType':'0', 'num':'1'}}],function(){ calcRebar(); });
 }
 var __calc_2_f0=(typeof calcRebar==='function')?calcRebar:null;
 if(__calc_2_f0){
@@ -428,10 +437,10 @@ else document.addEventListener('DOMContentLoaded', __calc_2Boot);
 <li>弯折钢筋（如雨棚、悬挑）：按弯曲直径 D 与钢筋直径 d 查弯曲调整值，避免成型后偏短。</li>
 <li>批量下料优化：按定尺长度 9/12m 套裁，减少接头与废料。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">90°弯钩下料调整</div><div class="dd-ex-body">直段外包 3000mm，端部 90°弯钩（D=5d，d=20mm）：弯曲调整值≈2×弯折外皮增量，单弯约扣 2d=40mm；再加弯钩增长，净下料≈3000-40+弯钩增量，按翻样表取值。</div></div>
+<div class="dd-example"><div class="dd-ex-title">90°弯钩下料调整</div><div class="dd-ex-body">直段外包 3000mm，端部 90°弯钩（D=5d，d=20mm）：弯曲调整值≈2×弯折外皮增量，单弯约扣 2.3d≈46mm；再加弯钩增长，净下料≈3000-46+弯钩增量，按翻样表取值。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>弯曲调整值从哪来？</dt><dd>由弯曲处外皮拉伸、内皮压缩的几何差得出，与弯心直径 D 和 d 有关（如 90° 约 2d、135° 约 3d 量级），按 16G101 或厂家表取。</dd>
+<dt>弯曲调整值从哪来？</dt><dd>由弯曲处外皮拉伸、内皮压缩的几何差得出，与弯心直径 D 和 d 有关（如 D=5d 时 90° 约 2.3d、135° 约 2.8d；钝角按 90°+(α−90°) 两段分解计，经验常取 3d），按 16G101 或厂家表取。</dd>
 <dt>180°弯钩增加多少？</dt><dd>光圆钢筋（HPB300）末端 180° 弯钩增加长度约为 6.25d（含平直段），机械锚固或焊接时可不计。</dd>
 <dt>下料长了短了有何后果？</dt><dd>长了浪费、节点冲突；短了锚固不足影响受力，故翻样须按保护层、搭接、锚固综合取定，并留量差余量。</dd>
 </dl>

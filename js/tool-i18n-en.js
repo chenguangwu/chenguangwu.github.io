@@ -10620,5 +10620,12 @@ window.__TI18N_EN = {
   '标题或':'Title or',
   '列表表示层级，缩进越多层级越深':'List shows hierarchy; more indentation means deeper levels',
 
+  // —— 2026-10-23 公式精度审计续批（civil/mechanical/hvac 修复行英文化）——
+  '采用弹性薄板理论弯矩系数表（ν=0.2，四边简支跨中）':'Uses the elastic thin-plate moment coefficient table (nu = 0.2, simply supported on four edges, mid-span)',
+  '两向弯矩均按短跨 l_x² 折算：M_x = α_x·q·l_x²，M_y = α_y·q·l_x²':'Both directions are reduced to the short span l_x2: M_x = alpha_x*q*l_x2, M_y = alpha_y*q*l_x2',
+  '系数按 l_y/l_x 查表线性插值；l_y/l_x ≥ 2 时按单向板设计（系数取 2.0 行封顶）':'Coefficients are looked up from the table and linearly interpolated by l_y/l_x; when l_y/l_x >= 2 the slab is designed as one-way (coefficients capped at the 2.0 row)',
+  '进风含湿量 d1≈16.9 g/kg，处理到 15℃/90%RH 出风 d2≈9.5 g/kg；小时除湿 W = 120×1.2×(16.9−9.5)/1000 ≈ 1.06 kg/h，日约 25 L。':'Inlet humidity ratio d1 = 16.9 g/kg, treated to 15 C / 90% RH outlet d2 = 9.5 g/kg; hourly dehumidification W = 120x1.2x(16.9-9.5)/1000 = 1.06 kg/h, about 25 L/day.',
+
+  'M_x = α_x·q·l_x²，M_y = α_y·q·l_x²（系数按 l_y/l_x 查表插值）':'M_x = alpha_x*q*l_x2, M_y = alpha_y*q*l_x2 (coefficients looked up and interpolated by l_y/l_x)',
   }
 };

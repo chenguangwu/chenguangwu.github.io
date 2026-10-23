@@ -34,10 +34,10 @@ const CASES = [
   "slug": "telecom/ber-snr",
   "inputs": {
     "ber": "1e-5",
-    "ebn0": "14.6"
+    "mod": "qam64"
   },
   "expect": [
-    "14.6"
+    "17.79"
   ],
   "ref": "auto-restore"
 },
@@ -114,15 +114,15 @@ const CASES = [
 {
   "slug": "telecom/subnet-planner",
   "inputs": {
-    "baseIp": "192.168.1.0",
-    "oldMask": "36",
-    "newMask": "26",
-    "subCount": "4"
+    "baseIp": "172.16.5.0",
+    "oldMask": "22",
+    "newMask": "27"
   },
   "expect": [
-    "36"
+    "172.16.4.31",
+    "255.255.255.224"
   ],
-  "ref": "auto-restore"
+  "ref": "去默认化（原注入值恰为页面默认 192.168.1.0/24/26）：注入 172.16.5.0、原前缀 22、新前缀 27。独立复算：network=172.16.5.0 & /22 = 172.16.4.0；subnetSize=2^5=32；subCount=2^(27-22)=32；hostsPerSubnet=30；新掩码=255.255.255.224；首子网 172.16.4.0/27（可用 172.16.4.1–30，广播 172.16.4.31）。默认态输出 192.168.1.0/26，两条均不命中。"
 }
 ];
 async function main() {

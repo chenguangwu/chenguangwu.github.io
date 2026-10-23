@@ -157,11 +157,11 @@ s.parentNode.insertBefore(el, s);
       <div class="ref-card"><h4>M-QAM 矩形 (k=log₂M 比特/符号)</h4>
       <p>BPSK/QPSK (M=4)：BER = Q(√(2·γb))</p>
       <p>16-QAM：BER ≈ (3/4)·Q(√(4/5·γb))，γb = Eb/N0(线性)</p>
-      <p>64-QAM：BER ≈ (7/12)·Q(√(4/7·γb))</p>
+      <p>64-QAM：BER ≈ (7/12)·Q(√(2/7·γb))</p>
       <p class="qfunc-note">Q(x) = 0.5·erfc(x/√2)，γb 由 dB 转线性：γb = 10^(Eb/N0_dB/10)</p>
     </div>
     <div class="ref-card"><h4>典型 BER=1e-5 所需 Eb/N0</h4>
-      <p>BPSK/QPSK ≈ 9.6 dB　|　16-QAM ≈ 13.4 dB　|　64-QAM ≈ 17.2 dB</p>
+      <p>BPSK/QPSK ≈ 9.6 dB　|　16-QAM ≈ 13.4 dB　|　64-QAM ≈ 17.8 dB</p>
       <p>注：本工具为 AWGN 信道理论值，未含编码增益与实现损耗。</p>
     </div>
   </div>
@@ -219,17 +219,17 @@ function Qfunc(x){
 }
 if(!Math.erfc){
   Math.erfc=function(x){
-    var z=Math.abs(x),t=1/(1+0.5*z),r;
-    r=t*(0.17087277+t*(-0.82215223+t*(1.48851587+t*(-1.13520399+t*(0.27886807+t*(-0.05315178+t*0.00268669))))));
-    r=1-Math.exp(-z*z)*r;
-    return x>=0?r:2-r;
+    var z=Math.abs(x);
+    var t=1/(1+0.5*z);
+    var tau=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+    return x>=0?tau:2-tau;
   };
 }
 function berFromEbn0(ebn0Db,mod){
   var gamma=Math.pow(10,ebn0Db/10);
   if(mod==='bpsk') return Qfunc(Math.sqrt(2*gamma));
   if(mod==='qam16') return 0.75*Qfunc(Math.sqrt(0.8*gamma));
-  if(mod==='qam64') return (7/12)*Qfunc(Math.sqrt(4/7*gamma));
+  if(mod==='qam64') return (7/12)*Qfunc(Math.sqrt(2/7*gamma));
   return NaN;
 }
 function ebn0FromBer(ber,mod){

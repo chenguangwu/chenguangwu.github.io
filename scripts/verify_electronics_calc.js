@@ -35,7 +35,7 @@ const CASES = [
     "dt": "20"
   },
   "expect": [
-    "4.724"
+    "1.816"
   ],
   "ref": "auto-restore"
 },

@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按弹性理论经验系数法估算双向板短跨与长跨方向弯矩。">Two Way Slab</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">αx≈0.10，长跨系数 αy≈0.06 M = α·q·l²，实际设计应查双向板系数表</div>
+      <div class="formula-eq">M_x = α_x·q·l_x²，M_y = α_y·q·l_x²（系数按 l_y/l_x 查表插值）</div>
       <p class="formula-desc">按弹性理论经验系数法估算双向板短跨与长跨方向弯矩。</p>
     </div>
 
@@ -148,9 +148,9 @@ s.parentNode.insertBefore(el, s);
     <div class="tool-notes">
       <div class="tool-notes-title">📌 计算说明</div>
       <ul>
-        <li>采用弹性理论经验系数法（简化）</li>
-        <li>短跨系数 αx≈0.10，长跨系数 αy≈0.06</li>
-        <li>M = α·q·l²，实际设计应查双向板系数表</li>
+        <li>采用弹性薄板理论弯矩系数表（ν=0.2，四边简支跨中）</li>
+        <li>两向弯矩均按短跨 l_x² 折算：M_x = α_x·q·l_x²，M_y = α_y·q·l_x²</li>
+        <li>系数按 l_y/l_x 查表线性插值；l_y/l_x ≥ 2 时按单向板设计（系数取 2.0 行封顶）</li>
       </ul>
     </div>
   </div>
@@ -190,12 +190,22 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+// 弹性薄板弯矩系数（ν=0.2，四边简支，跨中弯矩系数 × q·lx²，lx=短跨）
+function __twsMoments(q,lx,ly){
+    var tbl=[[1.0,0.0479,0.0479],[1.2,0.0614,0.0384],[1.4,0.0706,0.0328],[1.6,0.0770,0.0286],[1.8,0.0812,0.0256],[2.0,0.0836,0.0234]];
+    var ratio=Math.max(lx,ly)/Math.min(lx,ly), lxs=Math.min(lx,ly);
+    if(ratio>2.0) ratio=2.0;
+    var i=0; while(i<tbl.length-2 && ratio>tbl[i+1][0]) i++;
+    var t=(ratio-tbl[i][0])/(tbl[i+1][0]-tbl[i][0]);
+    var ax=tbl[i][1]+(tbl[i+1][1]-tbl[i][1])*t;
+    var ay=tbl[i][2]+(tbl[i+1][2]-tbl[i][2])*t;
+    return {Mx:ax*q*lxs*lxs, My:ay*q*lxs*lxs, ax:ax, ay:ay};
+}
 function calcTool(){
             const q=num('q'), lx=num('lx'), ly=num('ly');
             if(q<=0||lx<=0||ly<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数。</p>');return;}
-            const ax = lx<=ly ? 0.10 : 0.08;
-            const ay = 0.06;
-            const Mx=ax*q*lx*lx, My=ay*q*ly*ly;
+            var m=__twsMoments(q,lx,ly);
+            const Mx=m.Mx, My=m.My;
             const __g1=dataGrid([
                 [Mx.toFixed(2),'短跨方向弯矩 M_x (kN·m/m)'],
                 [My.toFixed(2),'长跨方向弯矩 M_y (kN·m/m)'],
@@ -213,9 +223,8 @@ function __two_way_slabExtras(){
     function __two_way_slabRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var q=num('q'), lx=num('lx'), ly=num('ly');
-    var ax = lx<=ly ? 0.10 : 0.08;
-    var ay = 0.06;
-    var Mx=ax*q*lx*lx, My=ay*q*ly*ly;
+    var m=__twsMoments(q,lx,ly);
+    var Mx=m.Mx, My=m.My;
     if (!isFinite(__two_way_slabNum('q')) || !isFinite(__two_way_slabNum('lx')) || !isFinite(__two_way_slabNum('ly'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#two_way_slabTable',{
@@ -226,10 +235,9 @@ function __two_way_slabExtras(){
             ['M_x / M_y 比值', (Mx/My).toFixed(2)],
         ]
     });
-    TBKit.history.record({q:__two_way_slabRaw('q'), lx:__two_way_slabRaw('lx'), ly:__two_way_slabRaw('ly'), ax:ax});
+    TBKit.history.record({q:__two_way_slabRaw('q'), lx:__two_way_slabRaw('lx'), ly:__two_way_slabRaw('ly')});
     function __two_way_slabRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#two_way_slabHist',function(rec){ __two_way_slabRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#two_way_slabDiff',['ax']);
 }
 function __two_way_slabExport(){
     if (typeof TBKit === 'undefined') return;
@@ -297,11 +305,10 @@ function __twsSweep(){
   var lxs=[2,3,4,5,6,7,8];
   for(var k=0;k<lxs.length;k++){
     var lxv=lxs[k];
-    var ax=lxv<=ly?0.10:0.08;
-    var Mx=ax*q*lxv*lxv, My=0.06*q*ly*ly;
+    var m=__twsMoments(q,lxv,ly);
     labels.push(lxv.toFixed(0));
-    dX.push(Math.round(Mx*100)/100);
-    dY.push(Math.round(My*100)/100);
+    dX.push(Math.round(m.Mx*100)/100);
+    dY.push(Math.round(m.My*100)/100);
   }
   return {labels:labels,dX:dX,dY:dY};
 }
@@ -309,7 +316,7 @@ function __twsChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__twsSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#twsChart',{title:en?'Two-Way Slab Moments vs Short Span (piecewise coefficient)':'双向板弯矩随短跨变化（系数分段 0.10/0.08）',labels:s.labels,series:[{name:en?'Moment Mx (kN·m/m)':'短跨弯矩 Mx (kN·m/m)',data:s.dX},{name:en?'Moment My (kN·m/m)':'长跨弯矩 My (kN·m/m)',data:s.dY}]});
+  TBKit.chart.line('#twsChart',{title:en?'Two-Way Slab Moments vs Short Span (coefficients interpolated by aspect ratio)':'双向板弯矩随短跨变化（系数按长宽比插值）',labels:s.labels,series:[{name:en?'Moment Mx (kN·m/m)':'短跨弯矩 Mx (kN·m/m)',data:s.dX},{name:en?'Moment My (kN·m/m)':'长跨弯矩 My (kN·m/m)',data:s.dY}]});
 }
 
 function __twsShow(which){
