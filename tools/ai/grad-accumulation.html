@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算达到目标批次所需的累积步数。">Compute how many gradient accumulation steps you need to reach a target effective batch size when a single device batch is limited by memory.</p>
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
-      <div class="formula-eq">累积步数 = ⌈目标批量 / (单卡批量 × 卡数)⌉</div>
+      <div class="formula-eq">梯度累积步数（本页代码口径）：累积步数=⌈目标批量÷(单卡批量×GPU数)⌉（向上取整为整数步）；实际等效批量=单卡批量×GPU数×累积步数。校验：无强校验，空值按 0 兜底，分母为 0 或输入为空使结果非有限时追加警示「部分结果无定义」。判据：无固定分级，步数随单卡批量或 GPU 数增大而减少，向上取整保证等效批量不低于目标。</div>
       <div class="formula-desc">显存不够放大 batch 时，用小批量连续跑若干步再把梯度相加、只做一次参数更新，等效于大批量训练。注意归一化层统计与 BatchNorm 仍按小批量计算，与真正的大 batch 不完全等价；学习率要按等效批量同步放大。</div>
     </div>
 <div class="input-row"><label>目标批次</label><input type="number" id="target" value="256" step="any" oninput="calc()"></div>
@@ -142,7 +142,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 计算公式与说明</h3>
-    <div class="formula-eq">累积 = ⌈目标批次 /(单卡批次×GPU数)⌉</div>
+    <div class="formula-eq">判读与示例（本页代码口径，与上方公式互补）：目标 128、单卡 32、2 卡 → 每步 64 样本，⌈128÷64⌉=2 步累积后更新一次、实际等效批量 128，对比单卡可省一半累积步数。校验共用同一组输入（目标批量、单卡批量、GPU 数任一为 0 即触发无定义警示）。判据：无固定分级；注意梯度累积不改变归一化层按小批量统计的口径，学习率宜按等效批量同步放大。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">累积步数越多显存占用越低。</p>
   </div>
 </div>
