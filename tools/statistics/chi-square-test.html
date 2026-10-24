@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="观测值与期望值偏离程度。">Enter observed and expected frequencies to compute the chi-square statistic and judge whether the deviation is significant, for goodness-of-fit and independence tests.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">卡方统计量 χ² = Σ (观测值 O − 期望值 E)² ÷ E，求和项数 n 取观测与期望两序列长度的较小值；自由度 df = n − 1。校验：观测值与期望值为必填项（逗号分隔数值，必填校验壳拦截空值）。判据：χ² 越大观测与期望偏离越显著，可对照自由度 df 的卡方临界值表判断显著性（结果保留 4 位小数）。</div>
+      <div class="formula-eq">卡方统计量 χ² = Σ (观测值 O − 期望值 E)² ÷ E，求和项数 n = 序列长度（O 与 E 个数必须一致，不一致提示报错；E≤0 提示报错）；自由度 df = n − 1。校验：观测值与期望值为必填项（逗号分隔数值，必填校验壳拦截空值）。判据：χ² 越大观测与期望偏离越显著，可对照自由度 df 的卡方临界值表判断显著性（结果保留 4 位小数）。</div>
       <p class="formula-desc">观测值与期望值偏离程度。</p>
     </div>
 
@@ -255,7 +255,9 @@ function calcTool(){
               var __ig=__tbInputGuard(['o', 'e'],["观测值 O（逗号分隔）", "期望值 E（逗号分隔）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const oa = document.getElementById('o').value.split(',').map(s=>parseFloat(s.trim()));
             const ea = document.getElementById('e').value.split(',').map(s=>parseFloat(s.trim()));
-            const n = Math.min(oa.length, ea.length);
+            if(oa.length!==ea.length){ToolBox.setResult('result','观测值 O 与期望值 E 的个数必须一致（当前 '+oa.length+' 与 '+ea.length+'）');return;}
+            if(ea.some(function(v){return !(v>0);})) {ToolBox.setResult('result','期望值 E 必须全为正数（E≤0 时卡方无定义）');return;}
+            const n = oa.length;
             let chi=0;
             for(let i=0;i<n;i++) chi += Math.pow(oa[i]-ea[i], 2) / ea[i];
             const __g2=dataGrid([
@@ -276,8 +278,10 @@ function __csExtras(){
     if (typeof TBKit === 'undefined') return;
     var oa=TBKit.util.parseList(document.getElementById('o').value);
     var ea=TBKit.util.parseList(document.getElementById('e').value);
-    var n=Math.min(oa.length,ea.length);
-    if(n<2) return;
+    if(oa.length!==ea.length || oa.length<2) return;
+    var n=oa.length;
+    var bad=ea.some?false:true;for(var q=0;q<ea.length;q++){if(!(ea[q]>0)){bad=true;break;}}
+    if(bad) return;
     var en=TBKit.util.isEn();
     var rows=[], chi=0;
     for(var i=0;i<n;i++) chi += Math.pow(oa[i]-ea[i],2)/ea[i];

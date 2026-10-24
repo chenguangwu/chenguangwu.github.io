@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入类型数 n 与选取数 r，求可重复组合数。">Compute combinations with repetition C(n+r-1, r) from type and pick counts.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">可重复组合：C(n+r−1, r) = (n+r−1)! ÷ (r!·(n−1)!)；对照不重复组合 C(n,r) = n! ÷ (r!(n−r)!)，n &lt;r 时记 0。校验：n、r 均封顶 1000，无其他强校验。判据：无固定分级；注意阶乘超过 170 时结果溢出为 Infinity（代码未做防护）。</div>
+      <div class="formula-eq">可重复组合：C(n+r−1, r) = (n+r−1)! ÷ (r!·(n−1)!)；对照不重复组合 C(n,r) = n! ÷ (r!(n−r)!)，n &lt;r 时记 0。校验：n、r 四舍五入取整、封顶 1000，&lt;1 提示报错。判据：主式按对数空间 lnC=ln(n+r−1)!−ln r!−ln(n−1)! 后 exp 复原，超大结果自动转科学计数（如 1.234e+59），不再溢出；对比 C(n,r) 用连乘法。</div>
       <p class="formula-desc">输入类型数 n 与选取数 r，求可重复组合数。</p>
     </div>
 
@@ -191,12 +191,15 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            function factN(k){let v=1;for(let i=2;i<=k;i++)v*=i;return v;}
-            const n=Math.min(num('n'),1000),r=Math.min(num('r'),1000);
-            const C=factN(n+r-1)/(factN(r)*factN(n-1));
+            function lnFact(k){let s=0;for(let i=2;i<=k;i++)s+=Math.log(i);return s;}
+            const n=Math.min(Math.round(num('n')),1000),r=Math.min(Math.round(num('r')),1000);
+            if(n<1||r<1){ToolBox.setResult('result','请输入正整数 n、r');return;}
+            const lnC=lnFact(n+r-1)-lnFact(r)-lnFact(n-1);
+            function fmtExp(ln){if(ln<=709)return Math.exp(ln).toLocaleString('en-US',{maximumFractionDigits:0});const e=Math.floor(ln/Math.LN10);return Math.exp(ln-e*Math.LN10).toFixed(3)+'e+'+e;}
+            let c2=1;const rr=Math.min(r,n);for(let i=1;i<=rr;i++)c2=c2*(n-i+1)/i;
             const __g1=dataGrid([
-                [C.toFixed(0),'可重复组合数 C'],
-                [(n>=r?factN(n)/(factN(r)*factN(n-r)):0).toFixed(0), '不重复组合数 C(n,r)（对比）'],
+                [fmtExp(lnC),'可重复组合数 C'],
+                [(n>=r?fmtExp(Math.log(c2)):'0'), '不重复组合数 C(n,r)（对比）'],
                 [n, '元素种数 n']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
