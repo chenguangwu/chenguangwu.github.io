@@ -381,13 +381,14 @@ function calc() {
     var totalFee = feePerMonth * instMonths;
     var totalPaid = bill + totalFee;
 
-    var effectiveRate = 0;
-    var bal = bill;
-    for (var i = 0; i < instMonths; i++) {
-      effectiveRate += feePerMonth / bal;
-      bal -= principalPerMonth;
+    var lo = 0, hi = 1.0;
+    for (var k = 0; k < 80; k++) {
+      var mid = (lo + hi) / 2;
+      var pvMid = monthlyPayment * (1 - Math.pow(1 + mid, -instMonths)) / mid;
+      if (pvMid > bill) lo = mid; else hi = mid;
     }
-    var annualRate = (effectiveRate * 12 / instMonths * 100).toFixed(2);
+    var irrMonthly = (lo + hi) / 2;
+    var annualRate = ((Math.pow(1 + irrMonthly, 12) - 1) * 100).toFixed(2);
 
     for (var m = 1; m <= instMonths; m++) {
       var remainPrincipal = bill - principalPerMonth * m;
