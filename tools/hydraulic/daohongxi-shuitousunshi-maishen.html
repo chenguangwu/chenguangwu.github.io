@@ -123,16 +123,21 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按沿程与局部阻力公式计算倒虹吸总水头损失，并给出满足过流的最小埋深。">Estimate the head loss and required burial depth of an inverted siphon from pipe diameter, flow and terrain, for farmland water conservancy and water-supply crossings.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">沿程损失 h_f = λ × L ÷ D × v²/(2g)；局部损失 h_j = Σζ × v²/(2g)；总损失 = h_f ＋ h_j</div>
+      <div class="formula-eq">倒虹吸水头损失与埋深（本页代码口径，g=9.81 m/s²）：沿程损失 hf=λ×(L÷D)×v²÷(2g)、局部损失 hj=Σζ×v²÷(2g)（m，v 管内流速 m/s、D 管径 m、L 管长 m、λ 沿程阻力系数、Σζ 局部损失系数合计）；总水头损失=hf＋hj；建议最小埋深（进出口水位差）=总水头损失＋margin（m，埋深安全裕量）。校验：v、D、L、λ 必填且均须大于 0（D 为分母），Σζ、裕量不得为负、可为 0，否则提示并中止。判据：v 在 1.5–3.0 m/s 为宜，低于 1.5 管内易淤积，高于 3.0 易冲刷并需校核水锤。</div>
       <p class="formula-desc">沿程损失按 λ = 0.025、内径 D = 1.0 m 计算，局部损失按进出口与弯头合计 Σζ = 1.5 计算；总水头损失再加 0.3 m 安全裕度即为倒虹吸最小埋深。</p>
     </div>
     <div class="input-row">
-      <div><label>管内流速 (m/s)</label><input type="number" id="v0" value="1.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 A"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>管长 (m)</label><input type="number" id="v1" value="40" step="any" oninput="calc()" enterkeyhint="done" aria-label="数值 B"></div>
+      <div><label for="v">管内流速 v (m/s)</label><input type="number" id="v" value="2.0" step="any" min="0" oninput="calcTool()" enterkeyhint="done"></div>
+      <div><label for="D">管径 D (m)</label><input type="number" id="D" value="1.0" step="any" min="0" oninput="calcTool()" enterkeyhint="done"></div>
+      <div><label for="L">管长 L (m)</label><input type="number" id="L" value="50" step="any" min="0" oninput="calcTool()" enterkeyhint="done"></div>
+    </div>
+    <div class="input-row">
+      <div><label for="lam">沿程阻力系数 λ</label><input type="number" id="lam" value="0.025" step="0.001" min="0" oninput="calcTool()" enterkeyhint="done"></div>
+      <div><label for="zeta">局部损失系数合计 Σζ</label><input type="number" id="zeta" value="1.5" step="any" min="0" oninput="calcTool()" enterkeyhint="done"></div>
+      <div><label for="margin">埋深安全裕量 (m)</label><input type="number" id="margin" value="0.3" step="any" min="0" oninput="calcTool()" enterkeyhint="done"></div>
     </div>
     <div class="toolbar">
-      <div id="daohongxi_shuitousunshi_maishenPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__daohongxi_shuitousunshi_maishenExport()">导出明细 CSV</button>
+      <div id="daohongxi_shuitousunshi_maishenPresets"></div><button class="btn primary" type="button" onclick="calcTool()">🧮 计算</button><button class="btn" type="button" onclick="__daohongxi_shuitousunshi_maishenExport()">导出明细 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
@@ -146,513 +151,139 @@ s.parentNode.insertBefore(el, s);
       <li>计算结果仅供参考，请结合实际应用场景使用</li>
   </ul>
 </div>
-    <div style="margin-top:16px;">
-      <div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div>
-      <div class="history-list" id="historyBox"><div class="history-empty">暂无计算记录</div></div>
-    </div>
   </div>
 </div>
 
 <script>
-function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b];}return a||1;}
-function getV0(){return parseFloat(document.getElementById('v0').value);}
-function getV1(){return parseFloat(document.getElementById('v1').value);}
-function setInvalid(el,invalid){
-  if(!el)return;
-  if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
-  else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
-}
-function readInputs(){
-  var a=getV0(),b=getV1();
-  var elA=document.getElementById('v0'),elB=document.getElementById('v1');
-  setInvalid(elA,isNaN(a));
-  setInvalid(elB,isNaN(b));
-  return {a:isNaN(a)?0:a,b:isNaN(b)?0:b,valid:!isNaN(a)&&!isNaN(b)};
-}
-function calc(){
-
-  var iv=readInputs();
-  var a=iv.a,b=iv.b;
-  var labelEls=document.querySelectorAll('.input-row label');
-  var lA=labelEls[0]?labelEls[0].textContent.replace(/\s*\([^)]*\)/g,'').trim():'A';
-  var lB=labelEls[1]?labelEls[1].textContent.replace(/\s*\([^)]*\)/g,'').trim():'B';
-  var title=document.querySelector('h1')?document.querySelector('h1').textContent:'';
-  var html='';
-  if(/分级|分型|分度|分层|风险|判读|判定|鉴别|诊断|严重度|定量|程度|监测|评估/.test(title)){
-    var score=(a+b)/2;
-    var level=score<25?'正常':score<50?'轻度':score<75?'中度':'重度';
-    var color=score<25?'#10B981':score<50?'#F59E0B':score<75?'#FF6B35':'#EF4444';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num" style="color:'+color+';font-size:1.4em">'+level+'</div><div class="label">评估结果</div></div>'+
-    '<div class="data-card"><div class="num">'+score.toFixed(1)+'</div><div class="label">综合评分</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/比例|比率|占比|百分比|转化率|利用率|配比|稀释/.test(title)){
-    var g=b?gcd(a,b):0;
-    var sr=g?(a/g)+':'+(b/g):'-';
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sr+'</div><div class="label">最简比</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">'+lA+'占比</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">'+lA+'/'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(2)+'</div><div class="label">总量</div></div>'+
-    '</div>';
-  }else if(/成本|费用|价格|利润|收益|回报|估值|预算|报价|保费|费率|费收|佣金/.test(title)){
-    var total=a*b;
-    var profit=a-b;
-    var margin=b?(a/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+total.toFixed(2)+'</div><div class="label">总额(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+profit.toFixed(2)+'</div><div class="label">差额(A-B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/面积|体积|容积/.test(title)){
-    var area=a*b;
-    var peri=2*(a+b);
-    var diag=Math.sqrt(a*a+b*b);
-    var lbl=/体积|容积/.test(title)?'体积':'面积';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+area.toFixed(2)+'</div><div class="label">'+lbl+'(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+peri.toFixed(2)+'</div><div class="label">周长2(A+B)</div></div>'+
-    '<div class="data-card"><div class="num">'+diag.toFixed(2)+'</div><div class="label">对角线</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">长宽比</div></div>'+
-    '</div>';
-  }else if(/效率|速率|收率|产出/.test(title)){
-    var eff=b?(a/b*100).toFixed(2)+'%':'-';
-    var loss=b-a;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+eff+'</div><div class="label">效率</div></div>'+
-    '<div class="data-card"><div class="num">'+loss.toFixed(2)+'</div><div class="label">损耗</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/浓度|含量/.test(title)){
-    var conc=b?(a/b*1000).toFixed(2)+' g/L':'-';
-    var pct=b?(a/(a+b)*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+conc+'</div><div class="label">浓度</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">质量百分比</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/速度|转速|频率|BPM/.test(title)){
-    var speed=b?(a/b).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+speed+'</div><div class="label">速率(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+((a+b)/2).toFixed(2)+'</div><div class="label">平均值</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '</div>';
-  }else if(/温度|温升/.test(title)){
-    var avg=(a+b)/2;
-    var diff=a-b;
-    var aF=a*9/5+32;
-    var aK=a+273.15;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+avg.toFixed(2)+' \u2103</div><div class="label">平均温度</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' \u2103</div><div class="label">温差</div></div>'+
-    '<div class="data-card"><div class="num">'+aF.toFixed(2)+' \u2109</div><div class="label">A(华氏)</div></div>'+
-    '<div class="data-card"><div class="num">'+aK.toFixed(2)+' K</div><div class="label">A(开尔文)</div></div>'+
-    '</div>';
-  }else if(/压力|压降|压强/.test(title)){
-    var diff=a-b;
-    var pct=b?(diff/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' kPa</div><div class="label">压差</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">变化率</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/功率|能耗|电量/.test(title)){
-    var power=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+power.toFixed(2)+' W</div><div class="label">功率(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(power/1000).toFixed(4)+' kW</div><div class="label">功率(kW)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/距离|长度|高度|宽度|半径|直径|厚度|深度|间距/.test(title)){
-    var sum=a+b;
-    var diff=a-b;
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'</div><div class="label">总和</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">百分比</div></div>'+
-    '</div>';
-  }else if(/时间|时长|周期/.test(title)){
-    var totalMin=a+b;
-    var hours=Math.floor(totalMin/60);
-    var mins=totalMin%60;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+hours+'h'+mins+'m</div><div class="label">总时间</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">时间差</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/收缩|膨胀|压缩/.test(title)){
-    var rate=b?((a-b)/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+rate+'</div><div class="label">变化率</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">变化量</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/系数|因子|参数/.test(title)){
-    var product=a*b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+product.toFixed(4)+'</div><div class="label">乘积(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比值(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(4)+'</div><div class="label">和(A+B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(4)+'</div><div class="label">差(A-B)</div></div>'+
-    '</div>';
-  }else if(/承载力|荷载|强度/.test(title)){
-    var stress=b?(a/b).toFixed(2):'-';
-    var safety=b?(b/a).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+stress+'</div><div class="label">应力(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+safety+'</div><div class="label">安全系数(B/A)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/流量|流速/.test(title)){
-    var velocity=b?(a/b).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+velocity+'</div><div class="label">流速(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(2)+'</div><div class="label">总流量</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">流量差</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b*100).toFixed(2)+'%':'-')+'</div><div class="label">占比</div></div>'+
-    '</div>';
-  }else if(/排放|碳|CO2|碳足迹/.test(title)){
-    var emission=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+emission.toFixed(2)+' kg</div><div class="label">排放量(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(emission/1000).toFixed(4)+' t</div><div class="label">排放量(吨)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/利息|折现|现值/.test(title)){
-    var interest=a*b/100;
-    var total=a+interest;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+interest.toFixed(2)+'</div><div class="label">利息(A\u00d7B%)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+total.toFixed(2)+'</div><div class="label">本息合计</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'%</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/违约金|赔偿|补偿/.test(title)){
-    var penalty=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+penalty.toFixed(2)+'</div><div class="label">金额(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+(a*b*0.05).toFixed(2)+'</div><div class="label">额外5%</div></div>'+
-    '</div>';
-  }else if(/坡度|坡率|倾斜/.test(title)){
-    var slope=b?(a/b*100).toFixed(2)+'%':'-';
-    var angle=b?(Math.atan(a/b)*180/Math.PI).toFixed(2)+'\u00b0':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+slope+'</div><div class="label">坡度</div></div>'+
-    '<div class="data-card"><div class="num">'+angle+'</div><div class="label">角度</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/估算|预测|预估/.test(title)){
-    var estimated=a*(1+b/100);
-    var growth=a*b/100;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+estimated.toFixed(2)+'</div><div class="label">预测值</div></div>'+
-    '<div class="data-card"><div class="num">'+growth.toFixed(2)+'</div><div class="label">增长量</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">基准值</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'%</div><div class="label">增长率</div></div>'+
-    '</div>';
-  }else if(/评分|得分|指数/.test(title)){
-    var total=a+b;
-    var avg=(a+b)/2;
-    var diff=Math.abs(a-b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+total.toFixed(1)+'</div><div class="label">总分</div></div>'+
-    '<div class="data-card"><div class="num">'+avg.toFixed(1)+'</div><div class="label">平均分</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(1)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(1)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/尺寸|规格|孔径/.test(title)){
-    var area=a*b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+area.toFixed(2)+'</div><div class="label">面积(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比例(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/角度|方位|走向/.test(title)){
-    var sum=a+b;
-    var diff=a-b;
-    var complement=90-a;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'\u00b0</div><div class="label">角度和</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'\u00b0</div><div class="label">角度差</div></div>'+
-    '<div class="data-card"><div class="num">'+complement.toFixed(2)+'\u00b0</div><div class="label">余角(90-A)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a*Math.PI/180).toFixed(4)+' rad</div><div class="label">A(弧度)</div></div>'+
-    '</div>';
-  }else if(/照度|亮度/.test(title)){
-    var lux=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+lux.toFixed(2)+' lx</div><div class="label">照度(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '</div>';
-  }else if(/噪声|声压|分贝/.test(title)){
-    var combined=10*Math.log10(Math.pow(10,a/10)+Math.pow(10,b/10));
-    var diff=Math.abs(a-b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+combined.toFixed(2)+' dB</div><div class="label">叠加噪声</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' dB</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/安全库存|订货点/.test(title)){
-    var safety=Math.round(a*b);
-    var reorder=Math.round(safety+a*b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+safety+'</div><div class="label">安全库存</div></div>'+
-    '<div class="data-card"><div class="num">'+reorder+'</div><div class="label">订货点</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(0)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(0)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else{
-    var sum=a+b,diff=a-b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    var avg=((a+b)/2).toFixed(2);
-    var larger=a>0&&b>0?(a>b?lA:(a<b?lB:'相等')):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比值('+lA+'/'+lB+')</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '</div>'+
-    '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">'+lA+'占'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+avg+'</div><div class="label">平均值</div></div>'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'</div><div class="label">总和</div></div>'+
-    '<div class="data-card"><div class="num">'+larger+'</div><div class="label">较大者</div></div>'+
-    '</div>';
-  }
-  const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  if(iv.valid) saveHistory(a,b);
-}
-function copyRes(){
-  var text=document.getElementById('res').innerText;
-  if(!text||text.trim()===''){ToolBox.showToast(i18nText(),'warning');return;}
-  ToolBox.copyText(text);
-}
-function resetAll(){
-  document.getElementById('v0').value=100;
-  document.getElementById('v1').value=50;
-  setInvalid(document.getElementById('v0'),false);
-  setInvalid(document.getElementById('v1'),false);
-  calc();
-  ToolBox.showToast(i18nText(),'info');
-}
-function swapValues(){
-  var a=document.getElementById('v0').value;
-  var b=document.getElementById('v1').value;
-  document.getElementById('v0').value=b;
-  document.getElementById('v1').value=a;
-  calc();
-}
-function historyKey(){
-  try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
-}
-function saveHistory(a,b){
-  try{
-    var key=historyKey();
-    var list=JSON.parse(localStorage.getItem(key)||'[]');
-    var now=new Date();
-    var item={a:a,b:b,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
-    list.unshift(item);
-    if(list.length>5)list=list.slice(0,5);
-    localStorage.setItem(key,JSON.stringify(list));
-    renderHistory();
-  }catch(e){}
-}
-function renderHistory(){
-  var box=document.getElementById('historyBox');
-  if(!box)return;
-  try{
-    var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
-    if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
-    var html='<div class="history-list">';
-    list.forEach(function(h){
-      html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+')">'+
-        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">A='+h.a+' &nbsp; B='+h.b+'</div></div>'+
-        '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
-    });
-    html+='</div>';
-    const __g3=html;box.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-  }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
-}
-function restoreHistory(a,b){
-  document.getElementById('v0').value=a;
-  document.getElementById('v1').value=b;
-  calc();
-  ToolBox.showToast(i18nText(),'info');
-}
-function clearHistory(){
-  try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}
-}
-document.addEventListener('DOMContentLoaded',function(){
-  renderHistory();
-  document.getElementById('v0').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){e.preventDefault();calc();}
-    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'){e.preventDefault();copyRes();}
-  });
-  document.getElementById('v1').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){e.preventDefault();calc();}
-    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'){e.preventDefault();copyRes();}
-  });
-});
-calc();
-</script>
-<script>
-/* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
-function calc(){
-  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
-  var box=document.getElementById('res');
-  if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
-  var items=[];
-  items.push([(0.025*B*A*A/19.62).toFixed(4), "沿程水头损失（m）"]);
-  items.push([(1.5*A*A/19.62).toFixed(4), "局部水头损失（m）"]);
-  items.push([(0.025*B*A*A/19.62+1.5*A*A/19.62).toFixed(4), "总水头损失（m）"]);
-  items.push([(0.025*B*A*A/19.62+1.5*A*A/19.62+0.3).toFixed(2), "建议最小埋深（m）"]);
-
-  var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 h_f = λ·L/D·v²/(2g)（λ=0.025、D=1.0 m）；h_j = Σζ·v²/(2g)（Σζ=1.5）；埋深 = 总损失 ＋ 0.3 m。';
-  const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
-  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
-}
-function resetAll(){
-  var a=document.getElementById('v0'),b=document.getElementById('v1');
-  if(a)a.value='1.5';if(b)b.value='40';calc();
-}
-try{calc();}catch(e){}
-
-var __daohongxi_shuitousunshi_maishen_last=0,__daohongxi_shuitousunshi_maishen_skip=false;
-function __daohongxi_shuitousunshi_maishenSnap(){
-    var out={};
-    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
-    for(var i=0;i<els.length;i++){
-        var e=els[i];
-        var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+function __tbInputGuard(ids,labels){
+  var DEN=['D'], NONNEG=['zeta','margin'];
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    if(!el) continue;
+    var raw=String(el.value==null?'':el.value).trim();
+    var v=parseFloat(raw);
+    if(raw===''||isNaN(v)){
+      el.classList.add('input-error');
+      return '请填写「'+labels[i]+'」后再计算。';
     }
-    return out;
+    el.classList.remove('input-error');
+    if(v<0){
+      el.classList.add('input-error');
+      return '<p style="color:var(--danger)">⚠ 「'+labels[i]+'」不能为负值。</p>';
+    }
+    if(v===0&&NONNEG.indexOf(ids[i])<0){
+      el.classList.add('input-error');
+      if(DEN.indexOf(ids[i])>=0) return '<p style="color:var(--danger)">⚠ 「'+labels[i]+'」是本计算的分母，不能为 0。</p>';
+      return '<p style="color:var(--danger)">⚠ 「'+labels[i]+'」必须大于 0。</p>';
+    }
+  }
+  return '';
 }
-function __daohongxi_shuitousunshi_maishenResText(){
-    var r=document.getElementById('res');
-    if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
-    return t.slice(0,80);
+function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+
+function __dhxVerdict(v){
+  if(v<1.5) return '流速偏低：低于 1.5 m/s 管内易淤积';
+  if(v>3.0) return '流速偏高：高于 3.0 m/s 易冲刷并需校核水锤';
+  return '流速适宜（1.5–3.0 m/s）';
 }
-function __daohongxi_shuitousunshi_maishenTime(t){
-    var d=new Date(t);
-    function q(x){return (x<10?'0':'')+x;}
-    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+function __dhxCalc(){
+  var v=num('v'),D=num('D'),L=num('L'),lam=num('lam'),zeta=num('zeta'),margin=num('margin');
+  var g=9.81;
+  var hf=lam*(L/D)*v*v/(2*g);
+  var hj=zeta*v*v/(2*g);
+  return {v:v,D:D,L:L,lam:lam,zeta:zeta,margin:margin,hf:hf,hj:hj,total:hf+hj,depth:hf+hj+margin};
 }
-function __daohongxi_shuitousunshi_maishenRender(keys,rk,en){
-    try{
-        var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
-        var rows=arr.map(function(it){
-            var row=[__daohongxi_shuitousunshi_maishenTime(it.t)];
-            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
-            var r=it.d[rk];row.push(r==null?'':r);
-            return row;
-        });
-        TBKit.matrix.table('#daohongxi_shuitousunshi_maishenTable',{head:head,rows:rows});
-        TBKit.util.diffBox('#daohongxi_shuitousunshi_maishenDiff');
-        TBKit.history.mount('#daohongxi_shuitousunshi_maishenHist',function(rec){
-            __daohongxi_shuitousunshi_maishen_skip=true;
-            try{
-                for(var k in rec){
-                    if(k===rk) continue;
-                    var e=document.getElementById(k);
-                    if(!e) continue;
-                    var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
-                    else{e.value=rec[k];}
-                }
-                calc();
-            }catch(e2){}
-            __daohongxi_shuitousunshi_maishen_skip=false;
-        });
-        var nums=[],labels=[];
-        for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
-            if(isFinite(v)){nums.push(v);labels.push(__daohongxi_shuitousunshi_maishenTime(arr[j].t));}
-        }
-        if(nums.length>=2){
-            TBKit.chart.line('#daohongxi_shuitousunshi_maishenChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
-        }
-    }catch(e3){}
+function calcTool(){
+  var __ig=__tbInputGuard(['v','D','L','lam','zeta','margin'],["管内流速 v (m/s)","管径 D (m)","管长 L (m)","沿程阻力系数 λ","局部损失系数合计 Σζ","埋深安全裕量 (m)"]);
+  if(__ig){ToolBox.setResult('res',__ig);return;}
+  var r=__dhxCalc();
+  ToolBox.setResult('res',dataGrid([
+    [r.hf.toFixed(4)+' m','沿程水头损失 hf=λ(L/D)·v²/(2g)'],
+    [r.hj.toFixed(4)+' m','局部水头损失 hj=Σζ·v²/(2g)'],
+    [r.total.toFixed(4)+' m','总水头损失 hf＋hj'],
+    [r.depth.toFixed(2)+' m','建议最小埋深（进出口水位差）'],
+    [__dhxVerdict(r.v),'流速校核']
+  ]));
+}
+function resetAll(){
+  document.getElementById('v').value='2.0';
+  document.getElementById('D').value='1.0';
+  document.getElementById('L').value='50';
+  document.getElementById('lam').value='0.025';
+  document.getElementById('zeta').value='1.5';
+  document.getElementById('margin').value='0.3';
+  calcTool();
+}
+calcTool();
+
+function __daohongxi_shuitousunshi_maishenNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __daohongxi_shuitousunshi_maishenRaw(id){var e=document.getElementById(id);return e?String(e.value==null?'':e.value):'';}
+function __daohongxi_shuitousunshi_maishenChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var D=__daohongxi_shuitousunshi_maishenNum('D'),L=__daohongxi_shuitousunshi_maishenNum('L'),lam=__daohongxi_shuitousunshi_maishenNum('lam'),zeta=__daohongxi_shuitousunshi_maishenNum('zeta'),margin=__daohongxi_shuitousunshi_maishenNum('margin');
+  if(!(D>0)||!(L>0)||!(lam>0))return;
+  var en=TBKit.util.isEn();
+  var g=9.81,labels=[],tot=[],dep=[];
+  for(var i=0;i<=8;i++){
+    var v=1.0+i*0.25;
+    var hf=lam*(L/D)*v*v/(2*g), hj=zeta*v*v/(2*g);
+    labels.push(v.toFixed(2));
+    tot.push(Math.round((hf+hj)*10000)/10000);
+    dep.push(Math.round((hf+hj+margin)*10000)/10000);
+  }
+  TBKit.chart.line('#daohongxi_shuitousunshi_maishenChart',{title:en?'Total head loss & burial depth vs pipe velocity':'总水头损失与建议埋深随管内流速变化',labels:labels,series:[{name:en?'hf+hj (m)':'总水头损失 (m)',data:tot},{name:en?'Burial depth (m)':'建议最小埋深 (m)',data:dep}]});
 }
 function __daohongxi_shuitousunshi_maishenExtras(){
-    if (typeof TBKit === 'undefined') return;
-    if (__daohongxi_shuitousunshi_maishen_skip) return;
-    var snap=__daohongxi_shuitousunshi_maishenSnap();
-    var keys=Object.keys(snap);
-    if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
-    var res=__daohongxi_shuitousunshi_maishenResText();
-    if(!res) return;
-    var en=TBKit.util.isEn();
-    var rk=en?'Result':'结果';
-    var now=Date.now();
-    if(now-__daohongxi_shuitousunshi_maishen_last<1000) return;
-    var last=null;
-    try{ last=TBKit.history.last(); }catch(e){}
-    if(last){
-        var same=true;
-        for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
-        }
-        if(same&&String(last[rk])===String(res)) return;
-    }
-    __daohongxi_shuitousunshi_maishen_last=now;
-    var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
-    TBKit.history.record(rec);
-    __daohongxi_shuitousunshi_maishenRender(keys,rk,en);
+  if (typeof TBKit === 'undefined') return;
+  if(!isFinite(__daohongxi_shuitousunshi_maishenNum('v'))||!isFinite(__daohongxi_shuitousunshi_maishenNum('D'))||!isFinite(__daohongxi_shuitousunshi_maishenNum('L'))||!isFinite(__daohongxi_shuitousunshi_maishenNum('lam'))||!isFinite(__daohongxi_shuitousunshi_maishenNum('zeta'))||!isFinite(__daohongxi_shuitousunshi_maishenNum('margin'))) return;
+  var r=__dhxCalc();
+  var en=TBKit.util.isEn();
+  TBKit.matrix.table('#daohongxi_shuitousunshi_maishenTable',{
+    head: en?['Item','Value']:['项目','数值'],
+    rows: [
+      ['沿程水头损失 hf=λ(L/D)·v²/(2g)', r.hf.toFixed(4)+' m'],
+      ['局部水头损失 hj=Σζ·v²/(2g)', r.hj.toFixed(4)+' m'],
+      ['总水头损失 hf＋hj', r.total.toFixed(4)+' m'],
+      ['建议最小埋深（进出口水位差）', r.depth.toFixed(2)+' m'],
+      ['流速校核', __dhxVerdict(r.v)]
+    ]
+  });
+  TBKit.history.record({v:__daohongxi_shuitousunshi_maishenRaw('v'),D:__daohongxi_shuitousunshi_maishenRaw('D'),L:__daohongxi_shuitousunshi_maishenRaw('L'),lam:__daohongxi_shuitousunshi_maishenRaw('lam'),zeta:__daohongxi_shuitousunshi_maishenRaw('zeta'),margin:__daohongxi_shuitousunshi_maishenRaw('margin'),total:r.total},1000);
+  function __daohongxi_shuitousunshi_maishenRestore(rec){for(var k in rec){if(k==='total')continue;var e=document.getElementById(k);if(e)e.value=rec[k];}}
+  TBKit.history.mount('#daohongxi_shuitousunshi_maishenHist',function(rec){ __daohongxi_shuitousunshi_maishenRestore(rec); calcTool(); });
+  TBKit.util.diffBox('#daohongxi_shuitousunshi_maishenDiff',['total']);
+  __daohongxi_shuitousunshi_maishenChartDraw();
 }
 function __daohongxi_shuitousunshi_maishenExport(){
-    if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#daohongxi_shuitousunshi_maishenTable','daohongxi-shuitousunshi-maishen.csv'); } catch(e){}
+  if (typeof TBKit === 'undefined') return;
+  try { TBKit.util.exportTable('#daohongxi_shuitousunshi_maishenTable','daohongxi-shuitousunshi-maishen.csv'); } catch(e){}
 }
 function __daohongxi_shuitousunshi_maishenPresets(){
-    if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#daohongxi_shuitousunshi_maishenPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'1.5', 'v1':'40'}}],function(){ calc(); });
+  if (typeof TBKit === 'undefined') return;
+  TBKit.preset.bar('#daohongxi_shuitousunshi_maishenPresets',[
+    {label:'默认（算例）',labelEn:'Default',values:{v:'2.0',D:'1.0',L:'50',lam:'0.025',zeta:'1.5',margin:'0.3'}},
+    {label:'长管钢倒虹吸',labelEn:'Long steel pipe',values:{v:'1.8',D:'0.8',L:'120',lam:'0.025',zeta:'2.0',margin:'0.5'}},
+    {label:'PE 短管',labelEn:'PE pipe',values:{v:'2.5',D:'1.2',L:'60',lam:'0.018',zeta:'1.5',margin:'0.3'}}
+  ],function(){ calcTool(); });
 }
-var __daohongxi_shuitousunshi_maishen_f0=(typeof calc==='function')?calc:null;
-if(__daohongxi_shuitousunshi_maishen_f0){
-    calc=function(){ var __r=__daohongxi_shuitousunshi_maishen_f0.apply(null,arguments); try{ __daohongxi_shuitousunshi_maishenExtras(); }catch(e){} return __r; };
+
+function copyRes(){
+  var el=document.getElementById('res');
+  var text=el?(el.innerText||el.textContent):'';
+  if(!text||!text.trim()){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(i18nText('暂无可复制的结果'),'warning');return;}
+  if(window.ToolBox)ToolBox.copyText(text);
 }
-function __daohongxi_shuitousunshi_maishenBoot(){ try{ __daohongxi_shuitousunshi_maishenPresets(); }catch(e){} }
+document.addEventListener('keydown',function(e){
+  var t=e.target;
+  if(e.key==='Enter'&&t&&t.tagName==='INPUT'&&t.type==='number'){e.preventDefault();try{calcTool();}catch(_){}}
+});
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __daohongxi_shuitousunshi_maishenExtras(); }catch(e){} };
+function __daohongxi_shuitousunshi_maishenBoot(){ try{ __daohongxi_shuitousunshi_maishenPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __daohongxi_shuitousunshi_maishenBoot();
 else document.addEventListener('DOMContentLoaded', __daohongxi_shuitousunshi_maishenBoot);
+document.addEventListener('toolbox:langchange',function(){try{ __daohongxi_shuitousunshi_maishenChartDraw(); }catch(e){}});
 </script>
 
 <!-- SEO 介绍区块 -->
