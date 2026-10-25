@@ -215,6 +215,23 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <details style="margin-top:10px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+      <summary style="cursor:pointer;font-size:13px;font-weight:600;" data-zh="🧾 专项附加扣除明细（7 项，2024 标准）">🧾 Itemized special deductions (7 items)</summary>
+      <div class="input-row" style="margin-top:8px;">
+        <div><label data-zh="3岁以下婴幼儿照护（元/月）">Child care under 3 (CNY/mo)</label><input type="number" id="sd1" value="0" min="0" step="100" placeholder="2000/孩" oninput="__sdSum()"></div>
+        <div><label data-zh="子女教育（元/月）">Children's education (CNY/mo)</label><input type="number" id="sd2" value="0" min="0" step="100" placeholder="2000/孩" oninput="__sdSum()"></div>
+        <div><label data-zh="继续教育（元/月）">Continuing education (CNY/mo)</label><input type="number" id="sd3" value="0" min="0" step="100" placeholder="400" oninput="__sdSum()"></div>
+        <div><label data-zh="大病医疗（元/年，按 12 个月摊）">Serious illness (CNY/yr, ÷12)</label><input type="number" id="sd4" value="0" min="0" step="100" placeholder="限额 80000/年" oninput="__sdSum()"></div>
+        <div><label data-zh="住房贷款利息（元/月）">Housing loan interest (CNY/mo)</label><input type="number" id="sd5" value="0" min="0" step="100" placeholder="1000" oninput="__sdSum()"></div>
+        <div><label data-zh="住房租金（元/月）">Housing rent (CNY/mo)</label><input type="number" id="sd6" value="0" min="0" step="100" placeholder="1500/1100/800" oninput="__sdSum()"></div>
+        <div><label data-zh="赡养老人（元/月）">Elderly support (CNY/mo)</label><input type="number" id="sd7" value="0" min="0" step="100" placeholder="3000" oninput="__sdSum()"></div>
+      </div>
+    </details>
+    <div style="margin-top:8px;font-size:13px;">
+      <span data-zh="专项附加扣除明细合计：">Itemized deductions total: </span><strong id="sdTotal">¥0.00</strong><span data-zh=" 元/月（大病医疗按年填入后自动摊到月）"> CNY/month</span>
+      <button type="button" class="btn" style="margin-left:8px;" data-zh="⬇️ 填入上方「专项附加扣除」" onclick="__sdApply()">⬇️ Apply to deduction</button>
+    </div>
+
     <div class="tax-result">
       <div style="font-size:13px;color:var(--text-muted);">月应纳税额</div>
       <div class="tax-amount" id="taxAmount">¥0.00</div>
@@ -367,6 +384,28 @@ function __bonusDeadZones(){
   return zones;
 }
 
+// 专项附加扣除 7 项明细：合计（大病医疗按年填，摊到月）
+function __sdIds(){ return ['sd1','sd2','sd3','sd4','sd5','sd6','sd7']; }
+function __sdSum(){
+  var sum = 0;
+  __sdIds().forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    var v = parseFloat(el.value) || 0;
+    if (v < 0) v = 0;
+    sum += (id === 'sd4') ? v / 12 : v;      // 大病医疗：年度限额按 12 个月摊
+  });
+  var out = document.getElementById('sdTotal');
+  if (out) out.textContent = '¥' + sum.toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2});
+  return sum;
+}
+function __sdApply(){
+  var s = __sdSum();
+  var el = document.getElementById('special');
+  if (el){ el.value = Math.round(s * 100) / 100; }
+  if (typeof calculate === 'function') calculate();
+}
+
 function renderBonus(taxableIncome){
   var host = document.getElementById('bonusBox');
   if (!host) return;
@@ -376,8 +415,15 @@ function renderBonus(taxableIncome){
   var bonus = bonusEl ? (parseFloat(bonusEl.value) || 0) : 0;
   var mode = modeEl ? modeEl.value : 'auto';
   var fm = function(n){ return '¥' + (Math.round(n * 100) / 100).toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2}); };
+  // 专项附加扣除 7 项明细合计（写入结果容器，便于与税额同屏核对）
+  var sdSum = 0;
+  try { sdSum = (typeof __sdSum === 'function') ? __sdSum() : 0; } catch (e) { sdSum = 0; }
+  var sdLine = '<div style="font-size:13px;">' + (en ? 'Itemized deductions total: ' : '专项附加扣除明细合计：') +
+    '<strong>¥' + (Math.round(sdSum * 100) / 100).toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2}) + '</strong>' +
+    (en ? ' CNY/month' : ' 元/月') + '</div>';
+
   if (bonus <= 0){
-    host.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">' + (en ? 'Enter a year-end bonus above to compare separate vs. merged taxation.' : '填写全年一次性奖金金额后，自动对比「单独计税」与「并入综合所得」两种方式的税负。') + '</div>';
+    host.innerHTML = sdLine + '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + (en ? 'Enter a year-end bonus above to compare separate vs. merged taxation.' : '填写全年一次性奖金金额后，自动对比「单独计税」与「并入综合所得」两种方式的税负。') + '</div>';
     return;
   }
   var p = __bonusParts(bonus);
@@ -426,7 +472,7 @@ function renderBonus(taxableIncome){
       (better === 'merge' ? (en ? '✅ lower' : '✅ 更省') : '') + '</td></tr>' +
     '</tbody></table>' +
     '<div style="margin-top:8px;font-size:13px;">' + concl + '</div>' + zoneTip;
-  host.innerHTML = html;
+  host.innerHTML = sdLine + html;
 }
 
 function calculate(){
