@@ -7036,6 +7036,17 @@ async function runCaseInner(c) {
   for (const m of html.matchAll(/<input[^>]*id="([^"]+)"[^>]*value="([^"]*)"/g)) defaults[m[1]] = m[2];
   for (const m of html.matchAll(/<textarea[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g))
     defaults[m[1]] = m[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+  // G06-S1：readonly 输出域（<textarea readonly>/<input readonly>）的 .value 就是用户首屏
+  // 可见答案，但 textarea 设 .value 不反映到 innerHTML ⇒ 快照只带 ih 会漏判整类页面
+  // （it/* 编码/密码族全族输出皆是 readonly textarea）。预解析哪些 id 带 readonly，
+  // 供 snapshotOnly 快照打 ro 标记；不传 snapshotOnly 时该集合无人读取，零影响。
+  const readonlyIds = new Set();
+  for (const m of html.matchAll(/<(?:input|textarea)\b[^>]*>/gi)) {
+    const tag = m[0];
+    if (!/\breadonly\b/i.test(tag)) continue;
+    const id = (tag.match(/\bid\s*=\s*["']([^"']+)["']/i) || [, ""])[1];
+    if (id) readonlyIds.add(id);
+  }
   const sel = {};
   for (const m of html.matchAll(/<select[^>]*id="([^"]+)"[\s\S]*?<\/select>/g)) {
     const block = m[0];
@@ -7110,6 +7121,9 @@ async function runCaseInner(c) {
           : "";
       elements[id] = makeEl(v, sel[id]);
       elements[id].id = id;   // 动态 DOM 登记按容器 id 分桶（同容器重渲染时覆盖，避免计数翻倍）
+      // readonly 输出域标记（G06-S1 快照判据用）：真机中该属性只读不改，
+      // 页面脚本不会写它 ⇒ 不会干扰任何既有用例的取值路径。
+      if (readonlyIds.has(id)) elements[id].readOnly = true;
       // 复选框注入：makeEl 的 checked 恒为 false，页面若用 getElementById(id).checked
       // 读取勾选态（量表/评分/选项类页面的主流写法），注入 .value 完全无效 ⇒ 该类页
       // 长期被判「结构性 no_inputs」而只能取常量串 expect（零判别力）。
@@ -7340,9 +7354,89 @@ async function runCaseInner(c) {
 
   // 1) 执行 DOMContentLoaded 回调（完成初始化与事件绑定）
   const pending = [];
+  // 1.0) snapshotOnly 专用 TBKit 桩：生产 TBKit（/js/tool-kit.js）走 CDN，harness 不可加载
+  // ⇒ 首屏答案/参考表靠 TBKit.matrix.table、TBKit.chart.* 渲染的页面，快照里恒空、被 S1
+  // 扫描器系统性误判（实证：it/base64-converter 的 boot 即调 __b64RenderCompare 渲染
+  // 算法实测长度表，桩缺失时整段抛错、表格从不落 DOM）。此处按生产 API 形状给最小桩：
+  //   - matrix.table：rows 非空即落真表格 HTML（与生产一致：空历史不画表）
+  //   - chart.*：series/data 含有限数字才落数据文本摘要（空图表不写，与生产一致）
+  //   - history：进程内数组；preset/export/share/util 其余按形状给 no-op 或简易实现
+  // 仅 snapshotOnly 注入、快照返回前删除 ⇒ 非快照路径（既有全部用例）逐字节不变。
+  if (c.snapshotOnly) {
+    const __hist = [];
+    const __noop = () => {};
+    const __resolve = (sel) => {
+      const m = String(sel || "").match(/^#([A-Za-z0-9_-]+)/);
+      return m ? getEl(m[1]) : null;
+    };
+    const __numIn = (arr) => (arr || []).some((v) => (typeof v === "number" && isFinite(v)) || (v && typeof v === "object" && typeof v.value === "number" && isFinite(v.value)));
+    const __chartHasNum = (o) => __numIn((o.series || [])[0] && (o.series || [])[0].data) || (o.series || []).some((s) => __numIn(s.data)) || __numIn(o.data) || __numIn(o.points);
+    const __tableHtml = (o) => {
+      let h = "<table>";
+      if (o.head) h += "<tr>" + o.head.map((x) => "<th>" + String(x == null ? "" : x) + "</th>").join("") + "</tr>";
+      if (o.rows) for (const r of o.rows) h += "<tr>" + (r || []).map((x) => "<td>" + String(x == null ? "" : x) + "</td>").join("") + "</tr>";
+      return h + "</table>";
+    };
+    const __chartWrite = (sel, o) => {
+      const el = __resolve(sel);
+      if (!el || !o || !__chartHasNum(o)) return;
+      const labels = (o.labels || []).map(String).join(",");
+      const series = (o.series || []).map((s) => String(s.name || "") + ":[" + (s.data || []).map((v) => (v == null ? "" : String(v))).join(",") + "]").join(" ");
+      const data = o.data ? " data:[" + o.data.map((v) => (v && typeof v === "object" ? String(v.value) : String(v))).join(",") + "]" : "";
+      el.innerHTML = "<div>" + String(o.title || "") + " " + labels + " " + series + data + "</div>";
+    };
+    const __erf = (x) => { const s = x < 0 ? -1 : 1; x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x); const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; };
+    const __group = (impl) => new Proxy(impl, { get(t, k) { return k in t ? t[k] : __noop; } });
+    const __TBKit = new Proxy({}, {
+      get(t, k) {
+        if (k in t) return t[k];
+        t.util = __group({
+          isEn: () => false, exportTable: __noop, exportCsv: __noop, diffBox: __noop, toast: __noop,
+          parseList: (s) => String(s == null ? "" : s).split(/[,，\n]/).map((x) => x.trim()).filter(Boolean),
+          fmt: (n, d) => (typeof n === "number" && isFinite(n) ? n.toFixed(d == null ? 2 : d) : String(n == null ? "" : n)),
+          tCrit: () => 1.96, tP: () => 1, fP: () => 1,
+          normCdf: (x) => 0.5 * (1 + __erf(Number(x) / Math.SQRT2)),
+        });
+        t.matrix = __group({ table: (sel, o) => { const el = __resolve(sel); if (el && o && o.rows && o.rows.length) el.innerHTML = __tableHtml(o); } });
+        t.chart = __group({ line: __chartWrite, bar: __chartWrite, pie: __chartWrite, gauge: __chartWrite, scatter: __chartWrite, timeline: __chartWrite, bell: __chartWrite, histogram: __chartWrite, rangeBar: __chartWrite });
+        t.history = __group({
+          list: () => __hist.slice(), last: () => (__hist.length ? __hist[__hist.length - 1] : null),
+          record: (r) => { __hist.push(r); if (__hist.length > 50) __hist.shift(); },
+          mount: __noop, clear: () => { __hist.length = 0; }, diffLast: () => null,
+        });
+        t.preset = __group({ bar: __noop });
+        t.export = __group({ csv: __noop });
+        t.share = __group({ params: () => ({}) });
+        return t[k];
+      },
+    });
+    globalThis.TBKit = __TBKit;
+  }
   for (const cb of readyCbs) {
     try { const r = cb(); if (r && typeof r.then === "function") pending.push(r); }
     catch (e) { errs.push("ready: " + e.message.slice(0, 50)); }
+  }
+  // 1.5) snapshotOnly 快照模式（G06-S1 首屏扫描用）：只取「页面初始化后、harness 注入/兜底
+  // 调用前」的真实默认态。兜底函数循环会以无参方式调用页面函数（如 selectDate()、
+  // dijkstra()），部分页面会因此把结果区改写成垃圾值甚至死循环，掩盖真实首屏状态。
+  // 该模式为纯增量开关：不传 snapshotOnly 时后续流程逐字节不变（既有用例零影响）。
+  if (c.snapshotOnly) {
+    const blobS = collectStrings(elements);
+    try { delete globalThis.TBKit; } catch (e) { /* 全局不可删时忽略 */ }
+    return {
+      ok: false,
+      why: "snapshot-only",
+      errs: errs.slice(0, 3),
+      tried: ordered.slice(0, 6),
+      sample: blobS.slice(0, 300),
+      fullBlob: blobS,
+      els: Object.fromEntries(
+        Object.entries(elements).map(([k, v]) => [
+          k,
+          { ih: String((v && v.innerHTML) || ""), val: String((v && v.value) ?? ""), ro: !!(v && v.readOnly) },
+        ])
+      ),
+    };
   }
   // 2) 覆盖输入并触发真实的 input/change 事件（最贴近用户实际操作）
   if (c.inputs) {

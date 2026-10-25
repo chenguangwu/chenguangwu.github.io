@@ -444,6 +444,12 @@ function saveHistory(input, output, shift, mode){
     mode,
     time: Date.now()
   };
+  // 与最新一条完全相同则跳过：首屏自跑（boot 调 process()）会在每次访问时落一条，
+  // 不去重则历史被重复样例刷满（MAX_HISTORY=20 截断后真实记录被挤出）。
+  if(history.length > 0 && history[0].input === item.input && history[0].output === item.output
+     && history[0].shift === item.shift && history[0].mode === item.mode){
+    return;
+  }
   history.unshift(item);
   if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -633,7 +639,7 @@ var __caesar_cipher_f0=(typeof setMode==='function')?setMode:null;
 if(__caesar_cipher_f0){
     setMode=function(){ var __r=__caesar_cipher_f0.apply(null,arguments); try{ __caesar_cipherExtras(); }catch(e){} return __r; };
 }
-function __caesar_cipherBoot(){ try{ __caesar_cipherPresets(); }catch(e){} }
+function __caesar_cipherBoot(){ try{ __caesar_cipherPresets(); }catch(e){} try{ process(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __caesar_cipherBoot();
 else document.addEventListener('DOMContentLoaded', __caesar_cipherBoot);
 </script>
