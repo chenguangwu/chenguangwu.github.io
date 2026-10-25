@@ -56,7 +56,7 @@ const CASES = [
     "phalGrade": "5"
   },
   "expect": [
-    "22.7周"
+    "36.8周"
   ],
   "ref": "auto-restore"
 },

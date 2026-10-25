@@ -14,8 +14,3 @@
 
 ## 进度
 - 🔴 待开发
-### C2. forensic-medicine/bone-age-estimation 胎儿支路胎龄公式斜率严重失真（批20）
-- 描述：`ageByFemur = 6.752 + 0.2127×FL(mm)`（默认 FL=50mm 真实胎龄约 26 周，公式给 17.4 周）；`ageByCRL = 0.017×CRL + 4.5`（默认 CRL=120mm 真实约 15.5 周，公式给 6.5 周，斜率小约 6 倍）。代码注释还写着第三个公式 `(CRL+6.5×1.037)/0.88`，三处互相矛盾；formula-box 把错误公式原样展示。
-- 方案：FL 改产科线性近似 GA(w)≈0.43×FL+8.5（或分段查表）；CRL 改 Robinson 简化 GA(w)≈0.1×CRL+6.5（限 6–14 周内有效并注明）；formula-box / 深度解读同步（G03 数据源）。
-- 受影响：tools/forensic-medicine/bone-age-estimation.html
-- 置信度：高（默认值代入即可复现失真）
