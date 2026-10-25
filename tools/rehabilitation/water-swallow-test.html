@@ -277,6 +277,7 @@ function evaluate() {
   }
 
   html += '<p><strong>评估结果：</strong><span class="grade-tag" style="background:' + data.color + '22;color:' + data.color + ';">' + data.name + ' - ' + data.level + '</span></p>';
+  __EMR_S={t:(typeof time==='number'&&isFinite(time))?time:0, g:grade, g0:(parseInt(document.getElementById('drinkCondition').value)||grade)};
   html += '<div class="tip-box tip-info" style="margin-top:8px;"><strong>处理建议：</strong>' + data.advice + '</div>';
 
   if (grade >= 4) {
@@ -333,6 +334,71 @@ function resetAll() {
 }
 
 renderHistory();
+
+/* —— 门诊记录（EMR note）：把吞咽筛查结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Screening tool; for clinical communication only, not a diagnostic determination.)':'（筛查工具，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.g!=='number') return;
+  var en=__emrEn();
+  var d=gradeData[s.g]||gradeData[1], d0=gradeData[s.g0]||d;
+  var corr=(s.g0!==s.g);
+  var gEn=['I','II','III','IV','V'];
+  var lvEn=['normal','equivocal','mildly abnormal','moderately abnormal','severely abnormal'];
+  var advEn=['Normal swallowing; resume a regular diet and keep good eating habits.',
+    'Equivocal swallowing; consider VFSS/FEES and observe closely during meals.',
+    'Mild dysphagia; switch to soft or semi-liquid diet and start swallowing training.',
+    'Moderate dysphagia; pureed food and thickened liquids, specialised swallowing therapy.',
+    'Severe dysphagia; tube feeding and systematic swallowing rehabilitation.'];
+  var hz,he;
+  if(s.g>=4){ hz='Ⅳ–Ⅴ级提示误吸风险高：暂停经口进食与稀流质，改糊状食物或管饲；进食取坐位 90°（卧床者床头抬高 30–45°）全程陪护，餐后保持坐位 30 分钟；尽快安排 FEES/VFSS 评估并记录误吸征象（呛咳、湿性嗓音、SpO2 下降）。';
+    he='Grade IV-V: high aspiration risk. Hold oral intake and thin liquids; use pureed diet or tube feeding. Sit upright at 90 degrees (bed head 30-45 degrees if bedbound) with full supervision, stay upright 30 minutes after meals; arrange FEES/VFSS and document aspiration signs (coughing, wet voice, SpO2 drop).'; }
+  else if(s.g===3){ hz='Ⅲ级提示轻度异常：改软食/半流质与增稠液体，小口慢咽、一次入口量 ≤5 mL，餐后保持坐位 30 分钟；建议吞咽功能训练并做影像学吞咽评估。';
+    he='Grade III: mild dysphagia. Switch to soft/semi-liquid diet with thickened fluids, small boluses (5 mL or less), slow swallowing, remain upright 30 minutes after meals; start swallowing therapy and arrange instrumental assessment.'; }
+  else if(s.g===2){ hz='Ⅱ级为可疑异常：可暂经口进食，但需逐餐观察呛咳、湿性嗓音与体温，出现异常即刻改糊状食物并复测/转评估。';
+    he='Grade II: equivocal. Oral intake may continue with per-meal observation for coughing, wet voice and fever; switch to pureed diet and re-test or refer if any abnormality appears.'; }
+  else { hz='Ⅰ级为正常：可经口正常进食。注意洼田试验查不出隐性误吸——若反复发热、咳痰增多或体重下降，仍需 FEES/VFSS 进一步评估。';
+    he='Grade I: normal. Normal oral diet may resume. Note that silent aspiration is not detected by this test; persistent fever, increased sputum or weight loss still warrant FEES/VFSS.'; }
+  __emrNote({boxId:'resultBox', name:'洼田饮水试验（30 mL 温水）', nameEn:'Kubota Water Swallow Test (30 mL)',
+    result:'饮水用时 '+s.t+' 秒 → '+d.name+'（'+d.level+'）'+(corr?('，由 '+d0.name+' 修正'):''),
+    resultEn:'swallow time '+s.t+' s; grade '+gEn[s.g-1]+' ('+lvEn[s.g-1]+')'+(corr?(' corrected from grade '+gEn[s.g0-1]):''),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'分级口径：Ⅰ级 5 秒内一次饮完无呛咳；Ⅱ级 5 秒以上或分 2 次饮完；Ⅲ级 2 次以上饮完或伴呛咳；Ⅳ级全程呛咳；Ⅴ级不能咽下。处理建议：'+d.advice,
+    extraEn:'grading: I completes in one swallow within 5 s without coughing; II over 5 s or two swallows; III more than two swallows or coughing; IV coughing throughout; V unable to swallow. Management: '+advEn[s.g-1]});
+};
+var __emrW0=(typeof evaluate==='function')?evaluate:null;
+if(__emrW0){ evaluate=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+if(typeof window!=='undefined'&&typeof window.evaluate==='function'){ try{ window.evaluate=evaluate; }catch(e){} }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

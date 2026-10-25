@@ -237,6 +237,7 @@ function evaluate() {
   if (!selected) return;
   var grade = parseInt(selected.value);
   var data = mmtData[grade];
+  __EMR_S={g:grade};
 
   var html = '<div style="text-align:center;margin-bottom:12px;">';
   html += '<div style="font-size:48px;font-weight:700;color:' + data.color + ';">' + data.grade + '级</div>';
@@ -331,6 +332,63 @@ function __mmtExport(){
 }
 
 init();
+
+/* —— 门诊记录（EMR note）：把肌力评定结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Manual muscle testing grade; for clinical communication only, not a diagnostic determination.)':'（徒手肌力评定分级，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.g!=='number'||!mmtData[s.g]) return;
+  var en=__emrEn();
+  var d=mmtData[s.g];
+  var hz,he;
+  if(s.g<=2){ hz='0–2 级属重度肌力下降：以被动/辅助运动维持关节活动度、预防挛缩与深静脉血栓为主，配合神经肌肉电刺激与肌电生物反馈；训练全程监测疲劳与代偿动作，负重与体位转移需辅助。';
+    he='Grade 0-2: severe weakness. Focus on passive/assisted ROM to prevent contracture and DVT, with NMES and EMG biofeedback; monitor fatigue and compensatory movement, assist during weight-bearing and transfers.'; }
+  else if(s.g===3){ hz='3 级为抗重力可完成全范围活动但抗阻不能：以主动抗重力训练为主，逐步加入小负荷渐进抗阻（从最小阻力起、每组 8–12 次、无痛范围内进行）；注意关节稳定性与代偿姿势。';
+    he='Grade 3: full ROM against gravity but not against resistance. Start active anti-gravity training and add low-load progressive resistance (smallest load first, 8-12 reps, pain-free range); watch joint stability and compensatory posture.'; }
+  else { hz='4–5 级肌力接近或达正常：以渐进抗阻与功能性训练维持力量，逐步恢复日常活动与运动专项需求；若仍主诉无力，需排查疼痛、关节活动度受限与神经因素对肌力的影响。';
+    he='Grade 4-5: strength near or at normal. Maintain with progressive resistance and functional training, return gradually to ADL and sport-specific demand; if weakness persists, screen for pain, limited ROM and neural factors.'; }
+  var descEn=['No visible or palpable contraction','Palpable or visible contraction without joint motion','Full ROM with gravity eliminated','Full ROM against gravity','Full ROM against moderate resistance','Full ROM against maximal resistance'];
+  var trainEn=['Passive ROM and neuromuscular electrical stimulation','Assisted active motion, EMG biofeedback and electrical stimulation','Gravity-eliminated active motion with sling or skate support','Active anti-gravity training, progressing to low-load resistance','Progressive resistance and isometric training','Maintenance and functional training'];
+  var g=Math.max(0,Math.min(5,s.g));
+  __emrNote({boxId:'resultBox', name:'徒手肌力评定（MMT 0–5 级）', nameEn:'Manual Muscle Testing (MMT 0-5)',
+    result:'MMT '+d.grade+' 级（'+d.name+'）· 正常肌力比例 '+d.pct,
+    resultEn:'MMT grade '+d.grade+' ('+d.eng+'); '+d.pct+' of normal strength',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'分级标准：'+d.desc+'；功能表现：'+d.func+'；康复建议：'+d.training+'。评定部位/侧别：__________',
+    extraEn:'criteria: '+descEn[g]+'; training: '+trainEn[g]+'. Muscle/side assessed: __________'});
+};
+var __emrW0=(typeof evaluate==='function')?evaluate:null;
+if(__emrW0){ evaluate=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <div class="mmt-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">

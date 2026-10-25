@@ -256,6 +256,7 @@ function renderOptions() {
 }
 
 function selectGrade(grade) {
+  if(typeof grade==='number'&&isFinite(grade)&&bostonGrades[grade]) __EMR_S={g:grade};
   document.querySelectorAll('.ref-card').forEach(function(c) { c.style.borderColor = 'var(--border)'; });
   var card = document.getElementById('card' + grade);
   if (card) { card.style.borderColor = 'var(--primary)'; card.style.boxShadow = 'var(--shadow-sm)'; }
@@ -353,6 +354,76 @@ function __baExport(scope){
 }
 
 init();
+
+/* —— 门诊记录（EMR note）：把失语症分级整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Aphasia severity grade; for clinical communication only, not a diagnostic determination.)':'（失语症严重程度分级，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.g!=='number'||!bostonGrades[s.g]) return;
+  var en=__emrEn();
+  var d=bostonGrades[s.g];
+  var lvEn=['no usable speech','very severe','severe','moderate','mild','minimal'];
+  var baseEn=['No meaningful speech or auditory comprehension.',
+    'Only stereotyped utterances; communication almost entirely dependent.',
+    'Exchange limited to familiar topics and usually needs help; unfamiliar topics nearly impossible.',
+    'Most daily topics can be discussed, though efficiency and quality are reduced.',
+    'Fluent with minor word-finding difficulty and slight comprehension reduction.',
+    'Minimal perceptible deficit, often unnoticed by the patient.'];
+  var trainEn=['Non-verbal communication, high-frequency comprehension and naming.',
+    'Non-verbal communication and severe-aphasia conversation strategies.',
+    'Situational dialogue, naming and repetition with written/reading support.',
+    'Syntactic expansion, narrative and pragmatic training.',
+    'High-level cognitive-linguistic, vocational and social communication training.',
+    'Maintenance, advanced cognitive-linguistic and social communication training.'];
+  var g=Math.max(0,Math.min(5,s.g));
+  var hz,he;
+  if(s.g<=1){ hz=d.level+'：交流几乎完全依赖他人，需以非语言沟通（图片、手势、沟通板）与家属共同建立固定信号；训练从听理解与命名的高频词入手，短句、慢速、单一指令，避免信息过载，并筛查抑郁与依从性。';
+    he=lvEn[g]+': communication largely depends on others; use non-verbal means (pictures, gestures, communication board) and agree on fixed signals with family. Start with high-frequency listening comprehension and naming, short slow single instructions; screen for depression.'; }
+  else if(s.g===2){ hz=d.level+'：仅在熟悉话题下可简单交流、不熟悉话题几乎无法表达；训练以情境化对话、命名与复述为主，配合书写/朗读双通道，家属宜用封闭式提问并给予充足应答时间。';
+    he=lvEn[g]+': simple exchange only on familiar topics, unfamiliar topics nearly impossible; train situational dialogue, naming and repetition with a written/reading channel; family should use closed questions and allow enough response time.'; }
+  else if(s.g===3){ hz=d.level+'：日常交流基本可行但复杂话题困难；训练转向句法扩展、叙事与语用（轮流、修正），并逐步恢复电话沟通与社交场景。';
+    he=lvEn[g]+': daily conversation is largely functional but complex topics are difficult; move to syntactic expansion, narrative and pragmatics (turn-taking, repair), then telephone and social communication.'; }
+  else { hz=d.level+'：交流功能接近正常，残留找词困难或偶发理解延迟；以高级认知语言训练、职业与社交语言训练维持，并关注疲劳后表现下降。';
+    he=lvEn[g]+': communication near normal with residual word-finding difficulty or occasional comprehension delay; maintain with high-level cognitive-linguistic, vocational and social communication training; note decline under fatigue.'; }
+  __emrNote({boxId:'resultBox', name:'失语症严重程度分级（Boston 0–5 级）', nameEn:'Aphasia severity grading (Boston 0-5)',
+    result:d.name+'（'+d.level+'）· 交流能力：'+d.comm,
+    resultEn:'Grade '+s.g+' ('+lvEn[g]+')',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'分级依据：'+d.desc+'；详细表现：'+d.detail+'；康复建议：'+d.training,
+    extraEn:baseEn[g]+' Training: '+trainEn[g]});
+};
+var __emrW0=(typeof selectGrade==='function')?selectGrade:null;
+if(__emrW0){ selectGrade=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

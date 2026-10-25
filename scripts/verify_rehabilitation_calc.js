@@ -171,9 +171,9 @@ const CASES = [
     "selectGrade(3)"
   ],
   "expect": [
-    "日常交流基本可行，但效率和质量降低"
+    "3级（中度）· 交流能力：日常交流基本可行，但效率和质量降低"
   ],
-  "ref": "selectGrade(3) 把 bostonGrades[3].comm 写入 #resultBox（仅点击后出现）；默认只渲染 6 张 ref-card 的 name/level/desc，无 comm。原 expect「0级」是 bostonGrades[0].name，默认列表里恒在（常量型逃生项）。"
+  "ref": "门诊记录：clicks 调 selectGrade(3)（REC 加 typeof grade==='number' && bostonGrades[grade] 守卫，兜底无参调用不覆盖），输出 Boston 失语症 3 级（中度）与其交流能力原文。默认态 querySelectorAll('.ref-card') 只渲染选项卡片、不产生 note ⇒ blob 无该串，零交集。"
 },
 {
   "slug": "rehabilitation/fim-scale",
@@ -228,9 +228,9 @@ const CASES = [
     "5"
   ],
   "expect": [
-    "能抗重力及最大外加阻力完成全范围运动"
+    "MMT 5 级（正常）· 正常肌力比例 100%"
   ],
-  "ref": "选中 5 级（checks 注入 input[name=grade]:checked ⇒ value=5）⇒ mmtData[5].func 写入 #resultBox；默认态 evaluate() 读不到选中项直接 return ⇒ 结果框为空。原 expect「如3+表示抗重力完成全范围后还能抗轻微阻力」是说明文案，默认恒在（常量型逃生项）。"
+  "ref": "门诊记录：checks 注入 input[name=grade]:checked ⇒ value=5，evaluate() 读选中项后 REC 捕获分级，输出「MMT 5 级（正常）· 正常肌力比例 100%」。默认态 evaluate() 读不到选中项直接 return、不产生 note ⇒ 零交集。"
 },
 {
   "slug": "rehabilitation/nine-hole-peg",
@@ -346,14 +346,27 @@ const CASES = [
   "ref": "门诊记录：170 cm ⇒ 大转子 96.9、腋窝 130.9、套环 125.8；未填腕横纹 ⇒ 手柄取大转子 96.9，鞋底 3 cm 补 +1，楼梯再 -2 ⇒ 95.9 cm；肘屈 45° 超出 20–30° ⇒ 适配校验仅 1/2 通过（其余 4 项中 1 项失败）。默认态 height 为空 ⇒「请输入身高」早退、不渲染，零交集。"
 },
 {
+  "slug": "rehabilitation/rom-normal-value",
+  "inputs": {
+    "jointSelect": "肩关节",
+    "motionSelect": "屈曲",
+    "measuredAngle": "100"
+  },
+  "expect": [
+    "关节 肩关节 · 动作 屈曲 · 测值 100°（正常参考 0-180°，达上限 56%）→ 中度受限"
+  ],
+  "ref": "门诊记录（该页原为零用例，本次新增）：jointSelect/motionSelect 虽由 JS 生成 option，但值是纯字符串键，inputs 可直接注入；measuredAngle=100 对肩关节屈曲（max 180）⇒ pct = round(100/180*100) = 56 ⇒ 落 50≤pct<75 档「中度受限」。默认态 measuredAngle 为空、isNaN 分支提前 return 不产生 note；且默认 jointSelect 为空时 romData[''] 为 undefined 直接抛错，故零交集。取 100 而非 90 是避开 pct=50 的档位边界。"
+},
+{
   "slug": "rehabilitation/water-swallow-test",
   "inputs": {
+    "drinkTime": "8",
     "drinkCondition": "1"
   },
   "expect": [
-    "建议保持良好进食习惯"
+    "饮水用时 8 秒 → Ⅱ级（可疑异常），由 Ⅰ级 修正"
   ],
-  "ref": "auto-restore"
+  "ref": "门诊记录：drinkCondition=1（Ⅰ级）但 drinkTime=8 秒 > 5 秒 ⇒ evaluate() 内按页面规则把 grade 修正为 2 级，REC 同时记下原分级与修正后分级，输出「饮水用时 8 秒 → Ⅱ级（可疑异常），由 Ⅰ级 修正」。默认态 drinkCondition 为空 ⇒ 只显示「请选择饮水情况」、无 note，零交集。"
 },
 {
   "slug": "rehabilitation/wheelchair-posture",

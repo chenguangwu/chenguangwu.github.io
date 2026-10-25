@@ -60,8 +60,9 @@
   + psychology 5（assessor/calc-self-assess/rater/self-assess/calc-12）
   + clinical-nursing 1（cold-compress-timer）
   + pediatrics 3（pediatric-fracture/rater-27/vanderbilt-adhd）
-  + clinical-nursing 4（pain-nrs/suction-pressure/restraint-check/surgical-position-risk）。
-  全站累计 **104 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
+  + clinical-nursing 4（pain-nrs/suction-pressure/restraint-check/surgical-position-risk）
+  + rehabilitation 4（water-swallow-test/mmt-grading/boston-aphasia/rom-normal-value）。
+  全站累计 **108 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
@@ -82,12 +83,20 @@
     **正面做法**：REC 只把值写进 page 内变量 `__EMR_S`，`__emrData()` 无参读它；再用 `calc`/页面函数的 wrapper
     `finally` 触发一次渲染（时序确定，不依赖兜底循环）。
     `__emrEsc` 会把 `>`/`<`/`&` 转成实体，expect 不能直接写这些字符。
+  - **EN 态零 CJK 的硬约束（2026-10-26 实测踩坑）**：note 的 `resultEn/hintEn/extraEn` **绝不能引用页面里的中文字段**
+    （`d.name`/`d.level`/`d.comm`/`d.desc`/`d.training`/`s.j`/`s.m`/`s.st`/`s.adv` 全是中文小标题与描述），
+    否则英文态整块泄漏中文。做法：EN 分支自建**英文数组/映射表**（罗马数字 `['I','II',...]`、`['normal','equivocal',...]`、
+    `descEn/trainEn/lvEn/stMap` 等），中文数据只喂 `result/hintZh/extra`。
+    验证手段（门禁不含此项，必须自测）：项目根临时脚本，jsdom 加载 `?lang=en-US` → 注入输入/设 radio.checked/调用页面函数
+    → **只扫 `#emrPre` 的 textContent**（扫整个 `#resultBox` 会把页面自身未翻译的静态中文算进来，误报），
+    CJK 正则含 `\u4e00-\u9fff\u3000-\u303f\uff00-\uffef`；跑完即删临时脚本。
 - 🔴 待续（**未铺清单以 2026-10-26 全站 grep 实测为准，勿信早前「已全铺完」口径**）：
   M1 条目结构 / M2 阈值口径仍待老板裁断。当前实测未铺（排除 index）共 **42 页**：
-  - `rehabilitation` **11 页**（早前误记「已全铺完」，实际只铺了 12/23）：adl-task-breakdown、analysis-time、
-    asia-impairment-scale、assistive-device-fitting、boston-aphasia、mmse-scoring、mmt-grading、
-    physiotherapy-dose、proprioception-error、rom-normal-value、water-swallow-test —— **均为真量表页，优先级最高**
-    （结构统一：`#resultBox` + evaluate/renderOptions，`drinkTime`+`drinkCondition` 式 select 注入即可）。
+  - `rehabilitation` **7 页**（早前误记「已全铺完」，实测 23 页中 16 页已铺）：adl-task-breakdown、
+    asia-impairment-scale、assistive-device-fitting、mmse-scoring、physiotherapy-dose、proprioception-error，
+    以及 analysis-time（仅 24 行的占位/跳转页，先确认性质）。**均 `#resultBox` + 计算函数，优先级最高**
+    （ASIA 页有现成 `applyAsiaPreset('t8'/'c6'/'normal')` 预设，clicks 直接调即可；其余为多 tab 计算器
+    `calcUS/calcLaser/calcTENS`、`calcWheelchair/calcOrthosis/calcProsthesis`，`switchTab` 需传哑 btn）。
   - `psychology` 11：analysis-2、attachment-style-test、bigfive-personality-test、bubble-tea-personality-quiz、
     enneagram-test、generator-20、holland-career-test、random-12、scl90-assessment、tester-2、tester-3
     （多为非病历场景的人格/趣味页；scl90 走外置 js + psych-kit 通用引擎，需另设计）。

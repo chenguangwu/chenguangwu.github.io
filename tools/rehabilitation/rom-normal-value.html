@@ -335,6 +335,7 @@ function evaluateROM() {
     status = '极重度受限'; color = '#DC2626'; advice = '严重影响功能，建议多学科团队评估治疗方案';
   }
 
+  __EMR_S={j:joint, m:motion, a:angle, n:data.normal, mx:data.max, pct:pct, st:status, adv:advice};
   var html = '<p>关节：<strong>' + joint + '</strong> ｜ 动作：<strong>' + motion + '</strong></p>';
   html += '<p>正常范围：<strong>' + data.normal + '°</strong> ｜ 测量值：<strong>' + angle + '°</strong></p>';
   html += '<p>达正常范围比例：<strong style="color:' + color + ';">' + pct + '%</strong></p>';
@@ -406,6 +407,59 @@ function clearInput() {
   document.getElementById('measuredAngle').value = '';
   evaluateROM();
 }
+
+/* —— 门诊记录（EMR note）：把关节活动度测量结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Range-of-motion screening; for clinical communication only, not a diagnostic determination.)':'（关节活动度筛查，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.a!=='number'||!isFinite(s.a)) return;
+  var en=__emrEn();
+  var stMap={'正常':'within normal limits','过伸':'hyperextension','屈曲受限':'flexion limited','正常（伸直位）':'normal full extension','轻度受限':'mildly limited','中度受限':'moderately limited','重度受限':'severely limited','极重度受限':'markedly limited'};
+  var stEn=stMap[s.st]||'limited';
+  var hz,he;
+  if(/受限/.test(s.st)){ hz='测值 '+s.a+'° 为正常参考上限 '+s.mx+'° 的 '+s.pct+'%，判定「'+s.st+'」：先排除疼痛、肿胀、关节积液与配合不足等可逆因素，再依受限程度安排牵伸、关节松动术与主动/助力活动训练；连续两次测量记录差值，避免不同测量者口径漂移，保守治疗无效时评估手术指征。';
+    he='Measured '+s.a+' degrees is '+s.pct+'% of the '+s.mx+'-degree reference, rated "'+stEn+'". Rule out pain, swelling, effusion and poor effort first, then progress stretching, joint mobilization and active/assisted exercise by severity; record between-session change and keep one measurement technique; consider surgical referral if conservative care fails.'; }
+  else { hz='测值 '+s.a+'° 落在正常参考范围 '+s.n+'° 内，判定「'+s.st+'」：维持现有活动度训练即可；注意左右对比与终末感，若活动度正常但仍主诉功能受限，需评估肌力、稳定性与疼痛因素。';
+    he='Measured '+s.a+' degrees lies within the normal reference '+s.n+' degrees, rated "'+stEn+'". Maintain current ROM training; compare with the contralateral side and check end-feel. If ROM is normal but function is still limited, assess strength, stability and pain.'; }
+  __emrNote({boxId:'resultBox', name:'关节活动度测量（ROM 量角器）', nameEn:'Range of Motion Measurement (Goniometer)',
+    result:'关节 '+s.j+' · 动作 '+s.m+' · 测值 '+s.a+'°（正常参考 '+s.n+'°，达上限 '+s.pct+'%）→ '+s.st,
+    resultEn:'measured '+s.a+' degrees (reference '+s.n+', '+s.pct+'% of upper limit); '+stEn,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'处理建议：'+s.adv+'。测量口径：同一体位、同一量角器、同一测量者，取主动与被动活动度分别记录；骨性阻挡与软组织紧张需在结论中注明。',
+    extraEn:'Technique: same position, same goniometer, same examiner; record active and passive ROM separately and note bony block versus soft-tissue tightness. Joint/motion assessed: __________'});
+};
+var __emrW0=(typeof evaluateROM==='function')?evaluateROM:null;
+if(__emrW0){ evaluateROM=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 
 init();
 </script>
