@@ -1,5 +1,7 @@
 # 图表/预设扩补专项 · 甄别裁断清单（交接文档）
 
+> 专项状态：93 页全部处置完毕，专项闭环。
+
 > 日期：2026-10-25。本文件为「dev-plan 第四章方向①/②：图表/预设扩补」专项的一次性交接文档，
 > 记录对 93 页真缺池的最终处置，供裁断与收口核对；后续勿在此文件追加日常改动。
 
@@ -13,18 +15,20 @@
 `3be9a86eac`（第一批 10 页）→ `115d21ef18`（第二批 10 页）→ `46efef24f4`（第三批 10 页）→ `f550235429`（第四批 10 页）→ `2d31f0c50f`（第五批 10 页）→ `69e0aac8a0`（第六批 10 页）。
 数据源全部取自各页 calc/渲染函数真实变量，TBKit.chart/preset 按页接线，EN 态零中文，真机探针复测通过。
 
-## 第七批注入 3 页（末批，本批 commit 后补 hash）
+## 第七批注入 3 页（commit：`2f35e4073d`）
 
-（hash 待回填：本文件随第七批提交，提交后由维护者将本批 commit hash 补写于此。）
+（hash 已回填：第七批提交为 `2f35e4073d`，即本收尾批的直接前驱。）
 
 1. **tools/edu/countdown-5.html** — 图表：按日志日期升序的累计学习小时 vs 目标总时长双系列 line（数据源：全局 `state.logs[{date,hours}]` + `state.targetHours`，照 `render()` 的 totalH/pct 口径），标题含目标完成率%；preset：高考（6月7日）/考研（12月下旬）/四六级（6·12月）/公务员国考（11月底）4 组目标日期场景，填 `examName/examDate/targetHours` 真实字段并 `saveExam()` 持久化。
 2. **tools/safety/self-test.html** — 页内已有 `tbHistChart` 历史得分趋势 line（数据源：TBKit.history，localStorage key=`tbk_hist_<pathname>`，记录结构 `{t,d:{时间,得分,答对,评级,__v}}`）；本批包装 `__tbHistRender` 给标题补「最近得分 · 最高分」，无记录回退原标题，langchange 全量重渲染。
 3. **tools/pet/training-planner.html** — preset：幼犬社会化/成犬服从/行为矫正/高级技能 4 组（页内真实字段：`#age`、`#dailyTime`、全局 `currentPet/selectedGoals` + `renderGoalGrid()/generate()`）。7 天分布图分支**不触发**：每日任务数 = min(时段数+1, 项目总数) 恒定、每日时长恒定，画图必为 7 根等高柱无信息量，且页面有真实参数字段（「纯查表无参数」条件不成立）。
 
-## 边际增益低、报老板裁断 2 页（C 类存疑，建议不注入）
+## 已注入（收尾批，原报裁断 2 页）
 
-- **tools/edu/multiplication-table.html** — 计时挑战得分/正确率历史可画，但输入是答题交互而非参数量表，乘法表本身已是网格展示，图表增益两可。
-- **tools/finance/word-counter.html** — 词频 Top-N 与既有 density 列表展示重复，画条形图属重复呈现；其余统计为单值卡片。
+（老板裁断：边际增益虽低但可做，做后 93 页真缺池全闭环。本节随收尾批提交，commit hash 由维护者提交后补写于此——同第七批自引用处理。）
+
+1. **tools/finance/word-counter.html** — 图表：词频 Top-10 条形图（`TBKit.chart.bar`；数据源：页内 `showDensity()` 同口径词频——文本小写 `[a-z]+` 切词、剔除单字母、频次降序取前 10）；容器 `#wcChart` 置于 `#densitySection` 内（勾选「显示词频」后随列表一起展示，图给 top-N 直观对比、补列表全文滚动之短）；接线：`__wc_fn0` 链包装全局 `analyze`（覆盖「分析」按钮 / textarea 内联 oninput / 粘贴），空文本或无 ≥2 字母词静默跳过。注：TBKit.chart.bar 为纵向柱状（工具箱无横向分类条形分支），逐柱 tooltip 补全每词频次。
+2. **tools/edu/multiplication-table.html** — 页内 localStorage 仅 `mult-best` 单值（无历次挑战记录数组，得分/用时趋势线无数据源），且页面无范围参数字段可挂 preset，按裁断备选项落「本次答题正确率 bar」：正确/错误双柱（数据源：全局 `pCorrect`/`pWrong`，照 `updatePScore()` 的正确率口径，标题含实时正确率%）；容器 `#mtChart` 置于随机练习 tab 末尾；接线：`__mt_fn0` 链包装 `updatePScore()`，每答一题实时重绘。
 
 ## 天然不需要（B 类，逐页一句依据）
 
@@ -61,7 +65,7 @@
 
 ## 结论（93 页真缺池处置核对）
 
-- **注入 63**（六批 60 + 第七批 3）＋ **天然不需要 28**（B 类）＋ **报裁断 2**（multiplication-table、word-counter）＝ **93，精确闭合**。
-- C 类存疑 4 页全部有去向：training-planner、self-test 并入第七批注入；multiplication-table、word-counter 报老板裁断。
+- **注入 65**（六批 60 + 第七批 3 + 收尾批 2）＋ **天然不需要 28**（B 类）＝ **93，精确闭合**。
+- C 类存疑 4 页全部有去向：training-planner、self-test 并入第七批注入；multiplication-table、word-counter 老板裁断可做，已随收尾批注入（见上节）。
 - 「已注入前批重叠」说明：第六批 10 页（detector-time、checker-assessor-1/2、detector-20、checker-7、cycle-11、rater-17、physics-calculator、data-erase-simulator、smoke-alarm-test）在剩余池甄别时被标「已注入」，该 10 页即第六批本身、已含在「注入 60」内，**不重复计数**；若按「18＋重叠 10」口径列式则与第六批重复计数且无法闭合，故以本清单 28 页口径为准。
-- 专项状态：图表/预设扩补对 93 页真缺池的处置已全部闭环，待老板对 2 页裁断后即可收口。
+- 专项状态：93 页全部处置完毕（注入 65 + 天然不需要 28），专项闭环（2026-10-25 收尾批收口）。
