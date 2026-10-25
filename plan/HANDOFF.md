@@ -26,7 +26,7 @@
 
 ### P1 口径/标签矛盾——数字对但表述误导
 
-- **O7** fire/detector-44 硬编码 `new Date('2026-07-31')` → 改 `new Date()`（_others.md）
+- **O7** fire/detector-44 硬编码 `new Date('2026-07-31')` → 改 `new Date()`（_others.md） ✅ 2026-10-25 已修
 - **L3** 年假折算 `ceil` 与页面例题/条例矛盾 → 统一 `floor`（06-商业运营/hr-legal.md）
 - **F1** ratio-analysis 权益乘数误用产权比率定义 → `ta/eq`（02-金融财务/tax-accounting-audit.md）
 - **Z2** cost-price-margin 利润率/加价率同值 → 利润率改 `(p−cost)/p`（marketing-sales.md）
