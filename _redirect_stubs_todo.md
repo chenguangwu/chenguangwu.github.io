@@ -28,6 +28,9 @@
 | https://chenguangwu.github.io/tools/pets/kennel-space.html | https://chenguangwu.github.io/tools/pet/kennel-space.html | 2026-10-10 | 2026-11-10 | 待删 | 繁体同理 |
 | https://chenguangwu.github.io/tools/pets/index.html | https://chenguangwu.github.io/tools/pet/index.html | 2026-10-10 | 2026-11-10 | 待删 | 分类落地页存根；繁体同理 |
 | https://chenguangwu.github.io/tools/general/frequency-3.html | https://chenguangwu.github.io/tools/music/instrument-tuning.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
+| https://chenguangwu.github.io/tools/insurance/calc-pv-1.html | https://chenguangwu.github.io/tools/realestate/pv.html | 2026-08-25 | 2026-09-25 | 待删（超期补登记） | 2026-10-25 公式审计时发现漏登记；繁体同理 |
+| https://chenguangwu.github.io/tools/insurance/estimate-20.html | https://chenguangwu.github.io/tools/insurance/surrender-value.html | 2026-08-25 | 2026-09-25 | 待删（超期补登记） | 同上；繁体同理 |
+| https://chenguangwu.github.io/tools/insurance/stats-5.html | https://chenguangwu.github.io/tools/insurance/loss-ratio.html | 2026-08-25 | 2026-09-25 | 待删（超期补登记） | 同上；繁体同理 |
 | https://chenguangwu.github.io/tools/general/calculator-calc-11.html | https://chenguangwu.github.io/tools/math/complex-number.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
 | https://chenguangwu.github.io/tools/misc/unit-prefix.html | https://chenguangwu.github.io/tools/general/convert-22.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
 | https://chenguangwu.github.io/tools/misc/scientific-notation.html | https://chenguangwu.github.io/tools/general/convert-21.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
