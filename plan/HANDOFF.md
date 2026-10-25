@@ -20,7 +20,7 @@
 | L4 鞋码 US/UK 偏大 8 码 | 05-生活消费/life.md | 代码改 `usM=eu−32; usW=eu−30.5; uk=eu−33`（公式框本来是对的） |
 | E2 桥梁荷载 Pk 内插基线 270 应 180 | 08-工程制造/construction-energy.md | JTG D60-2015 表 4.3.1-2：L≤5m→180、L≥50m→360 |
 | Z1 unit-price-compare 固液量纲混用 | 06-商业运营/biz-startup.md | ml/L 与 g/kg 不可直接比单价 |
-| O1 dyeing/tester-9 输入 C 未参与计算 | 12-长尾行业/_others.md | GB/T 20944.2 口径 |
+| O1 dyeing/tester-9 输入 C 未参与计算 | 12-长尾行业/_others.md | GB/T 20944.2 口径（✅ 2026-10-25 已修） |
 | L1 bra-size 美码=英码且口径粗糙 | 05-生活消费/life.md | US=UK+2 |
 | E1 eco-10/16「万 kWh」量纲口径存疑 | 10-农业养殖/livestock-eco-forestry.md | 先核对页面标签再改 |
 

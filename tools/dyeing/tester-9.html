@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="💊 AATCC 100 抗菌测试">Tester 9</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">抑菌率 = (A − B) ÷ A ×100%（A 为 0h 对照活菌数，B 为试样活菌数）；抗菌活性值 R = log₁₀A − log₁₀B。分级：≥99.9% 强效，≥99% 合格（AATCC 100），≥90% 良好，≥70% 一般，&lt;70% 无效。校验：A&gt;0 且为有效数。</div>
+      <div class="formula-eq">抑菌率 = (对照 − B) ÷ 对照 ×100%：对照优先取 C（time h 对照，GB/T 20944.2 振荡法），未填则取 A（0h 对照，AATCC 100）；B 为试样活菌数。抗菌活性值 R = log₁₀(对照) − log₁₀B。分级：≥99.9% 强效，≥99% 合格，≥90% 良好，≥70% 一般，&lt;70% 无效。校验：对照&gt;0 且为有效数。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依据 AATCC 100 定量抗菌测试法计算抑菌率与抗菌活性值（对数减少），判读纺织品抗菌效果。需输入&quot;0 小时对照&quot;与&quot;24 小时试样&quot;的活菌数。">Tester 9 - online utility on ToolBox.</p>
 
@@ -176,8 +176,9 @@ function calc(){
   var A=+document.getElementById('A').value, B=+document.getElementById('B').value;
   var C=+document.getElementById('C').value, bug=document.getElementById('bug').value, time=document.getElementById('time').value;
   if(isNaN(A)||isNaN(B)||A<=0){ document.getElementById('res').innerHTML='<p style="color:var(--danger)">请输入有效的 0h 对照活菌数（A>0）</p>'; return; }
-  var rate = (A-B)/A*100;
-  var R = Math.log10(A) - Math.log10(B>0?B:1);
+  var refBase = (C>0) ? C : A;   // GB/T 20944.2 振荡法优先取 time h 对照 C；未填则回退 0h 对照 A（AATCC 100）
+  var rate = (refBase-B)/refBase*100;
+  var R = Math.log10(refBase) - Math.log10(B>0?B:1);
   var level,color,advice;
   if(rate>=99.9){ level='抗菌强效'; color='var(--success)'; advice='抑菌率≥99.9%，抗菌效果优异，符合高端抗菌纺织品要求，可标注强效抗菌。'; }
   else if(rate>=99){ level='抗菌合格'; color='#2563EB'; advice='抑菌率≥99%（对数减少≥2），达到 AATCC 100 常规抗菌合格线，可标注抗菌功能。'; }
@@ -185,7 +186,7 @@ function calc(){
   else if(rate>=70){ level='抗菌一般'; color='var(--warning)'; advice='抑菌率 70%-90%，抗菌效果偏弱，不宜宣称抗菌，需改进配方。'; }
   else { level='抗菌无效'; color='var(--danger)'; advice='抑菌率<70%，未见明显抗菌作用，应检查抗菌剂是否有效及加工均匀性。'; }
   var html='<p>抑菌率：<strong style="font-size:28px;color:'+color+';">'+rate.toFixed(2)+'%</strong></p>';
-  html+='<p>抗菌活性值 R = log(A)−log(B) = <strong>'+R.toFixed(2)+'</strong></p>';
+  html+='<p>抗菌活性值 R = log('+((C>0)?'C':'A')+')−log(B) = <strong>'+R.toFixed(2)+'</strong></p>';
   html+='<table style="margin-top:6px;"><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
   html+='<tr><td>测试菌种</td><td>'+bug+'</td></tr>';
   html+='<tr><td>接触时间</td><td>'+time+' h</td></tr>';
