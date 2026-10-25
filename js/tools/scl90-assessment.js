@@ -44,7 +44,7 @@
     { i: 1, dim: 'som', text: '头痛', en: 'Headaches' },
     { i: 2, dim: 'anx', text: '神经过敏，心中不踏实', en: 'Nervousness or shakiness inside' },
     { i: 3, dim: 'oc', text: '头脑中有不必要的想法或字句盘旋', en: 'Unwanted thoughts or words that will not leave your mind' },
-    { i: 4, dim: 'psy', text: '头昏或昏倒', en: 'Faintness or dizziness' },
+    { i: 4, dim: 'som', text: '头昏或昏倒', en: 'Faintness or dizziness' },
     { i: 5, dim: 'dep', text: '对异性的兴趣减退', en: 'Loss of sexual interest or pleasure' },
     { i: 6, dim: 'is', text: '对旁人求全责备', en: 'Feeling critical of others' },
     { i: 7, dim: 'psy', text: '感到别人能控制您的思想', en: 'The idea that someone else can control your thoughts' },
