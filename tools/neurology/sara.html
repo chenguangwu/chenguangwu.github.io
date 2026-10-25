@@ -338,6 +338,74 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }function __emrBand(total){
+  if(total<=3) return ['无/极轻','none / very mild','几乎无明显共济失调，可观察随访。','Almost no ataxia; observation is sufficient.'];
+  if(total<=10) return ['轻度','mild','轻度共济失调，可独立行走；物理康复训练并防跌倒。','Mild ataxia with independent walking; physiotherapy and falls prevention.'];
+  if(total<=20) return ['中度','moderate','中度共济失调，行走可能需辅助器具；康复训练为主。','Moderate ataxia, may need an aid to walk; rehabilitation-focused.'];
+  if(total<=30) return ['重度','severe','重度共济失调，多需轮椅；需照护支持并加强康复。','Severe ataxia, often wheelchair-bound; supportive care and rehabilitation.'];
+  return ['极重度','very severe','严重共济失调，卧床；需全面照护并预防压疮/感染/血栓。','Very severe ataxia, bed-bound; full care and prevention of pressure injury, infection, thrombosis.'];
+  return null;
+}
+
+function __emrData(){
+  if(typeof items==='undefined'||typeof labels==='undefined') return;
+  var el=document.getElementById('result'); if(!el) return;
+  var total=0,maxTot=0,pos=[],i,j,sel,v,o,mv;
+  for(i=0;i<items.length;i++){
+    sel=document.getElementById(items[i]); if(!sel) continue;
+    v=parseInt(sel.value)||0; total+=v;
+    mv=0;
+    try{ for(j=0;j<sel.options.length;j++){ var ov=parseInt(sel.options[j].value); if(ov>mv) mv=ov; } }catch(e){}
+    maxTot+=mv;
+    if(v>0){
+      o='';
+      try{ if(sel.options&&sel.options[sel.selectedIndex]) o=String(sel.options[sel.selectedIndex].text); }catch(e){}
+      pos.push({i:i+1,t:labels[i].replace(/^\d+(\.\d+)?\.?\s*/,''),o:o.replace(/^\s*\d+\s*[-—–]\s*/,'')});
+    }
+  }
+  if(!maxTot) return;
+  var b=__emrBand(total)||['','','',''];
+  __emrNote({name:'SARA 共济失调评定量表（8 项 · 满分 40）', nameEn:'SARA Scale for the Assessment and Rating of Ataxia (8 items, max 40)',
+    result:'总分 '+total+'/'+maxTot+'，分级：'+b[0],
+    resultEn:'total '+total+'/'+maxTot+', band: '+b[1],
+    pos:pos, hintZh:b[2], hintEn:b[3],
+    extra:'满分（各条目最高分之和）'+maxTot+'；得分率 '+Math.round(total/maxTot*100)+'%；≥1 分条目 '+pos.length+'/'+items.length,
+    extraEn:'Maximum possible '+maxTot+'; score ratio '+Math.round(total/maxTot*100)+'%; items scoring >=1: '+pos.length+'/'+items.length});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

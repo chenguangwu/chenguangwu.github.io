@@ -415,6 +415,82 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __alsGroups=[['b1','b2','b3','bulbar'],['u1','u2','u3','upper limb'],['t1','t2','trunk'],['l1','l2','lower limb'],['r1','r2','r3','respiratory']];
+function __emrBand(total){
+  if(total>=40) return ['轻度','mild','功能基本保留，可独立生活；继续利鲁唑/依达拉奉并定期监测 FVC。','Function largely preserved; continue riluzole/edaravone and monitor FVC.'];
+  if(total>=30) return ['中度','moderate','部分功能受限，需评估营养与呼吸功能，建议早期使用辅助器具。','Partial limitation; assess nutrition and respiration, introduce aids early.'];
+  if(total>=20) return ['中重度','moderately severe','明显功能受限，需照护支持；评估无创通气指征与营养支持。','Marked limitation; assess NIV indication and nutritional support.'];
+  if(total>=10) return ['重度','severe','严重功能受限，需全面照护；无创/有创通气支持与营养管理。','Severe limitation; comprehensive care, ventilatory support and nutrition management.'];
+  return ['极重度','very severe','终末期，需机械通气与全面支持治疗，转以姑息护理与生活质量为主。','End stage; mechanical ventilation and full support, palliative focus on quality of life.'];
+}
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var total=0,maxTot=0,sub=[],pos=[],g,i,j,sel,v,mv,txt;
+  for(g=0;g<__alsGroups.length;g++){
+    var ids=[],names=[];
+    for(i=0;i<__alsGroups[g].length;i++){ if(/^[a-z]\d$/.test(__alsGroups[g][i])) ids.push(__alsGroups[g][i]); }
+    var gs=0,gm=0;
+    for(i=0;i<ids.length;i++){
+      sel=document.getElementById(ids[i]); if(!sel) continue;
+      v=parseInt(sel.value)||0; gs+=v;
+      mv=0;
+      try{ for(j=0;j<sel.options.length;j++){ var ov=parseInt(sel.options[j].value); if(ov>mv) mv=ov; } }catch(e){}
+      gm+=mv;
+      if(v>0){
+        txt='';
+        try{ if(sel.options&&sel.options[sel.selectedIndex]) txt=String(sel.options[sel.selectedIndex].text); }catch(e){}
+        pos.push({i:ids[i],t:ids[i].toUpperCase(),o:txt.replace(/^\s*\d+\s*[-—–]\s*/,'')});
+      }
+    }
+    total+=gs; maxTot+=gm; sub.push(gs+'/'+gm);
+  }
+  if(!maxTot) return;
+  var b=__emrBand(total);
+  var rsum=(parseInt((document.getElementById('r1')||{value:0}).value)||0)+(parseInt((document.getElementById('r2')||{value:0}).value)||0)+(parseInt((document.getElementById('r3')||{value:0}).value)||0);
+  var rw = rsum<8 ? ('呼吸分项和 '+rsum+' <8，需紧急评估 FVC 与 MIP，警惕睡眠相关低通气') : ('呼吸分项和 '+rsum+' ≥8');
+  var rwEn = rsum<8 ? ('Respiratory subtotal '+rsum+' below 8; urgent FVC and MIP assessment, beware sleep-related hypoventilation') : ('Respiratory subtotal '+rsum+' >=8');
+  __emrNote({name:'ALSFRS-R 肌萎缩侧索硬化功能评分修订版（13 项 · 满分 '+maxTot+'）', nameEn:'ALSFRS-R (13 items, max '+maxTot+')',
+    result:'总分 '+total+'/'+maxTot+'，分级：'+b[0],
+    resultEn:'total '+total+'/'+maxTot+', band: '+b[1],
+    noPos:true, hintZh:b[2], hintEn:b[3],
+    extra:'延髓 '+sub[0]+' · 上肢 '+sub[1]+' · 躯干 '+sub[2]+' · 下肢 '+sub[3]+' · 呼吸 '+sub[4]+'；'+rw,
+    extraEn:'Bulbar '+sub[0]+', upper limb '+sub[1]+', trunk '+sub[2]+', lower limb '+sub[3]+', respiratory '+sub[4]+'; '+rwEn});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
