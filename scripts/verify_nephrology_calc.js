@@ -42,10 +42,12 @@ const CASES = [
   "slug": "nephrology/ckd-staging",
   "inputs": {
     "egfr": "68",
-    "uacr": "80"
+    "uacr": "150"
   },
   "expect": [
-    "68"
+    "68",
+    "eGFR 68 mL/min/1.73m² → 落在 G2 轻度↓（健康参考 ≥90）",
+    "UACR 150 mg/g → 落在 A2 微量"
   ],
   "ref": "auto-restore"
 },
@@ -58,9 +60,10 @@ const CASES = [
     "bsa": "1.73"
   },
   "expect": [
-    "(10000"
+    "(10000",
+    "校正Ccr 104.2 mL/min → 落在 正常"
   ],
-  "ref": "auto-restore"
+  "ref": "Ccr=(10000×1.04)/100=104.2 mL/min（BSA 1.73 无需校正）；参考区间定位：落在「正常」带（80–120 mL/min）"
 },
 {
   "slug": "nephrology/dialysis-ktv",

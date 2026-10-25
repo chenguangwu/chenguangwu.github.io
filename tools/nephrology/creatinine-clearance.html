@@ -144,7 +144,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div> <div id="creatinine_clearanceTable"></div> <div id="creatinine_clearanceDiff"></div> <div id="creatinine_clearanceChart"></div> <div id="creatinine_clearanceHist"></div>
+    <div class="result-box" id="result"></div> <div id="creatinine_clearanceRefBar"></div> <div id="creatinine_clearanceTable"></div> <div id="creatinine_clearanceDiff"></div> <div id="creatinine_clearanceChart"></div> <div id="creatinine_clearanceHist"></div>
   </div>
 
   <div class="card">
@@ -267,7 +267,33 @@ function calc(){
   html+='<strong>'+grade+'</strong><br>'+desc;
   html+='</div>';
 
+  // —— 参考区间定位（S3 标尺）——
+  var __cBands=[{lo:0,hi:10,label:{zh:'终末期',en:'ESRD'},color:'#991B1B'},
+                {lo:10,hi:25,label:{zh:'重度',en:'Severe'},color:'#EF4444'},
+                {lo:25,hi:50,label:{zh:'中度',en:'Moderate'},color:'#F97316'},
+                {lo:50,hi:80,label:{zh:'轻度',en:'Mild'},color:'#F59E0B'},
+                {lo:80,hi:160,label:{zh:'正常',en:'Normal'},color:'#10B981'}];
+  function __hitC(v,bands){
+    for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}
+    return null;
+  }
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})()?1:0;
+  function __T(en,zh){return __EN?en:zh;}
+  var __cb=__hitC(ccrCorrected,__cBands);
+  if(__cb){
+    html+='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    html+='<li>'+__T(bsa>0?'Corrected Ccr ':'Ccr ',bsa>0?'校正Ccr ':'Ccr ')+(bsa>0?ccrCorrected.toFixed(1):ccr.toFixed(1))+' mL/min'+__T(' → ',' → 落在 ')+(__EN?__cb.label.en:__cb.label.zh)+__T(' (adult normal 80–120 mL/min)','（成人正常参考 80–120 mL/min）')+'</li>';
+    html+='<li>'+__T('Dose-adjustment nodes: reduce dose when Ccr &lt;50, avoid or switch to non-renal drugs when &lt;10','常用药物剂量调整节点：Ccr &lt;50 需减量，&lt;10 需避免或改用非肾排泄药物')+'</li>';
+    html+='</ul></div>';
+  }
+
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__cb){
+      TBKit.chart.refBar('#creatinine_clearanceRefBar',{value:ccrCorrected,unit:'',min:0,max:160,bands:__cBands,title:'肌酐清除率标尺 (mL/min)'});
+    }
+  }catch(e){}
 }
 
 function copyResult(){
@@ -460,7 +486,7 @@ else document.addEventListener('DOMContentLoaded', __creatinine_clearanceBoot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "creatinine_clearanceChart"], "tbl": ["creatinine_clearanceTable"], "pre": ["creatinine_clearancePresets"], "his": ["creatinine_clearanceHist"]};
+  var P={"res": ["result", "creatinine_clearanceRefBar", "creatinine_clearanceChart"], "tbl": ["creatinine_clearanceTable"], "pre": ["creatinine_clearancePresets"], "his": ["creatinine_clearanceHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');

@@ -133,7 +133,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div> <div id="ckd_stagingTable"></div> <div id="ckd_stagingDiff"></div> <div id="ckd_stagingChart"></div> <div id="ckd_stagingHist"></div>
+    <div class="result-box" id="result"></div> <div id="ckd_stagingRefBar"></div> <div id="ckd_stagingTable"></div> <div id="ckd_stagingDiff"></div> <div id="ckd_stagingChart"></div> <div id="ckd_stagingHist"></div>
   </div>
 
   <div class="card">
@@ -278,7 +278,41 @@ function calc(){
   html+='<li>所有分期：避免肾毒性药物，调整经肾排泄药物剂量</li>';
   html+='</ul></div>';
 
+  // —— 参考区间定位（S3 标尺）——
+  var __gBands=[{lo:90,hi:150,label:{zh:'G1 正常/高',en:'G1 Normal'},color:'#10B981'},
+                {lo:60,hi:90,label:{zh:'G2 轻度↓',en:'G2 Mild'},color:'#84CC16'},
+                {lo:45,hi:60,label:{zh:'G3a',en:'G3a'},color:'#F59E0B'},
+                {lo:30,hi:45,label:{zh:'G3b',en:'G3b'},color:'#F97316'},
+                {lo:15,hi:30,label:{zh:'G4 重度↓',en:'G4 Severe'},color:'#EF4444'},
+                {lo:0,hi:15,label:{zh:'G5 肾衰竭',en:'G5 Failure'},color:'#7F1D1D'}];
+  var __uBands=[{lo:0,hi:30,label:{zh:'A1 正常',en:'A1 Normal'},color:'#10B981'},
+                {lo:30,hi:300,label:{zh:'A2 微量',en:'A2 Moderate'},color:'#F59E0B'},
+                {lo:300,hi:3000,label:{zh:'A3 大量',en:'A3 Severe'},color:'#EF4444'}];
+  function __hitBand(v,bands){
+    for(var i=0;i<bands.length;i++){
+      var b=bands[i];
+      if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi)) return b;
+    }
+    return null;
+  }
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})()?1:0;
+  function __T(en,zh){return __EN?en:zh;}
+  var __pl=__T(' → ',' → 落在 ');
+  var __gb=__hitBand(egfr,__gBands),__ub=__hitBand(uacr,__uBands);
+  if(__gb&&__ub){
+    html+='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    html+='<li>eGFR '+egfr+' mL/min/1.73m²'+__pl+(__EN?__gb.label.en:__gb.label.zh)+__T(' (normal ≥90)','（健康参考 ≥90）')+'</li>';
+    html+='<li>UACR '+uacr+' mg/g'+__pl+(__EN?__ub.label.en:__ub.label.zh)+__T(' (normal &lt;30, macroalbuminuria &gt;300)','（正常 &lt;30，大量白蛋白尿 &gt;300）')+'</li>';
+    html+='</ul></div>';
+  }
+
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__gb){
+      TBKit.chart.refBar('#ckd_stagingRefBar',{value:egfr,unit:'',min:0,max:150,bands:__gBands,title:'eGFR 分级标尺 (mL/min/1.73m²)'});
+    }
+  }catch(e){}
 }
 
 function copyResult(){
@@ -471,7 +505,7 @@ else document.addEventListener('DOMContentLoaded', __ckd_stagingBoot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "ckd_stagingChart"], "tbl": ["ckd_stagingTable"], "pre": ["ckd_stagingPresets"], "his": ["ckd_stagingHist"]};
+  var P={"res": ["result", "ckd_stagingRefBar", "ckd_stagingChart"], "tbl": ["ckd_stagingTable"], "pre": ["ckd_stagingPresets"], "his": ["ckd_stagingHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');

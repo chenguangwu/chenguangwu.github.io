@@ -155,7 +155,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__hba1c_converterExport()">导出明细 CSV</button></div><div id="result"></div> <div id="hba1c_converterTable"></div> <div id="hba1c_converterDiff"></div> <div id="hba1c_converterChart"></div> <div id="hba1c_converterHist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__hba1c_converterExport()">导出明细 CSV</button></div><div id="result"></div> <div id="hba1c_converterRefBar"></div> <div id="hba1c_converterTable"></div> <div id="hba1c_converterDiff"></div> <div id="hba1c_converterChart"></div> <div id="hba1c_converterHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 8px;">血糖控制目标（HbA1c）</h3>
     <table>
@@ -278,7 +278,33 @@ function convert(){
   html += '<div class="stat-card"><div class="val">'+((hba1c-5.7)>=0?'+'+(hba1c-5.7).toFixed(1):(hba1c-5.7).toFixed(1))+'</div><div class="lbl">较正常上限偏离</div></div>';
   html += '<div class="stat-card"><div class="val">'+(hba1c>=6.5?'是':'否')+'</div><div class="lbl">达糖尿病诊断</div></div>';
   html += '</div>';
+  // —— 参考区间定位（S3 标尺）：ADA 诊断阈值 ——
+  var __a1cBands=[{lo:0,hi:5.7,label:{zh:'正常 <5.7',en:'Normal'},color:'#10B981'},
+                  {lo:5.7,hi:6.5,label:{zh:'前期',en:'Prediabetes'},color:'#F59E0B'},
+                  {lo:6.5,hi:7.0,label:{zh:'糖尿病·达标',en:'DM·controlled'},color:'#3B82F6'},
+                  {lo:7.0,hi:8.0,label:{zh:'一般',en:'Fair'},color:'#F59E0B'},
+                  {lo:8.0,hi:10.0,label:{zh:'不佳',en:'Poor'},color:'#EF4444'},
+                  {lo:10.0,hi:15,label:{zh:'很差',en:'Very poor'},color:'#7F1D1D'}];
+  function __hitA(v,bands){
+    for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}
+    return null;
+  }
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})()?1:0;
+  function __T(en,zh){return __EN?en:zh;}
+  var __ab=__hitA(hba1c,__a1cBands);
+  if(__ab){
+    html+='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    html+='<li>HbA1c '+hba1c.toFixed(1)+'%'+__T(' → ',' → 落在 ')+(__EN?__ab.label.en:__ab.label.zh)+__T(' (normal &lt;5.7%, diabetes threshold ≥6.5%, usual target &lt;7.0%)','（正常 &lt;5.7%，糖尿病诊断阈值 ≥6.5%，一般控制目标 &lt;7.0%）')+'</li>';
+    html+='<li>'+__T('Estimated average glucose ','对应平均血糖 ')+'eAG '+eag_mmol.toFixed(1)+' mmol/L（'+eag_mgdl.toFixed(0)+' mg/dL）'+__T('; eAG target ≈ 8.6 mmol/L (154 mg/dL)','；eAG 目标约 8.6 mmol/L（154 mg/dL）')+'</li>';
+    html+='</ul></div>';
+  }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__ab){
+      TBKit.chart.refBar('#hba1c_converterRefBar',{value:hba1c,unit:'%',min:4,max:14,bands:__a1cBands,title:'HbA1c 判读标尺 (%)'});
+    }
+  }catch(e){}
 }
 
 function convertReverse(){
@@ -481,7 +507,7 @@ else document.addEventListener('DOMContentLoaded', __hba1c_converterBoot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "hba1c_converterChart"], "tbl": ["hba1c_converterTable"], "his": ["hba1c_converterHist"]};
+  var P={"res": ["result", "hba1c_converterRefBar", "hba1c_converterChart"], "tbl": ["hba1c_converterTable"], "his": ["hba1c_converterHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');

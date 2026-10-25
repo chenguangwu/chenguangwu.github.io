@@ -830,6 +830,115 @@
     return mount(host, c.svg);
   };
 
+  /**
+   * 参考区间标尺（S3 · 检验/指标类首选）
+   * ---------------------------------------------------------------------------
+   * 一条水平色带按「分级/参考区间」分段着色，叠加当前值落点与命中段标签，
+   * 让用户一眼看到「我的值在正常范围的哪个位置」。
+   *
+   * cfg:
+   *   value {number}      必填，当前值
+   *   unit  {string}      单位后缀
+   *   min / max {number}  标尺两端（不给则由 bands 推）
+   *   bands {Array}       分段：[{lo,hi,label,color}]，lo/hi 可缺（表示开放区间）
+   *                       label 可为字符串或 {zh,en} 双语对象
+   *   log   {boolean}     对数刻度（UACR、肌钙蛋白、病毒载量等跨数量级指标）
+   *   ticks {number}      刻度数量（默认 5）
+   *
+   * 硬约束：纯 SVG 自绘、零依赖；英文态自动切 label.en。
+   */
+  chart.refBar = function (host, cfg) {
+    cfg = cfg || {};
+    var v = num(cfg.value);
+    if (!isFinite(v)) return null;
+    var unit = cfg.unit || '';
+    var bands = [];
+    (cfg.bands || []).forEach(function (b) {
+      if (!b) return;
+      var l = isFinite(num(b.lo)) ? num(b.lo) : null;
+      var h = isFinite(num(b.hi)) ? num(b.hi) : null;
+      if (l === null && h === null) return;
+      bands.push({ lo: l, hi: h, label: b.label || '', color: b.color || PALETTE[bands.length % PALETTE.length] });
+    });
+    if (!bands.length) return null;
+
+    var lo0 = isFinite(num(cfg.min)) ? num(cfg.min) : Math.min.apply(null, bands.map(function (b) { return b.lo === null ? b.hi : b.lo; }));
+    var hi0 = isFinite(num(cfg.max)) ? num(cfg.max) : Math.max.apply(null, bands.map(function (b) { return b.hi === null ? b.lo : b.hi; }));
+    if (!(hi0 > lo0)) { hi0 = lo0 + 1; }
+    var log = !!cfg.log && lo0 > 0;
+    var L = function (x) { return log ? Math.log(Math.max(x, 1e-9)) : x; };
+    var a = L(lo0), bb = L(hi0);
+    var clamp = function (x) { return Math.min(Math.max(x, lo0), hi0); };
+    var X = function (val) { return c.pad.l + c.iw * (L(clamp(val)) - a) / (bb - a); };
+
+    var hit = -1;
+    for (var i = 0; i < bands.length; i++) {
+      var bl = bands[i].lo === null ? -Infinity : bands[i].lo;
+      var bh = bands[i].hi === null ? Infinity : bands[i].hi;
+      if (v >= bl && v < bh) { hit = i; break; }
+    }
+
+    var h = cfg.height || 126;
+    var c = canvas(host, {
+      height: h,
+      title: cfg.title || (isEn() ? 'Reference range' : '参考区间标尺'),
+      padding: { t: 34, r: 22, b: 38, l: 22 }
+    });
+    var trackY = c.pad.t + 20, trackH = 30;
+
+    c.svg.appendChild(s('rect', {
+      x: c.pad.l, y: trackY, width: c.iw, height: trackH, rx: 6,
+      fill: 'var(--bg-hover, #F3F4F6)'
+    }));
+
+    bands.forEach(function (bd, i) {
+      var x0 = X(bd.lo === null ? lo0 : bd.lo);
+      var x1 = X(bd.hi === null ? hi0 : bd.hi);
+      var w = Math.max(1.5, x1 - x0);
+      var on = (i === hit);
+      c.svg.appendChild(s('rect', {
+        x: x0, y: trackY, width: w, height: trackH, rx: 4,
+        fill: bd.color, 'fill-opacity': on ? 0.42 : 0.16,
+        stroke: bd.color, 'stroke-width': on ? 2.2 : 1
+      }));
+      var lab = bd.label && bd.label.zh ? (isEn() ? bd.label.en : bd.label.zh) : (bd.label || '');
+      if (lab && w > 34) {
+        var t = s('text', {
+          x: x0 + w / 2, y: trackY + trackH / 2 + 4, 'text-anchor': 'middle',
+          'font-size': 11, 'font-weight': on ? 700 : 500,
+          fill: on ? bd.color : 'var(--text-muted, #6B7280)'
+        });
+        t.appendChild(document.createTextNode(String(lab)));
+        c.svg.appendChild(t);
+      }
+    });
+
+    // 刻度
+    var ticks = Math.max(2, cfg.ticks || 5);
+    for (var k = 0; k <= ticks; k++) {
+      var val = log ? Math.exp(a + (bb - a) * k / ticks) : lo0 + (hi0 - lo0) * k / ticks;
+      var x = X(val);
+      c.svg.appendChild(s('line', { x1: x, y1: trackY + trackH, x2: x, y2: trackY + trackH + 4, stroke: 'var(--border, #E5E7EB)', 'stroke-width': 1 }));
+      var tk = s('text', { x: x, y: trackY + trackH + 17, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--text-muted, #6B7280)' });
+      tk.appendChild(document.createTextNode(fmt(val, Math.abs(val) >= 100 ? 0 : 1) + unit));
+      c.svg.appendChild(tk);
+    }
+
+    // 当前值落点
+    var px = X(v);
+    c.svg.appendChild(s('line', { x1: px, y1: trackY - 6, x2: px, y2: trackY + trackH + 6, stroke: 'var(--text, #111827)', 'stroke-width': 2 }));
+    var tri = s('polygon', { points: (px - 6) + ',' + (trackY - 7) + ' ' + (px + 6) + ',' + (trackY - 7) + ' ' + px + ',' + (trackY - 1), fill: 'var(--text, #111827)' });
+    c.svg.appendChild(tri);
+    var vt = s('text', {
+      x: Math.min(Math.max(px, c.pad.l + 18), c.w - c.pad.r - 18), y: trackY - 12,
+      'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: 'var(--text, #111827)'
+    });
+    vt.appendChild(document.createTextNode(fmt(v, 2) + unit));
+    c.svg.appendChild(vt);
+
+    return mount(host, c.svg);
+  };
+
   chart.histogram = function (host, cfg) {
     cfg = cfg || {};
     var data = (cfg.data || []).map(num);

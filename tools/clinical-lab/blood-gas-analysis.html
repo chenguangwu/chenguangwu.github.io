@@ -153,7 +153,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div id="result"></div> <div id="blood_gas_analysisTable"></div> <div id="blood_gas_analysisDiff"></div> <div id="blood_gas_analysisChart"></div> <div id="blood_gas_analysisHist"></div>
+    <div id="result"></div> <div id="blood_gas_analysisRefBar"></div> <div id="blood_gas_analysisTable"></div> <div id="blood_gas_analysisDiff"></div> <div id="blood_gas_analysisChart"></div> <div id="blood_gas_analysisHist"></div>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>代偿公式：</strong><br>
@@ -316,7 +316,39 @@ function analyze(){
     html += '<div class="diag-box" style="background:var(--result-bg);border-color:'+o2Color+';"><div class="diag-title" style="color:'+o2Color+';font-size:14px;">'+o2Status+'</div><div class="diag-detail">PaO2 = '+pao2+' mmHg，PaCO2 = '+paco2+' mmHg</div></div>';
   }
 
+  // —— 参考区间定位（S3 标尺）：pH / PaCO2 / HCO3 ——
+  var __phBands=[{lo:6.8,hi:7.35,label:{zh:'酸血症',en:'Acidemia'},color:'#dc2626'},
+                 {lo:7.35,hi:7.45,label:{zh:'正常',en:'Normal'},color:'#059669'},
+                 {lo:7.45,hi:7.8,label:{zh:'碱血症',en:'Alkalemia'},color:'#3b82f6'}];
+  var __pcoBands=[{lo:10,hi:35,label:{zh:'低碳酸',en:'Hypocapnia'},color:'#3b82f6'},
+                  {lo:35,hi:45,label:{zh:'正常',en:'Normal'},color:'#059669'},
+                  {lo:45,hi:100,label:{zh:'高碳酸',en:'Hypercapnia'},color:'#dc2626'}];
+  var __hcoBands=[{lo:5,hi:22,label:{zh:'降低',en:'Low'},color:'#dc2626'},
+                  {lo:22,hi:26,label:{zh:'正常',en:'Normal'},color:'#059669'},
+                  {lo:26,hi:45,label:{zh:'升高',en:'High'},color:'#3b82f6'}];
+  function __hitG(v,bands){
+    for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}
+    return null;
+  }
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})()?1:0;
+  function __T(en,zh){return __EN?en:zh;}
+  var __ar=__T(' (ref. ','（参考 ');
+  var __pb=__hitG(ph,__phBands),__cb2=__hitG(paco2,__pcoBands),__hb=__hitG(hco3,__hcoBands);
+  if(__pb&&__cb2&&__hb){
+    html+='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    html+='<li>pH '+ph+' → '+(__EN?__pb.label.en:__pb.label.zh)+__ar+'7.35–7.45'+__T('; &lt;7.20 or &gt;7.60 needs urgent care','；&lt;7.20 或 &gt;7.60 需紧急处理')+'）</li>';
+    html+='<li>PaCO2 '+paco2+' mmHg → '+(__EN?__cb2.label.en:__cb2.label.zh)+__ar+'35–45'+__T(')','）')+'</li>';
+    html+='<li>HCO3- '+hco3+' mmol/L → '+(__EN?__hb.label.en:__hb.label.zh)+__ar+'22–26'+__T(')','）')+'</li>';
+    html+='</ul></div>';
+  }
+
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__pb){
+      TBKit.chart.refBar('#blood_gas_analysisRefBar',{value:ph,unit:'',min:6.8,max:7.8,bands:__phBands,title:'动脉血 pH 标尺',ticks:5});
+    }
+  }catch(e){}
 }
 
 function copyResult(){ ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg342')); }
@@ -501,7 +533,7 @@ else document.addEventListener('DOMContentLoaded', __blood_gas_analysisBoot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "blood_gas_analysisChart"], "tbl": ["blood_gas_analysisTable"], "pre": ["blood_gas_analysisPresets"], "his": ["blood_gas_analysisHist"]};
+  var P={"res": ["result", "blood_gas_analysisRefBar", "blood_gas_analysisChart"], "tbl": ["blood_gas_analysisTable"], "pre": ["blood_gas_analysisPresets"], "his": ["blood_gas_analysisHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');

@@ -233,7 +233,8 @@ const CASES = [
     "ntprobnp": "1850"
   },
   "expect": [
-    "1800"
+    "NT-proBNP≥1800 pg/mL(>75岁截断值)",
+    "NT-proBNP 1850 pg/mL → 落在 纳入区（>75岁，纳入截断 1800 pg/mL）"
   ],
   "ref": "auto-restore"
 },

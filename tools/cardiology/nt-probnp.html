@@ -149,7 +149,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div> <div id="nt_probnpTable"></div> <div id="nt_probnpDiff"></div> <div id="nt_probnpChart"></div> <div id="nt_probnpHist"></div>
+    <div class="result-box" id="result"></div> <div id="nt_probnpRefBar"></div> <div id="nt_probnpTable"></div> <div id="nt_probnpDiff"></div> <div id="nt_probnpChart"></div> <div id="nt_probnpHist"></div>
   </div>
 
   <div class="card">
@@ -297,7 +297,32 @@ function calc(){
   html+='<div class="tip-box" style="border-color:'+dxColor+';color:'+dxColor+';background:'+dxColor+'1a;"><strong>'+dx+'</strong><br>'+dxAdvice+'</div>';
   html+='<div class="tip-box" style="border-color:'+riskColor+';color:'+riskColor+';background:'+riskColor+'1a;"><strong>预后：'+risk+'</strong><br>院内死亡率'+mortality+'。'+(risk==='高'||risk==='很高'?'高危患者需强化治疗，监测NT-proBNP变化。':'')+'</div>';
 
+  // —— 参考区间定位（S3 标尺）：ESC/ACC 年龄分层截断值 ——
+  var __nbBands=[{lo:0,hi:300,label:{zh:'排除区 <300',en:'Rule-out <300'},color:'#10B981'},
+                 {lo:300,hi:includeCutoff,label:{zh:'灰区',en:'Grey zone'},color:'#F59E0B'},
+                 {lo:includeCutoff,hi:1e9,label:{zh:'纳入区',en:'Rule-in'},color:'#EF4444'}];
+  function __hitB(v,bands){
+    for(var i=0;i<bands.length;i++){var b=bands[i];if(v>=(b.lo==null?-Infinity:b.lo)&&v<(b.hi==null?Infinity:b.hi))return b;}
+    return null;
+  }
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})()?1:0;
+  function __T(en,zh){return __EN?en:zh;}
+  var __ageEn=age<50?'<50y':(age<=75?'50-75y':'>75y');
+  var __nb=__hitB(nt,__nbBands);
+  if(__nb){
+    html+='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    html+='<li>NT-proBNP '+nt+' pg/mL'+__T(' → ',' → 落在 ')+(__EN?__nb.label.en:__nb.label.zh)+__T(' (','（')+(__EN?__ageEn:ageGroup)+__T(', rule-in cutoff ','，纳入截断 ')+includeCutoff+' pg/mL）</li>';
+    html+='<li>'+__T('Uniform rule-out cutoff 300 pg/mL for all ages; rule-in cutoff rises with age (450 / 900 / 1800)','全年龄统一排除截断：300 pg/mL；年龄越大纳入截断越高（&lt;50岁 450 / 50–75岁 900 / &gt;75岁 1800）')+'</li>';
+    html+='</ul></div>';
+  }
+
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__nb){
+      TBKit.chart.refBar('#nt_probnpRefBar',{value:nt,unit:'',min:30,max:35000,log:true,bands:__nbBands,title:'NT-proBNP 判读标尺 (pg/mL, 对数刻度)'});
+    }
+  }catch(e){}
 }
 
 function copyResult(){
@@ -481,7 +506,7 @@ else document.addEventListener('DOMContentLoaded', __nt_probnpBoot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "nt_probnpChart"], "tbl": ["nt_probnpTable"], "pre": ["nt_probnpPresets"], "his": ["nt_probnpHist"]};
+  var P={"res": ["result", "nt_probnpRefBar", "nt_probnpChart"], "tbl": ["nt_probnpTable"], "pre": ["nt_probnpPresets"], "his": ["nt_probnpHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');
