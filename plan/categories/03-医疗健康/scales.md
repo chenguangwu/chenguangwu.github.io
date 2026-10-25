@@ -19,4 +19,11 @@
 - tools/psychiatry/（rater/eat26/asrs 等 14 页）、tools/psychology/（psqi/gad/scl90 等 18 页）、tools/clinical-nursing/（braden/morse/barthel 等 15 页）、tools/rehabilitation/（fim/mmse/berg 等 12 页）、tools/neurology/（dhi/dn4/rater 系 20 页）、tools/cognition/、tools/pediatrics/ 量表页（~150 页合计）
 
 ## 进度
-- 🔴 待开发（M1/M2 先等裁断；功能缺陷与优化点可先行）
+- 🟡 进行中（2026-10-26 批次 03-3）：**S7 引据徽标**已落地 8 页高流量量表
+  （psychology/phq9-assessment、psychiatry/gad7-anxiety、psychology/psqi-assessment、psychiatry/isi-insomnia、
+  psychiatry/asrs-adhd、psychiatry/cage-substance、psychiatry/eat26-eating、psychology/scl90-assessment）。
+  - 形态：卡片描述下方一条 `.ref-cite` 块（左侧主色竖线 + 灰底），内容=「原始文献（作者·标题·期刊·年;卷(期):页）｜ 施测方式 · 条目数 · 耗时 · 分值范围 · 划界分」。
+  - i18n：正文英文、`data-zh` 放中文（项目既有 data-zh 模式），EN 态零中文。
+  - 数据纪律：文献一律取量表原始发表文献（不引二手综述）；卷期页不确定时只写到「期刊+年份」，宁缺毋滥。
+- 🔴 待续：其余 ~140 个量表页按同一模板铺开（每批 8–12 页）；M1 条目结构 / M2 阈值口径仍待老板裁断；
+  「答案回显/病历打印格式」「维度雷达图推广」「量表对照模块」未开发。
