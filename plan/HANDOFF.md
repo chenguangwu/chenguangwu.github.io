@@ -28,7 +28,7 @@
 
 - **O7** fire/detector-44 硬编码 `new Date('2026-07-31')` → 改 `new Date()`（_others.md） ✅ 2026-10-25 已修
 - **L3** 年假折算 `ceil` 与页面例题/条例矛盾 → 统一 `floor`（06-商业运营/hr-legal.md） ✅ 2026-10-25 已修（半天粒度 `Math.floor(days*2)/2`，与页面例题 3.99→3.5、8.36→8 一致）
-- **F1** ratio-analysis 权益乘数误用产权比率定义 → `ta/eq`（02-金融财务/tax-accounting-audit.md）
+- **F1** ratio-analysis 权益乘数误用产权比率定义 → `ta/eq`（02-金融财务/tax-accounting-audit.md） ✅ 2026-10-25 已修（公式框/代码统一为总资产÷股东权益，并列输出产权比率）
 - **Z2** cost-price-margin 利润率/加价率同值 → 利润率改 `(p−cost)/p`（marketing-sales.md）
 - **Z3** stats-on-time-1「未达标率」括注写反（ecommerce-logistics.md）
 - **H2** insulin-adjustment deep-dive 示例文案错 → 改 `i18n/tools/content_deepdive.json` 源（home-decor.md 备注）
