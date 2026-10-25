@@ -369,6 +369,7 @@ function calc(){
     html+='<div class="tip-box tip-error"><strong>危险信号</strong><br>'+redFlags.join('；')+'。</div>';
   }
 
+  window.__EMR_SUM={age:age,w:weight,freq:freq,dur:dur,st:stoolType,degree:degree,pct:(deficit*100),deficit:deficitML,maint:maintenance,sc:severeCount,mc:moderateCount,lc:mildCount,n:checked.length};
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -376,6 +377,59 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg581'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var m={'无脱水':'no dehydration','轻度脱水':'mild dehydration','中度脱水':'moderate dehydration','重度脱水':'severe dehydration'};
+  var stz={watery:'水样便',mucous:'黏液便',bloody:'血便',rice:'米泔水样便'};
+  var ste={watery:'watery',mucous:'mucous',bloody:'bloody',rice:'rice-water'};
+  var hz,he;
+  if(s.degree==='重度脱水'){ hz='紧急处理：立即静脉补液扩容（首剂 20 mL/kg 生理盐水），监测循环与尿量，警惕休克与电解质紊乱。'; he='Emergency: immediate IV bolus of 20 mL/kg normal saline, monitor circulation and urine output, watch for shock and electrolyte disturbance.'; }
+  else if(s.degree==='中度脱水'){ hz='建议就医：口服补液盐（ORS）50-100 mL/kg 于 4 小时内补足，呕吐明显或不能口服者改静脉补液。'; he='Medical review: ORS 50-100 mL/kg over 4 hours; switch to IV fluids if vomiting or unable to take orally.'; }
+  else if(s.degree==='轻度脱水'){ hz='口服补液盐（ORS）少量多次，每次腹泻后补充 10 mL/kg，继续喂养，补锌 10-20 mg/日共 10-14 天。'; he='ORS in small frequent amounts, 10 mL/kg after each loose stool; continue feeding; zinc 10-20 mg daily for 10-14 days.'; }
+  else { hz='无脱水征象：继续正常喂养，注意补液与手卫生，出现尿量减少、精神差需复诊。'; he='No dehydration: continue normal feeding, maintain fluids and hand hygiene; review if urine output falls or the child becomes lethargic.'; }
+  __emrNote({name:'小儿腹泻脱水评估（体征分级 + 补液量）', nameEn:'Paediatric Diarrhoeal Dehydration (sign-based grading and fluid plan)',
+    result:'分度：'+s.degree+'（体液丢失 '+(s.pct).toFixed(0)+'%）· 腹泻 '+s.freq+' 次/日 · 病程 '+s.dur+' 天 · 大便性状 '+(stz[s.st]||s.st),
+    resultEn:'degree: '+(m[s.degree]||'')+' (fluid deficit '+s.pct.toFixed(0)+'%), '+s.freq+' stools/day, duration '+s.dur+' days, stool '+(ste[s.st]||s.st),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'体重 '+s.w+' kg；累计丢失量约 '+Number(s.deficit).toFixed(0)+' mL，日维持量约 '+Number(s.maint).toFixed(0)+' mL；重度体征 '+s.sc+' 项、中度体征 '+s.mc+' 项、轻度体征 '+s.lc+' 项（共 '+s.n+' 项）',
+    extraEn:'Weight '+s.w+' kg; cumulative deficit about '+Number(s.deficit).toFixed(0)+' mL, maintenance about '+Number(s.maint).toFixed(0)+' mL/day; severe signs '+s.sc+', moderate '+s.mc+', mild '+s.lc+' (total '+s.n+')'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

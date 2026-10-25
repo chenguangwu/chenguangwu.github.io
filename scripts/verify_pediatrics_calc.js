@@ -52,30 +52,8 @@ const CASES = [
   ],
   "ref": "DDST 发育筛查：输入 age=6 渲染 6 月龄测试项清单（默认 18 月）。取动态串「当前月龄： 6月」锚定，回退默认(18月)失配。注：结论需逐项勾选才出，故用随输入变化的月龄清单串作判别锚点。"
 },
-{
-  "slug": "pediatrics/dehydration-assessment",
-  "inputs": {
-    "weight": "20",
-    "prevWeight": ""
-  },
-  "expect": [
-    "1600mL/日"
-  ],
-  "ref": "脱水评估：判定依赖体征勾选（默认无勾选→恒定「轻度脱水 0/10 3-5%」），但日维持量为体重函数：weight=20kg → 维持量 1600mL/日（默认 10kg → 800mL/日）。取随输入变化的「1600mL/日」锚定，回退默认(800mL/日)失配。"
-},
-{
-  "slug": "pediatrics/diarrhea-dehydration",
-  "inputs": {
-    "age": "12",
-    "weight": "10",
-    "stoolFreq": "20",
-    "duration": "7"
-  },
-  "expect": [
-    "20次/日"
-  ],
-  "ref": "腹泻脱水评估：判定基于体征勾选（默认无→「无脱水 0%」恒定），但腹泻次数随输入显示：stoolFreq=20 → 「腹泻次数：20次/日」（默认 6次/日）。取动态串「20次/日」锚定，回退默认(6次/日)失配。"
-},
+{"slug":"pediatrics/dehydration-assessment","inputs":{"weight":"8","prevWeight":"8.8"},"checkIds":["s3","s4","s8"],"expect":["结果：分度：中度脱水（估计体液丢失 5-10%）· Gorelick 评分 3/10","体重丢失法算得 9.1%"],"ref":"门诊记录：勾选 s3 黏膜干燥 + s4 眼窝凹陷 + s8 尿量减少 ⇒ Gorelick 3/10 落 3–6 段「中度脱水」（5-10%）；病前 8.8 kg → 现 8 kg，体重丢失 (0.8/8.8)=9.1% ⇒ 累计丢失量按体重丢失法算得约 727 mL。默认态 10 kg、未勾选、无病前体重 ⇒「轻度脱水」「Gorelick 0/10」，零交集。"},
+{"slug":"pediatrics/diarrhea-dehydration","inputs":{"age":"18","weight":"10","stoolFreq":"8","duration":"3","stoolType":"watery"},"checkIds":["s1","s4","s5","s8"],"expect":["结果：分度：中度脱水（体液丢失 8%）· 腹泻 8 次/日 · 病程 3 天 · 大便性状 水样便","重度体征 0 项、中度体征 4 项、轻度体征 0 项（共 4 项）"],"ref":"门诊记录：勾选 s1 眼窝凹陷 + s4 皮肤弹性差 + s5 尿量减少 + s8 前囟凹陷，全属中度体征 4 项 ⇒ 中度脱水（7.5%→显示 8%）；水样便。默认态 12 月/10 kg/6 次/日、未勾选 ⇒「无脱水（体液丢失 0%）」，零交集。"},
 {
   "slug": "pediatrics/enuresis-age",
   "inputs": {
@@ -125,56 +103,10 @@ const CASES = [
   ],
   "ref": "Hirschberg 角膜映光法：默认 fixing=right/reflex=center/offset=2 → 「眼位正位，无明显斜视」(恒定)；改 fixing=left/reflex=exo/offset=15 → 「明显眼位偏斜(≥2mm/~30°)」。取动态结论「明显眼位偏斜」锚定，回退默认(正位)失配。注：reflex=exo 分支存在未定义变量(输出含 undefined)，本次不修该 bug，仅取稳定结论串作判别锚点。"
 },
-{
-  "slug": "pediatrics/neonatal-jaundice",
-  "inputs": {
-    "hours": "48",
-    "tsb": "22",
-    "ga": "38",
-    "bw": "3200"
-  },
-  "expect": [
-    "22 mg/dL"
-  ],
-  "ref": "新生儿黄疸 Bhutani 曲线：tsb=22 @ 48h → 「中低危险区」「需立即换血」(默认 14 → 低危险区、暂无需光疗)。取动态数值「22 mg/dL」锚定，回退默认(14 mg/dL)失配。"
-},
-{
-  "slug": "pediatrics/pediatric-anemia",
-  "inputs": {
-    "age": "12",
-    "weight": "10",
-    "hb": "60",
-    "sf": "5",
-    "mcv": "60"
-  },
-  "expect": [
-    "60g/L"
-  ],
-  "ref": "儿童贫血：hb=60 / mcv=60 → 重度贫血（默认 100 / 72 → 轻度）。取动态数值「60g/L」锚定，回退默认(100g/L)失配。"
-},
-{
-  "slug": "pediatrics/pediatric-fever",
-  "inputs": {
-    "temp": "39.5",
-    "age": "24"
-  },
-  "expect": [
-    "39.5°C"
-  ],
-  "ref": "儿童发热：temp=39.5 → 「高热」（默认 38.5 → 中度发热）。取动态串「39.5°C」锚定，回退默认(38.5°C)失配。"
-},
-{
-  "slug": "pediatrics/pediatric-pneumonia",
-  "inputs": {
-    "age": "12",
-    "rr": "30",
-    "spo2": "99"
-  },
-  "expect": [
-    "RR=30"
-  ],
-  "ref": "儿童肺炎：rr=30 / spo2=99 → 无呼吸增快、无肺炎（默认 55 / 92 → 肺炎、门诊）。取动态串「RR=30」锚定，回退默认(RR=55)失配。"
-},
+{"slug":"pediatrics/neonatal-jaundice","inputs":{"hours":"72","tsb":"15","ga":"39","bw":"3200"},"expect":["结果：TSB 15 mg/dL @ 出生 72 小时 → 高危险区；光疗阈值 17、换血阈值 22 → 未达光疗阈值","小时龄百分位 P40 11.5 / P75 14.5 / P95 15.0 mg/dL；高危因素：无"],"ref":"门诊记录：Bhutani 1999 小时龄百分位表 72 h 为 P40 11.5 / P75 14.5 / P95 15.0 mg/dL（AAP 2004/2009 沿用），TSB 15 ≥ P95 ⇒「高危险区」；39 周足月低危儿 72–96 h 光疗阈值 17、换血 22（页面 getThresholds）⇒ 未达光疗阈值。默认态 48 h/TSB 14 ⇒「TSB 14 mg/dL @ 出生 48 小时」「P95 12.0」，零交集。本用例同时锁住「百分位表口径」（原实现用二次多项式近似，72 h 给出 P95 56.8 mg/dL 的荒谬值，已改为权威表插值）。"},
+{"slug":"pediatrics/pediatric-anemia","inputs":{"age":"12","ageUnit":"month","weight":"10","hb":"95","sf":"8","mcv":"70"},"expect":["结果：年龄 12 月（6-59月）· Hb 95 g/L（阈值 ≥110）→ 中度贫血；MCV 70 fL（阈值 ≥75）、SF 8 μg/L → 缺铁性贫血(IDA,Stage 3)","元素铁补充量 40.0 mg/日；SF 偏低：是；MCV 偏低：是"],"ref":"门诊记录：12 月龄属 6-59 月组，Hb 阈值 110 g/L，实测 95 ⇒ 中度贫血；MCV 70 < 75、SF 8 < 12 ⇒ IDA Stage 3；10 kg × 4 mg/kg/日 = 40.0 mg/日元素铁。默认态 Hb 100/MCV 72/SF 12 ⇒「轻度贫血」「铁储存不足」，零交集。"},
+{"slug":"pediatrics/pediatric-fever","inputs":{"temp":"39.2","age":"8"},"clicks":["var e=document.getElementById('fever3d');if(e){e.checked=true;}calc()"],"expect":["结果：体温 39.2°C（腋温）→ 腋温等效 39.2°C，分度：高热","月龄 8 月；危险信号 1 条"],"ref":"门诊记录（EMR note）：体温 39.2°C（腋温）落 39.0–41.0 段「高热」；勾选发热>3 天 ⇒ 危险信号 1 条。默认态 38.5°C/24 月、未勾选 ⇒「分度：中度发热」「危险信号 0 条」，零交集。原用例只锚 39.5°C 单值（输入回显式弱锚）。"},
+{"slug":"pediatrics/pediatric-pneumonia","inputs":{"age":"10","rr":"52","spo2":"95"},"checkIds":["s1","s2"],"expect":["结果：分度：重症肺炎，呼吸 52 次/分（该年龄增快阈值 50）· SpO₂ 95% → 处置：住院治疗","极重症体征 0 项、重症体征 2 项；记录体征共 2 项"],"ref":"门诊记录：10 月龄 WHO 呼吸增快阈值 50，RR 52 达增快；勾选 s1 胸凹陷 + s2 鼻翼扇动 = 2 项重症体征、0 项极重症 ⇒ 落「重症肺炎」/「住院治疗」。默认态 12 月/RR 55/SpO₂ 92 且无勾选 ⇒「肺炎」/「门诊治疗」，零交集。"},
 {
   "slug": "pediatrics/rater-27",
   "inputs": {

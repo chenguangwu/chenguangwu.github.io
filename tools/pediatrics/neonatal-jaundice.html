@@ -238,14 +238,26 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 // Bhutani曲线简化模型：基于出生小时数计算各百分位胆红素值
+// Bhutani 1999 小时龄胆红素百分位（AAP 2004/2009 沿用，2840 例 ≥35 周健康新生儿）
+var __BH_H  =[12,24,36,48,60,72,84,96,108,120,132,144];
+var __BH_P95=[7.0,8.0,10.0,12.0,14.0,15.0,16.0,17.0,17.5,17.5,17.5,17.5];
+var __BH_P75=[6.5,7.5,9.5,11.5,13.5,14.5,15.5,16.5,17.0,17.0,17.0,17.0];
+var __BH_P40=[5.0,6.0,7.5,9.0,10.5,11.5,12.5,13.5,14.0,14.0,14.0,14.0];
+var __bhInterp=function(arr,h){
+  if(!arr||!arr.length)return 0;
+  if(h<=__BH_H[0])return arr[0];
+  if(h>=__BH_H[__BH_H.length-1])return arr[arr.length-1];
+  for(var i=1;i<__BH_H.length;i++){
+    if(h<=__BH_H[i]){
+      var t=(h-__BH_H[i-1])/(__BH_H[i]-__BH_H[i-1]);
+      return arr[i-1]+(arr[i]-arr[i-1])*t;
+    }
+  }
+  return arr[arr.length-1];
+};
 function getPercentile(hours){
   var h=Math.max(12,Math.min(168,parseFloat(hours)||48));
-  // 简化的第95百分位曲线近似值 (mg/dL)
-  var p95=0.0089*h*h+0.123*h+1.83;
-  var p75=0.0071*h*h+0.098*h+1.45;
-  var p40=0.0048*h*h+0.066*h+0.98;
-  var p25=0.0036*h*h+0.049*h+0.73;
-  return {p25:p25,p40:p40,p75:p75,p95:p95};
+  return {p40:__bhInterp(__BH_P40,h),p75:__bhInterp(__BH_P75,h),p95:__bhInterp(__BH_P95,h)};
 }
 
 // 光疗/换血阈值（高危 vs 中危 vs 低危）
@@ -330,7 +342,6 @@ function calc(){
   html+='</div>';
 
   html+='<div class="ref-card"><h4>百分位参考</h4><ul>';
-  html+='<li>第25百分位：'+pct.p25.toFixed(1)+' mg/dL</li>';
   html+='<li>第40百分位：'+pct.p40.toFixed(1)+' mg/dL</li>';
   html+='<li>第75百分位：'+pct.p75.toFixed(1)+' mg/dL</li>';
   html+='<li>第95百分位：'+pct.p95.toFixed(1)+' mg/dL</li>';
@@ -349,6 +360,7 @@ function calc(){
     html+='<div class="tip-box tip-error"><strong>高危预警</strong><br>TSB≥20 mg/dL，急性胆红素脑病风险显著升高，密切监测神经系统体征(嗜睡/肌张力异常/高调哭声)。</div>';
   }
 
+  window.__EMR_SUM={hours:hours,tsb:tsb,ga:ga,bw:bw,zone:zone,p40:pct.p40,p75:pct.p75,p95:pct.p95,pth:th.phototherapy,exh:th.exchange,photo:needPhoto,exch:needExchange,risk:(hasRisk||preterm),adv:zoneAdvice};
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -356,6 +368,62 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg671'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var m={'低危险区':'low-risk zone','中低危险区':'low-intermediate risk zone','中高危险区':'high-intermediate risk zone','高危险区':'high-risk zone'};
+  var he;
+  if(s.zone==='高危险区') he='TSB above the 95th percentile: urgent intervention including intensive phototherapy and exchange transfusion assessment.';
+  else if(s.zone==='中高危险区') he='TSB between the 75th and 95th percentile: phototherapy should be considered.';
+  else if(s.zone==='中低危险区') he='TSB between the 40th and 75th percentile: close monitoring with repeat bilirubin.';
+  else he='TSB below the 40th percentile: low risk, routine follow-up.';
+  var act;
+  if(s.exch) act='已达换血阈值';
+  else if(s.photo) act='已达光疗阈值';
+  else act='未达光疗阈值';
+  var actEn = s.exch?'at exchange threshold':(s.photo?'at phototherapy threshold':'below phototherapy threshold');
+  __emrNote({name:'新生儿黄疸评估（小时龄百分位 + 光疗/换血阈值）', nameEn:'Neonatal Jaundice (hour-specific percentile and treatment thresholds)',
+    result:'TSB '+s.tsb+' mg/dL @ 出生 '+s.hours+' 小时 → '+s.zone+'；光疗阈值 '+Number(s.pth).toFixed(0)+'、换血阈值 '+Number(s.exh).toFixed(0)+' → '+act,
+    resultEn:'TSB '+s.tsb+' mg/dL at '+s.hours+' hours of life -> '+(m[s.zone]||'')+'; phototherapy threshold '+Number(s.pth).toFixed(0)+', exchange threshold '+Number(s.exh).toFixed(0)+' -> '+actEn,
+    noPos:true, hintZh:s.adv, hintEn:he,
+    extra:'胎龄 '+s.ga+' 周、出生体重 '+s.bw+' g；小时龄百分位 P40 '+Number(s.p40).toFixed(1)+' / P75 '+Number(s.p75).toFixed(1)+' / P95 '+Number(s.p95).toFixed(1)+' mg/dL；高危因素：'+(s.risk?'有':'无'),
+    extraEn:'Gestational age '+s.ga+' weeks, birth weight '+s.bw+' g; percentiles P40 '+Number(s.p40).toFixed(1)+' / P75 '+Number(s.p75).toFixed(1)+' / P95 '+Number(s.p95).toFixed(1)+' mg/dL; risk factors: '+(s.risk?'present':'absent')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

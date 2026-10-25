@@ -320,14 +320,15 @@ function calc(){
   html+='</ul></div>';
 
   html+='<div class="tip-box" style="border-color:'+anemiaColor+';color:'+anemiaColor+';background:'+anemiaColor+'1a;"><strong>'+anemiaDegree+' / '+ironStage+'</strong><br>';
+  var __tipTxt='';
   if(anemiaDegree==='无贫血'&&ironStage==='铁储存充足'){
-    html='各项指标正常，无缺铁性贫血，注意均衡饮食，定期筛查。';
+    __tipTxt='各项指标正常，无缺铁性贫血，注意均衡饮食，定期筛查。';
   }else if(anemiaDegree!=='无贫血'){
-    html='血红蛋白'+hb+'g/L低于年龄阈值('+hbThreshold+'g/L)，诊断为'+anemiaDegree+'。建议口服补铁治疗，4周后复查。';
+    __tipTxt='血红蛋白'+hb+'g/L低于年龄阈值('+hbThreshold+'g/L)，诊断为'+anemiaDegree+'。建议口服补铁治疗，4周后复查。';
   }else{
-    html='血红蛋白正常，但存在铁缺乏(SF偏低'+(mcvLow?'且MCV偏低':'')+')，为'+ironStage+'。建议补铁预防铁缺乏进展为贫血。';
+    __tipTxt='血红蛋白正常，但存在铁缺乏(SF偏低'+(mcvLow?'且MCV偏低':'')+')，为'+ironStage+'。建议补铁预防铁缺乏进展为贫血。';
   }
-  html+='</div>';
+  html+=__tipTxt+'</div>';
 
   // 高危因素
   var riskFactors=[];
@@ -343,6 +344,7 @@ function calc(){
     html+='<div class="tip-box tip-error"><strong>重度贫血警示</strong><br>Hb<70g/L，可能需要输血治疗，请立即就医评估。注意排查消化道出血、地中海贫血等其他病因。</div>';
   }
 
+  window.__EMR_SUM={m:ageMonths,grp:ageGroup,hb:hb,hbt:hbThreshold,mcv:mcv,mcvt:mcvThreshold,sf:sf,ad:anemiaDegree,is:ironStage,iron:elementalIron};
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -350,6 +352,56 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg614'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var m={'无贫血':'no anaemia','轻度贫血':'mild anaemia','中度贫血':'moderate anaemia','重度贫血':'severe anaemia'};
+  var he, hz;
+  if(s.ad==='无贫血'&&s.is==='铁储存充足'){ hz='各项铁代谢指标正常，注意均衡饮食，6-12 月龄每 3 个月筛查血常规。'; he='Iron indices normal; balanced diet and haemoglobin screening every 3 months between 6 and 12 months of age.'; }
+  else if(s.ad!=='无贫血'){ hz='Hb '+s.hb+' g/L 低于年龄阈值（'+s.hbt+' g/L），诊断 '+s.ad+'；口服元素铁 3-4 mg/kg/日，餐间服用并配维生素 C，4 周后复查 Hb。'; he='Hb '+s.hb+' g/L is below the age-specific threshold ('+s.hbt+' g/L), consistent with '+s.ad+'; oral elemental iron 3-4 mg/kg/day between meals with vitamin C, recheck Hb in 4 weeks.'; }
+  else { hz='Hb 正常但存在铁缺乏（SF 偏低'+(s.mcv<s.mcvt?' 且 MCV 偏低':'')+'），为'+s.is+'；建议补铁预防进展为缺铁性贫血。'; he='Normal Hb with iron deficiency ('+s.is+'); iron supplementation prevents progression to iron deficiency anaemia.'; }
+  __emrNote({name:'小儿缺铁性贫血评估（年龄别 Hb 阈值 + 铁代谢分期）', nameEn:'Paediatric Iron-Deficiency Anaemia (age-specific Hb threshold and iron stage)',
+    result:'年龄 '+s.m+' 月（'+s.grp+'）· Hb '+s.hb+' g/L（阈值 ≥'+s.hbt+'）→ '+s.ad+'；MCV '+s.mcv+' fL（阈值 ≥'+s.mcvt+'）、SF '+s.sf+' μg/L → '+s.is,
+    resultEn:'age '+s.m+' months ('+s.grp+'), Hb '+s.hb+' g/L (threshold at or above '+s.hbt+') -> '+(m[s.ad]||'')+'; MCV '+s.mcv+' fL (threshold '+s.mcvt+'), ferritin '+s.sf+' ug/L -> '+s.is,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'元素铁补充量 '+(Number(s.iron)>0?Number(s.iron).toFixed(1)+' mg/日':'0 mg/日（暂不需治疗剂量）')+'；SF 偏低：'+(s.sf<12?'是':'否')+'；MCV 偏低：'+(s.mcv<s.mcvt?'是':'否'),
+    extraEn:'Elemental iron '+(Number(s.iron)>0?Number(s.iron).toFixed(1)+' mg/day':'0 mg/day (no treatment dose needed)')+'; low ferritin: '+(s.sf<12?'yes':'no')+'; low MCV: '+(s.mcv<s.mcvt?'yes':'no')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

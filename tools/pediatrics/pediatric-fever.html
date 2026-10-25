@@ -314,6 +314,7 @@ function calc(){
     html+='<div class="tip-box tip-success"><strong>病情评估</strong><br>'+levelAdvice+' 可居家观察护理，若出现精神差、拒食、嗜睡、皮疹、呼吸困难等需就医。</div>';
   }
 
+  window.__EMR_SUM={temp:temp,ax:axTemp,age:age,level:level,nD:dangerSignals.length,dg:dangerSignals.slice(0,5),drug:drugAdvice||'',adv:levelAdvice,mn:((typeof methodName!=='undefined'&&typeof method!=='undefined'&&methodName[method])?methodName[method]:'')};
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -339,6 +340,60 @@ function copyResult(){
 
 // 初始化
 setMethod('axillary');
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var m={'正常体温':'normal','低热':'low-grade','中度发热':'moderate','高热':'high','超高热(危重)':'hyperpyrexia (critical)'};
+  var en=m[s.level]||'';
+  var hz=s.adv+(s.drug?(' 退热药：'+s.drug):'');
+  var he;
+  if(s.level==='正常体温') he='Temperature is within normal range; no specific treatment needed.';
+  else if(s.level==='低热') he='Low-grade fever: encourage fluids, observe activity and feeding, antipyretics not routinely required.';
+  else if(s.level==='中度发热') he='Moderate fever: consider physical cooling; antipyretic if clearly uncomfortable.';
+  else if(s.level==='高热') he='High fever: antipyretic plus physical cooling with close observation.';
+  else he='Hyperpyrexia: risk of febrile seizure and dehydration - emergency assessment.';
+  __emrNote({name:'小儿发热评估（体温分度 + 危险信号）', nameEn:'Paediatric Fever Assessment (temperature band and red flags)',
+    result:'体温 '+Number(s.temp).toFixed(1)+'°C（'+s.mn+'）→ 腋温等效 '+Number(s.ax).toFixed(1)+'°C，分度：'+s.level,
+    resultEn:'temperature '+Number(s.temp).toFixed(1)+' C -> axillary equivalent '+Number(s.ax).toFixed(1)+' C, band: '+en,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'月龄 '+s.age+' 月；危险信号 '+s.nD+' 条'+(s.nD>0?('（'+s.dg.join('；')+'）'):''),
+    extraEn:'Age '+s.age+' months; red flags: '+s.nD});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
