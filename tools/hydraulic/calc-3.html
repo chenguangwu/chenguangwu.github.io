@@ -154,6 +154,7 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>复制结果</button>
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
+    <div id="hy3Chart"></div>
     <div class='info-box' style='margin-top:12px;'>C 值参考：PVC/PE 新管 140，新钢管 120，旧钢管/铸铁管 90~100，混凝土管 120。结果未含局部水头损失。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 导出管道水头损失结果 CSV" onclick="__pipeHlExport()">⬇️ Export Pipe Head Loss Results CSV</button>
@@ -340,5 +341,42 @@ function __pipeHlExport(){
 </dl>
 </div>
 </section>
+<script>/*TBKIT-CHART-INJECT-HY3*/
+function __hy3ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('hy3Chart');
+    if(!host) return;
+    var flow=parseFloat(document.getElementById('flow').value)||0;
+    var unit=document.getElementById('flowUnit').value;
+    var dMm=parseFloat(document.getElementById('diameter').value)||0;
+    var L=parseFloat(document.getElementById('length').value)||0;
+    var C=parseFloat(document.getElementById('c').value)||0;
+    if(!(flow>0)||!(dMm>0)||!(L>0)||!(C>0)) return;
+    var D=dMm/1000;
+    var unitTxt=unit==='lps'?' L/s':' m³/h';
+    var labels=[],vals=[];
+    for(var i=0;i<10;i++){
+      var fv=flow*(0.2+1.8*i/9);
+      var Q=unit==='lps'?fv/1000:fv/3600;
+      var hf=10.67*L*Math.pow(Q,1.852)/(Math.pow(C,1.852)*Math.pow(D,4.87));
+      labels.push((fv>=10?Math.round(fv):fv.toFixed(1))+unitTxt);
+      vals.push(hf);
+    }
+    var en=TBKit.util.isEn();
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Head loss hf (m)':'沿程水头损失 hf (m)',data:vals}],title:en?('Head loss vs flow (DN'+Math.round(dMm)+', L='+Math.round(L)+' m, C='+Math.round(C)+')'):('沿程水头损失-流量曲线（DN'+Math.round(dMm)+'·L='+Math.round(L)+' m·C='+Math.round(C)+'）')});
+  }catch(e){}
+}
+var __tb_fn0=window.calculate;
+window.calculate=function(){__tb_fn0();try{__hy3ChartDraw();}catch(e){}};
+var __tb_p0=window.applyHw3Preset;
+window.applyHw3Preset=function(k){__tb_p0(k);try{__hy3ChartDraw();}catch(e){}};
+(function(){
+  var ids=['flow','flowUnit','diameter','length','c'];
+  function wire(){ids.forEach(function(id){var el=document.getElementById(id);if(!el||el.getAttribute('data-tbkc-wired'))return;el.setAttribute('data-tbkc-wired','1');el.addEventListener('input',__hy3ChartDraw);el.addEventListener('change',__hy3ChartDraw);});}
+  function b(){wire();try{__hy3ChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

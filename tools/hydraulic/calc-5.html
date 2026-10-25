@@ -147,6 +147,7 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>复制结果</button>
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
+    <div id="hy5Chart"></div>
     <div class='info-box' style='margin-top:12px;'>水温越高，饱和蒸汽压越大，允许虹吸高度越低。计算已扣除安全余量与管路损失，结果应保留足够安全裕度。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 导出虹吸高度计算结果 CSV" onclick="__siphonExport()">⬇️ Export Siphon Height Results CSV</button>
@@ -327,5 +328,38 @@ function __siphonExport(){
 </dl>
 </div>
 </section>
+<script>/*TBKIT-CHART-INJECT-HY5*/
+function __hy5ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('hy5Chart');
+    if(!host) return;
+    var atm=parseFloat(document.getElementById('atm').value)||0;
+    var safety=parseFloat(document.getElementById('safety').value)||0;
+    var loss=parseFloat(document.getElementById('loss').value)||0;
+    if(!(atm>0)||safety<0||loss<0) return;
+    var labels=[],theo=[],rec=[];
+    for(var t=5;t<=95;t+=10){
+      var pv=0.61078*Math.exp(17.27*t/(t+237.3));
+      var th=(atm-pv)/9.80665;
+      labels.push(t+'°C');
+      theo.push(th);
+      rec.push(th-safety-loss);
+    }
+    var en=TBKit.util.isEn();
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Theoretical max lift (m)':'理论最大吸上高度 (m)',data:theo},{name:en?'Recommended max siphon (m)':'建议最大虹吸高度 (m)',data:rec}],title:en?('Siphon height vs water temperature (atm '+atm+' kPa)'):('虹吸高度-水温曲线（大气压 '+atm+' kPa）')});
+  }catch(e){}
+}
+var __tb_fn0=window.calculate;
+window.calculate=function(){__tb_fn0();try{__hy5ChartDraw();}catch(e){}};
+var __tb_p0=window.applySiphonPreset;
+window.applySiphonPreset=function(k){__tb_p0(k);try{__hy5ChartDraw();}catch(e){}};
+(function(){
+  var ids=['atm','temp','safety','loss'];
+  function wire(){ids.forEach(function(id){var el=document.getElementById(id);if(!el||el.getAttribute('data-tbkc-wired'))return;el.setAttribute('data-tbkc-wired','1');el.addEventListener('input',__hy5ChartDraw);el.addEventListener('change',__hy5ChartDraw);});}
+  function b(){wire();try{__hy5ChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

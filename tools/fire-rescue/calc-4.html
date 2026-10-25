@@ -150,6 +150,7 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>复制结果</button>
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
+    <div id="fr4Chart"></div>
     <div class='info-box' style='margin-top:12px;'>参考值基于常见设计经验：A 类轻/中/严重危险级分别按 100/75/50 m²/具；B 类分别按 1.5/1.0/0.5 m²/具估算。每个设置点不宜少于 2 具。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 导出灭火器配置结果 CSV" onclick="__fire4Export()">⬇️ Export Extinguisher Placement Results CSV</button>
@@ -326,5 +327,42 @@ function __fire4Export(){
 </dl>
 </div>
 </section>
+<script>/*TBKIT-CHART-INJECT-FR4*/
+function __fr4ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('fr4Chart');
+    if(!host) return;
+    var area=parseFloat(document.getElementById('area').value)||0;
+    var fc=document.getElementById('fireClass').value;
+    var lvl=document.getElementById('level').value;
+    var coverage={A:{light:100,medium:75,severe:50},B:{light:1.5,medium:1.0,severe:0.5},C:{light:100,medium:75,severe:50}};
+    if(!(area>0)||!coverage[fc]||!coverage[fc][lvl]) return;
+    var perUnit=coverage[fc][lvl];
+    var labels=[],counts=[],points=[];
+    for(var i=0;i<10;i++){
+      var a=area*(0.2+1.8*i/9);
+      var cnt=Math.ceil(a/perUnit);
+      labels.push(Math.round(a)+' m²');
+      counts.push(cnt);
+      points.push(Math.ceil(cnt/2));
+    }
+    var en=TBKit.util.isEn();
+    var cls=en?(fc+' class'):(fc+' 类');
+    var lvlName=en?{light:'light',medium:'medium',severe:'severe'}[lvl]:{light:'轻危险级',medium:'中危险级',severe:'严重危险级'}[lvl];
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Extinguishers (units)':'灭火器具数（具）',data:counts},{name:en?'Placement points':'设置点数（处）',data:points}],title:en?('Extinguisher count vs protected area ('+cls+', '+lvlName+' hazard)'):('灭火器配置数量-保护面积曲线（'+cls+'·'+lvlName+'）')});
+  }catch(e){}
+}
+var __tb_fn0=window.calculate;
+window.calculate=function(){__tb_fn0();try{__fr4ChartDraw();}catch(e){}};
+var __tb_p0=window.applyExtPreset;
+window.applyExtPreset=function(k){__tb_p0(k);try{__fr4ChartDraw();}catch(e){}};
+(function(){
+  var ids=['area','fireClass','level'];
+  function wire(){ids.forEach(function(id){var el=document.getElementById(id);if(!el||el.getAttribute('data-tbkc-wired'))return;el.setAttribute('data-tbkc-wired','1');el.addEventListener('input',__fr4ChartDraw);el.addEventListener('change',__fr4ChartDraw);});}
+  function b(){wire();try{__fr4ChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

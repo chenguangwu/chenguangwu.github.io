@@ -142,6 +142,7 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>复制结果</button>
     </div>
     <div class='result-box' id='result'><p>请输入参数后计算。</p></div>
+    <div id="fr2Chart"></div>
     <div class='info-box' style='margin-top:12px;'>火灾荷载密度分级参考：低 ≤ 300 MJ/m²，中等 300~1200 MJ/m²，高 ＞ 1200 MJ/m²。结果仅供参考。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 导出火灾荷载计算结果 CSV" onclick="__fire2Export()">⬇️ Export Fire Load Results CSV</button>
@@ -315,5 +316,37 @@ function __fire2Export(){
 </dl>
 </div>
 </section>
+<script>/*TBKIT-CHART-INJECT-FR2*/
+function __fr2ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('fr2Chart');
+    if(!host) return;
+    var mass=parseFloat(document.getElementById('mass').value);
+    var hv=parseFloat(document.getElementById('hv').value);
+    var area=parseFloat(document.getElementById('area').value);
+    if(!(hv>0)||!(area>0)) return;
+    var scen=[[500,20,100],[5000,25,200],[8000,30,150]];
+    var vals=[scen[0][0]*scen[0][1]/scen[0][2],scen[1][0]*scen[1][1]/scen[1][2],scen[2][0]*scen[2][1]/scen[2][2]];
+    var en=TBKit.util.isEn();
+    var labels=en?['Office','Warehouse','Workshop']:['办公室','仓库','车间'];
+    if(!isNaN(mass)&&mass>=0&&hv>0&&area>0){
+      labels.push(en?'Current input':'当前输入');
+      vals.push(mass*hv/area);
+    }
+    TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Fire load density (MJ/m²)':'火灾荷载密度 (MJ/m²)',data:vals}],title:en?'Fire load density: typical scenes vs current input':'火灾荷载密度对比（典型场景 vs 当前输入）'});
+  }catch(e){}
+}
+var __tb_fn0=window.calculate;
+window.calculate=function(){__tb_fn0();try{__fr2ChartDraw();}catch(e){}};
+var __tb_p0=window.applyLoadPreset;
+window.applyLoadPreset=function(k){__tb_p0(k);try{__fr2ChartDraw();}catch(e){}};
+(function(){
+  var ids=['mass','hv','area'];
+  function wire(){ids.forEach(function(id){var el=document.getElementById(id);if(!el||el.getAttribute('data-tbkc-wired'))return;el.setAttribute('data-tbkc-wired','1');el.addEventListener('input',__fr2ChartDraw);el.addEventListener('change',__fr2ChartDraw);});}
+  function b(){wire();try{__fr2ChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>
