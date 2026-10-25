@@ -959,8 +959,8 @@ const CASES = [
     slug: "it/vector-dot-product",
     inputs: {},
     clicks: ["document.getElementById('a0').value=1;document.getElementById('a1').value=2;document.getElementById('a2').value=3;document.getElementById('b0').value=4;document.getElementById('b1').value=5;document.getElementById('b2').value=6;calculate()"],
-    expect: ["A · B = 14"],
-    ref: "dim 默认 2D：A=(1,2)、B=(4,5) ⇒ 1×4+2×5=14。默认 A=(1,0)、B=(0,1) ⇒ 0，不命中。",
+    expect: ["A · B = 32"],
+    ref: "dim 生产默认 3D（<select> selected=3D；harness 旧桩误取首选项 2D 曾致假期望 14）：A=(1,2,3)、B=(4,5,6) ⇒ 1×4+2×5+3×6=32（**逐项可手算复算**）。默认 A=(0,0,0)、B=(0,0,0) ⇒ 0，不命中。",
   },
   {
     slug: "it/vector-cross-product",
@@ -5071,9 +5071,10 @@ const CASES = [
       "indent": "4"
     },
     "expect": [
-      "com\" } }\n4\n✅ 转换成功"
+      "com\" } }\n4\n✅ 转换成功",
+      "} }\n4\ntitle = "
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「com\" } }\n4\n✅ 转换成功」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「com\" } }\n4\n✅ 转换成功」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/json-to-yaml",
@@ -5082,9 +5083,10 @@ const CASES = [
       "indent": "4"
     },
     "expect": [
-      "se } ] }\n4\n✅ 转换成功"
+      "se } ] }\n4\n✅ 转换成功",
+      "} ] }\n4\n--- app"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「se } ] }\n4\n✅ 转换成功」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「se } ] }\n4\n✅ 转换成功」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
     "slug": "it/json-to-tsv",
@@ -6665,9 +6667,10 @@ const CASES = [
       "outFmt": "text"
     },
     "expect": [
-      "abc123测试\n1 2 3\ns\nhex\ntext"
+      "abc123测试\n1 2 3\ns\nhex\ntext",
+      "1 2 3\nabc123测试\nhex\ntext\ns"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"inFmt\":\"hex\",\"outFmt\":\"text\"}，输出区含「abc123测试\n1 2 3\ns\nhex\ntext」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"inFmt\":\"hex\",\"outFmt\":\"text\"}，输出区含「abc123测试\n1 2 3\ns\nhex\ntext」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   
   {
@@ -7139,7 +7142,7 @@ async function runCaseInner(c) {
           : defaults[id] !== undefined
           ? defaults[id]
           : sel[id] && sel[id].length
-          ? sel[id][0].value
+          ? ((sel[id].find((o) => /\bselected\b/i.test(o.attrs || "")) || sel[id][0]).value)
           : "";
       elements[id] = makeEl(v, sel[id]);
       elements[id].id = id;   // 动态 DOM 登记按容器 id 分桶（同容器重渲染时覆盖，避免计数翻倍）
