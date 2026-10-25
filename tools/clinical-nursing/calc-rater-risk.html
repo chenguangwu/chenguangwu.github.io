@@ -191,6 +191,7 @@ function calc(){
   else if(total<=18){status='低度风险';color='var(--info)';tip='warn';advice='压疮低度风险（15-18分），定时翻身、常规皮肤护理、健康宣教。';}
   else{status='无风险';color='var(--success)';tip='success';advice='暂无压疮风险（≥19分），保持常规护理即可。';}
   var rows=[];for(var i=0;i<6;i++){rows.push([items[i],document.getElementById('b'+(i+1)).selectedOptions[0].text]);}
+  window.__EMR_SUM={total:total,st:status};
   var h='<p>Braden总分：<strong style="font-size:28px;color:'+color+';">'+total+'</strong> / 23</p>';
   h+='<p>风险等级：<span class="grade-tag" style="background:'+color+'20;color:'+color+';">'+status+'</span></p>';
   h+=ToolBox.createTable(['维度','选项'],rows);
@@ -198,6 +199,64 @@ function calc(){
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估/计算结果整理成可直接粘进护理记录的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var lv={'极高风险':'very high risk','高风险':'high risk','中度风险':'moderate risk','低度风险':'low risk','无风险':'no risk'};
+  var hz,he;
+  if(s.total<=9){ hz='Braden ≤9 分（极高风险）：每 1–2 小时翻身、气垫床、骨突处水胶体敷料、保持皮肤清洁干燥、加强营养（蛋白 1.2–1.5 g/kg·d），每日评估皮肤并记录。';
+    he='Braden 9 or below (very high risk): reposition every 1-2 hours, air mattress, hydrocolloid dressings over prominences, keep skin clean and dry, optimise nutrition (protein 1.2-1.5 g/kg/day), assess skin daily.'; }
+  else if(s.total<=12){ hz='Braden 10–12 分（高风险）：每 2 小时翻身、减压床垫、保护骨突、评估营养与失禁管理，每日检查皮肤。';
+    he='Braden 10-12 (high risk): reposition every 2 hours, pressure-relieving mattress, protect prominences, address nutrition and incontinence, inspect skin daily.'; }
+  else if(s.total<=14){ hz='Braden 13–14 分（中度风险）：每 2–3 小时翻身、减压垫、注意皮肤护理与潮湿管理。';
+    he='Braden 13-14 (moderate risk): reposition every 2-3 hours, pressure-relieving cushion, skin care and moisture management.'; }
+  else if(s.total<=18){ hz='Braden 15–18 分（低度风险）：定时翻身、常规皮肤护理、健康教育。';
+    he='Braden 15-18 (low risk): scheduled repositioning, routine skin care and education.'; }
+  else { hz='Braden ≥19 分（无风险）：保持常规护理，入院时与病情变化时复评。';
+    he='Braden 19 or above (no risk): routine care, reassess on admission and whenever the condition changes.'; }
+  __emrNote({boxId:'res', name:'Braden 压疮风险评估（6 维度 · 满分 23）', nameEn:'Braden Pressure Ulcer Risk (6 subscales, max 23)',
+    result:'Braden 总分 '+s.total+'/23 → 分级：'+s.st,
+    resultEn:'Braden total '+s.total+'/23; level: '+(lv[s.st]||s.st),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'界值：≤9 极高、10–12 高、13–14 中度、15–18 低度、≥19 无风险（分值越低风险越高，与 Morse 方向相反）',
+    extraEn:'cut-offs: 9 or below very high, 10-12 high, 13-14 moderate, 15-18 low, 19 or above no risk (lower score means higher risk)'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

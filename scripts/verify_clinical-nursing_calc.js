@@ -5,34 +5,45 @@ const CASES = [
 {
   "slug": "clinical-nursing/assessor-pressure-risk",
   "inputs": {
-    "duration": "6",
-    "bmi": "22",
-    "age": "55"
+    "position": "5",
+    "duration": "5",
+    "bmi": "17",
+    "age": "78"
   },
-  "expect": [
-    "6h"
+  "checkIds": [
+    "diabetes",
+    "edema"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "【手术体位相关压力性损伤风险评估】 结果：体位 头低脚高位 · 手术时长 5 h · BMI 17 · 年龄 78 岁 → 风险评分 18 分，分级：高风险",
+    "重点受压部位：肩部、背部；风险因素：头低脚高位压力集中、手术时长"
+  ],
+  "ref": "门诊记录：头低脚高位 4 + 时长>4h 4 + 消瘦(BMI<18.5) 3 + 高龄(>70) 3 + 糖尿病 2 + 水肿 2 = 18 分 ⇒ ≥10 高风险；该体位重点受压部位为肩部/背部。默认态仰卧位（1 分）、无勾选 ⇒ 评分远低于 10、分级低风险，与本用例零交集。（风险因素串在「手术时长>5h」处含被 __emrEsc 转义的 &gt;，故 expect 只截到「手术时长」为止。）"
 },
 {
   "slug": "clinical-nursing/assessor-rater-risk",
   "inputs": {
-    "m1": "15"
+    "m1": "25",
+    "m2": "15",
+    "m3": "30",
+    "m4": "20",
+    "m5": "20",
+    "m6": "15"
   },
   "expect": [
-    "15"
-  ],
-  "ref": "auto-restore"
+    "【Morse 跌倒风险评估（6 项 · 满分 125）】 结果：Morse 总分 125/125 → 分级：高风险",
+      ],
+  "ref": "门诊记录：6 项全取最高档 25+15+30+20+20+15 = 125 > 50 ⇒「高风险」。默认态 6 项全 0 ⇒「Morse 总分 0/125 → 分级：低风险」，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/bag-valve-mask",
   "inputs": {
-    "ageGroup": "child"
+    "ageGroup": "infant"
   },
   "expect": [
-    "200-300"
-  ],
-  "ref": "auto-restore"
+    "【简易呼吸器（球囊-面罩）通气参数】 结果：心肺复苏（CPR） · 婴儿 → 通气频率 12-20 次/分、潮气量 100-150 mL、送气时间 1 秒、送气间隔 4 秒、按压通气比 30:2",
+      ],
+  "ref": "门诊记录：场景默认 CPR、年龄组切婴儿 ⇒ 12-20 次/分、潮气量 100-150 mL、间隔 4 秒、按压通气比 30:2。默认态为成人 ⇒ 8-10 次/分、400-600 mL、间隔 6 秒，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/barthel-index",
@@ -58,12 +69,17 @@ const CASES = [
 {
   "slug": "clinical-nursing/calc-rater-risk",
   "inputs": {
-    "b1": "3"
+    "b1": "1",
+    "b2": "1",
+    "b3": "1",
+    "b4": "1",
+    "b5": "1",
+    "b6": "1"
   },
   "expect": [
-    "22"
-  ],
-  "ref": "auto-restore"
+    "【Braden 压疮风险评估（6 维度 · 满分 23）】 结果：Braden 总分 6/23 → 分级：极高风险",
+      ],
+  "ref": "门诊记录：6 维度全取最低档 1 分 ⇒ 总分 6 ≤9 ⇒「极高风险」。默认态全取最高档（4/4/4/4/4/3=23）⇒「Braden 总分 23/23 → 分级：无风险」，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/chest-compression-depth",
@@ -126,13 +142,15 @@ const CASES = [
 {
   "slug": "clinical-nursing/cvc-maintenance",
   "inputs": {
-    "cathVol": "4.5",
+    "lumens": "3",
+    "flushType": "heparin100",
+    "cathVol": "1.5",
     "extraFlush": "2"
   },
   "expect": [
-    "4.5"
-  ],
-  "ref": "auto-restore"
+    "【中心静脉导管（CVC）冲封管方案】 结果：CVC中心静脉导管 · 3 腔 · 冲洗液 肝素盐水 100 U/mL → 每腔冲管 3.5 mL、总冲管 10.5 mL、总封管 5.4 mL、肝素总量 540 U",
+      ],
+  "ref": "门诊记录：每腔冲管 = 1.5 + 2 = 3.5 mL，3 腔 ⇒ 总冲管 10.5 mL；封管每腔 1.5×1.2 = 1.8 ⇒ 总封管 5.4 mL；肝素 5.4×100 = 540 U。默认态 1 腔、生理盐水 ⇒ 每腔 3.5、总冲管 3.5、总封管 3.5、无肝素，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/cycle-7",

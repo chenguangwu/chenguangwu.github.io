@@ -203,6 +203,7 @@ function calc(){
   if(score>=10){status='高风险';color='var(--danger)';tip='error';advice='压力性损伤高风险，必须采取预防措施：使用减压床垫、每2小时调整体位（术中可行时）、骨突处贴减压敷料、保持皮肤干燥。';}
   else if(score>=6){status='中风险';color='var(--warning)';tip='warn';advice='压力性损伤中风险，建议使用减压垫、保护骨突部位、术中注意体位垫放置、术后及时检查皮肤。';}
   else{status='低风险';color='var(--success)';tip='success';advice='压力性损伤低风险，常规护理即可，注意观察皮肤变化。';}
+  window.__EMR_SUM={pos:posNames[pos-1],dur:dur,bmi:bmi,age:age,score:score,fac:factors.slice(0),pp:pp.join('、'),st:status};
   var h='<div class="stat-grid"><div class="stat-card"><div class="val" style="color:'+color+';">'+score+'</div><div class="lbl">风险评分</div></div></div>';
   h+='<p>风险等级：<span class="grade-tag" style="background:'+color+'20;color:'+color+';">'+status+'</span></p>';
   h+='<p><strong>重点受压部位：</strong>'+pp.join('、')+'</p>';
@@ -211,6 +212,60 @@ function calc(){
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估/计算结果整理成可直接粘进护理记录的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var lv={'高风险':'high risk','中风险':'moderate risk','低风险':'low risk'};
+  var hz,he;
+  if(s.st==='高风险'){ hz='高风险（≥10 分）：使用减压床垫、骨突处贴减压敷料（骶尾/足跟/枕部），术中在可行时每 2 小时微调体位，保持皮肤清洁干燥、避免剪切力，术后 24 小时内重点检查受压部位皮肤。';
+    he='High risk (10 or above): pressure-redistribution mattress, prophylactic dressings over bony prominences, reposition every 2 hours when feasible, keep skin clean and dry, avoid shear, and inspect pressure points within 24 hours after surgery.'; }
+  else if(s.st==='中风险'){ hz='中风险（6–9 分）：使用减压垫、正确放置体位垫、术中每 2–3 小时评估一次皮肤，术后及时检查并记录。';
+    he='Moderate risk (6-9): use pressure-relieving pads, position gel supports correctly, inspect skin every 2-3 hours intraoperatively and document postoperatively.'; }
+  else { hz='低风险（＜6 分）：常规护理即可，保持床单平整干燥，术后观察皮肤变化。';
+    he='Low risk (below 6): routine care, keep linen smooth and dry, observe skin after the procedure.'; }
+  __emrNote({boxId:'res', name:'手术体位相关压力性损伤风险评估', nameEn:'Intraoperative Pressure Injury Risk',
+    result:'体位 '+s.pos+' · 手术时长 '+s.dur+' h · BMI '+s.bmi+' · 年龄 '+s.age+' 岁 → 风险评分 '+s.score+' 分，分级：'+s.st,
+    resultEn:'position '+s.pos+', duration '+s.dur+' h, BMI '+s.bmi+', age '+s.age+' -> score '+s.score+', level: '+(lv[s.st]||s.st),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'重点受压部位：'+s.pp+(s.fac.length?('；风险因素：'+s.fac.join('、')):'；无附加风险因素'),
+    extraEn:'pressure points: '+s.pp+(s.fac.length?('; risk factors: '+s.fac.join(', ')):'')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

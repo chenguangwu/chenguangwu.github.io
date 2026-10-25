@@ -191,6 +191,7 @@ function calc(){
   var rows=[];
   var items=['跌倒史','医学诊断','行走辅助','静脉输液','步态/移动','精神状态'];
   for(var i=0;i<6;i++){rows.push([items[i],document.getElementById('m'+(i+1)).selectedOptions[0].text]);}
+  window.__EMR_SUM={total:total,st:status};
   var h='<p>Morse总分：<strong style="font-size:28px;color:'+color+';">'+total+'</strong> / 125</p>';
   h+='<p>风险等级：<span class="grade-tag" style="background:'+color+'20;color:'+color+';">'+status+'</span></p>';
   h+=ToolBox.createTable(['评估项目','选项'],rows);
@@ -198,6 +199,60 @@ function calc(){
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估/计算结果整理成可直接粘进护理记录的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var lv={'高风险':'high risk','中风险':'moderate risk','低风险':'low risk'};
+  var hz,he;
+  if(s.st==='高风险'){ hz='Morse >50 分（高风险）：床头挂醒目警示标识、床栏抬起、穿防滑鞋、如厕与行走全程协助、夜间留陪护、每班交接并记录，1 周内复评。';
+    he='Morse above 50 (high risk): visible warning sign, bed rails up, non-slip footwear, assisted toileting and walking, night companion, hand over every shift and reassess within a week.'; }
+  else if(s.st==='中风险'){ hz='Morse 25–50 分（中风险）：悬挂提示标识、指导缓慢起身（起床三步法）、保持通道畅通与夜灯、必要时协助行走，每周复评。';
+    he='Morse 25-50 (moderate risk): warning sign, teach slow position change, keep the walkway clear with a night light, assist walking if needed, reassess weekly.'; }
+  else { hz='Morse <25 分（低风险）：常规健康教育，提醒注意环境安全与鞋具选择，出院前复评一次。';
+    he='Morse below 25 (low risk): routine education on environmental safety and footwear; reassess before discharge.'; }
+  __emrNote({boxId:'res', name:'Morse 跌倒风险评估（6 项 · 满分 125）', nameEn:'Morse Fall Scale (6 items, max 125)',
+    result:'Morse 总分 '+s.total+'/125 → 分级：'+s.st,
+    resultEn:'Morse total '+s.total+'/125; level: '+(lv[s.st]||s.st),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'界值：≥51 高风险、25–50 中风险、＜25 低风险；单项分值：跌倒史 25、医学诊断 15、行走辅助 0/15/30、静脉输液 20、步态 0/10/20、精神状态 0/15',
+    extraEn:'cut-offs: 51 or above high risk, 25-50 moderate, below 25 low; item weights: fall history 25, diagnosis 15, gait aid 0/15/30, IV 20, gait 0/10/20, mental status 0/15'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

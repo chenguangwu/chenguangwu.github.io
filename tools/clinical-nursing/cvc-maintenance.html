@@ -286,6 +286,7 @@ function calc(){
   if(flushType === 'heparin10') heparinU = totalLock * 10;
   else if(flushType === 'heparin100') heparinU = totalLock * 100;
   
+  window.__EMR_SUM={lum:lumens,ft:flushType,tn:cfg.name,cv:cathVol,ex:extra,pl:perLumen,tf:totalFlush,tl:totalLock,hep:heparinU,times:cfg.flushTimes,hc:cfg.heparinConc};
   const __g0=perLumen.toFixed(1);document.getElementById('perLumen').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
   const __g1=totalFlush.toFixed(1);document.getElementById('totalFlush').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=totalLock.toFixed(1);document.getElementById('totalLock').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -300,6 +301,59 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把评估/计算结果整理成可直接粘进护理记录的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var ftz={saline:'生理盐水',heparin10:'肝素盐水 10 U/mL',heparin100:'肝素盐水 100 U/mL'};
+  var fte={saline:'0.9% saline',heparin10:'heparin 10 U/mL',heparin100:'heparin 100 U/mL'};
+  var hz,he;
+  if(s.lum>=3){ hz='多腔导管维护：每个管腔独立冲封管、标记主腔与侧腔，避免用同一注射器反复穿刺；冲管采用「推-停」脉冲法，封管正压并夹闭，防止回血堵管。';
+    he='Multi-lumen catheter: flush and lock each lumen separately and label the distal and side lumens; use pulsatile flush and positive-pressure locking to prevent occlusion.'; }
+  else { hz='单/双腔导管维护：治疗前后各冲管一次，输注血制品、肠外营养、造影剂后必须立即冲管；抽回血不畅时禁用暴力冲管（可致导管破裂或栓塞），改用溶栓或更换导管。';
+    he='One or two-lumen catheter: flush before and after each use, and immediately after blood products, parenteral nutrition or contrast. Never force a flush against resistance (risk of rupture or embolism) - use thrombolytics or replace the line.'; }
+  __emrNote({name:'中心静脉导管（CVC）冲封管方案', nameEn:'Central Venous Catheter Flush and Lock',
+    result:s.tn+' · '+s.lum+' 腔 · 冲洗液 '+(ftz[s.ft]||s.ft)+' → 每腔冲管 '+s.pl.toFixed(1)+' mL、总冲管 '+s.tf.toFixed(1)+' mL、总封管 '+s.tl.toFixed(1)+' mL'+(s.hep>0?('、肝素总量 '+s.hep.toLocaleString('zh-CN')+' U'):'、不含肝素'),
+    resultEn:s.tn+', '+s.lum+' lumen(s), '+(fte[s.ft]||s.ft)+' -> '+s.pl.toFixed(1)+' mL per lumen, total flush '+s.tf.toFixed(1)+' mL, total lock '+s.tl.toFixed(1)+' mL',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'冲管频次建议：'+s.times+' 次/日；每腔冲管量 = 导管容积 '+s.cv+' mL + 追加 '+s.ex+' mL；封管量按导管容积 ×1.2 计算；肝素封管浓度见产品说明（PICC/PORT 常用 10 U/mL，透析导管 1000 U/mL）',
+    extraEn:'suggested frequency '+s.times+'/day; flush volume = catheter volume '+s.cv+' mL + '+s.ex+' mL; lock volume = catheter volume x 1.2'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

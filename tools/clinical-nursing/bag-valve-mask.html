@@ -287,6 +287,7 @@ function calc(){
   const __g5=cfg.interval;document.getElementById('interval').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6=cfg.ratio;document.getElementById('ratio').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   
+  window.__EMR_SUM={sc:currentScenario,age:age,rate:cfg.rate,tidal:cfg.tidal,squeeze:cfg.squeeze,inter:cfg.interval,ratio:cfg.ratio,desc:cfg.desc};
   renderRhythmBar(cfg.interval);
 }
 
@@ -352,6 +353,63 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把评估/计算结果整理成可直接粘进护理记录的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var scz={cpr:'心肺复苏（CPR）',rescue:'急救通气',transport:'转运通气'};
+  var sce={cpr:'cardiac arrest (CPR)',rescue:'rescue ventilation',transport:'transport ventilation'};
+  var agz={adult:'成人',child:'儿童',infant:'婴儿'};
+  var age=s.age==='adult'?'成人':(s.age==='child'?'儿童':'婴儿');
+  var hz,he;
+  if(s.sc==='cpr'){ hz='CPR 通气要点：高级气道（气管插管/喉罩）建立后**不再中断按压**，改为 10 次/分（每 6 秒 1 次）并与按压同步进行；潮气量以可见胸廓起伏为准，避免过度通气（过度通气降低胸内压、减少回心血量）。';
+    he='CPR ventilation: once an advanced airway is in place, do not pause compressions - deliver 10 breaths/min (one every 6 s) asynchronously. Titrate to visible chest rise and avoid hyperventilation.'; }
+  else if(s.sc==='rescue'){ hz='急救通气：无高级气道时按 30:2 按压通气，每 2 分钟轮换；注意球囊面罩密闭（E-C 手法）、每次送气 1 秒、见胸廓抬起即止。';
+    he='Rescue ventilation: without an advanced airway use 30:2 and rotate every 2 minutes; ensure a tight mask seal (EC clamp), 1-second breaths until chest rise.'; }
+  else { hz='转运通气：固定球囊与面罩、持续 SpO₂/EtCO₂ 监测，交接时核对通气频率与潮气量并记录。';
+    he='Transport ventilation: secure bag and mask, monitor SpO2/EtCO2 continuously, and hand over rate and tidal volume at each transition.'; }
+  __emrNote({name:'简易呼吸器（球囊-面罩）通气参数', nameEn:'Bag-Valve-Mask Ventilation Parameters',
+    result:(scz[s.sc]||s.sc)+' · '+age+' → 通气频率 '+s.rate+' 次/分、潮气量 '+s.tidal+' mL、送气时间 '+s.squeeze+' 秒、送气间隔 '+s.inter+' 秒、按压通气比 '+s.ratio,
+    resultEn:(sce[s.sc]||s.sc)+', '+s.age+' -> rate '+s.rate+'/min, tidal volume '+s.tidal+' mL, squeeze '+s.squeeze+' s, interval '+s.inter+' s, compression-ventilation ratio '+s.ratio,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'说明：'+s.desc+'；球囊容量选择：成人 1500 mL、儿童 500 mL、婴儿 250 mL；每次送气以胸廓抬起为度',
+    extraEn:'note: '+s.desc+'; bag size: 1500 mL adult, 500 mL child, 250 mL infant; titrate to visible chest rise'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
