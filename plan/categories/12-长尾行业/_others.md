@@ -1,0 +1,21 @@
+# 长尾行业汇总（<20 页的 190+ 行业）
+
+> 本文件只收录**已知具体问题**（来自 16 批审计备案）；长尾行业共性问题（留存/性能/EN）统一走 plan/G 系列，不在此重复。
+
+## 已收录问题
+### O1. dyeing/tester-9 输入 C 未参与计算（GB/T 20944.2 对照口径）
+- 方案：`(C−B)/C` 与 `logC−logB` 分支接入；受影响：tools/dyeing/tester-9.html
+### O2. textiles/ceramics/glass 系：已修 color-diff CMC T、naipo 纸样重量；其余核验通过。
+### O3. pet/pet-training：training-planner 已注入 preset（✅）。
+### O4. bonding/leather/rubber/plastic：无高危（抽样核验）。
+### O5. medical2/elderly/daily-goods/kids 等：未深扫（长尾低热，按需在续批补扫）。
+
+## 受影响范围
+- tools/ 其余 190+ 长尾行业目录
+
+## 进度
+- 🟡 按需增量（新问题随批次追加于此）
+
+## 长尾行业通用优化指引
+- 留存/分享/场景预设等共性优化统一执行 `plan/G06-留存与竞争力升级.md`（S1 首屏即答案、S2 场景预设、S4 分享卡按流量数据择优覆盖长尾）。
+- 文案类改动一律先查数据源（`plan/G03`）。
