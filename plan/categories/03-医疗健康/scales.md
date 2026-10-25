@@ -40,11 +40,13 @@
     不冒充标准化常模（诚实性红线）。
   - 踩坑修复：上一批 mmse-scoring 的 cite 含裸双引号，导致 `data-zh` 属性被截断（中文引据只剩前半句）。
     已改为破折号；并新增全站属性完整性扫描（判据：`data-zh` 值必须含「｜」分隔符），现 76 页 BROKEN=0。
-- 🟡 进行中（2026-10-26 批次 03-11~03-15）：门诊记录再铺 **15 页**，累计 **31 页**。覆盖
+- 🟡 进行中（2026-10-26 批次 03-11~03-17）：门诊记录铺开 7 批。覆盖
   neurology 6（nihss/moca/edss/adas-cog/dhi/dn4）+ clinical-nursing 3（braden/morse/barthel）+ rehabilitation 1（berg）
   + neurology 4（updrs/qmg/sara/alsfrs-r）+ neurology 2（rls-severity/phq9-stroke）+ psychiatry 1（cdrisc-resilience）
-  + neurology 3（rater-18/19/22）。顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、
-  rater 系满分口径；并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力）。
+  + neurology 3（rater-18/19/22）+ psychiatry 2（ybocs-ocd/panss-schizophrenia）
+  + neurology 3（abcd2/house-brackmann/trigeminal-bni）。本批共 **25 页**，全站累计 **37 页**。
+  顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
+  并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
   - 模板三种变体：① `#result` + 名下 select（nihss 系）；② `#result` + 生成式按钮 `scores`（护理系）；
     ③ `#res`/`#resultBox` + 生成式 select 或 radio（rater/berg 系）。
   - 硬坑：`__emrNote` 容器 id 要可配（`cfg.boxId`）；护理页分级必须自算（harness 的 `scores[undefined]` 会污染页面 total）；
