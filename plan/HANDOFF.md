@@ -31,7 +31,7 @@
 - **F1** ratio-analysis 权益乘数误用产权比率定义 → `ta/eq`（02-金融财务/tax-accounting-audit.md） ✅ 2026-10-25 已修（公式框/代码统一为总资产÷股东权益，并列输出产权比率）
 - **Z2** cost-price-margin 利润率/加价率同值 → 利润率改 `(p−cost)/p`（marketing-sales.md） ✅ 2026-10-25 已修（两个分支的利润率均改为售价口径，公式框补「输入率为成本加成口径」说明）
 - **Z3** stats-on-time-1「未达标率」括注写反（ecommerce-logistics.md） ✅ 2026-10-25 已修（标签改「未同时达标率（迟到或质量不良）」，并集口径，公式框/JSON/verify 同步）
-- **H2** insulin-adjustment deep-dive 示例文案错 → 改 `i18n/tools/content_deepdive.json` 源（home-decor.md 备注）
+- **H2** insulin-adjustment deep-dive 示例文案错 → 改 `i18n/tools/content_deepdive.json` 源（home-decor.md 备注） ✅ 2026-10-25 已修（补 ÷18：ISF=(1800/36)÷18≈2.78、校正剂量≈2.5U，消除「0.14U/约1.4U」自相矛盾；顺带修 tab-isf 参考表 ISF 列 40/60/80 行误用 2000 法则值）
 
 ### P2 待老板裁断后才动（勿自行决定口径）
 
