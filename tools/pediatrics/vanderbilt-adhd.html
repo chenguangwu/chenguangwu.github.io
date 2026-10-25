@@ -391,6 +391,7 @@ function calc(){
   html+='<div class="stat-card"><div class="val" style="font-size:18px;color:'+(anxPos>=3?'#EF4444':'#10B981')+';">'+anxPos+'/7</div><div class="lbl">焦虑抑郁(≥3阳性)</div></div>';
   html+='</div>';
 
+  __EMR_S={ag:age,rt:rater,ip:inattPos,is:inattScore,hp:hyperPos,hs:hyperScore,bp:behavPos,ap:anxPos,ty:adhdType,ov:overall,ps:adhdPositive,bps:behavPositive,aps:anxPositive};
   html+='<div class="ref-card"><h4>症状评估详情</h4><ul>';
   html+='<li>注意缺陷：'+inattPos+'/9条阳性 (评分≥2)，总分'+inattScore+'/36</li>';
   html+='<li>多动冲动：'+hyperPos+'/9条阳性 (评分≥2)，总分'+hyperScore+'/36</li>';
@@ -455,6 +456,69 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg113'));
 }
 renderQuiz();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S||{ag:8,rt:'parent',ip:0,is:0,hp:0,hs:0,bp:0,ap:0,ty:'',ov:'ADHD筛查阴性',ps:false,bps:false,aps:false};
+  var en=__emrEn();
+  var rtZh={parent:'家长',teacher:'教师'}[s.rt]||s.rt;
+  var rtEn={parent:'parent',teacher:'teacher'}[s.rt]||s.rt;
+  var tyEn={'混合型':'combined presentation','注意力不集中型':'predominantly inattentive presentation','多动冲动型':'predominantly hyperactive-impulsive presentation'}[s.ty]||s.ty;
+  var ovEn={'ADHD筛查阳性':'ADHD screen positive','ADHD阳性(伴共病)':'ADHD screen positive with comorbidity','ADHD筛查阴性':'ADHD screen negative'}[s.ov]||s.ov;
+  var list=[];
+  if(s.ip>=6) list.push({i:list.length+1,t:en?('Inattention '+s.ip+'/9 positive'):('注意缺陷 '+s.ip+'/9 条阳性'),o:en?('total '+s.is+'/36'):('总分 '+s.is+'/36')});
+  if(s.hp>=6) list.push({i:list.length+1,t:en?('Hyperactivity-impulsivity '+s.hp+'/9 positive'):('多动冲动 '+s.hp+'/9 条阳性'),o:en?('total '+s.hs+'/36'):('总分 '+s.hs+'/36')});
+  if(s.bps) list.push({i:list.length+1,t:en?('Behaviour/oppositional '+s.bp+'/8 positive'):('行为/对立违抗 '+s.bp+'/8 条阳性'),o:en?'comorbidity screen positive':'共病筛查阳性'});
+  if(s.aps) list.push({i:list.length+1,t:en?('Anxiety/depression '+s.ap+'/7 positive'):('焦虑/抑郁 '+s.ap+'/7 条阳性'),o:en?'comorbidity screen positive':'共病筛查阳性'});
+  var hz,he;
+  if(s.ps&&(s.bps||s.aps)){ hz='筛查阳性且伴共病：建议儿童精神科/发育行为儿科评估，同时评估对立违抗、焦虑抑郁、睡眠与学习功能；行为治疗与家长培训为一线，药物需专科处方与随访。';
+    he='Screen positive with comorbidity: refer to child psychiatry or developmental-behavioural paediatrics and assess oppositional behaviour, anxiety, depression, sleep and school functioning; behavioural therapy with parent training is first-line, and medication requires specialist prescribing and follow-up.'; }
+  else if(s.ps){ hz='筛查阳性：建议专科评估确认诊断（需跨场景症状、病程≥6 个月且功能受损），先启动行为干预与学校配合，避免仅凭量表下诊断。';
+    he='Screen positive: specialist assessment is needed to confirm the diagnosis (cross-setting symptoms, at least six months duration and functional impairment); start behavioural intervention with school support and never diagnose on a rating scale alone.'; }
+  else { hz='筛查阴性：若临床仍怀疑注意缺陷或多动冲动，应补充教师版量表与其他场景信息后复评，并排查睡眠不足、焦虑、学习障碍等替代解释。';
+    he='Screen negative: if clinical concern persists, add a teacher-rated scale and other informant information and re-screen, excluding insufficient sleep, anxiety and learning disorders as alternative explanations.'; }
+  __emrNote({boxId:'result', name:'Vanderbilt ADHD 诊断量表（'+(en?rtEn:rtZh)+'版）', nameEn:'Vanderbilt ADHD Diagnostic Rating Scale ('+(en?rtEn:rtZh)+' version)',
+    result:'年龄 '+s.ag+' 岁 · '+s.ov+(s.ty?('（'+s.ty+'）'):'')+' · 注意缺陷 '+s.ip+'/9（总分 '+s.is+'/36）、多动冲动 '+s.hp+'/9（总分 '+s.hs+'/36）、行为问题 '+s.bp+'/8、焦虑抑郁 '+s.ap+'/7',
+    resultEn:'age '+s.ag+' years; '+ovEn+(s.ty?(' ('+tyEn+')'):'')+'; inattention '+s.ip+'/9 (total '+s.is+'/36), hyperactivity-impulsivity '+s.hp+'/9 (total '+s.hs+'/36), behaviour '+s.bp+'/8, anxiety-depression '+s.ap+'/7',
+    pos:list,
+    hintZh:hz, hintEn:he,
+    extra:'阳性界值：注意缺陷或多动冲动 ≥6 条（评分≥2 计为阳性）、行为问题 ≥3/8、焦虑抑郁 ≥3/7；量表仅作筛查，诊断需结合跨场景信息、病程与功能损害',
+    extraEn:'thresholds: six or more inattentive or hyperactive-impulsive items scored 2 or above, three or more of eight behaviour items and three or more of seven anxiety-depression items; the scale is a screen only, with diagnosis requiring cross-setting information, duration and functional impairment'});
+}
+var __EMR_S;
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

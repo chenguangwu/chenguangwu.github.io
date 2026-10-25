@@ -57,8 +57,10 @@
   + psychiatry 9（assessor-risk-5/mmpi2-personality/les-stress/rater-23/rater-24/self-assess-4/
   cssrs-suicide/lsas-social/calc-1）
   + psychology 4（phq9-assessment/psqi-assessment/sas-assessment/self-test-pressure）
-  + psychology 5（assessor/calc-self-assess/rater/self-assess/calc-12）。
-  全站累计 **96 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
+  + psychology 5（assessor/calc-self-assess/rater/self-assess/calc-12）
+  + clinical-nursing 1（cold-compress-timer）
+  + pediatrics 3（pediatric-fracture/rater-27/vanderbilt-adhd）。
+  全站累计 **100 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
@@ -69,6 +71,13 @@
   - **第三种模板（03-19 起）：记录式钩子**——在 `calc()` 内写 `#result` 之前插 `window.__EMR_SUM={...}`，把页面已算好的分级变量捞出来，
     `__emrData()` 只做排版。适合「计算器型」页（输入→阈值→分级），零逻辑复制、不与页面阈值漂移；问卷型（answers 对象）仍需 clicks 注入。
   - 新增 harness 事实：兜底循环会**无参调用所有顶层 function 声明** ⇒ 新 helper 写成 `var f=function(){}`；复选框注入字段是 `checkIds`；
+  - **`clicks` 里的带参调用同样会被兜底无参调用覆盖**（2026-10-26 实测）：`clicks:["selectPain(7)"]` / `["__emrData(7)"]` /
+    `["eval('__emrData(7)')"]` / `["__emrData.apply(null,[7])"]` 四种写法全部读回 `undefined`；`var q=7;__emrData(q)` 也一样。
+    连 `window.__EMR_V=7` 与 `window.__EMR_V` 读取都跨作用域不通（clicks 的 window ≠ page 的 window）。
+    **唯一可靠的通道**：① DOM 输入（select 的 `inputs` 有效；input 的 `.value` 在 clicks 内改有效但常被兜底重置）；
+    ② page 内对象属性（`checkedState.ankle[i]=true` ✓、`answers['inatt_0']=3` ✓）；③ 无参 `calc()` 后由页面自身读 DOM。
+    **正面做法**：REC 只把值写进 page 内变量 `__EMR_S`，`__emrData()` 无参读它；REC 里对参数加 `typeof v==='number'` 守卫，
+    避免被兜底无参调用污染；再用 `calc`/页面函数的 wrapper `finally` 触发一次渲染（时序确定，不依赖兜底循环）。
     `__emrEsc` 会把 `>`/`<`/`&` 转成实体，expect 不能直接写这些字符。
 - 🔴 待续：其余 ~90 个量表页按同一模板铺开（每批 3–6 页，逐页核分级口径）；M1 条目结构 / M2 阈值口径仍待老板裁断；
   儿科余 5 页（assessor-spo2 / pediatric-fracture / rater-27 / vaccine-schedule / vanderbilt-adhd）：

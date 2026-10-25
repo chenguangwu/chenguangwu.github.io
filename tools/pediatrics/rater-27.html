@@ -249,6 +249,7 @@ function calc(){
 
   var lw=zLevel(zW),lh=zLevel(zH),lhc=zLevel(zHC),lb=zLevel(zBMI);
 
+  __EMR_S={g:gender,ag:age,wt:wt,ht:ht,hc:hc,zw:zW,zh:zH,zhc:zHC,lwl:String(lw&&lw.level),lhl:String(lh&&lh.level),lhcl:String(lhc&&lhc.level),bmi:(wt>0&&ht>0)?(wt/Math.pow(ht/100,2)):null,zb:zBMI,lb:zLevel(zBMI)};
   var html='<h3 style="margin-bottom:10px;">Z 评分结果</h3>';
   html+='<div class="stat-grid">'+
     '<div class="stat-card"><div class="val" style="color:'+lw.color+';">'+(zW!==null?zW.toFixed(2):'—')+'</div><div class="lbl">体重/年龄 Z</div></div>'+
@@ -330,6 +331,68 @@ function copyResult(){
   ToolBox.copyText(text, i18nText('msg117'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=__EMR_S||{g:'boy',ag:0,wt:0,ht:0,hc:0,zw:null,zh:null,zhc:null,lwl:'—',lhl:'—',lhcl:'—',bmi:null,zb:null,lb:{label:'—'}};
+  var en=__emrEn();
+  var gf=(s.g==='boy')?(en?'boy':'男'):(en?'girl':'女');
+  function z(v){ return (v===null||!isFinite(v))?'—':(v>0?'+':'')+v.toFixed(2); }
+  var abn=[];
+  if(s.zw!==null&&Math.abs(s.zw)>2) abn.push({i:1,t:en?('Weight-for-age Z '+z(s.zw)):('体重/年龄 Z '+z(s.zw)),o:en?('beyond ±2SD: '+s.lwl):('超出 ±2SD：'+s.lwl)});
+  if(s.zh!==null&&Math.abs(s.zh)>2) abn.push({i:abn.length+1,t:en?('Height-for-age Z '+z(s.zh)):('身长(高)/年龄 Z '+z(s.zh)),o:en?('beyond ±2SD: '+s.lhl):('超出 ±2SD：'+s.lhl)});
+  if(s.zhc!==null&&Math.abs(s.zhc)>2) abn.push({i:abn.length+1,t:en?('Head-circumference Z '+z(s.zhc)):('头围/年龄 Z '+z(s.zhc)),o:en?('beyond ±2SD: '+s.lhcl):('超出 ±2SD：'+s.lhcl)});
+  var hz,he;
+  if(s.zw!==null&&s.zw<-3){ hz='体重/年龄 Z<-3：重度低体重，需评估营养摄入、吸收与基础疾病，建议儿科营养门诊并排查慢性感染、贫血与发育迟缓；短期内复测体重。';
+    he='Weight-for-age Z below -3: severe underweight; assess intake, absorption and underlying disease, refer to paediatric nutrition and screen for chronic infection, anaemia and developmental delay, re-measuring weight shortly.'; }
+  else if(s.zh!==null&&s.zh<-2){ hz='身长(高)/年龄 Z<-2：提示生长迟缓（矮小），需评估喂养、内分泌与慢性疾病，建议儿科内分泌评估并定期监测生长曲线。';
+    he='Height-for-age Z below -2: indicates stunting; assess feeding, endocrine and chronic disease, refer for paediatric endocrine review and monitor the growth chart regularly.'; }
+  else if(abn.length>0){ hz='存在超出 ±2SD 的指标：结合生长曲线趋势（是否跨越主要百分位线）判断，单次测量异常需 4 周内复测确认，同时记录喂养与近期疾病史。';
+    he='At least one measure lies beyond ±2SD: interpret alongside growth-chart trends (whether major percentile lines are crossed); a single abnormal value needs re-measurement within 4 weeks, with feeding and recent illness documented.'; }
+  else { hz='三项 Z 评分均在 ±2SD 以内：按常规儿童保健随访，持续绘制生长曲线；若曲线出现明显下移需提前复评。';
+    he='All three Z scores are within ±2SD: routine child-health follow-up with continued plotting of the growth chart; re-assess earlier if the curve shifts downward.'; }
+  __emrNote({boxId:'res', name:'儿童生长发育 Z 评分评估（WHO 标准）', nameEn:'Paediatric Growth Z-Score Assessment (WHO standards)',
+    result:gf+' '+(s.ag/12).toFixed(1)+' 岁（'+s.ag+' 月龄）· 体重 '+s.wt+' kg（Z '+z(s.zw)+'）· 身长/高 '+s.ht+' cm（Z '+z(s.zh)+'）· 头围 '+s.hc+' cm（Z '+z(s.zhc)+'）'+(s.bmi!==null?(' · BMI '+s.bmi.toFixed(1)):''),
+    resultEn:gf+', '+(s.ag/12).toFixed(1)+' years ('+s.ag+' months); weight '+s.wt+' kg (Z '+z(s.zw)+'), length/height '+s.ht+' cm (Z '+z(s.zh)+'), head circumference '+s.hc+' cm (Z '+z(s.zhc)+')'+(s.bmi!==null?('; BMI '+s.bmi.toFixed(1)):''),
+    pos:abn,
+    hintZh:hz, hintEn:he,
+    extra:'判读口径：以 WHO 儿童生长标准（按月龄插值取中位数与 SD）计算 Z 评分；|Z|>2 为超出正常范围、|Z|>3 为重度异常；单次测量不替代纵向生长曲线',
+    extraEn:'interpretation: Z scores are derived from WHO child growth standards (monthly interpolation of median and SD); |Z| above 2 is outside the normal range and above 3 is severe; a single measurement never replaces the longitudinal growth chart'});
+}
+var __EMR_S;
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 

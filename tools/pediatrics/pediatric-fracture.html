@@ -327,6 +327,7 @@ function calc(){
     treatment.push('血管损伤需即刻处理，筋膜室综合征需切开减压');
   }
 
+  __EMR_S={t:fractureType,ag:age,si:site,sn:siteName,dp:displacement,of:openFx,nv:neurovascular,tx:treatment.slice(0,2),rk:(siteRisk[0]||''),pr:info.prognosis,gr:info.growthRisk};
   var html='<div class="diagram-box" style="background:'+info.color+'1a;border:1px solid '+info.color+'66;">';
   html+='<div style="font-size:28px;font-weight:800;color:'+info.color+';">'+info.name+'</div>';
   html+='<div style="font-size:13px;color:var(--text-light);margin-top:4px;">部位：'+siteName+' | 预后：'+info.prognosis+'</div>';
@@ -383,6 +384,66 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg665'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S||{t:1,ag:0,si:'distal_radius',sn:'桡骨远端',dp:false,of:false,nv:false,tx:[],rk:'',pr:'良好',gr:'低(<1%)'};
+  var en=__emrEn();
+  var typeEn={1:'Salter-Harris type I (physis only)',2:'Salter-Harris type II (physis and metaphysis)',3:'Salter-Harris type III (physis and epiphysis)',4:'Salter-Harris type IV (metaphysis, physis and epiphysis)',5:'Salter-Harris type V (physis crush)'}[s.t]||('type '+s.t);
+  var siteEn={distal_radius:'distal radius',distal_humerus:'distal humerus (supracondylar)',distal_femur:'distal femur',proximal_tibia:'proximal tibia',distal_tibia:'distal tibia',phalanges:'phalanges'}[s.si]||s.si;
+  var flags=[];
+  if(s.dp) flags.push({i:flags.length+1,t:en?'Displacement present':'存在移位',o:en?'needs reduction':'需复位评估'});
+  if(s.of) flags.push({i:flags.length+1,t:en?'Open fracture':'开放性骨折',o:en?'urgent debridement, antibiotics and tetanus prophylaxis':'急诊清创+抗生素+破伤风'});
+  if(s.nv) flags.push({i:flags.length+1,t:en?'Neurovascular compromise':'神经血管受累',o:en?'urgent assessment, watch for compartment syndrome':'紧急评估，警惕筋膜室综合征'});
+  var hz,he;
+  if(s.of||s.nv){ hz='急诊优先：开放骨折或神经血管受累属急症，按开放性骨折处理流程（清创、抗生素、破伤风）并即刻评估远端血运与感觉，必要时急诊手术；记录受伤时间、污染程度与末梢情况。';
+    he='Emergency priority: an open fracture or neurovascular compromise is an emergency; follow the open-fracture pathway (debridement, antibiotics, tetanus prophylaxis) and assess distal perfusion and sensation immediately, with urgent surgery if indicated; document injury time, contamination and distal findings.'; }
+  else if(s.t>=3){ hz='Salter-Harris III–V 型：属关节内或骺板挤压损伤，需解剖复位以降低骨桥与生长障碍风险；III/IV 型常需切开复位内固定，固定物避免穿过骺板中心，并长期随访生长情况。';
+    he='Salter-Harris type III to V: intra-articular or physeal crush injuries requiring anatomical reduction to limit bone-bridge formation and growth disturbance; types III and IV often need open reduction and internal fixation with hardware kept away from the physeal centre, plus long-term growth follow-up.'; }
+  else { hz='Salter-Harris I–II 型：以闭合复位加石膏固定为主，复位后 1 周、2 周复查 X 线；告知家长观察末梢血运、肿胀与疼痛变化，出现剧痛或麻木需即刻返院。';
+    he='Salter-Harris type I to II: closed reduction and cast immobilisation, with radiographs at 1 and 2 weeks; advise parents to watch distal perfusion, swelling and pain and to return immediately if pain escalates or numbness appears.'; }
+  __emrNote({boxId:'result', name:'儿童骨骺损伤（Salter-Harris 分型）评估', nameEn:'Paediatric Physeal Injury (Salter-Harris) Assessment',
+    result:'年龄 '+s.ag+' 岁 · 部位 '+(en?siteEn:s.sn)+' · 分型 '+(en?typeEn:('Salter-Harris '+['','I','II','III','IV','V'][s.t]+' 型'))+' · 预后 '+s.pr+'、生长障碍风险 '+s.gr,
+    resultEn:'age '+s.ag+' years; site '+siteEn+'; '+typeEn+'; prognosis '+s.pr+', growth-disturbance risk '+s.gr,
+    pos:flags,
+    hintZh:hz, hintEn:he,
+    extra:'分型口径（Salter-Harris）：I 骺板分离、II 骺板+干骺端、III 骺板+骨骺（关节内）、IV 贯通干骺端-骺板-骨骺、V 骺板挤压伤（早期 X 线常阴性）'+(s.rk?('；本部位要点：'+s.rk):''),
+    extraEn:'Salter-Harris classification: I physeal separation, II physis with metaphyseal fragment, III physis into epiphysis (intra-articular), IV through metaphysis, physis and epiphysis, V physeal crush (often radiographically silent early)'});
+}
+var __EMR_S;
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

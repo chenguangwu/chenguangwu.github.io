@@ -272,6 +272,7 @@ function calc(){
   var sens = sensAdjust[document.getElementById('sensitivity').value];
   
   var coldTime = Math.round(cfg.time * sens.mult);
+  __EMR_S={pt:currentPart,sv:document.getElementById('sensitivity').value,ct:coldTime};
   const __g1=coldTime + '分钟';document.getElementById('coldTime').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=cfg.rest + '分钟';document.getElementById('restTime').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=cfg.max;document.getElementById('maxTimes').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -362,6 +363,62 @@ function updateDisplay(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S||{pt:'joint',sv:'normal',ct:20};
+  var cfg=partConfig[s.pt]||partConfig.joint;
+  var sens=sensAdjust[s.sv]||sensAdjust.normal;
+  var en=__emrEn();
+  var partZh=cfg.name, partEn={joint:'joint',muscle:'muscle',face:'face',limb:'limb',postop:'post-operative'}[s.pt]||s.pt;
+  var sensZh={normal:'皮肤正常',sensitive:'皮肤敏感',diabetic:'糖尿病/感觉减退',elderly:'老年人'}[s.sv]||s.sv;
+  var sensEn={normal:'normal skin',sensitive:'sensitive skin',diabetic:'diabetes or reduced sensation',elderly:'older adult'}[s.sv]||s.sv;
+  var hz,he;
+  if(s.sv==='diabetic'||s.sv==='sensitive'||s.sv==='elderly'){ hz='皮肤敏感/感觉减退人群：单次冷敷缩短至 '+s.ct+' 分钟，结束后必须间隔 '+cfg.rest+' 分钟并检查皮肤；因痛觉与温度觉迟钝，禁止凭主观感觉延长冷敷，出现苍白、发绀、麻木立即停止。';
+    he='Reduced skin tolerance: limit each cold application to '+s.ct+' minutes, rest '+cfg.rest+' minutes afterwards and inspect the skin. Because pain and temperature sensation may be blunted, never extend the application on subjective comfort; stop at once if pallor, cyanosis or numbness appears.'; }
+  else { hz='皮肤耐受正常：单次冷敷 '+s.ct+' 分钟、间隔 '+cfg.rest+' 分钟，24 小时内不超过 '+cfg.max+'，每次结束后检查皮肤颜色与感觉。';
+    he='Normal skin tolerance: apply cold for '+s.ct+' minutes with a '+cfg.rest+'-minute rest, no more than '+cfg.max+' in 24 hours, checking skin colour and sensation after each application.'; }
+  __emrNote({boxId:'result', name:'冷敷时长与皮肤安全评估（'+partZh+'）', nameEn:'Cold Application Duration and Skin Safety ('+partEn+')',
+    result:partZh+'冷敷 · 皮肤条件 '+(en?sensEn:sensZh)+' → 单次 '+s.ct+' 分钟 / 间隔 '+cfg.rest+' 分钟 / 每日 '+cfg.max+' / '+sens.check+'检查皮肤',
+    resultEn:partEn+' cold application; skin condition '+sensEn+'; '+s.ct+' minutes per application, '+cfg.rest+' minutes rest, '+cfg.max+' per day, skin check '+sens.check,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'计算口径：单次时长 = 部位基准（关节/肌肉/四肢/术后 20 分钟、面部 15 分钟）× 皮肤敏感系数（正常 1.0、敏感与老年 0.7、糖尿病 0.5），四舍五入取整',
+    extraEn:'calculation: base duration by site (20 minutes for joint, muscle, limb and post-operative; 15 minutes for face) times a sensitivity factor (1.0 normal, 0.7 sensitive or older adult, 0.5 diabetes), rounded'});
+}
+var __EMR_S;
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
