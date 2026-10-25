@@ -246,6 +246,7 @@ function calc(){
     warning = `<div class="tip-box tip-error" style="margin-top:12px;">您选择了第 9 项“自伤念头”为非零分，建议尽快寻求专业心理或精神科帮助。</div>`;
   }
 
+  window.__EMR_SUM={sc:score,lv:c.level,q9:q9};
   const __g2=`
     <p>PHQ-9 总分：<strong style="font-size:20px;">${score}</strong> 分（0-27 分）</p>
     <p>抑郁程度：<span class="grade-tag ${c.cls}">${c.level}</span></p>
@@ -370,6 +371,63 @@ if(__calc_1_f0){
 function __calc_1Boot(){ try{ __calc_1Presets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __calc_1Boot();
 else document.addEventListener('DOMContentLoaded', __calc_1Boot);
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.q9>0){ hz='第 9 条目（自伤/自杀念头）>0：必须当班进行自杀风险评估（C-SSRS），制定安全计划、清除致命手段并安排随访，不能仅按抑郁分级处理。';
+    he='Item 9 (thoughts of self-harm) above zero: perform a same-shift suicide risk assessment (C-SSRS), build a safety plan, remove lethal means and arrange follow-up; depression severity alone is not sufficient.'; }
+  else if(s.sc>=15){ hz='PHQ-9≥15：中重度抑郁，建议精神科评估并考虑药物联合心理治疗，2 周内复评；同时筛查焦虑与躯体症状。';
+    he='PHQ-9 15 or above: moderately severe depression; refer for psychiatric assessment with combined pharmacotherapy and psychotherapy, re-rate within 2 weeks and screen for anxiety and somatic symptoms.'; }
+  else if(s.sc>=10){ hz='PHQ-9 10–14：中度抑郁，建议启动心理治疗或药物治疗，2–4 周复评；关注功能损害与社会支持。';
+    he='PHQ-9 10-14: moderate depression; start psychotherapy or pharmacotherapy and re-rate in 2-4 weeks, assessing functional impairment and social support.'; }
+  else if(s.sc>=5){ hz='PHQ-9 5–9：轻度症状，可观察随访并做行为激活、睡眠与运动管理，2 周后复评。';
+    he='PHQ-9 5-9: mild symptoms; watchful follow-up with behavioural activation, sleep and exercise management, re-rating in 2 weeks.'; }
+  else { hz='PHQ-9<5：无明显抑郁症状，保持健康作息，年度筛查即可。';
+    he='PHQ-9 below 5: no significant depressive symptoms; maintain healthy routines and annual screening.'; }
+  __emrNote({boxId:'result', name:'PHQ-9 抑郁筛查（含第 9 条目风险提示）', nameEn:'PHQ-9 Depression Screener (with item 9 risk flag)',
+    result:'PHQ-9 总分 '+s.sc+'/27 → 抑郁程度：'+s.lv+'；第 9 条目（自伤念头）得分 '+s.q9+'（>0 需启动自杀风险评估）',
+    resultEn:'PHQ-9 total '+s.sc+'/27; severity '+s.lv+'; item 9 (self-harm thoughts) score '+s.q9+' (above zero requires a suicide risk assessment)',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'分级口径：0–4 无/极轻、5–9 轻度、10–14 中度、15–19 中重度、20–27 重度',
+    extraEn:'severity bands: 0-4 none/minimal, 5-9 mild, 10-14 moderate, 15-19 moderately severe, 20-27 severe'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

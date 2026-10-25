@@ -338,6 +338,7 @@ function calc(){
     else if(highestYes>=1){risk='低危';color='#84CC16';desc='存在被动或主动的自杀意念但无方法/意图，属低风险，建议关注并寻求支持。';}
     else {risk='极低危';color='#10B981';desc='目前未发现自杀意念与行为，风险极低，但仍建议持续关注情绪状态。';}
   }
+  window.__EMR_SUM={hy:highestYes,ab:anyBeh,aa:actualAttempt,rc:recent,rk:risk,ds:desc,di:doneI,db:doneB};
   const __g4='<div class="sev-box" style="background:'+color+'1a;border:1px solid '+color+'55;">'+
     '<div style="font-size:34px;font-weight:700;color:'+color+';">'+risk+'</div>'+
     '<div style="font-size:14px;color:var(--text-light);margin-top:6px;">最高意念等级 '+highestYes+'/5 · 自杀行为：'+(anyBeh?'有':'无')+'</div></div>'+
@@ -432,6 +433,59 @@ function copyResult(){
 }
 var __cssrs0=calc; calc=function(){__cssrs0(); __cssrsExtras();};
 render();calc(); __cssrsMountHist();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.rk.indexOf('高')>=0){ hz='C-SSRS 高风险（含极高危）：当班完成安全计划与致命手段清除，安排一对一监护并通知家属，联系精神科急诊评估；记录意念最高等级、行为类型与最近一次发生时间。';
+    he='C-SSRS high risk (including very high): complete a safety plan and lethal-means removal on shift, arrange one-to-one supervision, inform family and contact psychiatric emergency; document the highest ideation level, behaviour type and most recent occurrence.'; }
+  else if(s.rk.indexOf('中')>=0){ hz='C-SSRS 中危：48 小时内精神科评估，建立书面安全计划与紧急联系人，随访间隔不超过一周，评估致命手段可及性与保护因素。';
+    he='C-SSRS moderate risk: psychiatric assessment within 48 hours, written safety plan with emergency contacts, follow-up no less than weekly, and review access to lethal means and protective factors.'; }
+  else { hz='C-SSRS 低危/极低危：常规随访并告知危机求助渠道，出现新发意念或行为时立即复评。';
+    he='C-SSRS low or very low risk: routine follow-up with crisis contacts provided; re-assess immediately if new ideation or behaviour appears.'; }
+  __emrNote({boxId:'result', name:'哥伦比亚自杀严重程度评定量表（C-SSRS · 完整版）', nameEn:'Columbia Suicide Severity Rating Scale (C-SSRS, full)',
+    result:'意念最高等级 '+s.hy+'/5 · 自杀行为 '+(s.ab?'有':'无')+'（实际尝试 '+(s.aa?'有':'无')+'、近 3 个月发生 '+(s.rc?'是':'否')+'）→ 风险分级：'+s.rk,
+    resultEn:'highest ideation level '+s.hy+'/5; suicidal behaviour '+(s.ab?'present':'absent')+' (actual attempt '+(s.aa?'yes':'no')+', within past 3 months '+(s.rc?'yes':'no')+'); risk level '+s.rk,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'覆盖范围：意念 5 项（'+s.di+'/5 已作答）+ 行为 4 项（'+s.db+'/4 已作答）；判读：'+s.ds,
+    extraEn:'coverage: '+s.di+'/5 ideation items and '+s.db+'/4 behaviour items answered; interpretation: '+s.ds});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 <!-- SEO 介绍区块 -->

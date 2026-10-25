@@ -257,6 +257,7 @@ function calc(){
   else if(total<=80){sev='显著';color='#F59E0B';desc='存在显著社交焦虑，建议专业评估。';}
   else if(total<=90){sev='重度';color='#F97316';desc='存在重度社交焦虑，建议药物+心理治疗。';}
   else {sev='极重度';color='#EF4444';desc='存在极重度社交焦虑，功能严重受损，需积极治疗。';}
+  window.__EMR_SUM={t:total,f:fear,a:avo,sev:sev,pf:pf+pa,sf:sf+sa,n:QS.length};
   const __g5='<div class="sev-box" style="background:'+color+'1a;border:1px solid '+color+'55;">'+
     '<div style="font-size:36px;font-weight:700;color:'+color+';">'+sev+'</div>'+
     '<div style="font-size:16px;color:var(--text-light);margin-top:6px;">总分 '+total+' / 144</div></div>'+
@@ -335,6 +336,59 @@ function copyResult(){
 }
 var __lsas0=calc; calc=function(){__lsas0(); __lsasExtras();};
 render();calc(); __lsasMountHist();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t>80){ hz='LSAS≥81：社交焦虑达重度及以上，建议精神科评估并启动系统治疗（CBT 暴露+认知重构，必要时联合 SSRI），治疗 8–12 周复评。';
+    he='LSAS 81 or above: severe social anxiety; refer for psychiatric assessment and start structured treatment (CBT with exposure and cognitive restructuring, plus an SSRI if indicated), re-rating at 8-12 weeks.'; }
+  else if(s.t>60){ hz='LSAS 61–80：中度/显著社交焦虑，建议心理评估并从等级化暴露练习起步，配合注意力训练，8 周后复评。';
+    he='LSAS 61-80: moderate to marked social anxiety; arrange psychological assessment, start graded exposure with attention training, and re-rate after 8 weeks.'; }
+  else { hz='LSAS≤60：社交焦虑在正常至轻度范围，维持日常社交活动，出现功能受限时复评。';
+    he='LSAS 60 or below: normal to mild social anxiety; maintain social activity and re-rate if functioning becomes limited.'; }
+  __emrNote({boxId:'result', name:'利博维茨社交焦虑量表（LSAS · 自评版）', nameEn:'Liebowitz Social Anxiety Scale (LSAS, self-report)',
+    result:'LSAS 总分 '+s.t+'/144（恐惧 '+s.f+'、回避 '+s.a+'）→ 严重程度：'+s.sev+'；表现型情境 '+s.pf+'、社交型情境 '+s.sf+'（各 '+s.n+' 项情境双维度计分）',
+    resultEn:'LSAS total '+s.t+'/144 (fear '+s.f+', avoidance '+s.a+'); severity '+s.sev+'; performance situations '+s.pf+', social situations '+s.sf,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'评分口径：恐惧 0–3 分 × 24 项 = 0–72；回避 0–3 分 × 24 项 = 0–72；总分 0–144，≥60 提示临床意义',
+    extraEn:'scoring: fear 0-3 across 24 situations (0-72) plus avoidance 0-3 (0-72); total 0-144, 60 or above suggests clinical significance'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 <!-- SEO 介绍区块 -->
