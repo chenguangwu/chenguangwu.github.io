@@ -386,6 +386,76 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var ids=['pyr','cer','bs','sen','bow','vis','cere'], fs=[], i, s;
+  for(i=0;i<ids.length;i++){ s=document.getElementById(ids[i]); if(!s) return; fs.push(parseInt(s.value)||0); }
+  var wEl=document.getElementById('walk'); if(!wEl) return;
+  var walk=parseInt(wEl.value)||0;
+  var maxFs=Math.max.apply(null,fs);
+  var c3=0,c2=0;
+  for(i=0;i<fs.length;i++){ if(fs[i]>=3) c3++; if(fs[i]>=2) c2++; }
+  var edss, edssText;
+  if(maxFs===0){ edss=0; edssText='0'; }
+  else if(maxFs===1){ edss=1; edssText='1.0'; }
+  else if(maxFs===2&&c2===1){ edss=2; edssText='2.0'; }
+  else if(maxFs===2&&c2>=2){ edss=2.5; edssText='2.5'; }
+  else if(maxFs===3&&c3===1){ edss=3; edssText='3.0'; }
+  else if((maxFs===3&&c3>=2)||(maxFs>=3&&c3===1&&c2>=1)){ edss=3.5; edssText='3.5'; }
+  else if(walk<=1&&maxFs>=3){ edss=4; edssText='4.0'; }
+  else if(walk===2){ edss=4.5; edssText='4.5'; }
+  else if(walk===3){ edss=6; edssText='6.0'; }
+  else if(walk===4){ edss=6.5; edssText='6.5'; }
+  else if(walk===5){ edss=7.5; edssText='7.5'; }
+  else if(walk===6){ edss=8.5; edssText='8.5'; }
+  else { edss=5; edssText='5.0'; }
+  var sev,sevEn,hz,he;
+  if(edss<=1.5){ sev='无明显残疾'; sevEn='no disability'; hz='无明显残疾；可继续现有一线疾病修饰治疗并定期复评。'; he='No disability; continue current disease-modifying therapy and reassess periodically.'; }
+  else if(edss<=2.5){ sev='轻度残疾'; sevEn='mild disability'; hz='轻度残疾，行走不受限；建议维持 DMT 并监测复发。'; he='Mild disability with unrestricted walking; maintain DMT and monitor relapses.'; }
+  else if(edss<=3.5){ sev='中度残疾'; sevEn='moderate disability'; hz='中度残疾但可独立行走；评估 DMT 升级与康复训练。'; he='Moderate disability with independent walking; consider DMT escalation and rehabilitation.'; }
+  else if(edss<=5.5){ sev='中重度残疾'; sevEn='moderately severe disability'; hz='中重度残疾，日常活动受限；强化康复与症状管理。'; he='Moderately severe disability limiting daily activities; intensify rehabilitation and symptom management.'; }
+  else if(edss<=7.5){ sev='重度残疾'; sevEn='severe disability'; hz='重度残疾，需助行器或轮椅；重点防跌倒与并发症。'; he='Severe disability requiring aid or wheelchair; focus on falls and complication prevention.'; }
+  else { sev='极重度残疾'; sevEn='very severe disability'; hz='极重度残疾，基本卧床；需全面护理与并发症防治。'; he='Very severe disability, largely bed-bound; comprehensive nursing and complication prevention.'; }
+  __emrNote({name:'EDSS 扩展残疾状态量表（多发性硬化）', nameEn:'EDSS Expanded Disability Status Scale (MS)',
+    result:'EDSS '+edssText+'/10，残疾程度：'+sev, resultEn:'EDSS '+edssText+'/10, band: '+sevEn,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'最高功能系统（FS）评分 '+maxFs+'；FS≥3 共 '+c3+' 个、FS≥2 共 '+c2+' 个；步行等级 '+walk,
+    extraEn:'Highest FS score '+maxFs+'; FS>=3: '+c3+', FS>=2: '+c2+'; ambulation grade '+walk});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

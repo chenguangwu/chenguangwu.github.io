@@ -283,9 +283,9 @@ function calc(){
   html += '<div class="progress-bar"><div class="progress-fill" style="width:'+total+'%;background:'+color+';"></div></div>';
 
   html += '<div class="ref-card"><h4>维度得分</h4><ul>';
-  html += '<li>躯体(P): '+subscores.P+' / 36</li>';
+  html += '<li>躯体(P): '+subscores.P+' / 28</li>';
   html += '<li>情感(E): '+subscores.E+' / 36</li>';
-  html += '<li>功能(F): '+subscores.F+' / 28</li>';
+  html += '<li>功能(F): '+subscores.F+' / 36</li>';
   html += '<li><strong>总分 = '+total+' / 100</strong></li>';
   html += '</ul></div>';
 
@@ -329,9 +329,9 @@ function __dhiExport(){
     else if(total<=34){sev=en?'Mild-moderate disability':'轻中度障碍';advice=en?'Some impact; vestibular rehabilitation and vestibular disease workup recommended':'头晕对生活有一定影响。建议前庭康复训练，排查前庭疾病。';}
     else if(total<=52){sev=en?'Moderate disability':'中度障碍';advice=en?'Significant daily impact; vestibular specialist visit and function tests recommended':'头晕明显影响日常生活。建议前庭专科就诊，行前庭功能检查。';}
     else{sev=en?'Severe disability':'重度障碍';advice=en?'Severe quality-of-life impact; active treatment with medication + vestibular rehab':'头晕严重影响生活质量。需积极诊治，药物+前庭康复训练综合治疗。';}
-    rows.push([en?'Physical (P) subtotal (max 36)':'躯体(P) 小计 (满分 36)',subscores.P,36,'']);
+    rows.push([en?'Physical (P) subtotal (max 28)':'躯体(P) 小计 (满分 28)',subscores.P,28,'']);
     rows.push([en?'Emotional (E) subtotal (max 36)':'情感(E) 小计 (满分 36)',subscores.E,36,'']);
-    rows.push([en?'Functional (F) subtotal (max 28)':'功能(F) 小计 (满分 28)',subscores.F,28,'']);
+    rows.push([en?'Functional (F) subtotal (max 36)':'功能(F) 小计 (满分 36)',subscores.F,36,'']);
     rows.push([en?'DHI total (max 100)':'DHI 总分 (满分 100)',total,100,'']);
     rows.push([en?'Disability level':'障碍程度',0,sev,'']);
     rows.push([en?'Advice':'建议',0,advice,'']);
@@ -346,6 +346,62 @@ function __dhiExport(){
 
 buildForm();
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof questions==='undefined') return;
+  var total=0,sub={P:0,E:0,F:0},done=0,i,j,rs,v,sevN=0;
+  for(i=0;i<questions.length;i++){
+    rs=document.getElementsByName('q'+i);
+    for(j=0;j<(rs?rs.length:0);j++){
+      if(rs[j].checked){ v=parseInt(rs[j].value)||0; total+=v; sub[questions[i].t]+=v; done++; if(v>=3) sevN++; break; }
+    }
+  }
+  if(done<questions.length) return;
+  var sev,sevEn,hz,he;
+  if(total<=16){ sev='轻度/无障碍'; sevEn='mild / no handicap'; hz='头晕对生活影响较小，可观察随访，必要时前庭康复训练。'; he='Little impact on daily life; observe and consider vestibular rehabilitation.'; }
+  else if(total<=34){ sev='轻中度障碍'; sevEn='mild to moderate handicap'; hz='有一定影响，建议前庭康复训练并排查前庭疾病。'; he='Some impact; vestibular rehabilitation and work-up for vestibular disease.'; }
+  else if(total<=52){ sev='中度障碍'; sevEn='moderate handicap'; hz='明显影响日常生活，建议前庭专科就诊与前庭功能检查。'; he='Notable impact on daily life; vestibular specialty review and function testing.'; }
+  else { sev='重度障碍'; sevEn='severe handicap'; hz='严重影响生活质量，需积极诊治并联合药物与前庭康复。'; he='Severe impact on quality of life; active treatment combined with vestibular rehabilitation.'; }
+  __emrNote({name:'DHI 头晕残障量表（25 条目 · 近 1 个月）', nameEn:'DHI Dizziness Handicap Inventory (25 items, past month)',
+    result:'总分 '+total+'/100，分级：'+sev, resultEn:'total '+total+'/100, band: '+sevEn,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'躯体(P) '+sub.P+'/28 · 情感(E) '+sub.E+'/36 · 功能(F) '+sub.F+'/36；重度条目（3–4 分）'+sevN+' 项',
+    extraEn:'Physical (P) '+sub.P+'/36, emotional (E) '+sub.E+'/36, functional (F) '+sub.F+'/28; items scoring 3-4: '+sevN});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

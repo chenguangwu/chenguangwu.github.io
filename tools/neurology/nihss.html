@@ -375,6 +375,67 @@ function resetAll(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof items==='undefined'||typeof labels==='undefined') return;
+  var total=0,pos=[],i,sel,v,o,cons=0;
+  for(i=0;i<items.length;i++){
+    sel=document.getElementById(items[i]); if(!sel) continue;
+    v=parseInt(sel.value)||0; total+=v;
+    if(v>0){
+      o='';
+      try{ if(sel.options&&sel.options[sel.selectedIndex]) o=String(sel.options[sel.selectedIndex].text); }catch(e){}
+      o=o.replace(/^\s*\d+\s*[-—–]\s*/,'');
+      pos.push({i:i+1,t:labels[i].replace(/^\d+[a-z]?\.\s*/,''),o:o});
+    }
+  }
+  cons=(parseInt((document.getElementById('q1a')||{value:0}).value)||0)+(parseInt((document.getElementById('q1b')||{value:0}).value)||0)+(parseInt((document.getElementById('q1c')||{value:0}).value)||0);
+  var sev,sevEn,hz,he;
+  if(total===0){ sev='无卒中'; sevEn='no stroke'; hz='无明显神经功能缺损。'; he='No measurable neurological deficit.'; }
+  else if(total<=4){ sev='轻度卒中'; sevEn='minor stroke'; hz='轻微神经功能缺损；若发病 4.5 小时内无禁忌，可评估静脉溶栓。'; he='Minor deficit; assess IV thrombolysis if within 4.5 h of onset and no contraindication.'; }
+  else if(total<=15){ sev='中度卒中'; sevEn='moderate stroke'; hz='中等缺损；建议溶栓并评估大血管病变，NIHSS≥6 需 CTA/MRA。'; he='Moderate deficit; consider thrombolysis and large-vessel imaging (CTA/MRA if NIHSS >= 6).'; }
+  else if(total<=20){ sev='中重度卒中'; sevEn='moderately severe stroke'; hz='较重缺损；前循环大血管闭塞且发病 24 小时内可评估血管内取栓。'; he='Moderately severe deficit; consider endovascular thrombectomy within 24 h if large-vessel occlusion.'; }
+  else { sev='重度卒中'; sevEn='severe stroke'; hz='严重缺损，大血管闭塞可能性大；紧急影像评估取栓并密切监护。'; he='Severe deficit, likely large-vessel occlusion; urgent imaging for thrombectomy and close monitoring.'; }
+  __emrNote({name:'NIHSS 卒中量表（15 项）', nameEn:'NIHSS Stroke Scale (15 items)',
+    result:'总分 '+total+'/42，分级：'+sev, resultEn:'total '+total+'/42, band: '+sevEn,
+    pos:pos, hintZh:hz, hintEn:he,
+    extra:'意识项目（1a+1b+1c）合计 '+cons+'/7；≥1 分条目 '+pos.length+' 项',
+    extraEn:'Consciousness items (1a+1b+1c) '+cons+'/7; items scoring >=1: '+pos.length});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

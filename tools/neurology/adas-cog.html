@@ -399,6 +399,66 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof items==='undefined'||typeof labels==='undefined') return;
+  var total=0,pos=[],i,sel,v,mx=0,mxT='',o;
+  for(i=0;i<items.length;i++){
+    sel=document.getElementById(items[i]); v=sel?(parseInt(sel.value)||0):0; total+=v;
+    if(v>mx){ mx=v; mxT=labels[i].replace(/^\d+\.\s*/,''); }
+    if(v>0){
+      o='';
+      try{ if(sel&&sel.options&&sel.options[sel.selectedIndex]) o=String(sel.options[sel.selectedIndex].text); }catch(e){}
+      pos.push({i:i+1,t:labels[i].replace(/^\d+\.\s*/,''),o:o});
+    }
+  }
+  var sev,sevEn,hz,he;
+  if(total<=4){ sev='正常/极轻'; sevEn='normal / very mild'; hz='认知功能正常或极轻微损害。'; he='Cognition normal or very mildly impaired.'; }
+  else if(total<=9){ sev='轻度'; sevEn='mild'; hz='轻度认知损害；建议随访并评估是否进展为 AD。'; he='Mild impairment; follow up and assess progression to AD.'; }
+  else if(total<=18){ sev='轻中度'; sevEn='mild to moderate'; hz='早期阿尔茨海默病；可启动胆碱酯酶抑制剂并完善生物标志物检查。'; he='Early Alzheimer disease; consider cholinesterase inhibitor and biomarker work-up.'; }
+  else if(total<=30){ sev='中度'; sevEn='moderate'; hz='中期阿尔茨海默病；继续胆碱酯酶抑制剂，可加用美金刚，加强照护。'; he='Moderate Alzheimer disease; continue cholinesterase inhibitor, consider memantine, strengthen care.'; }
+  else if(total<=50){ sev='中重度'; sevEn='moderately severe'; hz='中晚期阿尔茨海默病；综合管理认知与行为症状。'; he='Moderately severe Alzheimer disease; manage cognitive and behavioural symptoms.'; }
+  else { sev='重度'; sevEn='severe'; hz='晚期阿尔茨海默病；以对症支持与照护为主。'; he='Severe Alzheimer disease; supportive and palliative care.'; }
+  __emrNote({name:'ADAS-Cog 阿尔茨海默病评定量表-认知部分（12 项）', nameEn:'ADAS-Cog (12 items)',
+    result:'总分 '+total+'/70，分级：'+sev, resultEn:'total '+total+'/70, band: '+sevEn,
+    pos:pos, hintZh:hz, hintEn:he,
+    extra:'最高单项：'+mxT+' '+mx+' 分；异常条目（≥1 分）'+pos.length+'/12',
+    extraEn:'Worst item: '+mxT+' '+mx+'; abnormal items (>=1): '+pos.length+'/12'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
