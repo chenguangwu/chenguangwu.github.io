@@ -40,7 +40,7 @@
 |---|---|---|
 | 01-IT开发 | it.md / ai.md / encode-telecom-security-data.md | 🔴 待开发 |
 | 02-金融财务 | finance.md / banking-investment-securities.md / tax-accounting-audit.md / insurance.md | 🟡 进行中：finance 功能缺陷 4 批已修（个税年终奖双口径 / 提前还款节省额口径 / 发票金额大写 / 汇率手动模式 / 定投止盈反推 / 债券 ±100bp）；tax-accounting-audit、insurance 待开发 |
-| 03-医疗健康 | scales.md / lab-diagnosis.md / drug-dosing.md / specialties.md | 🟡 进行中：lab-diagnosis S3「参考区间标尺」pilot 6 页已落地（ckd-staging / creatinine-clearance / nt-probnp / coagulation-inr / hba1c-converter / blood-gas-analysis），通用组件 `TBKit.chart.refBar` 已上线；drug-dosing、scales、specialties 待开发 |
+| 03-医疗健康 | scales.md / lab-diagnosis.md / drug-dosing.md / specialties.md | 🟡 进行中：lab-diagnosis S3「参考区间标尺」6 页 + drug-dosing「年龄→参考体重 + 肝肾功能减量提示」2 页已落地；通用组件 `TBKit.chart.refBar` 已上线；scales、specialties 待开发 |
 | 04-设计创意 | design.md / image.md | 🔴 待开发 |
 | 05-生活消费 | photo-video.md / food-travel.md / sports-fitness.md / home-decor.md / life.md | 🔴 待开发 |
 | 06-商业运营 | marketing-sales.md / ecommerce-logistics.md / hr-legal.md / realestate.md / biz-startup.md | 🔴 待开发 |

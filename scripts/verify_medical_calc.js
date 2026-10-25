@@ -123,6 +123,37 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "24",
+    "height": "118",
+    "age": "6",
+    "perDose": "10"
+  },
+  "clicks": ["document.getElementById('hepFunc').value='c';calc();"],
+  "expect": [
+    "6 岁：男童中位体重约 20.5 kg ，女童约 20.2 kg",
+    "较同龄男童中位体重高 17%",
+    "主要清除途径：肝脏 肝功能 C 级：建议显著减量"
+  ],
+  "ref": "WHO 生长标准 P50：6 岁男 20.5 kg / 女 20.2 kg；输入 24 kg ⇒ (24-20.5)/20.5=17.07% ⇒ 高 17%。对乙酰氨基酚（DRUGS[0]）经肝代谢，Child-Pugh C ⇒ 显著减量或避免。失败态：clicks 清空 ⇒ hepFunc 回落 normal、age 保持默认 30（非儿童）⇒ 参考体重段不出现、肝提示消失 ⇒ 三条均不命中。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "60",
+    "height": "170",
+    "age": "30",
+    "perDose": "10"
+  },
+  "clicks": ["document.getElementById('drug').value='3';document.getElementById('renalFunc').value='severe';calc();"],
+  "expect": [
+    "药物：阿莫西林（Amoxicillin）",
+    "主要清除途径：肾脏 肾功能重度下降：建议显著减量"
+  ],
+  "ref": "drug value=3 ⇒ DRUGS[3]=阿莫西林（索引序：对乙酰氨基酚0/布洛芬1/阿司匹林2/阿莫西林3），经肾排泄；肾功能重度下降（Ccr 15–29）⇒ 显著减量或延长间隔。默认药物为对乙酰氨基酚（肝脏）且 renalFunc 回落 normal ⇒ 两条均不命中。"
+},
+{
   "slug": "medical/drug-info",
   "inputs": {
     "search": "zzzqx"

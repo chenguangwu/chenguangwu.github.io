@@ -210,6 +210,29 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div class="input-row">
+      <div>
+        <label>肾功能状态（Ccr / eGFR）</label>
+        <select id="renalFunc" onchange="calc()">
+          <option value="normal">正常（≥80 mL/min）</option>
+          <option value="mild">轻度下降（50–79）</option>
+          <option value="moderate">中度下降（30–49）</option>
+          <option value="severe">重度下降（15–29）</option>
+        </select>
+      </div>
+      <div>
+        <label>肝功能状态（Child-Pugh）</label>
+        <select id="hepFunc" onchange="calc()">
+          <option value="normal">正常</option>
+          <option value="a">A 级（轻度受损）</option>
+          <option value="b">B 级（中度受损）</option>
+          <option value="c">C 级（重度受损）</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="pedWeightBox" style="font-size:13px;color:var(--text-muted);margin:-4px 0 12px;line-height:1.7;"></div>
+
     <div class="toolbar">
       <div id="dosage_calculatorPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">计算剂量</button>
@@ -316,6 +339,38 @@ var DRUGS = [
   {name:'环磷酰胺', en:'Cyclophosphamide', cat:'抗肿瘤', adultW:0, childW:0, bsa:500, maxDay:0, interval:'按方案', note:'化疗药物，需水化、监测血象与出血性膀胱炎。'}
 ];
 
+// 主要清除途径（肝肾功能减量提示用）
+var DRUG_ELIM = {
+  '对乙酰氨基酚': 'hepatic', '布洛芬': 'hepatic', '阿司匹林': 'hepatic',
+  '阿莫西林': 'renal', '头孢氨苄': 'renal', '头孢曲松': 'both',
+  '阿奇霉素': 'hepatic', '克拉霉素': 'hepatic', '甲硝唑': 'hepatic',
+  '万古霉素': 'renal', '氨茶碱': 'hepatic', '地塞米松': 'hepatic',
+  '苯妥英钠': 'hepatic', '芬太尼': 'hepatic', '环磷酰胺': 'both'
+};
+
+// WHO 生长标准体重-for-age 第 50 百分位（0–18 岁，kg）
+var W_REF_BOY = { 0: 3.3, 1: 9.6, 2: 12.2, 3: 14.3, 4: 16.3, 5: 18.3, 6: 20.5, 7: 22.9, 8: 25.6, 9: 28.6,
+  10: 32.0, 11: 35.9, 12: 40.5, 13: 45.6, 14: 50.8, 15: 55.4, 16: 59.3, 17: 62.3, 18: 64.4 };
+var W_REF_GIRL = { 0: 3.2, 1: 8.9, 2: 11.5, 3: 13.9, 4: 16.1, 5: 18.2, 6: 20.2, 7: 22.4, 8: 25.0, 9: 28.2,
+  10: 31.9, 11: 36.9, 12: 41.5, 13: 45.8, 14: 47.6, 15: 49.0, 16: 50.0, 17: 50.6, 18: 51.0 };
+
+function refWeightOf(age) {
+  if (!(age >= 0) || age > 18) return null;
+  var lo = Math.floor(age), hi = Math.ceil(age);
+  function lerp(t) { return lo === hi ? t[lo] : t[lo] + (t[hi] - t[lo]) * (age - lo); }
+  return { boy: lerp(W_REF_BOY), girl: lerp(W_REF_GIRL) };
+}
+
+function updatePedWeightHint() {
+  var el = document.getElementById('pedWeightBox');
+  if (!el) return;
+  var age = +document.getElementById('age').value;
+  var r = refWeightOf(age);
+  if (!r) { el.innerHTML = ''; return; }
+  el.innerHTML = '📏 ' + age + ' 岁儿童中位体重（WHO P50）：男童约 <strong>' + r.boy.toFixed(1)
+    + ' kg</strong> ｜ 女童约 <strong>' + r.girl.toFixed(1) + ' kg</strong>（仅用于核对体重填写是否偏差过大）';
+}
+
 function init(){
   var sel = document.getElementById('drug');
   DRUGS.forEach(function(d, i){
@@ -357,6 +412,7 @@ function onDrugChange(){
 }
 
 function calc(){
+  updatePedWeightHint();
   var i = +document.getElementById('drug').value;
   var d = DRUGS[i];
   var w = +document.getElementById('weight').value;
@@ -406,6 +462,44 @@ function calc(){
   html += '<div class="step-line">单次剂量：'+singleDose.toFixed(2)+' mg，每 '+(24/freq)+' 小时一次</div>';
   html += '<div class="step-line">日剂量：'+dailyDose.toFixed(2)+' mg' + (d.maxDay?'（最大 '+d.maxDay+' mg）':'')+'</div>';
   html += maxWarn + childWarn;
+
+  // —— 儿童参考体重核对（WHO 生长标准 P50）——
+  if (age > 0 && age <= 18 && w > 0) {
+    var __r = refWeightOf(age);
+    if (__r) {
+      var __dp = (w - __r.boy) / __r.boy * 100;
+      var __dt = (__dp >= 0 ? '高 ' : '低 ') + Math.abs(__dp).toFixed(0) + '%';
+      html += '<div class="ref-card" style="margin-top:12px;"><h4>儿童参考体重核对（WHO P50）</h4><ul>';
+      html += '<li>' + age + ' 岁：男童中位体重约 <strong>' + __r.boy.toFixed(1) + ' kg</strong>，女童约 <strong>' + __r.girl.toFixed(1) + ' kg</strong></li>';
+      html += '<li>当前输入 ' + w + ' kg，较同龄男童中位体重' + __dt + (Math.abs(__dp) >= 40 ? '；<strong style="color:var(--danger);">偏差超过 40%，请核对体重单位（kg / 斤）是否填错</strong>' : '') + '</li>';
+      html += '</ul></div>';
+    }
+  }
+
+  // —— 肝肾功能减量提示 ——
+  var __rf2 = document.getElementById('renalFunc') ? document.getElementById('renalFunc').value : 'normal';
+  var __hf2 = document.getElementById('hepFunc') ? document.getElementById('hepFunc').value : 'normal';
+  var __el2 = DRUG_ELIM[d.name] || 'none';
+  var __t2 = [];
+  if (__el2 === 'renal' || __el2 === 'both') {
+    if (__rf2 === 'mild') __t2.push('肾功能轻度下降：该药经肾排泄比例高，通常无需调整或仅小幅减量，监测尿量/电解质。');
+    else if (__rf2 === 'moderate') __t2.push('肾功能中度下降：建议维持量减少约 25–50% 或延长给药间隔。');
+    else if (__rf2 === 'severe') __t2.push('肾功能重度下降：建议显著减量（常见为常规量 25–50%）或延长间隔，有条件时监测血药浓度。');
+  }
+  if (__el2 === 'hepatic' || __el2 === 'both') {
+    if (__hf2 === 'a') __t2.push('肝功能 A 级：一般无需调整，监测肝功能指标。');
+    else if (__hf2 === 'b') __t2.push('肝功能 B 级：建议减少约 25–50% 或延长间隔，避免与其他肝毒性药物叠加。');
+    else if (__hf2 === 'c') __t2.push('肝功能 C 级：建议显著减量（≤常规量 50%）或避免使用，须专科核定。');
+  }
+  if (!__t2.length) {
+    if (__el2 === 'none') __t2.push('该药清除途径未收录，肝肾功能不全时请查阅说明书。');
+    else if (__rf2 === 'normal' && __hf2 === 'normal') __t2.push('肝肾功能均正常，无需因脏器功能调整剂量。');
+    else __t2.push('该药主要清除途径与当前受损脏器不一致，脏器功能不全对剂量影响较小。');
+  }
+  html += '<div class="tip-box tip-warn" style="margin-top:10px;"><strong>⚠️ 肝肾功能减量提示</strong><br>';
+  html += '主要清除途径：' + ({ renal: '肾脏', hepatic: '肝脏', both: '肝+肾', none: '未收录' }[__el2]) + '<br>';
+  html += __t2.join('<br>');
+  html += '<br><span style="font-size:12px;">以上为通用原则，具体剂量以药品说明书与临床药师/医师核定为准。</span></div>';
 
   const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
