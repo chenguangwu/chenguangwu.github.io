@@ -1,9 +1,6 @@
 # 设计创意 · tools/design（111 页）
 
 ## 已知问题
-### X1. 已修：depth-of-field-calculator 双重裁剪、shutter/exposure 系（✅ 图表已注入）。
-### X2. colorblind-simulator / shadow-generator 属「天然不需要图表」池（已甄别，_chart_presets_screening.md）。
-
 ## 功能缺陷
 - 颜色工具缺「对比度检查 + 色盲模拟 + 十六进制锁」三合一（WCAG 2.2 达标标注）。
 - shadow-generator 预设过少（S2 补 Material/Neumorphism/Glassmorphism 风格预设）。

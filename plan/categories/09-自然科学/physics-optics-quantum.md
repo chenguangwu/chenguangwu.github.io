@@ -1,9 +1,6 @@
 # 物理/光学/量子 · tools/{physics 类目录,astronomy,optics,quantum,kinematics,dynamics,thermodynamics,acoustics,fluid}（~250 页）
 
 ## 已知问题
-### P1. 已修：critical-distance 系数 0.141→0.057（含 4 数据源）、sound-power-level 基准、spin-magnetic 塞曼、等效视角/景深双重裁剪、Bernoulli/泊肃叶公式框。
-### P2. 遗留：无高危；doppler-optical 近似口径页面自洽。
-
 ## 功能缺陷
 - 声学页缺「房间模式计算器」（简正频率矩形房间，音频工作室刚需）。
 - 天文页缺「当前位置可见行星」（静态星历表月度数据模块）。

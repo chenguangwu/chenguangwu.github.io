@@ -2,11 +2,10 @@
 
 ## 现状基线（2026-10-25）
 - 判别力：7731 用例全绿（逃生项 0）；false-pass 弱用例 no_inputs=10 / all_default=4（=基线）。
-- 本轮已修 6 组失效用例（口径同步）、1 个判别器实锤逃生项（wells「高度」）、删除 1 条模板串坏用例（beer-gravity）。
 
 ## 遗留问题
 ### P1. beer-gravity 用例缺失
-- 描述：坏用例已删，页 OG 公式已修（×2.20462）但无 verify 覆盖；麦芽行为动态 id（malt-wt-N），stub 注入不可靠。
+- 描述：页 OG 公式无 verify 覆盖；麦芽行为动态 id（malt-wt-N），stub 注入不可靠。
 - 方案：用 clicks 驱动（页面 window 导出的 addMalt/updateMaltWeight）重建用例；或为页面补静态汇总 id。
 - 受影响：scripts/verify_food_calc.js、tools/food/beer-gravity-estimator.html
 

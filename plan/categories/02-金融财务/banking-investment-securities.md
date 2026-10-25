@@ -6,9 +6,6 @@
 - 受影响：tools/banking/annuity-*、growing-annuity-pv、tools/investment/*（~25 页）
 - 方案：统一参数命名与「期初/期末」开关；互相内链成族。
 
-### B2. IRR 系已加多重解警示；NPV 图已注入
-- 状态：✅（本仓已修 irr-calc/irr-calculator/npv-discount）。遗留：irr-calculator 私有数组驱动的 verify 覆盖薄。
-
 ### B3. Black-Scholes/希腊字母页无隐含波动率反解
 - 受影响：tools/securities/black-scholes-*、option-greeks
 - 方案：加「由市价反解 IV」二分（纯前端可行，竞品标配）。

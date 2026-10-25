@@ -1,7 +1,6 @@
 # 科研/图书馆 · tools/{research,library,archive}（~20 页）
 
 ## 已知问题
-- analysis-52/percentile 等统计已在第一批审计修复口径（✅）。
 
 ## 功能缺陷
 - 缺「样本量计算器」统一入口（alpha/效力/效应量三参数，各学科预设）。

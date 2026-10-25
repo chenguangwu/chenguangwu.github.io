@@ -1,8 +1,6 @@
 # 摄影/视频 · tools/{photo,video}（~80 页）
 
 ## 已知问题
-### P1. 已修：equivalent-focal 双重裁剪、photo/depth-of-field 标签、macro 物高、estimate-energy kWh/公里。
-### P2. 待裁断/重构：photo-4 NPF 星轨口径（G01-C4）。
 ### P3. 自洽不立案：card-capacity GB×1000 与 photo-8 的 1024 进制跨页不一致——建议统一标注进制（列入本文件为唯一遗留）。
 - 受影响：tools/photo/card-capacity.html、photo-8.html
 

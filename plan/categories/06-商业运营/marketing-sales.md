@@ -1,7 +1,6 @@
 # 营销/销售 · tools/{marketing,advertising,sales}（~70 页）
 
 ## 已知问题
-- funnel-calculator/ad-roi 图表已注入（✅）；vanderbilt 等医学项不属于本类。
 
 ## 功能缺陷
 - ROI 页缺「多渠道对比表」（同预算分三渠道敏感性）。

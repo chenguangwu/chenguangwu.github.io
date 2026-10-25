@@ -1,9 +1,6 @@
 # 餐饮/旅行 · tools/{food,food-processing,restaurant,baking,travel}（~90 页）
 
 ## 已知问题
-### F1. 已修：beer-gravity kg→lb（用例待重建 G04-P1）、mold-volume 预设组。
-### F2. 遗留：beer 页 verify 覆盖缺口（G04）。
-
 ## 功能缺陷
 - 烘焙换算缺「面粉含水量/酵母鲜干换算」高频项。
 - 旅行缺「多币种行程记账」（手动汇率本地算）。

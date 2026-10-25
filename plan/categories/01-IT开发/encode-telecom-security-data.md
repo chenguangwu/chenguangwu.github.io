@@ -7,8 +7,8 @@
 - 方案：结果区加「字节视图」折叠面板（教学向差异化）。
 
 ### E2. telecom 换算页口径混杂
-- 描述：convert-24 已修 SNR→Eb/N0；bandwidth-calculator 已修 MB/s 倍率。同类页（ber-snr、subnet、path-loss）口径自洽，但「带宽 KB=0.001 与 GB=1024 混用」的进制口径仍不统一（audit 备案）。
-- 受影响：tools/telecom/bandwidth-calculator.html（进制）、estimate-9（已修守卫）
+- 描述：分类内「带宽 KB=0.001 与 GB=1024 混用」的进制口径不统一（bit 系应 1000、byte 系应 1024）。
+- 受影响：tools/telecom/bandwidth-calculator.html 及同分类换算页
 - 方案：全分类统一「bit 系 1000 / byte 系 1024」并页面标注。
 
 ### E3. security 模拟器类内容单薄

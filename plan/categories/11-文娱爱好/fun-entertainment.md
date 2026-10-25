@@ -1,7 +1,6 @@
 # 娱乐 · tools/{fun,music,film,media,dance,martial,chess,games 类}（~80 页）
 
 ## 已知问题
-- music 音分/BPM 核验通过（✅）；ear-trainer 属弱用例基线（G04-P3）。
 
 ## 功能缺陷
 - 音乐页缺「和弦进行速查」（常用 1645/4536 试听）。

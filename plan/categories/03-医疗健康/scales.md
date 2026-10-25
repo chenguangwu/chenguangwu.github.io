@@ -5,9 +5,6 @@
 - gags-acne 7→6 分区、rater-21 TWSTRS 题量、psqi 成分 5 缺 2 项。
 ### M2. 阈值口径待裁断（G01-A8）
 - kupperman、vanderbilt、asrs。
-### M3. 已修复基线（勿重复）
-- ✅ M-CHAT 方向倒置、SCL-90 因子归属、BVAS 分级赋值、wells/chaads 权重、echo 舒张判据、RTA 前提分支、SARA 全局泄漏。
-
 ## 功能缺陷
 - 量表页普遍缺「答案回显/打印病历」格式（医生群体要能贴进门诊记录）。
 - 结果只给总分档，缺「维度雷达图」（DHI/WOMAC 等已补 bar，推广到全量表）。

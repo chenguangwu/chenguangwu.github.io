@@ -1,7 +1,6 @@
 # 航空/机器人 · tools/{aerospace,robotics}（~60 页）
 
 ## 已知问题
-### A1. 已修：lift-coefficient 单位口径、bank-angle/orbital 系公式框。
 ### A2. 遗留：breguet ISP=6000s 为 TSFC 口径（自洽不立案，建议页面加单位注释）。
 - 受影响：tools/aerospace/breguet-range.html
 

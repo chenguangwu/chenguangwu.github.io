@@ -2,7 +2,7 @@
 
 ## 已知问题
 ### F1. 贷款/利率系「名义 vs 实际」口径页散
-- 描述：credit-card-interest、installment-real-rate 已修（IRR+EAR）；但 APR/EAR/复利页分散，用户不知道该用哪个。
+- 描述：APR/EAR/复利/IRR 页分散于 finance/banking 多页，用户不知道该用哪个。
 - 受影响：tools/finance/*interest*、*loan*、*rate*（~30 页）
 - 方案：建「利率口径导航」内链模块（G06 S3 联动），同输入多口径并排。
 

@@ -1,7 +1,6 @@
 # ToolBox 优化任务总控（MASTER）
 
 > 本文件是 `plan/` 任务体系的唯一进度登记处。**只分析不开发**：本目录全部文件为问题清单 + 解决方案 + 受影响工具路径，供后续按批开发。
-> 更新纪律：每完成一个任务，把对应行改为 ✅ 并注明 commit；新发现的问题按归属追加到对应文件，不新开重复文件。
 
 ## 体系结构
 
@@ -21,6 +20,18 @@
 | G06-留存与竞争力升级.md | **核心**：用户「看一眼就走」的破局方案 | 🔴 待开发 |
 | G07-性能与移动端.md | 首屏速度/移动端可用性/弱网 | 🔴 待排查 |
 
+## 全站审计覆盖进度（目标：所有工具审计一遍）
+
+| 批次 | 覆盖目录 | 状态 |
+|---|---|---|
+| 批1-16 | statistics/math/science/金融6目录/工程5目录/健康4目录/土木化学6目录/检验生理6目录/物理地物6目录/商运6目录/量表6目录/专科6目录/食品农业6目录/IT媒体6目录/生活6目录/声学航空6目录/产业6目录/生活商业6目录 | ✅ 已覆盖（发现的问题已修复或已登记） |
+| 批17 | machinery/life/biz/fun/automotive/general（212 计算页全读） | ✅ 已覆盖（新发现 3 项已归档：life.md L1/biz-startup.md Z1/machinery M3） |
+| 批18 | realestate/legal/marketing/metalwork/meteorology/energy/optical/fire-rescue/eco（322 计算页全读） | ✅ 已覆盖（新发现 2 项归档：eco-10/16 量纲 E1、metalwork 7 对比页功能单薄；realestate/legal 双段式页生效版此前 S 批已对照） |
+| 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（~340 页） | ⚪ 待审计 |
+| 批20 | 其余全部 <25 页小目录（~90 个，~800 页） | ⚪ 待审计 |
+
+> 登记纪律：审计新发现的**未修复**问题按归属追加进对应任务文件；已修复问题一律不写入。
+
 ## 分类任务进度
 
 | 大分类 | 文件 | 状态 |
@@ -29,23 +40,11 @@
 | 02-金融财务 | finance.md / banking-investment-securities.md / tax-accounting-audit.md / insurance.md | 🔴 待开发 |
 | 03-医疗健康 | scales.md / lab-diagnosis.md / drug-dosing.md / specialties.md | 🔴 待开发 |
 | 04-设计创意 | design.md / image.md | 🔴 待开发 |
-| 05-生活消费 | photo-video.md / food-travel.md / sports-fitness.md / home-decor.md | 🔴 待开发 |
-| 06-商业运营 | marketing-sales.md / ecommerce-logistics.md / hr-legal.md / realestate.md | 🔴 待开发 |
+| 05-生活消费 | photo-video.md / food-travel.md / sports-fitness.md / home-decor.md / life.md | 🔴 待开发 |
+| 06-商业运营 | marketing-sales.md / ecommerce-logistics.md / hr-legal.md / realestate.md / biz-startup.md | 🔴 待开发 |
 | 07-教育学习 | edu-language.md / research-library.md | 🔴 待开发 |
 | 08-工程制造 | machinery-metalwork.md / electrical-electronics.md / construction-energy.md / aero-robotics.md | 🔴 待开发 |
 | 09-自然科学 | science-math-statistics.md / physics-optics-quantum.md / earth-geo.md | 🔴 待开发 |
 | 10-农业养殖 | agriculture.md / fishery-aquaculture.md / livestock-eco-forestry.md | 🔴 待开发 |
 | 11-文娱爱好 | fun-entertainment.md / culture-collection.md | 🔴 待开发 |
 | 12-长尾行业 | _others.md（<20 页的其余 190+ 行业） | 🟡 仅收录已知问题 |
-
-## 已完成基线（本轮分析前的存量战果，避免重复开发）
-
-- ✅ formula-eq 短框升级 1316 页（S2–S33，commit 92546a6513）
-- ✅ 图表/预设扩补 93 页真缺池闭环（八批 65 页注入 + 28 页甄别为不需要，`_chart_presets_screening.md`）
-- ✅ hydraulic 5 个模板壳页重建（004bc99736）
-- ✅ 公式精度审计 16 批 ~1560 页，68 处真缺陷已修复并 verify 同步（含血糖换算方向、CHA₂DS₂-VASc、Wells、M-CHAT 方向倒置、CMC 色差、GDD、农机效率等）
-- ✅ rater-22/detector-time/rater-17/echo-report/egfr 误标等缺陷清算
-- ✅ 门禁 218/218 多轮全过；判别器逃生项清零
-- ⚠️ 未完成收尾：本地 2 个提交待推送（1e87e1cdc1 等），恢复时先 `git fetch` 核对远端（origin 曾被外部推进）
-
-> 状态图例：🔴 待开发 ｜ 🟡 进行中/部分完成 ｜ ✅ 已完成（注明 commit）

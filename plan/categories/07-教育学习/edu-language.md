@@ -1,7 +1,6 @@
 # 教育/语言 · tools/{edu,edu2,language,chinese}（~60 页）
 
 ## 已知问题
-### E1. 已修：wrong-book UTC 日期、gpa/成绩系公式框、multiplication-table 正误率图。
 ### E2. 遗留：GPA 页「加权平均权重和≠1」未系统扫（列入：输入学分权重后校验 Σw 提示）。
 - 受影响：tools/edu/gpa-calculator.html、grade-weight-calculator 等
 

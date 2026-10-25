@@ -1,9 +1,6 @@
 # 电气/电子 · tools/{electrical,electronics,electromagnetism}（~80 页）
 
 ## 已知问题
-### E1. 已修：power-7/voltage-drop 三相 √3（安全相关）、combination 系溢出。
-### E2. 遗留：无高危项；载流量经验幂律（calc-1）为页面自洽。
-
 ## 功能缺陷
 - 导线选型缺「敷设方式/环境温度修正」联动（标准表静态可做）。
 - 电子页缺「色环电阻图像识别」替代方案（纯文本速查表升级为交互拨盘）。

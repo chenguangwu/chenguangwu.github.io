@@ -5,11 +5,6 @@
 ## 已收录问题
 ### O1. dyeing/tester-9 输入 C 未参与计算（GB/T 20944.2 对照口径）
 - 方案：`(C−B)/C` 与 `logC−logB` 分支接入；受影响：tools/dyeing/tester-9.html
-### O2. textiles/ceramics/glass 系：已修 color-diff CMC T、naipo 纸样重量；其余核验通过。
-### O3. pet/pet-training：training-planner 已注入 preset（✅）。
-### O4. bonding/leather/rubber/plastic：无高危（抽样核验）。
-### O5. medical2/elderly/daily-goods/kids 等：未深扫（长尾低热，按需在续批补扫）。
-
 ## 受影响范围
 - tools/ 其余 190+ 长尾行业目录
 
