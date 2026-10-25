@@ -206,6 +206,75 @@ document.getElementById('res').dataset.copyValue='NIHSS：'+t+'/42（'+g+'）';}
 function copyResult(){var e=document.getElementById('res');ToolBox.copyText(e.dataset.copyValue||e.textContent, i18nText());}
 function resetAll(){items.forEach(function(it,i){document.getElementById('ni'+i).value='0';});calc();ToolBox.showToast(i18nText(), 'info');}
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }function __emrBand(total){
+  if(total===0) return ['无卒中症状','no stroke symptoms','无明显神经功能缺损。','No measurable neurological deficit.'];
+  if(total<=1) return ['轻微卒中','minor stroke','极轻微缺损，注意观察病情变化。','Minimal deficit; observe for deterioration.'];
+  if(total<=4) return ['轻度卒中','mild stroke','轻度缺损，若在 4.5 小时溶栓窗内且无禁忌可评估静脉溶栓。','Mild deficit; assess IV thrombolysis within 4.5 h if eligible.'];
+  if(total<=15) return ['中度卒中','moderate stroke','中度缺损，需评估溶栓/取栓指征并启动二级预防。','Moderate deficit; assess reperfusion therapy and start secondary prevention.'];
+  if(total<=20) return ['中重度卒中','moderately severe stroke','中重度缺损，评估血管内取栓，加强监护。','Moderately severe; consider thrombectomy and closer monitoring.'];
+  return ['重度卒中','severe stroke','重度缺损，预后较差，需紧急再灌注评估并加强监护。','Severe deficit with poorer prognosis; urgent reperfusion assessment and intensive monitoring.'];
+  return null;
+}
+
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  if(typeof items==='undefined') return;
+  var total=0,maxTot=0,pos=[],i,j,sel,v,mv,o;
+  for(i=0;i<items.length;i++){
+    sel=document.getElementById('ni'+i); if(!sel) continue;
+    v=parseInt(sel.value)||0; total+=v;
+    mv=0;
+    try{ for(j=0;j<sel.options.length;j++){ var ov=parseInt(sel.options[j].value); if(!isNaN(ov)&&ov>mv) mv=ov; } }catch(e){}
+    if(!mv&&items[i].o&&items[i].o.length) mv=items[i].o.length-1;
+    maxTot+=mv;
+    if(v>0){
+      o=String((items[i].o&&items[i].o[v])||'').replace(/^\s*\d+\s*[-—–]\s*/,'');
+      pos.push({i:i+1,t:String(items[i].n||'').replace(/^\d+\.\s*/,''),o:o});
+    }
+  }
+  maxTot=42; /* 量表满分与页面显示的 mx 保持一致（rater 页选项数组可能少于标准分档，故不按选项上限累加） */
+  var b=__emrBand(total)||['','','',''];
+  __emrNote({name:'NIHSS 神经功能缺损评分（42 分制 · 15 项）', nameEn:'NIHSS Neurological Deficit Scale (42-point, 15 items)', boxId:'res',
+    result:'总分 '+total+'/'+maxTot+'，分级：'+b[0],
+    resultEn:'total '+total+'/'+maxTot+', band: '+b[1],
+    pos:pos, hintZh:b[2], hintEn:b[3],
+    extra:'量表满分 '+maxTot+'；得分率 '+Math.round(total/maxTot*100)+'%；≥1 分条目 '+pos.length+'/'+items.length,
+    extraEn:'Scale maximum '+maxTot+'; score ratio '+Math.round(total/maxTot*100)+'%; items scoring >=1: '+pos.length+'/'+items.length});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 </div>

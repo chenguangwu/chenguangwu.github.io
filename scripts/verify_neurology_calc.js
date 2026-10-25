@@ -146,23 +146,25 @@ const CASES = [
 },
 {
   "slug": "neurology/rater-18",
-  "inputs": {
-    "ni'+i+'": "'+j+'"
-  },
-  "expect": [
-    "+j+"
+  "clicks": [
+    "for(var i=0;i<15;i++){var e=document.getElementById('ni'+i);if(e)e.value='2';}calc()"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "【NIHSS 神经功能缺损评分（42 分制 · 15 项）】 结果：总分 30/42，分级：重度卒中",
+    "量表满分 42；得分率 71%；≥1 分条目 15/15"
+  ],
+  "ref": "原用例是生成器模板残留：inputs 键写成 ni+单引号+i+单引号、expect 只有 +j+；后者能在页面内联 JS 里命中，属零判别力假通过，判别器又因输入键映射不到元素而跳过。已改为 clicks 注入 15 个生成式 select 全取 2 分 ⇒ 总分 30 >20 落「重度卒中」，得分率 30/42≈71%。默认态全 0 ⇒ 门诊记录为「总分 0/42，分级：无卒中症状」，零交集。"
 },
 {
   "slug": "neurology/rater-19",
-  "inputs": {
-    "ui'+i+'": "'+j+'"
-  },
-  "expect": [
-    "+j+"
+  "clicks": [
+    "for(var i=0;i<14;i++){var e=document.getElementById('ui'+i);if(e)e.value='2';}calc()"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "【UPDRS 运动检查评分（14 项 · 56 分制）】 结果：总分 28/56，分级：中重度运动障碍",
+    "量表满分 56；得分率 50%；≥1 分条目 14/14"
+  ],
+  "ref": "原用例同为生成器模板残留（ui+单引号+i+单引号 / +j+），假通过。已改为 clicks 注入 14 项全 2 分 ⇒ 总分 28 落 21–30 段「中重度运动障碍」，得分率 50%。默认态全 0 ⇒「总分 0/56，分级：轻度运动障碍」，零交集。"
 },
 {
   "slug": "neurology/rater-21",
@@ -177,13 +179,14 @@ const CASES = [
 },
 {
   "slug": "neurology/rater-22",
-  "inputs": {
-    "si'+i+'": "'+j+'"
-  },
-  "expect": [
-    "+j+"
+  "clicks": [
+    "for(var i=0;i<8;i++){var e=document.getElementById('si'+i);if(e)e.value='2';}calc()"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "【共济失调评定量表（8 项 · 40 分制）】 结果：总分 16/40，分级：重度",
+    "量表满分 40；得分率 40%；≥1 分条目 8/8"
+  ],
+  "ref": "原用例同为生成器模板残留（si+单引号+i+单引号 / +j+），假通过。已改为 clicks 注入 8 项全 2 分 ⇒ 总分 16 落 16–30 段「重度」。分母取页面声明的量表满分 40（该页选项数组合计仅 35，若按选项上限累加会与页面显示的 /40 冲突），得分率 16/40=40%。默认态全 0 ⇒「总分 0/40，分级：轻度」，零交集。"
 },
 {
   "slug": "neurology/sara",
