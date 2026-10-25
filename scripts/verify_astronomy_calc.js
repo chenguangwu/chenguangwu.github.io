@@ -40,9 +40,7 @@ const CASES = [
     "val": "12:00",
     "from": "-8"
   },
-  "expect": [
-    "11"
-  ],
+  "expect": ["12:00\n-8\n1\n21:00 同日"],
   "ref": "auto-restore"
 },
 {

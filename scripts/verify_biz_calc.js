@@ -544,7 +544,7 @@ const CASES = [
     inputs: {
       input: "ab",
     },
-    expect: ["á̦b̈̊"],
+    expect: ["ab\na̗͙̪̅͌̊͝b̟͎͝\n2\n3\n1\n3"],
     ref: "默认态对 Hello World 逐字符叠加组合变音符号；注入 ab 后仅 a、b 带符号，输出形态与默认态完全不同。⚠ expect 必须是 NFD 分解序列（0x61 0x0301 0x0306 0x62 0x0308 0x030A），写成 NFC 预组合单码位会静默不命中。",
   },
   {

@@ -21,9 +21,7 @@ const CASES = [
     "weight": "65",
     "height": "170"
   },
-  "expect": [
-    "1291"
-  ],
+  "expect": ["male\n45\n65\n170\n1.55\nmaintain\n2313 每日目标热量 kcal 1493 基础代谢 BMR 117g 蛋白质 317g 碳水化合物 64g 脂肪 目标：维持体重 · 活动系数：1.55 热量构成：蛋白质 468 kcal / 碳水 1267 kcal / 脂肪 578 kcal"],
   "ref": "auto-restore"
 },
 {

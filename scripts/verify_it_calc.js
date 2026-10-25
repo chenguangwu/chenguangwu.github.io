@@ -7038,12 +7038,18 @@ function makeEscEl() {
 async function runCase(c) {
   // 每个用例都会往 globalThis（当作 window）挂函数，用后清理，避免污染下一个用例
   const before = new Set(Object.keys(globalThis));
+  // 保护 Node 关键全局：页面脚本可能覆盖 process/console（如 biz/zalgo-text），
+  // 用例结束后还原，避免后续 main() 调 process.exit 时因 process 被删而崩溃。
+  const _proc = globalThis.process;
+  const _console = globalThis.console;
   try {
     return await runCaseInner(c);
   } finally {
     for (const k of Object.keys(globalThis)) {
       if (!before.has(k)) { try { delete globalThis[k]; } catch (e) { /* 只读属性跳过 */ } }
     }
+    globalThis.process = _proc;
+    globalThis.console = _console;
   }
 }
 

@@ -74,9 +74,7 @@ const CASES = [
   "inputs": {
     "val": "4"
   },
-  "expect": [
-    "4.00"
-  ],
+  "expect": ["4\ndec\nlog\n-0.60 logMAR 五分记录法 5.60；视角 0.25 弧分；Snellen 20/5"],
   "ref": "auto-restore"
 },
 {

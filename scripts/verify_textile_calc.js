@@ -317,9 +317,7 @@ const CASES = [
   "inputs": {
     "value": "60"
   },
-  "expect": [
-    "16.6667"
-  ],
+  "expect": ["Ne\n60\n输入：60 Ne 9.8423 特克斯 tex 98.4233 分特 dtex 88.581 旦尼尔 D 60 英支 Ne 101.6019 公支 Nm 粗细判断： 特细支纱"],
   "ref": "auto-restore"
 },
 {

@@ -46,9 +46,7 @@ const CASES = [
   "inputs": {
     "duration": "15"
   },
-  "expect": [
-    "4943.8MB"
-  ],
+  "expect": ["youtube\n1080\n15\nh264\n1080p 分辨率 8000k 视频码率 0.90GB 预估大小 H264 编码 💻 FFmpeg 命令： ffmpeg -i input.mp4 -c:v libx264 -b:v 8000k -c:a aac -b:a 384k -s 1920:1080 -preset medium -crf 23 output.webm 视频大小 878.9MB 音频大小 42.2MB 时长 15分钟 目标平台 YouTube\n暂无记录"],
   "ref": "auto-restore"
 },
 {

@@ -42,9 +42,7 @@ const CASES = [
   "inputs": {
     "missingNum": "2"
   },
-  "expect": [
-    "1.00"
-  ],
+  "expect": ["2\nincisor\nincisor\npremolar\nmolar\n🦷 基牙 前磨牙 138mm² ⬛ 桥体 切牙 126mm² ⬛ 桥体 切牙 126mm² 🦷 基牙 磨牙 310mm² 448 基牙面积和 (mm²) 252 缺失牙面积和 (mm²) 1.78 面积比 基牙/缺失牙面积比 0 0.8 临界 1.0 达标 1.5 充足 符合Ante法则 建议：基牙支持力充足，固定桥设计可行。"],
   "ref": "auto-restore"
 },
 {

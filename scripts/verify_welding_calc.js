@@ -32,9 +32,7 @@ const CASES = [
     "voltage": "24",
     "speed": "3"
   },
-  "expect": [
-    "133.92"
-  ],
+  "expect": ["6.2\n8\nflat\nbasic\n24\n3\n186 ~ 279 推荐电流范围（A） 233 推荐电流（A） 111.84 热输入 E（kJ/mm） 6.2 mm / 8 mm 焊条/板厚 焊接位置：平焊，焊条类型：低氢型"],
   "ref": "auto-restore"
 },
 {
