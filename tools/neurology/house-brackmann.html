@@ -334,6 +334,56 @@ var __tbs=function(){
   host.appendChild(btn);
 };
 var __f0=calc;calc=function(){var __r=__f0.apply(null,arguments);__tbs();return __r;};
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var gv=(typeof grade==='number')?grade:1;
+  var M={1:['I级','正常','面神经功能正常，各区域运动对称','面神经功能正常，无需治疗。','Grade I','normal','Normal facial nerve function with symmetric movement.','No treatment required.'],
+         2:['II级','轻度功能障碍','近距离检查才发现轻微不对称，额纹运动正常或稍弱，眼可完全闭合','轻度功能障碍，预后良好，多数可完全恢复；可观察随访。','Grade II','mild dysfunction','Slight asymmetry only on close inspection; eye closes fully.','Mild dysfunction with good prognosis; observation is usually sufficient.'],
+         3:['III级','中度功能障碍','两侧有明显但不严重的差异，额纹轻微可动，眼用力可完全闭合','建议糖皮质激素+营养神经药物并配合面部康复训练，预后较好。','Grade III','moderate dysfunction','Obvious but not disfiguring difference; eye closes with effort.','Steroid plus neurotrophic therapy and facial rehabilitation; prognosis fair.'],
+         4:['IV级','中重度功能障碍','面部明显不对称，额纹无运动，眼用力不能完全闭合','需积极药物治疗并行面神经电图评估；注意眼部保护（人工泪液、眼膏、护眼贴）。','Grade IV','moderately severe dysfunction','Obvious asymmetry, no forehead motion, incomplete eye closure.','Active medical therapy and electroneurography; eye protection required.'],
+         5:['V级','重度功能障碍','仅可察觉的轻微面部运动，静止时不对称，眼不能闭合','面神经电图评估，变性>90% 可考虑面神经减压术；严格眼部保护，预后较差。','Grade V','severe dysfunction','Only barely detectable movement; eye does not close.','Electroneurography; decompression if degeneration >90%; strict eye protection.'],
+         6:['VI级','完全麻痹','面部完全无运动，面肌张力消失','紧急评估病因（肿瘤、外伤、炎症），变性>90% 尽快行面神经减压术；严格眼部保护。','Grade VI','total paralysis','No facial movement at all.','Urgent aetiology work-up; early decompression if degeneration >90%; strict eye protection.']};
+  var m=M[gv]||M[1];
+  __emrNote({name:'House-Brackmann 面神经功能分级（I–VI 级）', nameEn:'House-Brackmann Facial Nerve Grading (I-VI)',
+    result:'分级 '+m[0]+'（'+m[1]+'）：'+m[2], resultEn:'grade '+m[4]+' ('+m[5]+'): '+m[6],
+    noPos:true, hintZh:m[3], hintEn:m[7],
+    extra:'分级序号 '+gv+'/6（数值越大功能障碍越重）', extraEn:'Grade index '+gv+'/6 (higher = worse)'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -349,6 +349,55 @@ var __tbs=function(){
   host.appendChild(btn);
 };
 var __f0=calc;calc=function(){var __r=__f0.apply(null,arguments);__tbs();return __r;};
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var gv=(typeof grade==='number')?grade:1;
+  var M={1:['BNI I级','无痛','完全无痛，无需任何药物治疗','疼痛完全控制，维持当前治疗并定期随访。','BNI I','no pain','Complete pain control without medication.','Maintain current status and follow up.'],
+         2:['BNI II级','轻度疼痛，药物可控','偶尔出现疼痛，药物可完全控制','继续卡马西平/奥卡西平，定期监测血药浓度与不良反应。','BNI II','mild pain, medically controlled','Occasional pain fully controlled by medication.','Continue carbamazepine/oxcarbazepine and monitor levels and adverse effects.'],
+         3:['BNI III级','中度疼痛，药物部分可控','疼痛仍存在但可忍受，药物仅部分缓解','调整药物方案（加量或联合巴氯芬/普瑞巴林），并评估手术指征。','BNI III','moderate pain, partially controlled','Persistent but tolerable pain with partial relief.','Optimise medication (increase dose or add baclofen/pregabalin) and assess surgical indication.'],
+         4:['BNI IV级','中度疼痛，药物不可控','药物不能有效控制疼痛，影响日常生活','行头颅 MRI（3D-FIESTA）评估神经血管压迫，考虑微血管减压术或介入治疗。','BNI IV','moderate pain, not controlled','Pain poorly controlled and affecting daily life.','MRI with 3D-FIESTA for neurovascular conflict; consider microvascular decompression.'],
+         5:['BNI V级','重度疼痛，药物完全无效','严重疼痛，药物完全无效，严重影响生活质量','推荐手术：首选微血管减压术，不能耐受手术者可行伽马刀或射频热凝。','BNI V','severe pain, medically refractory','Severe refractory pain with major quality-of-life impact.','Surgery recommended: microvascular decompression first; gamma knife or radiofrequency if unfit.']};
+  var m=M[gv]||M[1];
+  __emrNote({name:'BNI 三叉神经痛分级（I–V 级）', nameEn:'BNI Trigeminal Neuralgia Grading (I-V)',
+    result:'分级 '+m[0]+'（'+m[1]+'）：'+m[2], resultEn:'grade '+m[4]+' ('+m[5]+'): '+m[6],
+    noPos:true, hintZh:m[3], hintEn:m[7],
+    extra:'分级序号 '+gv+'/5（数值越大疼痛控制越差）', extraEn:'Grade index '+gv+'/5 (higher = worse control)'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -299,6 +299,67 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var g=function(id){ var e=document.getElementById(id); return e?(parseInt(e.value)||0):null; };
+  var age=g('age'), bp=g('bp'), cl=g('clinical'), du=g('duration');
+  if(age===null||bp===null||cl===null||du===null) return;
+  var dmEl=document.getElementById('dm'), dm=!!(dmEl&&dmEl.checked);
+  var total=age+bp+cl+du+(dm?1:0);
+  var items=[];
+  if(age) items.push({i:1,t:'年龄≥60 岁',o:'+1'});
+  if(bp) items.push({i:2,t:'血压≥140/90 mmHg',o:'+1'});
+  if(cl===2) items.push({i:3,t:'单侧肢体无力',o:'+2'});
+  else if(cl===1) items.push({i:3,t:'言语障碍不伴无力',o:'+1'});
+  if(du===2) items.push({i:4,t:'持续时间≥60 分钟',o:'+2'});
+  else if(du===1) items.push({i:4,t:'持续时间 10–59 分钟',o:'+1'});
+  if(dm) items.push({i:5,t:'糖尿病',o:'+1'});
+  var band;
+  if(total<=3) band=['低风险','low risk','1.0%','1.2%','3.1%','短期卒中风险较低；可门诊随访，完善脑血管检查并控制危险因素。','Low short-term stroke risk; outpatient follow-up, vascular imaging and risk-factor control.'];
+  else if(total<=5) band=['中风险','moderate risk','4.1%','5.9%','9.8%','短期卒中风险中等；建议住院评估，完善头颈 CTA/MRA、心脏检查与心律监测。','Moderate risk; admit for work-up including head/neck CTA or MRA, cardiac evaluation and rhythm monitoring.'];
+  else band=['高风险','high risk','8.1%','11.7%','17.8%','短期卒中风险高；强烈建议住院，紧急血管影像与心脏评估，符合条件者考虑抗血小板/抗凝或血管内治疗。','High risk; urgent admission, vascular and cardiac evaluation, consider antiplatelet/anticoagulation or endovascular treatment.'];
+  __emrNote({name:'ABCD² 短暂性脑缺血发作后卒中风险评分', nameEn:'ABCD2 Score for Stroke Risk after TIA',
+    result:'总分 '+total+'/7，分级：'+band[0]+'（2 日 '+band[2]+' / 7 日 '+band[3]+' / 90 日 '+band[4]+'）',
+    resultEn:'total '+total+'/7, band: '+band[1]+' (2-day '+band[2]+', 7-day '+band[3]+', 90-day '+band[4]+')',
+    pos:items, hintZh:band[5], hintEn:band[6],
+    extra:'阳性因子 '+items.length+'/5；糖尿病：'+(dm?'有':'无'),
+    extraEn:'Positive factors '+items.length+'/5; diabetes: '+(dm?'yes':'no')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
