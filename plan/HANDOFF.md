@@ -1,56 +1,69 @@
-# 移交文档（HANDOFF）· 全站审计任务续作指引
+# 移交文档（HANDOFF）· 修复开发阶段交接
 
-> 写于 2026-10-25 会话 token 收尾时。任务总目标：**所有工具审计一遍，plan/ 只记未修复问题（已修的不写）**。本文件给接手 agent 的完整续作指引；进度总表见 `plan/MASTER.md`。
+> 2026-10-25 全站审计闭环。**审计任务（批1-20，212 目录 / 5008 页）已全部完成**，本文件不再描述审计续作，而是交接下一阶段：**按 plan 清单做修复开发 + G06 留存升级**。进度总表见 `plan/MASTER.md`。
 
-## 一、当前进度快照
+## 一、当前状态快照
 
-| 批次 | 范围 | 状态 |
+- 工作树干净；本地领先 origin **2 个提交**（5df4063c87、f8567af3e3，均为 docs(plan)，不进构建产物）。
+- 远端无新推进（fetch --dry-run 为空）。**推送等老板指令**；推送前先 `git fetch`，docs-only 提交推送后无需等 Actions 部署（不影响线上页面字节）。
+- 审计期 4 个代码类提交（9fb602145d 等 formula-eq batch40-44）已在远端。
+
+## 二、修复开发任务清单（按优先级，全部为未修复项）
+
+### P0 计算错误——用户会拿到错误数字，优先修
+
+| 问题 | 归档位置 | 要点 |
 |---|---|---|
-| 批1-16 | ~60 个主要目录（statistics/math/science/金融6/工程5/健康4/土木化学6/检验生理6/物理地物6/商运6/量表6/专科6/食品农业6/IT媒体6/生活6/声学航空6/产业6/生活商业6） | ✅ 全覆盖（发现的问题已修复并登记） |
-| 批17 | machinery/life/biz/fun/automotive/general（212 计算页） | ✅ 已归档（life.md L1 胸罩码 / biz-startup.md Z1 量纲 / machinery M3 死代码） |
-| 批18 | realestate/legal/marketing/metalwork/meteorology/energy/optical/fire-rescue/eco（322 计算页） | ✅ 已归档（eco E1 万kWh 量纲 / metalwork 7 对比页功能单薄） |
-| 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（316 计算页） | ✅ 全读毕（specialties C1 游离酸颠倒；_others O6 重金属迁移×1000；提交 862d884e54） |
-| 批20 | 其余 95 目录 967 页（A: travel→nutrition 16 目录；B: welding→process 17 目录；C: ai；D+E: sales→antiques 25 目录；F+G: yi→daily-goods 36 目录） | ✅ **全读毕，全站审计闭环**（2026-10-25）。新发现 8 项：specialties C2 法医胎龄公式失真、hr-legal L3 年假折算 ceil 矛盾、_others O7 fire/detector-44 硬编码日期 2026-07-31、life L4 鞋码 US/UK 偏大 8 码、construction-energy E2 桥梁 Pk 内插基线 270 应 180、tax-accounting F1 权益乘数定义错、marketing-sales Z2 利润率/加价率同值、ecommerce-logistics Z3 未达标率标签反。其余目录公式全核对通过（含 ai 全目录 56 calc 页、process 六西格玛全套、forex/futures、medical2 病床统计等） |
+| O6 重金属迁移「食品中含量」虚高 1000 倍 | 12-长尾行业/_others.md | `conc(mg/L)×volume(mL)÷foodVol(mL)` 已是 mg/kg，代码的 `×1000` 多乘；删 ×1000 即可，默认值代入即误判超标 |
+| C1 游离酸比例公式颠倒 | 03-医疗健康/specialties.md | 改 `1/(1+10^(pH−pKa))`，与 chemical-peel 对齐 |
+| C2 法医骨龄胎儿支路胎龄公式失真 | 03-医疗健康/specialties.md | FL 改 0.43×FL+8.5（或分段表）；CRL 改 0.1×CRL+6.5；公式框/注释三处矛盾一并统一 |
+| L4 鞋码 US/UK 偏大 8 码 | 05-生活消费/life.md | 代码改 `usM=eu−32; usW=eu−30.5; uk=eu−33`（公式框本来是对的） |
+| E2 桥梁荷载 Pk 内插基线 270 应 180 | 08-工程制造/construction-energy.md | JTG D60-2015 表 4.3.1-2：L≤5m→180、L≥50m→360 |
+| Z1 unit-price-compare 固液量纲混用 | 06-商业运营/biz-startup.md | ml/L 与 g/kg 不可直接比单价 |
+| O1 dyeing/tester-9 输入 C 未参与计算 | 12-长尾行业/_others.md | GB/T 20944.2 口径 |
+| L1 bra-size 美码=英码且口径粗糙 | 05-生活消费/life.md | US=UK+2 |
+| E1 eco-10/16「万 kWh」量纲口径存疑 | 10-农业养殖/livestock-eco-forestry.md | 先核对页面标签再改 |
 
-## 二、任务状态：全站审计已完成 ✅
+### P1 口径/标签矛盾——数字对但表述误导
 
-批1-20 全部闭环，212 目录 / 5008 页的计算页全数过目。**审计任务移交完毕，后续是两类工作**：
+- **O7** fire/detector-44 硬编码 `new Date('2026-07-31')` → 改 `new Date()`（_others.md）
+- **L3** 年假折算 `ceil` 与页面例题/条例矛盾 → 统一 `floor`（06-商业运营/hr-legal.md）
+- **F1** ratio-analysis 权益乘数误用产权比率定义 → `ta/eq`（02-金融财务/tax-accounting-audit.md）
+- **Z2** cost-price-margin 利润率/加价率同值 → 利润率改 `(p−cost)/p`（marketing-sales.md）
+- **Z3** stats-on-time-1「未达标率」括注写反（ecommerce-logistics.md）
+- **H2** insulin-adjustment deep-dive 示例文案错 → 改 `i18n/tools/content_deepdive.json` 源（home-decor.md 备注）
 
-1. **按 plan 修复开发**（高优先级排序建议）：O6 重金属×1000 → C1 游离酸 → C2 法医胎龄 → L4 鞋码 → E1/E2 量纲/标准值 → L3/O7/F1/Z2/Z3 小改。修复时遵守 G03 数据源规则（改 json/i18n 源而非 HTML 直改）与 verify 用例同步。
-2. **G06 留存与竞争力升级**（价值核心，「用户看一眼就走」破局）——等老板排期。
+### P2 待老板裁断后才动（勿自行决定口径）
 
-附：批 20 期间用的补充提取脚本（ai 目录 `__vN` 表达式专用，§五脚本对 ai 只能抓到取值行）：
-```python
-# 抓每页 __vN = (...) 或 Math.* 行（跳过 getElementById 取值行），前 8 条
-for f in sorted(glob.glob('tools/ai/*.html')):
-    ...同 §五 grab()...
-    if re.search(r'__v\d+\s*=|Math\.',s) and 'getElementById' not in s: out.append(s)
-```
+- **G01** 公式与计算正确性裁量项（M1 量表条目重建、M2 阈值口径、parkland、qtc、EAT-26 等 16 批遗留）
+- **L2** labor-compensation 满半年按 1 年 vs 代码 N=0.5（hr-legal.md）
 
-## 三、批20（最后一批）
+### P3 功能增强/体验类（非缺陷，配合 G06 排期）
 
-范围 = 全站 212 目录 − 前批已覆盖（用文末「未覆盖目录清单」命令现算）。约 90 个小目录、~800 页，多为 5–20 页行业。生成 dump 用同一脚本改 dirs 列表（按清单分 2–3 组，每组转储 ≤3500 行）。小目录多为查表/对比/评分页，重点关注：
-1. 系数量纲错（同批17/18 套路）
-2. 医学小科室量表阈值（refer 批9 口径）
-3. `function calc(){...最简比/score=(a+b)/2...}` 双段模板页——**第一段常是被覆盖的死模板，生效版在后段**（realestate/legal 大量如此）；判定方法：grep -c 'function calc(' ==2 则看第二段是否领域逻辑；若第二段也是通用 A/B 比值→记「功能单薄」（参照 metalwork 7 页写法），不是计算错误。
+- 各分类文件里的「功能缺陷/优化点」小节（offer 对比器、随访计划生成器、孕周时间轴等）
+- **G06 留存与竞争力升级**——「用户看一眼就走」的破局方案，价值核心
+- G04 verify 用例债务 / G05 EN 态 i18n / G07 性能移动端，各有独立文件
 
-## 四、方法论与坑（必读）
+## 三、修复开发守则（必读，AGENTS.md 之外的经验补充）
 
-1. **子代理不可用**：Explore/scanner 会撞 `model concurrency limit exceeded`（Flash 额度尽 + 并发限制）。审计全部由主 agent 内联做：生成 calc 摘要转储 → Read 分段读 → 发现问题读原页核实 → 归档。脚本见文末。
-2. **已修不写**：plan/ 只记未修复项；每条格式「描述/方案/受影响路径/置信度」。写入前先确认该问题不在已修复清单（MASTER 底部恢复点 + /tmp/bugs_found.txt）。
-3. **归档位置**：按 12 大分类目录归属（cosmetic-derm→03-医疗健康/specialties.md 等）；全站性→plan/G0x。
-4. **审计完成后**：MASTER 全部批次标 ✅ → 用户目标达成；后续开发另起（G06 留存升级是价值核心）。
-5. 双段式页面陷阱、E1 量纲等具体判例见各分类文件内已写条目。
+1. **G03 数据源规则**：deep-dive/FAQ/intro 被 `_build.py` 从 json/i18n 源重注入——改 HTML 无效会被还原，必须改源（`json/tools.json`、`i18n/tools/<ind>.json`、`i18n/tools/content_deepdive.json`）。formula-eq 公式框可直接改页内（首个 `<p>` 陷阱：说明块用 `<div class="formula-desc">` 不用 `<p>`）。
+2. **提交节奏**（老板原话）：一批攒 6–12 个文件再提交，别太碎；「优化任务没有结束的时候，一直干」。
+3. **每批收口流程**：改完 → `python3 _build.py`（必须是提交前最后一步）→ `python3 scripts/run_gates.py` 218/218 → sitemap lastmod（`/tmp/sync_lastmod_generic.py`，42 页批次 84/84）→ commit（不 push，等指令）。
+4. **verify 用例同步**：修公式后同步 `scripts/verify_*_calc.js` 用例；expect 不能是纯输入回显或分级词锚点；改 `collectStrings` 口径须重跑 `selfcheck_false_pass`/`discriminate_check`。
+5. **修复后登记**：按 MASTER 登记纪律「已修不写」——修完把对应 plan 条目**删除**（或整条改为 ✅ 一行），并在 MASTER 分类任务表更新该文件状态；一批修复一个 commit：`fix(calc): 批N 修复 O6/C1/C2/L4 …（逐条核对 JTG/产科/尺码表标准）`。
+6. **公式修复的取数纪律**：标准值/系数一律查权威来源（JTG/产科 Hadlock/尺码表/会计准则），不凭印象；deep-dive 算例数字用 node 实跑取值。
 
-## 五、附：转储生成脚本（复用模板）
+## 四、方法论沉淀（未来复扫新工具时复用）
 
-`/tmp/gen_dump.py` 已改为 **argv 传目录**（逗号分隔），用法：
+1. **审计法**：dump 每页第一个 `function calcTool(/calc(` 函数体的数学行 → 主 agent 分段读（Read ≤900 行/段）→ 疑点读原页核实 → 归档。脚本见文末。
+2. **双段模板页**：`grep -c 'function calc('` ==2 时第一段常是被覆盖的死模板（`score=(a+b)/2`），生效版在后段；两段都通用 → 记「功能单薄」不算计算错误。
+3. **三口径核对**：系数与量纲（默认值代入心算复现）、阈值区间、标签与自身文档（公式框/例题/FAQ）是否互相矛盾——批20 的 L3/L4/E2/F1/Z2/Z3 全是「代码 vs 自身文档」矛盾型，说明该口径命中率最高。
+4. **常见误报排除**：文档化近似（页内自标"简化估算"）、合法常量日期（专利法 2021-06-01、天文历元）、自带 polyfill 的 Math.erf/erfc、if/else 分支被 dump 压平造成的"连续赋值假象"。
+5. 子代理曾撞模型并发限制，审计全程主 agent 内联；若下个会话可用 Explore/scanner 可并行只读检索。
 
-```bash
-python3 /tmp/gen_dump.py "sales,procurement,research,rental,quality,museum,library,cognition,woodwork,printing,hotel,dance,admin" > /tmp/dump_b20d.txt
-```
+## 五、附：转储生成脚本（argv 传目录，逗号分隔）
 
-若 /tmp 被清，脚本内容如下（与上文行为一致：抓每页第一个 `function calcTool(`/`function calc(` 函数体，输出前 11 行含数学行；无 calc 的页打 `[no-calc]` 标记，转储内含页名可直接跳过或按需另行处理）：
+`/tmp/gen_dump.py` 若被清，内容如下（抓每页首个 calc 函数体数学行前 11 条；无 calc 打 `[no-calc]`）：
 
 ```python
 import re,sys,glob
@@ -86,13 +99,12 @@ for dd in dirs:
             print('=== '+f+'  [no-calc]')
 ```
 
-未覆盖目录现算命令（批20 用）：
-```bash
-covered=" statistics math science finance banking investment securities accounting tax mechanical electrical structural hydraulic thermodynamics health healthcare medical fitness civil construction surveying chemical chemistry petrochem clinical-lab cardiology nephrology endocrinology hematology pulmonology psychiatry psychology clinical-nursing pediatrics obstetrics gastroenterology ent dermatology dentistry urology rehabilitation neurology astronomy kinematics materials optics quantum geology maritime transport logistics logistics2 economics insurance edu food baking agriculture livestock fishery it photo video design audio media sports home music wedding office edu2 acoustics dynamics electromagnetism electronics engineering aerospace forestry aquaculture beekeeping glass dyeing ceramics cleaning decor restaurant telecom urban paper machinery life biz fun automotive general realestate legal marketing metalwork meteorology energy optical fire-rescue eco cosmetic-derm ophthalmology encode metrology textile robotics nuclear geometry signal food-testing reproductive-medicine rheumatology "
-for d in tools/*/; do n="${d#tools/}"; n="${n%/}"; c=$(ls tools/$n/*.html 2>/dev/null | grep -vc 'index.html'); case "$covered" in *" $n "*) ;; *) echo "$c $n";; esac; done | sort -rn
-```
+用法：`python3 /tmp/gen_dump.py "sales,procurement,..." > /tmp/dump_bXX.txt`。
+ai 目录页用 `__vN = (表达式)` 模式，上面脚本只能抓到取值行，需改抓 `__v\d+\s*=|Math\.` 且排除 `getElementById`（前 8 条）。
 
-## 六、其他未了事项（非本任务，勿混入）
+## 六、未了事项（等老板指令）
 
-- 本地提交未推送（收尾时 2 个 + 本批归档若干）；origin 曾被外部推进，恢复时先 `git fetch`。
-- G01 裁量项 / G02 存根删除 / G06 留存升级——等老板指令，与审计任务分开。
+- **推送**：本地 2 个 docs 提交待推；推送前 `git fetch`。
+- **G01 裁断** / **L2 裁断**（见 P2）。
+- **G02 存根**：宠物类 3 个 TOOLBOX-REDIRECT 存根 **2026-11-10 到期**须物理删除并按 §4.6 提死链；到期前主动处理。
+- **G06 留存升级排期**——审计后站点质量基础已夯实，这是把「看一眼就走」变成「收藏回头」的主战场。
