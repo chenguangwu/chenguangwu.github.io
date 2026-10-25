@@ -383,7 +383,53 @@ function copyResult(){
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('PCL-5 PTSD量表总分：'+total+'/80','tool.copy_ok');
 }
-var __pc0=calc; calc=function(){__pc0(); __pcl5Extras();};
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var done=A.filter(function(v){return v>=0;}).length; if(done<QS.length) return;
+  var total=A.reduce(function(s,v){return s+v;},0);
+  var b=A.slice(0,5).reduce(function(s,v){return s+v;},0), c=A.slice(5,7).reduce(function(s,v){return s+v;},0);
+  var d=A.slice(7,14).reduce(function(s,v){return s+v;},0), e=A.slice(14,20).reduce(function(s,v){return s+v;},0);
+  var bC=A.slice(0,5).filter(function(v){return v>0;}).length, cC=A.slice(5,7).filter(function(v){return v>0;}).length;
+  var dC=A.slice(7,14).filter(function(v){return v>0;}).length, eC=A.slice(14,20).filter(function(v){return v>0;}).length;
+  var sv=__pcl5LevelName(total), ad=__pcl5Advice(sv), pos=[], i;
+  for(i=0;i<A.length;i++){ if(A[i]>=2) pos.push({i:i+1,t:QS[i],o:OPTS[A[i]]}); }
+  var sevEn={'轻微/无':'minimal/none','轻度':'mild','中度':'moderate','重度':'severe'}[sv]||sv;
+  __emrNote({name:'PCL-5 创伤后应激障碍检查表（20 条目 · DSM-5）', nameEn:'PCL-5 PTSD Checklist (20 items, DSM-5)',
+    result:'总分 '+total+'/80，分级：'+sv, resultEn:'total '+total+'/80, band: '+sevEn,
+    pos:pos, hintZh:ad[0], hintEn:ad[1],
+    extra:'四簇分：B 侵入 '+b+'（'+bC+' 项）、C 回避 '+c+'（'+cC+' 项）、D 负性认知与情绪 '+d+'（'+dC+' 项）、E 警觉与反应性 '+e+'（'+eC+' 项）',
+    extraEn:'Clusters: B intrusion '+b+' ('+bC+' items), C avoidance '+c+' ('+cC+'), D negative cognition/mood '+d+' ('+dC+'), E arousal/reactivity '+e+' ('+eC+')'});
+}
+var __pc0=calc; calc=function(){__pc0(); __pcl5Extras(); try{__emrData();}catch(e){}};
 render();calc();
 __pcl5MountHist();
 </script>

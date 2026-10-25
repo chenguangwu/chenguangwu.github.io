@@ -272,7 +272,7 @@ function calc(){
   var sev,color,desc;
   if(total<20){sev='低风险';color='#10B981';desc='EAT-26总分低于20，目前饮食态度问题风险较低。';}
   else {sev='高风险';color='#EF4444';desc='EAT-26总分≥20，提示存在饮食障碍关注，建议进一步接受专业进食障碍评估。';}
-  var risky = (A[3]>=3 || A[8]>=3); // binges / vomiting reported as 经常/总是
+  var risky = (A[3]<=2 || A[8]<=2); // binges / vomiting reported as 经常/总是（OPTS 0=总是…5=从不，故 <=2）
   const __g5='<div class="sev-box" style="background:'+color+'1a;border:1px solid '+color+'55;">'+
     '<div style="font-size:36px;font-weight:700;color:'+color+';">'+sev+'</div>'+
     '<div style="font-size:16px;color:var(--text-light);margin-top:6px;">总分 '+total+' / 78</div></div>'+
@@ -341,7 +341,49 @@ function copyResult(){
   var total=0;A.forEach(function(v,i){total+=(REV_IDX[i]?REV:NORM)[v];});
   ToolBox.copyText('EAT-26 进食态度量表总分：'+total+'/78','tool.copy_ok');
 }
-var __eat0=calc; calc=function(){__eat0(); __eatExtras();};
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var done=A.filter(function(v){return v>=0;}).length; if(done<QS.length) return;
+  var total=0,i; for(i=0;i<A.length;i++) total+=__eatScore(i);
+  var sv=__eatSev(total), pos=[];
+  for(i=0;i<A.length;i++){ if(__eatScore(i)>=2) pos.push({i:i+1,t:QS[i],o:OPTS[A[i]]}); }
+  var bing=(A[3]<=2), vom=(A[8]<=2);
+  __emrNote({name:'EAT-26 进食态度量表（26 条目）', nameEn:'EAT-26 Eating Attitudes Test (26 items)',
+    result:'总分 '+total+'/78，分级：'+sv[0], resultEn:'total '+total+'/78, band: '+sv[2],
+    pos:pos, hintZh:sv[1], hintEn:sv[3],
+    extra:'行为条目：暴食（Q4）'+(bing?'阳性':'阴性')+'、自我催吐（Q9）'+(vom?'阳性':'阴性'),
+    extraEn:'Behavioral items: binge eating (Q4) '+(bing?'positive':'negative')+', self-induced vomiting (Q9) '+(vom?'positive':'negative')});
+}
+var __eat0=calc; calc=function(){__eat0(); __eatExtras(); try{__emrData();}catch(e){}};
 render();calc(); __eatMountHist();
 </script>
 

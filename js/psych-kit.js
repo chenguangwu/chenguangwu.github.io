@@ -383,10 +383,21 @@
     return false;
   }
 
+  // 结果区里的「门诊记录」等辅助区块不参与分数/分级解析：
+  // 它们含「重性抑郁」「自杀风险」等词，会污染 matchLevel，导致徽章分级错位。
+  function pkText(box) {
+    try {
+      var c = box.cloneNode(true);
+      var drop = c.querySelectorAll('[data-pk-ignore]');
+      for (var i = 0; i < drop.length; i++) { if (drop[i].parentNode) drop[i].parentNode.removeChild(drop[i]); }
+      return (c.textContent || '').trim();
+    } catch (e) { return (box.textContent || '').trim(); }
+  }
+
   function enhanceResult() {
     var box = resultEl();
     if (!box) return;
-    var text = (box.textContent || '').trim();
+    var text = pkText(box);
     if (!text) return;
     var sig = text.length + ':' + text.slice(0, 40);
     if (box.getAttribute('data-pk-sig') === sig) return;

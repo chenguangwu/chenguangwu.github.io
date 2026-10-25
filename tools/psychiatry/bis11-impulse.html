@@ -321,7 +321,48 @@ function copyResult(){
   var total=0;A.forEach(function(v,i){total+=sc(i);});
   ToolBox.copyText('BIS-11 冲动量表总分：'+total+'/120','tool.copy_ok');
 }
-var __bis0=calc; calc=function(){__bis0(); __bisExtras();};
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var done=A.filter(function(v){return v>=0;}).length; if(done<QS.length) return;
+  var total=0,att=0,mot=0,npl=0,i,v;
+  for(i=0;i<A.length;i++){ v=sc(i); total+=v; if(SUB[i+1]==='注意')att+=v; else if(SUB[i+1]==='运动')mot+=v; else npl+=v; }
+  var sv=__bisSev(total);
+  __emrNote({name:'BIS-11 巴瑞特冲动性量表（30 条目）', nameEn:'BIS-11 Barratt Impulsiveness Scale (30 items)',
+    result:'总分 '+total+'/120，分级：'+sv[0], resultEn:'total '+total+'/120, band: '+sv[2],
+    noPos:true, hintZh:sv[1], hintEn:sv[3],
+    extra:'三维度分：注意 '+att+'（参考 7–28）、运动 '+mot+'（11–44）、非计划 '+npl+'（12–48）',
+    extraEn:'Subscales: attentional '+att+' (ref. 7-28), motor '+mot+' (11-44), non-planning '+npl+' (12-48)'});
+}
+var __bis0=calc; calc=function(){__bis0(); __bisExtras(); try{__emrData();}catch(e){}};
 render();calc(); __bisMountHist();
 </script>
 

@@ -361,7 +361,54 @@ function copyResult(){
   var yes=A.filter(function(v){return v===0;}).length;
   ToolBox.copyText('MDQ 双相筛查：第一部分"是"'+yes+'/13，筛查'+(yes>=7&&P2===0&&P3>=2?'阳性':'阴性'), i18nText('toast.msg544'));
 }
-var __md0=calc; calc=function(){__md0(); __mdqExtras();};
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var done=A.filter(function(v){return v>=0;}).length; if(done<QS.length) return;
+  var yes=A.filter(function(v){return v===0;}).length, pos=[], i;
+  for(i=0;i<A.length;i++){ if(A[i]===0) pos.push({i:i+1,t:QS[i],o:'是/yes'}); }
+  // 第二/三部分为独立标量状态；未作答时按「未回答」呈现，不臆造阴性/阳性结论
+  var p2ok=(typeof P2==='number'&&P2>=0), p3ok=(typeof P3==='number'&&P3>=0);
+  var c1=(yes>=7), c2=(p2ok&&P2===0), c3=(p3ok&&P3>=2), screen=(c1&&c2&&c3);
+  var q2=!p2ok?'未回答':(c2?'是':'否');
+  var q3=!p3ok?'未回答':(P3+'（'+(c3?'≥中度':'低于中度')+'）');
+  var concl=!p2ok||!p3ok?'待补充第二/三部分':(screen?'筛查阳性':'筛查阴性');
+  __emrNote({name:'MDQ 心境障碍问卷（13 条目 + 2 个补充问题）', nameEn:'MDQ Mood Disorder Questionnaire (13 items + 2 follow-ups)',
+    result:'第一部分答「是」'+yes+'/13（标准 ≥7：'+(c1?'满足':'不满足')+'），第二部分同时期（'+q2+'），第三部分功能问题程度 '+q3+'；结论：'+concl,
+    resultEn:'Part 1 yes '+yes+'/13 (cutoff >=7: '+(c1?'met':'not met')+'), Part 2 same period ('+(!p2ok?'not answered':(c2?'yes':'no'))+'), Part 3 problem level '+(!p3ok?'not answered':(P3+' ('+(c3?'>=moderate':'below moderate')+')'))+'; conclusion: '+(!p2ok||!p3ok?'part 2/3 pending':(screen?'screen positive':'screen negative')),
+    pos:pos,
+    hintZh:(screen?'三条标准同时满足，提示可能存在双相障碍，建议尽快接受专业心境障碍评估。':'未同时满足三条标准，目前未达 MDQ 筛查阳性。'),
+    hintEn:(screen?'All three criteria are met, suggesting possible bipolar disorder; prompt specialist mood-disorder evaluation is advised.':'Not all three criteria are met; the MDQ screen is currently negative.')});
+}
+var __md0=calc; calc=function(){__md0(); __mdqExtras(); try{__emrData();}catch(e){}};
 render();calc();
 __mdqMountHist();
 </script>
