@@ -293,6 +293,7 @@ if(std>=70){g='重度焦虑';c='var(--danger)';it='焦虑水平很高，已明�
 else if(std>=60){g='中度焦虑';c='var(--warning,#f59e0b)';it='焦虑已较明显，可能干扰日常工作与睡眠，建议预约心理咨询或就医。';}
 else if(std>=50){g='轻度焦虑';c='var(--primary)';it='存在一定焦虑倾向，注意规律作息与放松训练；若持续 2 周以上不适，可咨询专业人员。';}
 else{g='正常（无明显焦虑）';c='var(--success)';it='当前评分处于正常区间，保持良好作息与心态即可。';}
+window.__EMR_SUM={raw:raw,std:std,lv:g,hi:highs.length};
 var h='<div class="mt-type"><div class="mt-type-code">'+std+'<span style="font-size:18px;color:var(--text-muted);"> / 100</span></div><div class="mt-type-name">'+g+'</div></div>';
 h+='<div class="mt-dbar"><div class="mt-dbar-top"><span><b>标准分</b> '+std+'（粗分 '+raw+'/80）</span><span>分界 50</span></div><div class="mt-dbar-track"><div class="mt-dbar-a" style="width:'+Math.min(100,Math.round(std))+'%"></div></div></div>';
 if(highs.length){h+='<div class="mt-sec"><h4>🔍 近期反映较明显的方面</h4><ul><li>'+highs.join('</li><li>')+'</li></ul></div>';}
@@ -325,6 +326,59 @@ function __sasExport(){
   var tr2=document.createElement('tr');tr2.innerHTML='<td><b>Summary</b></td><td>'+raw+'</td><td>'+std+'</td><td>'+(en?(G_EN[g]||g):g)+'</td>';tbody.appendChild(tr2);
   TBKit.util.exportTable('#sasHidden', en?'sas-assessment.csv':'SAS焦虑自评.csv');
 }
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.std>=60){ hz='SAS 标准分≥60：焦虑达中度及以上，建议精神科评估；一线为 CBT 联合 SSRI/SNRI，治疗 8–12 周复评，同时筛查抑郁与躯体疾病。';
+    he='SAS standard score 60 or above: moderate or severe anxiety; refer for psychiatric assessment. First-line is CBT with an SSRI or SNRI, re-rating at 8-12 weeks, and screen for depression and physical illness.'; }
+  else if(s.std>=50){ hz='SAS 标准分 50–59：轻度焦虑，建议放松训练、规律作息与认知调整，2–4 周复评；持续不适则就诊。';
+    he='SAS standard score 50-59: mild anxiety; relaxation training, regular routines and cognitive work, re-rating in 2-4 weeks, and seek care if it persists.'; }
+  else { hz='SAS 标准分<50：无明显焦虑，保持作息与运动；出现持续紧张、睡眠受影响时复评。';
+    he='SAS standard score below 50: no significant anxiety; maintain routines and exercise, and re-rate if persistent tension or sleep problems appear.'; }
+  __emrNote({boxId:'res', name:'Zung 焦虑自评量表（SAS）', nameEn:'Zung Self-Rating Anxiety Scale (SAS)',
+    result:'SAS 粗分 '+s.raw+'/80 → 标准分 '+s.std+'/100 → 分级：'+s.lv+'；高分条目 '+s.hi+' 项（≥3 分表示该症状近期明显）',
+    resultEn:'SAS raw score '+s.raw+'/80, standard score '+s.std+'/100, level '+s.lv+'; '+s.hi+' items scored 3 or more (symptom prominent recently)',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'计分口径：20 题 1–4 分，含 5 道反向题；粗分×1.25 取整得标准分，界值 50（中国常模）',
+    extraEn:'scoring: 20 items scored 1-4 including 5 reverse-scored items; standard score equals raw score times 1.25 (rounded); cut-off 50 in the Chinese norm'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->

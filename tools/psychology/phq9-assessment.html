@@ -288,6 +288,7 @@ h+='<div class="info-box"><strong>评估结果：</strong>'+it+' 本结果仅供
 if(PHQ_ANS[8]>=1){h+='<div class="mt-safety"><b>🆘 安全提示：</b>你第 9 题选择了「好几天」及以上，说明近期可能有伤害自己的念头。请记住你并不孤单——可立即拨打 <b>全国希望24热线 400-161-9995</b>、<b>北京心理危机干预中心 010-82951332</b>，或前往最近医院急诊。紧急情况请拨打 <b>120</b> 或 <b>110</b>。</div>';}
 h+='<div class="info-box"><strong>下一步：</strong>若总分≥10 或第 9 题≥1，建议把本结果带给心理咨询师或精神科大夫作为沟通起点。</div>';
 const __g4=h;resEl.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+window.__EMR_SUM={t:total,lv:g,q9:PHQ_ANS[8],n:PHQ_ANS.length};
 var copy='【PHQ-9 抑郁自评】\n总分：'+total+' / 27（'+g+'抑郁）\n'+it+'\n（Kroenke 2001 标准 9 题；结果仅保存在本机浏览器）';
 resEl.setAttribute('data-copy-value',copy);}
 function copyResult(){var e=pEl('res');if(!e)return;var t=e.getAttribute('data-copy-value')||e.textContent;if(window.ToolBox&&ToolBox.copyText){ToolBox.copyText(t,'tool.copy_ok');}}
@@ -313,6 +314,65 @@ function __phqExport(){
   var tr2=document.createElement('tr');tr2.innerHTML='<td><b>Total</b></td><td>'+(en?(G_EN[g]||g):g)+'</td><td>'+total+' / 27</td>';tbody.appendChild(tr2);
   TBKit.util.exportTable('#phqHidden', en?'phq9-assessment.csv':'PHQ-9抑郁自评.csv');
 }
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.q9>=1){ hz='第 9 条目≥1：当班完成自杀风险访谈（C-SSRS），评估计划、手段可及性与保护因素，制定安全计划；总分高低不能替代风险评估。';
+    he='Item 9 at 1 or above: conduct a same-shift suicide risk interview (C-SSRS), assess plan, access to means and protective factors, and complete a safety plan; total score never replaces risk assessment.'; }
+  else if(s.t>=20){ hz='PHQ-9≥20：重度抑郁，建议 1 周内精神科评估，药物联合心理治疗并密切随访；评估功能损害与共病焦虑。';
+    he='PHQ-9 20 or above: severe depression; psychiatric assessment within a week, combined pharmacotherapy and psychotherapy with close follow-up, and assess functional impairment and comorbid anxiety.'; }
+  else if(s.t>=15){ hz='PHQ-9 15–19：中重度抑郁，建议 2 周内精神科评估并启动治疗，4 周复评总分变化。';
+    he='PHQ-9 15-19: moderately severe depression; psychiatric assessment within 2 weeks and start treatment, re-rating the total after 4 weeks.'; }
+  else if(s.t>=10){ hz='PHQ-9 10–14：中度抑郁，建议心理咨询或药物治疗，2–4 周复评；关注睡眠与日常功能。';
+    he='PHQ-9 10-14: moderate depression; consider psychotherapy or pharmacotherapy and re-rate in 2-4 weeks, monitoring sleep and daily functioning.'; }
+  else if(s.t>=5){ hz='PHQ-9 5–9：轻度症状，行为激活与睡眠、运动管理，2 周后复评；持续两周以上建议就诊。';
+    he='PHQ-9 5-9: mild symptoms; behavioural activation with sleep and exercise management, re-rating in 2 weeks, and seek care if symptoms persist beyond 2 weeks.'; }
+  else { hz='PHQ-9<5：无明显抑郁症状，保持规律作息与支持系统，年度筛查即可。';
+    he='PHQ-9 below 5: no significant depressive symptoms; maintain routines and support, with annual screening.'; }
+  __emrNote({boxId:'res', name:'PHQ-9 抑郁自评（患者健康问卷）', nameEn:'PHQ-9 Patient Health Questionnaire',
+    result:'PHQ-9 总分 '+s.t+'/27 → 抑郁程度：'+s.lv+'；第 9 条目（自伤念头）'+s.q9+' 分（'+s.n+' 题全部作答）',
+    resultEn:'PHQ-9 total '+s.t+'/27; severity '+s.lv+'; item 9 (self-harm thoughts) scored '+s.q9+' across '+s.n+' items',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'分级口径（Kroenke 2001）：0–4 无/极轻、5–9 轻度、10–14 中度、15–19 中重度、20–27 重度',
+    extraEn:'severity bands (Kroenke 2001): 0-4 none/minimal, 5-9 mild, 10-14 moderate, 15-19 moderately severe, 20-27 severe'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->

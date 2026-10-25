@@ -262,6 +262,7 @@ if(total<=13){g='低压力';c='var(--success)';it='压力水平较低，你目�
 else if(total<=19){g='中等压力（正常范围）';c='var(--info,#3B82F6)';it='存在一定压力但整体可控，属于成年人常见的正常区间，注意劳逸结合即可。';}
 else if(total<=26){g='较高压力';c='var(--warning,#f59e0b)';it='压力已偏高，可能开始影响睡眠、情绪或效率，建议主动安排放松与减压。';}
 else{g='高压力';c='var(--danger)';it='压力水平很高，长期如此会明显损耗身心，建议尽快寻求专业心理支持。';}
+window.__EMR_SUM={t:total,lv:g,pct:Math.round(total/40*100),n:PSS_QS.length};
 var pct=Math.round(total/40*100);
 var h='<div class="mt-type"><div class="mt-type-code">'+total+'<span style="font-size:18px;color:var(--text-muted);"> / 40</span></div><div class="mt-type-name">'+g+'</div></div>';
 h+='<div class="mt-dbar"><div class="mt-dbar-top"><span><b>压力负荷</b> '+pct+'%</span><span>满分 40</span></div><div class="mt-dbar-track"><div class="mt-dbar-a" style="width:'+pct+'%"></div></div></div>';
@@ -275,6 +276,59 @@ function copyResult(){var e=pEl('res');if(!e)return;var t=e.getAttribute('data-c
 function __pssExport(){if(typeof TBKit==='undefined')return;var en=TBKit.util.isEn();var tbody=document.querySelector('#pssHidden tbody');if(!tbody)return;tbody.innerHTML='';for(var i=0;i<PSS_ANS.length;i++){if(PSS_ANS[i]===null||PSS_ANS[i]===undefined){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please finish all questions first':'请先完成全部题目再导出','warn');return;}}var SCALE_EN={'从不':'Never','偶尔':'Occasionally','有时':'Sometimes','比较经常':'Fairly often','很频繁':'Very often'};var G_EN={'低压力':'Low stress','中等压力（正常范围）':'Moderate (normal)','较高压力':'High stress','高压力':'Very high stress'};var total=0;for(var i=0;i<PSS_QS.length;i++){var v=PSS_ANS[i];var sc=PSS_REV[i]?(4-v):v;total+=sc;var opt=PSS_SCALE[v]?PSS_SCALE[v].t:'';var rev=PSS_REV[i]?1:0;if(en)opt=SCALE_EN[opt]||opt;var tr=document.createElement('tr');tr.innerHTML='<td>Q'+(i+1)+'</td><td>'+opt+'</td><td>'+(rev?(en?'Yes':'是'):(en?'No':'否'))+'</td><td>'+sc+'</td>';tbody.appendChild(tr);}var g;if(total<=13)g='低压力';else if(total<=19)g='中等压力（正常范围）';else if(total<=26)g='较高压力';else g='高压力';var tr2=document.createElement('tr');tr2.innerHTML='<td colspan="3"><b>'+(en?'Total':'总分')+'</b></td><td><b>'+total+' / 40</b></td>';tbody.appendChild(tr2);var tr3=document.createElement('tr');tr3.innerHTML='<td colspan="3"><b>'+(en?'Grade':'等级')+'</b></td><td><b>'+(en?(G_EN[g]||g):g)+'</b></td>';tbody.appendChild(tr3);TBKit.util.exportTable('#pssHidden',en?'pss-stress.csv':'压力水平PSS.csv');}
 document.addEventListener('keydown',function(ev){if(!ev||!ev.key)return;var tag=(ev.target&&ev.target.tagName)?String(ev.target.tagName).toLowerCase():'';if(tag==='input'||tag==='textarea')return;if(ev.key==='ArrowLeft')pGo(-1);else if(ev.key==='ArrowRight')pGo(1);else if(ev.key>='1'&&ev.key<='5')pPick(PSS_SCALE[parseInt(ev.key,10)-1].v);});
 pLoad();PSS_CUR=pNextUn();if(PSS_CUR>=PSS_QS.length)PSS_CUR=0;pRender();if(pAns()===PSS_QS.length)calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t>=27){ hz='PSS≥27：感知压力很高，建议评估睡眠、情绪与躯体症状，转介心理咨询；同时排查持续应激源与耗竭（burnout）风险。';
+    he='PSS 27 or above: very high perceived stress; assess sleep, mood and somatic symptoms, refer for psychological support, and review ongoing stressors and burnout risk.'; }
+  else if(s.t>=20){ hz='PSS 20–26：压力偏高，建议安排结构化减压（规律有氧运动、正念呼吸、时间管理），4 周后复评。';
+    he='PSS 20-26: elevated stress; arrange structured stress management (regular aerobic exercise, mindful breathing, time management) and re-rate in 4 weeks.'; }
+  else { hz='PSS≤19：压力在可接受范围，保持运动、睡眠与社会支持，定期自查即可。';
+    he='PSS 19 or below: stress within an acceptable range; maintain exercise, sleep and social support with periodic self-checks.'; }
+  __emrNote({boxId:'res', name:'知觉压力量表（PSS-10）', nameEn:'Perceived Stress Scale (PSS-10)',
+    result:'PSS-10 总分 '+s.t+'/40（压力负荷 '+s.pct+'%）→ 压力分级：'+s.lv+'；'+s.n+' 题全部作答（含 4 道反向计分题）',
+    resultEn:'PSS-10 total '+s.t+'/40 ('+s.pct+'% of maximum); stress level '+s.lv+'; all '+s.n+' items answered (4 reverse-scored)',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'测量窗口为最近 1 个月的主观压力感知，随处境波动，不是心理疾病诊断；分档 0–13 低、14–19 中等、20–26 较高、27–40 高',
+    extraEn:'measures perceived stress over the past month and fluctuates with circumstances; it is not a diagnostic instrument. Bands: 0-13 low, 14-19 moderate, 20-26 high, 27-40 very high'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 

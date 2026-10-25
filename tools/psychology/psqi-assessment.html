@@ -319,6 +319,7 @@ if(total<=5){g='睡眠较好';c='var(--success)';it='睡眠质量总体不错，
 else if(total<=10){g='轻中度睡眠问题';c='var(--warning,#f59e0b)';it='存在一定睡眠困扰，建议先从睡眠卫生入手（固定作息、减少睡前屏幕、限制咖啡因）。';}
 else if(total<=15){g='明显睡眠问题';c='var(--danger)';it='睡眠已明显受损，建议预约睡眠门诊或心理咨询，排查焦虑、呼吸暂停等因素。';}
 else{g='严重睡眠问题';c='var(--danger)';it='睡眠质量很差，强烈建议尽快就医（睡眠科/精神科），不要只靠自我调节。';}
+window.__EMR_SUM={t:total,cs:comps,lv:g};
 var names=['主观睡眠质量','入睡时长','睡眠时长','睡眠效率','睡眠障碍','助眠药物','白天功能'];
 var h='<div class="mt-type"><div class="mt-type-code">'+total+'<span style="font-size:18px;color:var(--text-muted);"> / 21</span></div><div class="mt-type-name">'+g+'</div></div>';
 h+='<div class="mt-dbar"><div class="mt-dbar-top"><span><b>全局分</b> '+total+'（0–21）</span><span>≥5 提示较差</span></div><div class="mt-dbar-track"><div class="mt-dbar-a" style="width:'+Math.round(total/21*100)+'%"></div></div></div>';
@@ -375,6 +376,60 @@ function __psqiExport(){
     TBKit.util.exportTable('#psqiTable','psqi-assessment.csv');
   }catch(e){}
 }
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t>=11){ hz='PSQI≥11：睡眠质量明显受损，建议睡眠专科/心理科评估，排查失眠障碍、焦虑抑郁与睡眠呼吸暂停（必要时做睡眠监测）。';
+    he='PSQI 11 or above: markedly impaired sleep; refer to a sleep or mental-health clinic and screen for insomnia disorder, anxiety, depression and sleep apnoea (sleep study if indicated).'; }
+  else if(s.t>=5){ hz='PSQI 5–10：睡眠质量偏差，先从睡眠卫生入手（固定作息、限制卧床非睡眠行为、减少咖啡因与睡前屏幕），4 周后复评。';
+    he='PSQI 5-10: poor sleep quality; start with sleep hygiene (fixed schedule, stimulus control, less caffeine and screens before bed) and re-rate in 4 weeks.'; }
+  else { hz='PSQI<5：睡眠质量良好，维持现有作息；若出现日间功能下降可随时复评。';
+    he='PSQI below 5: good sleep quality; maintain the current schedule and re-rate if daytime functioning declines.'; }
+  var cs=s.cs||[];
+  __emrNote({boxId:'res', name:'匹兹堡睡眠质量指数（PSQI）', nameEn:'Pittsburgh Sleep Quality Index (PSQI)',
+    result:'PSQI 全局分 '+s.t+'/21 → 睡眠质量：'+s.lv+'；7 成分得分 主观质量 '+cs[0]+'、入睡时长 '+cs[1]+'、睡眠时长 '+cs[2]+'、睡眠效率 '+cs[3]+'、睡眠障碍 '+cs[4]+'、助眠药物 '+cs[5]+'、日间功能 '+cs[6]+'（各 0–3）',
+    resultEn:'PSQI global score '+s.t+'/21; sleep quality '+s.lv+'; component scores (0-3 each): quality '+cs[0]+', latency '+cs[1]+', duration '+cs[2]+', efficiency '+cs[3]+', disturbance '+cs[4]+', medication '+cs[5]+', daytime dysfunction '+cs[6],
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'判读（Buysse 1989）：成分分 ≥2 提示该维度临床受损；全局分 ≥5 提示睡眠质量差（本研究界值，非诊断标准）',
+    extraEn:'interpretation (Buysse 1989): a component score of 2 or more indicates clinical impairment in that domain; a global score of 5 or more indicates poor sleep quality (study threshold, not a diagnostic criterion)'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 <!-- TOOLBOX-DEEP-DIVE -->
