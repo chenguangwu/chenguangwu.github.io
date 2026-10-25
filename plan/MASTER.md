@@ -27,8 +27,8 @@
 | 批1-16 | statistics/math/science/金融6目录/工程5目录/健康4目录/土木化学6目录/检验生理6目录/物理地物6目录/商运6目录/量表6目录/专科6目录/食品农业6目录/IT媒体6目录/生活6目录/声学航空6目录/产业6目录/生活商业6目录 | ✅ 已覆盖（发现的问题已修复或已登记） |
 | 批17 | machinery/life/biz/fun/automotive/general（212 计算页全读） | ✅ 已覆盖（新发现 3 项已归档：life.md L1/biz-startup.md Z1/machinery M3） |
 | 批18 | realestate/legal/marketing/metalwork/meteorology/energy/optical/fire-rescue/eco（322 计算页全读） | ✅ 已覆盖（新发现 2 项归档：eco-10/16 量纲 E1、metalwork 7 对比页功能单薄；realestate/legal 双段式页生效版此前 S 批已对照） |
-| 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（~340 页） | ⚪ 待审计 |
-| 批20 | 其余全部 <25 页小目录（~90 个，~800 页） | ⚪ 待审计 |
+| 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（316 计算页） | 🟡 进行中：cosmetic-derm/ophthalmology/encode 已读（发现 C1 游离酸颠倒已归档）；metrology 起未读——续读指引见 plan/HANDOFF.md |
+| 批20 | 其余全部 <25 页小目录（~90 个，~800 页） | ⚪ 未开始——目录清单与生成脚本见 plan/HANDOFF.md |
 
 > 登记纪律：审计新发现的**未修复**问题按归属追加进对应任务文件；已修复问题一律不写入。
 
