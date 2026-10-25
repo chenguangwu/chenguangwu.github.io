@@ -4414,9 +4414,10 @@ const CASES = [
       "sep": ","
     },
     "expect": [
-      "1 2 3\n\u0001\u0002\u0003\n,"
+      "1 2 3\n\u0001\u0002\u0003\n,",
+      "1 2 3\n,\n\u0001\u0002\u0003"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"sep\":\",\"}，输出区含「1 2 3\n\u0001\u0002\u0003\n,」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"sep\":\",\"}，输出区含「1 2 3\n\u0001\u0002\u0003\n,」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑后元素创建序变为 input→sep→output（boot 的 enc 先读 input/sep 再写 output），blob 字段序随之改变，故 expect 容忍两种字段序；判别力仍在解码产物 \u0001\u0002\u0003（非输入回显）。"
   },
   {
     "slug": "it/des",
@@ -7476,9 +7477,13 @@ async function runCaseInner(c) {
   // 跳过「状态破坏性 / 辅助」类函数：resetAll / clearHistory / restoreHistory / saveHistory /
   // renderHistory / swapValues 等会改写输入或覆盖 res 输出，导致扰动态结果被默认值吞掉
   // （strength-1、carbon-5 等页因此假同态）。只跑真正的计算函数。
+  // 另跳过 `__*Boot` 初始化钩子：它在步骤1 已随 DOMContentLoaded 执行过（预填+首屏自跑
+  // 正发生在这一步），兜底循环再调一次会把 boot 内的 calc 重跑一遍、覆盖其后函数写入的
+  // 输出（实证：it/decimal-encode 第三条用例——dec() 写入解码值后被 boot 重跑的 enc() 覆盖）。
   const DESTRUCTIVE = /^(reset|clear|restore|save|swap)\b|history|reset|clear|^set[A-Z]/i;
   for (const n of ordered) {
     if (DESTRUCTIVE.test(n)) continue;
+    if (/^__[\w$]*Boot$/.test(n)) continue;
     const f = fns[n];
     if (!f) continue;
     try {
