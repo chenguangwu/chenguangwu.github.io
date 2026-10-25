@@ -367,6 +367,7 @@ function calc() {
     html += '</div>';
   }
 
+  window.__EMR_SUM={type:type,sl:stumpLen,sw:stumpW,bw:weight,hh:heelH,ft:footType,lf:loadForce,pt:(loadForce/(2*stumpW*stumpLen)),ifx:(typeof initialFlex!=='undefined'?initialFlex:null),fap:(typeof footAP!=='undefined'?footAP:null),ia:(typeof initialAdduct!=='undefined'?initialAdduct:null)};
   const __g2=html;document.getElementById('resultBox').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -431,6 +432,58 @@ function resetAll() {
 }
 
 renderHistory();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var tz={transtibial:'小腿假肢（截肢平面经胫骨）',transfemoral:'大腿假肢（经股骨）'};
+  var hz,he;
+  if(s.pt>150){ hz='残端压强偏高（>150 kPa）：优先增加接受腔接触面积（硅胶衬垫/凝胶套）、延长每日穿戴适应时间、检查残端瘢痕与骨突，必要时调整对线使承重更均匀。';
+    he='Socket pressure above 150 kPa: increase contact area (silicone or gel liner), grade wearing time, inspect the stump for scars and bony prominences, and adjust alignment to distribute load.'; }
+  else { hz='残端压强在可接受范围：保持每日检查残端皮肤（发红>30 分钟不消退需减量），穿戴后 15 分钟与 1 小时各复查一次对线标记。';
+    he='Socket pressure acceptable: inspect stump skin daily (erythema lasting over 30 minutes warrants reduced wear) and re-check alignment marks at 15 minutes and 1 hour after donning.'; }
+  __emrNote({boxId:'resultBox', name:'假肢对线与残端承重评估', nameEn:'Prosthetic Alignment and Socket Loading',
+    result:'类型 '+(tz[s.type]||s.type)+' · 残肢 '+(s.sl||'—')+'×'+(s.sw||'—')+' cm · 体重 '+s.bw+' kg → 单侧承重 '+(s.lf/2).toFixed(0)+' N、残端面积 '+(s.sw*s.sl).toFixed(0)+' cm²、压强 '+s.pt.toFixed(1)+' kPa',
+    resultEn:(s.type||'')+', stump '+(s.sl||'-')+'x'+(s.sw||'-')+' cm, body weight '+s.bw+' kg -> load per side '+(s.lf/2).toFixed(0)+' N, socket area '+(s.sw*s.sl).toFixed(0)+' cm2, pressure '+s.pt.toFixed(1)+' kPa',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'对线角度：'+(s.ifx!=null?('接受腔初始屈曲 '+s.ifx+'°（小腿假肢常规 5–8°）'):(s.ia!=null?('接受腔初始内收 '+s.ia+'°（大腿假肢常规 5–8°）'):'未采集'))+'；假足前后位置：'+(s.fap==null?'按鞋跟公式统一计算':(s.fap===0?'标准位':(s.fap>0?('前移 '+s.fap+' mm'):('后移 '+Math.abs(s.fap)+' mm'))))+'；鞋跟高 '+s.hh+' cm；假足型号：'+s.ft,
+    extraEn:'alignment angle '+(s.ifx!=null?s.ifx:(s.ia!=null?s.ia:'-'))+' degrees; foot AP position '+(s.fap==null?'from heel formula':(s.fap+' mm'))+'; heel height '+s.hh+' cm; foot type '+s.ft});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

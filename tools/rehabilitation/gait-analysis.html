@@ -282,6 +282,7 @@ function calc() {
     status = '步态严重异常'; color = '#EF4444'; advice = '步态参数明显异常，建议详细步态分析和专业评估';
   }
 
+  window.__EMR_SUM={cy:cycle,st:stance,ds:doubleStance,cd:cadence,sl:stepLen,st2:stance2,sw:swing,sp:stancePct,wp:swingPct,rt:ratio,status:status,adv:advice};
   html += '<p><strong>评估结果：</strong><span class="grade-tag" style="background:' + color + '22;color:' + color + ';">' + status + '</span></p>';
 
   // 双支撑相分析
@@ -365,6 +366,62 @@ function resetAll() {
 }
 
 renderHistory();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var lv={'正常步态模式':'normal gait pattern','支撑相延长':'prolonged stance phase',
+          '支撑相明显延长':'markedly prolonged stance phase','支撑相缩短':'shortened stance phase',
+          '步态严重异常':'severely abnormal gait'};
+  var hz,he;
+  if(s.status==='正常步态模式'){ hz='步态时空参数在正常范围：支撑相约占 58–62%（支撑/摆动≈60:40），可继续现有训练并按需复评。';
+    he='Spatiotemporal parameters within normal limits (stance about 58-62%, stance/swing about 60:40); continue current training and reassess as needed.'; }
+  else if(s.status.indexOf('延长')>=0){ hz='支撑相延长：常见于负重疼痛、下肢肌力下降、平衡信心不足或对侧摆动相缩短；建议减痛步态训练、髋膝伸肌力量训练与平衡训练，配合减重支持或助行器具。';
+    he='Prolonged stance phase: seen with pain on loading, weakness, poor balance confidence or a shortened contralateral swing; consider pain-free gait training, hip and knee strengthening, balance training and weight support or aids.'; }
+  else { hz='支撑相缩短/步态明显异常：需评估疼痛、关节活动度、足踝稳定性与躯干控制，建议三维步态分析并排查神经系统疾病。';
+    he='Shortened stance or markedly abnormal gait: assess pain, range of motion, ankle stability and trunk control; consider 3-D gait analysis and screen for neurological disease.'; }
+  __emrNote({boxId:'resultBox', name:'步态时空参数分析', nameEn:'Spatiotemporal Gait Analysis',
+    result:'步态周期 '+(s.cy||'—')+' s、支撑相 '+(s.st||'—')+' s → 支撑相占比 '+s.sp.toFixed(1)+'%、摆动相 '+s.wp.toFixed(1)+'%、支撑/摆动比 '+s.rt.toFixed(2)+' → 判定：'+s.status,
+    resultEn:'cycle '+(s.cy||'-')+' s, stance '+(s.st||'-')+' s -> stance '+s.sp.toFixed(1)+'%, swing '+s.wp.toFixed(1)+'%, ratio '+s.rt.toFixed(2)+'; pattern: '+(lv[s.status]||s.status),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'步频 '+(s.cd||'—')+' 步/分、步长 '+(s.sl||'—')+' cm、双支撑相 '+(s.ds||'—')+' s'+(s.st2?('、对侧支撑相 '+s.st2+' s'):'')+'；正常参考：支撑相 58–62%、双支撑相约占周期 20%',
+    extraEn:'cadence '+(s.cd||'-')+' steps/min, step length '+(s.sl||'-')+' cm, double support '+(s.ds||'-')+' s; reference: stance 58-62%, double support about 20% of cycle'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

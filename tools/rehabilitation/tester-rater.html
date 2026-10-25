@@ -185,6 +185,7 @@ function calc(){
   else{status='平衡正常';color='var(--success)';tip='success';advice='Berg评分'+total+'分（54-56），平衡功能良好，跌倒风险低。保持日常活动和锻炼。';}
   var rows=[];
   for(var i=0;i<14;i++){rows.push([(i+1)+'. '+items[i],document.getElementById('b'+(i+1)).value+'分']);}
+  window.__EMR_SUM={total:total,status:status,adv:advice};
   var h='<p>Berg总分：<strong style="font-size:28px;color:'+color+';">'+total+'</strong> / 56</p>';
   h+='<p>跌倒风险：<span class="grade-tag" style="background:'+color+'20;color:'+color+';">'+status+'</span></p>';
   h+=ToolBox.createTable(['测试项目','得分'],rows);
@@ -192,6 +193,62 @@ function calc(){
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var lv={'高跌倒风险':'high fall risk','中跌倒风险':'moderate fall risk','低跌倒风险':'low fall risk','平衡正常':'normal balance'};
+  var hz,he;
+  if(s.total<40){ hz='Berg <40 分：跌倒风险高，需使用轮椅或助行器并在监护下行走，强化平衡（重心转移、单腿站立、动态平衡）与下肢力量训练，居家做环境改造（扶手、防滑、夜灯）。';
+    he='Berg below 40: high fall risk - use a wheelchair or walker with supervision, train balance and lower-limb strength, and modify the home environment.'; }
+  else if(s.total<45){ hz='Berg 40–44 分：跌倒风险较高，建议使用辅助器具、加强平衡与肌力训练，做跌倒预防宣教，1 个月复评。';
+    he='Berg 40-44: increased fall risk - assistive device, balance and strength training, fall-prevention education, reassess in one month.'; }
+  else if(s.total<54){ hz='Berg 45–53 分：跌倒风险较低，继续平衡训练并注意日常环境安全，3 个月复评。';
+    he='Berg 45-53: low fall risk - continue balance training, mind environmental safety, reassess in three months.'; }
+  else { hz='Berg 54–56 分：平衡功能良好，跌倒风险低，保持日常活动与规律锻炼，每年复评。';
+    he='Berg 54-56: good balance, low fall risk; maintain activity and reassess annually.'; }
+  __emrNote({boxId:'res', name:'Berg 平衡量表（BBS · 14 项 · 满分 56）', nameEn:'Berg Balance Scale (14 items, max 56)',
+    result:'Berg 总分 '+s.total+'/56 → 跌倒风险分级：'+s.status,
+    resultEn:'Berg total '+s.total+'/56; fall risk: '+(lv[s.status]||s.status),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'界值：<40 高、40–44 中、45–53 低、54–56 平衡正常；单项满分 4 分，≤2 分的项目提示该任务需重点训练',
+    extraEn:'cut-offs: below 40 high, 40-44 moderate, 45-53 low, 54-56 normal; items scoring 2 or less indicate targets for training'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

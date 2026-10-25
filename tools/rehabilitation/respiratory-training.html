@@ -317,6 +317,7 @@ function calc() {
     else if (pct >= 40) { level = '中度下降'; color = '#EF4444'; }
     else { level = '重度下降'; color = '#DC2626'; }
 
+  window.__EMR_SUM={g:gender,a:age,h:height,w:weight,cm:currentMIP,cond:condition,pmi:predictedMIP,pme:predictedMEP,tmi:targetMIP,ti:trainIntensity,bmi:bmi,pct:pct,level:level,wk:weeksNeeded};
     html += '<h3>当前评估</h3>';
     html += '<div class="result-box" style="margin-top:4px;">';
     html += '<p><strong>实测MIP：</strong>' + currentMIP + ' cmH₂O</p>';
@@ -413,6 +414,63 @@ function resetAll() {
 
 calc();
 renderHistory();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var cz={copd:'COPD',neuromuscular:'神经肌肉疾病',postop:'术后',stroke:'卒中',spinal:'脊髓损伤'};
+  var hz,he;
+  if(s.level==='正常'){ hz='吸气肌力在预测值 80% 以上：可转为维持性训练（每日 1–2 组、30% MIP），每月复测一次；关注咳嗽效力与夜间低通气表现。';
+    he='Inspiratory strength above 80% predicted: move to maintenance training (1-2 sets daily at 30% MIP) and retest monthly; watch cough effectiveness and nocturnal hypoventilation.'; }
+  else if(s.level==='轻度下降'){ hz='轻度下降（60–79% 预测值）：开始吸气肌训练（IMT），强度从 30% MIP 起步、每次 30 呼吸、每日 2 次，每周递增 5–10%，4 周复评。';
+    he='Mild reduction (60-79% predicted): start inspiratory muscle training at 30% MIP, 30 breaths twice daily, increase 5-10% weekly and reassess in 4 weeks.'; }
+  else { hz='中度/重度下降（<60% 预测值）：需评估呼吸肌无力原因（药物、电解质、甲状腺、神经肌肉病），并结合肺功能与血气；训练强度从 20–30% MIP 起始，警惕训练后 SpO₂ 下降与呼吸肌疲劳。';
+    he='Moderate to severe reduction (below 60% predicted): look for causes of respiratory muscle weakness (drugs, electrolytes, thyroid, neuromuscular disease) with lung function and blood gas; start at 20-30% MIP and watch for desaturation and fatigue.'; }
+  var __gap=(s.tmi-s.cm);
+  var __wkLine=(__gap>0 && isFinite(s.wk)) ? ('，按每周改善 2 cmH₂O 预计 '+s.wk+' 周达标') : ('，实测已高于目标值 '+Math.abs(__gap).toFixed(0)+' cmH₂O');
+  var __wkLineEn=(__gap>0 && isFinite(s.wk)) ? (', about '+s.wk+' weeks at 2 cmH2O per week') : (', measured value already above target by '+Math.abs(__gap).toFixed(0)+' cmH2O');
+  __emrNote({boxId:'resultBox', name:'吸气肌力量（MIP/MEP）评估与训练处方', nameEn:'Inspiratory Muscle Strength and Training Prescription',
+    result:'预测 MIP '+s.pmi.toFixed(0)+' / MEP '+s.pme.toFixed(0)+' cmH₂O（'+(s.g==='male'?'男':'女')+'、'+s.a+' 岁）→ 实测 MIP '+s.cm+' cmH₂O（达预测 '+s.pct.toFixed(0)+'%，'+s.level+'）；目标 MIP '+s.tmi.toFixed(0)+'、训练强度 '+s.ti.toFixed(0)+' cmH₂O',
+    resultEn:'predicted MIP '+s.pmi.toFixed(0)+' / MEP '+s.pme.toFixed(0)+' cmH2O -> measured MIP '+s.cm+' ('+s.pct.toFixed(0)+'% predicted, '+s.level+'); target MIP '+s.tmi.toFixed(0)+', training intensity '+s.ti.toFixed(0)+' cmH2O',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'基础疾病：'+(cz[s.cond]||s.cond)+(__gap>0?('；距目标差距 '+__gap.toFixed(0)+' cmH₂O'):'')+__wkLine+(s.bmi?('；BMI '+s.bmi):''),
+    extraEn:'underlying condition: '+(cz[s.cond]||s.cond)+(__gap>0?('; gap to target '+__gap.toFixed(0)+' cmH2O'):'')+__wkLineEn});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

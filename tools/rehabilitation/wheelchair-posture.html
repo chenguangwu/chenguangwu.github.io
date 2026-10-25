@@ -122,7 +122,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算轮椅坐姿参数和压力分布，预防压疮，优化坐位平衡">Wheelchair Posture</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">轮椅坐姿与压疮风险评估<br>重力 = 体重 × 9.8（N）；坐骨压力(Pa) = 重力 ÷ (2×5 cm²) ×10⁴（每侧接触约 5 cm²，N/cm²→Pa ×10⁴）<br>换算 mmHg：Pa ÷ 133.322<br>减压后压力 = 坐骨压力 × (1 − 坐垫减压率)<br>座宽理想 = 臀宽 + 2 cm（偏差 ≤1 cm 为合适）<br>座深合理区间 35–42 cm（>42 压迫腘窝，<35 大腿支撑不足）<br>靠背高度：>50 cm 适合高位脊髓损伤(T6以上)｜30–50 cm 适合多数截瘫｜<30 cm 低靠背<br>压疮风险（按减压后）：<32 mmHg 低｜<60 中｜<100 高｜≥100 极高<br>部位压力分布系数：坐骨 100%｜骶尾 60%｜大腿后 30%｜臀 25%</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：ischialPressure ÷ 133.322；force ÷ (2 × 5)；hipW + 2">Key formulas: ischialPressure ÷ 133.322; force ÷ (2 × 5); hipW + 2</p>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：force ÷ (2 × 300) ÷ 133.322；hipW + 2">Key formulas: force ÷ (2 × 300) ÷ 133.322; hipW + 2</p>
     </div>
 
     <h3>患者参数</h3>
@@ -292,11 +292,12 @@ function calc() {
 
   // 压力计算
   var force = weight * 9.8; // N
-  var ischialPressure = force / (2 * 5) * 1e4; // N/cm² 换 Pa（×10⁴），坐骨接触面积约5cm²/侧
-  var ischialMMHg = ischialPressure / 133.322; // 转mmHg
+  var ischialPressure = force / (2 * 300) * 1e4; // N/cm² 换 Pa（×10⁴）；坐骨-臀大腿等效承压面积约 300cm²/侧，标定至无减压坐垫时界面压 70–90mmHg
+  var ischialMMHg = ischialPressure / 133.322; // 转mmHg（1 mmHg = 133.322 Pa）
   var cushionInfo = cushionData[cushion];
   var reducedPressure = ischialMMHg * (1 - cushionInfo.reduction);
 
+  window.__EMR_SUM={w:weight,hw:hipW,sw:seatW,sd:seatD,sh:seatH,bh:backH,cu:cushion,ip:ischialMMHg,rp2:reducedPressure,red:cushionInfo.reduction,cn:cushionInfo.name||cushion};
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">' + ischialMMHg.toFixed(0) + '</div><div class="label">坐骨压力(mmHg)</div></div>';
   html += '<div class="data-card"><div class="num" style="color:var(--success);">' + reducedPressure.toFixed(0) + '</div><div class="label">减压后(mmHg)</div></div>';
@@ -429,6 +430,57 @@ function resetAll() {
 }
 
 renderHistory();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.rp2>=60){ hz='减压后坐骨压力仍偏高（≥60 mmHg）：需更换更高减压性能的坐垫（如交替充气/凝胶+泡沫复合），并严格执行每 15–30 分钟减压动作、每 2 小时转移；坐骨处皮肤每班检查。';
+    he='Seated ischial pressure remains high after the cushion (60 mmHg or more): use a higher-performance cushion (alternating air or gel-foam composite), perform pressure relief every 15-30 minutes, transfer every 2 hours and inspect skin each shift.'; }
+  else { hz='减压效果可接受：保持坐垫正确方向（前后不可颠倒）、每日检查坐垫是否漏气或变形，配合定时减压动作。';
+    he='Pressure relief acceptable: keep the cushion correctly oriented, check daily for leakage or deformation, and maintain scheduled pressure-relief manoeuvres.'; }
+  __emrNote({boxId:'resultBox', name:'轮椅坐姿与坐垫减压评估', nameEn:'Wheelchair Seating and Cushion Pressure',
+    result:'体重 '+s.w+' kg · 臀宽 '+s.hw+' cm → 座宽 '+s.sw+' cm（理想 '+(s.hw+2)+' cm）、座深 '+s.sd+' cm、座高 '+s.sh+' cm、靠背高 '+s.bh+' cm；坐骨压力 '+s.ip.toFixed(0)+' mmHg → 使用'+(s.cn||s.cu)+'减压后 '+s.rp2.toFixed(0)+' mmHg（减压率 '+(s.red*100).toFixed(0)+'%）',
+    resultEn:'weight '+s.w+' kg, hip width '+s.hw+' cm -> seat width '+s.sw+' cm (ideal '+(s.hw+2)+' cm), depth '+s.sd+' cm, height '+s.sh+' cm, back height '+s.bh+' cm; ischial pressure '+s.ip.toFixed(0)+' mmHg, reduced to '+s.rp2.toFixed(0)+' mmHg with the cushion',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'座宽应为臀宽 +2 cm（误差 ±1 cm）；座深应比大腿长度短 2–5 cm，避免腘窝受压；坐骨结节处压力 >32 mmHg 即有毛细血管闭塞风险，减压后仍 >60 mmHg 需更换坐垫',
+    extraEn:'seat width should be hip width +2 cm (plus/minus 1 cm); seat depth 2-5 cm shorter than thigh length to avoid popliteal pressure; capillary occlusion occurs above 32 mmHg'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
