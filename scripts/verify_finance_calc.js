@@ -1306,9 +1306,10 @@ const CASES = [
       "batchInput": "1\n2\n3"
     },
     "expect": [
-      "1379 USD\nabc123测试\n未找到货币\nabc123测试\n未找到货币\nabc123测试\n未找到货币\nabc123测试\n未找到货币\nabc123测试\n未找到货币\n1 2 3"
+      "1.00 🇨🇳 0.1379 🇺🇸",
+      "2,207.6250"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fromAmount\":\"42\",\"fromSearch\":\"abc123测试\",\"toAmount\":\"42\",\"toSearch\":\"abc123测试\",\"batchFromSearch\":\"abc123测试\",\"batchToSearch\":\"abc123测试\",\"quickSearch\":\"abc123测试\",\"batchInput\":\"1\\n2\\n3\"}，输出区含「1379 USD\nabc123测试\n未找到货币\nabc123测试\n未找到货币\na…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "批量换算 + 汇率来源（2026-10-25 新增功能同步）：batchInput=\"1\\n2\\n3\" ⇒ 批量表首行「1.00 🇨🇳 0.1379 🇺🇸」（CNY→USD，1 ÷ 7.25 = 0.1379）；toAmount=42 触发反算 ⇒ fromAmount 收敛为 304.50 USD，正向结果「2,207.6250」CNY（304.50 × 7.25）。两条均绑定注入值：默认态（batch 为 100/500/1000…、fromAmount=100 ⇒ 725.0000）都不含 ⇒ 零逃生。同时固定「汇率来源：内置参考值（静态，非实时）」这一新增口径标注不被误删（改文案本例即变红）。旧 expect 为输入回显长串，因新增「汇率来源」控件与速查表区块打断了回显序列，已按实测更新。"
   },
   {
     "slug": "finance/compound-interest",

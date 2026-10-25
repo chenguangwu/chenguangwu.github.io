@@ -199,6 +199,10 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
      <h2 data-zh="💱 货币换算">💱 Currency Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="20+种主要货币 · 静态参考汇率 · 批量换算">Convert between 20+ major currencies using built-in reference rates, handy for travel or cross-border quotes.</p>
+    <div class="compliance-note" style="margin:0 0 14px;padding:10px 14px;border-left:4px solid #F59E0B;background:rgba(245,158,11,0.10);border-radius:8px;font-size:13px;color:#6B7280;">
+      <strong data-zh="⚠️ 汇率口径说明">⚠️ Rate source notice</strong>
+      <div data-zh="本工具纯前端运行，不接入任何实时汇率接口。内置汇率为 2025 年 7 月静态参考值，仅供估算；如需按当日牌价计算，请在下方「汇率来源」选择「手动贴入当前汇率」并填写银行/牌价汇率。" style="margin-top:4px;">This tool runs fully client-side and calls no live FX API. Built-in rates are static reference values from 2025-07; for a same-day rate, switch "Rate source" to manual and paste your bank's quote.</div>
+    </div>
 
     <div class="page-tabs">
       <div class="tab active" data-tab="single" onclick="switchTab('single')">快速换算</div>
@@ -252,13 +256,27 @@ s.parentNode.insertBefore(el, s);
         </div>
       </div>
 
+      <div class="input-row" style="margin-top:10px;">
+        <div>
+          <label data-zh="汇率来源">Rate source</label>
+          <select id="rateMode" onchange="__ccToggleManual()">
+            <option value="builtin" data-zh="内置参考汇率表" selected>Built-in reference rates</option>
+            <option value="manual" data-zh="手动贴入当前汇率">Manual (paste current rate)</option>
+          </select>
+        </div>
+        <div id="manualWrap" style="display:none;">
+          <label data-zh="手动汇率（1 单位「从」= ?「到」）">Manual rate (1 FROM = ? TO)</label>
+          <input type="number" id="manualRate" value="7.25" step="any" min="0" oninput="calc()">
+        </div>
+      </div>
+
       <div class="toolbar">
         <button type="button" class="btn primary" onclick="saveHistory()">💾 保存到历史</button>
         <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
         <button type="button" class="btn" onclick="resetCalc()">🔄 重置</button>
       </div>
 
-      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__currency_converterExport()">导出明细 CSV</button></div><div class="result-display" id="resultDisplay" style="margin-top:12px;"></div> <div id="currency_converterTable"></div> <div id="currency_converterDiff"></div> <div id="currency_converterChart"></div> <div id="currency_converterHist"></div>
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__currency_converterExport()">导出明细 CSV</button></div><div class="result-display" id="resultDisplay" style="margin-top:12px;"></div> <div id="ccPairTable" style="margin-top:12px;"></div> <div id="currency_converterTable"></div> <div id="currency_converterDiff"></div> <div id="currency_converterChart"></div> <div id="currency_converterHist"></div>
       <div class="formula-box">
         <div class="formula-title">📐 计算公式 / 说明</div>
         <div class="formula-eq">货币换算（内置静态汇率表查表，2025 年 7 月参考值、均为对 USD 汇率：CNY=7.25、EUR=0.92、JPY=156.50、GBP=0.79 等 20+ 币种）：先化美元 usd = 金额 ÷ rate(原币)，再 结果 = usd × rate(目标币)，即 金额 × rate(目标) ÷ rate(原币)。校验：无强校验，按币种代码查 getCurrency，选项均来自内置表。判据：无固定分级，另输出 1 单位双向汇率各保留 4 位小数。</div>
@@ -457,7 +475,47 @@ function fromUSD(usd, code){
   return usd * c.rate;
 }
 
+function __ccIsEn(){ return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+// 手动汇率：1 单位「从币」= manualRate 个「到币」；未启用或无效时返回 null（走内置表）
+function __ccManualRate(){
+  var sel = document.getElementById('rateMode');
+  if (!sel || sel.value !== 'manual') return null;
+  var el = document.getElementById('manualRate');
+  var v = el ? parseFloat(el.value) : NaN;
+  return (isFinite(v) && v > 0) ? v : null;
+}
+function __ccToggleManual(){
+  var sel = document.getElementById('rateMode');
+  var wrap = document.getElementById('manualWrap');
+  if (wrap) wrap.style.display = (sel && sel.value === 'manual') ? '' : 'none';
+  calc();
+}
+// 常用货币对速查（对人民币，内置参考值 + 手动汇率来源标注）
+function renderPairTable(){
+  var host = document.getElementById('ccPairTable');
+  if (!host) return;
+  var en = __ccIsEn();
+  var pairs = ['USD','EUR','JPY','HKD','GBP','KRW','AUD','SGD','THB','MOP'];
+  var manual = __ccManualRate();
+  var h = '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">' + (en ? '💱 Common pairs (vs CNY)' : '💱 常用货币对速查（对人民币）') + '</div>';
+  h += '<table class="result-table" style="width:100%;border-collapse:collapse;font-size:13px;">';
+  h += '<thead><tr><th>' + (en ? 'Pair' : '货币对') + '</th><th>' + (en ? '1 unit → CNY' : '1 单位 → 人民币') + '</th><th>' + (en ? '1 CNY → unit' : '1 人民币 → 单位') + '</th></tr></thead><tbody>';
+  for (var i = 0; i < pairs.length; i++){
+    var c = getCurrency(pairs[i]);
+    var oneToCny = convert(1, pairs[i], 'CNY');
+    var cnyToOne = convert(1, 'CNY', pairs[i]);
+    h += '<tr><td>' + c.flag + ' ' + c.code + ' / 🇨🇳 CNY</td><td>' + oneToCny.toFixed(4) + '</td><td>' + cnyToOne.toFixed(4) + '</td></tr>';
+  }
+  h += '</tbody></table>';
+  h += '<div style="margin-top:6px;font-size:12px;color:var(--text-muted);">' +
+    (manual ? (en ? 'Source: manual rate (your input).' : '汇率来源：手动汇率（你填写）。')
+            : (en ? 'Source: built-in static reference (2025-07), not live.' : '汇率来源：内置静态参考值（2025-07），非实时。')) + '</div>';
+  host.innerHTML = h;
+}
+
 function convert(amount, from, to){
+  var mr = (typeof __ccManualRate === 'function') ? __ccManualRate() : null;
+  if (mr) return amount * mr;
   var usd = toUSD(amount, from);
   return fromUSD(usd, to);
 }
@@ -566,7 +624,13 @@ function updateResultDisplay(fromAmt, fromCode, toAmt, toCode){
   html += '<div class="from-amt">' + ToolBox.formatNumber(fromAmt, 2) + ' ' + fromC.flag + ' ' + fromC.code + ' ' + fromC.name + '</div>';
   html += '<div class="to-amt">' + ToolBox.formatNumber(toAmt, 4) + ' ' + toC.flag + ' ' + toC.code + '</div>';
   html += '<div class="rate-info">1 ' + fromC.code + ' = ' + rate.toFixed(4) + ' ' + toC.code + ' · 1 ' + toC.code + ' = ' + rateReverse.toFixed(4) + ' ' + fromC.code + '</div>';
+  var __manual = (typeof __ccManualRate === 'function') ? __ccManualRate() : null;
+  var __en = __ccIsEn();
+  html += '<div class="rate-info" style="font-size:12px;color:var(--text-muted);">' +
+    (__en ? 'Rate source: ' : '汇率来源：') +
+    (__manual ? (__en ? 'Manual (your input)' : '手动汇率（你填写）') : (__en ? 'Built-in reference (static, not live)' : '内置参考值（静态，非实时）')) + '</div>';
   const __g3=html;document.getElementById('resultDisplay').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  try { renderPairTable(); } catch(e) {}
 }
 
 function swapCurrencies(){
