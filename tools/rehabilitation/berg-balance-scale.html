@@ -418,6 +418,67 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(function () { calcScore(); }, 0);
 }
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进护理记录/病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof bbsItems==='undefined') return;
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var total=0,done=0,i,j,rs;
+  for(i=0;i<bbsItems.length;i++){
+    var sel=null;
+    try{ sel=document.querySelector('input[name="item'+i+'"]:checked'); }catch(e){}
+    if(!sel){ rs=document.getElementsByName('item'+i); for(j=0;j<(rs?rs.length:0);j++){ if(rs[j].checked){ sel=rs[j]; break; } } }
+    if(sel){ total+=parseInt(sel.value)||0; done++; }
+  }
+  if(done<bbsItems.length) return;
+  var level,levelEn,risk,riskEn,hz,he;
+  if(total<=20){ level='严重平衡障碍'; levelEn='severe balance impairment'; risk='高跌倒风险'; riskEn='high fall risk'; hz='需轮椅辅助，建议专人看护和综合平衡康复训练。'; he='Wheelchair assistance; supervised comprehensive balance rehabilitation.'; }
+  else if(total<=40){ level='中度平衡障碍'; levelEn='moderate balance impairment'; risk='中高跌倒风险'; riskEn='moderate-to-high fall risk'; hz='需助行器辅助，建议系统平衡训练和肌力训练。'; he='Walking aid; structured balance and strength training.'; }
+  else if(total<=44){ level='轻度平衡障碍'; levelEn='mild balance impairment'; risk='中度跌倒风险'; riskEn='moderate fall risk'; hz='需辅助器具，建议强化平衡和功能性训练。'; he='Assistive device; intensified balance and functional training.'; }
+  else if(total<=52){ level='平衡良好'; levelEn='good balance'; risk='低跌倒风险'; riskEn='low fall risk'; hz='可独立步行，建议维持性训练和预防跌倒教育。'; he='Independent walking; maintenance training and falls-prevention education.'; }
+  else { level='平衡正常'; levelEn='normal balance'; risk='很低跌倒风险'; riskEn='very low fall risk'; hz='平衡功能正常，保持日常活动即可。'; he='Normal balance; keep up routine activity.'; }
+  var fr=total<45?Math.round((45-total)*7):0;
+  __emrNote({name:'Berg 平衡量表（BBS · 14 项 · 满分 56）', nameEn:'Berg Balance Scale (BBS, 14 items, max 56)',
+    boxId:'resultBox',
+    result:'总分 '+total+'/56，分级：'+level+'，跌倒风险：'+risk,
+    resultEn:'total '+total+'/56, band: '+levelEn+', fall risk: '+riskEn,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'已完成 '+done+'/14 项；估算跌倒风险增加约 '+fr+'%（<45 分时按每分 7% 线性估算）',
+    extraEn:'Items completed '+done+'/14; estimated fall-risk increment about '+fr+'% (7% per point below 45)'});
+}
+
+var __emrW0=(typeof calcScore==='function')?calcScore:null;
+if(__emrW0){ calcScore=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

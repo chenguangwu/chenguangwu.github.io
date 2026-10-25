@@ -389,6 +389,74 @@ selectScore=function(k,v){__bs0(k,v);__bradenExtras();};
 renderItems();
 calc();
 __bradenMountHist();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进护理记录/病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i+' '+((cfg.optEn&&p.k&&cfg.optEn[p.k])||'')):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_KEY_EN={sensory:'Sensory perception',moisture:'Moisture',activity:'Activity',mobility:'Mobility',nutrition:'Nutrition',friction:'Friction & shear'};
+function __emrBand(total){
+  if(total>=19) return ['无风险','患者压疮风险低，维持常规护理。','no risk','Low risk; maintain routine skin care.'];
+  if(total>=15) return ['轻度风险','建议每 4 小时翻身一次，保护皮肤完整性。','mild risk','Reposition every 4 hours and protect skin integrity.'];
+  if(total>=13) return ['中度风险','建议每 2 小时翻身一次，使用减压床垫。','moderate risk','Reposition every 2 hours; use a pressure-relieving mattress.'];
+  if(total>=10) return ['高度风险','建议每 2 小时翻身，气垫床，局部减压，加强营养。','high risk','Reposition every 2 hours, air mattress, local pressure relief and nutrition support.'];
+  return ['极度风险','建议每 1 小时翻身，气垫床，加强营养支持与皮肤保护。','very high risk','Reposition hourly, air mattress, aggressive nutrition and skin protection.'];
+  return null;
+}
+function __emrData(){
+  var ARR=(typeof items!=='undefined')?items:((typeof dimensions!=='undefined')?dimensions:null);
+  if(!ARR||typeof scores==='undefined') return;
+  var el=document.getElementById('result'); if(!el) return;
+  var total=0,maxTot=0,rows=[],i,j,v,it,optTxt,maxV;
+  for(i=0;i<ARR.length;i++){
+    it=ARR[i]; v=scores[it.key]||0; total+=v;
+    maxV=0; optTxt='';
+    for(j=0;j<it.options.length;j++){
+      if(it.options[j].val>maxV) maxV=it.options[j].val;
+      if(it.options[j].val===v) optTxt=String(it.options[j].text||'');
+    }
+    maxTot+=maxV;
+    rows.push({i:i+1,t:it.name,o:optTxt,k:it.key});
+  }
+  var b=__emrBand(total)||['未分级','','ungraded',''];
+  __emrNote({name:'Braden 压疮风险评估（6 维度）', nameEn:'Braden Pressure Ulcer Risk Scale (6 subscales)',
+    result:'总分 '+total+'/'+maxTot+'，分级：'+b[0],
+    resultEn:'total '+total+'/'+maxTot+', band: '+b[2],
+    pos:rows, hintZh:b[1], hintEn:b[3],
+    extra:'满分（各条目最高分之和）'+maxTot+'；得分率 '+Math.round(total/maxTot*100)+'%；条目明细见上',
+    extraEn:'Maximum possible '+maxTot+'; score ratio '+Math.round(total/maxTot*100)+'%; item detail above',
+    optEn:__EMR_KEY_EN});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

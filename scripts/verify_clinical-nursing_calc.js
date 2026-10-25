@@ -308,6 +308,33 @@ const CASES = [
   ],
   "ref": "auto-restore"
 }
+  ,{
+    "slug": "clinical-nursing/braden-score",
+    "clicks": ["selectScore('sensory',1);selectScore('moisture',1);selectScore('activity',1);selectScore('mobility',1);selectScore('nutrition',1);selectScore('friction',1);calc()"],
+    "expect": [
+      "【Braden 压疮风险评估（6 维度）】 结果：总分 6/23，分级：极度风险",
+      "满分（各条目最高分之和）23；得分率 26%；条目明细见上"
+    ],
+    "ref": "门诊记录（EMR note）：6 个维度各取最低档 1 分 ⇒ 总分 6 <10 落「极度风险」；满分 23 = 4+4+4+4+4+3，得分率 6/23≈26% ⇒ 建议每 1 小时翻身。默认态各维度取最高档（4/4/4/4/4/3=23）⇒「总分 23/23，分级：无风险」「得分率 100%」，与本用例零交集。"
+  }
+  ,{
+    "slug": "clinical-nursing/morse-score",
+    "clicks": ["selectScore('history',25);selectScore('diagnosis',15);selectScore('aid',30);selectScore('iv',20);selectScore('gait',20);selectScore('cognition',15);calc()"],
+    "expect": [
+      "【Morse 跌倒风险评估（6 维度）】 结果：总分 125/125，分级：高度跌倒风险",
+      "满分（各条目最高分之和）125；得分率 100%；条目明细见上"
+    ],
+    "ref": "门诊记录：6 维度全取最高档 25+15+30+20+20+15=125 ⇒ >50 落「高度跌倒风险」；满分 125、得分率 100%。默认态全 0 ⇒「总分 0/125，分级：无跌倒风险」「得分率 0%」，零交集。"
+  }
+  ,{
+    "slug": "clinical-nursing/barthel-index",
+    "clicks": ["selectScore('eating',0);selectScore('bathing',0);selectScore('grooming',0);selectScore('dressing',0);selectScore('bowels',0);selectScore('bladder',0);selectScore('toilet',0);selectScore('transfer',0);selectScore('walking',0);selectScore('stairs',0);calc()"],
+    "expect": [
+      "【Barthel 指数（ADL · 10 项 · 满分 100）】 结果：总分 0/100，分级：完全依赖",
+      "满分（各条目最高分之和）100；得分率 0%；条目明细见上"
+    ],
+    "ref": "门诊记录：10 项全取最低档 0 分 ⇒ 总分 0 <25 落「完全依赖」；满分 100 = 10+5+5+10+10+10+10+15+15+10。默认态为各维度最高档（满分 100）⇒「总分 100/100，分级：完全自理」「得分率 100%」，零交集。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

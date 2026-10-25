@@ -353,6 +353,15 @@ const CASES = [
     "expect": ["20\n5\n0.5\n3\n4.0 治疗时间(分钟) 2.5 总功率(W) 600 总能量(J) 频率： 3MHz ｜ 深度： 1-2cm（浅表） 模式： 连续 ｜ 阶段： 亚急性期 强度： 0.5 W/cm² ｜ 辐射头： 5 cm² 处方： 超声波 3MHz 连续 0.5W/cm² × 4分钟，每周3次，10次为一疗程\n100\n5\n2\ngaalas\n100 照射时间(秒) 10.0 总能量(J) 20.0 功率密度(mW/cm²) 激光类型： GaAlAs 820nm（连续） 目标剂量： 2 J/cm² ｜ 阶段： 亚急性期 功率： 100 mW ｜ 面积： 5 cm² 处方： GaAlAs 820nm（连续） 100mW，2J/cm² × 5cm² = 10.0J，照射100秒，每周2-3次\nconventional\n20\n80-100Hz 频率 50-100μs 脉宽 20 时间(分钟) 强度： 感觉阈上（舒适麻刺感） 适用： 急性疼痛首选，镇痛快但持续时间短 处方： TENS 80-100Hz 50-100μs × 20分钟，每日1-3次，2-4周为一疗程\n暂无记录\nTENS 80-100Hz 50-100μs × 20分钟"],
     "ref": "注入 usArea=20(默认空→超声波段输出「请输入治疗面积」，注入后计算总能量 60 J) + laserPower=100(默认50→激光照射时间 100→25 秒) + laserArea=5 + tensTime=20。锚计算结果(随输入变化且与默认态不同)，规避 input 回显(20/100/5/20 及 select 默认项)。"
   }
+  ,{
+    "slug": "rehabilitation/berg-balance-scale",
+    "checks": ["2"],
+    "expect": [
+      "【Berg 平衡量表（BBS · 14 项 · 满分 56）】 结果：总分 28/56，分级：中度平衡障碍，跌倒风险：中高跌倒风险",
+      "已完成 14/14 项；估算跌倒风险增加约 119%"
+    ],
+    "ref": "门诊记录（EMR note）：14 项各按 2 分（checks 注入 input[name=itemN]:checked ⇒ value=2）⇒ 总分 28 落 21–40 段「中度平衡障碍」/「中高跌倒风险」；跌倒风险估算 (45-28)×7=119%。默认态 answered=0 ⇒ 门诊记录整段不渲染（done<14 直接 return），零交集。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);
