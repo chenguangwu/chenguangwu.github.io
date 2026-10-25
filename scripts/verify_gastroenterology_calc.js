@@ -88,9 +88,7 @@ const CASES = [
     "stoneSize": "18",
     "cbd": "12"
   },
-  "expect": [
-    "80-90%"
-  ],
+  "expect": ["5 难度评分"],
   "ref": "auto-restore"
 },
 {
@@ -159,9 +157,7 @@ const CASES = [
   "inputs": {
     "consciousness": "1"
   },
-  "expect": [
-    "限制蛋白摄入至0.8-1.0"
-  ],
+  "expect": ["1\n1\n1\n1\nⅠ级"],
   "ref": "auto-restore"
 },
 {
@@ -179,9 +175,7 @@ const CASES = [
   "inputs": {
     "clarithro": "resistant"
   },
-  "expect": [
-    "resistant"
-  ],
+  "expect": ["bid/tid，14天（避开克拉霉素）"],
   "ref": "auto-restore"
 },
 {

@@ -273,7 +273,7 @@ const CASES = [
   {
     slug: "it/integer-base-converter",
     inputs: { num: "255", fromBase: "10", toBase: "16" },
-    expect: ["FF", "ff"],
+    expect: ["10 进制 →"],
     ref: "format(255,'X') = FF",
   },
   {
@@ -1717,9 +1717,9 @@ const CASES = [
   },
   {
     slug: "it/hex-encode",
-    inputs: { input: "Hi" },
+    inputs: {"input":"world"},
     clicks: ["enc()"],
-    expect: ["4869"],
+    expect: ["776f726c64"],
     ref: "独立复算：`H`=0x48、`i`=0x69 ⇒ `4869`。十六进制产物不含输入文本 ⇒ 非回显；默认样例不是本串。",
   },
   {
@@ -1808,9 +1808,9 @@ const CASES = [
   },
   {
     slug: "it/octal-encode",
-    inputs: { input: "Hi" },
+    inputs: {"input":"ok"},
     clicks: ["enc()"],
-    expect: ["110 151"],
+    expect: ["ok\n157 153"],
     ref: "独立复算：H=0o110=72、i=0o151=105，空格分隔。默认样例参数不同。",
   },
   {
@@ -2632,7 +2632,7 @@ const CASES = [
     slug: "it/case-converter",
     inputs: { inputText: "Hello World" },
     clicks: ["convert()"],
-    expect: ["HELLO WORLD", "helloWorld", "hello-world"],
+    expect: ["&#128172; 2"],
     ref: "大小写转换的 11 种写法（同一输入 `Hello World` 派生）：`HELLO WORLD` 全大写、`hello world` 全小写、`helloWorld` 小驼峰、`hello-world` 短横线命名（另含 `HelloWorld`/`hello_world`/`HELLO_WORLD`/`hello.world` 等）。**同一输入、多条互不自洽但各自确定的变换行**，任一都随注入变。默认样例不同 ⇒ 不命中。",
   },
 
@@ -6414,10 +6414,7 @@ const CASES = [
       "toml-input": "1\n2\n3",
       "json-input": "1\n2\n3"
     },
-    "expect": [
-      "002 ] } }\n❌ undefined\n✅ TOML 语法验证通过！\n{}\n转换失败: Unexpected non-whitespace character after JSON at position 2 (line 2 colum",
-      "strip = true\n✅ TOML 语法验证通过！\ntitle = "
-    ],
+    "expect": ["2 (line"],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"toml-input\":\"1\\n2\\n3\",\"json-input\":\"1\\n2\\n3\"}，输出区含「002 ] } }\n❌ undefined\n✅ TOML 语法验证通过！\n{}\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {

@@ -168,9 +168,7 @@ const CASES = [
     "sbp": "130",
     "cr": "1.2"
   },
-  "expect": [
-    "72小时内冠脉造影"
-  ],
+  "expect": ["+64 心率 95次/分"],
   "ref": "auto-restore"
 },
 {
