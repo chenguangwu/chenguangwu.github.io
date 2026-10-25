@@ -33,8 +33,8 @@ const CASES = [
 
   { slug: "acoustics/critical-distance",
     inputs: { V: "400", rt: "2.0", Q: "2" },
-    expect: ["2.82"],
-    ref: "r_c=0.141·√(2×400/2)=0.141×20=2.82（默认 200/1.0/1→1.99，避开）" },
+    expect: ["1.14"],
+    ref: "2026-10-25 系数修正后 r_c=0.057·√(2×400/2)=0.057×20=1.14（原 0.141 系数误配 V/RT 口径偏大 2.49 倍；默认 200/1.0/1→0.81，避开）" },
 
   { slug: "acoustics/decibel-power-ratio",
     inputs: { p1: "4", p2: "64" },
