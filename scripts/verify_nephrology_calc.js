@@ -24,9 +24,10 @@ const CASES = [
     "pth": "300"
   },
   "expect": [
-    "5.30"
+    "5.30",
+    "钙磷乘积 9.54 mmol²/L² → 落在 显著升高"
   ],
-  "ref": "auto-restore"
+  "ref": "校正血钙 = 5.2 + 0.02×(40−35) = 5.30 mmol/L；Ca×P = 5.30 × 1.8 = 9.54 mmol²/L² ⇒ 落在「显著升高」带（≥5.5）"
 },
 {
   "slug": "nephrology/calc-1",
@@ -147,9 +148,10 @@ const CASES = [
     "h24Val": "40"
   },
   "expect": [
-    "68.0"
+    "68.0",
+    "68.0 mg/g → 落在 微量"
   ],
-  "ref": "auto-restore"
+  "ref": "UACR 68 mg/g 落在微量白蛋白尿带（30–300 mg/g）；参考区间定位文本随 uacrVal 联动"
 },
 {
   "slug": "nephrology/nephrotic-syndrome",

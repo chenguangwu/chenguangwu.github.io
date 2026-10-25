@@ -170,7 +170,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div> <div id="microalbuminuriaTable"></div> <div id="microalbuminuriaDiff"></div> <div id="microalbuminuriaChart"></div> <div id="microalbuminuriaHist"></div>
+    <div class="result-box" id="result"></div> <div id="microalbuminuriaRefBar"></div> <div id="microalbuminuriaTable"></div> <div id="microalbuminuriaDiff"></div> <div id="microalbuminuriaChart"></div> <div id="microalbuminuriaHist"></div>
   </div>
 
   <div class="card">
@@ -306,7 +306,30 @@ function calc(){
     html+='</ul></div>';
   }
 
+  // —— 参考区间定位（S3 标尺）：白蛋白尿分级 ——
+  var __mbBands=[{lo:0,hi:normalMax,label:{zh:'正常',en:'Normal'},color:'#10B981'},
+                 {lo:normalMax,hi:microMax,label:{zh:'微量',en:'Micro'},color:'#F59E0B'},
+                 {lo:microMax,hi:null,label:{zh:'大量',en:'Overt'},color:'#EF4444'}];
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})()?1:0;
+  function __T(en,zh){return __EN?en:zh;}
+  var __mbHit=null;
+  for(var __mi=0;__mi<__mbBands.length;__mi++){
+    var __mb=__mbBands[__mi];
+    if(val>=(__mb.lo==null?-Infinity:__mb.lo)&&val<(__mb.hi==null?Infinity:__mb.hi)){__mbHit=__mb;break;}
+  }
+  if(__mbHit){
+    html+='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    html+='<li>'+val.toFixed(1)+' '+unit+__T(' → ',' → 落在 ')+(__EN?__mbHit.label.en:__mbHit.label.zh)+__T(' (normal &lt;','（正常 &lt;')+normalMax+__T(', overt &gt;','，大量 &gt;')+microMax+' '+unit+'）</li>';
+    html+='<li>'+__T('KDIGO A staging: A1 &lt;30 mg/g, A2 30–300, A3 &gt;300 (UACR)','KDIGO A 分期（UACR）：A1 &lt;30、A2 30–300、A3 &gt;300 mg/g；不同检测方式的阈值不可混用')+'</li>';
+    html+='</ul></div>';
+  }
+
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__mbHit){
+      TBKit.chart.refBar('#microalbuminuriaRefBar',{value:val,unit:'',min:0,max:microMax*3,bands:__mbBands,title:'白蛋白尿分级标尺 ('+unit+', 对数刻度)'});
+    }
+  }catch(e){}
 }
 
 function getDiseaseAdvice(disease,level){

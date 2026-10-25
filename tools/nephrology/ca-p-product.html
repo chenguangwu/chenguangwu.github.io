@@ -162,7 +162,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
-    <div class="result-box" id="result"></div> <div id="ca_p_productTable"></div> <div id="ca_p_productDiff"></div> <div id="ca_p_productChart"></div> <div id="ca_p_productHist"></div>
+    <div class="result-box" id="result"></div> <div id="ca_p_productRefBar"></div> <div id="ca_p_productTable"></div> <div id="ca_p_productDiff"></div> <div id="ca_p_productChart"></div> <div id="ca_p_productHist"></div>
   </div>
 
   <div class="card">
@@ -328,7 +328,30 @@ function calc(){
   html+='<li>定期监测：钙磷每1-3月，iPTH每3-6月</li>';
   html+='</ul></div>';
 
+  // —— 参考区间定位（S3 标尺）：钙磷乘积 ——
+  var __cpBands=[{lo:0,hi:4.4,label:{zh:'达标 <4.4',en:'On target'},color:'#10B981'},
+                 {lo:4.4,hi:5.5,label:{zh:'轻度升高',en:'Mildly high'},color:'#F59E0B'},
+                 {lo:5.5,hi:null,label:{zh:'显著升高',en:'Markedly high'},color:'#EF4444'}];
+  var __EN=(function(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||'');}catch(e){}return false;})()?1:0;
+  function __T(en,zh){return __EN?en:zh;}
+  var __cpHit=null;
+  for(var __ci=0;__ci<__cpBands.length;__ci++){
+    var __cb=__cpBands[__ci];
+    if(caP>=(__cb.lo==null?-Infinity:__cb.lo)&&caP<(__cb.hi==null?Infinity:__cb.hi)){__cpHit=__cb;break;}
+  }
+  if(__cpHit){
+    html+='<div class="ref-card"><h4>'+__T('Reference range','参考区间定位')+'</h4><ul>';
+    html+='<li>'+__T('Ca×P ','钙磷乘积 ')+caP.toFixed(2)+' mmol²/L²'+__T(' → ',' → 落在 ')+(__EN?__cpHit.label.en:__cpHit.label.zh)+__T(' (target &lt;4.4 mmol²/L² ≈ 55 mg²/dL²)','（目标 &lt;4.4 mmol²/L²，约 55 mg²/dL²）')+'</li>';
+    html+='<li>'+__T('Corrected Ca ','校正血钙 ')+correctedCa.toFixed(2)+' mmol/L（'+__T('ref. 2.10–2.50','参考 2.10–2.50')+'）；'+__T('P ','血磷 ')+phosphorus.toFixed(2)+' mmol/L'+__T(' (ref. 0.81–1.45; dialysis 1.13–1.78)','（参考 0.81–1.45；透析患者 1.13–1.78）')+'</li>';
+    html+='</ul></div>';
+  }
+
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  try{
+    if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar&&__cpHit){
+      TBKit.chart.refBar('#ca_p_productRefBar',{value:caP,unit:'',min:0,max:8,bands:__cpBands,title:'钙磷乘积标尺 (mmol²/L²)',ticks:4});
+    }
+  }catch(e){}
 }
 
 function copyResult(){
