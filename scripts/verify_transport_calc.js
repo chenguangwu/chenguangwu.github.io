@@ -158,9 +158,9 @@ const CASES = [
     "soc": "80"
   },
   "expect": [
-    "7.06"
+    "0.13"
   ],
-  "ref": "auto-restore"
+  "ref": "2026-10-25 修复 kWh/公里 卡片：原式 100/effCons×cap/100 实为满电续航数值（90/12.75=7.06，锚定了 bug 输出），正确为实际能耗÷100（soc=80 修正后 effCons=12.8 → 0.13 kWh/km）"
 },
 {
   "slug": "transport/estimate-speed-time",
