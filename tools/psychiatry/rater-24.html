@@ -271,6 +271,7 @@ function calc(){
     (total<65?'4. 建议寻求心理咨询，系统提升心理韧性<br>':'4. 保持现有韧性水平，继续发挥优势<br>')+
     '</div>';
 
+  window.__EMR_SUM={t:total,pct:pct,lv:level,hi:scores.filter(function(v){return v>=3;}).length,lo:lowItems.length,n:items.length};
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){
@@ -278,6 +279,59 @@ function copyResult(){
   ToolBox.copyText(text, i18nText('msg019'));
 }
 buildList();calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t>=65){ hz='CD-RISC≥65：心理韧性处于中高及以上水平，可维持现有应对策略；建议定期回顾高韧性保护因素（社会支持、目标感、情绪调节）以巩固。';
+    he='CD-RISC 65 or above: resilience is at a moderate-high level or better; maintain current coping strategies and review protective factors (support, purpose, emotion regulation) periodically.'; }
+  else if(s.t>=50){ hz='CD-RISC 50–64：韧性中等，建议针对性训练问题解决与认知重评，配合规律运动与睡眠管理，3 个月复评。';
+    he='CD-RISC 50-64: moderate resilience; train problem-solving and cognitive reappraisal, combine with regular exercise and sleep hygiene, and re-rate in 3 months.'; }
+  else { hz='CD-RISC<50：韧性偏低，建议转介心理治疗（CBT/正念为基础的干预），同时评估抑郁焦虑症状与社会支持状况。';
+    he='CD-RISC below 50: low resilience; refer for psychological therapy (CBT or mindfulness-based), and assess depressive/anxiety symptoms and social support.'; }
+  __emrNote({boxId:'res', name:'康纳-戴维森心理韧性量表（CD-RISC 25）', nameEn:'Connor-Davidson Resilience Scale (CD-RISC 25)',
+    result:'CD-RISC 总分 '+s.t+'/100（得分率 '+s.pct.toFixed(0)+'%、均分 '+(s.t/s.n).toFixed(2)+'/4.0）→ 韧性水平：'+s.lv+'；高分项（≥3）'+s.hi+'/'+s.n+'、低分项（≤1）'+s.lo+'/'+s.n,
+    resultEn:'CD-RISC total '+s.t+'/100 ('+s.pct.toFixed(0)+'% of maximum, mean '+(s.t/s.n).toFixed(2)+'/4.0); resilience level '+s.lv+'; items scoring 3 or more '+s.hi+'/'+s.n+', items scoring 1 or less '+s.lo+'/'+s.n,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'参考常模：一般人群约 80/100、焦虑抑郁人群约 58、PTSD 人群约 47（量表自带参考线，非同批常模）',
+    extraEn:'reference lines: general population about 80/100, anxiety-depression about 58, PTSD about 47 (scale reference lines, not a matched norm)'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 </div>

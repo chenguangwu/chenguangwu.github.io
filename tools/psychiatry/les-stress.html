@@ -237,6 +237,7 @@ function calc(){
   else if(t<300){sev='中风险';color='#F59E0B';desc='过去一年生活事件应激中等，重大疾病风险约50%，建议关注身心状态。';risk='约50%';}
   else {sev='高风险';color='#EF4444';desc='过去一年生活事件应激很高，重大疾病风险约80%，强烈建议加强自我照料、寻求社会支持与必要的专业帮助。';risk='约80%';}
   var cnt=0;for(var i in sel)cnt++;
+  window.__EMR_SUM={t:t,c:cnt,sev:sev,rk:risk,ds:desc};
   const __g3='<div class="sev-box" style="background:'+color+'1a;border:1px solid '+color+'55;">'+
     '<div style="font-size:34px;font-weight:700;color:'+color+';">'+sev+'</div>'+
     '<div style="font-size:16px;color:var(--text-light);margin-top:6px;">LCU总分 '+t+' · 事件数 '+cnt+'</div></div>'+
@@ -299,6 +300,59 @@ function copyResult(){
 }
 var __les0=calc; calc=function(){__les0(); __lesExtras();};
 render(); __lesMountHist();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t>=300){ hz='LCU≥300：近一年生活事件负荷很高，建议 3 个月内安排一次健康风险评估（睡眠、血压、情绪），并主动建立社会支持与压力管理方案。';
+    he='LCU 300 or above: very high life-event load; arrange a health risk review within 3 months (sleep, blood pressure, mood) and build social support and stress-management plans.'; }
+  else if(s.t>=150){ hz='LCU 150–299：中等应激负荷，建议每月自查睡眠与情绪，保持规律运动与社会联系，症状持续两周以上及时就诊。';
+    he='LCU 150-299: moderate stress load; self-monitor sleep and mood monthly, keep regular exercise and social contact, and seek care if symptoms persist beyond two weeks.'; }
+  else { hz='LCU<150：近一年应激负荷较低，维持现有作息与社会支持即可，年度复查一次。';
+    he='LCU below 150: low life-event load over the past year; maintain current routines and social support with an annual review.'; }
+  __emrNote({boxId:'result', name:'生活事件应激量表（LCU/Holmes-Rahe）', nameEn:'Life Change Units (Holmes-Rahe)',
+    result:'LCU 总分 '+s.t+' · 勾选事件 '+s.c+' 项 → 应激分级：'+s.sev+'（重大疾病风险 '+s.rk+'）',
+    resultEn:'LCU total '+s.t+' from '+s.c+' events; stress level '+s.sev+' (major-illness risk '+s.rk+')',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'判读：'+s.ds,
+    extraEn:'interpretation: '+s.ds});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 <!-- SEO 介绍区块 -->

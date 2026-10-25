@@ -289,6 +289,7 @@ function calc(){
     '<div class="stat-card"><div class="val">'+max+'</div><div class="lbl">最高T分</div></div>'+
     '</div>'+rows+
     (elev>=2?'<div class="tip-box tip-error" style="margin-top:8px;">多个临床量表达到临床显著升高(T≥65)，建议由具备资质的心理测量专业人员结合效度量表、编码型与临床访谈进行综合判读。</div>':'<div class="info-box">各临床量表总体处于正常范围，未见明显病理升高。</div>');
+  window.__EMR_SUM={el:elev,mx:max,mn:maxName,ns:SCALES.length};
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function resetAll(){SCALES.forEach(function(s,i){document.getElementById('sc'+i).value=50;});calc();}
@@ -297,6 +298,59 @@ function copyResult(){
   ToolBox.copyText('MMPI-2 临床量表T分：'+parts.join(' '), i18nText('toast.msg544'));
 }
 buildInputs();calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.el>=2){ hz='两个及以上临床量表 T≥65：需由具备资质的心理测量专业人员结合效度量表（L/F/K、VRIN/TRIN）、编码型与临床访谈综合判读，不单凭单条量表下诊断。';
+    he='Two or more clinical scales at T 65 or above: interpretation requires a qualified psychometrician integrating validity scales (L/F/K, VRIN/TRIN), code type and clinical interview; a single scale never establishes a diagnosis.'; }
+  else if(s.el===1){ hz='单一临床量表 T≥65：先核对作答一致性（效度量表）与近期应激事件，必要时复测；单条升高不足以判定人格病理。';
+    he='A single clinical scale at T 65 or above: check response consistency (validity scales) and recent stressors, retest if needed; one elevated scale does not establish personality pathology.'; }
+  else { hz='各临床量表均未见 T≥65 升高：可结合访谈关注亚临床特征与适应功能，建议 1 年后或出现明显变化时复测。';
+    he='No clinical scale reaches T 65: focus on subclinical features and adaptive functioning in interview, and retest in a year or if marked change occurs.'; }
+  __emrNote({boxId:'result', name:'MMPI-2 人格与临床量表剖面', nameEn:'MMPI-2 Clinical Profile',
+    result:'纳入临床量表 '+s.ns+' 个 · T≥65 升高 '+s.el+' 个 · 最高 '+s.mn+'（T='+s.mx+'）→ '+(s.el>=2?'多量表升高，需综合判读':(s.el===1?'单一量表升高，建议复测核实':'未见病理升高')),
+    resultEn:s.ns+' clinical scales, '+s.el+' elevated at T 65 or above, highest '+s.mn+' (T='+s.mx+')',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'T 分以 50 为均值、10 为标准差；T≥65 为临床显著升高（约高于均值 1.5 个标准差）',
+    extraEn:'T scores have a mean of 50 and SD of 10; T 65 or above is clinically significant (about 1.5 SD above the mean)'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 <!-- SEO 介绍区块 -->

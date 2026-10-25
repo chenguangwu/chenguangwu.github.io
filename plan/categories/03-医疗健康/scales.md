@@ -53,7 +53,8 @@
   + clinical-nursing 5（iv-drip-rate/gastric-tube-depth/chest-compression-depth/oxygen-concentration/
   convert-flow-concentration）
   + clinical-nursing 5（bag-valve-mask/cvc-maintenance/assessor-pressure-risk/assessor-rater-risk/calc-rater-risk）。
-  全站累计 **76 页**。
+  + rehabilitation 5（gait-analysis/prosthesis-alignment/respiratory-training/wheelchair-posture/tester-rater）。
+  全站累计 **81 页**。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
   - 模板三种变体：① `#result` + 名下 select（nihss 系）；② `#result` + 生成式按钮 `scores`（护理系）；
@@ -68,7 +69,6 @@
   儿科余 5 页（assessor-spo2 / pediatric-fracture / rater-27 / vaccine-schedule / vanderbilt-adhd）：
   **assessor-spo2 已踩 stub 盲区**（注入后整段 script 不执行，语法正常、errs 空，回滚即恢复）须单独排查；
   vaccine-schedule 依赖「今天」写不出稳定用例。clinical-nursing 余 3 页（ostomy-bag-timing/restraint-duration/
-  tracheostomy-dressing）**用 new Date() 算具体时刻**，按铁律④ 暂不纳入稳定用例；下一批转向 rehabilitation 余 6 页
-  （gait-analysis/mmse-scoring/prosthesis-alignment/respiratory-training/tester-rater/wheelchair-posture），
-  再往后 psychiatry 9 页与 psychology 12 页（后者为步进向导框架，需另设计注入点）；
+  tracheostomy-dressing）**用 new Date() 算具体时刻**，按铁律④ 暂不纳入稳定用例；rehabilitation 已全铺完（mmse-scoring 走问卷型，
+  早批已完成），下一批转 psychiatry 9 页与 psychology 12 页（后者为步进向导框架，需另设计注入点）；
   「维度雷达图推广」「量表对照模块」未开发。

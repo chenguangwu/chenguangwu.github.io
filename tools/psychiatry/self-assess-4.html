@@ -289,6 +289,7 @@ function calc(){
       '4. 排除其他精神障碍所致':'当前筛查阴性，如仍有困扰可关注注意力管理。')+
     '</div>';
 
+  window.__EMR_SUM={pc:positiveCount,ts:totalScore,sp:screenPositive,lv:level,ia:inattentive,hy:hyperactive,td:typeDesc};
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){
@@ -296,6 +297,57 @@ function copyResult(){
   ToolBox.copyText(text, i18nText('msg007'));
 }
 buildList();calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.sp){ hz='ASRS 筛查阳性（≥4 项）：转精神科做成人 ADHD 结构化访谈，核实症状 12 岁前起病、持续≥6 个月、跨两个以上场景并造成功能损害，同时排除焦虑、抑郁、睡眠障碍与物质使用所致。';
+    he='ASRS screen positive (4 or more items): refer for a structured adult ADHD interview, confirm onset before age 12, duration of 6 months or more, cross-setting impairment, and exclude anxiety, depression, sleep and substance-related causes.'; }
+  else { hz='ASRS 筛查阴性：暂不支持 ADHD，若仍有注意力困扰可评估睡眠、焦虑、甲状腺功能与工作记忆负荷，3 个月后可按需复筛。';
+    he='ASRS screen negative: ADHD not supported at this stage; if attention complaints persist, assess sleep, anxiety, thyroid function and cognitive load, and rescreen in 3 months if needed.'; }
+  __emrNote({boxId:'res', name:'成人 ADHD 自评量表（ASRS-v1.1 筛查版）', nameEn:'Adult ADHD Self-Report Scale (ASRS-v1.1 Screener)',
+    result:'阳性项 '+s.pc+'/6（界值 ≥4）· 原始总分 '+s.ts+'/24 → '+s.lv+'；注意力缺陷 '+s.ia+'/4 项阳性、多动冲动 '+s.hy+'/2 项阳性 → 症状特征：'+s.td,
+    resultEn:'positive items '+s.pc+'/6 (cut-off 4 or more), raw total '+s.ts+'/24; screen result '+s.lv+'; inattention '+s.ia+'/4 positive, hyperactivity-impulsivity '+s.hy+'/2 positive; pattern '+s.td,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'筛查版仅 6 条，阳性只提示需进一步评估，不作为诊断依据；确诊须结合 DSM-5 结构化访谈与病史佐证',
+    extraEn:'the screener has only 6 items; a positive result indicates the need for further assessment and is not diagnostic - confirmation requires a DSM-5 structured interview with collateral history'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 </div>
