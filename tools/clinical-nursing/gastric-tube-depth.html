@@ -281,6 +281,7 @@ function calc(){
     var noseXiphoid = parseFloat(document.getElementById('noseXiphoid').value) || 0;
     depth = Math.round(height * 0.2 + noseXiphoid);
   }
+  window.__EMR_SUM={meth:currentMethod,depth:depth,ne:(typeof noseEar!=='undefined'?noseEar:0),ex:(typeof earXiphoid!=='undefined'?earXiphoid:0),hp:(typeof height!=='undefined'?height:0),nx:(typeof noseXiphoid!=='undefined'?noseXiphoid:0)};
   const __g0=depth;document.getElementById('depth').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -292,6 +293,63 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把计算结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.meth==='measure'){
+    hz='NEX 法（鼻尖→耳垂→剑突 + 10 cm）：置管后必须双人核对刻度，并用「气过水声 / 胃液 pH＜5.5 / 超声 / X 线」确认位置，禁止仅凭抽到液体判断；昏迷、咳嗽反射弱者先评估误吸风险。';
+    he='NEX method (nose-ear-xiphoid + 10 cm): after insertion verify with two nurses and confirm position by air insufflation, gastric aspirate pH below 5.5, ultrasound or X-ray; assess aspiration risk in obtunded patients.';
+  } else {
+    hz='身高公式法（0.2×身高 + 鼻剑突距离）：仅为估算，个体胸廓长度差异大，仍须按实测刻度与影像/抽吸确认，避免置入过深进入十二指肠或盘曲。';
+    he='Height formula (0.2 x height + nose-xiphoid distance) is an estimate only; confirm with the marked scale and imaging or aspiration to avoid duodenal placement or coiling.';
+  }
+  var det = s.meth==='measure'
+    ? ('鼻尖→耳垂 '+s.ne+' cm + 耳垂→剑突 '+s.ex+' cm + 追加 10 cm')
+    : ('身高 '+s.hp+' cm × 0.2 + 鼻尖→剑突 '+s.nx+' cm');
+  __emrNote({name:'胃管置入深度测算', nameEn:'Nasogastric Tube Insertion Depth',
+    result:'方法：'+(s.meth==='measure'?'NEX 测量法':'身高公式法')+'（'+det+'）→ 预计置入深度 '+s.depth+' cm',
+    resultEn:(s.meth==='measure'?'NEX method':'height formula')+' -> estimated insertion depth '+s.depth+' cm',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'成人常规 45–55 cm；置管后记录外露刻度、固定方式与置管时间，鼻饲前后冲管 20–30 mL 温水',
+    extraEn:'usual adult depth 45-55 cm; document the external mark, fixation and insertion time; flush 20-30 mL warm water before and after feeds'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

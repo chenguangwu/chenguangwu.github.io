@@ -68,12 +68,16 @@ const CASES = [
 {
   "slug": "clinical-nursing/chest-compression-depth",
   "inputs": {
-    "bodyType": "thin"
+    "bodyType": "obese"
   },
-  "expect": [
-    "瘦弱患者注意控制力度"
+  "clicks": [
+    "selectAge('child')"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "【胸外按压深度与参数（按年龄）】 结果：对象：儿童（肥胖） → 按压深度 4–5 cm、频率 100-120 次/分、按压通气比 30:2、回弹要求「完全回弹」、中断 ＜10s",
+    "说明：按压深度：约5cm（胸廓前后径1/3）（肥胖患者需加大力度确保达到深度）"
+  ],
+  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（4–5 cm、约 5 cm 胸廓前后径 1/3），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5–6 cm」且描述为「按压深度：5-6cm（标准成人）」，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/cold-compress-timer",
@@ -88,13 +92,14 @@ const CASES = [
 {
   "slug": "clinical-nursing/convert-flow-concentration",
   "inputs": {
-    "mode": "f2o",
-    "val": "5"
+    "mode": "o2f",
+    "val": "40"
   },
   "expect": [
-    "FiO2 ≈ 41.0%（流量 5 L/min）"
+    "【氧流量与吸入氧浓度换算】 结果：FiO₂ 40% → 等效氧流量 ≈ 4.75 L/min",
+    "较空气（21%）增氧 19.0 个百分点；换算仅适用于鼻导管低流量给氧"
   ],
-  "ref": "去默认化：流量 5 L/min ⇒ FiO2 = 21+4×5 = 41.0%。默认态 mode=f2o/val=2 ⇒ 29.0%，不命中。"
+  "ref": "门诊记录：反算模式 FiO₂ 40% ⇒ (40-21)/4 = 4.75 L/min，增氧 19.0 个百分点。默认态为正向模式（流量 2 L/min ⇒ 29%、增氧 8.0 个百分点），与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/convert-flow-concentration",
@@ -157,15 +162,15 @@ const CASES = [
 {
   "slug": "clinical-nursing/gastric-tube-depth",
   "inputs": {
-    "noseEar": "27",
-    "earXiphoid": "25",
-    "height": "170",
-    "noseXiphoid": "43"
+    "noseEar": "14",
+    "earXiphoid": "28",
+    "extraDepth": "10"
   },
   "expect": [
-    "27"
+    "【胃管置入深度测算】 结果：方法：NEX 测量法（鼻尖→耳垂 14 cm + 耳垂→剑突 28 cm + 追加 10 cm）→ 预计置入深度 52 cm",
+    "鼻尖→耳垂 14 cm + 耳垂→剑突 28 cm + 追加 10 cm）→ 预计置入深度 52 cm"
   ],
-  "ref": "auto-restore"
+  "ref": "门诊记录：NEX 法 14 + 28 + 10 = 52 cm。默认态 18 + 25 + 10 = 53 cm，与本用例零交集（整串含分段数值，非只差 1 的数字）。"
 },
 {
   "slug": "clinical-nursing/generator-pressure",
@@ -180,14 +185,16 @@ const CASES = [
 {
   "slug": "clinical-nursing/iv-drip-rate",
   "inputs": {
-    "volume": "750",
-    "hours": "4",
-    "minutes": "0"
+    "volume": "250",
+    "hours": "3",
+    "minutes": "45",
+    "dropFactor": "20"
   },
   "expect": [
-    "187.5"
+    "【静脉输液滴速推算】 结果：总量 250 mL / 滴系数 20 滴/mL，输注时间 3 小时 45 分（共 225 分钟）→ 滴速 22 滴/分、输液泵 66.7 mL/h、总滴数 5,000 滴（每秒约 0.4 滴）",
+    "总滴数 5,000 滴（每秒约 0.4 滴）"
   ],
-  "ref": "auto-restore"
+  "ref": "门诊记录：250 mL × 20 滴/mL ÷ 225 分钟 = 22.2 → 22 滴/分；泵速 250/225×60 = 66.7 mL/h；总滴数 5000。默认态 500 mL / 4 h / 20 滴/mL ⇒ 42 滴/分、125.0 mL/h、10,000 滴，与本用例零交集。"
 },
 {
   "slug": "clinical-nursing/morse-score",
@@ -215,9 +222,10 @@ const CASES = [
     "flowRate": "5"
   },
   "expect": [
-    "鼻导管5L/min对应FiO2约41%"
+    "【吸氧装置与浓度换算】 结果：装置：鼻导管 · 流量 5 L/min → FiO₂ 约 41%（鼻导管5L/min对应FiO2约41%）",
+    "该装置适用流量 1–6 L/min、最高 FiO₂ 44%；湿化：≤4L不需，＞4L需湿化；估算 PaO₂ 约 205 mmHg"
   ],
-  "ref": "auto-restore"
+  "ref": "门诊记录：鼻导管 FiO₂ = 21 + 4×5 = 41%（上限 44% 未触发）；PaO₂ 估算 41×5 = 205 mmHg。默认态 flowRate=2 ⇒ 29%、PaO₂ 145，与本用例零交集。注：原实现把 `pao2` 暴露给记录钩子时该变量尚未定义（null），已改为在钩子里按 fio2×5 直接计算。"
 },
 {
   "slug": "clinical-nursing/pain-nrs",

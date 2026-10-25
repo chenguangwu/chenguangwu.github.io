@@ -271,6 +271,7 @@ function calc(){
   var totalDrops = volume * dropFactor;
   var perSecond = dripRate / 60;
   
+  window.__EMR_SUM={vol:volume,h:hours,m:minutes,df:dropFactor,tm:totalMinutes,dr:dripRate,pr:pumpRate,td:totalDrops,ps:perSecond};
   const __g5=Math.round(dripRate);document.getElementById('dripRate').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6=pumpRate.toFixed(1);document.getElementById('pumpRate').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   const __g7=Math.round(totalMinutes);document.getElementById('totalMin').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
@@ -288,6 +289,59 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把计算结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.dr>60){ hz='滴速偏快（>60 滴/分）：核对医嘱与总量，老年、婴幼儿及心肾功能不全者应减慢；警惕急性肺水肿（气促、咳粉红色泡沫痰、肺部湿啰音）。';
+    he='Rate above 60 drops/min: verify the order and total volume; slow down in older adults, infants and patients with cardiac or renal impairment; watch for pulmonary oedema.'; }
+  else if(s.dr<20){ hz='滴速偏慢（<20 滴/分）：检查有无管路折叠、穿刺处渗漏、回血堵塞或输液泵报警，必要时重新评估血管通路。';
+    he='Rate below 20 drops/min: check for kinked tubing, leakage, occlusion or pump alarm; reassess vascular access if needed.'; }
+  else { hz='滴速在常规范围：普通输液器 20 滴/mL、精密输液器 60 滴/mL，请核对实际使用型号；每 30–60 分钟巡视滴速、穿刺点与剩余量。';
+    he='Rate within the usual range: verify whether a 20 drops/mL or 60 drops/mL set is in use; check rate, puncture site and remaining volume every 30-60 minutes.'; }
+  __emrNote({name:'静脉输液滴速推算', nameEn:'IV Infusion Drop Rate Calculation',
+    result:'总量 '+s.vol+' mL / 滴系数 '+s.df+' 滴/mL，输注时间 '+Math.floor(s.tm/60)+' 小时 '+(s.tm%60)+' 分（共 '+Math.round(s.tm)+' 分钟）→ 滴速 '+Math.round(s.dr)+' 滴/分、输液泵 '+s.pr.toFixed(1)+' mL/h、总滴数 '+Math.round(s.td).toLocaleString('zh-CN')+' 滴（每秒约 '+s.ps.toFixed(1)+' 滴）',
+    resultEn:'volume '+s.vol+' mL, drop factor '+s.df+' drops/mL, over '+Math.round(s.tm)+' minutes -> '+Math.round(s.dr)+' drops/min, pump '+s.pr.toFixed(1)+' mL/h, total '+Math.round(s.td)+' drops',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'泵速与滴速换算按「滴速 = 总量×滴系数 / 分钟数」；儿童、老年、心肺功能不全者建议按医嘱减速 20–30%',
+    extraEn:'drop rate = volume x drop factor / minutes; consider a 20-30% reduction in children, older adults and cardiopulmonary impairment'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

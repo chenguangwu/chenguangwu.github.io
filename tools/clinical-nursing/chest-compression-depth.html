@@ -295,6 +295,7 @@ function calc(){
     vHeight = Math.min(vHeight + 5, 40);
   }
   
+  window.__EMR_SUM={age:currentAge,bt:bodyType,an:cfg.name,dmin:depthMin,dmax:depthMax,rate:cfg.rate,ratio:cfg.ratio,recoil:cfg.recoil,inter:cfg.interruption,desc:desc};
   const __g1=depthMin + '-' + depthMax;document.getElementById('depth').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=desc;document.getElementById('depthDesc').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=cfg.rate;document.getElementById('rate').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -315,6 +316,54 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把计算结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz = '高质量 CPR 要点：硬板平面、掌根置于胸骨下半段、双臂垂直、按压后让胸廓完全回弹、尽量减少中断（＜10 秒）、每 2 分钟轮换按压者；按压深度不足是最常见的质量缺陷，建议用带反馈装置的除颤仪或按压节拍器。';
+  var he = 'High-quality CPR: firm surface, heel of hand on the lower half of the sternum, vertical arms, full chest recoil, minimal interruptions (under 10 s), rotate compressors every 2 minutes. Insufficient depth is the commonest quality gap - use feedback-enabled defibrillators or a metronome.';
+  __emrNote({name:'胸外按压深度与参数（按年龄）', nameEn:'Chest Compression Depth and Parameters (by age)',
+    result:'对象：'+s.an+(s.bt==='obese'?'（肥胖）':(s.bt==='thin'?'（瘦弱）':''))+' → 按压深度 '+s.dmin+'–'+s.dmax+' cm、频率 '+s.rate+' 次/分、按压通气比 '+s.ratio+'、回弹要求「'+s.recoil+'」、中断 '+s.inter,
+    resultEn:'subject '+s.an+' -> depth '+s.dmin+'-'+s.dmax+' cm, rate '+s.rate+'/min, ratio '+s.ratio+', full recoil, interruptions '+s.inter,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'说明：'+s.desc+'；每次按压后胸廓完全回弹，避免依靠按压间隙吹气；儿童/婴儿可采用双拇指环抱或单手掌根法',
+    extraEn:'note: '+s.desc+'; allow full recoil between compressions; for children and infants use two-thumb encircling or one-hand technique'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

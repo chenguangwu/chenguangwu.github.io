@@ -176,7 +176,62 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){const mode=document.getElementById("mode").value;const v=+document.getElementById("val").value||0;let out;if(mode==="f2o"){let f=21+4*v;if(f>100)f=100;out="FiO2 ≈ "+f.toFixed(1)+"%（流量 "+v+" L/min）";}else{let f=(v-21)/4;if(f<0)f=0;out="氧流量 ≈ "+f.toFixed(2)+" L/min（FiO2 "+v+"%）";}var _d="";if(mode==="f2o"){var _f=Math.min(21+4*v,100);if(_f>60){_d="\n警示：FiO₂ 超过 60% 持续吸氧超过 24 小时有氧中毒风险，应尽早下调浓度";}_d+="\n较空气（21%）增氧 = "+(_f-21).toFixed(1)+" 个百分点";_d+="\n提示：普通鼻导管建议流量不超过 6 L/min，更高流量需改用面罩湿化给氧";if(v>60){_d+="\n警示：FiO₂ 超过 60% 持续吸氧超过 24 小时有氧中毒风险，应尽早下调浓度";}}else{_d+="\n较空气（21%）增氧 = "+(v-21).toFixed(1)+" 个百分点";}
+window.__EMR_SUM={mode:mode,v:v,out:out,extra:_d};
 const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+
+/* —— 门诊记录（EMR note）：把计算结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  var fio2 = s.mode==='f2o' ? Math.min(21+4*s.v,100) : s.v;
+  if(fio2>=60){ hz='FiO₂ ≥60%：持续高浓度吸氧超过 24 小时有氧中毒风险，应尽快下调并复查血气；目标 SpO₂ 94–98%（COPD Ⅱ 型呼衰 88–92%）。';
+    he='FiO2 60% or above: oxygen toxicity risk beyond 24 hours; wean as soon as possible and repeat blood gas; target SpO2 94-98% (88-92% in hypercapnic COPD).'; }
+  else if(s.mode==='f2o' && s.v>6){ hz='氧流量 >6 L/min 已超出普通鼻导管的有效范围（解剖死腔被充满后 FiO₂ 不再线性上升），应改用普通面罩或储氧面罩并湿化。';
+    he='Flow above 6 L/min exceeds the useful range of a nasal cannula (FiO2 plateaus once dead space is filled); switch to a simple or reservoir mask with humidification.'; }
+  else { hz='换算结果为经验估算（鼻导管 FiO₂ ≈ 21 + 4×流量），实际 FiO₂ 受呼吸频率、潮气量与口腔呼吸影响，重症患者应以血气分析为准。';
+    he='The conversion is a rule of thumb (nasal cannula FiO2 about 21 + 4 x flow); actual FiO2 varies with respiratory rate, tidal volume and mouth breathing - use blood gas in critically ill patients.'; }
+  __emrNote({boxId:'res', name:'氧流量与吸入氧浓度换算', nameEn:'Oxygen Flow to FiO2 Conversion',
+    result:(s.mode==='f2o' ? ('氧流量 '+s.v+' L/min → FiO₂ ≈ '+Math.min(21+4*s.v,100).toFixed(1)+'%') : ('FiO₂ '+s.v+'% → 等效氧流量 ≈ '+Math.max((s.v-21)/4,0).toFixed(2)+' L/min')),
+    resultEn:(s.mode==='f2o' ? ('flow '+s.v+' L/min -> FiO2 about '+Math.min(21+4*s.v,100).toFixed(1)+'%') : ('FiO2 '+s.v+'% -> equivalent flow about '+Math.max((s.v-21)/4,0).toFixed(2)+' L/min')),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'较空气（21%）增氧 '+((fio2-21).toFixed(1))+' 个百分点；换算仅适用于鼻导管低流量给氧',
+    extraEn:'increase over room air (21%): '+(fio2-21).toFixed(1)+' percentage points; applies to low-flow nasal cannula only'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

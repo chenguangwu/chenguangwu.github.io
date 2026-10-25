@@ -290,6 +290,7 @@ function calc(){
     desc = '文丘里面罩（' + valve + '%阀）对应FiO2为' + fio2 + '%';
   }
   
+  window.__EMR_SUM={dev:currentDevice,dn:cfg.name,flow:flow,fio2:fio2,desc:desc,pao2:Math.round(fio2*5),minf:cfg.minFlow,maxf:cfg.maxFlow,maxfio2:cfg.maxFiO2,hum:cfg.humidity};
   const __g1=Math.round(fio2);document.getElementById('fio2').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=desc;document.getElementById('fio2Desc').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   
@@ -314,6 +315,59 @@ function copyResult(){
 }
 
 calc();
+
+/* —— 门诊记录（EMR note）：把计算结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.fio2>=60){ hz='高浓度吸氧（FiO₂ ≥60%）：警惕氧中毒与吸收性肺不张，尽量将 FiO₂ 控制在 60% 以下、SpO₂ 目标 94–98%（COPD Ⅱ 型呼衰 88–92%），达标后逐步下调。';
+    he='High FiO2 (60% or above): beware oxygen toxicity and absorption atelectasis; keep FiO2 below 60% where possible, target SpO2 94-98% (88-92% in hypercapnic COPD) and wean once stable.'; }
+  else if(s.fio2<=28){ hz='低浓度吸氧：适合轻度低氧血症与 COPD Ⅱ 型呼衰（目标 SpO₂ 88–92%）；30 分钟后复测血气/SpO₂，无效则升级装置。';
+    he='Low-concentration oxygen: suitable for mild hypoxaemia and hypercapnic COPD (target SpO2 88-92%); recheck blood gas or SpO2 after 30 minutes and escalate if no response.'; }
+  else { hz='中等浓度吸氧：按目标 SpO₂ 滴定，避免长时间高流量干冷气体刺激气道；＞4 L/min 鼻导管建议湿化。';
+    he='Moderate oxygen concentration: titrate to target SpO2, humidify nasal cannula above 4 L/min, and avoid prolonged dry cold gas.'; }
+  __emrNote({name:'吸氧装置与浓度换算', nameEn:'Oxygen Delivery Device and FiO2 Estimation',
+    result:'装置：'+s.dn+' · 流量 '+s.flow+' L/min → FiO₂ 约 '+Math.round(s.fio2)+'%（'+s.desc+'）',
+    resultEn:'device '+s.dn+', flow '+s.flow+' L/min -> FiO2 about '+Math.round(s.fio2)+'%',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'该装置适用流量 '+s.minf+'–'+s.maxf+' L/min、最高 FiO₂ '+s.maxfio2+'%；湿化：'+s.hum+'；估算 PaO₂ 约 '+s.pao2+' mmHg（FiO₂×5 经验值，仅供粗略参考）',
+    extraEn:'device flow range '+s.minf+'-'+s.maxf+' L/min, max FiO2 '+s.maxfio2+'%; humidification: '+s.hum+'; estimated PaO2 about '+s.pao2+' mmHg (FiO2 x 5 rule of thumb)'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
