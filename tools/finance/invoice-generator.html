@@ -687,6 +687,7 @@ function calc(){
 }
 
 function renderStats(r){
+  if(!r) return;
   var html = '';
   if(currentMethod === 'single'){
     html = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.total, 2) + '</div><div class="lbl">价税合计</div></div>'
@@ -711,7 +712,68 @@ function renderStats(r){
   const __g1=html;document.getElementById('statGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
+// 人民币金额大写（票据口径：壹贰叁…/圆角分/整）
+function __invGroupUpper(num, digits, units){
+  var s = '', str = String(num), zero = false;
+  for (var i = 0; i < str.length; i++){
+    var d = parseInt(str.charAt(i), 10), pos = str.length - 1 - i;
+    if (d === 0) { zero = true; }
+    else { if (zero && s !== '') s += '零'; s += digits[d] + units[pos]; zero = false; }
+  }
+  return s;
+}
+function __invRmbUpper(n){
+  if (typeof n !== 'number' || !isFinite(n)) return '—';
+  var neg = n < 0;
+  var cents = Math.round(Math.abs(n) * 100);
+  if (cents === 0) return '零圆整';
+  var digits = ['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+  var units = ['','拾','佰','仟'];
+  var bigUnits = ['','万','亿','万亿'];
+  var yuan = Math.floor(cents / 100), jiao = Math.floor((cents % 100) / 10), fen = cents % 10;
+  var s = '';
+  if (yuan > 0){
+    var groups = [], tmp = yuan;
+    while (tmp > 0){ groups.push(tmp % 10000); tmp = Math.floor(tmp / 10000); }
+    for (var i = groups.length - 1; i >= 0; i--){
+      var part = groups[i], ps = __invGroupUpper(part, digits, units);
+      if (ps === ''){ if (s !== '' && !/零$/.test(s)) s += '零'; continue; }
+      if (i < groups.length - 1 && part < 1000) s += '零';
+      s += ps + bigUnits[i];
+    }
+    s = s.replace(/零+/g, '零').replace(/零$/, '') + '圆';
+  }
+  if (jiao === 0 && fen === 0){ s += '整'; }
+  else {
+    if (jiao > 0) s += digits[jiao] + '角'; else if (yuan > 0) s += '零';
+    s += (fen > 0) ? (digits[fen] + '分') : '整';
+  }
+  return (neg ? '负' : '') + s;
+}
+function __invIsEn(){ return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+// 发票式「价税分离」四行 + 金额大写
+function __invInvoiceBlock(excl, tax, ratePct, total){
+  var en = __invIsEn();
+  var rt = (typeof ratePct === 'number' && isFinite(ratePct)) ? (Math.round(ratePct * 100) / 100) : 0;
+  var rows = [
+    [en ? 'Amount excl. tax' : '不含税金额', '¥' + ToolBox.formatNumber(excl, 2)],
+    [en ? 'Tax rate' : '税率', rt + '%'],
+    [en ? 'Tax' : '税额', '¥' + ToolBox.formatNumber(tax, 2)],
+    [en ? 'Total (incl. tax)' : '价税合计', '¥' + ToolBox.formatNumber(total, 2)]
+  ];
+  var h = '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">' +
+    '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">' + (en ? '🧾 Invoice lines (tax split)' : '🧾 发票行（价税分离）') + '</div>' +
+    '<table class="result-table" style="width:100%;border-collapse:collapse;font-size:13px;">' +
+    '<thead><tr><th>' + (en ? 'Item' : '项目') + '</th><th>' + (en ? 'Amount' : '金额') + '</th></tr></thead><tbody>';
+  for (var i = 0; i < rows.length; i++){ h += '<tr><td>' + rows[i][0] + '</td><td>' + rows[i][1] + '</td></tr>'; }
+  h += '</tbody></table>' +
+    '<div style="margin-top:6px;font-size:12px;color:var(--text-muted);">' + (en ? 'Amount in words (CNY): ' : '金额大写（人民币）：') +
+    '<strong style="color:var(--text);">' + __invRmbUpper(total) + '</strong></div>';
+  return h;
+}
+
 function renderResult(r){
+  if(!r) return;
   var html = '<h3 style="margin-bottom:10px;font-size:15px;">📋 计算结果</h3>';
   
   if(currentMethod === 'single'){
@@ -723,6 +785,7 @@ function renderResult(r){
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">';
     html += '<p>税率：<strong>' + r.taxRate.toFixed(0) + '%</strong></p>';
     html += '<p>计算公式：不含税 = 价税合计 ÷ (1 + ' + r.taxRate.toFixed(0) + '%) = ' + ToolBox.formatNumber(r.total, 2) + ' ÷ 1.' + r.taxRate.toFixed(0).padStart(2, '0') + ' = <strong>¥' + ToolBox.formatNumber(r.excl, 2) + '</strong></p>';
+    html += __invInvoiceBlock(r.excl, r.tax, r.taxRate, r.total);
   }
   else if(currentMethod === 'split'){
     html += '<p>总金额：<strong>¥' + ToolBox.formatNumber(r.total, 2) + '</strong></p>';
@@ -734,6 +797,7 @@ function renderResult(r){
     html += '<p>不含税合计：<strong>¥' + ToolBox.formatNumber(r.sumExcl, 2) + '</strong></p>';
     html += '<p>税额合计：<strong>¥' + ToolBox.formatNumber(r.sumTax, 2) + '</strong></p>';
     html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* 详见下方拆分明细表</p>';
+    html += __invInvoiceBlock(r.sumExcl, r.sumTax, r.taxRate, r.sumTotal);
   }
   else if(currentMethod === 'combine'){
     html += '<p>目标金额：<strong>¥' + ToolBox.formatNumber(r.target, 2) + '</strong></p>';
@@ -742,6 +806,8 @@ function renderResult(r){
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">';
     html += '<p>使用面额：<strong>' + r.amounts.map(function(a){return '¥' + ToolBox.formatNumber(a, 0);}).join('、') + '</strong></p>';
     html += '<p>发票数量：<strong>' + r.count + ' 张</strong></p>';
+    var __cbExcl = r.best / (1 + r.taxRate / 100);
+    html += __invInvoiceBlock(__cbExcl, r.best - __cbExcl, r.taxRate, r.best);
   }
   else {
     html += '<p>价税合计：<strong>¥' + ToolBox.formatNumber(r.total, 2) + '</strong></p>';
@@ -750,12 +816,14 @@ function renderResult(r){
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">';
     html += '<p>反推税率：<strong style="color:var(--primary);font-size:18px;">' + r.rate.toFixed(4) + '%</strong></p>';
     html += '<p>公式：税率 = 税额 ÷ 不含税金额 × 100% = ' + ToolBox.formatNumber(r.tax, 2) + ' ÷ ' + ToolBox.formatNumber(r.excl, 2) + ' × 100% = ' + r.rate.toFixed(4) + '%</p>';
+    html += __invInvoiceBlock(r.excl, r.tax, r.rate, r.total);
   }
   
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
 function renderDetailTable(r){
+  if(!r || !r.invoices) return;
   var headers = ['序号', '价税合计', '不含税金额', '税额', '税率'];
   var rows = r.invoices.map(function(inv){
     return [

@@ -200,6 +200,21 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div class="input-row">
+      <div>
+        <label data-zh="全年一次性奖金（元）">Year-end bonus (CNY)</label>
+        <input type="number" id="bonus" value="30000" oninput="calculate()">
+      </div>
+      <div>
+        <label data-zh="奖金计税方式">Bonus taxation method</label>
+        <select id="bonusMode" onchange="calculate()">
+          <option value="auto" data-zh="自动择优（推荐）" selected>Auto pick lower (recommended)</option>
+          <option value="separate" data-zh="单独计税">Separate (flat-rate on bonus)</option>
+          <option value="merge" data-zh="并入综合所得">Merge into comprehensive income</option>
+        </select>
+      </div>
+    </div>
+
     <div class="tax-result">
       <div style="font-size:13px;color:var(--text-muted);">月应纳税额</div>
       <div class="tax-amount" id="taxAmount">¥0.00</div>
@@ -212,6 +227,7 @@ s.parentNode.insertBefore(el, s);
       <div class="summary-card"><div class="num" id="effectiveRate">--</div><div class="lbl">实际税负</div></div>
       <div class="summary-card"><div class="num" id="annualTax">--</div><div class="lbl">年个税估算</div></div>
     </div>
+    <div id="bonusBox" style="margin-top:14px;"></div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 导出个税计算结果 CSV" onclick="__taxExport()">⬇️ Export Tax Calculation CSV</button>
       <span style="font-size:12px;color:var(--text-muted);" data-zh="个税计算结果可导出为 CSV 备案">Tax calculation results can be exported as CSV for record</span>
@@ -302,6 +318,117 @@ const brackets = [
   {max: Infinity, rate: 0.45, deduction: 15160}
 ];
 
+// 年度综合所得税率表（并入综合所得口径）
+const annualBrackets = [
+  {max: 36000, rate: 0.03, deduction: 0},
+  {max: 144000, rate: 0.10, deduction: 2520},
+  {max: 300000, rate: 0.20, deduction: 16920},
+  {max: 420000, rate: 0.25, deduction: 31920},
+  {max: 660000, rate: 0.30, deduction: 52920},
+  {max: 960000, rate: 0.35, deduction: 85920},
+  {max: Infinity, rate: 0.45, deduction: 181920}
+];
+
+function __tbIsEn(){ return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+
+function __taxAnnualOf(x){
+  x = Math.max(0, x || 0);
+  for (var i = 0; i < annualBrackets.length; i++){
+    if (x <= annualBrackets[i].max) return Math.max(0, x * annualBrackets[i].rate - annualBrackets[i].deduction);
+  }
+  return 0;
+}
+
+// 全年一次性奖金单独计税：奖金÷12 查月度税率表定档，税额=奖金×税率−月度速算扣除数
+function __bonusParts(x){
+  var m = Math.max(0, x || 0) / 12;
+  for (var i = 0; i < brackets.length; i++){
+    if (m <= brackets[i].max) return { rate: brackets[i].rate, ded: brackets[i].deduction, idx: i };
+  }
+  return { rate: 0.45, ded: 15160, idx: brackets.length - 1 };
+}
+function __bonusSepTax(x){
+  var p = __bonusParts(x);
+  return Math.max(0, Math.max(0, x || 0) * p.rate - p.ded);
+}
+// 临界点「雷区」：在 (C, X*) 区间内税前多发、税后到手反而更少
+function __bonusDeadZones(){
+  var pts = [36000, 144000, 300000, 420000, 660000, 960000];
+  var zones = [];
+  for (var i = 0; i < pts.length; i++){
+    var C = pts[i];
+    var p0 = __bonusParts(C);
+    var nx = brackets[Math.min(p0.idx + 1, brackets.length - 1)];
+    if (nx.rate <= p0.rate) continue;
+    var netC = C - (C * p0.rate - p0.ded);
+    var hi = (netC - nx.deduction) / (1 - nx.rate);
+    if (isFinite(hi) && hi > C + 1) zones.push({ low: C, high: hi });
+  }
+  return zones;
+}
+
+function renderBonus(taxableIncome){
+  var host = document.getElementById('bonusBox');
+  if (!host) return;
+  var en = __tbIsEn();
+  var bonusEl = document.getElementById('bonus');
+  var modeEl = document.getElementById('bonusMode');
+  var bonus = bonusEl ? (parseFloat(bonusEl.value) || 0) : 0;
+  var mode = modeEl ? modeEl.value : 'auto';
+  var fm = function(n){ return '¥' + (Math.round(n * 100) / 100).toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2}); };
+  if (bonus <= 0){
+    host.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">' + (en ? 'Enter a year-end bonus above to compare separate vs. merged taxation.' : '填写全年一次性奖金金额后，自动对比「单独计税」与「并入综合所得」两种方式的税负。') + '</div>';
+    return;
+  }
+  var p = __bonusParts(bonus);
+  var sepTax = Math.max(0, bonus * p.rate - p.ded);
+  var annualTaxable = Math.max(0, (taxableIncome || 0) * 12);
+  var baseTax = __taxAnnualOf(annualTaxable);
+  var mergedTax = Math.max(0, __taxAnnualOf(annualTaxable + bonus) - baseTax);
+  var sepTotal = baseTax + sepTax;
+  var mergeTotal = baseTax + mergedTax;
+  var diff = Math.abs(sepTotal - mergeTotal);
+  var better = sepTotal < mergeTotal ? 'separate' : (mergeTotal < sepTotal ? 'merge' : 'same');
+  var concluded = mode === 'separate' ? 'separate' : (mode === 'merge' ? 'merge' : better);
+  var nameSep = en ? 'Separate (bonus ÷ 12 → monthly table)' : '单独计税（奖金÷12 查月度表）';
+  var nameMerge = en ? 'Merge into comprehensive income (annual brackets)' : '并入综合所得（年度累进表）';
+  var concl;
+  if (better === 'same'){
+    concl = (en ? 'Both methods give the same annual tax: ' : '两种方式全年个税相同：') + fm(sepTotal);
+  } else {
+    concl = (en ? 'Lower option: ' : '更省方案：') + (better === 'separate' ? nameSep : nameMerge) +
+            (en ? ' — saves ' : '，全年少缴 ') + fm(diff);
+  }
+  if (mode !== 'auto' && mode !== better){
+    concl += (en ? ' · Your pick costs ' : ' · 你选择的方式多缴 ') + fm(diff);
+  }
+  var zoneTip = '';
+  var zones = __bonusDeadZones();
+  for (var zi = 0; zi < zones.length; zi++){
+    var z = zones[zi];
+    if (bonus > z.low && bonus < z.high){
+      zoneTip = '<div style="margin-top:8px;font-size:12px;color:var(--danger);">⚠️ ' +
+        (en ? ('Dead zone: a bonus of ' + z.low.toLocaleString('en-US') + '–' + Math.floor(z.high).toLocaleString('en-US') +
+               ' leaves LESS after tax than ' + z.low.toLocaleString('en-US') + '.')
+            : ('雷区：奖金落在 ' + z.low.toLocaleString('zh-CN') + '～' + Math.floor(z.high).toLocaleString('zh-CN') +
+               ' 元区间时，扣税到手反而少于 ' + z.low.toLocaleString('zh-CN') + ' 元。')) + '</div>';
+      break;
+    }
+  }
+  var html = '<div style="font-size:13px;font-weight:600;margin-bottom:6px;">' +
+    (en ? '🎁 Year-end bonus: separate vs. merged' : '🎁 年终奖计税方式对比') + '</div>' +
+    '<table class="result-table" style="width:100%;border-collapse:collapse;font-size:13px;">' +
+    '<thead><tr><th>' + (en ? 'Method' : '计税方式') + '</th><th>' + (en ? 'Tax on bonus' : '年终奖应缴个税') +
+    '</th><th>' + (en ? 'Total annual tax' : '全年个税合计') + '</th><th>' + (en ? 'Note' : '结论') + '</th></tr></thead><tbody>' +
+    '<tr><td>' + nameSep + '</td><td>' + fm(sepTax) + '</td><td>' + fm(sepTotal) + '</td><td>' +
+      (better === 'separate' ? (en ? '✅ lower' : '✅ 更省') : '') + '</td></tr>' +
+    '<tr><td>' + nameMerge + '</td><td>' + fm(mergedTax) + '</td><td>' + fm(mergeTotal) + '</td><td>' +
+      (better === 'merge' ? (en ? '✅ lower' : '✅ 更省') : '') + '</td></tr>' +
+    '</tbody></table>' +
+    '<div style="margin-top:8px;font-size:13px;">' + concl + '</div>' + zoneTip;
+  host.innerHTML = html;
+}
+
 function calculate(){
   const salary = parseFloat(document.getElementById('salary').value) || 0;
   const insurance = parseFloat(document.getElementById('insurance').value) || 0;
@@ -310,6 +437,7 @@ function calculate(){
 
   // 应纳税所得额 = 税前 - 社保 - 起征点 - 专项附加
   const taxableIncome = Math.max(0, salary - insurance - threshold - special);
+  try { renderBonus(taxableIncome); } catch(e) {}
 
   let tax = 0;
   let rate = 0;
