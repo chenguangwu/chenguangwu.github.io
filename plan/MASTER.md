@@ -28,7 +28,7 @@
 | 批17 | machinery/life/biz/fun/automotive/general（212 计算页全读） | ✅ 已覆盖（新发现 3 项已归档：life.md L1/biz-startup.md Z1/machinery M3） |
 | 批18 | realestate/legal/marketing/metalwork/meteorology/energy/optical/fire-rescue/eco（322 计算页全读） | ✅ 已覆盖（新发现 2 项归档：eco-10/16 量纲 E1、metalwork 7 对比页功能单薄；realestate/legal 双段式页生效版此前 S 批已对照） |
 | 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（316 计算页全读） | ✅ 已覆盖（specialties.md C1 游离酸颠倒；_others.md O6 重金属迁移×1000 单位待核；其余 9 目录公式全核对通过） |
-| 批20 | 其余全部 <25 页小目录（~90 个，~800 页） | ⚪ 未开始——目录清单与生成脚本见 plan/HANDOFF.md |
+| 批20 | 其余全部 <25 页小目录（95 个，967 页） | 🟡 进行中——A 组 16 目录 170 页已读（新发现：specialties C2 法医胎龄公式失真、hr-legal L3 年假折算 ceil 口径矛盾；travel/fluid/ecommerce/中医4目录/property/hr/food-processing/data/beauty/metallurgy/forensic-medicine/language/nutrition 公式全核对通过）；余 79 目录（ai 64 页最大），dump 脚本见 plan/HANDOFF.md |
 
 > 登记纪律：审计新发现的**未修复**问题按归属追加进对应任务文件；已修复问题一律不写入。
 

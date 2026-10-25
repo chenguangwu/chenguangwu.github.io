@@ -9,27 +9,29 @@
 | 批1-16 | ~60 个主要目录（statistics/math/science/金融6/工程5/健康4/土木化学6/检验生理6/物理地物6/商运6/量表6/专科6/食品农业6/IT媒体6/生活6/声学航空6/产业6/生活商业6） | ✅ 全覆盖（发现的问题已修复并登记） |
 | 批17 | machinery/life/biz/fun/automotive/general（212 计算页） | ✅ 已归档（life.md L1 胸罩码 / biz-startup.md Z1 量纲 / machinery M3 死代码） |
 | 批18 | realestate/legal/marketing/metalwork/meteorology/energy/optical/fire-rescue/eco（322 计算页） | ✅ 已归档（eco E1 万kWh 量纲 / metalwork 7 对比页功能单薄） |
-| 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（316 计算页） | 🟡 **进行中**：cosmetic-derm+ophthalmology+encode 三目录已读毕（发现 specialties.md C1 游离酸颠倒，已归档）；**metrology 起共 9 目录未读** |
-| 批20 | 其余 <25 页小目录 ~90 个（~800 页） | ⚪ 未开始 |
+| 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（316 计算页） | ✅ 全读毕（specialties C1 游离酸颠倒；_others O6 重金属迁移×1000；提交 862d884e54） |
+| 批20-A | travel/fluid/ecommerce/acupuncture/tcm-pharmacy/tcm-chemistry/tcm-diagnosis/property/hr/food-processing/data/beauty/metallurgy/forensic-medicine/language/nutrition（16 目录 170 页） | ✅ 全读毕（specialties C2 法医胎龄公式失真；hr-legal L3 年假折算 ceil 口径矛盾；其余公式全核对通过，含 hr 加班 1.5/2/3 倍、food-processing F值/ASLT/过滤/喷雾干燥、metallurgy 杠杆定律/Chvorinov/Arrhenius、nutrition 添加剂量纲正确对照 O6） |
 
-## 二、批19 续作（先做这个）
+## 二、批20 续作（先做这个）
 
-转储已生成：`/tmp/dump_b19.txt`（3126 行，316 页）。若 /tmp 被清，用文末脚本重新生成。
+### 已就绪的转储
+`/tmp/dump_b20b.txt`（1098 行）已生成未读：B 组 17 目录（welding/safety/advertising/pet/leather/gardening/image/usedcar/hvac/text/pr/mining/security/gas/fire/elderly/process，249 calc 页 + 91 no-calc 页标记）。若 /tmp 被清，用 §五脚本重新生成（dirs 参数见下行）。
 
-**已读**：`########## cosmetic-derm`（第2行）→ `########## encode` 段结束（第897行）。这三目录核对结论：cosmetic-derm 除 C1 外全部自洽（SPF=1/(1−uvb/100) ✓、刷酸渗透/微针密度/射频温度模型 ✓）；ophthalmology 全对（IOP-CCT 校正 0.7mmHg/10μm ✓、SRK/T vergence ✓、OSDI=sum×100/(答×4) ✓、内皮 CV ✓）；encode 全对（Base32/Base64/汉明/熵/碰撞公式 ✓）。
+```bash
+python3 /tmp/gen_dump.py "welding,safety,advertising,pet,leather,gardening,image,usedcar,hvac,text,pr,mining,security,gas,fire,elderly,process" > /tmp/dump_b20b.txt
+```
 
-**未读**（用 Read 工具分段读，每段 ≤900 行防超限）：
-- metrology：第 898–1140 行（bias-absolute 已开头）
-- textile：第 1141–1419 行
-- robotics：第 1420–1613 行
-- nuclear：第 1614–1812 行（此前批1/批7 审过部分核素页，快扫确认即可）
-- geometry：第 1813–2035 行
-- signal：第 2036–2269 行（S 批公式框对照过，重点看 calc 本身）
-- food-testing：第 2270–2525 行
-- reproductive-medicine：第 2526–2804 行（医学量表，参照批9 口径逐条核对计分/阈值）
-- rheumatology：第 2805–3126 行（SLEDAI 等此前多页已审，快扫）
+### B 组之后剩余目录（按 /tmp/rest_dirs.txt）
+- **C 组**：`ai`（64 页，浏览器本地 AI 页，多为 module 脚本，dump 可能抓不到 calc，需 grep `<script type="module"` 另行处理）
+- **D 组**：sales,procurement,research,rental,quality,museum,library,cognition,woodwork,printing,hotel,dance,admin（13 目录，93 页）
+- **E 组**：startup,road,parenting,packaging,jewelry,funeral,floral,film,exhibition,chinese-cook,archaeology,antiques（12 目录，72 页）
+- **F 组**：29 个 5 页目录：yi,woodworking,tunnel,stage,shipping,service,seismology,rubber,railway,project,plastic,pets,pet-training,niche,medical2,martial,manufacturing,legal2,kids,gardening2,futures,forex,fengshui,chinese,chess,bridge,bonding,audit,accessibility
+- **G 组**：stats,photo2,misc,misc2,express,daily-goods,network（7 目录 17 页；network 0 页仅目录）
 
-读完把未修复发现按归属追加进 `plan/categories/**`（归类规则见 MASTER），并更新 MASTER 批19 状态为 ✅。
+### 审读要点（沿用）
+1. 双段模板页（第一段死模板 `score=(a+b)/2`）→ 看后段是否领域逻辑；两段都通用 → 记「功能单薄」。
+2. 系数量纲错 / 医学量表阈值错是重点；发现后**读原页核实再归档**。
+3. 已修不写；归档到 plan/categories/ 对应大分类（映射参考既有条目）。
 
 ## 三、批20（最后一批）
 
@@ -48,36 +50,46 @@
 
 ## 五、附：转储生成脚本（复用模板）
 
+`/tmp/gen_dump.py` 已改为 **argv 传目录**（逗号分隔），用法：
+
+```bash
+python3 /tmp/gen_dump.py "sales,procurement,research,rental,quality,museum,library,cognition,woodwork,printing,hotel,dance,admin" > /tmp/dump_b20d.txt
+```
+
+若 /tmp 被清，脚本内容如下（与上文行为一致：抓每页第一个 `function calcTool(`/`function calc(` 函数体，输出前 11 行含数学行；无 calc 的页打 `[no-calc]` 标记，转储内含页名可直接跳过或按需另行处理）：
+
 ```python
-# /tmp/gen_dump.py  用法: python3 /tmp/gen_dump.py > /tmp/dump_bXX.txt
-import io, re, os
-dirs=['metrology','textile','robotics','nuclear','geometry','signal','food-testing','reproductive-medicine','rheumatology']  # 批19剩余；批20按清单分组替换
+import re,sys,glob
+dirs=sys.argv[1].split(',')
 def grab(path):
-    s=io.open(path,encoding='utf-8').read()
-    def body(pat):
-        m=re.search(pat,s)
-        if not m: return None
-        i=s.index('{',m.end()-1); d=0;j=i
-        while j<len(s):
-            if s[j]=='{':d+=1
-            elif s[j]=='}':
-                d-=1
-                if d==0:break
-            j+=1
-        return s[m.start():j+1]
-    b=body(r'function\s+calcTool\s*\(') or body(r'function\s+calc\s*\(')
-    if not b: return None
-    lines=[l.strip() for l in b.split('\n') if re.search(r'[*/^]|\bMath\.|toFixed', l)]
-    return lines[:11]
-for d in dirs:
-    base='tools/'+d
-    print(f'\n########## {d} ##########')
-    for f in sorted(os.listdir(base)):
-        if not f.endswith('.html') or f=='index.html': continue
-        b=grab(os.path.join(base,f))
-        if not b: continue
-        print(f'\n=== tools/{d}/{f}')
-        for l in b: print('   ',l[:150])
+    try: c=open(path,encoding='utf-8').read()
+    except: return []
+    m=re.search(r'function (calcTool|calc)\s*\(',c)
+    if not m: return []
+    i=c.index('{',m.end()-1); d=0
+    for j in range(i,len(c)):
+        if c[j]=='{': d+=1
+        elif c[j]=='}':
+            d-=1
+            if d==0: body=c[i+1:j]; break
+    else: return []
+    out=[];math=False
+    for ln in body.split('\n'):
+        s=ln.strip()
+        if re.search(r'[+\-*/]=?|Math\.|toFixed|pow|sqrt',s) and not s.startswith('//') and 'innerHTML' not in s[:6]:
+            out.append(s[:150]);math=True
+        elif math and len(out)>=3: break
+        if len(out)>=11: break
+    return out
+for dd in dirs:
+    print('########## '+dd+' ##########')
+    for f in sorted(glob.glob('tools/'+dd+'/*.html')):
+        r=grab(f)
+        if r:
+            print('=== '+f)
+            for l in r: print('    '+l)
+        else:
+            print('=== '+f+'  [no-calc]')
 ```
 
 未覆盖目录现算命令（批20 用）：
