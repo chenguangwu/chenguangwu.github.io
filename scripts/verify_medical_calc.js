@@ -80,12 +80,12 @@ const CASES = [
   "slug": "medical/convert-glucose",
   "inputs": {
     "val": "1",
-    "from": "18"
+    "from": "1"
   },
   "expect": [
-    "18"
+    "0.0555555555556"
   ],
-  "ref": "auto-restore"
+  "ref": "2026-10-25 选项系数互换后（mmol=18/mg/dL=1 基准）：1 mg/dL→mmol/L = 1×1÷18=0.0555555555556；默认态（val=1,from=mmol(18) → 18）不含该串 ⇒ 强判别、零逃生。"
 },
 {
   "slug": "medical/convert-time-infusion",
