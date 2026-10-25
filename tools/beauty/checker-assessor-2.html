@@ -130,6 +130,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetAll()">重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="ca2Chart" style="margin-top:12px;"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出三维质量评估结果 CSV" onclick="__c3Export()">⬇️ Export 3D Quality Assessment CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="15 项加权评分、三维度得分率与综合等级可导出为 CSV">All 15 weighted item scores, dimension rates, and overall grade can be exported as CSV</span>
@@ -451,5 +452,40 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
-</script></body>
+</script><script>/*TBKIT-CHART-INJECT-CA2*/
+var __CA2_N={check:['质量检查','Quality check'],durability:['持久性能','Durability'],aesthetics:['外观美观','Aesthetics']};
+function __ca2ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('ca2Chart');
+    if(!host) return;
+    if(typeof dims==='undefined') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],overall=0;
+    Object.keys(dims).forEach(function(key){
+      var dim=dims[key],tw=0,sc=0;
+      dim.items.forEach(function(item,i){
+        var sel=document.getElementById(key+i);
+        var v=sel?parseInt(sel.value,10):4;
+        if(!isFinite(v))v=4;
+        tw+=item.w*5;sc+=v*item.w;
+      });
+      if(!tw) return;
+      var pct=sc/tw*100;
+      overall+=pct*dim.weight;
+      vals.push(Math.round(pct*10)/10);
+      labels.push(en?__CA2_N[key][1]:__CA2_N[key][0]);
+    });
+    if(!vals.length) return;
+    var lv=overall>=85?'优秀':overall>=70?'良好':overall>=55?'一般':'不合格';
+    var lvEn=overall>=85?'Excellent':overall>=70?'Good':overall>=55?'Average':'Fail';
+    TBKit.chart.bar(host,{labels:labels,max:100,series:[{name:en?'Score rate (%)':'得分率 (%)',data:vals}],title:(en?'Dimension score rates (overall ':'各维度得分率（综合 ')+overall.toFixed(1)+(en?'%, ':'%，')+(en?lvEn:lv)+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__ca2ChartDraw();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ca2ChartDraw();}catch(e){}});
+(function(){function b(){try{__ca2ChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
+</body>
 </html>

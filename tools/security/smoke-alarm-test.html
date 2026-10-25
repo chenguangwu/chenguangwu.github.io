@@ -231,6 +231,7 @@ s.parentNode.insertBefore(el, s);
       </span>
     </div>
     <div id="historyList"></div>
+    <div id="smkChart" style="margin-top:14px;"></div>
   </div>
 
   <div class="card">
@@ -586,5 +587,43 @@ function __alarmExport(){
 </script>
 
 
+<script>/*TBKIT-CHART-INJECT-SMK*/
+var __SMK_EN={'客厅':'Living room','卧室':'Bedroom','厨房附近':'Near kitchen','走廊':'Hallway','儿童房':'Kids room','地下室':'Basement','车库':'Garage','阁楼':'Attic'};
+function __smkChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('smkChart');
+    if(!host) return;
+    var sel=document.getElementById('alarmLocation');
+    if(!sel) return;
+    var opts=[];
+    for(var i=0;i<sel.options.length;i++)opts.push(sel.options[i].value);
+    if(!opts.length) return;
+    var list=[];
+    try{list=JSON.parse(localStorage.getItem('toolbox_smoke_alarm_history')||'[]');}catch(e){list=[];}
+    var en=TBKit.util.isEn();
+    var labels=[],pass=[],fail=[],total=0;
+    opts.forEach(function(loc){
+      var p=0,f=0;
+      list.forEach(function(r){
+        if(r.location===loc){total++;if(r.result==='pass')p++;else f++;}
+      });
+      pass.push(p);fail.push(f);
+      labels.push(en?(__SMK_EN[loc]||loc):loc);
+    });
+    TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Pass':'通过',data:pass},{name:en?'Fail':'失败',data:fail}],title:(en?'Self-check records by location (total ':'各位置自检记录统计（共 ')+total+(en?')':' 次）')});
+  }catch(e){}
+}
+(function(){
+  var host=document.getElementById('historyList');
+  if(host&&typeof MutationObserver!=='undefined'){
+    try{
+      new MutationObserver(function(){try{__smkChartDraw();}catch(e){}}).observe(host,{childList:true,subtree:true});
+    }catch(e){}
+  }
+  document.addEventListener('toolbox:langchange',function(){try{__smkChartDraw();}catch(e){}});
+})();
+(function(){function b(){try{__smkChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>

@@ -137,6 +137,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="window.__r17Export()">⬇️ 导出评分明细 CSV</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="r17Chart" style="margin-top:12px;"></div>
     <table id="r17Hidden" style="display:none"><thead><tr><th>System</th><th>Item</th><th>Points</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -511,6 +512,41 @@ document.addEventListener('DOMContentLoaded',function(){
   document.addEventListener('DOMContentLoaded',function(){r7_bindTabs();r7_all();});
   document.addEventListener('toolbox:langchange',function(){r7_all();});
 })();
+</script>
+<script>/*TBKIT-CHART-INJECT-R17*/
+var __R17_EN={'全身症状':'Constitutional','皮肤病变':'Cutaneous','黏膜/眼部':'Mucous/Eye','耳鼻喉':'ENT','胸部':'Chest','心血管':'Cardiovascular','腹部':'Abdominal','肾脏':'Renal','神经系统':'Neurologic'};
+function __r17ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('r17Chart');
+    if(!host) return;
+    if(typeof groups==='undefined') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],total=0;
+    groups.forEach(function(g){
+      var s=0;
+      g.items.forEach(function(it){
+        var cb=document.getElementById('cb_'+it.key);
+        if(cb&&cb.checked)s+=it.pts;
+      });
+      var capped=Math.min(s,g.max);
+      vals.push(capped);
+      total+=capped;
+      labels.push(en?(__R17_EN[g.group]||g.group):g.group);
+    });
+    var lv;
+    if(total===0)lv=['无疾病活动','No active disease'];
+    else if(total<=5)lv=['低活动度','Low activity'];
+    else if(total<=10)lv=['中等活动度','Moderate activity'];
+    else if(total<=20)lv=['高活动度','High activity'];
+    else lv=['极高活动度','Very high activity'];
+    TBKit.chart.bar(host,{labels:labels,max:12,series:[{name:en?'System score':'系统得分',data:vals}],title:(en?'BVAS score by system (total ':'BVAS 各系统得分（总分 ')+total+(en?', ':'，')+(en?lv[1]:lv[0])+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__r17ChartDraw();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__r17ChartDraw();}catch(e){}});
+(function(){function b(){try{__r17ChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

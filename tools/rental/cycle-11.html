@@ -160,6 +160,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card" id="settlementCard" style="display:none;">
     <h3>结算报告</h3>
     <div id="settlementBody"></div>
+    <div id="c11Chart" style="margin-top:12px;"></div>
   </div>
 
   <div class="card">
@@ -561,6 +562,41 @@ document.addEventListener('DOMContentLoaded', function() {
     h.addEventListener('click', function() { this.parentElement.classList.toggle('open'); });
   });
 });
+</script>
+<script>/*TBKIT-CHART-INJECT-C11*/
+var __C11_M=[['electric','电费','Electric'],['water','水费','Water'],['gas','燃气费','Gas']];
+function __c11ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('c11Chart');
+    if(!host) return;
+    if(typeof data==='undefined'||typeof calcCost!=='function') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],total=0;
+    __C11_M.forEach(function(m){
+      var rs=(data.readings[m[0]]||[]);
+      var cost=0;
+      for(var i=1;i<rs.length;i++){
+        var u=(rs[i].value||0)-(rs[i-1].value||0);
+        if(u<0)u=0;
+        cost+=calcCost(m[0],u).cost;
+      }
+      vals.push(Math.round(cost*100)/100);
+      total+=cost;
+      labels.push(en?m[2]:m[1]);
+    });
+    TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Cost (CNY)':'费用 (元)',data:vals}],title:(en?'Meter costs (total ¥':'各表计费用（合计 ¥')+total.toFixed(2)+(en?')':'）')});
+  }catch(e){}
+}
+(function(){
+  ['calcSettlement','updateReading','addReading','delReading'].forEach(function(fn){
+    if(typeof window[fn]!=='function') return;
+    var f0=window[fn];
+    window[fn]=function(){var r=f0.apply(this,arguments);try{__c11ChartDraw();}catch(e){}return r;};
+  });
+  document.addEventListener('toolbox:langchange',function(){try{__c11ChartDraw();}catch(e){}});
+})();
+(function(){function b(){try{__c11ChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

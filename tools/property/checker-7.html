@@ -129,6 +129,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="q7Chart" style="margin-top:12px;"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出品质检查评估结果 CSV" onclick="__qcExport()">⬇️ Export Quality Check Results CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="23 项检查得分、四模块加权得分率、待整改项与综合等级可导出为 CSV">All 23 item scores, weighted module rates, rectification items, and overall grade can be exported as CSV</span>
@@ -440,5 +441,40 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
-</script></body>
+</script><script>/*TBKIT-CHART-INJECT-Q7*/
+var __Q7_N={cleaning:['保洁服务','Cleaning'],security:['安保服务','Security'],greening:['绿化养护','Greening'],facility:['设施维保','Facility maintenance']};
+function __q7ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('q7Chart');
+    if(!host) return;
+    if(typeof dims==='undefined') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],overall=0;
+    Object.keys(dims).forEach(function(key){
+      var dim=dims[key],tw=0,sc=0;
+      dim.items.forEach(function(item,i){
+        var sel=document.getElementById(key+i);
+        var v=sel?parseInt(sel.value,10):3;
+        if(!isFinite(v))v=3;
+        tw+=item.w*4;sc+=v*item.w;
+      });
+      if(!tw) return;
+      var pct=sc/tw*100;
+      overall+=pct*dim.weight;
+      vals.push(Math.round(pct*10)/10);
+      labels.push(en?__Q7_N[key][1]:__Q7_N[key][0]);
+    });
+    if(!vals.length) return;
+    var lv=overall>=85?'优秀':overall>=70?'良好':overall>=55?'合格':'不合格';
+    var lvEn=overall>=85?'Excellent':overall>=70?'Good':overall>=55?'Pass':'Fail';
+    TBKit.chart.bar(host,{labels:labels,max:100,series:[{name:en?'Score rate (%)':'得分率 (%)',data:vals}],title:(en?'Module score rates (overall ':'各模块得分率（综合 ')+overall.toFixed(1)+(en?'%, ':'%，')+(en?lvEn:lv)+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__q7ChartDraw();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__q7ChartDraw();}catch(e){}});
+(function(){function b(){try{__q7ChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
+</body>
 </html>

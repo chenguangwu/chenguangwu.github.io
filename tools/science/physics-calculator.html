@@ -179,6 +179,7 @@ s.parentNode.insertBefore(el, s);
     <div class="category-tabs" id="categoryTabs"></div>
     <div id="formulaList" class="formula-list"></div>
     <div id="inputArea" style="margin-top:12px;"></div>
+    <div id="phyPresets" style="margin:10px 0;"></div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calculate()">计算</button>
       <button type="button" class="btn" onclick="showConstants()">物理常数</button>
@@ -811,6 +812,45 @@ function pcExportCsv(){
   document.addEventListener('DOMContentLoaded',function(){__phyBindTabs();__phyAll();});
   document.addEventListener('toolbox:langchange',function(){__phyAll();});
 })();
+</script>
+<script>/*TBKIT-CHART-INJECT-PHY*/
+var __PHY_SCEN=[
+  {label:'自由落体末速度',labelEn:'Free fall speed',f:'v_t',vals:{v0:0,a:9.8,t:2}},
+  {label:'匀加速位移',labelEn:'Uniform accel distance',f:'x_vt',vals:{v0:5,a:2,t:4}},
+  {label:'动能计算',labelEn:'Kinetic energy',f:'ke',vals:{m:2,v:10}},
+  {label:'重力势能',labelEn:'Potential energy',f:'pe',vals:{m:5,g:9.8,h:3}}
+];
+function __phyPresetApply(i){
+  var p=__PHY_SCEN[i];
+  if(!p) return;
+  try{
+    if(typeof selectCategory==='function')selectCategory('mechanics');
+    if(typeof selectFormula==='function')selectFormula(p.f);
+    var f=(typeof currentFormula!=='undefined')?currentFormula:null;
+    if(!f) return;
+    Object.keys(f.vars).forEach(function(k){
+      var el=document.getElementById('var_'+k);
+      if(!el) return;
+      var has=Object.prototype.hasOwnProperty.call(p.vals,k);
+      el.value=has?String(p.vals[k]):'';
+      if(typeof updateKnown==='function')updateKnown(k);
+    });
+    if(typeof calculate==='function')calculate();
+  }catch(e){}
+}
+function __phyPresetsInit(){
+  if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar) return;
+  var host=document.getElementById('phyPresets');
+  if(!host||host.getAttribute('data-phy-ready')) return;
+  host.setAttribute('data-phy-ready','1');
+  var list=__PHY_SCEN.map(function(s){return {label:s.label,labelEn:s.labelEn,values:{}};});
+  TBKit.preset.bar(host,list,function(){});
+  var btns=host.querySelectorAll('.tbk-preset-btn');
+  for(var i=0;i<btns.length&&i<__PHY_SCEN.length;i++){
+    (function(idx){btns[idx].addEventListener('click',function(){try{__phyPresetApply(idx);}catch(e){}});})(i);
+  }
+}
+(function(){function b(){try{__phyPresetsInit();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

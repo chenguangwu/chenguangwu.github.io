@@ -123,6 +123,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetForm()">全部重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="f20Chart" style="margin-top:12px;"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出消防安全检查结果 CSV" onclick="__fireExport()">⬇️ Export Fire Safety Check CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="17 项检查得分、三模块达标率、总体合规度与隐患清单可导出为 CSV">All 17 item scores, module compliance rates, overall rate, and hazard list can be exported as CSV</span>
@@ -415,5 +416,39 @@ function applyFirePreset(kind){
 }
 </script>
 
+<script>/*TBKIT-CHART-INJECT-F20*/
+var __F20_EN=['Facility configuration','Maintenance','Inspection & acceptance'];
+function __f20ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('f20Chart');
+    if(!host) return;
+    if(typeof MODULES==='undefined') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],totalScore=0,totalMax=0;
+    MODULES.forEach(function(m,mi){
+      var ms=0,mm=m.items.length*2;
+      m.items.forEach(function(it,ii){
+        var sel=document.getElementById('m'+mi+'_'+ii);
+        var v=sel?parseInt(sel.value,10):0;
+        if(!isFinite(v))v=0;
+        ms+=v;
+      });
+      totalScore+=ms;totalMax+=mm;
+      vals.push(Math.round(ms/mm*100));
+      labels.push(en?(__F20_EN[mi]||('M'+(mi+1))):m.name.replace(/^[一二三]、/,''));
+    });
+    if(!totalMax) return;
+    var rate=Math.round(totalScore/totalMax*100);
+    var lv=rate>=90?'合格':rate>=75?'基本合格':rate>=60?'需整改':'不合格';
+    var lvEn=rate>=90?'Compliant':rate>=75?'Basically compliant':rate>=60?'Rectification required':'Non-compliant';
+    TBKit.chart.bar(host,{labels:labels,max:100,series:[{name:en?'Compliance rate (%)':'达标率 (%)',data:vals}],title:(en?'Module compliance rates (overall ':'各模块达标率（总体 ')+rate+'%'+(en?', ':'，')+(en?lvEn:lv)+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__f20ChartDraw();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__f20ChartDraw();}catch(e){}});
+(function(){function b(){try{__f20ChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>
