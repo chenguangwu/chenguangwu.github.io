@@ -166,6 +166,7 @@ s.parentNode.insertBefore(el, s);
         <option value="syd">年数总和法</option>
       </select></div>
     </div>
+    <div id="rdChart"></div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="addAsset()">登记资产</button>
       <button type="button" class="btn" onclick="exportAssets()">导出数据</button>
@@ -575,6 +576,46 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   ]
 }
+</script>
+<script>/*TBKIT-CHART-INJECT-RD*/
+function __rdDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('rdChart');
+    if(!host) return;
+    var cost=parseFloat(document.getElementById('aCost').value);
+    var salvage=parseFloat(document.getElementById('aSalvage').value);
+    var life=parseInt(document.getElementById('aLife').value,10);
+    var method=document.getElementById('aMethod').value;
+    if(!(cost>0)||!(life>=1)||!(salvage>=0)||salvage>=cost) return;
+    var schedule=calcDepreciation(cost,salvage,life,method);
+    if(!schedule||!schedule.length) return;
+    var en=TBKit.util.isEn();
+    var mEn={straight:'Straight-line',ddb:'Double declining balance',syd:'Sum-of-years digits'};
+    var mZh={straight:'直线法',ddb:'双倍余额递减法',syd:'年数总和法'};
+    var labels=[],vals=[];
+    for(var i=0;i<schedule.length;i++){
+      labels.push(en?('Y'+schedule[i].year):('第'+schedule[i].year+'年'));
+      vals.push(schedule[i].bookVal);
+    }
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Year-end book value':'年末账面净值',data:vals}],title:(en?'Book value by year - ':'逐年账面净值 - ')+(en?(mEn[method]||method):(mZh[method]||method))});
+  }catch(e){}
+}
+(function(){
+  var ids=['aCost','aSalvage','aLife','aMethod'];
+  function wire(){
+    ids.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el||el.getAttribute('data-rd-wired')) return;
+      el.setAttribute('data-rd-wired','1');
+      el.addEventListener('input',__rdDraw);
+      el.addEventListener('change',__rdDraw);
+    });
+  }
+  function b(){wire();try{__rdDraw();}catch(e){}}
+  wire();
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
 </script>
 </body>
 </html>

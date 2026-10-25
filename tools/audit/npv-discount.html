@@ -182,6 +182,7 @@ s.parentNode.insertBefore(el, s);
         <tbody id="detailBody"></tbody>
       </table>
     </div>
+    <div id="npvChart"></div>
     <div class="toolbar" style="margin-top:8px;">
       <button type="button" class="btn" onclick="__npvExport()">⬇️ 导出明细 CSV</button>
     </div>
@@ -453,5 +454,38 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
-</script></body>
+</script><script>/*TBKIT-CHART-INJECT-NPV*/
+function __npvChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('npvChart');
+    if(!host) return;
+    var init=parseFloat(document.getElementById('init').value);
+    if(!isFinite(init)) return;
+    var cfList=[];
+    if(getMode()==='annuity'){
+      var amt=parseFloat(document.getElementById('annuityAmt').value)||0;
+      var n=parseInt(document.getElementById('annuityN').value,10)||1;
+      for(var i=0;i<n;i++) cfList.push(amt);
+    }else{
+      cfList=flows.slice();
+    }
+    if(!cfList.length) return;
+    var labels=[],vals=[];
+    for(var r=0;r<=30;r++){
+      var rr=r/100,total=0;
+      for(var t=0;t<cfList.length;t++) total+=cfList[t]/Math.pow(1+rr,t+1);
+      labels.push(r+'%');
+      vals.push(total-init);
+    }
+    var en=TBKit.util.isEn();
+    var mx=Math.max.apply(null,vals),mn=Math.min.apply(null,vals);
+    TBKit.chart.line(host,{labels:labels,min:(mn<0?mn*1.15:0),max:(mx>0?mx*1.1:1),series:[{name:'NPV',data:vals}],title:en?'NPV vs discount rate (0-30%)':'NPV 随折现率变化（0-30%）'});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__npvChartDraw();}catch(e){}};
+(function(){function b(){try{__npvChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
+</body>
 </html>

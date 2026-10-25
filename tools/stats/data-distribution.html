@@ -181,6 +181,7 @@ s.parentNode.insertBefore(el, s);
 <h3>📊 直方图</h3>
 <div class="histogram" id="histogram"></div>
 <div id="hist-info" style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;"></div>
+<div id="ddChart"></div>
 
 <div class="info-box" style="margin-top:12px;">
  💡 偏度(Skewness)反映分布对称性:0 对称,>0 右偏,<0 左偏。<br>
@@ -484,6 +485,37 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>/*TBKIT-CHART-INJECT-DD*/
+function __ddChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('ddChart');
+    if(!host) return;
+    var data=parseData();
+    if(!data||data.length<2) return;
+    var n=data.length;
+    var mn=Math.min.apply(null,data),mx=Math.max.apply(null,data);
+    if(mn===mx){mn-=0.5;mx+=0.5;}
+    var bins=parseInt(document.getElementById('bins').value,10);
+    if(!(bins>=1)) bins=Math.ceil(Math.log2(n)+1);
+    bins=Math.max(6,Math.min(10,bins));
+    var w=(mx-mn)/bins;
+    var counts=[],labels=[];
+    for(var i=0;i<bins;i++){counts.push(0);labels.push((mn+w*(i+0.5)).toFixed(1));}
+    for(var k=0;k<data.length;k++){
+      var idx=Math.floor((data[k]-mn)/w);
+      if(idx>=bins)idx=bins-1;
+      if(idx<0)idx=0;
+      counts[idx]++;
+    }
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Count':'频数',data:counts}],title:en?'Frequency histogram':'分箱频数直方图'});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__ddChartDraw();}catch(e){}};
+(function(){function b(){try{__ddChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

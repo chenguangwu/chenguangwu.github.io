@@ -135,6 +135,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="womacChart"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 导出 WOMAC 评分结果 CSV" onclick="__womacExport()">⬇️ Export WOMAC Score CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="24 题得分、三维度小计与标准化总分、严重程度可导出为 CSV">All 24 item scores, dimension subtotals, normalized total, and severity can be exported as CSV</span>
@@ -437,6 +438,35 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>/*TBKIT-CHART-INJECT-WOMAC*/
+function __womacChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('womacChart');
+    if(!host) return;
+    function rd(idPrefix,count){
+      var s=0;
+      for(var i=0;i<count;i++){
+        var el=document.getElementById(idPrefix+i);
+        var v=el?parseInt(el.value,10):0;
+        if(isFinite(v))s+=v;
+      }
+      return s;
+    }
+    var painSum=rd('p',5),stiffSum=rd('s',2),funcSum=rd('f',17);
+    var total=painSum+stiffSum+funcSum;
+    var painNorm=Math.round(painSum/20*100);
+    var stiffNorm=Math.round(stiffSum/8*100);
+    var funcNorm=Math.round(funcSum/68*100);
+    var totalNorm=Math.round(total/96*100);
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar(host,{labels:en?['Pain','Stiffness','Function']:['疼痛','僵硬','功能'],max:100,series:[{name:en?'Normalized score':'标准化得分',data:[painNorm,stiffNorm,funcNorm]}],title:(en?'WOMAC normalized dimensions (total ':'WOMAC 三维度标准化得分（总分 ')+totalNorm+'/100'+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__womacChartDraw();}catch(e){}};
+(function(){function b(){try{__womacChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

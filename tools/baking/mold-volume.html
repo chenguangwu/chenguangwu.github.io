@@ -141,6 +141,7 @@ s.parentNode.insertBefore(el, s);
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：toVol×0.65">Key formulas: toVol×0.65</p>
     </div>
 
+    <div id="mvPresets"></div>
     <div class="mold-grid">
       <div class="mold-panel">
         <h3>📦 原模具</h3>
@@ -172,6 +173,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="scale-result" id="scaleResult"></div>
+    <div id="mvChart"></div>
 
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" data-zh="⬇️ 导出模具换算结果 CSV" onclick="__mvExport()">⬇️ Export Mold Conversion CSV</button>
@@ -507,6 +509,62 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>/*TBKIT-CHART-INJECT-MV*/
+var __MV_SCEN=[
+  {label:'6寸→8寸圆模',labelEn:'6 in to 8 in round',from:{shape:'round',d:15,h:5},to:{shape:'round',d:20,h:5},values:{fromD:15,fromH:5,toD:20,toH:5}},
+  {label:'8寸圆模→磅蛋糕模',labelEn:'8 in round to pound pan',from:{shape:'round',d:20,h:5},to:{shape:'rect',l:21,w:11,h:6},values:{fromD:20,fromH:5,toL:21,toW:11,toH:6}},
+  {label:'6寸圆模→吐司模',labelEn:'6 in round to toast pan',from:{shape:'round',d:15,h:5},to:{shape:'rect',l:19.6,w:10.6,h:11},values:{fromD:15,fromH:5,toL:19.6,toW:10.6,toH:11}},
+  {label:'9寸→6寸圆模',labelEn:'9 in to 6 in round',from:{shape:'round',d:23,h:5},to:{shape:'round',d:15,h:5},values:{fromD:23,fromH:5,toD:15,toH:5}}
+];
+function __mvApply(i){
+  var p=__MV_SCEN[i];
+  if(!p) return;
+  ['from','to'].forEach(function(side){
+    shapes[side]=p[side].shape;
+    var box=document.getElementById(side+'Shapes');
+    var btns=box&&box.querySelectorAll?box.querySelectorAll('button'):[];
+    for(var k=0;k<btns.length;k++){
+      btns[k].classList.remove('active');
+      var oc=btns[k].getAttribute('onclick')||'';
+      if(oc.indexOf("'"+p[side].shape+"'")>=0) btns[k].classList.add('active');
+    }
+    renderInputs(side);
+  });
+  ['from','to'].forEach(function(side){
+    var v=p[side];
+    if(v.d!==undefined)document.getElementById(side+'D').value=v.d;
+    if(v.l!==undefined)document.getElementById(side+'L').value=v.l;
+    if(v.w!==undefined)document.getElementById(side+'W').value=v.w;
+    if(v.h!==undefined)document.getElementById(side+'H').value=v.h;
+  });
+  calc();
+}
+function __mvPresetsInit(){
+  if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar) return;
+  var host=document.getElementById('mvPresets');
+  if(!host||host.getAttribute('data-mv-ready')) return;
+  host.setAttribute('data-mv-ready','1');
+  TBKit.preset.bar(host,__MV_SCEN,function(){});
+  var btns=host.querySelectorAll('.tbk-preset-btn');
+  for(var i=0;i<btns.length&&i<__MV_SCEN.length;i++){
+    (function(idx){btns[idx].addEventListener('click',function(){try{__mvApply(idx);}catch(e){}});})(i);
+  }
+}
+function __mvChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('mvChart');
+    if(!host) return;
+    var fromVol=calcVolume('from'),toVol=calcVolume('to');
+    if(!(fromVol>0)||!(toVol>0)) return;
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar(host,{labels:en?['Source','Target']:['原模具','目标模具'],series:[{name:en?'Volume (ml)':'容积 (ml)',data:[fromVol,toVol]}],title:en?'Mold volume comparison':'模具容积对比'});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__mvChartDraw();}catch(e){}};
+(function(){function b(){try{__mvPresetsInit();}catch(e){}try{__mvChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

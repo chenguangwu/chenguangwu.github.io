@@ -232,6 +232,7 @@ s.parentNode.insertBefore(el, s);
   <div class="stat-card"><div class="val" id="resEff">--</div><div class="lbl">有效容量</div></div>
 </div>
 
+<div id="batChart"></div>
 <div style="margin-top:12px;">
   <h4>⏱️ 续航时间明细</h4>
   <table id="timeTable"></table>
@@ -577,5 +578,36 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
+<script>/*TBKIT-CHART-INJECT-BAT*/
+function __batChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('batChart');
+    if(!host) return;
+    var capV=parseFloat(document.getElementById('cap').value),capU=parseFloat(document.getElementById('capUnit').value);
+    var curV=parseFloat(document.getElementById('curr').value),curU=parseFloat(document.getElementById('currUnit').value);
+    var volt=parseFloat(document.getElementById('volt').value),eff=parseFloat(document.getElementById('eff').value);
+    if(!(capV>0)||!(curV>0)||!isFinite(capU)||!isFinite(curU)||!isFinite(volt)||!isFinite(eff)) return;
+    var cap=capV*capU;
+    var unitSel=document.getElementById('currUnit');
+    var unitTxt=unitSel&&unitSel.selectedIndex>=0?unitSel.options[unitSel.selectedIndex].text:'mA';
+    var F=[0.25,0.5,0.75,1,1.25,1.5,2,2.5,3,4];
+    var labels=[],vals=[];
+    for(var i=0;i<F.length;i++){
+      var cur=curV*F[i];
+      var curmA=cur*curU;
+      if(!(curmA>0)) continue;
+      labels.push((curU===1?Math.round(cur):cur.toFixed(2))+' '+unitTxt);
+      vals.push(cap/curmA*eff);
+    }
+    if(vals.length<2) return;
+    var en=TBKit.util.isEn();
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Runtime (h)':'续航时间 (h)',data:vals}],title:en?'Runtime vs load current':'续航时间-负载电流曲线'});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__batChartDraw();}catch(e){}};
+(function(){function b(){try{__batChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
 </body>
 </html>

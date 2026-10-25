@@ -148,6 +148,7 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
+    <div id="giChart"></div>
 
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" data-zh="⬇️ 导出牙龈指数结果 CSV" onclick="__giExport()">⬇️ Export Gingival Index CSV</button>
@@ -517,6 +518,35 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>/*TBKIT-CHART-INJECT-GI*/
+function __giChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('giChart');
+    if(!host) return;
+    if(typeof TEETH==='undefined'||typeof SITES==='undefined') return;
+    var labels=[],vals=[],sum=0,cnt=0;
+    TEETH.forEach(function(t){
+      var s=0;
+      SITES.forEach(function(_,si){
+        var el=document.getElementById(t.id+'_'+si);
+        var v=el?parseInt(el.value,10):0;
+        if(!isFinite(v))v=0;
+        s+=v;sum+=v;cnt++;
+      });
+      vals.push(s/4);
+      labels.push(String(t.name).split(' ')[0]);
+    });
+    if(!cnt) return;
+    var gi=sum/cnt;
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar(host,{labels:labels,max:3,series:[{name:en?'GI score':'单牙GI均值',data:vals}],title:(en?'Per-tooth GI mean (overall ':'各指数牙GI均值（总GI ')+gi.toFixed(2)+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__giChartDraw();}catch(e){}};
+(function(){function b(){try{__giChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>
