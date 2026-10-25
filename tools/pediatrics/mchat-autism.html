@@ -364,6 +364,7 @@ function calc(){
   }
 
   document.getElementById('result').style.display='block';
+  window.__EMR_SUM={age:age,fails:failCount,key:keyFails.slice(0),risk:risk,adv:advice,alert:keyFailAlert};
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -378,6 +379,55 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg073'));
 }
 renderQuiz();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var he;
+  if(s.risk==='低风险') he='Low likelihood of ASD: no follow-up needed; rescreen at 24 months.';
+  else if(s.risk==='高风险') he='High likelihood of ASD: bypass follow-up and refer directly for diagnostic evaluation and early intervention.';
+  else he='Moderate likelihood: administer the M-CHAT-R/F follow-up interview for each at-risk item; refer if 2 or more remain at risk.';
+  __emrNote({name:'M-CHAT-R 幼儿孤独症筛查（20 条目）', nameEn:'M-CHAT-R Toddler Autism Screen (20 items)',
+    result:'未通过 '+s.fails+'/20 题，分级：'+s.risk,
+    resultEn:'at-risk responses '+s.fails+'/20, grade: '+s.risk,
+    noPos:true, hintZh:s.adv, hintEn:he,
+    extra:'月龄 '+s.age+' 月（适用 16–30 月）；关键题未通过 '+(s.key.length?s.key.length+' 项（第'+s.key.join('、')+'题）':'0 项')+'；20 题全部作答方才出分',
+    extraEn:'Age '+s.age+' months (valid 16-30 months); key items at risk: '+s.key.length+'; scoring requires all 20 items answered'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

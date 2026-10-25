@@ -366,6 +366,7 @@ function calc(){
     html+='<div class="tip-box tip-error"><strong>紫绀警示</strong><br>中心性紫绀是危重先心病的信号，需立即评估血气和心脏超声，排除紫绀型先心病。</div>';
   }
 
+  window.__EMR_SUM={age:age,rh:rh,ll:ll,diff:diff,spo2:spo2Result,score:riskScore,rf:riskFactors.slice(0,6),risk:risk,adv:advice,types:suspectedType.slice(0,3)};
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -373,6 +374,57 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg149'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var m={'极低风险':'very low risk','低风险':'low risk','中风险':'intermediate risk','高风险':'high risk'};
+  var he;
+  if(s.risk==='高风险') he='High suspicion of critical congenital heart disease: urgent cardiology referral and echocardiography.';
+  else if(s.risk==='中风险') he='Congenital heart disease cannot be excluded: echocardiography and follow-up recommended.';
+  else if(s.risk==='低风险') he='Low likelihood of congenital heart disease; close observation and repeat screening if concerned.';
+  else he='No evidence suggesting congenital heart disease; routine follow-up.';
+  __emrNote({name:'新生儿/婴幼儿先天性心脏病筛查（脉搏血氧 + 体征评分）', nameEn:'Congenital Heart Disease Screening (pulse oximetry plus sign scoring)',
+    result:'右上肢 SpO₂ '+s.rh+'% / 下肢 '+s.ll+'%（差值 '+s.diff+'%）→ 血氧筛查 '+s.spo2+'；风险评分 '+s.score+' 分，分级：'+s.risk,
+    resultEn:'right hand SpO2 '+s.rh+'%, foot '+s.ll+'% (difference '+s.diff+'%) -> oximetry screen result recorded; risk score '+s.score+', grade: '+(m[s.risk]||''),
+    noPos:true, hintZh:s.adv, hintEn:he,
+    extra:'月龄 '+s.age+' 月；危险因素 '+(s.rf.length?s.rf.length+' 项（'+s.rf.join('、')+'）':'0 项')+'；提示病变：'+(s.types.length?s.types.join('；'):'无'),
+    extraEn:'Age '+s.age+' months; risk factors recorded: '+s.rf.length+'; suspected lesions: '+s.types.length});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

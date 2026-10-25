@@ -224,9 +224,10 @@ s.parentNode.insertBefore(el, s);
 /* ========== Bhutani 列线图百分位数据（mg/dL，按日龄小时） ========== */
 /* 数据点取自 Bhutani 1999 原始列线图近似值 */
 var PERCENTILE_DATA={
-  p95:[[0,1.5],[6,3.0],[12,5.0],[18,6.5],[24,8.0],[30,9.5],[36,11.0],[42,12.5],[48,14.0],[54,15.0],[60,16.0],[66,16.5],[72,17.0],[78,17.3],[84,17.8],[96,18.3],[108,18.8],[120,19.0],[144,19.0],[168,19.0]],
-  p75:[[0,1.0],[6,2.0],[12,3.5],[18,4.5],[24,5.5],[30,6.5],[36,7.5],[42,8.5],[48,9.5],[54,10.5],[60,11.0],[66,11.3],[72,11.5],[78,12.0],[84,12.5],[96,13.0],[108,13.5],[120,14.0],[144,14.0],[168,14.0]],
-  p40:[[0,0.5],[6,1.5],[12,2.0],[18,2.5],[24,3.0],[30,3.5],[36,4.0],[42,5.0],[48,6.0],[54,6.5],[60,7.0],[66,7.3],[72,7.5],[78,8.0],[84,8.5],[96,9.0],[108,9.5],[120,10.0],[144,11.0],[168,11.0]]
+  /* Bhutani 1999 小时龄胆红素百分位（AAP 2004/2009 沿用；Maisels 2009 Fig.2 表值，mg/dL） */
+  p95:[[12,7.0],[24,8.0],[36,10.0],[48,12.0],[60,14.0],[72,15.0],[84,16.0],[96,17.0],[108,17.5],[120,17.5],[132,17.5],[144,17.5],[168,17.5]],
+  p75:[[12,6.5],[24,7.5],[36,9.5],[48,11.5],[60,13.5],[72,14.5],[84,15.5],[96,16.5],[108,17.0],[120,17.0],[132,17.0],[144,17.0],[168,17.0]],
+  p40:[[12,5.0],[24,6.0],[36,7.5],[48,9.0],[60,10.5],[72,11.5],[84,12.5],[96,13.5],[108,14.0],[120,14.0],[132,14.0],[144,14.0],[168,14.0]]
 };
 /* ========== AAP 2022 简化光疗/换血阈值（mg/dL，按日龄小时） ========== */
 /* 低危：≥38周 + 无高危因素 | 高危：35-37周 或 有溶血/G6PD/感染等 */
@@ -335,6 +336,7 @@ function calc(){
   /* 百分位信息 */
   var pctLabel=pct===95?'≥95th':(pct===75?'75-95th':(pct===40?'40-75th':'<40th'));
   html+='<p style="margin:8px 0;font-size:13px;">Bhutani 百分位：<strong style="color:'+zoneColor+';">'+pctLabel+'</strong> | 胎龄：'+ga+'周 | 危险因素：'+(risk==='high'?'有':'无')+'</p>';
+  window.__EMR_SUM={age:age,bili:bili,unit:unit,ga:ga,risk:risk,zone:zone,photo:photoThr,exch:exchangeThr,pct:pct,hi:isHighRisk};
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   /* 渲染 SVG 列线图 */
   renderChart(age,bili,unit,isHighRisk);
@@ -597,6 +599,58 @@ if(__xinshengerhuangdan_xiaoshidanhongsu_quxian_f0){
 function __xinshengerhuangdan_xiaoshidanhongsu_quxianBoot(){ try{ __xinshengerhuangdan_xiaoshidanhongsu_quxianPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __xinshengerhuangdan_xiaoshidanhongsu_quxianBoot();
 else document.addEventListener('DOMContentLoaded', __xinshengerhuangdan_xiaoshidanhongsu_quxianBoot);
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var m={'换血治疗区':'exchange zone','光疗阈值区':'phototherapy zone','密切监测区':'close-monitoring zone','低危区':'low-risk zone'};
+  var he;
+  if(s.zone==='换血治疗区') he='Bilirubin has reached the exchange transfusion threshold: emergency exchange transfusion and assessment for kernicterus risk.';
+  else if(s.zone==='光疗阈值区') he='Bilirubin has reached the phototherapy threshold: start phototherapy and recheck bilirubin in 4-6 hours.';
+  else if(s.zone==='密切监测区') he='Below treatment thresholds but above the 75th percentile: recheck bilirubin in 12-24 hours.';
+  else he='Below the 40th percentile with a comfortable margin: routine follow-up.';
+  var pctLabel=s.pct===95?'≥95th':(s.pct===75?'75–95th':(s.pct===40?'40–75th':'<40th'));
+  __emrNote({name:'新生儿小时胆红素列线图判读（Bhutani 百分位 + 光疗/换血阈值）', nameEn:'Hour-Specific Bilirubin Nomogram (Bhutani percentiles and treatment thresholds)',
+    result:'日龄 '+s.age+' 小时，TSB '+s.bili+' mg/dL → '+s.zone+'；光疗阈值 '+s.photo.toFixed(1)+'、换血阈值 '+s.exch.toFixed(1)+' mg/dL；Bhutani 百分位 '+pctLabel,
+    resultEn:'age '+s.age+' hours, TSB '+s.bili+' mg/dL -> '+(m[s.zone]||s.zone)+'; phototherapy threshold '+s.photo.toFixed(1)+', exchange threshold '+s.exch.toFixed(1)+' mg/dL; percentile band '+pctLabel,
+    noPos:true, hintZh:he, hintEn:he,
+    extra:'胎龄 '+s.ga+' 周（'+ (s.hi?'高危曲线':'低危曲线') +'）· 危险因素：'+(s.risk==='high'?'有':'无')+'；距换血阈值余 '+(s.exch-s.bili).toFixed(1)+' mg/dL',
+    extraEn:'Gestational age '+s.ga+' weeks ('+(s.hi?'high-risk curve':'low-risk curve')+'), risk factors: '+(s.risk==='high'?'present':'absent')+'; margin to exchange threshold '+(s.exch-s.bili).toFixed(1)+' mg/dL'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>

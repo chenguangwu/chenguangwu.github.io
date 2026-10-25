@@ -28,19 +28,7 @@ const CASES = [
   ],
   "ref": "新生儿 CCHD 脉搏血氧筛查：右手 85% / 足部 80% / 差值 5% → 中风险、筛查阳性（默认 98/97/1% → 低风险、阴性）。取动态数值 85% 与结论「CCHD筛查阳性」双重锚定，回退默认无此串。"
 },
-{
-  "slug": "pediatrics/chd-assessment",
-  "inputs": {
-    "age": "2",
-    "rhSpo2": "85",
-    "llSpo2": "78"
-  },
-  "expect": [
-    "85%",
-    "高风险"
-  ],
-  "ref": "先心病筛查：右手 85% / 下肢 78% / 差值 7% ≥5% → 高风险、阳性(转诊)（默认 97/96/1% → 极低风险、阴性）。取 85% 与「高风险」锚定，回退默认无。"
-},
+{"slug":"pediatrics/chd-assessment","inputs":{"age":"2","rhSpo2":"85","llSpo2":"78"},"checkIds":["cyanosis"],"expect":["结果：右上肢 SpO₂ 85% / 下肢 78%（差值 7%）→ 血氧筛查 阳性(转诊)；风险评分 8 分，分级：高风险","危险因素 3 项（血氧筛查阳性、中心性紫绀、上下肢SpO2差值≥5%(导管依赖)）"],"ref":"门诊记录（EMR note）：右上肢 85%、下肢 78% 均 <90 ⇒ 血氧阳性 +3；差值 7% ≥5 ⇒ 再 +2；勾选中心性紫绀 +3 ⇒ 风险评分 8 ≥5 落「高风险」。默认态 97/96（差值 1%、阴性）且无勾选 ⇒「风险评分 0 分，分级：极低风险」，零交集。原用例 expect 仅 85%/高风险 两个碎片。"},
 {
   "slug": "pediatrics/ddst-screening",
   "inputs": {
@@ -120,17 +108,7 @@ const CASES = [
   ],
   "ref": "儿保体格评估(WHO)：weight=15 → 体重/年龄 15 kg（中位数 9.6kg）→ Z 5.14 严重偏高（默认 9.6kg → Z 0.00 正常）。取动态串「15 kg」锚定，回退默认(9.6 kg)失配。"
 },
-{
-  "slug": "pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian",
-  "inputs": {
-    "age": "48",
-    "bili": "20"
-  },
-  "expect": [
-    "20.0 mg/dL"
-  ],
-  "ref": "新生儿黄疸曲线(Bhutani)：bili=20 @ 48h(ga35) → 换血治疗区、双超标（默认 14 → 光疗阈值区）。取动态数值「20.0 mg/dL」锚定，回退默认(14.0 mg/dL)失配。"
-},
+{"slug":"pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian","inputs":{"age":"48","bili":"20"},"expect":["结果：日龄 48 小时，TSB 20 mg/dL → 光疗阈值区；光疗阈值 13.5、换血阈值 21.0 mg/dL；Bhutani 百分位 ≥95th","胎龄 38 周（低危曲线）· 危险因素：无；距换血阈值余 1.0 mg/dL"],"ref":"门诊记录：48 h、TSB 20 mg/dL，胎龄 38 周无危险因素 ⇒ 走低危阈值（光疗 13.5、换血 21.0）⇒ 20 ≥13.5 且 <21 落「光疗阈值区」，距换血余 1.0 mg/dL；Bhutani 表 P95(48h)=12 ⇒ 20 ≥ P95 落 ≥95th。默认态 TSB 14 ⇒「TSB 14 mg/dL」「距换血阈值余 7.0 mg/dL」，零交集。本批同时把本页旧百分位表（P95 48h=14.0/P75=9.5/P40=6.0，较 AAP 口径系统性偏高约 2 mg/dL）统一为 Bhutani/Maisels 表值，与 neonatal-jaundice 页同源。"},
 {
   "slug": "pediatrics/vaccine-schedule",
   "inputs": {
@@ -141,16 +119,7 @@ const CASES = [
   ],
   "ref": "疫苗接种时间表：vaccinatedMonth=6 表示已接种至 6 月龄 → 0~6 月龄疫苗行的状态变为「已接种」（默认空 → 全部「逾期，尽快补种」）。锚点取随输入变化的具体行串「预防：乙型肝炎 已接种」（仅当该行状态为已接种时出现），避开页面恒定图例「绿色=已接种…」(含「已接种」三字，裸「已接种」会恒命中导致逃生项)。回退默认(空)该行为「逾期，尽快补种」→ 失配。"
 },
-{
-  "slug": "pediatrics/developmental-milestones",
-  "inputs": {
-    "age": "27"
-  },
-  "expect": [
-    "说2-3字句"
-  ],
-  "ref": "auto-restore"
-},
+{"slug":"pediatrics/developmental-milestones","inputs":{"age":"27"},"expect":["月龄 27 月，总体达成 0/8（0%）→ 多能区明显落后","说2-3字句"],"ref":"门诊记录：age=27 取出 27 月龄里程碑条目集（4 能区各 2 条 = 8 条）⇒「0/8（0%）」；达到率 0 落「多能区明显落后」段。默认 18 月龄 ⇒「月龄 18 月，总体达成 0/6」，与「0/8」零交集；「说2-3字句」为 27 月龄条目正文，默认 18 月龄不出现。注：里程碑勾选框由 renderMilestones 动态生成，stub DOM 无法勾选，故达成数恒 0；此处只锚「月龄→条目数」的映射。"},
 {
   "slug": "pediatrics/hearing-screening",
   "inputs": {
@@ -162,16 +131,7 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{
-  "slug": "pediatrics/mchat-autism",
-  "inputs": {
-    "age": "27"
-  },
-  "expect": [
-    "27"
-  ],
-  "ref": "auto-restore"
-},
+{"slug":"pediatrics/mchat-autism","clicks":["for(var i=0;i<20;i++){answers[i]=true;}answers[1]=false;answers[4]=false;answers[11]=false;calc()"],"expect":["结果：未通过 5/20 题，分级：中风险","关键题未通过 3 项（第2、5、12题）"],"ref":"门诊记录：20 题全答「是」后把第 2、5、12 题（0-based 1/4/11）改答「否」⇒ 这 3 题为关键未通过；另 17、19 题答「是」按页面 failOnYes 口径记未通过 ⇒ 共 5 题 >2 且 ≤7 落「中风险」。默认态未作答 ⇒ calc 直接 return、不渲染门诊记录，零交集。原用例 expect 仅年龄回显「27」（零判别力，auto-restore 残留）。"},
 {
   "slug": "pediatrics/pediatric-asthma",
   "inputs": {
