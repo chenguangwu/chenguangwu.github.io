@@ -325,6 +325,7 @@ function calc(){
     html+='<div class="tip-box tip-warn"><strong>高危儿管理</strong><br>听力高危因素患儿需在9月龄、18月龄、24月龄及之后定期进行行为听力监测，即使初筛通过。</div>';
   }
 
+  window.__EMR_SUM={m:method,mn:methodName,age:age,au:ageUnit,ad:ageDays,l:left,r:right,risk:hasRisk,con:conclusion,fu:followUp,adv:advice};
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -332,6 +333,69 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg190'));
 }
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var zh={pass:'通过',refer:'未通过（转诊）',missing:'未测/漏检'};
+  var e2={pass:'pass',refer:'refer (needs rescreen)',missing:'not tested'};
+  var mz={oae:'OAE 耳声发射',aabr:'AABR 自动听性脑干反应',both:'OAE + AABR 联合'};
+  var me={oae:'OAE',aabr:'AABR',both:'OAE + AABR'};
+  var cz={'通过':'通过','通过(但需注意)':'通过（存在高危因素）','双侧未通过(转诊)':'双侧未通过（转诊）',
+          '单侧未通过(转诊)':'单侧未通过（转诊）','未完成筛查':'未完成筛查'};
+  var ce={'通过':'pass','通过(但需注意)':'pass with high-risk factors','双侧未通过(转诊)':'bilateral refer',
+          '单侧未通过(转诊)':'unilateral refer','未完成筛查':'incomplete'};
+  var hz,he;
+  if(s.con==='通过'){ hz='筛查通过：按儿童保健常规随访，关注听觉行为与语言发育里程碑。';
+    he='Screen passed: routine child-health follow-up, monitor auditory behaviour and speech milestones.'; }
+  else if(s.con==='通过(但需注意)'){ hz='OAE 通过但存在高危因素：OAE 无法检出听神经病谱系障碍（ANSD），须 3 月龄行 AABR 复查，并监测至 3 岁。';
+    he='OAE passed but high-risk factors present: OAE cannot detect ANSD; repeat AABR at 3 months and monitor to age 3.'; }
+  else if(s.con==='未完成筛查'){ hz='筛查未完成：需在出院前或 42 天内补测，避免漏诊。';
+    he='Screening incomplete: complete before discharge or within 42 days.'; }
+  else { hz='筛查未通过：42 天内复查，3 月龄内完成诊断性听力学评估（ABR + 行为测听）；确诊后 6 月龄前开始干预。';
+    he='Screen not passed: rescreen within 42 days, diagnostic audiology (ABR plus behavioural audiometry) before 3 months, intervention before 6 months.'; }
+  __emrNote({name:'新生儿听力筛查（UNHS）', nameEn:'Universal Newborn Hearing Screening',
+    result:'筛查方式 '+mz[s.m]+' · 月龄 '+s.age+(s.au==='day'?' 天':' 月')+'（折合约 '+s.ad+' 天）→ 左耳 '+zh[s.l]+'、右耳 '+zh[s.r]+'；结论：'+(cz[s.con]||s.con),
+    resultEn:'method '+me[s.m]+', age '+s.age+(s.au==='day'?' days':' months')+' (approx. '+s.ad+' days); left ear '+e2[s.l]+', right ear '+e2[s.r]+'; conclusion: '+(ce[s.con]||s.con),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'下一步随访：'+s.fu+'；听力高危因素：'+(s.risk?'有':'无'),
+    extraEn:'next step: '+s.fu+'; high-risk factors: '+(s.risk?'present':'absent')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

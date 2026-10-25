@@ -205,9 +205,10 @@ function calc(){
     wtLossPct=(prevWt-wt)/prevWt*100;
   }
   // 液体丢失量估算
-  if(level==='重度脱水')fluidDeficit=wt*0.1;
-  else if(level==='中度脱水')fluidDeficit=wt*0.06;
-  else if(level==='轻度脱水')fluidDeficit=wt*0.03;
+  // 缺失量 = 体重(kg) × 丢失百分比 × 1000（kg→mL 近似 1:1），原实现漏了 ×1000，12 kg 重度脱水只显示 1 mL
+  if(level==='重度脱水')fluidDeficit=wt*0.1*1000;
+  else if(level==='中度脱水')fluidDeficit=wt*0.06*1000;
+  else if(level==='轻度脱水')fluidDeficit=wt*0.03*1000;
 
   var html='<h3 style="margin-bottom:10px;">脱水评估结果</h3>';
   html+='<div class="stat-grid">'+
@@ -252,6 +253,7 @@ function calc(){
     '<strong>危险信号（需紧急就诊）：</strong>嗜睡/昏迷、频繁呕吐无法口服补液、抽搐、血便、高热不退、尿量极少或无尿。'+
     '</div>';
 
+  window.__EMR_SUM={m:ageM,w:wt,pw:prevWt,dia:diaDays,sev:severe,some:some,level:level,wl:wtLossPct,fd:fluidDeficit,adv:advice};
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){
@@ -259,6 +261,62 @@ function copyResult(){
   ToolBox.copyText(text, i18nText('msg580'));
 }
 buildList();calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var hz,he;
+  if(s.level==='重度脱水'){ hz='重度脱水：立即按 WHO 方案 C 静脉补液（首剂 100 mL/kg 林格液，<12 月 30 mL/kg×1 h 后 70 mL/kg×5 h；≥12 月 30 min + 2.5 h），同时补锌、继续母乳喂养。';
+    he='Severe dehydration: WHO Plan C IV fluids (100 mL/kg Ringer lactate: 30 mL/kg in 1 h then 70 mL/kg in 5 h if <12 months; 30 min + 2.5 h if older), plus zinc and continued breastfeeding.'; }
+  else if(s.level==='中度脱水'){ hz='中度脱水：WHO 方案 B 口服补液盐 75 mL/kg 于 4 小时内少量多次给服，密切观察，呕吐严重或口服困难改静脉补液。';
+    he='Some dehydration: WHO Plan B - ORS 75 mL/kg over 4 hours in small frequent sips; switch to IV if vomiting or unable to drink.'; }
+  else if(s.level==='轻度脱水'){ hz='轻度脱水（无/轻度体征）：WHO 方案 A 家庭口服补液盐 + 补锌，宣教警示症状与复诊指征。';
+    he='Mild dehydration: WHO Plan A - home ORS plus zinc, with counselling on danger signs and when to return.'; }
+  else { hz='无脱水：继续家庭护理与正常喂养，口服补液盐预防脱水，记录尿量与大便次数。';
+    he='No dehydration: continue home care and normal feeding, ORS to prevent dehydration, record urine output and stool frequency.'; }
+  var wl = s.wl>0 ? ('体重丢失 '+Number(s.wl).toFixed(1)+'%（'+(s.wl>=10?'≥10%，支持重度脱水':(s.wl>=5?'5–10%，支持中度脱水':(s.wl>=3?'3–5%，支持轻度脱水':'<3%，不提示显著脱水')))+'）') : '未提供病前体重，无法计算体重丢失百分比';
+  var wle = s.wl>0 ? ('weight loss '+Number(s.wl).toFixed(1)+'%') : 'pre-illness weight not provided, percentage loss not calculable';
+  __emrNote({boxId:'res', name:'WHO 儿童脱水评估（8 项体征 + 液体缺失量）', nameEn:'WHO Paediatric Dehydration Assessment (8 signs and fluid deficit)',
+    result:'月龄 '+s.m+' 月 · 体重 '+s.w+' kg → 重度体征 '+s.sev+' 项、轻/中度体征 '+s.some+' 项，分级：'+s.level,
+    resultEn:'age '+s.m+' months, weight '+s.w+' kg; severe signs '+s.sev+', mild/moderate signs '+s.some+'; classification: '+s.level,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:wl+'；估计液体缺失量 '+Number(s.fd).toFixed(0)+' mL（'+(s.level==='重度脱水'?'10%':(s.level==='中度脱水'?'6%':(s.level==='轻度脱水'?'3%':'0%')))+' × 体重）；腹泻 '+s.dia+' 天',
+    extraEn:wle+'; estimated deficit '+Number(s.fd).toFixed(0)+' mL; diarrhoea for '+s.dia+' days'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 

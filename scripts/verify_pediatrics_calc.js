@@ -5,15 +5,19 @@ const CASES = [
 {
   "slug": "pediatrics/assessor-13",
   "inputs": {
-    "ageMonth": "36",
-    "weight": "15",
-    "prevWeight": "",
-    "diarrheaDays": "5"
+    "ageMonth": "24",
+    "weight": "12",
+    "prevWeight": "13.2",
+    "diarrheaDays": "3"
   },
-  "expect": [
-    "36月龄，15kg"
+  "clicks": [
+    "var __m={};for(var i=0;i<8;i++)__m['sg'+i]='2';__m.sg0='0';__m.sg1='1';var __g=document.getElementById;document.getElementById=function(id){if(__m[id]!==undefined)return {value:__m[id],checked:false};return __g.call(document,id);};calc()"
   ],
-  "ref": "儿童脱水评估：输入 36 月龄 / 15kg（默认 24 月龄 / 12kg），评估结论文案含「患儿（36月龄，15kg）评估为 重度脱水」，取随输入变化的月龄+体重串作为判别锚点，回退默认(24月龄,12kg)即失配。"
+  "expect": [
+    "【WHO 儿童脱水评估（8 项体征 + 液体缺失量）】 结果：月龄 24 月 · 体重 12 kg → 重度体征 1 项、轻/中度体征 1 项，分级：轻度脱水",
+    "估计液体缺失量 360 mL（3% × 体重）；腹泻 3 天"
+  ],
+  "ref": "门诊记录：8 个体征下拉在 harness 里由 buildList() 动态生成、stub 中不存在，故 clicks 覆写 getElementById 直接给 sg0=0（重度）、sg1=1（轻中度）、其余 sg2-7=2（正常）⇒ 重度 1 项 + 轻中 1 项 ⇒ 按「severe+some>=1」落「轻度脱水」；3% × 12 kg = 360 mL（原实现漏 ×1000，只给 1 mL，本次已修）。默认态 8 项全取首档(idx 0)=重度 ⇒「重度体征 8 项…重度脱水」，与该用例零交集。另：病前体重 13.2→12 kg 给出 9.1% 体重丢失（与体征分级不一致属预期，页面已在提示里指出需结合体征判断）。"
 },
 {
   "slug": "pediatrics/assessor-spo2",
@@ -32,13 +36,16 @@ const CASES = [
 {
   "slug": "pediatrics/ddst-screening",
   "inputs": {
-    "age": "6",
-    "correctGA": ""
+    "age": "18"
   },
-  "expect": [
-    "当前月龄： 6月"
+  "clicks": [
+    "var d=domains[0];getAgeGroups(18).forEach(function(g){var it=d.items[g]||[];it.forEach(function(x,idx){testResults[d.key+'_'+g+'_'+idx]='fail';});});calc()"
   ],
-  "ref": "DDST 发育筛查：输入 age=6 渲染 6 月龄测试项清单（默认 18 月）。取动态串「当前月龄： 6月」锚定，回退默认(18月)失配。注：结论需逐项勾选才出，故用随输入变化的月龄清单串作判别锚点。"
+  "expect": [
+    "【DDST 丹佛发育筛查（4 能区）】 结果：年龄 18 月龄 → 4 个能区筛查：个人-社会异常(0/18)",
+    "总体结果：异常 异常能区 1 个、可疑能区 0 个"
+  ],
+  "ref": "门诊记录：把「个人-社会」能区 18 月龄及以前的条目全部标记 fail（clicks 直接写 testResults），其余能区未测 ⇒ 1 个能区异常、0 个可疑 ⇒ 总体「异常」。默认态 testResults 为空 ⇒ 4 能区全「未测」、总体「正常」，与本用例零交集。"
 },
 {"slug":"pediatrics/dehydration-assessment","inputs":{"weight":"8","prevWeight":"8.8"},"checkIds":["s3","s4","s8"],"expect":["结果：分度：中度脱水（估计体液丢失 5-10%）· Gorelick 评分 3/10","体重丢失法算得 9.1%"],"ref":"门诊记录：勾选 s3 黏膜干燥 + s4 眼窝凹陷 + s8 尿量减少 ⇒ Gorelick 3/10 落 3–6 段「中度脱水」（5-10%）；病前 8.8 kg → 现 8 kg，体重丢失 (0.8/8.8)=9.1% ⇒ 累计丢失量按体重丢失法算得约 727 mL。默认态 10 kg、未勾选、无病前体重 ⇒「轻度脱水」「Gorelick 0/10」，零交集。"},
 {"slug":"pediatrics/diarrhea-dehydration","inputs":{"age":"18","weight":"10","stoolFreq":"8","duration":"3","stoolType":"watery"},"checkIds":["s1","s4","s5","s8"],"expect":["结果：分度：中度脱水（体液丢失 8%）· 腹泻 8 次/日 · 病程 3 天 · 大便性状 水样便","重度体征 0 项、中度体征 4 项、轻度体征 0 项（共 4 项）"],"ref":"门诊记录：勾选 s1 眼窝凹陷 + s4 皮肤弹性差 + s5 尿量减少 + s8 前囟凹陷，全属中度体征 4 项 ⇒ 中度脱水（7.5%→显示 8%）；水样便。默认态 12 月/10 kg/6 次/日、未勾选 ⇒「无脱水（体液丢失 0%）」，零交集。"},
@@ -78,24 +85,35 @@ const CASES = [
 {
   "slug": "pediatrics/hearing-screening",
   "inputs": {
-    "age": "3",
-    "method": "aabr"
+    "age": "2",
+    "ageUnit": "month",
+    "method": "aabr",
+    "leftResult": "refer",
+    "rightResult": "pass"
   },
-  "expect": [
-    "AABR自动听性脑干反应"
+  "checkIds": [
+    "riskFactor"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "【新生儿听力筛查（UNHS）】 结果：筛查方式 AABR 自动听性脑干反应 · 月龄 2 月（折合约 60 天）→ 左耳 未通过（转诊）、右耳 通过；结论：单侧未通过（转诊）",
+    "下一步随访：42天内复查/3月龄诊断；听力高危因素：有"
+  ],
+  "ref": "门诊记录（EMR note）：AABR + 2 月龄 + 左耳转诊/右耳通过 + 勾选高危因素 ⇒ 综合判定「单侧未通过(转诊)」，随访 42 天内复查/3 月龄诊断。默认态为 OAE + 3 天龄 + 双耳通过 + 无高危 ⇒「结论：通过」「听力高危因素：无」，与本用例零交集。"
 },
 {"slug":"pediatrics/mchat-autism","clicks":["for(var i=0;i<20;i++){answers[i]=true;}answers[1]=false;answers[4]=false;answers[11]=false;calc()"],"expect":["结果：未通过 5/20 题，分级：中风险","关键题未通过 3 项（第2、5、12题）"],"ref":"门诊记录：20 题全答「是」后把第 2、5、12 题（0-based 1/4/11）改答「否」⇒ 这 3 题为关键未通过；另 17、19 题答「是」按页面 failOnYes 口径记未通过 ⇒ 共 5 题 >2 且 ≤7 落「中风险」。默认态未作答 ⇒ calc 直接 return、不渲染门诊记录，零交集。原用例 expect 仅年龄回显「27」（零判别力，auto-restore 残留）。"},
 {
   "slug": "pediatrics/pediatric-asthma",
   "inputs": {
-    "age": "12"
+    "age": "8"
   },
-  "expect": [
-    "你如何评价近4周哮喘控制情况"
+  "clicks": [
+    "answers={c1:1,c2:1,c3:1,c4:1,p1:2,p2:2,p3:2};calc()"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "C-ACT（儿童哮喘控制测试，4–11 岁，儿童 4 题 0–3 + 家长 3 题 0–5，满分 27） → 总分 10/27，分级：未控制",
+    "作答 7 题；分级界值：≤19 未控制、20–22 部分控制、≥23 完全控制"
+  ],
+  "ref": "门诊记录：年龄 8 岁 ⇒ C-ACT 7 题（儿童 4 题 0–3 + 家长 3 题 0–5，满分 27，原实现按 5 档累加得 25 且界值套用成人 ACT 的 20/16，本次按官方口径修正为 ≥23/20–22/≤19）；clicks 直接写 answers ⇒ 总分 1+1+1+1+2+2+2=10 ≤19 ⇒「未控制」。默认态 answers 为空 ⇒ answered<7 直接 return、不渲染门诊记录，零交集。"
 },
 {
   "slug": "pediatrics/pediatric-fracture",

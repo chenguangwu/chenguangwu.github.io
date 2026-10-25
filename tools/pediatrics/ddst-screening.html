@@ -381,17 +381,18 @@ function calc(){
 
   html+='<div class="tip-box" style="border-color:'+overallColor+';color:'+overallColor+';background:'+overallColor+'1a;"><strong>总体结果：'+overall+'</strong><br>';
   if(overall==='异常'){
-    html='存在'+abnormalCount+'个能区异常，建议立即转诊至发育行为科，进行Gesell/Bayley等诊断性发育评估。';
+    html+='存在'+abnormalCount+'个能区异常，建议立即转诊至发育行为科，进行Gesell/Bayley等诊断性发育评估。';
   }else if(overall==='可疑'){
-    html=abnormalCount+'个能区异常，'+suspiciousCount+'个能区可疑。建议2-3周后复查DDST，若仍可疑需转诊评估。';
+    html+=abnormalCount+'个能区异常，'+suspiciousCount+'个能区可疑。建议2-3周后复查DDST，若仍可疑需转诊评估。';
   }else{
-    html='各能区发育在正常范围，继续定期随访。';
+    html+='各能区发育在正常范围，继续定期随访。';
   }
   html+='</div>';
 
   html+='<div class="tip-box tip-info"><strong>筛查建议</strong><br>1. 早产儿按矫正胎龄评估至2岁；2. 测试环境需安静、儿童状态良好；3. 家长报告的项目需实际验证；4. 筛查阳性≠诊断异常，需专业评估确认。</div>';
 
   document.getElementById('result').style.display='block';
+  window.__EMR_SUM={age:age,n:domainResults.length,abn:abnormalCount,sus:suspiciousCount,ov:overall,dom:domainResults.map(function(r){return r.name+r.status+'('+r.passed+'/'+r.total+')';}).join('、')};
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -399,6 +400,58 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg031'));
 }
 renderTests();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var hz,he;
+  if(s.ov==='异常'){ hz='筛查异常：建议立即转诊发育行为儿科，行 Gesell/Bayley 等诊断性发育评估，并排查视听、营养与家庭环境因素。';
+    he='Abnormal screen: refer to developmental-behavioural paediatrics for diagnostic assessment (Gesell/Bayley); check vision, hearing, nutrition and home environment.'; }
+  else if(s.ov==='可疑'){ hz='筛查可疑：2–3 周后复查 DDST（避开饥饿、困倦、陌生环境），仍可疑则转诊评估；单项延迟不等于发育障碍。';
+    he='Suspicious screen: repeat DDST in 2-3 weeks under optimal conditions; if still suspicious, refer. A single delayed item does not equal developmental disorder.'; }
+  else { hz='各能区在正常范围：按儿童保健常规随访，继续关注语言、运动、社交里程碑，早产儿按矫正胎龄评估至 2 岁。';
+    he='All domains within normal limits: routine child-health follow-up; continue monitoring language, motor and social milestones; assess preterm infants by corrected age until 2 years.'; }
+  __emrNote({name:'DDST 丹佛发育筛查（4 能区）', nameEn:'Denver Developmental Screening Test (DDST, 4 domains)',
+    result:'年龄 '+s.age+' 月龄 → 4 个能区筛查：'+s.dom+'；总体结果：'+s.ov,
+    resultEn:'age '+s.age+' months, 4 domains: '+s.dom+'; overall: '+s.ov,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'异常能区 '+s.abn+' 个、可疑能区 '+s.sus+' 个；筛查阳性 ≠ 诊断异常，需专业评估确认',
+    extraEn:'abnormal domains: '+s.abn+', suspicious domains: '+s.sus+'; a positive screen is not a diagnosis'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

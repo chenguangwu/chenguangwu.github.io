@@ -211,16 +211,18 @@ s.parentNode.insertBefore(el, s);
 var answers={};
 
 // C-ACT (4-11岁) 问题
+// C-ACT 官方结构（4–11 岁，7 题）：儿童 4 题各 0–3 分（共 12），家长 3 题各 0–5 分（共 15），总分 0–27
+// 分级：≥23 完全控制、20–22 部分控制、≤19 未控制（GINA / 原量表界值）
 var cactChild=[
-  {id:'c1',q:'今天你的哮喘怎么样？',opts:['极差(0)','差(1)','一般(2)','好(3)','极好(4)']},
-  {id:'c2',q:'你在跑步、运动或活动时，哮喘是个问题吗？',opts:['是,总是(0)','有时是(1)','很少是(2)','否(3)']},
-  {id:'c3',q:'你因为哮喘而咳嗽吗？',opts:['是,总是(0)','有时是(1)','很少是(2)','否(3)']},
-  {id:'c4',q:'你因为哮喘而在夜间醒来吗？',opts:['是,总是(0)','有时是(1)','很少是(2)','否(3)']}
+  {id:'c1',q:'今天你的哮喘怎么样？',opts:['很差(0)','差(1)','好(2)','很好(3)']},
+  {id:'c2',q:'你在跑步、运动或玩耍时，哮喘是个问题吗？',opts:['是，总是(0)','有时是(1)','很少是(2)','否(3)']},
+  {id:'c3',q:'你因为哮喘而咳嗽吗？',opts:['是，总是(0)','有时是(1)','很少是(2)','否(3)']},
+  {id:'c4',q:'你因为哮喘而在夜间醒来吗？',opts:['是，总是(0)','有时是(1)','很少是(2)','否(3)']}
 ];
 var cactParent=[
-  {id:'p1',q:'(家长)近4周，孩子因哮喘日间症状受限的次数？',opts:['>1次/天(0)','1次/天(1)','2-5次/周(2)','1次/周(3)','无(4)']},
-  {id:'p2',q:'(家长)近4周，孩子因哮喘夜间觉醒的次数？',opts:['≥1次/周(0)','1次(1)','2-4次(2)','1次(3)','无(4)']},
-  {id:'p3',q:'(家长)近4周，孩子需要短效支气管扩张剂的次数？',opts:['>3次/天(0)','1-3次/天(1)','2-3次/周(2)','1次/周(3)','无(4)']}
+  {id:'p1',q:'(家长)近4周，孩子白天有多少天出现过哮喘症状？',opts:['每天都(0)','19-24天(1)','11-18天(2)','4-10天(3)','1-3天(4)','完全没有(5)']},
+  {id:'p2',q:'(家长)近4周，孩子白天有多少天出现喘息？',opts:['每天都(0)','19-24天(1)','11-18天(2)','4-10天(3)','1-3天(4)','完全没有(5)']},
+  {id:'p3',q:'(家长)近4周，孩子夜间因哮喘醒来的次数？',opts:['每晚都(0)','几乎每晚(1)','2-3晚/周(2)','1晚/周(3)','1-2次/月(4)','从未(5)']}
 ];
 
 // ACT (≥12岁) 问题
@@ -290,9 +292,7 @@ function calc(){
 
   if(age<12){
     questionList=cactChild.concat(cactParent);
-    maxScore=27; // 0-4+0-3+0-3+0-3+0-4+0-4+0-4=27, 实际C-ACT满分=7题最高=4+3+3+3+4+4+4=25? 
-    // 修正：c1=4,c2=3,c3=3,c4=3,p1=4,p2=4,p3=4 → max=4+3+3+3+4+4+4=25
-    maxScore=25;
+    maxScore=27; // 儿童 4 题 × 3 + 家长 3 题 × 5 = 12 + 15 = 27（原实现按 5 档累加得 25，与官方量表不符）
   }else{
     questionList=actQs;
     maxScore=25; // 5题各5分=25
@@ -312,10 +312,10 @@ function calc(){
 
   var level,levelColor,advice;
   if(age<12){
-    // C-ACT: ≥20控制,<20未控制
-    if(total>=20){level='控制良好';levelColor='#10B981';advice='哮喘控制达标，维持当前治疗方案，定期随访(每3-6月评估)。';}
-    else if(total>=16){level='部分控制';levelColor='#F59E0B';advice='哮喘部分控制，考虑升级治疗(增加ICS剂量或加LABA)，加强环境控制。';}
-    else{level='未控制';levelColor='#EF4444';advice='哮喘未控制，需就医调整治疗方案，评估用药依从性和环境因素。';}
+    // C-ACT 官方界值：≥23 完全控制、20–22 部分控制、≤19 未控制
+    if(total>=23){level='完全控制';levelColor='#10B981';advice='哮喘完全控制，维持当前治疗方案，至少稳定3个月后可考虑降级治疗，定期随访(每3-6月评估)。';}
+    else if(total>=20){level='部分控制';levelColor='#F59E0B';advice='哮喘部分控制，核查用药依从性与吸入装置技术、规避过敏原与烟草暴露，2-4周后复查，必要时升级治疗。';}
+    else{level='未控制';levelColor='#EF4444';advice='哮喘未控制，需就医调整治疗方案(增加ICS剂量或加LABA/白三烯受体拮抗剂)，评估用药依从性和环境因素。';}
   }else{
     // ACT: ≥20控制,16-19部分,≤15未控制
     if(total>=20){level='控制良好';levelColor='#10B981';advice='哮喘控制达标，维持当前治疗方案。';}
@@ -374,6 +374,7 @@ function calc(){
   }
 
   document.getElementById('result').style.display='block';
+  window.__EMR_SUM={age:age,scale:(age<12?'C-ACT':'ACT'),total:total,max:maxScore,level:level,adv:advice,n:questionList.length};
   const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -388,6 +389,68 @@ function copyResult(){
   ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg200'));
 }
 renderQuestions();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var hz,he;
+  if(s.age<12){
+    if(s.total>=23){ hz='哮喘完全控制：维持现有方案，至少 3 个月稳定后可考虑降级治疗；继续每日用药与哮喘日记。';
+      he='Well controlled: maintain current regimen; consider step-down after at least 3 months of stability; continue daily therapy and diary.'; }
+    else if(s.total>=20){ hz='哮喘部分控制：查用药依从性、吸入装置技术、过敏原与烟草暴露，2–4 周后复查，必要时升级治疗。';
+      he='Partly controlled: check adherence, inhaler technique, allergen and tobacco exposure; review in 2-4 weeks and step up if needed.'; }
+    else { hz='哮喘未控制：尽快就诊调整方案（增加 ICS 剂量或加 LABA/白三烯受体拮抗剂），排除诱发因素与诊断误差。';
+      he='Uncontrolled: prompt review and step-up (higher ICS dose or add LABA/leukotriene receptor antagonist); exclude triggers and misdiagnosis.'; }
+  }else{
+    if(s.total>=20){ hz='哮喘控制良好（ACT ≥20）：维持当前治疗，定期随访评估。';
+      he='Well controlled (ACT 20 or above): maintain current treatment and review periodically.'; }
+    else if(s.total>=16){ hz='哮喘部分控制（ACT 16–19）：评估依从性与吸入技术后考虑升级治疗。';
+      he='Partly controlled (ACT 16-19): assess adherence and inhaler technique, consider step-up.'; }
+    else { hz='哮喘未控制（ACT ≤15）：需就医调整治疗方案，评估急性发作风险。';
+      he='Uncontrolled (ACT 15 or below): medical review and regimen adjustment, assess exacerbation risk.'; }
+  }
+  var scale = s.age<12 ? 'C-ACT（儿童哮喘控制测试，4–11 岁，儿童 4 题 0–3 + 家长 3 题 0–5，满分 27）' : 'ACT（哮喘控制测试，≥12 岁，5 题各 1–5，满分 25）';
+  __emrNote({name:'儿童哮喘控制水平评估（C-ACT / ACT）', nameEn:'Paediatric Asthma Control (C-ACT / ACT)',
+    result:scale+' → 总分 '+s.total+'/'+s.max+'，分级：'+s.level,
+    resultEn:s.scale+' -> total '+s.total+'/'+s.max+', level: '+s.level,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'年龄 '+s.age+' 岁，作答 '+s.n+' 题；分级界值：'+(s.age<12?'≤19 未控制、20–22 部分控制、≥23 完全控制':'≥20 良好、16–19 部分、≤15 未控制'),
+    extraEn:'age '+s.age+' years, '+s.n+' items answered; cut-offs: '+(s.age<12?'19 or below uncontrolled, 20-22 partly controlled, 23 or above well controlled':'20 or above well controlled, 16-19 partly, 15 or below uncontrolled')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

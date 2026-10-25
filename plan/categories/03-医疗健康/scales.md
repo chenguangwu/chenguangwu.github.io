@@ -47,7 +47,8 @@
   + neurology 3（abcd2/house-brackmann/trigeminal-bni）+ neurology 5（midas/ilae-seizure/twstrs/rater-21/ncs-emg）
   + pediatrics 10（fever/pneumonia/dehydration-assessment/diarrhea-dehydration/neonatal-jaundice/pediatric-anemia/
   chd-assessment/mchat-autism/developmental-milestones/小时胆红素曲线）
-  + pediatrics 5（growth-curve-zscore/enuresis-age/hfmd-course/hirschberg-test/seizure-classification）。全站累计 **57 页**。
+  + pediatrics 5（growth-curve-zscore/enuresis-age/hfmd-course/hirschberg-test/seizure-classification）
+  + pediatrics 4（hearing-screening/ddst-screening/assessor-13/pediatric-asthma）。全站累计 **61 页**。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
   - 模板三种变体：① `#result` + 名下 select（nihss 系）；② `#result` + 生成式按钮 `scores`（护理系）；
@@ -58,7 +59,9 @@
     `__emrData()` 只做排版。适合「计算器型」页（输入→阈值→分级），零逻辑复制、不与页面阈值漂移；问卷型（answers 对象）仍需 clicks 注入。
   - 新增 harness 事实：兜底循环会**无参调用所有顶层 function 声明** ⇒ 新 helper 写成 `var f=function(){}`；复选框注入字段是 `checkIds`；
     `__emrEsc` 会把 `>`/`<`/`&` 转成实体，expect 不能直接写这些字符。
-- 🔴 待续：其余 ~95 个量表页按同一模板铺开（每批 3–6 页，逐页核分级口径）；M1 条目结构 / M2 阈值口径仍待老板裁断；
-  儿科余 13 页（assessor-*/ddst-screening/hearing-screening/pediatric-asthma/pediatric-fracture/rater-27/vaccine-schedule/
-  vanderbilt-adhd 等），其中 vaccine-schedule 依赖「今天」写不出稳定用例、assessor-* 疑为评测助手类页，需单独判断；
+- 🔴 待续：其余 ~90 个量表页按同一模板铺开（每批 3–6 页，逐页核分级口径）；M1 条目结构 / M2 阈值口径仍待老板裁断；
+  儿科余 5 页（assessor-spo2 / pediatric-fracture / rater-27 / vaccine-schedule / vanderbilt-adhd）：
+  **assessor-spo2 已踩 stub 盲区**（注入后整段 script 不执行，语法正常、errs 空，回滚即恢复）须单独排查；
+  vaccine-schedule 依赖「今天」写不出稳定用例。下一批转向 rehabilitation（fim/flacc/nine-hole-peg/walker-height/stretch-duration,
+  均为 `#resultBox` + 生成式条目）与 clinical-nursing（iv-drip-rate/gastric-tube-depth/chest-compression-depth 等）；
   「维度雷达图推广」「量表对照模块」未开发。
