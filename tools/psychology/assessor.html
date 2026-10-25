@@ -262,6 +262,7 @@ else if(total<=20){g='轻度拖延';c='var(--info,#3B82F6)';it='存在轻度拖�
 else if(total<=30){g='中度拖延';c='var(--warning,#f59e0b)';it='拖延已较明显，常靠 deadline 才推进，建议把大任务拆小、设定明确节点并找人监督。';}
 else{g='重度拖延';c='var(--danger)';it='拖延已明显影响工作、学习与情绪，建议尽快预约心理咨询或时间管理辅导，系统改善。';}
 var pct=Math.round(total/40*100);
+window.__EMR_SUM={t:total,lv:g,pct:Math.round(total/40*100),n:AS_QS.length,it:it};
 var h='<div class="mt-type"><div class="mt-type-code">'+total+'<span style="font-size:18px;color:var(--text-muted);"> / 40</span></div><div class="mt-type-name">'+g+'</div></div>';
 h+='<div class="mt-dbar"><div class="mt-dbar-top"><span><b>拖延程度</b> '+pct+'%</span><span>满分 40</span></div><div class="mt-dbar-track"><div class="mt-dbar-a" style="width:'+pct+'%"></div></div></div>';
 h+='<div class="info-box"><strong>评估结果：</strong>'+it+'</div>';
@@ -273,6 +274,61 @@ function copyResult(){var e=pEl('res');if(!e)return;var t=e.getAttribute('data-c
 function __asExport(){if(typeof TBKit==='undefined')return;var en=TBKit.util.isEn();var tbody=document.querySelector('#asHidden tbody');if(!tbody)return;tbody.innerHTML='';for(var i=0;i<AS_ANS.length;i++){if(AS_ANS[i]===null||AS_ANS[i]===undefined){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please finish all questions first':'请先完成全部题目再导出','warn');return;}}var SCALE_EN={'从不':'Never','偶尔':'Rarely','有时':'Sometimes','经常':'Often','总是':'Always'};var G_EN={'无明显拖延':'Minimal procrastination','轻度拖延':'Mild procrastination','中度拖延':'Moderate procrastination','重度拖延':'Severe procrastination'};var total=0;for(var i=0;i<AS_QS.length;i++){var v=AS_ANS[i];total+=v;var opt=AS_SCALE[v]?AS_SCALE[v].t:'';if(en)opt=SCALE_EN[opt]||opt;var tr=document.createElement('tr');tr.innerHTML='<td>Q'+(i+1)+'</td><td>'+opt+'</td><td>'+v+'</td>';tbody.appendChild(tr);}var g;if(total<=10)g='无明显拖延';else if(total<=20)g='轻度拖延';else if(total<=30)g='中度拖延';else g='重度拖延';var tr2=document.createElement('tr');tr2.innerHTML='<td colspan="2"><b>'+(en?'Total':'总分')+'</b></td><td><b>'+total+' / 40</b></td>';tbody.appendChild(tr2);var tr3=document.createElement('tr');tr3.innerHTML='<td colspan="2"><b>'+(en?'Grade':'等级')+'</b></td><td><b>'+(en?(G_EN[g]||g):g)+'</b></td>';tbody.appendChild(tr3);TBKit.util.exportTable('#asHidden',en?'procrastination.csv':'拖延程度评估.csv');}
 document.addEventListener('keydown',function(ev){if(!ev||!ev.key)return;var tag=(ev.target&&ev.target.tagName)?String(ev.target.tagName).toLowerCase():'';if(tag==='input'||tag==='textarea')return;if(ev.key==='ArrowLeft')pGo(-1);else if(ev.key==='ArrowRight')pGo(1);else if(ev.key>='1'&&ev.key<='5')pPick(AS_SCALE[parseInt(ev.key,10)-1].v);});
 pLoad();AS_CUR=pNextUn();if(AS_CUR>=AS_QS.length)AS_CUR=0;pRender();if(pAns()===AS_QS.length)calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t>30){ hz='拖延达重度（>30/40）：建议转介心理治疗，重点做行为激活与任务启动训练，同时筛查注意缺陷、焦虑与抑郁共病；把任务拆到「5 分钟可启动」的粒度并设置外部监督。';
+    he='Severe procrastination (above 30/40): refer for psychological therapy focused on behavioural activation and task initiation, and screen for ADHD, anxiety and depression; break tasks into five-minute starters with external accountability.'; }
+  else if(s.t>20){ hz='拖延中度（21–30）：可用番茄钟、任务拆解与公开承诺改善，2–4 周复评；若伴随明显焦虑或情绪低落建议就诊。';
+    he='Moderate procrastination (21-30): use pomodoro, task decomposition and public commitment, re-rating in 2-4 weeks, and seek care if pronounced anxiety or low mood is present.'; }
+  else if(s.t>10){ hz='拖延轻度（11–20）：执行力总体可维持，建议用启动仪式与干扰隔离（手机远离、关闭通知）进一步优化。';
+    he='Mild procrastination (11-20): execution is broadly maintained; optimise with a start ritual and distraction control (phone away, notifications off).'; }
+  else { hz='无明显拖延（≤10）：执行力良好，保持现有的计划与行动习惯，年度自查即可。';
+    he='No significant procrastination (10 or below): good follow-through; maintain current planning habits with an annual self-check.'; }
+  __emrNote({boxId:'res', name:'拖延症程度评估（近 2 周自评）', nameEn:'Procrastination Severity Self-Assessment (past 2 weeks)',
+    result:'拖延总分 '+s.t+'/40（拖延程度 '+s.pct+'%）→ 分级：'+s.lv+'；'+s.n+' 题全部作答',
+    resultEn:'procrastination total '+s.t+'/40 ('+s.pct+'%); level '+s.lv+'; all '+s.n+' items answered',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'结果解读：'+s.it,
+    extraEn:'interpretation: a score above 20 indicates procrastination that already impairs deadlines and mood'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 

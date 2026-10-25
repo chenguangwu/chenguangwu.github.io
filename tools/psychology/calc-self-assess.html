@@ -259,6 +259,7 @@ else if(total>=18){g='中等乐观';c='var(--info,#3B82F6)';it='你的乐观水�
 else if(total>=12){g='偏悲观';c='var(--warning,#f59e0b)';it='你的乐观倾向偏低，可能更容易关注负面信息，可尝试用「认知重构」调整解读方式。';}
 else{g='高度悲观';c='var(--danger)';it='悲观倾向较强，长期如此可能影响情绪与行动力，若同时情绪低落建议寻求心理咨询。';}
 var pct=Math.round(total/30*100);
+window.__EMR_SUM={t:total,lv:g,pct:Math.round(total/30*100),n:LR_QS.length};
 var h='<div class="mt-type"><div class="mt-type-code">'+total+'<span style="font-size:18px;color:var(--text-muted);"> / 30</span></div><div class="mt-type-name">'+g+'</div></div>';
 h+='<div class="mt-dbar"><div class="mt-dbar-top"><span><b>乐观指数</b> '+pct+'%</span><span>满分 30</span></div><div class="mt-dbar-track"><div class="mt-dbar-a" style="width:'+pct+'%"></div></div></div>';
 h+='<div class="info-box"><strong>评估结果：</strong>'+it+'</div>';
@@ -270,6 +271,59 @@ function copyResult(){var e=pEl('res');if(!e)return;var t=e.getAttribute('data-c
 function __lrExport(){if(typeof TBKit==='undefined')return;var en=TBKit.util.isEn();var tbody=document.querySelector('#lrHidden tbody');if(!tbody)return;tbody.innerHTML='';for(var i=0;i<LR_ANS.length;i++){if(LR_ANS[i]===null||LR_ANS[i]===undefined){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please finish all questions first':'请先完成全部题目再导出','warn');return;}}var SCALE_EN={'完全不同意':'Strongly disagree','不同意':'Disagree','中立':'Neutral','同意':'Agree','完全同意':'Strongly agree'};var G_EN={'高度乐观':'Highly optimistic','中等乐观':'Moderately optimistic','偏悲观':'Somewhat pessimistic','高度悲观':'Highly pessimistic'};var total=0;for(var i=0;i<LR_QS.length;i++){var v=LR_ANS[i]+1;if(LR_REV[i])v=6-v;total+=v;var opt=LR_SCALE[LR_ANS[i]]?LR_SCALE[LR_ANS[i]].t:'';var rev=LR_REV[i]?1:0;if(en)opt=SCALE_EN[opt]||opt;var tr=document.createElement('tr');tr.innerHTML='<td>Q'+(i+1)+'</td><td>'+opt+'</td><td>'+(rev?(en?'Yes':'是'):(en?'No':'否'))+'</td><td>'+v+'</td>';tbody.appendChild(tr);}var g;if(total>=24)g='高度乐观';else if(total>=18)g='中等乐观';else if(total>=12)g='偏悲观';else g='高度悲观';var tr2=document.createElement('tr');tr2.innerHTML='<td colspan="3"><b>'+(en?'Total':'总分')+'</b></td><td><b>'+total+' / 30</b></td>';tbody.appendChild(tr2);var tr3=document.createElement('tr');tr3.innerHTML='<td colspan="3"><b>'+(en?'Grade':'等级')+'</b></td><td><b>'+(en?(G_EN[g]||g):g)+'</b></td>';tbody.appendChild(tr3);TBKit.util.exportTable('#lrHidden',en?'optimism-index.csv':'乐观指数LOTR.csv');}
 document.addEventListener('keydown',function(ev){if(!ev||!ev.key)return;var tag=(ev.target&&ev.target.tagName)?String(ev.target.tagName).toLowerCase():'';if(tag==='input'||tag==='textarea')return;if(ev.key==='ArrowLeft')pGo(-1);else if(ev.key==='ArrowRight')pGo(1);else if(ev.key>='1'&&ev.key<='5')pPick(LR_SCALE[parseInt(ev.key,10)-1].v);});
 pLoad();LR_CUR=pNextUn();if(LR_CUR>=LR_QS.length)LR_CUR=0;pRender();if(pAns()===LR_QS.length)calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t<12){ hz='乐观指数偏低（<12/30）：悲观解释风格可能加重应激反应，建议做认知重构练习（记录自动负性想法、寻找替代解释），8 周后复评；若伴持续情绪低落建议就诊。';
+    he='Low optimism (below 12/30): a pessimistic explanatory style may amplify stress responses; practise cognitive restructuring (record automatic negative thoughts, generate alternative explanations) and re-rate in 8 weeks, seeking care if low mood persists.'; }
+  else if(s.t<18){ hz='乐观指数偏悲观（12–17）：可用「三件好事」日记与感恩练习提升积极关注，4 周后复评。';
+    he='Below-average optimism (12-17): use a three-good-things diary and gratitude practice to shift attention, re-rating in 4 weeks.'; }
+  else { hz='乐观水平中等及以上（≥18）：保持现有的积极解释风格，同步维持社会支持与规律运动。';
+    he='Moderate or high optimism (18 or above): maintain the current positive explanatory style together with social support and regular exercise.'; }
+  __emrNote({boxId:'res', name:'乐观倾向自评（LOT 类量表）', nameEn:'Optimism Self-Assessment (LOT-type)',
+    result:'乐观总分 '+s.t+'/30（乐观指数 '+s.pct+'%）→ 分级：'+s.lv+'；'+s.n+' 题全部作答（含反向计分题）',
+    resultEn:'optimism total '+s.t+'/30 ('+s.pct+'%); level '+s.lv+'; all '+s.n+' items answered (reverse-scored items included)',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'分档：≥24 高度乐观、18–23 中等乐观、12–17 偏悲观、<12 高度悲观',
+    extraEn:'bands: 24 or above high optimism, 18-23 moderate, 12-17 low, below 12 very low'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 

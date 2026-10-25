@@ -259,6 +259,7 @@ else if(total<=10){g='睡眠质量一般';c='var(--info,#3B82F6)';it='睡眠质�
 else if(total<=15){g='睡眠质量较差';c='var(--warning,#f59e0b)';it='睡眠质量明显偏差，建议排查失眠原因、调整生活方式，必要时咨询睡眠门诊。';}
 else{g='睡眠质量很差';c='var(--danger)';it='睡眠质量很差，已严重影响日间功能，建议尽快就诊睡眠门诊做专业评估。';}
 var pct=Math.round(total/21*100);
+window.__EMR_SUM={t:total,mx:mx,lv:g,pct:Math.round(total/21*100),n:PSQI_ITEMS.length};
 var h='<div class="mt-type"><div class="mt-type-code">'+total+'<span style="font-size:18px;color:var(--text-muted);"> / 21</span></div><div class="mt-type-name">'+g+'</div></div>';
 h+='<div class="mt-dbar"><div class="mt-dbar-top"><span><b>睡眠质量指数</b> '+pct+'%</span><span>满分 21（≥5 提示偏差）</span></div><div class="mt-dbar-track"><div class="mt-dbar-a" style="width:'+pct+'%"></div></div></div>';
 h+='<div class="mt-sec"><h4>📊 各维度得分</h4><ul>';
@@ -273,6 +274,59 @@ function copyResult(){var e=pEl('res');if(!e)return;var t=e.getAttribute('data-c
 function __psqiExport(){if(typeof TBKit==='undefined')return;var en=TBKit.util.isEn();var tbody=document.querySelector('#psqiHidden tbody');if(!tbody)return;tbody.innerHTML='';for(var i=0;i<PSQI_ANS.length;i++){if(PSQI_ANS[i]===null||PSQI_ANS[i]===undefined){if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(en?'Please finish all questions first':'请先完成全部题目再导出','warn');return;}}var NAME_EN=['Subjective sleep quality','Sleep latency','Actual sleep duration','Sleep efficiency','Sleep disturbance','Sleep medication','Daytime dysfunction'];var OPT_EN={'很好':'Very good','较好':'Fairly good','较差':'Fairly poor','很差':'Very poor','15 分钟内':'Within 15 min','16–30 分钟':'16–30 min','31–60 分钟':'31–60 min','超过 60 分钟':'Over 60 min','≥7 小时':'≥7 hours','6–7 小时':'6–7 hours','5–6 小时':'5–6 hours','<5 小时':'<5 hours','>85%':'>85%','75–84%':'75–84%','65–74%':'65–74%','<65%':'<65%','无':'None','偶尔（≤1 次/周）':'Occasionally (≤1/week)','经常（1–3 次/周）':'Often (1–3/week)','频繁（>3 次/周）':'Frequent (>3/week)','偶尔':'Occasionally','经常':'Often','频繁':'Frequent'};var G_EN={'睡眠质量良好':'Good sleep quality','睡眠质量一般':'Fair sleep quality','睡眠质量较差':'Poor sleep quality','睡眠质量很差':'Very poor sleep quality'};var total=0;for(var i=0;i<PSQI_ITEMS.length;i++){var v=PSQI_ANS[i];total+=v;var it=PSQI_ITEMS[i];var opt='';for(var k=0;k<it.o.length;k++){if(it.o[k].v===v){opt=it.o[k].t;break;}}var nm=PSQI_NAMES[i]||('Q'+(i+1));if(en)nm=NAME_EN[i]||nm;if(en)opt=OPT_EN[opt]||opt;var tr=document.createElement('tr');tr.innerHTML='<td>'+nm+'</td><td>'+opt+'</td><td>'+v+' / 3</td>';tbody.appendChild(tr);}var g;if(total<=5)g='睡眠质量良好';else if(total<=10)g='睡眠质量一般';else if(total<=15)g='睡眠质量较差';else g='睡眠质量很差';var tr2=document.createElement('tr');tr2.innerHTML='<td colspan="2"><b>'+(en?'Total':'总分')+'</b></td><td><b>'+total+' / 21</b></td>';tbody.appendChild(tr2);var tr3=document.createElement('tr');tr3.innerHTML='<td colspan="2"><b>'+(en?'Grade':'等级')+'</b></td><td><b>'+(en?(G_EN[g]||g):g)+'</b></td>';tbody.appendChild(tr3);TBKit.util.exportTable('#psqiHidden',en?'sleep-quality.csv':'睡眠质量PSQI.csv');}
 document.addEventListener('keydown',function(ev){if(!ev||!ev.key)return;var tag=(ev.target&&ev.target.tagName)?String(ev.target.tagName).toLowerCase():'';if(tag==='input'||tag==='textarea')return;if(ev.key==='ArrowLeft')pGo(-1);else if(ev.key==='ArrowRight')pGo(1);else if(ev.key>='1'&&ev.key<='4'){var it=PSQI_ITEMS[PSQI_CUR];if(it&&it.o[parseInt(ev.key,10)-1])pPick(it.o[parseInt(ev.key,10)-1].v);}});
 pLoad();PSQI_CUR=pNextUn();if(PSQI_CUR>=PSQI_ITEMS.length)PSQI_CUR=0;pRender();if(pAns()===PSQI_ITEMS.length)calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t>10){ hz='PSQI 简化版 11–21：睡眠质量较差，建议睡眠专科评估，排查失眠障碍、焦虑抑郁与睡眠呼吸暂停；先做睡眠卫生与刺激控制。';
+    he='PSQI short form 11-21: poor sleep quality; arrange a sleep-clinic assessment to screen for insomnia disorder, anxiety, depression and sleep apnoea, starting with sleep hygiene and stimulus control.'; }
+  else if(s.t>5){ hz='PSQI 简化版 6–10：睡眠质量一般，建议固定起床时间、限制卧床清醒时间与午睡时长，4 周后复评。';
+    he='PSQI short form 6-10: fair sleep quality; fix the wake time, limit time awake in bed and daytime naps, and re-rate in 4 weeks.'; }
+  else { hz='PSQI 简化版 ≤5：睡眠质量良好，保持规律作息即可。';
+    he='PSQI short form 5 or below: good sleep quality; maintain a regular schedule.'; }
+  __emrNote({boxId:'res', name:'睡眠质量评分（PSQI 简化版 · 7 项）', nameEn:'Sleep Quality Score (PSQI short form, 7 items)',
+    result:'PSQI 简化版总分 '+s.t+'/'+s.mx+'（睡眠质量指数 '+s.pct+'%）→ 分级：'+s.lv+'；'+s.n+' 项全部作答',
+    resultEn:'PSQI short form total '+s.t+'/'+s.mx+' ('+s.pct+'%); level '+s.lv+'; all '+s.n+' items answered',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'本页为 7 项简化版（各项 0–3 分，满分 21），与完整版 PSQI 的 7 成分计分方式不同，跨工具比较时需注明版本',
+    extraEn:'this is the 7-item short form (each 0-3, maximum 21); scoring differs from the full PSQI component algorithm, so state the version when comparing across tools'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 

@@ -284,7 +284,8 @@ function calc(){
     '<div class="stat-card"><div class="val">'+(vsBench>=0?'+':'')+fmt(vsBench,0)+'</div><div class="lbl">较常模（'+BENCHMARK+'）</div></div>'+
     '</div>';
 
-  const __g3=cards+
+  window.__EMR_SUM={t:total,av:avg,mn:min,mx:max,nm:DIMS[minIdx].q,xx:DIMS[maxIdx].q,lv:lv.t,vb:vsBench,bm:BENCHMARK,n:DIMS.length};
+const __g3=cards+
     '<div class="radar-wrap">'+radarSVG(scores)+'</div>'+
     '<h3 style="margin-top:12px;">📋 维度得分明细</h3>'+tbl+
     '<div class="result-box" style="margin-top:8px;">'+
@@ -302,6 +303,61 @@ function resetAll(){
 function saveHistory(scores){try{localStorage.setItem(HKEY,JSON.stringify(scores));}catch(e){}}
 buildSliders();
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进康复记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('res'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(s.t<31){ hz='幸福感总分<31（偏低）：整体幸福感明显偏低，建议优先改善最短板维度（本页：'+s.nm+'），并筛查抑郁、焦虑、睡眠与社会支持状况。';
+    he='Happiness total below 31 (low): overall wellbeing is markedly low; prioritise the weakest dimension and screen for depression, anxiety, sleep and social support.'; }
+  else if(s.t<51){ hz='幸福感总分 31–50（偏下）：建议就最短板维度（'+s.nm+'）设定一个具体可执行的小目标，8 周后复评。';
+    he='Happiness total 31-50 (below average): set one concrete goal on the weakest dimension and re-rate in 8 weeks.'; }
+  else if(s.t<71){ hz='幸福感总分 51–70（中等）：存在可提升空间，先从最短板维度（'+s.nm+'）入手，同步巩固优势维度（'+s.xx+'）。';
+    he='Happiness total 51-70 (moderate): there is room to improve; start with the weakest dimension and reinforce the strongest one.'; }
+  else { hz='幸福感总分≥71（较高/很高）：整体状态良好，巩固优势维度（'+s.xx+'）并维持现有作息与社会联系。';
+    he='Happiness total 71 or above (high or very high): good overall state; consolidate the strongest dimension and maintain routines and social ties.'; }
+  __emrNote({boxId:'res', name:'幸福感指数（10 维度自评）', nameEn:'Happiness Index (10-domain self-rating)',
+    result:'幸福感总分 '+s.t+'/100（'+s.n+' 维度平均 '+s.av.toFixed(1)+'）→ 等级：'+s.lv+'；最短板 '+s.nm+' '+s.mn+' 分、最强项 '+s.xx+' '+s.mx+' 分；较常模('+s.bm+')'+(s.vb>=0?'+':'')+s.vb,
+    resultEn:'happiness total '+s.t+'/100 (mean '+s.av.toFixed(1)+' across '+s.n+' domains); level '+s.lv+'; weakest '+s.nm+' at '+s.mn+', strongest '+s.xx+' at '+s.mx+'; versus norm ('+s.bm+') '+(s.vb>=0?'+':'')+s.vb,
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'各维度 0–10 分，总分 0–100；常模均分 62（页面内置参考线，非人群常模抽样）',
+    extraEn:'each domain is scored 0-10 for a 0-100 total; the reference line of 62 is built into the page and is not a sampled population norm'});
+}
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
+
 </script>
 
 
