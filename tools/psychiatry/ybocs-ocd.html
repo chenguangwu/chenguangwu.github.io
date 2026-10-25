@@ -357,6 +357,65 @@ function copyResult(){
 var __yb0=calc; calc=function(){__yb0(); __ybocExtras();};
 render();calc();
 __ybocMountHist();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof QS==='undefined'||typeof A==='undefined'||typeof OPTS==='undefined') return;
+  var el=document.getElementById('result'); if(!el) return;
+  var total=0,obs=0,com=0,done=0,i,pos=[];
+  for(i=0;i<QS.length;i++){
+    if(A[i]>=0){
+      done++; total+=A[i];
+      if(i<5) obs+=A[i]; else com+=A[i];
+      if(A[i]>0) pos.push({i:i+1,t:String((typeof __ybocText==='function')?__ybocText(i):QS[i]).replace(/^\d+\.\s*/,''),o:String(OPTS[A[i]]||'')});
+    }
+  }
+  if(done<QS.length) return;
+  var band;
+  if(total<=7) band=['亚临床','subclinical','目前无明显强迫症状。','No clinically significant obsessive-compulsive symptoms.'];
+  else if(total<=15) band=['轻度','mild','轻度强迫症状，功能影响有限，可观察随访。','Mild obsessive-compulsive symptoms with limited functional impact; observation and follow-up.'];
+  else if(total<=23) band=['中度','moderate','中度强迫症状，建议 CBT-ERP 或药物治疗。','Moderate symptoms; CBT with exposure and response prevention or pharmacotherapy.'];
+  else if(total<=31) band=['重度','severe','重度强迫症状，需积极药物联合心理治疗。','Severe symptoms; combined pharmacotherapy and psychotherapy.'];
+  else band=['极重度','very severe','极重度强迫症状，功能严重受损，建议强化治疗。','Very severe symptoms with marked impairment; intensive treatment advised.'];
+  __emrNote({name:'Y-BOCS 耶鲁-布朗强迫症状量表（10 条目 · 0–40）', nameEn:'Y-BOCS Yale-Brown Obsessive Compulsive Scale (10 items, 0-40)',
+    result:'总分 '+total+'/40，分级：'+band[0], resultEn:'total '+total+'/40, band: '+band[1],
+    pos:pos, hintZh:band[2], hintEn:band[3],
+    extra:'强迫思维 '+obs+'/20 · 强迫行为 '+com+'/20；有症状条目（≥1 分）'+pos.length+'/10',
+    extraEn:'Obsessions '+obs+'/20, compulsions '+com+'/20; symptomatic items (>=1): '+pos.length+'/10'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

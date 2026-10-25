@@ -319,6 +319,69 @@ function copyResult(){
 }
 var __panss0=calc; calc=function(){__panss0(); __panssExtras();};
 render();calc(); __panssMountHist();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof QS==='undefined'||typeof A==='undefined') return;
+  var el=document.getElementById('result'); if(!el) return;
+  var p=0,n=0,g=0,done=0,i,pos=[];
+  for(i=0;i<QS.length;i++){
+    if(A[i]>=1){
+      done++;
+      if(i<7) p+=A[i]; else if(i<14) n+=A[i]; else g+=A[i];
+      if(A[i]>=4) pos.push({i:i+1,t:String((typeof __panssLabel==='function')?__panssLabel(i):('Q'+(i+1)))+' '+String((QS[i]&&QS[i][0])||''),o:'评分 '+A[i]});
+    }
+  }
+  if(done<QS.length) return;
+  var total=p+n+g, comp=p-n;
+  var sev=(typeof __panssSev==='function')?__panssSev(total):'';
+  var sevEn=(typeof __PANS_SEV_EN!=='undefined'&&__PANS_SEV_EN[sev])?__PANS_SEV_EN[sev]:sev;
+  var hz,he;
+  if(total<=57){ hz='精神症状总体轻微；维持现有治疗并定期评估。'; he='Overall symptom burden minimal; maintain treatment and reassess regularly.'; }
+  else if(total<=74){ hz='轻度精神症状；建议优化药物方案并加强心理社会干预。'; he='Mild symptoms; optimise medication and strengthen psychosocial intervention.'; }
+  else if(total<=95){ hz='中度精神症状；需调整抗精神病药物剂量或种类，加强随访。'; he='Moderate symptoms; adjust antipsychotic dose or choice and increase follow-up.'; }
+  else { hz='症状显著/重度；建议积极药物调整、评估依从性与社会支持。'; he='Marked to severe symptoms; actively adjust medication and assess adherence and social support.'; }
+  var sub = comp>0?'复合指数 P-N 为正，提示以阳性症状为主型':(comp<0?'复合指数 P-N 为负，提示以阴性症状为主型':'复合指数 P-N 为 0，阳性与阴性症状均衡');
+  var subEn = comp>0?'Composite P-N positive: positive-symptom predominant':(comp<0?'Composite P-N negative: negative-symptom predominant':'Composite P-N zero: positive and negative balanced');
+  __emrNote({name:'PANSS 阳性与阴性症状量表（30 条目 · 1–7 分 · 总分 30–210）', nameEn:'PANSS Positive and Negative Syndrome Scale (30 items, 1-7, total 30-210)',
+    result:'总分 '+total+'/210，分级：'+sev, resultEn:'total '+total+'/210, band: '+sevEn,
+    pos:pos, hintZh:hz, hintEn:he,
+    extra:'阳性 P '+p+'/49 · 阴性 N '+n+'/49 · 一般精神病理 G '+g+'/112；'+sub+'；≥4 分条目 '+pos.length+'/30',
+    extraEn:'Positive '+p+'/49, negative '+n+'/49, general psychopathology '+g+'/112; '+subEn+'; items scoring >=4: '+pos.length+'/30'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
