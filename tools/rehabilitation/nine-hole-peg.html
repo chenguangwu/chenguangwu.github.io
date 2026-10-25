@@ -338,6 +338,7 @@ function calc() {
   html += '<div class="tip-box tip-info" style="margin-top:8px;"><strong>康复建议：</strong>' + advice + '</div>';
 
   window._testResult = { domTime: domTime.toFixed(1), level: level, ref: ref.dom.toFixed(1) };
+  window.__EMR_SUM={g:gender,ag:ageGroup,dt:domTime,nt:nonDomTime,ref:ref,dz:domZ,dp:domPct,level:level,ndl:(typeof nonDomLevel!=='undefined'?nonDomLevel:''),ndz:(typeof nonDomZ!=='undefined'?nonDomZ:null)};
   const __g2=html;document.getElementById('resultBox').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -389,6 +390,64 @@ function resetAll() {
 
 calc();
 renderHistory();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var lv={'正常':'normal','轻度异常':'mildly abnormal','中度异常':'moderately abnormal','重度异常':'severely abnormal'};
+  var hz,he;
+  if(s.level==='正常'){ hz='优势手完成时间在年龄/性别参考值 1 个标准差内：手功能正常，可继续常规训练或作为基线随访。';
+    he='Dominant-hand time within 1 SD of the age/sex reference: normal manual dexterity; continue routine training or use as a baseline.'; }
+  else if(s.level==='轻度异常'){ hz='轻度减慢（1–2 SD）：提示精细操作速度下降，建议手指分离运动、捏力与协调训练，4 周后复评。';
+    he='Mildly slowed (1-2 SD): reduced fine motor speed; finger individuation, pinch strength and coordination training, reassess in 4 weeks.'; }
+  else { hz='明显减慢（>2 SD）：提示精细运动功能受损，需评估肌力、感觉、震颤与认知因素，制定分级作业治疗计划，并排查颈椎病、周围神经病变、脑血管病。';
+    he='Markedly slowed (>2 SD): impaired fine motor function; assess strength, sensation, tremor and cognition, plan graded occupational therapy, and exclude cervical radiculopathy, peripheral neuropathy and stroke.'; }
+  __emrNote({boxId:'resultBox', name:'九孔柱插板试验（Nine-Hole Peg Test · 手精细操作）', nameEn:'Nine-Hole Peg Test (manual dexterity)',
+    result:'年龄组 '+(en?s.ag:s.ag)+' · '+(s.g==='male'?'男':'女')+' → 优势手 '+s.dt.toFixed(1)+' 秒（参考 '+s.ref.dom.toFixed(1)+'±'+s.ref.domSd.toFixed(1)+' 秒，Z='+s.dz.toFixed(2)+'）分级：'+s.level
+      +(s.nt?('；非优势手 '+s.nt.toFixed(1)+' 秒（参考 '+s.ref.nondom.toFixed(1)+'±'+s.ref.nondomSd.toFixed(1)+' 秒）→ '+s.ndl):'；非优势手未测'),
+    resultEn:'age band '+s.ag+', '+(s.g==='male'?'male':'female')+'; dominant hand '+s.dt.toFixed(1)+' s (reference '+s.ref.dom.toFixed(1)+'+/-'+s.ref.domSd.toFixed(1)+' s, Z='+s.dz.toFixed(2)+'), level: '+(lv[s.level]||s.level)
+      +(s.nt?(('; non-dominant '+s.nt.toFixed(1)+' s -> ')+(lv[s.ndl]||s.ndl)):''),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'偏离参考值 '+((s.dp>0?'+':'')+s.dp.toFixed(1))+'%；每次测试用同一套插板与体位，健患侧对照更有意义',
+    extraEn:'deviation '+((s.dp>0?'+':'')+s.dp.toFixed(1))+'%; keep the same board and posture across tests, and compare sides'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+var __emrW1=(typeof calcScore==='function')?calcScore:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+if(__emrW1){ calcScore=function(){ var __er=__emrW1.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

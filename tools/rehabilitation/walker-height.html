@@ -362,6 +362,7 @@ function calc() {
   }
 
   window._result = { handleHeight: finalHandleHeight.toFixed(1), trochanter: greaterTrochanter.toFixed(1) };
+  window.__EMR_SUM={h:height,age:age,el:elbowAngle,wrist:wristH,shoe:shoeH,sc:scenario,final:finalHandleHeight,gt:greaterTrochanter,ax:axilla,cuff:forearmCuff,adj:adjNote,ck:checks.filter(function(c){return c.ok;}).length,ckn:checks.length};
   const __g2=html;document.getElementById('resultBox').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -413,6 +414,60 @@ function resetAll() {
 
 calc();
 renderHistory();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  var bad = s.ckn-s.ck;
+  if(bad>0){ hz='适配存在 '+bad+' 项偏差：优先核对肘屈角度（目标 20–30°）与手柄/大转子高度是否一致，肩带放松、腕中立，再让患者实际行走复核。';
+    he='Fit check found '+bad+' deviation(s): verify elbow flexion (target 20-30 degrees) and that handle height matches the greater trochanter, shoulders relaxed, wrist neutral, then re-check while walking.'; }
+  else { hz='各适配参数均在正常范围：确认患者在真实地面行走时肩不耸起、腕背伸不过度，助行器重量与折叠方式符合其体力。';
+    he='All fit parameters within range: confirm no shoulder elevation or excessive wrist extension while walking, and that device weight and folding suit the patient.'; }
+  __emrNote({boxId:'resultBox', name:'助行器 / 拐杖高度适配', nameEn:'Walker and Crutch Height Fitting',
+    result:'身高 '+s.h+' cm（年龄 '+(s.age||'—')+' 岁，肘屈 '+s.el+'°）→ 手柄高度 '+s.final.toFixed(1)+' cm（大转子 '+s.gt.toFixed(1)+' cm、腋窝 '+s.ax.toFixed(1)+' cm、前臂套环 '+s.cuff.toFixed(1)+' cm）'+s.adj,
+    resultEn:'height '+s.h+' cm (elbow flexion '+s.el+' degrees); handle height '+s.final.toFixed(1)+' cm (greater trochanter '+s.gt.toFixed(1)+' cm, axilla '+s.ax.toFixed(1)+' cm, forearm cuff '+s.cuff.toFixed(1)+' cm)',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'场景：'+(s.sc==='stairs'?'楼梯':(s.sc==='rough'?'不平地面':'室内平地'))+'；腕横纹实测 '+(s.wrist?s.wrist+' cm':'未提供（按大转子估算）')+'；鞋底 '+(s.shoe?s.shoe+' cm':'标准 2 cm')+'；适配校验 '+s.ck+'/'+s.ckn+' 项通过',
+    extraEn:'scenario: '+s.sc+'; wrist crease '+(s.wrist?s.wrist+' cm':'not provided')+'; shoe sole '+(s.shoe?s.shoe+' cm':'standard 2 cm')+'; fit checks passed '+s.ck+'/'+s.ckn});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+var __emrW1=(typeof calcScore==='function')?calcScore:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+if(__emrW1){ calcScore=function(){ var __er=__emrW1.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

@@ -177,30 +177,14 @@ const CASES = [
 },
 {
   "slug": "rehabilitation/fim-scale",
-  "inputs": {
-    "fim_0": "7",
-    "fim_1": "7",
-    "fim_2": "7",
-    "fim_3": "7",
-    "fim_4": "7",
-    "fim_5": "7",
-    "fim_6": "7",
-    "fim_7": "7",
-    "fim_8": "7",
-    "fim_9": "7",
-    "fim_10": "7",
-    "fim_11": "7",
-    "fim_12": "7",
-    "fim_13": "7",
-    "fim_14": "7",
-    "fim_15": "7",
-    "fim_16": "7",
-    "fim_17": "7"
-  },
-  "expect": [
-    "运动功能分： 91/91（独立率100%）"
+  "clicks": [
+    "var __m={};for(var i=0;i<18;i++)__m['fim_'+i]='4';var __g=document.getElementById;document.getElementById=function(id){if(__m[id]!==undefined)return {value:__m[id],checked:false};return __g.call(document,id);};calcScore()"
   ],
-  "ref": "fim_0..12 为运动 13 项、fim_13..17 为认知 5 项，全填 7 ⇒ 运动分 13×7=91/91、独立率 100%。默认态未注入 ⇒ 运动分非 91，不含该串。原 expect「上下12-14级台阶」是说明文案，默认恒在（常量型逃生项）。"
+  "expect": [
+    "【FIM 功能独立性评定（18 项 · 运动 13 + 认知 5）】 结果：总分 72/126（运动 52/91、认知 20/35）→ 分级：轻度依赖",
+    "康复预期：预计可提升约 22 分（预期出院 94 分）；运动独立率 57%、认知独立率 57%"
+  ],
+  "ref": "门诊记录（EMR note）：18 项下拉 `fim_0..17` 由 renderItems() 动态生成、stub 中不存在，故 clicks 覆写 getElementById 统一给 4 分 ⇒ 运动 13×4=52/91、认知 5×4=20/35、总分 72 ⇒ 72≥72 落「轻度依赖」；康复预期 total<80 分支 20+(80-72)×0.3=22.4→22 分、预期出院 94。默认态 18 项全 7（满分 126）⇒「完全独立」，与本用例零交集。"
 },
 {
   "slug": "rehabilitation/flacc-scale",
@@ -208,9 +192,10 @@ const CASES = [
     "2"
   ],
   "expect": [
-    "10 / 10分 - 重度疼痛"
+    "【FLACC 儿童疼痛行为评估（5 项 · 0–10）】 结果：总分 10/10 → 分级：重度疼痛",
+    "各项目得分：面部表情 2/2、腿部活动 2/2、活动度 2/2、哭闹 2/2、可安慰性 2/2；处理：强效镇痛（阿片类），必要时静脉给药"
   ],
-  "ref": "5 个项目各按 2 分（checks 注入 :checked ⇒ value=2）⇒ 总分 10 ⇒「/ 10分 - 重度疼痛」。默认态未勾选 ⇒ allSelected=false ⇒ showToast 早退不写结果，不含该串。原 expect「0分」是等级表「0分」档文案，默认恒在（常量型逃生项）。"
+  "ref": "门诊记录：5 项各勾 2 分（checks 注入 :checked ⇒ value=2）⇒ 总分 10 ≥7 落「重度疼痛」；处理建议取重度分支（阿片类、必要时静脉、1-2 小时复评）。默认态未勾选 ⇒ allSelected=false ⇒ showToast 后 return，不渲染结果，与本用例零交集。"
 },
 {
   "slug": "rehabilitation/gait-analysis",
@@ -250,12 +235,16 @@ const CASES = [
 {
   "slug": "rehabilitation/nine-hole-peg",
   "inputs": {
-    "gender": "female"
+    "gender": "female",
+    "ageGroup": "70-79",
+    "domTime": "30",
+    "nonDomTime": "34"
   },
   "expect": [
-    "female"
+    "【九孔柱插板试验（Nine-Hole Peg Test · 手精细操作）】 结果：年龄组 70-79 · 女 → 优势手 30.0 秒（参考 19.5±3.5 秒，Z=3.00）分级：中度异常；非优势手 34.0 秒（参考 21.5±4.0 秒）→ 重度异常",
+    "偏离参考值 +53.8%"
   ],
-  "ref": "auto-restore"
+  "ref": "门诊记录：70-79 岁女性参考 19.5±3.5 秒 ⇒ 30.0 秒超 +3SD（Z=3.00）但不超过 ref+3SD 的上界判定（<= ref+3SD 归「中度异常」），非优势手 34.0 秒 > 21.5+3×4.0=33.5 ⇒「重度异常」；偏离 (30-19.5)/19.5=+53.8%。默认态 domTime 为空 ⇒「请输入优势手测试时间」早退、不渲染，零交集。"
 },
 {
   "slug": "rehabilitation/proprioception-error",
@@ -296,15 +285,19 @@ const CASES = [
 {
   "slug": "rehabilitation/stretch-duration",
   "inputs": {
-    "holdTime": "45",
-    "reps": "3",
-    "dailySessions": "2",
-    "targetImprove": "5"
+    "stretchPart": "knee",
+    "riskLevel": "high",
+    "holdTime": "10",
+    "reps": "2",
+    "dailySessions": "1",
+    "restrictedAngle": "30",
+    "targetImprove": "3"
   },
   "expect": [
-    "每次保持45秒"
+    "【牵伸（拉伸）处方剂量评估】 结果：部位：knee · 风险等级 高 → 保持 10 秒 × 2 组 × 每日 1 次（单次 0.3 分钟，每日 0.3 分钟，每周 2 分钟）",
+    "参考剂量（高风险）：保持 30-60 秒 × 4-5 组 × 每日 3-5 次；方案评估：需调整；当前受限 30°，按每周 3° 预计 10 周"
   ],
-  "ref": "auto-restore"
+  "ref": "门诊记录：10 秒×2 组×1 次 = 20 秒/日 ⇒ 单次 0.33→0.3 分钟、每日 0.3 分钟、每周 120 秒→2 分钟；hold=10<15 且 high 风险每日总量 <180 秒 ⇒ adequate=false ⇒「需调整」；受限 30°、每周 3° ⇒ 10 周。默认态 hold=30/reps=3/daily=2、风险 low、部位 shoulder ⇒ 60 秒×.../每日 3 分钟，与本用例零交集。"
 },
 {
   "slug": "rehabilitation/tester-rater",
@@ -317,13 +310,18 @@ const CASES = [
 {
   "slug": "rehabilitation/walker-height",
   "inputs": {
-    "elbowAngle": "38",
-    "shoeHeight": "2"
+    "height": "170",
+    "age": "72",
+    "elbowAngle": "45",
+    "wristHeight": "",
+    "shoeHeight": "3",
+    "scenario": "stairs"
   },
   "expect": [
-    "38"
+    "【助行器 / 拐杖高度适配】 结果：身高 170 cm（年龄 72 岁，肘屈 45°）→ 手柄高度 95.9 cm（大转子 96.9 cm、腋窝 130.9 cm、前臂套环 125.8 cm）（楼梯使用降低2cm）",
+    "适配校验 1/2 项通过"
   ],
-  "ref": "auto-restore"
+  "ref": "门诊记录：170 cm ⇒ 大转子 96.9、腋窝 130.9、套环 125.8；未填腕横纹 ⇒ 手柄取大转子 96.9，鞋底 3 cm 补 +1，楼梯再 -2 ⇒ 95.9 cm；肘屈 45° 超出 20–30° ⇒ 适配校验仅 1/2 通过（其余 4 项中 1 项失败）。默认态 height 为空 ⇒「请输入身高」早退、不渲染，零交集。"
 },
 {
   "slug": "rehabilitation/water-swallow-test",

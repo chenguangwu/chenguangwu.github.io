@@ -337,6 +337,7 @@ function calcScore() {
   var expectedGain = total < 80 ? 20 + (80 - total) * 0.3 : 15;
   html += '<div class="tip-box tip-info" style="margin-top:8px;"><strong>康复预期：</strong>预计经过系统康复治疗后，FIM总分可提升约' + expectedGain.toFixed(0) + '分（预期出院分数' + (total + expectedGain).toFixed(0) + '分）</div>';
 
+  window.__EMR_SUM={total:total,motor:motorTotal,cog:cognitiveTotal,level:level,gain:expectedGain,adv:advice};
   window._score = { total: total, motor: motorTotal, cognitive: cognitiveTotal, level: level };
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
@@ -409,6 +410,66 @@ function __fimExport() {
 }
 
 init();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var lv={'完全独立':'complete independence','基本独立':'modified independence','极轻度依赖':'minimal assistance',
+          '轻度依赖':'light assistance','中度依赖':'moderate assistance','重度依赖':'maximal assistance',
+          '极重度依赖':'total assistance','完全依赖':'total dependence'};
+  var hz,he;
+  if(s.total>=108){ hz='功能独立（FIM ≥108）：以维持与社区参与为目标，重点做体能维持、跌倒预防与居家环境评估，1–3 个月复评一次。';
+    he='Independent (FIM 108 or above): focus on maintenance, community participation, falls prevention and home assessment; review every 1-3 months.'; }
+  else if(s.total>=72){ hz='轻–极轻度依赖：以任务特异性训练与辅助器具适配为主，设定每周可量化的 ADL 目标，2–4 周复评 FIM。';
+    he='Mild dependency: task-specific training plus assistive device fitting, set weekly quantitative ADL goals, reassess FIM in 2-4 weeks.'; }
+  else if(s.total>=36){ hz='中–重度依赖：需多学科康复（PT/OT/ST）与照护者培训，注意压疮、误吸、深静脉血栓等并发症预防。';
+    he='Moderate to severe dependency: multidisciplinary rehabilitation (PT/OT/ST) and caregiver training; prevent pressure injury, aspiration and DVT.'; }
+  else { hz='极重度–完全依赖：以体位管理、被动关节活动、并发症预防与照护者支持为主，出院前评估照护环境与管路需求。';
+    he='Very severe to total dependency: positioning, passive ROM, complication prevention and caregiver support; assess home care environment and tube needs before discharge.'; }
+  __emrNote({boxId:'resultBox', name:'FIM 功能独立性评定（18 项 · 运动 13 + 认知 5）', nameEn:'Functional Independence Measure (FIM, 18 items)',
+    result:'总分 '+s.total+'/126（运动 '+s.motor+'/91、认知 '+s.cog+'/35）→ 分级：'+s.level,
+    resultEn:'total '+s.total+'/126 (motor '+s.motor+'/91, cognitive '+s.cog+'/35); level: '+(lv[s.level]||s.level),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'康复预期：预计可提升约 '+Number(s.gain).toFixed(0)+' 分（预期出院 '+(s.total+Number(s.gain)).toFixed(0)+' 分）；运动独立率 '+Math.round(s.motor/91*100)+'%、认知独立率 '+Math.round(s.cog/35*100)+'%',
+    extraEn:'expected gain about '+Number(s.gain).toFixed(0)+' points (discharge FIM about '+(s.total+Number(s.gain)).toFixed(0)+'); motor independence '+Math.round(s.motor/91*100)+'%, cognitive '+Math.round(s.cog/35*100)+'%'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+var __emrW1=(typeof calcScore==='function')?calcScore:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+if(__emrW1){ calcScore=function(){ var __er=__emrW1.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

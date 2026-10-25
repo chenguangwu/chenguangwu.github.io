@@ -334,6 +334,7 @@ function calcScore() {
   }
 
   window._score = { total: total, level: level };
+  window.__EMR_SUM={total:total,level:level,sc:scores.slice(0),adv:advice,iv:intervention};
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 
@@ -428,6 +429,67 @@ function resetAll() {
 }
 
 init();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var nm=['面部表情','腿部活动','活动度','哭闹','可安慰性'];
+  var nme=['Face','Legs','Activity','Cry','Consolability'];
+  var hz,he;
+  if(s.total>=7){ hz='重度疼痛：立即给予强效镇痛（阿片类，必要时静脉），持续监测呼吸与意识，1–2 小时后复评 FLACC；同时排查病因（术后、骨折、腹腔急症等）。';
+    he='Severe pain: give strong analgesia (opioid, IV if needed), monitor respiration and consciousness, reassess FLACC in 1-2 hours, and look for the underlying cause.'; }
+  else if(s.total>=4){ hz='中度疼痛：口服对乙酰氨基酚/NSAIDs 或弱阿片，配合体位调整、抚触、分散注意力，4–6 小时后复评。';
+    he='Moderate pain: oral paracetamol/NSAIDs or weak opioid plus non-pharmacological measures; reassess in 4-6 hours.'; }
+  else if(s.total>=1){ hz='轻度疼痛：首选非药物干预（体位、抚触、分散注意力、 sucrose/母乳安抚），必要时单次对乙酰氨基酚。';
+    he='Mild pain: non-pharmacological measures first (positioning, touch, distraction, sucrose/breastfeeding); paracetamol if needed.'; }
+  else { hz='无痛：继续常规护理，每 4 小时或操作前后常规评估；注意 FLACC 对深睡、镇静患儿可能低估疼痛。';
+    he='No pain: routine care with assessment every 4 hours or around procedures; note FLACC may underestimate pain in deeply sedated children.'; }
+  var pos=[];
+  for(var i=0;i<s.sc.length;i++){ if(s.sc[i]>0){ pos.push({i:i+1,t:nm[i]||'',o:s.sc[i]+'/2'}); } }
+  __emrNote({boxId:'resultBox', name:'FLACC 儿童疼痛行为评估（5 项 · 0–10）', nameEn:'FLACC Behavioural Pain Scale (5 items, 0-10)',
+    result:'总分 '+s.total+'/10 → 分级：'+s.level,
+    resultEn:'total '+s.total+'/10; level: '+({无痛:'no pain','轻度疼痛':'mild pain','中度疼痛':'moderate pain','重度疼痛':'severe pain'}[s.level]||s.level),
+    pos:pos, hintZh:hz, hintEn:he,
+    extra:'各项目得分：'+s.sc.map(function(v,i){return (nm[i]||('项'+(i+1)))+' '+v+'/2';}).join('、')+'；处理：'+s.iv,
+    extraEn:'item scores: '+s.sc.map(function(v,i){return nme[i]+' '+v+'/2';}).join(', ')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+var __emrW1=(typeof calcScore==='function')?calcScore:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+if(__emrW1){ calcScore=function(){ var __er=__emrW1.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

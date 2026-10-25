@@ -326,7 +326,7 @@ function calc() {
 
   // 评估方案是否足够
   var adequate = true;
-  if (hold < 15) { html += '<div class="tip-box tip-warn">单次保持时间过短（<15秒），效果有限，建议至少15秒</div>'; adequate = false; }
+  if (hold < 15) { html += '<div class="tip-box tip-warn">单次保持时间过短（＜15秒），效果有限，建议至少15秒</div>'; adequate = false; }
   if (daily < 1) { html += '<div class="tip-box tip-warn">每日次数不足，建议至少每日1次</div>'; adequate = false; }
   if (risk === 'high' && dailyTotalTime < 180) { html += '<div class="tip-box tip-warn">高风险患者每日总牵伸时间偏少，建议增加至3分钟以上</div>'; adequate = false; }
   if (risk === 'severe' && dailyTotalTime < 300) { html += '<div class="tip-box tip-warn">严重挛缩需更多牵伸时间，建议每日5分钟以上</div>'; adequate = false; }
@@ -358,6 +358,7 @@ function calc() {
     html += '<div class="bar-row"><span class="bar-lbl">' + d + '</span><div class="bar-bg"><div class="bar-fill" style="width:' + (dailyTotalTime / 600 * 100) + '%;">' + (dailyTotalTime / 60).toFixed(1) + 'min</div></div></div>';
   });
 
+  window.__EMR_SUM={hold:hold,reps:reps,daily:daily,part:part,risk:risk,restricted:restricted,target:target,single:singleSessionTime,dailyT:dailyTotalTime,weekT:weeklyTotalTime,rp:rp,adq:adequate};
   window._currentPlan = partData[part].name + '牵伸：' + hold + '秒×' + reps + '组×' + daily + '次/日';
   const __g3=html;document.getElementById('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
@@ -409,6 +410,60 @@ function resetAll() {
 
 updateRef();
 renderHistory();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进门诊病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var el=document.getElementById('resultBox'); if(!el) return;
+  var s=window.__EMR_SUM; if(!s) return;
+  var en=__emrEn();
+  var hz,he;
+  if(!s.adq){ hz='方案存在不足（保持时间 <15 秒、每日次数不足或高风险/严重挛缩时每日总时长不够）：先补足总量再谈强度，牵伸以「酸胀但可耐受、无麻木刺痛」为度。';
+    he='The regimen is insufficient (hold under 15 s, too few daily sessions, or too little total time in high risk or severe contracture): increase total volume first, keeping stretch to a tolerable stretch without numbness or sharp pain.'; }
+  else { hz='方案在合理范围：牵伸前热敷 10 分钟，缓慢达终末感并保持，勿弹震；出现麻木、刺痛或关节肿胀立即停止并复评。';
+    he='Regimen within a reasonable range: heat for 10 minutes before stretching, reach end range slowly and hold, avoid ballistic stretching; stop if numbness, sharp pain or joint swelling occurs.'; }
+  __emrNote({boxId:'resultBox', name:'牵伸（拉伸）处方剂量评估', nameEn:'Stretching Prescription Dosing',
+    result:'部位：'+(en?s.part:s.part)+' · 风险等级 '+(s.risk==='low'?'低':(s.risk==='high'?'高':'严重'))+' → 保持 '+s.hold+' 秒 × '+s.reps+' 组 × 每日 '+s.daily+' 次（单次 '+ (s.single/60).toFixed(1)+' 分钟，每日 '+ (s.dailyT/60).toFixed(1)+' 分钟，每周 '+(s.weekT/60).toFixed(0)+' 分钟）',
+    resultEn:'region '+s.part+', risk '+s.risk+'; hold '+s.hold+' s x '+s.reps+' sets x '+s.daily+' sessions/day (per session '+(s.single/60).toFixed(1)+' min, daily '+(s.dailyT/60).toFixed(1)+' min, weekly '+(s.weekT/60).toFixed(0)+' min)',
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'参考剂量（'+(s.risk==='low'?'低':(s.risk==='high'?'高':'严重'))+'风险）：保持 '+s.rp.hold+' 秒 × '+s.rp.reps+' 组 × 每日 '+s.rp.daily+' 次；方案评估：'+(s.adq?'达标':'需调整')
+      +(s.restricted&&s.target?('；当前受限 '+s.restricted+'°，按每周 '+s.target+'° 预计 '+Math.ceil(s.restricted/s.target)+' 周'):''),
+    extraEn:'reference dose: hold '+s.rp.hold+' s x '+s.rp.reps+' sets x '+s.rp.daily+' sessions/day; regimen '+(s.adq?'adequate':'needs adjustment')});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+var __emrW1=(typeof calcScore==='function')?calcScore:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+if(__emrW1){ calcScore=function(){ var __er=__emrW1.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
