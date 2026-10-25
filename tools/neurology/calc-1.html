@@ -244,6 +244,7 @@ function calc(){
     score += isNaN(v) ? 0 : v;
   });
   const c = classify(score);
+  __EMR_S={sc:score, lv:c.level};
   saveState();
   const __g2=`
     <p>NIHSS 总分：<strong style="font-size:20px;">${score}</strong> 分（0-42 分）</p>
@@ -402,6 +403,63 @@ calc=function(){
 };
 document.addEventListener('toolbox:langchange',function(){try{__nihChart();}catch(e){}});
 try{__nihTabInit();}catch(e){}
+/* —— 门诊记录（EMR note）：把 NIHSS 评分整理成可直接粘进病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date/time: __________  Assessor: __________':'评估时间：__________　评估者：__________');
+  L.push(en?'(NIHSS must be scored by trained clinicians; total 0-42, higher means more severe deficit.)':'（NIHSS 须由受训医务人员规范评定；满分 0–42 分，分值越高提示神经功能缺损越重）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S; if(!s||typeof s.sc!=='number') return;
+  var en=__emrEn();
+  var lvEn={'无卒中症状':'no stroke symptoms','轻度卒中':'minor stroke','中度卒中':'moderate stroke','中-重度卒中':'moderate to severe stroke','重度卒中':'severe stroke'};
+  var hz,he;
+  if(s.sc===0){ hz='NIHSS 0 分：本次评估未见可检出的神经功能缺损。仍需结合发病时间窗、影像与血管评估判断是否为急性缺血事件；若症状波动或进展，须随时复评并记录时间点。';
+    he='NIHSS 0: no measurable deficit on this assessment. Still interpret together with onset time window, imaging and vascular studies to decide whether this is an acute ischaemic event; re-assess and record the time if symptoms fluctuate or progress.'; }
+  else if(s.sc<=4){ hz='NIHSS 1–4 分：轻度缺损，多为小血管病或腔隙性梗死表现。重点评估是否在静脉溶栓/取栓时间窗内（发病 4.5 小时内），并完成血糖、凝血、心电图与头颈影像；记录症状波动，警惕早期神经功能恶化。';
+    he='NIHSS 1-4: minor deficit, often small-vessel or lacunar infarction. Focus on whether the patient is within the thrombolysis/thrombectomy window (4.5 hours from onset) and complete glucose, coagulation, ECG and head-neck imaging; document fluctuation and watch for early neurological deterioration.'; }
+  else if(s.sc<=15){ hz='NIHSS 5–15 分：中度缺损，属溶栓/取栓的重点评估区间。立即启动卒中绿色通道，核对发病时间与禁忌证；每 15–30 分钟复评一次 NIHSS 直至稳定，同时监测血压、血氧、吞咽功能（饮水试验）与误吸风险。';
+    he='NIHSS 5-15: moderate deficit and the key range for reperfusion therapy. Activate the stroke pathway immediately and check onset time and contraindications; re-score every 15-30 minutes until stable, monitoring blood pressure, oxygen saturation, swallowing screen and aspiration risk.'; }
+  else if(s.sc<=20){ hz='NIHSS 16–20 分：中-重度缺损，常提示大血管闭塞，需紧急血管影像评估取栓指征。收入卒中单元监护，注意脑水肿、出血转化与吞咽障碍；早期康复（体位管理、关节活动、吞咽训练）应在 24–48 小时内启动。';
+    he='NIHSS 16-20: moderate to severe deficit suggesting large-vessel occlusion; obtain urgent vascular imaging for thrombectomy candidacy. Admit to the stroke unit for monitoring of oedema, haemorrhagic transformation and dysphagia; start early rehabilitation (positioning, ROM, swallowing training) within 24-48 hours.'; }
+  else { hz='NIHSS 21 分及以上：重度缺损，重症监护，警惕意识下降、颅内压升高与误吸。抬高床头 30°、保持气道通畅，评估插管与肠内营养指征；与家属沟通预后并尽早启动多学科康复评定，预防压疮、深静脉血栓与坠积性肺炎。';
+    he='NIHSS 21 or more: severe deficit requiring intensive monitoring for declining consciousness, raised intracranial pressure and aspiration. Elevate the head 30 degrees, maintain the airway, assess intubation and enteral feeding; discuss prognosis with the family and start multidisciplinary rehabilitation assessment early, preventing pressure injury, DVT and aspiration pneumonia.'; }
+  __emrNote({boxId:'result', name:'美国国立卫生研究院卒中量表（NIHSS · 42 分）', nameEn:'NIH Stroke Scale (NIHSS, 42 points)',
+    result:'NIHSS 总分 '+s.sc+'/42 → '+s.lv,
+    resultEn:'NIHSS total '+s.sc+'/42; '+(lvEn[s.lv]||s.lv),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'分级口径：0 无卒中症状、1–4 轻度、5–15 中度、16–20 中-重度、≥21 重度；15 个条目满分 42 分（1a 意识 0–3、1b/1c 各 0–2、2 凝视 0–2、3 视野 0–3、4 面瘫 0–3、5a/5b/6a/6b 各 0–4、7 共济 0–2、8 感觉 0–2、9 语言 0–3、10 构音 0–2、11 忽视 0–2）。',
+    extraEn:'Grading: 0 no stroke symptoms, 1-4 minor, 5-15 moderate, 16-20 moderate to severe, 21 or more severe; 15 items, maximum 42 (1a consciousness 0-3, 1b/1c 0-2 each, 2 gaze 0-2, 3 visual fields 0-3, 4 facial palsy 0-3, 5a/5b/6a/6b 0-4 each, 7 ataxia 0-2, 8 sensory 0-2, 9 language 0-3, 10 dysarthria 0-2, 11 neglect 0-2).'});
+};
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 /*TBKIT-INJECT-END*/</script>
 </body>
 </html>

@@ -64,8 +64,9 @@
   + rehabilitation 4（water-swallow-test/mmt-grading/boston-aphasia/rom-normal-value）
   + rehabilitation 4（asia-impairment-scale/mmse-scoring/physiotherapy-dose/proprioception-error）
   + rehabilitation 2（adl-task-breakdown/assistive-device-fitting，后者轮椅分支另加一条用例）
-  + clinical-nursing 1（pressure-injury-description）+ neurology 1（psqi）。
-  全站累计 **116 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
+  + clinical-nursing 1（pressure-injury-description）+ neurology 2（psqi/calc-1）。
+  全站累计 **117 页**。**neurology 已全铺完（26 页，除 index）**，psychiatry 已全铺完，
+  rehabilitation 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
@@ -112,6 +113,6 @@
     `completedSteps` 数组，而 harness 兜底循环会无参调用 `nextStep()/toggleStep()` 把步骤推满——
     **默认态与注入态实测都是「已完成 8/8 步（全部完成）」**，无法构造判别用例（必成逃生项）。
     想铺此页须先找到绕过兜底的状态通道，否则不动（避免留无测试覆盖的功能）。
-  - `neurology` 1：calc-1（NIHSS）；`pediatrics` 2：assessor-spo2（**已踩 stub 盲区**：注入后整段 script 不执行、
+  - `neurology` **已全铺完**（26 页，除 index）；`pediatrics` 2：assessor-spo2（**已踩 stub 盲区**：注入后整段 script 不执行、
     语法正常、errs 空、回滚即恢复，须单独排查）、vaccine-schedule（依赖「今天」，按铁律④ 暂缓）。
   - 「维度雷达图推广」「量表对照模块」未开发。
