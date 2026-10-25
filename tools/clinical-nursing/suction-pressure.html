@@ -273,6 +273,7 @@ function checkPressureKpa(){
 }
 
 function evaluate(p){
+  if(typeof p==='number'&&isFinite(p)) __EMR_S={p:p,ag:currentAge};
   var r = ranges[currentAge];
   var box = document.querySelector('.range-box');
   var result = document.getElementById('checkResult');
@@ -298,6 +299,67 @@ function copyResult(){
 }
 
 checkPressure();
+
+/* —— 门诊记录（EMR note）：把护理评估结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S||{p:150,ag:'adult'};
+  var en=__emrEn();
+  var ag=(typeof s.ag==='string'&&ranges[s.ag])?s.ag:'adult';
+  var p=s.p, r=ranges[ag];
+  var kpa=(p*0.133).toFixed(1);
+  var cn={adult:'成人',child:'儿童',infant:'婴幼儿',newborn:'新生儿'}[ag]||ag;
+  var ce={adult:'adult',child:'child',infant:'infant',newborn:'neonate'}[ag]||ag;
+  var st,zh,he;
+  if(p<r.min){ st='低于安全范围（吸引效果可能不足）';
+    zh='当前负压 '+p+' mmHg 低于'+cn+'安全范围 '+r.min+'–'+r.max+' mmHg：痰液黏稠时吸引效果不足，可先充分湿化、调整吸痰管型号与深度后复评；不得通过延长单次吸引时间代偿。';
+    he='Current vacuum of '+p+' mmHg is below the '+ce+' range of '+r.min+'-'+r.max+' mmHg: suction may be ineffective for thick secretions; humidify, check catheter size and depth, then re-assess. Never compensate by prolonging a single pass.'; }
+  else if(p>r.max){ st='超过安全范围（黏膜损伤风险）';
+    zh='当前负压 '+p+' mmHg 超过'+cn+'安全范围 '+r.min+'–'+r.max+' mmHg：气道黏膜损伤、出血与低氧风险升高，立即下调负压后再操作，并在记录中标注。';
+    he='Current vacuum of '+p+' mmHg exceeds the '+ce+' range of '+r.min+'-'+r.max+' mmHg: risk of mucosal injury, bleeding and hypoxaemia; reduce the vacuum before suctioning and document it.'; }
+  else { st='在安全范围内';
+    zh='当前负压 '+p+' mmHg 位于'+cn+'安全范围 '+r.min+'–'+r.max+' mmHg 内：按操作规范单次吸引不超过 10–15 秒，吸引前后给予纯氧并监测 SpO₂ 与心率。';
+    he='Current vacuum of '+p+' mmHg is within the '+ce+' range of '+r.min+'-'+r.max+' mmHg: keep each pass under 10-15 seconds, pre-oxygenate and monitor SpO2 and heart rate.'; }
+  __emrNote({boxId:'result', name:'吸痰负压设置与安全性判断', nameEn:'Suction Pressure Setting and Safety Check',
+    result:'患者类别 '+(en?ce:cn)+' · 安全范围 '+r.min+'–'+r.max+' mmHg · 当前负压 '+p+' mmHg（≈'+kpa+' kPa）→ '+st,
+    resultEn:'patient group '+ce+'; safe range '+r.min+'-'+r.max+' mmHg; current vacuum '+p+' mmHg (about '+kpa+' kPa); '+st,
+    noPos:true, hintZh:zh, hintEn:he,
+    extra:'换算：1 mmHg ≈ 0.133 kPa；类别口径 成人 150–200、儿童 100–150、婴幼儿 80–100、新生儿 60–80 mmHg',
+    extraEn:'conversion: 1 mmHg is about 0.133 kPa; reference ranges: adult 150-200, child 100-150, infant 80-100, neonate 60-80 mmHg'});
+};
+var __emrW0=(typeof evaluate==='function')?evaluate:null;
+if(__emrW0){ evaluate=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

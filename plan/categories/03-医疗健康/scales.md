@@ -59,8 +59,9 @@
   + psychology 4（phq9-assessment/psqi-assessment/sas-assessment/self-test-pressure）
   + psychology 5（assessor/calc-self-assess/rater/self-assess/calc-12）
   + clinical-nursing 1（cold-compress-timer）
-  + pediatrics 3（pediatric-fracture/rater-27/vanderbilt-adhd）。
-  全站累计 **100 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
+  + pediatrics 3（pediatric-fracture/rater-27/vanderbilt-adhd）
+  + clinical-nursing 4（pain-nrs/suction-pressure/restraint-check/surgical-position-risk）。
+  全站累计 **104 页**。psychiatry 已全铺完，psychology 仅剩 scl90（外部 js + psych-kit 通用引擎）与
   若干非临床人格/趣味页（bubble-tea/enneagram/bigfive/holland，非病历场景，不铺门诊记录）。
   顺手修 3 个真 bug：DHI 维度分母互换（P/F 的 28/36 写反）、IRLS 症状特征分母、rater 系满分口径；
   并清理 rater-18/19/22 三条「模板残留假通过」用例（`+j+` 命中页面源码，零判别力，判别力检查从 35 检/3 跳过变为 40 检/0 跳过）。
@@ -71,18 +72,32 @@
   - **第三种模板（03-19 起）：记录式钩子**——在 `calc()` 内写 `#result` 之前插 `window.__EMR_SUM={...}`，把页面已算好的分级变量捞出来，
     `__emrData()` 只做排版。适合「计算器型」页（输入→阈值→分级），零逻辑复制、不与页面阈值漂移；问卷型（answers 对象）仍需 clicks 注入。
   - 新增 harness 事实：兜底循环会**无参调用所有顶层 function 声明** ⇒ 新 helper 写成 `var f=function(){}`；复选框注入字段是 `checkIds`；
-  - **`clicks` 里的带参调用同样会被兜底无参调用覆盖**（2026-10-26 实测）：`clicks:["selectPain(7)"]` / `["__emrData(7)"]` /
-    `["eval('__emrData(7)')"]` / `["__emrData.apply(null,[7])"]` 四种写法全部读回 `undefined`；`var q=7;__emrData(q)` 也一样。
-    连 `window.__EMR_V=7` 与 `window.__EMR_V` 读取都跨作用域不通（clicks 的 window ≠ page 的 window）。
-    **唯一可靠的通道**：① DOM 输入（select 的 `inputs` 有效；input 的 `.value` 在 clicks 内改有效但常被兜底重置）；
-    ② page 内对象属性（`checkedState.ankle[i]=true` ✓、`answers['inatt_0']=3` ✓）；③ 无参 `calc()` 后由页面自身读 DOM。
-    **正面做法**：REC 只把值写进 page 内变量 `__EMR_S`，`__emrData()` 无参读它；REC 里对参数加 `typeof v==='number'` 守卫，
-    避免被兜底无参调用污染；再用 `calc`/页面函数的 wrapper `finally` 触发一次渲染（时序确定，不依赖兜底循环）。
+  - **`clicks` 带参调用的真相（2026-10-26 更正）**：兜底循环确实会无参重调页面函数，但只要 **REC 里对参数加了
+    `typeof v==='number'` / `typeof v==='string'` 守卫**，兜底那次（参数 undefined）就被守卫挡掉、**不会覆盖**已捕获的值，
+    `clicks:["selectPain(7)"]` / `selectPosition('lithotomy',哑btn)` 都实测可靠（已写入 verify）。
+    之前「带参全读回 undefined」是 **未加守卫**时代的结论，已作废——别再因此绕道。
+    仍需注意：clicks 的 `window` ≠ page 的 `window`（跨作用域不通）；input 的 `.value` 在 clicks 内改易被兜底重置，
+    可靠通道仍是 ① DOM 输入（`inputs` 字段）② page 内对象/数组属性（`checkedState.x[i]=true`、`answers['inatt_0']=3`）
+    ③ 带守卫的带参函数调用 ④ 无参 `calc()` 后由页面自身读 DOM。
+    **正面做法**：REC 只把值写进 page 内变量 `__EMR_S`，`__emrData()` 无参读它；再用 `calc`/页面函数的 wrapper
+    `finally` 触发一次渲染（时序确定，不依赖兜底循环）。
     `__emrEsc` 会把 `>`/`<`/`&` 转成实体，expect 不能直接写这些字符。
-- 🔴 待续：其余 ~90 个量表页按同一模板铺开（每批 3–6 页，逐页核分级口径）；M1 条目结构 / M2 阈值口径仍待老板裁断；
-  儿科余 5 页（assessor-spo2 / pediatric-fracture / rater-27 / vaccine-schedule / vanderbilt-adhd）：
-  **assessor-spo2 已踩 stub 盲区**（注入后整段 script 不执行，语法正常、errs 空，回滚即恢复）须单独排查；
-  vaccine-schedule 依赖「今天」写不出稳定用例。clinical-nursing 余 3 页（ostomy-bag-timing/restraint-duration/
-  tracheostomy-dressing）**用 new Date() 算具体时刻**，按铁律④ 暂不纳入稳定用例；rehabilitation 已全铺完（mmse-scoring 走问卷型，
-  早批已完成），下一批转 psychiatry 9 页与 psychology 12 页（后者为步进向导框架，需另设计注入点）；
-  「维度雷达图推广」「量表对照模块」未开发。
+- 🔴 待续（**未铺清单以 2026-10-26 全站 grep 实测为准，勿信早前「已全铺完」口径**）：
+  M1 条目结构 / M2 阈值口径仍待老板裁断。当前实测未铺（排除 index）共 **42 页**：
+  - `rehabilitation` **11 页**（早前误记「已全铺完」，实际只铺了 12/23）：adl-task-breakdown、analysis-time、
+    asia-impairment-scale、assistive-device-fitting、boston-aphasia、mmse-scoring、mmt-grading、
+    physiotherapy-dose、proprioception-error、rom-normal-value、water-swallow-test —— **均为真量表页，优先级最高**
+    （结构统一：`#resultBox` + evaluate/renderOptions，`drinkTime`+`drinkCondition` 式 select 注入即可）。
+  - `psychology` 11：analysis-2、attachment-style-test、bigfive-personality-test、bubble-tea-personality-quiz、
+    enneagram-test、generator-20、holland-career-test、random-12、scl90-assessment、tester-2、tester-3
+    （多为非病历场景的人格/趣味页；scl90 走外置 js + psych-kit 通用引擎，需另设计）。
+  - `cognition` 8：cognitive-assessment、corsi-block-test、digit-span-test、human-benchmark、nback-training、
+    schulte-table、stroop-test、time-perception（训练范式，需谨慎标注非标准化常模）。
+  - `clinical-nursing` 8：cycle-7、fall-emergency-flow、generator-pressure、ostomy-bag-timing、
+    pressure-injury-description、reminder-time-1、restraint-duration、tracheostomy-dressing。
+    其中 ostomy-bag-timing / restraint-duration / tracheostomy-dressing / cycle-7 / reminder-time-1
+    **用 `new Date()` 算具体时刻**，按铁律④ 暂不纳入稳定用例；generator-pressure 的 `pick()` 走 Math.random，
+    输出不稳定（仅「共 N 条」随 `cnt` 变，判别力弱），亦暂缓。
+  - `neurology` 2：calc-1、psqi；`pediatrics` 2：assessor-spo2（**已踩 stub 盲区**：注入后整段 script 不执行、
+    语法正常、errs 空、回滚即恢复，须单独排查）、vaccine-schedule（依赖「今天」，按铁律④ 暂缓）。
+  - 「维度雷达图推广」「量表对照模块」未开发。

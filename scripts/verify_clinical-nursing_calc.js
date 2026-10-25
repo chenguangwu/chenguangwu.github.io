@@ -251,12 +251,12 @@ const CASES = [
 {
   "slug": "clinical-nursing/pain-nrs",
   "clicks": [
-    "selectPain(2)"
+    "selectPain(7)"
   ],
   "expect": [
-    "可考虑非药物干预"
+    "NRS 7/10 → 疼痛等级：重度疼痛"
   ],
-  "ref": "NRS 面部表情点击页：selectPain(2) 落 getLevel 返回「轻度疼痛」分支，其 desc 独有串「可考虑非药物干预」。默认 selectPain(0) 走「无痛」；零参兜底 getLevel(undefined) 因 undefined<=各 max 均 false 返回 labels[last]「重度疼痛」，两态均不含该串。"
+  "ref": "门诊记录：clicks 调 selectPain(7)（页面 selectPain 被 wrapper 包住，finally 触发 __emrData 渲染），REC 内 typeof score==='number' 守卫挡住兜底无参调用覆盖，输出「NRS 7/10 → 重度疼痛」。默认态 __EMR_S 未赋值 ⇒「NRS 0/10 → 无痛」，零交集。"
 },
 {
   "slug": "clinical-nursing/pressure-injury-description",
@@ -284,13 +284,13 @@ const CASES = [
 },
 {
   "slug": "clinical-nursing/restraint-check",
-  "inputs": {
-    "restraintSite": "ankle"
-  },
-  "expect": [
-    "按压足趾甲床后颜色恢复"
+  "clicks": [
+    "checkedState[\"wrist\"]={0:true,1:true,2:true,3:true,4:true};updateResult();"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "已完成 5/7 项检查 → 未完成，不得视为安全"
+  ],
+  "ref": "门诊记录：clicks 直接写 checkedState.wrist 前 5 项为 true 后调 updateResult()，REC 就地统计已勾选数（原写法读函数内 checkedCount 因 var 提升恒为 undefined，已改为按 checkedState 现算），输出「已完成 5/7 项检查 → 未完成」。默认态 0/7 ⇒「已完成 0/7 项检查」，零交集。"
 },
 {
   "slug": "clinical-nursing/restraint-duration",
@@ -306,26 +306,22 @@ const CASES = [
 {
   "slug": "clinical-nursing/suction-pressure",
   "inputs": {
-    "currentPressure": "90"
+    "currentPressure": "260"
   },
-  "clicks": [
-    "currentAge='newborn';checkPressure()"
-  ],
   "expect": [
-    "当前压力 90 mmHg 超过安全范围（60-80mmHg），有黏膜损伤风险！"
+    "当前负压 260 mmHg（≈34.6 kPa）→ 超过安全范围"
   ],
-  "ref": "吸痰负压校验页：inputs 写 90mmHg(非默认)，clicks 切 currentAge='newborn' 后 checkPressure() 走新生儿安全区间(60-80mmHg)越界分支。默认 adult 区间不同。"
+  "ref": "门诊记录：inputs 写 260 mmHg（页面默认 150），REC 在 evaluate(p) 处捕获 typeof p==='number' 守卫后的压力值与患者类别，输出「成人 · 安全范围 150–200 · 当前负压 260 mmHg（≈34.6 kPa）→ 超过安全范围」并给出黏膜损伤临床提示。默认态 150 mmHg ⇒「在安全范围内」，零交集。"
 },
 {
   "slug": "clinical-nursing/surgical-position-risk",
   "clicks": [
-    "selectPosition('lithotomy',{classList:{add:function(){}}})"
+    "selectPosition(\"lithotomy\",{classList:{add:function(){}}})"
   ],
   "expect": [
-    "截石位压力点评估",
-    "腘窝血管神经丰富，避免腿架直接压迫"
+    "体位 截石位压力点评估 · 压力点共 4 处（高 2 / 中 1 / 低 1）"
   ],
-  "ref": "静态体位卡片页：selectPosition('lithotomy', btn) 需第二参 btn(classList) 否则抛错，故传哑对象；输出该体位专属标题与压力点。默认初始化走 supine(平卧位)。"
+  "ref": "门诊记录：clicks 调 selectPosition('lithotomy', 哑 btn)（第二参需 classList 否则抛错），REC 内 typeof pos==='string' 守卫，输出截石位 4 个压力点的高/中/低分布。默认 supine ⇒「仰卧位压力点评估 · 压力点共 5 处（高 3 / 中 2 / 低 0）」，零交集。"
 },
 {
   "slug": "clinical-nursing/tracheostomy-dressing",

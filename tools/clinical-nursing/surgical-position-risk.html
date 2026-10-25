@@ -281,6 +281,7 @@ var riskLabels = { high:'高度风险', medium:'中度风险', low:'低度风险
 var currentPos = 'supine';
 
 function selectPosition(pos, btn){
+  if(typeof pos==='string'&&positions[pos]) __EMR_S={pos:pos};
   currentPos = pos;
   document.querySelectorAll('.position-tab button').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
@@ -389,6 +390,69 @@ selectPosition=function(pos,btn){__psp0(pos,btn);__posExtras();};
 selectPosition('supine', document.querySelector('.position-tab button'));
 __posMatrix();
 __posMountHist();
+
+/* —— 门诊记录（EMR note）：把护理评估结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S||{pos:'supine'};
+  var en=__emrEn();
+  var key=positions[s.pos]?s.pos:'supine';
+  var p=positions[key];
+  var riskEn={high:'high risk',medium:'moderate risk',low:'low risk'};
+  var hi=0,me=0,lo=0,list=[];
+  for(var i=0;i<p.points.length;i++){
+    var pt=p.points[i];
+    if(pt.risk==='high') hi++; else if(pt.risk==='medium') me++; else lo++;
+    list.push({i:i+1,t:pt.name+'（'+(en?riskEn[pt.risk]:riskLabels[pt.risk])+'）',o:pt.measure});
+  }
+  var hz,he;
+  if(hi>=3){ hz='高危压力点 '+hi+' 处：必须使用凝胶垫/体位垫对骨突处减压，术中间隔不超过 2 小时评估一次皮肤与受压部位，必要时微调体位；预计手术时长超过 4 小时按压力性损伤高危管理。';
+    he='Three or more high-risk pressure points: use gel or positioning pads on bony prominences, reassess skin and pressure areas at least every 2 hours intraoperatively and adjust the position if needed; manage as high risk for pressure injury when surgery exceeds four hours.'; }
+  else if(hi>=1){ hz='存在高危压力点：对标记为高度风险的部位加垫分散压力，术中每 2 小时检查皮肤颜色与温度，术后即刻复评并记录。';
+    he='High-risk pressure points present: pad and offload the sites marked high risk, check skin colour and temperature every 2 hours intraoperatively, and reassess immediately after surgery.'; }
+  else { hz='无高度风险压力点：按常规体位护理执行，保持床单平整干燥，术毕检查皮肤完整性。';
+    he='No high-risk pressure points: follow routine positioning care, keep linen flat and dry, and check skin integrity after surgery.'; }
+  __emrNote({boxId:'result', name:'手术体位压力点风险评估', nameEn:'Surgical Position Pressure-Point Risk',
+    result:'体位 '+(en?p.title:p.title)+' · 压力点共 '+p.points.length+' 处（高 '+hi+' / 中 '+me+' / 低 '+lo+'）',
+    resultEn:'position '+p.title+'; '+p.points.length+' pressure points (high '+hi+', moderate '+me+', low '+lo+')',
+    pos:list,
+    hintZh:hz, hintEn:he,
+    extra:'风险分级口径：高度=骨突处直接承重且易致压力性损伤、中度=需垫软枕分散、低度=注意固定与避免夹伤；体位摆放后须双人核对接点与管路',
+    extraEn:'grading: high means direct load on a bony prominence likely to cause pressure injury, moderate requires padding, low requires attention to fixation and pinch injury; two staff must verify contact points and lines after positioning'});
+};
+var __emrW0=(typeof selectPosition==='function')?selectPosition:null;
+if(__emrW0){ selectPosition=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

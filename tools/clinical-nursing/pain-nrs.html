@@ -269,6 +269,7 @@ function renderScale(){
 }
 
 function selectPain(score){
+  if(typeof score==='number'&&isFinite(score)) __EMR_S={sc:score};
   for(var i=0;i<=10;i++){
     var el = document.getElementById('point_'+i);
     if(el) el.classList.remove('active');
@@ -356,6 +357,63 @@ function __nrsMountHist(){
 renderScale();
 selectPain(0);
 __nrsMountHist();
+
+/* —— 门诊记录（EMR note）：把护理评估结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S||{sc:0};
+  var en=__emrEn();
+  var lv=getLevel(s.sc);
+  var enMap=['No pain','Mild pain','Mild pain','Mild pain','Moderate pain','Moderate pain','Moderate pain','Severe pain','Severe pain','Severe pain','Severe pain'];
+  var hz,he;
+  if(s.sc>=7){ hz='NRS 7–10（重度）：立即报告医生并按医嘱给予镇痛，30–60 分钟后复评；同时评估镇痛相关不良反应（呼吸抑制、恶心、镇静过度）与疼痛性质、部位、诱因。';
+    he='NRS 7-10 (severe): report to the physician immediately and give analgesia as prescribed, re-assessing in 30-60 minutes; also review opioid adverse effects (respiratory depression, nausea, oversedation) and pain character, site and triggers.'; }
+  else if(s.sc>=4){ hz='NRS 4–6（中度）：按医嘱给予镇痛并 1 小时内复评；联合非药物措施（体位、冷热敷、分散注意力），记录干预前后评分变化。';
+    he='NRS 4-6 (moderate): give analgesia as prescribed and re-assess within 1 hour; combine with non-pharmacological measures (positioning, hot/cold compress, distraction) and record the score before and after.'; }
+  else if(s.sc>=1){ hz='NRS 1–3（轻度）：可先采用非药物干预并观察，疼痛加重或影响睡眠活动时按医嘱用药。';
+    he='NRS 1-3 (mild): start with non-pharmacological measures and observe; use analgesics as prescribed if pain worsens or affects sleep and activity.'; }
+  else { hz='NRS 0（无痛）：按常规评估频次复评，出现新发疼痛时随时评估。';
+    he='NRS 0 (no pain): re-assess at the routine interval and any time new pain appears.'; }
+  __emrNote({boxId:'result', name:'疼痛数字评分法（NRS 0–10）', nameEn:'Numeric Rating Scale for Pain (NRS 0-10)',
+    result:'NRS '+s.sc+'/10 → 疼痛等级：'+(en?enMap[s.sc]:lv.label),
+    resultEn:'NRS '+s.sc+'/10; pain level '+(en?enMap[s.sc]:lv.label),
+    noPos:true, hintZh:hz, hintEn:he,
+    extra:'评分口径：0 无痛、1–3 轻度（不影响睡眠活动）、4–6 中度（影响睡眠活动）、7–10 重度（剧痛需立即处理）；记录应含部位、性质、诱因与干预后复评分',
+    extraEn:'scoring: 0 no pain, 1-3 mild (sleep and activity preserved), 4-6 moderate (sleep and activity affected), 7-10 severe (immediate management); document site, character, triggers and the post-intervention re-score'});
+};
+var __emrW0=(typeof selectPain==='function')?selectPain:null;
+if(__emrW0){ selectPain=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

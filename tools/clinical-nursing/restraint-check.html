@@ -310,6 +310,10 @@ function toggleCheck(idx){
 }
 
 function updateResult(){
+  var __site0=(document.getElementById('restraintSite')||{}).value||'wrist';
+  var __st0=checkedState[__site0]||{}, __it0=checkItems[__site0]||[], __ck0=0;
+  for(var __j0=0;__j0<__it0.length;__j0++){ if(__st0[__j0]) __ck0++; }
+  __EMR_S={site:__site0,ck:__ck0};
   var site = document.getElementById('restraintSite').value;
   var items = checkItems[site];
   if(!checkedState[site]) checkedState[site] = {};
@@ -362,6 +366,66 @@ function copyResult(){
 }
 
 updateChecks();
+
+/* —— 门诊记录（EMR note）：把护理评估结果整理成可直接粘进护理记录/病历的文本 —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_S;
+var __emrData=function(){
+  var el=document.getElementById('result'); if(!el) return;
+  var s=__EMR_S||{site:'wrist',ck:0};
+  var en=__emrEn();
+  var site=checkItems[s.site]?s.site:'wrist';
+  var items=checkItems[site];
+  var ck=s.ck;
+  var zhMap={wrist:'手腕约束带',ankle:'踝部约束带',chest:'胸衣约束',shoulder:'肩部约束带',mitten:'约束手套'};
+  var enMap={wrist:'wrist restraint',ankle:'ankle restraint',chest:'chest vest restraint',shoulder:'shoulder restraint',mitten:'mitten restraint'};
+  var done=(ck>=items.length);
+  var open=[];
+  for(var i=ck;i<items.length;i++){ open.push({i:i+1,t:items[i].title,o:en?'not verified':'未确认'}); }
+  var hz,he;
+  if(done){ hz='全部检查项通过：约束带松紧以可伸入 1–2 横指为宜，每 15–30 分钟观察末梢循环（颜色、温度、毛细血管充盈、桡/足背动脉搏动），至少每 2 小时松解一次并变换体位，逐次记录。';
+    he='All checks passed: the restraint should admit one to two fingers, observe distal circulation every 15-30 minutes (colour, temperature, capillary refill, radial or dorsalis pedis pulse), release and reposition at least every 2 hours, recording each check.'; }
+  else { hz='存在未确认项：未完成全部检查前不得视为约束安全，需补做末梢循环与皮肤完整性评估；发现苍白、发绀、冰凉、麻木或破损立即松解并报告医生。';
+    he='Some items are unverified: restraint safety cannot be confirmed until every check is complete; finish the distal circulation and skin integrity assessment. Release and report immediately if pallor, cyanosis, coldness, numbness or skin breakdown appears.'; }
+  __emrNote({boxId:'result', name:'约束带安全检查（'+(en?enMap[site]:zhMap[site])+'）', nameEn:'Restraint Safety Check ('+(en?enMap[site]:zhMap[site])+')',
+    result:'约束部位 '+(en?enMap[site]:zhMap[site])+' · 已完成 '+ck+'/'+items.length+' 项检查 → '+(done?'全部通过，约束松紧合适':'未完成，不得视为安全'),
+    resultEn:'site '+(en?enMap[site]:zhMap[site])+'; '+ck+'/'+items.length+' checks completed; '+(done?'all passed, restraint fit acceptable':'incomplete, safety not established'),
+    pos:open,
+    hintZh:hz, hintEn:he,
+    extra:'配套要求：约束需有医嘱与知情同意，记录约束原因、部位、开始与松解时间、每次末梢循环观察结果；每 2 小时松解活动一次',
+    extraEn:'requirements: a physician order and informed consent, with documentation of reason, site, start and release times, each circulation check, and release with mobilisation every 2 hours'});
+};
+var __emrW0=(typeof updateResult==='function')?updateResult:null;
+if(__emrW0){ updateResult=function(){ try{ return __emrW0.apply(null,arguments); } finally { try{__emrData();}catch(e){} } }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
