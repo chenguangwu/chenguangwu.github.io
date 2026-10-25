@@ -28,9 +28,11 @@
 | 批17 | machinery/life/biz/fun/automotive/general（212 计算页全读） | ✅ 已覆盖（新发现 3 项已归档：life.md L1/biz-startup.md Z1/machinery M3） |
 | 批18 | realestate/legal/marketing/metalwork/meteorology/energy/optical/fire-rescue/eco（322 计算页全读） | ✅ 已覆盖（新发现 2 项归档：eco-10/16 量纲 E1、metalwork 7 对比页功能单薄；realestate/legal 双段式页生效版此前 S 批已对照） |
 | 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（316 计算页全读） | ✅ 已覆盖（specialties.md C1 游离酸颠倒；_others.md O6 重金属迁移×1000 单位待核；其余 9 目录公式全核对通过） |
-| 批20 | 其余全部 <25 页小目录（95 个，967 页） | 🟡 进行中——A 组 16 目录 170 页已读（新发现：specialties C2 法医胎龄公式失真、hr-legal L3 年假折算 ceil 口径矛盾；travel/fluid/ecommerce/中医4目录/property/hr/food-processing/data/beauty/metallurgy/forensic-medicine/language/nutrition 公式全核对通过）；余 79 目录（ai 64 页最大），dump 脚本见 plan/HANDOFF.md |
+| 批20 | 其余全部 <25 页小目录（95 个，967 页） | ✅ 全读毕（A-O 组：travel/fluid/ecommerce/中医4/property/hr/food-processing/data/beauty/metallurgy/forensic/language/nutrition/welding/safety/advertising/pet/leather/gardening/image/usedcar/hvac/text/pr/mining/security/gas/fire/elderly/process/ai/sales…daily-goods）。新发现 8 项已归档：specialties C2 法医胎龄公式、hr-legal L3 年假折算、_others O7 fire 硬编码日期、life L4 鞋码 US/UK 偏大 8 码、construction E2 桥梁 Pk 270→180、tax-accounting F1 权益乘数定义、marketing-sales Z2 利润率口径、ecommerce-logistics Z3 未达标率标签 |
 
 > 登记纪律：审计新发现的**未修复**问题按归属追加进对应任务文件；已修复问题一律不写入。
+>
+> **✅ 2026-10-25 全站审计闭环**：批1-20 全部完成，212 目录 / 5008 页工具的计算页全数过目（calc 公式逐条对照、量纲/阈值/标签三口径核对）。累计归档未修复问题 30+ 项（分布见各分类文件），其中高优先级：O6 食品检测重金属×1000、C1 游离酸颠倒、C2 法医胎龄公式、L4 鞋码偏大 8 码、E1/E2 量纲与标准值错误。后续进入「按 plan 开发修复 + G06 留存升级」阶段。
 
 ## 分类任务进度
 

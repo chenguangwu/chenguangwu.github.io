@@ -10,28 +10,22 @@
 | 批17 | machinery/life/biz/fun/automotive/general（212 计算页） | ✅ 已归档（life.md L1 胸罩码 / biz-startup.md Z1 量纲 / machinery M3 死代码） |
 | 批18 | realestate/legal/marketing/metalwork/meteorology/energy/optical/fire-rescue/eco（322 计算页） | ✅ 已归档（eco E1 万kWh 量纲 / metalwork 7 对比页功能单薄） |
 | 批19 | cosmetic-derm/ophthalmology/encode/metrology/textile/robotics/nuclear/geometry/signal/food-testing/reproductive-medicine/rheumatology（316 计算页） | ✅ 全读毕（specialties C1 游离酸颠倒；_others O6 重金属迁移×1000；提交 862d884e54） |
-| 批20-A | travel/fluid/ecommerce/acupuncture/tcm-pharmacy/tcm-chemistry/tcm-diagnosis/property/hr/food-processing/data/beauty/metallurgy/forensic-medicine/language/nutrition（16 目录 170 页） | ✅ 全读毕（specialties C2 法医胎龄公式失真；hr-legal L3 年假折算 ceil 口径矛盾；其余公式全核对通过，含 hr 加班 1.5/2/3 倍、food-processing F值/ASLT/过滤/喷雾干燥、metallurgy 杠杆定律/Chvorinov/Arrhenius、nutrition 添加剂量纲正确对照 O6） |
+| 批20 | 其余 95 目录 967 页（A: travel→nutrition 16 目录；B: welding→process 17 目录；C: ai；D+E: sales→antiques 25 目录；F+G: yi→daily-goods 36 目录） | ✅ **全读毕，全站审计闭环**（2026-10-25）。新发现 8 项：specialties C2 法医胎龄公式失真、hr-legal L3 年假折算 ceil 矛盾、_others O7 fire/detector-44 硬编码日期 2026-07-31、life L4 鞋码 US/UK 偏大 8 码、construction-energy E2 桥梁 Pk 内插基线 270 应 180、tax-accounting F1 权益乘数定义错、marketing-sales Z2 利润率/加价率同值、ecommerce-logistics Z3 未达标率标签反。其余目录公式全核对通过（含 ai 全目录 56 calc 页、process 六西格玛全套、forex/futures、medical2 病床统计等） |
 
-## 二、批20 续作（先做这个）
+## 二、任务状态：全站审计已完成 ✅
 
-### 已就绪的转储
-`/tmp/dump_b20b.txt`（1098 行）已生成未读：B 组 17 目录（welding/safety/advertising/pet/leather/gardening/image/usedcar/hvac/text/pr/mining/security/gas/fire/elderly/process，249 calc 页 + 91 no-calc 页标记）。若 /tmp 被清，用 §五脚本重新生成（dirs 参数见下行）。
+批1-20 全部闭环，212 目录 / 5008 页的计算页全数过目。**审计任务移交完毕，后续是两类工作**：
 
-```bash
-python3 /tmp/gen_dump.py "welding,safety,advertising,pet,leather,gardening,image,usedcar,hvac,text,pr,mining,security,gas,fire,elderly,process" > /tmp/dump_b20b.txt
+1. **按 plan 修复开发**（高优先级排序建议）：O6 重金属×1000 → C1 游离酸 → C2 法医胎龄 → L4 鞋码 → E1/E2 量纲/标准值 → L3/O7/F1/Z2/Z3 小改。修复时遵守 G03 数据源规则（改 json/i18n 源而非 HTML 直改）与 verify 用例同步。
+2. **G06 留存与竞争力升级**（价值核心，「用户看一眼就走」破局）——等老板排期。
+
+附：批 20 期间用的补充提取脚本（ai 目录 `__vN` 表达式专用，§五脚本对 ai 只能抓到取值行）：
+```python
+# 抓每页 __vN = (...) 或 Math.* 行（跳过 getElementById 取值行），前 8 条
+for f in sorted(glob.glob('tools/ai/*.html')):
+    ...同 §五 grab()...
+    if re.search(r'__v\d+\s*=|Math\.',s) and 'getElementById' not in s: out.append(s)
 ```
-
-### B 组之后剩余目录（按 /tmp/rest_dirs.txt）
-- **C 组**：`ai`（64 页，浏览器本地 AI 页，多为 module 脚本，dump 可能抓不到 calc，需 grep `<script type="module"` 另行处理）
-- **D 组**：sales,procurement,research,rental,quality,museum,library,cognition,woodwork,printing,hotel,dance,admin（13 目录，93 页）
-- **E 组**：startup,road,parenting,packaging,jewelry,funeral,floral,film,exhibition,chinese-cook,archaeology,antiques（12 目录，72 页）
-- **F 组**：29 个 5 页目录：yi,woodworking,tunnel,stage,shipping,service,seismology,rubber,railway,project,plastic,pets,pet-training,niche,medical2,martial,manufacturing,legal2,kids,gardening2,futures,forex,fengshui,chinese,chess,bridge,bonding,audit,accessibility
-- **G 组**：stats,photo2,misc,misc2,express,daily-goods,network（7 目录 17 页；network 0 页仅目录）
-
-### 审读要点（沿用）
-1. 双段模板页（第一段死模板 `score=(a+b)/2`）→ 看后段是否领域逻辑；两段都通用 → 记「功能单薄」。
-2. 系数量纲错 / 医学量表阈值错是重点；发现后**读原页核实再归档**。
-3. 已修不写；归档到 plan/categories/ 对应大分类（映射参考既有条目）。
 
 ## 三、批20（最后一批）
 
