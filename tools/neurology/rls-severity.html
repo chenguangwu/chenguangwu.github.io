@@ -363,6 +363,69 @@ function copyResult(){
 
 buildForm();
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof questions==='undefined') return;
+  var el=document.getElementById('result'); if(!el) return;
+  var total=0,sevS=0,slp=0,day=0,fea=0,done=0,i,j,rs,v,pos=[];
+  for(i=0;i<questions.length;i++){
+    rs=document.getElementsByName('q'+i);
+    for(j=0;j<(rs?rs.length:0);j++){
+      if(rs[j].checked){
+        v=parseInt(rs[j].value)||0; total+=v; done++;
+        if(i<3) sevS+=v; else if(i<5) slp+=v; else if(i<7) day+=v; else fea+=v;
+        if(v>=3) pos.push({i:i+1,t:String(questions[i].q||'').replace(/^\d+\.\s*/,''),o:''});
+        break;
+      }
+    }
+  }
+  if(done<questions.length) return;
+  var band;
+  if(total===0) band=['无症状','no symptoms','无不宁腿症状，无需处理。','No restless legs symptoms.'];
+  else if(total<=10) band=['轻度','mild','轻度 RLS：规律运动、睡眠卫生、避免咖啡因/酒精；查血清铁蛋白，<75 μg/L 可口服补铁。','Mild RLS: exercise, sleep hygiene, avoid caffeine/alcohol; check ferritin and supplement if below 75 ug/L.'];
+  else if(total<=20) band=['中度','moderate','中度 RLS：多巴胺受体激动剂（普拉克索 0.125 mg 起）或 α2δ 配体（加巴喷丁/普瑞巴林），并行补铁。','Moderate RLS: dopamine agonist (pramipexole from 0.125 mg) or alpha-2-delta ligand, plus iron repletion.'];
+  else if(total<=30) band=['重度','severe','重度 RLS：药物治疗并监测铁蛋白（目标 >100 μg/L），警惕多巴胺类药物引起的症状加重（augmentation）。','Severe RLS: drug therapy and ferritin monitoring (target above 100 ug/L); watch for dopamine-related augmentation.'];
+  else band=['极重度','very severe','极重度 RLS：综合药物管理，排查缺铁/肾功能不全/加重药物，难治者可考虑低剂量阿片类三线治疗。','Very severe RLS: comprehensive management, exclude iron deficiency, renal impairment and aggravating drugs; low-dose opioid as third-line.'];
+  __emrNote({name:'IRLS 国际不宁腿综合征严重程度评定量表（10 项 · 0–40）', nameEn:'IRLS Restless Legs Syndrome Severity Scale (10 items, 0-40)',
+    result:'总分 '+total+'/40，分级：'+band[0], resultEn:'total '+total+'/40, band: '+band[1],
+    noPos:true, hintZh:band[2], hintEn:band[3],
+    extra:'症状严重度 '+sevS+'/12 · 睡眠影响 '+slp+'/8 · 日常生活 '+day+'/8 · 症状特征 '+fea+'/12；重度条目（≥3 分）'+pos.length+'/10',
+    extraEn:'Symptom severity '+sevS+'/12, sleep impact '+slp+'/8, daily life '+day+'/8, symptom features '+fea+'/12; items scoring >=3: '+pos.length+'/10'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

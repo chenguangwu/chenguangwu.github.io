@@ -567,6 +567,15 @@ const CASES = [
   ],
   "ref": "Y-BOCS 十项（强迫思维 5 + 强迫行为 5）全选「极重度」j=4 ⇒ 总分 40/40 ⇒ 落 total>31 分支「极重度」；强迫思维 20/20、强迫行为 20/20。默认态为「已作答 0/10 项」提示，零交集。via=click"
 }
+  ,{
+    "slug": "psychiatry/cdrisc-resilience",
+    "clicks": ["for(var i=0;i<QS.length;i++){A[i]=3;}calc()"],
+    "expect": [
+      "【CD-RISC-10 心理韧性量表（10 条目 · 近 1 个月）】 结果：总分 30/40，分级：较高",
+      "条目均分 3.0（0–4 分制）；高分条目（≥3 分）10/10"
+    ],
+    "ref": "门诊记录（EMR note）：把评分数组 A 全置 3（10 项）后重算 ⇒ 总分 30 >29 落「较高」；条目均分 30/10=3.0、高分条目 10/10。默认态 A 全为 -1（未作答）⇒ done<10 直接 return，不渲染门诊记录，零交集。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

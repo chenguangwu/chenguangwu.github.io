@@ -363,6 +363,72 @@ function __phq9Export(){
 
 buildForm();
 calc();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof questions==='undefined') return;
+  var el=document.getElementById('result'); if(!el) return;
+  var total=0,item9=0,done=0,ge2=0,i,j,rs,v,pos=[];
+  for(i=0;i<questions.length;i++){
+    rs=document.getElementsByName('q'+i);
+    for(j=0;j<(rs?rs.length:0);j++){
+      if(rs[j].checked){
+        v=parseInt(rs[j].value)||0; total+=v; done++;
+        if(i===8) item9=v;
+        if(v>=2) ge2++;
+        if(v>=1) pos.push({i:i+1,t:String(questions[i].q||'').replace(/^\d+\.\s*/,''),o:''});
+        break;
+      }
+    }
+  }
+  if(done<questions.length) return;
+  var band;
+  if(total<=4) band=['无抑郁','none','无明显抑郁症状，定期随访筛查即可。','No significant depressive symptoms; routine screening.'];
+  else if(total<=9) band=['轻度抑郁','mild','轻度抑郁症状：心理支持或认知行为治疗，4–6 周后复评。','Mild symptoms: psychological support or CBT, reassess in 4-6 weeks.'];
+  else if(total<=14) band=['中度抑郁','moderate','中度抑郁：抗抑郁药物（舍曲林/艾司西酞普兰，小剂量起始缓慢加量）或规范心理治疗。','Moderate: SSRI (sertraline/escitalopram, start low, titrate slow) or structured psychotherapy.'];
+  else if(total<=19) band=['中重度抑郁','moderately severe','中重度抑郁：推荐药物联合心理治疗，SSRI 为一线，注意药物相互作用。','Moderately severe: combined pharmacotherapy and psychotherapy; SSRI first line, check interactions.'];
+  else band=['重度抑郁','severe','重度抑郁：药物+心理治疗综合管理并密切监测，必要时精神科会诊。','Severe: combined treatment with close monitoring; psychiatric consultation if needed.'];
+  var risk='';
+  if(item9>0) risk=item9===1?'第 9 题（自伤/死亡念头）得 1 分，需评估自杀风险':'第 9 题（自伤/死亡念头）得 '+item9+' 分，需立即进行自杀风险评估与安全干预';
+  __emrNote({name:'PHQ-9 卒中后抑郁筛查（9 条目 · 近 2 周）', nameEn:'PHQ-9 Post-stroke Depression Screen (9 items, past 2 weeks)',
+    result:'总分 '+total+'/27，分级：'+band[0], resultEn:'total '+total+'/27, band: '+band[1],
+    noPos:true, hintZh:band[2], hintEn:band[3],
+    extra:'DSM-5 重性抑郁症状条目数（≥2 分）'+ge2+'/9；第 9 题得分 '+item9+(risk?'；'+risk:''),
+    extraEn:'DSM-5 major-depression symptom count (>=2): '+ge2+'/9; item 9 score '+item9});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->

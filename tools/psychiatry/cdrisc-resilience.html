@@ -308,6 +308,57 @@ function copyResult(){
 }
 var __cd0=calc; calc=function(){__cd0(); __cdExtras();};
 render();calc(); __cdMountHist();
+
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  if(typeof QS==='undefined'||typeof A==='undefined'||typeof OPTS==='undefined') return;
+  var el=document.getElementById('result'); if(!el) return;
+  var total=0,done=0,hi=0,i,pos=[];
+  for(i=0;i<QS.length;i++){ if(A[i]>=0){ done++; total+=A[i]; if(A[i]>=3) hi++; if(A[i]>0) pos.push({i:i+1,t:String(QS[i]||'').replace(/^\d+\.\s*/,''),o:String(OPTS[A[i]]||'')}); } }
+  if(done<QS.length) return;
+  var band;
+  if(total<=19) band=['较低','low','心理韧性较低，面对压力时较难恢复；建议加强应对技能与心理建设。','Resilience is low; recovery from stress may be difficult - build coping skills and psychological resources.'];
+  else if(total<=29) band=['中等','moderate','具备中等水平的心理韧性，有一定的复原与应对能力。','Moderate resilience with reasonable recovery and coping capacity.'];
+  else band=['较高','high','心理韧性良好，面对逆境具有较强的复原力。','Good resilience with strong capacity to bounce back from adversity.'];
+  __emrNote({name:'CD-RISC-10 心理韧性量表（10 条目 · 近 1 个月）', nameEn:'CD-RISC-10 Resilience Scale (10 items, past month)',
+    result:'总分 '+total+'/40，分级：'+band[0], resultEn:'total '+total+'/40, band: '+band[1],
+    pos:pos, hintZh:band[2], hintEn:band[3],
+    extra:'条目均分 '+(total/QS.length).toFixed(1)+'（0–4 分制）；高分条目（≥3 分）'+hi+'/10',
+    extraEn:'Mean item score '+(total/QS.length).toFixed(1)+' (0-4); items >=3: '+hi+'/10'});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介绍区块 -->
